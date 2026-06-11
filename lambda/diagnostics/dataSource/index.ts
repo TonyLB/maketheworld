@@ -9,6 +9,7 @@ import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalign
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
+import { diagnosticsIntakeDeduper } from './intakeDeduper'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
@@ -37,33 +38,21 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
         }
     }))
 
-    const dedupedEvents = preparedEvents.reduce<typeof preparedEvents>((previous, entry) => {
-        if (!isConnectionsProblemEnvelope(entry.event as any)) {
-            return [...previous, entry]
-        }
-        if (!isSessionDisconnectProblemEvent(entry.normalizedContent)) {
-            console.log(JSON.stringify({
-                event: 'diagnostics-intake-drop',
-                reason: 'invalid-connections-event-payload',
-                source: entry.event.header.dataSourceKey,
-                detailType: entry.event.header.type
-            }))
-            return previous
-        }
-        const alreadyIncluded = previous.some(
-            ({ normalizedContent }) =>
-                isSessionDisconnectProblemEvent(normalizedContent) &&
-                normalizedContent.dedupeKey === entry.normalizedContent.dedupeKey
-        )
-        if (alreadyIncluded) {
-            return previous
-        }
-        return [...previous, entry]
-    }, [])
-
-    await Promise.all(dedupedEvents.map(async ({ event }) => {
+    await Promise.all(preparedEvents.map(async ({ event, normalizedContent }) => {
         try {
             if (isConnectionsProblemEnvelope(event as any)) {
+                if (!isSessionDisconnectProblemEvent(normalizedContent)) {
+                    console.log(JSON.stringify({
+                        event: 'diagnostics-intake-drop',
+                        reason: 'invalid-connections-event-payload',
+                        source: event.header.dataSourceKey,
+                        detailType: event.header.type
+                    }))
+                    return
+                }
+                if (!diagnosticsIntakeDeduper.tryClaim(normalizedContent.dedupeKey)) {
+                    return
+                }
                 await staleSessionSweep()
                 return
             }
@@ -73,7 +62,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
@@ -85,7 +74,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
@@ -97,7 +86,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
@@ -106,7 +95,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             if (isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 if (typeof content.assetId !== 'string' || !content.assetId.length) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Error',
                         body: { error: 'ComponentVerticalMisalignmentSweep requires assetId', statusCode: 400 }
                     })
@@ -117,7 +106,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
@@ -126,7 +115,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             if (isDiagnosticsApiRenderCacheDriftSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 if (!Array.isArray(content.roomIds)) {
-                    messageBus.send({
+                    messageBus.publish({
                         type: 'Error',
                         body: { error: 'RenderCacheDriftSweep requires roomIds array', statusCode: 400 }
                     })
@@ -137,7 +126,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })
-                messageBus.send({
+                messageBus.publish({
                     type: 'ReturnValue',
                     body: result as Record<string, any>
                 })
@@ -145,7 +134,7 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             }
         }
         catch (error) {
-            messageBus.send({
+            messageBus.publish({
                 type: 'Error',
                 body: {
                     error: error instanceof Error ? error.message : String(error),

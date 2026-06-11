@@ -7,8 +7,8 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 ## Core Purpose
 
 - **Decoupling**: Separates complex processing into isolated, testable components
-- **Priority Ordering**: Ensures operations execute in the correct sequence
-- **Stream Processing**: Allows multiple handlers to process the same messages
+- **Priority Ordering**: Subscription `priority` is retained for documentation; **`publish` schedules matching handlers concurrently** (priority is not enforced on the publish path)
+- **Stream Processing**: Handlers receive `payloads: [singleItem]` per `publish`; concurrent handler invocations are natural under `publish`/`settle`
 - **Type Safety**: Provides compile-time guarantees for message handling
 
 ## Technical Details
@@ -16,10 +16,9 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 ### Two-Tier Architecture
 
 #### **Generic InternalMessageBus** (`packages/mtw-lambda-patterns/ts/messageBus`)
-- Low-level stream processing engine
-- Priority-based execution with parallel processing within priority groups
+- Low-level async scheduling engine (`publish`, `settle`, `flushAndSettle`)
 - Type-safe filtering with TypeScript type guards
-- Messages retained after processing for multiple handler consumption
+- Handler promises tracked in `_inFlight` until boundary drain
 
 #### **Domain-Specific MessageBuses** (`lambda/*/messageBus`)
 - High-level business logic handlers
@@ -61,7 +60,7 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 1. **Define Message Types**: Create discriminated union with type guards
 2. **Implement Handler Function**: Follow standard async handler pattern
 3. **Register Subscription**: Add to messageBus with appropriate priority
-4. **Send Messages**: Use `messageBus.send()` from API handlers
+4. **Publish Messages**: Use `messageBus.publish()` from API handlers; boundary drain via `await messageBus.flushAndSettle()` in `app.ts`
 
 ### Priority Guidelines
 - **Priority 1-3**: Critical system operations (character registration, authentication)

@@ -5,7 +5,7 @@ import { sendApiDiagnosticsEvent } from './dataSource/apiDiagnostics'
 import './dataSource'
 
 const enqueueDiagnosticsEnvelope = async (envelope: any) => {
-    messageBus.send({
+    messageBus.publish({
         type: 'StreamingEvent',
         dataSourceKey: envelope.header.dataSourceKey,
         streamKey: envelope.header.streamKey,

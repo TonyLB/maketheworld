@@ -26,10 +26,6 @@ describe('mtw.ephemera.state DataSource', () => {
         })
     }
 
-    it('uses publish outbound bus delivery', () => {
-        expect(ephemeraStateDataSource.outboundBusDelivery).toBe('publish')
-    })
-
     it('publishes State Changed StreamingEvent after successful persist', async () => {
         const roomId = 'ROOM#r1' as EphemeraRoomId
         const priorState = { marks: { markValue: [] as { mark: string; value: string }[] } }

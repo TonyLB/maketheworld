@@ -91,7 +91,6 @@ export const componentExamplesDataSource = new AssetsDataSource<
     ComponentExamplesSubscribedContent
 >({
     dataSourceKey: 'mtw.assets.componentExamples',
-    outboundBusDelivery: 'publish',
     replayable: false,
     subscribedEventTypeGuard: isComponentExamplesSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {

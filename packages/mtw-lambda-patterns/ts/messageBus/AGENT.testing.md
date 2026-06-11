@@ -6,16 +6,16 @@ This guide provides testing strategies and examples for the MessageBus system. F
 
 ### Async boundaries and message bus drains
 
-When code under test `await`s a dependency (for example a mocked long render) and you need to assert **before** and **after** that await, use [`createAsyncGate`](../testing/asyncGate.ts) from `ts/testing/asyncGate.ts`: run the subject, assert pre-await side effects, call `resolve()`, then `await Promise.resolve()` (or similar) before post-await assertions. The same discipline applies when pairing with lane-scoped [`flush()` / `flush(laneId)`](./index.ts) so continuations and bus drains line up with your test steps.
+When code under test `await`s a dependency (for example a mocked long render) and you need to assert **before** and **after** that await, use [`createAsyncGate`](../testing/asyncGate.ts) from `ts/testing/asyncGate.ts`: run the subject, assert pre-await side effects, call `resolve()`, then `await Promise.resolve()` (or similar) before post-await assertions. Pair with **`await messageBus.flushAndSettle()`** (or **`settle()`** in unit tests) so bus work completes before assertions.
 
-### `publish` / `settle` test teardown (Q6)
+### `publish` / `settle` test teardown
 
 When tests use `publish` or `_inFlight` handlers, use **test harness drain** (not production handler pattern):
 
-1. **`await messageBus.settle()`** (or **`await messageBus.flushAndSettle()`** while `send`/`flush` still exist) at end of test body or in **`afterEach`** before `clear()`.
+1. **`await messageBus.settle()`** or **`await messageBus.flushAndSettle()`** at end of test body or in **`afterEach`** before `clear()`.
 2. Then **`messageBus.clear()`** for isolation.
 
-Do not rely on `clear()` alone to drain async handler work; that drops `_inFlight` tracking while promises may still be running and causes cross-test flakes. Production code uses **boundary drain** (`flushAndSettle` at lambda exit), not `settle()` inside handlers. Terminology: task plan **Bus drain terminology**. See [`index.test.ts`](./index.test.ts) `describe('publish / settle / flushAndSettle')` for examples.
+Do not rely on `clear()` alone to drain async handler work; that drops `_inFlight` tracking while promises may still be running and causes cross-test flakes. Production code uses **boundary drain** (`flushAndSettle` at lambda exit), not `settle()` inside handlers. See [`index.test.ts`](./index.test.ts) `describe('publish / settle / flushAndSettle')` for examples.
 
 ### Unit Testing Handlers
 - Test individual handlers in isolation
@@ -184,10 +184,10 @@ describe('MessageBus Integration', () => {
         })
 
         // Send messages
-        messageBus.send({ type: 'Message1' })
-        messageBus.send({ type: 'Message2' })
+        messageBus.publish({ type: 'Message1' })
+        messageBus.publish({ type: 'Message2' })
 
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         expect(executionOrder).toEqual(['handler1', 'handler2'])
     })
@@ -223,10 +223,10 @@ describe('MessageBus Integration', () => {
             callback: handler2
         })
 
-        messageBus.send({ type: 'Message1' })
-        messageBus.send({ type: 'Message2' })
+        messageBus.publish({ type: 'Message1' })
+        messageBus.publish({ type: 'Message2' })
 
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         // Should start at roughly the same time
         expect(Math.abs(startTimes[0] - startTimes[1])).toBeLessThan(50)
@@ -256,9 +256,9 @@ describe('MessageBus message persistence', () => {
             callback: handler2
         })
 
-        messageBus.send({ type: 'SharedMessage', data: 'test' })
+        messageBus.publish({ type: 'SharedMessage', data: 'test' })
 
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
 
         // Both handlers should have processed the message
         expect(handler1).toHaveBeenCalledWith({
@@ -297,11 +297,13 @@ describe('Handler failure scenarios', () => {
             callback: failingHandler
         })
 
-        messageBus.send({ type: 'Message1' })
-        messageBus.send({ type: 'Message2' })
+        messageBus.publish({ type: 'Message1' })
+        messageBus.publish({ type: 'Message2' })
+
+        await messageBus.flushAndSettle()
 
         // Should not throw
-        await expect(messageBus.flush()).resolves.not.toThrow()
+        await expect(messageBus.flushAndSettle()).resolves.not.toThrow()
 
         // Successful handler should still run
         expect(successfulHandler).toHaveBeenCalled()
@@ -318,7 +320,7 @@ describe('Priority violation handling', () => {
 
         const handler1 = jest.fn().mockImplementation(async ({ messageBus }) => {
             // Create message at lower priority (violation)
-            messageBus.send({ type: 'LowerPriorityMessage' })
+            messageBus.publish({ type: 'LowerPriorityMessage' })
         })
 
         messageBus.subscribe({
@@ -335,8 +337,8 @@ describe('Priority violation handling', () => {
             callback: jest.fn()
         })
 
-        messageBus.send({ type: 'Message1' })
-        await messageBus.flush()
+        messageBus.publish({ type: 'Message1' })
+        await messageBus.flushAndSettle()
 
         expect(consoleSpy).toHaveBeenCalledWith(
             expect.stringContaining('priority violation')
@@ -374,9 +376,9 @@ export class MessageBusTestHelper {
         return handler
     }
 
-    async sendAndFlush(message: any) {
-        this.messageBus.send(message)
-        await this.messageBus.flush()
+    async publishAndDrain(message: any) {
+        this.messageBus.publish(message)
+        await this.messageBus.flushAndSettle()
     }
 
     getHandler(tag: string) {
@@ -403,8 +405,8 @@ describe('Using MessageBusTestHelper', () => {
         const handler1 = helper.mockHandler('Handler1', 1, (msg) => msg.type === 'Message1')
         const handler2 = helper.mockHandler('Handler2', 2, (msg) => msg.type === 'Message2')
 
-        await helper.sendAndFlush({ type: 'Message1' })
-        await helper.sendAndFlush({ type: 'Message2' })
+        await helper.publishAndDrain({ type: 'Message1' })
+        await helper.publishAndDrain({ type: 'Message2' })
 
         expect(handler1).toHaveBeenCalledTimes(1)
         expect(handler2).toHaveBeenCalledTimes(1)
@@ -439,8 +441,8 @@ describe('Using mock data factories', () => {
             callback: handler
         })
 
-        messageBus.send(message)
-        await messageBus.flush()
+        messageBus.publish(message)
+        await messageBus.flushAndSettle()
 
         expect(handler).toHaveBeenCalledWith({
             payloads: [message],
@@ -471,10 +473,10 @@ describe('Handler performance', () => {
 
         // Send many messages
         for (let i = 0; i < messageCount; i++) {
-            messageBus.send({ type: 'PerformanceMessage', id: i })
+            messageBus.publish({ type: 'PerformanceMessage', id: i })
         }
 
-        await messageBus.flush()
+        await messageBus.flushAndSettle()
         const endTime = Date.now()
 
         expect(handler).toHaveBeenCalledTimes(messageCount)

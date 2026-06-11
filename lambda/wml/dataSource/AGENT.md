@@ -21,9 +21,9 @@ Current subscribe contract for content: `replayAt` is sourced from the manifest 
 
 **Future work:** If downstream subscribers need auth delivery with the same rigor as content, prefer **explicit** contracts: two descriptors (each URL + its own `replayAt`), or a **separate** subscription stream / data source for auth, rather than implying one joined snapshot without reconciling the two mint times.
 
-## Message bus (P5 migration)
+## Message bus
 
-- **`mtw.wml`** uses `outboundBusDelivery: 'publish'` for `streamEvent` outbounds.
+- **`mtw.wml`** `streamEvent` outbounds use **`messageBus.publish`**; boundary **`flushAndSettle`** quiesces the invocation.
 - **Subscribe once:** `wmlDataSource.subscribe()` runs only in [`index.ts`](./index.ts) (not in `mtw-wml.ts`).
 - **Direct coordination:** `coordinateMoveAsset` and `coordinateCanonizeAsset` in [`mtw-wml.ts`](./mtw-wml.ts) are shared by `receiveEvents` handlers and operator **`promoteToCanon`** (no bus loop between promotion steps).
 
@@ -34,4 +34,4 @@ Current subscribe contract for content: `replayAt` is sourced from the manifest 
 | [`mtw-wml.ts`](./mtw-wml.ts) | DataSource instance, coordination helpers, `Snapshot Created` path |
 | [`index.ts`](./index.ts) | Re-export + sole `subscribe()` side effect |
 | [`snapshotContent.ts`](./snapshotContent.ts) | `generateWmlSnapshotContent` - Dynamo query + presign orchestration |
-| [`abstract.ts`](./abstract.ts) | WML-specific `DataSource` subclass defaults (`outboundBusDelivery` supported) |
+| [`abstract.ts`](./abstract.ts) | WML-specific `DataSource` subclass defaults |

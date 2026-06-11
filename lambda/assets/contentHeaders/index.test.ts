@@ -69,7 +69,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(contentHeadersDataSource.dataSourceKey).toBe('mtw.assets.contentHeaders')
-            expect(contentHeadersDataSource.outboundBusDelivery).toBe('publish')
             expect(contentHeadersDataSource.replayable).toBe(true)
             expect(contentHeadersDataSource.primaryKeyName).toBe('AssetId')
         })

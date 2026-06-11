@@ -58,10 +58,6 @@ const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
 
 describe('ephemeraActionsDataSource', () => {
-    it('uses publish outbound bus delivery', () => {
-        expect(ephemeraActionsDataSource.outboundBusDelivery).toBe('publish')
-    })
-
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.publish.mockReturnValue(undefined)

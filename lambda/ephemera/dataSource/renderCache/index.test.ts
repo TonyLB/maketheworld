@@ -66,10 +66,6 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         })
     }
 
-    it('uses publish outbound bus delivery', () => {
-        expect(ephemeraRenderCacheDataSource.outboundBusDelivery).toBe('publish')
-    })
-
     it('publishes Cache Updated StreamingEvent on Put Cache Record command path', async () => {
         const publishSpy = spyPublish()
 

@@ -113,7 +113,6 @@ export const libraryDataSource = new AssetsDataSource<
     LibrarySnapshotExternal
 >({
     dataSourceKey: 'mtw.assets.library',
-    outboundBusDelivery: 'publish',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new LibraryEventSerializer(),
     snapshotContentGenerator: generateLibrarySnapshot,

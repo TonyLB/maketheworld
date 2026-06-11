@@ -105,7 +105,6 @@ describe('DataSource', () => {
         
         // Mock messageBus
         mockMessageBus = {
-            send: jest.fn(),
             publish: jest.fn(),
             subscribe: jest.fn()
         }
@@ -841,7 +840,7 @@ describe('DataSource', () => {
                 header: { type: 'TestUpdatePayload' }
             })
             
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.testDataSource',
                 streamKey: 'test-stream',
@@ -855,7 +854,7 @@ describe('DataSource', () => {
                 timestamp: 100000000
             })
 
-            const sendCall = mockMessageBus.send.mock.calls[0][0]
+            const sendCall = mockMessageBus.publish.mock.calls[0][0]
             const content = await sendCall.getContent()
             expect(content).toEqual({
                 type: 'TestUpdatePayload',
@@ -876,8 +875,8 @@ describe('DataSource', () => {
                 header: { type: 'SomeType' }
             })
 
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
-            const sent = mockMessageBus.send.mock.calls[0][0]
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
+            const sent = mockMessageBus.publish.mock.calls[0][0]
             expect(sent.header).toMatchObject({
                 dataSourceKey: 'mtw.testDataSource',
                 streamKey: 'test-stream',
@@ -886,25 +885,6 @@ describe('DataSource', () => {
             })
         })
 
-        it('should pass explicit laneId as second argument to messageBus.send', async () => {
-            await dataSource.streamEvent({
-                streamKey: 'test-stream',
-                update: { type: 'TestUpdatePayload', update: 'test-update' },
-                header: { type: 'TestUpdatePayload' },
-                laneId: 'named-lane',
-            })
-            expect(mockMessageBus.send.mock.calls[0][1]).toBe('named-lane')
-        })
-
-        it('should omit second argument to messageBus.send when laneId is empty string', async () => {
-            await dataSource.streamEvent({
-                streamKey: 'test-stream',
-                update: { type: 'TestUpdatePayload', update: 'test-update' },
-                header: { type: 'TestUpdatePayload' },
-                laneId: '',
-            })
-            expect(mockMessageBus.send.mock.calls[0].length).toBe(1)
-        })
     })
 
     describe('streamEnvelope', () => {
@@ -949,14 +929,14 @@ describe('DataSource', () => {
                     wml: { sidecarUrl: 's3://bucket/key' },
                 }),
             }])
-            expect(mockMessageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            expect(mockMessageBus.publish).toHaveBeenCalledWith(expect.objectContaining({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ZONE#test-zone',
                 timestamp: 100000000,
                 header: coreFormat.header,
             }))
-            const messageBusPayload = mockMessageBus.send.mock.calls[0][0]
+            const messageBusPayload = mockMessageBus.publish.mock.calls[0][0]
             expect(messageBusPayload.getContent).toBe(envelope.getContent)
         })
 
@@ -986,7 +966,7 @@ describe('DataSource', () => {
 
             expect(mockDynamo.putItem).not.toHaveBeenCalled()
             expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
 
         it('should generate unique event IDs for different streamEnvelope calls', async () => {
@@ -1508,7 +1488,7 @@ describe('DataSource', () => {
                 streamKey: 'stream-1',
                 header: { type: 'TestUpdatePayload', zone: 'Draft' }
             })
-            const sent = mockMessageBus.send.mock.calls[0][0]
+            const sent = mockMessageBus.publish.mock.calls[0][0]
             expect(sent.header).toMatchObject({
                 dataSourceKey: 'mtw.extendedHeader',
                 streamKey: 'stream-1',
@@ -1540,7 +1520,7 @@ describe('DataSource', () => {
                 streamKey: 'stream-1',
                 header: { type: 'ExplicitType', zone: 'Canon' }
             })
-            const sent = mockMessageBus.send.mock.calls[0][0]
+            const sent = mockMessageBus.publish.mock.calls[0][0]
             expect(sent.header).toMatchObject({
                 dataSourceKey: 'mtw.extendedHeader',
                 streamKey: 'stream-1',
@@ -1782,7 +1762,7 @@ describe('DataSource', () => {
                         timestamp: 123456789
                     }
                 ]
-                await callback({ payloads, messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads, messageBus: mockMessageBus as any })
 
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledTimes(2)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -1855,7 +1835,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any })
 
                 // Should be called once with array of events
                 expect(mockReceiveEvents).toHaveBeenCalledTimes(1)
@@ -1900,60 +1880,6 @@ describe('DataSource', () => {
                     update: 'test-update',
                     streamKey: 'test-stream',
                     header: { type: 'Test Event' },
-                    laneId: undefined,
-                }))
-            })
-
-            it('should merge activeFlushLane into bound streamEvent when params.laneId is omitted', async () => {
-                const receiveEventsWithStream = jest.fn(async ({ streamEvent }: { streamEvent: (p: any) => Promise<void> }) => {
-                    await streamEvent({
-                        update: 'test-update',
-                        streamKey: 'test-stream',
-                        header: { type: 'Test Event' },
-                    })
-                })
-
-                const dataSource = new TestDataSource({
-                    dynamo: mockDynamo,
-                    sns: mockSns,
-                    messageBus: mockMessageBus,
-                    primaryKeyName: 'AssetId',
-                    dataSourceKey: 'mtw.testDataSource',
-                    snapshotContentGenerator: mockSnapshotContentGenerator,
-                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
-                    receiveEvents: receiveEventsWithStream,
-                })
-
-                dataSource.subscribe()
-
-                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call =>
-                    call[0].tag === 'dataSource-mtw.testDataSource'
-                )
-                const callback = regularSubscription[0].callback
-
-                const mockStreamEvent = jest.spyOn(dataSource, 'streamEvent').mockResolvedValue(undefined)
-
-                const testEvents = [
-                    {
-                        type: 'StreamingEvent',
-                        dataSourceKey: 'mtw.otherDataSource',
-                        streamKey: 'test-stream',
-                        header: {
-                            dataSourceKey: 'mtw.otherDataSource',
-                            streamKey: 'test-stream',
-                            timestamp: 123456789,
-                            type: 'event1',
-                        },
-                        getContent: () => Promise.resolve({ type: 'event1', data: 'test1' }),
-                        timestamp: 123456789,
-                    },
-                ]
-
-                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: 'ingress-lane' })
-
-                expect(mockStreamEvent).toHaveBeenCalledWith(expect.objectContaining({
-                    laneId: 'ingress-lane',
                 }))
             })
 
@@ -1992,7 +1918,7 @@ describe('DataSource', () => {
                     timestamp: 123456789
                 }
 
-                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any })
 
                 const streamEnvelopeFn = mockReceiveEvents.mock.calls[0][0].streamEnvelope
                 const envelope = {
@@ -2044,7 +1970,7 @@ describe('DataSource', () => {
                 ]
 
                 // Callback will reject if receiveEvents rejects
-                await expect(callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })).rejects.toThrow('Processing failed')
+                await expect(callback({ payloads: testEvents, messageBus: mockMessageBus as any })).rejects.toThrow('Processing failed')
                 expect(errorReceiveEvents).toHaveBeenCalledWith({
                     events: [
                         {
@@ -2087,7 +2013,7 @@ describe('DataSource', () => {
                 const callback = regularSubscription[0].callback
 
                 // Test callback with empty array
-                await callback({ payloads: [], messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: [], messageBus: mockMessageBus as any })
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [],
@@ -2133,7 +2059,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any })
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [
@@ -2308,7 +2234,7 @@ describe('DataSource', () => {
                     timestamp: 123456789
                 }
 
-                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any })
 
                 expect(mockInitializeSubscription).toHaveBeenCalledWith({
                     sessionId: 'SESSION#test-session',
@@ -2367,7 +2293,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any })
 
                 expect(mockInitializeSubscription).toHaveBeenCalledTimes(2)
                 expect(mockInitializeSubscription).toHaveBeenNthCalledWith(1, {
@@ -2420,7 +2346,7 @@ describe('DataSource', () => {
                 }
 
                 // Should not throw, but should log error
-                await expect(callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })).resolves.not.toThrow()
+                await expect(callback({ payloads: [testEvent], messageBus: mockMessageBus as any })).resolves.not.toThrow()
 
                 expect(mockInitializeSubscription).toHaveBeenCalledWith({
                     sessionId: 'SESSION#test-session',
@@ -2611,7 +2537,7 @@ describe('DataSource', () => {
                     }
                 })
                 expect(mockEventBridgeClient.send).toHaveBeenCalled()
-                expect(mockMessageBus.send).toHaveBeenCalled()
+                expect(mockMessageBus.publish).toHaveBeenCalled()
             })
 
             it('should allow initializeSubscription when replayable is true', async () => {
@@ -2686,7 +2612,7 @@ describe('DataSource', () => {
 
                 expect(mockDynamo.putItem).not.toHaveBeenCalled()
                 expect(mockEventBridgeClient.send).toHaveBeenCalled()
-                expect(mockMessageBus.send).toHaveBeenCalled()
+                expect(mockMessageBus.publish).toHaveBeenCalled()
             })
 
             it('should throw error for initializeSubscription when replayable is false', async () => {
@@ -2865,7 +2791,7 @@ describe('DataSource', () => {
             })
 
             expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
 
         it('should skip EventBridge and still publish to messageBus in streamEvent for busOnly strategy', async () => {
@@ -2887,7 +2813,7 @@ describe('DataSource', () => {
             })
 
             expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
 
         it('should skip EventBridge and still publish to messageBus in streamEnvelope for busOnly strategy', async () => {
@@ -2915,7 +2841,7 @@ describe('DataSource', () => {
             await busOnlyDataSource.streamEnvelope(envelope)
 
             expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
 
         it('should keep replayable Dynamo writes when strategy is busOnly', async () => {
@@ -2939,7 +2865,7 @@ describe('DataSource', () => {
 
             expect(mockDynamo.putItem).toHaveBeenCalledTimes(1)
             expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
 
         it('should not write Dynamo and should still publish to messageBus when non-replayable + busOnly', async () => {
@@ -2963,35 +2889,19 @@ describe('DataSource', () => {
 
             expect(mockDynamo.putItem).not.toHaveBeenCalled()
             expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
         })
     })
 
-    describe('outboundBusDelivery: publish', () => {
-        it('should default outboundBusDelivery to send', () => {
-            expect(dataSource.outboundBusDelivery).toBe('send')
-        })
-
+    describe('messageBus publish outbounds', () => {
         it('should publish to messageBus via publish for streamEvent', async () => {
-            const publishDataSource = new TestDataSource({
-                dynamo: mockDynamo,
-                sns: mockSns,
-                messageBus: mockMessageBus,
-                primaryKeyName: 'AssetId',
-                dataSourceKey: 'mtw.testDataSource',
-                snapshotContentGenerator: mockSnapshotContentGenerator,
-                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                outboundBusDelivery: 'publish',
-            })
-
-            await publishDataSource.streamEvent({
+            await dataSource.streamEvent({
                 streamKey: 'test-stream',
                 update: { type: 'TestUpdatePayload', update: 'test-update' },
                 header: { type: 'TestUpdatePayload' },
             })
 
             expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
             expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.testDataSource',
@@ -3014,41 +2924,7 @@ describe('DataSource', () => {
             })
         })
 
-        it('should call publish with single argument when laneId is explicit (lanes ignored on publish path)', async () => {
-            const publishDataSource = new TestDataSource({
-                dynamo: mockDynamo,
-                sns: mockSns,
-                messageBus: mockMessageBus,
-                primaryKeyName: 'AssetId',
-                dataSourceKey: 'mtw.testDataSource',
-                snapshotContentGenerator: mockSnapshotContentGenerator,
-                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                outboundBusDelivery: 'publish',
-            })
-
-            await publishDataSource.streamEvent({
-                streamKey: 'test-stream',
-                update: { type: 'TestUpdatePayload', update: 'test-update' },
-                header: { type: 'TestUpdatePayload' },
-                laneId: 'named-lane',
-            })
-
-            expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.publish.mock.calls[0].length).toBe(1)
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
-        })
-
         it('should publish to messageBus via publish for streamEnvelope', async () => {
-            const publishDataSource = new TestDataSource({
-                dynamo: mockDynamo,
-                sns: mockSns,
-                messageBus: mockMessageBus,
-                primaryKeyName: 'AssetId',
-                dataSourceKey: 'mtw.testDataSource',
-                snapshotContentGenerator: mockSnapshotContentGenerator,
-                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                outboundBusDelivery: 'publish',
-            })
             const coreFormat = {
                 header: {
                     dataSourceKey: 'mtw.testDataSource' as const,
@@ -3060,16 +2936,15 @@ describe('DataSource', () => {
             }
             const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
 
-            await publishDataSource.streamEnvelope(envelope)
+            await dataSource.streamEnvelope(envelope)
 
             expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
             const messageBusPayload = mockMessageBus.publish.mock.calls[0][0]
             expect(messageBusPayload.getContent).toBe(envelope.getContent)
         })
 
-        it('should skip EventBridge and use publish for busOnly + outboundBusDelivery publish in streamEvent', async () => {
-            const publishBusOnlyDataSource = new TestDataSource({
+        it('should skip EventBridge and use publish for busOnly in streamEvent', async () => {
+            const busOnlyDataSource = new TestDataSource({
                 dynamo: mockDynamo,
                 sns: mockSns,
                 messageBus: mockMessageBus,
@@ -3078,10 +2953,9 @@ describe('DataSource', () => {
                 snapshotContentGenerator: mockSnapshotContentGenerator,
                 feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
                 publisherStrategy: 'busOnly',
-                outboundBusDelivery: 'publish',
             })
 
-            await publishBusOnlyDataSource.streamEvent({
+            await busOnlyDataSource.streamEvent({
                 update: { type: 'TestUpdatePayload', update: 'test-update' },
                 streamKey: 'test-stream',
                 header: { type: 'TestUpdatePayload' },
@@ -3089,7 +2963,6 @@ describe('DataSource', () => {
 
             expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
             expect(mockMessageBus.publish).toHaveBeenCalledTimes(1)
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
     })
 

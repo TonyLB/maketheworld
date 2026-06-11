@@ -24,7 +24,7 @@ export const isApiCognitoEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     CognitoApiSubscribedHeader
 >(isApiCognitoHeader)
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const apiCognitoSerializer = {
     serialize: ({ content }: { content: CognitoApiPayload; header: { type: string } }) => ({ ...content })
@@ -33,7 +33,6 @@ const apiCognitoSerializer = {
 export const sendApiCognitoEvent = (
     bus: Bus,
     content: CognitoApiPayload,
-    laneId?: string
 ) => {
     const timestamp = Date.now()
     const envelope = createInternalOriginEnvelope(
@@ -46,12 +45,12 @@ export const sendApiCognitoEvent = (
         content,
         apiCognitoSerializer
     )
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.cognito',
         streamKey: 'ingress',
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp
-    }, laneId)
+    })
 }

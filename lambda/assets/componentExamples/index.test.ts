@@ -41,7 +41,6 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(componentExamplesDataSource.dataSourceKey).toBe('mtw.assets.componentExamples')
-            expect(componentExamplesDataSource.outboundBusDelivery).toBe('publish')
             expect(componentExamplesDataSource.replayable).toBe(false)
             expect(componentExamplesDataSource.primaryKeyName).toBe('AssetId')
         })

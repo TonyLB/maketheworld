@@ -30,7 +30,6 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
             streamEnvelope: StreamEnvelopeFunction
         }) => Promise<void>;
         eventSerializer?: any; // Will be properly typed when we implement the serializer
-        outboundBusDelivery?: 'send' | 'publish';
     }) {
         super({
             dynamo: assetDB,

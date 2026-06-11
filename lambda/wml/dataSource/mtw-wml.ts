@@ -352,7 +352,6 @@ const processS3StructureFinding = async (
 export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationEventUpdate | DiagnosticsEventUpdate, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
-    outboundBusDelivery: 'publish',
     snapshotContentGenerator: async (streamKey: string) => generateWmlSnapshotContent(streamKey as AssetUUID),
     subscribedEventTypeGuard: isWMLSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {

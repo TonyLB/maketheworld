@@ -27,7 +27,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.publish.mockReturnValue(undefined)
-        mockMessageBus.flush = jest.fn().mockResolvedValue(undefined)
+        mockMessageBus.flushAndSettle = jest.fn().mockResolvedValue(undefined)
     })
 
     it('runs parseCommand once per phrase and publishes one OOC message', async () => {

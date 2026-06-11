@@ -175,7 +175,6 @@ export const connectionsDataSource = new DataSource<
     dataSourceKey: 'mtw.connections',
     feedbackTopicArn: process.env.FEEDBACK_TOPIC ?? '',
     replayable: false,
-    outboundBusDelivery: 'publish',
     eventSerializer: connectionsEventSerializer,
     subscribedEventTypeGuard: isConnectionsIncomingEnvelope as any,
     receiveEvents: async ({ events }) => {

@@ -116,7 +116,7 @@ Consumers must treat absent or empty `RequestIds` as "no client pending confirma
 - Ingress and coordination helpers use **`publish`**; lambda boundaries use **`flushAndSettle()`**
 - Supports `ReturnValue`, `Error`, and `StreamingEvent` message types
 - `ReturnValue` / `Error` collected at priority 16; `extractReturnValue` reads collectors only
-- DataSource subscriptions enable event-driven processing; `mtw.wml` uses `outboundBusDelivery: 'publish'`
+- DataSource subscriptions enable event-driven processing; `streamEvent` outbounds use `messageBus.publish`
 
 **Event Processing Flow**:
 1. **Incoming EventBridge Events** → Deserialized → `publish` to messageBus → DataSource processing → boundary `flushAndSettle`
@@ -301,7 +301,7 @@ This document is part of a coordinated event flow documentation effort across th
 
 **I want to...**
 - **Add a new event type**: Define in `mtw-interfaces/ts/eventBridge/wml/`, update serializer
-- **Emit an event**: Use messageBus.send() with StreamingEvent, let DataSource handle publishing
+- **Emit an event**: Use `messageBus.publish` with StreamingEvent, or `streamEvent` from a DataSource
 - **Process an incoming event**: Add to DataSource `receiveEvents` handler
 - **Test event handling**: See `dataSource/mtw-wml.test.ts` for examples
 - **Subscribe to WML events**: Listen to `mtw.wml` EventBridge source

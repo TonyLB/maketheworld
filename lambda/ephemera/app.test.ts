@@ -23,10 +23,8 @@ describe('app handler', () => {
         jest.clearAllMocks()
         resetReturnValueCollector()
         mockMessageBus.clear.mockReturnValue(undefined)
-        mockMessageBus.flush.mockResolvedValue(false)
         mockMessageBus.settle.mockResolvedValue(false)
         mockMessageBus.flushAndSettle.mockResolvedValue(undefined)
-        mockMessageBus.send.mockReturnValue(undefined)
         mockMessageBus.publish.mockImplementation((payload) => {
             if (payload?.type === 'ReturnValue') {
                 collectReturnValues([payload])

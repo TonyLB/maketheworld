@@ -43,14 +43,14 @@ Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.a
 - **`mtw.assets.componentTopology` `TopologyInvalidated`** --- **`subscriptionPriority: 4`** (catalog bump before orchestration topology fan-out at priority 5)
 - **`mtw.ephemera.affordanceOrchestration`** stream outbounds (**`Slice Ready`**, etc.)
 
-**`publish`/`settle` migration (AFF-CACHE-4):** catalog-before-orchestration on **`TopologyInvalidated`** is preserved by an explicit **`await handleTopologyInvalidated(...)`** in [`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts) before topology fan-out (not subscription priority). See [`AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md).
+**Catalog-before-orchestration (AFF-CACHE-4):** on **`TopologyInvalidated`**, catalog bump is preserved by an explicit **`await handleTopologyInvalidated(...)`** in [`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts) before topology fan-out (not subscription priority).
 
 ## Outbounds
 
 - **`Affordances Pertain`** --- lean routing + full **`affordanceRow`** / **`topology`** for perception terminal compose
 - **`Cache Error`** --- slice not ready after orchestration handoff
 
-Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource ([`index.ts`](index.ts), [`publishedEvents.ts`](publishedEvents.ts)); boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
+Outbounds use **`messageBus.publish`** via **`streamEvent`** ([`index.ts`](index.ts), [`publishedEvents.ts`](publishedEvents.ts)); boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 
 ## Navigation sync (D34, shipped)
 

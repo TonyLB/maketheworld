@@ -48,7 +48,7 @@ export const isApiDiagnosticsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuar
     DiagnosticsApiSubscribedHeader
 >(isApiDiagnosticsHeader)
 
-type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+type Bus = { publish: (payload: StreamingEventMessage) => void }
 
 const apiDiagnosticsSerializer = {
     serialize: ({ content }: { content: DiagnosticsAPIPayload; header: { type: string } }) => ({ ...content })
@@ -56,8 +56,7 @@ const apiDiagnosticsSerializer = {
 
 export const sendApiDiagnosticsEvent = (
     bus: Bus,
-    content: DiagnosticsAPIPayload,
-    laneId?: string
+    content: DiagnosticsAPIPayload
 ) => {
     const timestamp = Date.now()
     const envelope = createInternalOriginEnvelope(
@@ -70,12 +69,12 @@ export const sendApiDiagnosticsEvent = (
         content,
         apiDiagnosticsSerializer
     )
-    bus.send({
+    bus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'api.diagnostics',
         streamKey: 'ingress',
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp
-    }, laneId)
+    })
 }

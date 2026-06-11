@@ -222,7 +222,6 @@ const handleApiHealComponentVertical = async (
 //
 export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, AssetsSubscribedContent>({
     dataSourceKey: 'mtw.assets',
-    outboundBusDelivery: 'publish',
     replayable: false, // Non-replayable - focuses on event streaming and processing
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources

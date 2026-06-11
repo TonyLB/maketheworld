@@ -21,21 +21,18 @@ import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/data
 
 describe('apiEphemera', () => {
     const makeBus = () => {
-        const sent: { payload: StreamingEventMessage; laneId?: string }[] = []
+        const published: StreamingEventMessage[] = []
         return {
-            sent,
+            published,
             bus: {
-                send: (payload: StreamingEventMessage, laneId?: string) => {
-                    sent.push({ payload, laneId })
-                },
                 publish: (payload: StreamingEventMessage) => {
-                    sent.push({ payload })
+                    published.push(payload)
                 },
             },
         }
     }
 
-    const message = (entry: { payload: StreamingEventMessage; laneId?: string }) => entry.payload
+    const message = (payload: StreamingEventMessage) => payload
 
     const minimalPutRecord = {
         componentId: 'ROOM#room-one' as const,
@@ -76,11 +73,11 @@ describe('apiEphemera', () => {
     }
 
     it('sendPutCacheRecord posts StreamingEvent with api.ephemera header and streamKey', () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#room-one')
@@ -90,11 +87,11 @@ describe('apiEphemera', () => {
     })
 
     it('sendDeleteCacheRecords posts StreamingEvent with api.ephemera header and streamKey', () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendDeleteCacheRecords(bus, 'ROOM#room-one', minimalDeleteRecords)
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#room-one')
@@ -104,10 +101,10 @@ describe('apiEphemera', () => {
     })
 
     it('sendPutCacheRecord getContent returns internal payload', async () => {
-        const { sent } = makeBus()
-        sendPutCacheRecord({ send: jest.fn(), publish: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', minimalPutRecord)
+        const { published } = makeBus()
+        sendPutCacheRecord({ publish: (p) => published.push(p) }, 'ROOM#room-one', minimalPutRecord)
 
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const internal = await msg.getContent()
         expect(internal).toMatchObject({
             componentId: 'ROOM#room-one',
@@ -121,13 +118,13 @@ describe('apiEphemera', () => {
     })
 
     it('sendPutCacheRecord getContent includes optional conversationId when provided', async () => {
-        const { sent } = makeBus()
-        sendPutCacheRecord({ send: jest.fn(), publish: (p) => sent.push({ payload: p }) }, 'ROOM#room-one', {
+        const { published } = makeBus()
+        sendPutCacheRecord({ publish: (p) => published.push(p) }, 'ROOM#room-one', {
             ...minimalPutRecord,
             conversationId: 'conv-abc',
         })
 
-        const internal = await message(sent[0]).getContent()
+        const internal = await message(published[0]).getContent()
         expect(internal).toMatchObject({
             componentId: 'ROOM#room-one',
             conversationId: 'conv-abc',
@@ -135,14 +132,14 @@ describe('apiEphemera', () => {
     })
 
     it('sendStateChange posts StreamingEvent with State Change type and componentId + markState', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendStateChange(bus, 'ROOM#r3', {
             componentId: 'ROOM#r3',
             markState: { markValue: [{ mark: 'MARK#a', value: 'lit' }] },
         })
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#r3')
@@ -155,7 +152,7 @@ describe('apiEphemera', () => {
     })
 
     it('sendObjectsChange posts StreamingEvent with Objects Change type and componentId + add/remove', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendObjectsChange(bus, 'ROOM#obj', {
             componentId: 'ROOM#obj',
             add: [
@@ -165,8 +162,8 @@ describe('apiEphemera', () => {
             remove: ['OBJECT#h0'],
         })
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('ROOM#obj')
@@ -183,9 +180,9 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Cache Record envelope', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutCacheRecord(bus, 'ROOM#x', minimalPutRecord)
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -195,9 +192,9 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Delete Cache Records envelope', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendDeleteCacheRecords(bus, 'ROOM#x', minimalDeleteRecords)
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -207,12 +204,12 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera State Change envelope', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendStateChange(bus, 'ROOM#sc', {
             componentId: 'ROOM#sc',
             markState: { markValue: [] },
         })
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -222,13 +219,13 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Objects Change envelope', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendObjectsChange(bus, 'ROOM#oc', {
             componentId: 'ROOM#oc',
             add: [],
             remove: [],
         })
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -237,90 +234,23 @@ describe('apiEphemera', () => {
         expect(isEphemeraApiObjectsChangeEnvelope(envelope)).toBe(true)
     })
 
-    describe('dual-path api.ephemera helpers', () => {
-        const minimalParseRequested = {
+    it('sendParseRequested posts StreamingEvent via bus.publish', () => {
+        const publish = jest.fn()
+        const bus = { publish }
+        sendParseRequested(bus, 'CHARACTER#123', {
             characterId: 'CHARACTER#123' as const,
             command: 'look',
-        }
-
-        it('sendPutCacheRecord without laneId calls bus.publish', () => {
-            const publish = jest.fn()
-            const bus = { send: jest.fn(), publish }
-            sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
-            expect(publish).toHaveBeenCalledTimes(1)
-            expect(bus.send).not.toHaveBeenCalled()
         })
-
-        it('sendDeleteCacheRecords without laneId calls bus.publish', () => {
-            const publish = jest.fn()
-            const bus = { send: jest.fn(), publish }
-            sendDeleteCacheRecords(bus, 'ROOM#room-one', minimalDeleteRecords)
-            expect(publish).toHaveBeenCalledTimes(1)
-            expect(bus.send).not.toHaveBeenCalled()
-        })
-
-        it('sendStateChange without laneId calls bus.publish', () => {
-            const publish = jest.fn()
-            const bus = { send: jest.fn(), publish }
-            sendStateChange(bus, 'ROOM#r3', {
-                componentId: 'ROOM#r3',
-                markState: { markValue: [] },
-            })
-            expect(publish).toHaveBeenCalledTimes(1)
-            expect(bus.send).not.toHaveBeenCalled()
-        })
-
-        it('sendObjectsChange without laneId calls bus.publish', () => {
-            const publish = jest.fn()
-            const bus = { send: jest.fn(), publish }
-            sendObjectsChange(bus, 'ROOM#obj', {
-                componentId: 'ROOM#obj',
-                add: [],
-                remove: [],
-            })
-            expect(publish).toHaveBeenCalledTimes(1)
-            expect(bus.send).not.toHaveBeenCalled()
-        })
-
-        it('sendParseRequested without laneId calls bus.publish', () => {
-            const publish = jest.fn()
-            const bus = { send: jest.fn(), publish }
-            sendParseRequested(bus, 'CHARACTER#123', minimalParseRequested)
-            expect(publish).toHaveBeenCalledTimes(1)
-            expect(bus.send).not.toHaveBeenCalled()
-        })
-
-        it('sendPutCacheRecord forwards laneId to bus.send', () => {
-            const { sent, bus } = makeBus()
-            sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord, 'test-lane')
-            expect(sent).toHaveLength(1)
-            expect(sent[0].laneId).toBe('test-lane')
-        })
-
-        it('sendStateChange forwards laneId to bus.send', () => {
-            const { sent, bus } = makeBus()
-            sendStateChange(bus, 'ROOM#r3', {
-                componentId: 'ROOM#r3',
-                markState: { markValue: [] },
-            }, 'test-lane')
-            expect(sent).toHaveLength(1)
-            expect(sent[0].laneId).toBe('test-lane')
-        })
-
-        it('sendParseRequested forwards laneId to bus.send', () => {
-            const { sent, bus } = makeBus()
-            sendParseRequested(bus, 'CHARACTER#123', minimalParseRequested, 'test-lane')
-            expect(sent).toHaveLength(1)
-            expect(sent[0].laneId).toBe('test-lane')
-        })
+        expect(publish).toHaveBeenCalledTimes(1)
+        expect(publish.mock.calls[0][0].header.type).toBe('Parse Requested')
     })
 
     it('sendPutThinkingSchedule posts StreamingEvent with Put Thinking Schedule type', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingSchedule(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingSchedule)
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
@@ -329,32 +259,14 @@ describe('apiEphemera', () => {
         expect(content).toEqual(minimalThinkingSchedule)
     })
 
-    it('sendPutThinkingSchedule forwards laneId to bus.send', () => {
-        const { sent, bus } = makeBus()
-        sendPutThinkingSchedule(bus, 'JOB#g1', minimalThinkingSchedule, 'thinkingBootstrap:lane-1')
-        expect(sent).toHaveLength(1)
-        expect(sent[0].laneId).toBe('thinkingBootstrap:lane-1')
-    })
-
-    it('sendPutThinkingSchedule without laneId calls bus.publish', () => {
-        const publish = jest.fn()
-        const bus = {
-            send: jest.fn(),
-            publish,
-        }
-        sendPutThinkingSchedule(bus, 'JOB#g1', minimalThinkingSchedule)
-        expect(publish).toHaveBeenCalledTimes(1)
-        expect(bus.send).not.toHaveBeenCalled()
-    })
-
     it('sendPutThinkingSchedule getContent includes optional enqueuedAt', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingSchedule(
             bus,
             'JOB#g1',
             { ...minimalThinkingSchedule, enqueuedAt: '2026-01-01T00:00:00.000Z' }
         )
-        const internal = await message(sent[0]).getContent()
+        const internal = await message(published[0]).getContent()
         expect(internal).toMatchObject({
             enqueuedAt: '2026-01-01T00:00:00.000Z',
             scheduleStatus: 'scheduled',
@@ -362,9 +274,9 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Thinking Schedule envelope', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingSchedule(bus, 'JOB#x', minimalThinkingSchedule)
-        const msg = message(sent[0])
+        const msg = message(published[0])
         const envelope: StreamingEventEnvelope<unknown> = {
             header: msg.header,
             getContent: msg.getContent,
@@ -374,11 +286,11 @@ describe('apiEphemera', () => {
     })
 
     it('sendPutThinkingJobCreate posts StreamingEvent with Put Thinking Job Create type', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingJobCreate(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingJobCreate)
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.type).toBe('StreamingEvent')
         expect(msg.dataSourceKey).toBe('api.ephemera')
         expect(msg.streamKey).toBe('JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
@@ -388,15 +300,15 @@ describe('apiEphemera', () => {
     })
 
     it('sendPutThinkingJobError posts StreamingEvent with Put Thinking Job Error type', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingJobError(bus, 'JOB#g1', {
             ...minimalThinkingJobError,
             errorCode: 'X',
             lastFailedWorkItemId: '11111111-2222-3333-4444-555555555555',
         })
 
-        expect(sent).toHaveLength(1)
-        const msg = message(sent[0])
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
         expect(msg.header.type).toBe('Put Thinking Job Error')
         const content = await msg.getContent()
         expect(content).toMatchObject({
@@ -407,20 +319,20 @@ describe('apiEphemera', () => {
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts Put Thinking Job Create and Job Error envelopes', async () => {
-        const { sent, bus } = makeBus()
+        const { published, bus } = makeBus()
         sendPutThinkingJobCreate(bus, 'JOB#a', minimalThinkingJobCreate)
         const envCreate: StreamingEventEnvelope<unknown> = {
-            header: message(sent[0]).header,
-            getContent: message(sent[0]).getContent,
+            header: message(published[0]).header,
+            getContent: message(published[0]).getContent,
         }
         expect(isEphemeraApiSubscribedEnvelope(envCreate)).toBe(true)
         expect(isEphemeraApiPutThinkingJobCreateEnvelope(envCreate)).toBe(true)
 
-        sent.length = 0
+        published.length = 0
         sendPutThinkingJobError(bus, 'JOB#a', minimalThinkingJobError)
         const envErr: StreamingEventEnvelope<unknown> = {
-            header: message(sent[0]).header,
-            getContent: message(sent[0]).getContent,
+            header: message(published[0]).header,
+            getContent: message(published[0]).getContent,
         }
         expect(isEphemeraApiSubscribedEnvelope(envErr)).toBe(true)
         expect(isEphemeraApiPutThinkingJobErrorEnvelope(envErr)).toBe(true)

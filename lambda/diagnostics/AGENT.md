@@ -32,9 +32,9 @@
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
-- Within a single receive batch, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation.
+- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry).
 - Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
-- Direct command return values now use message-bus `ReturnValue`/`Error` delivery plus app-boundary extraction (`returnValue/index.ts`) rather than direct `app.ts` returns, matching the `connections` pattern.
+- Bus ingress uses `publish`; boundary drain uses `flushAndSettle()`; direct command return values use ReturnValue/Error `publish` plus [`returnValue/collector.ts`](returnValue/collector.ts) and [`returnValue/index.ts`](returnValue/index.ts) assembly at the app boundary (matching the `connections` pattern).
 
 ## Steady-state invariants
 

@@ -30,6 +30,7 @@ import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { processDiagnosticsSubscribedEvents } from './index'
 import messageBus from '../messageBus'
+import { getCollectedError, getCollectedReturnValueBody } from '../returnValue/collector'
 
 const makeEnvelope = (header: { dataSourceKey: string; type: string }, content: unknown) => ({
     header: {
@@ -40,6 +41,19 @@ const makeEnvelope = (header: { dataSourceKey: string; type: string }, content: 
     },
     getContent: async () => content
 })
+
+const sessionDisconnectProblemEnvelope = (dedupeKey: string) =>
+    makeEnvelope(
+        { dataSourceKey: 'mtw.connections', type: 'Session Disconnect Problem' },
+        {
+            type: 'Session Disconnect Problem',
+            sessionId: 'session-1',
+            sourceOperation: 'checkSession',
+            attemptCount: 2,
+            dedupeKey,
+            timestamp: new Date().toISOString()
+        }
+    )
 
 describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
@@ -63,31 +77,25 @@ describe('diagnosticsDataSource subscribed event processing', () => {
 
     it('dedupes repeated Session Disconnect Problem reports by dedupeKey within one batch', async () => {
         await processDiagnosticsSubscribedEvents([
-            makeEnvelope(
-                { dataSourceKey: 'mtw.connections', type: 'Session Disconnect Problem' },
-                {
-                    type: 'Session Disconnect Problem',
-                    sessionId: 'session-1',
-                    sourceOperation: 'checkSession',
-                    attemptCount: 2,
-                    dedupeKey: 'dup-1',
-                    timestamp: new Date().toISOString()
-                }
-            ),
-            makeEnvelope(
-                { dataSourceKey: 'mtw.connections', type: 'Session Disconnect Problem' },
-                {
-                    type: 'Session Disconnect Problem',
-                    sessionId: 'session-1',
-                    sourceOperation: 'checkSession',
-                    attemptCount: 2,
-                    dedupeKey: 'dup-1',
-                    timestamp: new Date().toISOString()
-                }
-            )
+            sessionDisconnectProblemEnvelope('dup-1'),
+            sessionDisconnectProblemEnvelope('dup-1'),
         ])
 
         expect(staleSessionSweep).toHaveBeenCalledTimes(1)
+    })
+
+    it('dedupes repeated Session Disconnect Problem reports by dedupeKey across separate receiveEvents calls', async () => {
+        await processDiagnosticsSubscribedEvents([sessionDisconnectProblemEnvelope('dup-cross-batch')])
+        await processDiagnosticsSubscribedEvents([sessionDisconnectProblemEnvelope('dup-cross-batch')])
+
+        expect(staleSessionSweep).toHaveBeenCalledTimes(1)
+    })
+
+    it('runs staleSessionSweep for distinct dedupeKeys across separate receiveEvents calls', async () => {
+        await processDiagnosticsSubscribedEvents([sessionDisconnectProblemEnvelope('dup-a')])
+        await processDiagnosticsSubscribedEvents([sessionDisconnectProblemEnvelope('dup-b')])
+
+        expect(staleSessionSweep).toHaveBeenCalledTimes(2)
     })
 
     it('passes diagnosticRunId through for api.diagnostics StaleSessionSweep events', async () => {
@@ -100,10 +108,10 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(staleSessionSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-1' })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('passes nowMs through for api.diagnostics StaleSessionSweep events', async () => {
@@ -116,10 +124,10 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(staleSessionSweep).toHaveBeenCalledWith({ nowMs: 12345 })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('emits ReturnValue for api.diagnostics RoomOccupancyDriftSweep events', async () => {
@@ -133,10 +141,10 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(roomOccupancyDriftSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-2', nowMs: 54321 })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('emits ReturnValue for api.diagnostics PlayerMisalignmentSweep events', async () => {
@@ -150,10 +158,10 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(playerMisalignmentSweep).toHaveBeenCalledWith({ diagnosticRunId: 'diag-3', nowMs: 67890 })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('invokes componentVerticalMisalignmentSweep for ComponentVerticalMisalignmentSweep with assetId', async () => {
@@ -172,14 +180,14 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(componentVerticalMisalignmentSweep).toHaveBeenCalledWith({
             assetId: 'ASSET#diag-asset',
             diagnosticRunId: 'diag-cv',
             nowMs: 11111,
         })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('emits ReturnValue for api.diagnostics RenderCacheDriftSweep events', async () => {
@@ -200,14 +208,14 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(renderCacheDriftSweep).toHaveBeenCalledWith({
             roomIds: ['ROOM#alpha'],
             diagnosticRunId: 'diag-rc',
             nowMs: 22222,
         })
-        const returnValueMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'ReturnValue')
-        expect(returnValueMessages).toHaveLength(1)
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 
     it('emits Error when RenderCacheDriftSweep roomIds is not an array', async () => {
@@ -220,9 +228,12 @@ describe('diagnosticsDataSource subscribed event processing', () => {
                 }
             )
         ])
+        await messageBus.settle()
 
         expect(renderCacheDriftSweep).not.toHaveBeenCalled()
-        const errorMessages = messageBus._stream.map(({ payload }) => payload).filter(({ type }) => type === 'Error')
-        expect(errorMessages).toHaveLength(1)
+        expect(getCollectedError()).toEqual({
+            error: 'RenderCacheDriftSweep requires roomIds array',
+            statusCode: 400,
+        })
     })
 })

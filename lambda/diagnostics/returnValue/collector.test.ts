@@ -1,7 +1,9 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import type { MessageType } from '../messageBus/baseClasses'
 import {
+    collectErrors,
     collectReturnValues,
+    getCollectedError,
     getCollectedReturnValueBody,
     registerReturnValueCollector,
     resetReturnValueCollector,
@@ -21,20 +23,24 @@ describe('returnValue collector', () => {
         expect(getCollectedReturnValueBody()).toEqual({ a: 1, b: 2 })
     })
 
-    it('later keys overwrite earlier keys in spread merge', () => {
-        collectReturnValues([{ type: 'ReturnValue', body: { key: 'first' } }])
-        collectReturnValues([{ type: 'ReturnValue', body: { key: 'second' } }])
-        expect(getCollectedReturnValueBody()).toEqual({ key: 'second' })
+    it('collectErrors captures first error only', () => {
+        collectErrors([
+            { type: 'Error', body: { error: 'first', statusCode: 400 } },
+            { type: 'Error', body: { error: 'second', statusCode: 500 } },
+        ])
+        expect(getCollectedError()).toEqual({ error: 'first', statusCode: 400 })
     })
 
-    it('resetReturnValueCollector clears the buffer', () => {
+    it('resetReturnValueCollector clears both buffers', () => {
         collectReturnValues([{ type: 'ReturnValue', body: { x: 1 } }])
+        collectErrors([{ type: 'Error', body: { error: 'err' } }])
         resetReturnValueCollector()
         expect(getCollectedReturnValueBody()).toEqual({})
+        expect(getCollectedError()).toBeUndefined()
     })
 
     describe('registerReturnValueCollector', () => {
-        it('collects ReturnValue from publish after settle', async () => {
+        it('collects ReturnValue from publish immediately', async () => {
             const bus = new InternalMessageBus<MessageType>()
             registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
@@ -42,6 +48,16 @@ describe('returnValue collector', () => {
             await bus.settle()
 
             expect(getCollectedReturnValueBody()).toEqual({ fromPublish: true })
+        })
+
+        it('collects Error from publish', async () => {
+            const bus = new InternalMessageBus<MessageType>()
+            registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
+
+            bus.publish({ type: 'Error', body: { error: 'bad', statusCode: 422 } })
+            await bus.settle()
+
+            expect(getCollectedError()).toEqual({ error: 'bad', statusCode: 422 })
         })
 
         it('onClear resets buffer when bus.clear runs', () => {
@@ -54,16 +70,32 @@ describe('returnValue collector', () => {
             expect(getCollectedReturnValueBody()).toEqual({})
         })
 
-        it('extractReturnValue reads collector after flushAndSettle', async () => {
+        it('extractReturnValue reads collector for errors with precedence', async () => {
             const bus = new InternalMessageBus<MessageType>()
             registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
-            bus.publish({ type: 'ReturnValue', body: { collected: true } })
-
+            bus.publish({ type: 'ReturnValue', body: { ignored: true } })
+            bus.publish({ type: 'Error', body: { error: 'failed', statusCode: 403 } })
             await bus.flushAndSettle()
+
             const response = extractReturnValue(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
-            expect(JSON.parse(response.body)).toEqual({ collected: true })
+            expect(response).toEqual({
+                statusCode: 403,
+                body: JSON.stringify({ error: 'failed' }),
+            })
+        })
+
+        it('extractReturnValue returns spread-merged body from collector', async () => {
+            const bus = new InternalMessageBus<MessageType>()
+            registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
+
+            bus.publish({ type: 'ReturnValue', body: { emittedCount: 2, players: ['p1'] } })
+            await bus.flushAndSettle()
+
+            const response = extractReturnValue(bus as unknown as import('../messageBus/baseClasses').MessageBus)
+
+            expect(response).toEqual({ emittedCount: 2, players: ['p1'] })
         })
     })
 })
