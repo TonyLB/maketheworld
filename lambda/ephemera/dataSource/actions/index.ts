@@ -326,7 +326,6 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.actions',
     replayable: false,
     publisherStrategy: 'busOnly',
-    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isActionsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {

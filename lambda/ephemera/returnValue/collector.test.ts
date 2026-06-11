@@ -34,7 +34,7 @@ describe('returnValue collector', () => {
     })
 
     describe('registerReturnValueCollector', () => {
-        it('collects ReturnValue from publish immediately', async () => {
+        it('collects ReturnValue from publish after settle', async () => {
             const bus = new InternalMessageBus<MessageType>()
             registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
@@ -42,16 +42,6 @@ describe('returnValue collector', () => {
             await bus.settle()
 
             expect(getCollectedReturnValueBody()).toEqual({ fromPublish: true })
-        })
-
-        it('collects ReturnValue from send on flush', async () => {
-            const bus = new InternalMessageBus<MessageType>()
-            registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
-
-            bus.send({ type: 'ReturnValue', body: { fromSend: true } })
-            await bus.flush()
-
-            expect(getCollectedReturnValueBody()).toEqual({ fromSend: true })
         })
 
         it('onClear resets buffer when bus.clear runs', () => {
@@ -64,14 +54,13 @@ describe('returnValue collector', () => {
             expect(getCollectedReturnValueBody()).toEqual({})
         })
 
-        it('extractReturnValue reads collector only, not _stream', async () => {
+        it('extractReturnValue reads collector after flushAndSettle', async () => {
             const bus = new InternalMessageBus<MessageType>()
             registerReturnValueCollector(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
-            bus.send({ type: 'ReturnValue', body: { collected: true } })
-            expect(bus._stream.length).toBeGreaterThan(0)
+            bus.publish({ type: 'ReturnValue', body: { collected: true } })
 
-            await bus.flush()
+            await bus.flushAndSettle()
             const response = extractReturnValue(bus as unknown as import('../messageBus/baseClasses').MessageBus)
 
             expect(JSON.parse(response.body)).toEqual({ collected: true })

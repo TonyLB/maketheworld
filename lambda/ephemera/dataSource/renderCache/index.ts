@@ -32,7 +32,6 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
     dataSourceKey: 'mtw.ephemera.renderCache',
     replayable: false,
     publisherStrategy: 'busOnly',
-    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isRenderCacheSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(

@@ -119,8 +119,8 @@ describe('AssetsDataSource', () => {
             )
 
             // Verify messageBus message (header + getContent envelope)
-            const sendCall = (messageBus.send as jest.Mock).mock.calls[0][0]
-            expect(sendCall).toMatchObject({
+            const publishCall = (messageBus.publish as jest.Mock).mock.calls[0][0]
+            expect(publishCall).toMatchObject({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.assets.test',
                 streamKey: 'test-stream',
@@ -129,29 +129,8 @@ describe('AssetsDataSource', () => {
                     streamKey: 'test-stream'
                 })
             })
-            expect(sendCall.getContent).toBeDefined()
-            expect(await sendCall.getContent()).toEqual(expect.objectContaining(update))
-        })
-
-        it('should publish events to messageBus when outboundBusDelivery is publish', async () => {
-            const publishDataSource = new AssetsDataSource({
-                dataSourceKey: 'mtw.assets.test.publish',
-                outboundBusDelivery: 'publish',
-            })
-            const update: TestUpdatePayload = {
-                type: 'TestUpdate',
-                action: 'created',
-                data: 'test data',
-            }
-
-            await publishDataSource.streamEvent({
-                update,
-                streamKey: 'test-stream',
-                header: { type: 'TestUpdate' },
-            })
-
-            expect(messageBus.publish).toHaveBeenCalled()
-            expect(messageBus.send).not.toHaveBeenCalled()
+            expect(publishCall.getContent).toBeDefined()
+            expect(await publishCall.getContent()).toEqual(expect.objectContaining(update))
         })
     })
 

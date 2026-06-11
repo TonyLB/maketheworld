@@ -58,7 +58,6 @@ describe('mtw.ephemera.perception DataSource', () => {
 
     it('registers subscription and flush completes without error when queue is empty', async () => {
         expect(ephemeraPerceptionDataSource.dataSourceKey).toBe('mtw.ephemera.perception')
-        expect(ephemeraPerceptionDataSource.outboundBusDelivery).toBe('publish')
         await expect(messageBus.flushAndSettle()).resolves.toBeUndefined()
     })
 
@@ -126,7 +125,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             | ReturnType<typeof makePassThroughGenerationDeferredPayload>
     ): Promise<void> {
         const tsOrch = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -144,7 +143,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
     async function sendRenderPertainsStreamingEvent(): Promise<void> {
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -269,7 +268,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -303,7 +302,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomTerminal />')
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -358,7 +357,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -392,7 +391,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(mid).toMatch(/^MESSAGE#/)
 
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -445,7 +444,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -477,7 +476,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(mid).toMatch(/^MESSAGE#/)
 
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -545,7 +544,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -594,7 +593,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(headerIndex).toBeLessThan(arriveIndex)
 
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -657,7 +656,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const generationEvent = () => {
             const tsOrch = Date.now()
-            messageBus.send({
+            messageBus.publish({
                 type: 'StreamingEvent',
                 dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
                 streamKey: passThroughFixtureRoomId,
@@ -677,7 +676,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         await messageBus.flushAndSettle()
 
         const tsCache = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
             streamKey: passThroughFixtureRoomId,
@@ -815,7 +814,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             },
         })
         const ts = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: AFFORDANCE_CACHE_DATA_SOURCE_KEY,
             streamKey: roomId,
@@ -866,7 +865,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         const roomId = 'ROOM#ObjAff' as const
         const ts = Date.now()
-        messageBus.send({
+        messageBus.publish({
             type: 'StreamingEvent',
             dataSourceKey: EPHEMERA_OBJECTS_DATA_SOURCE_KEY,
             streamKey: roomId,

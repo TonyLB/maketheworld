@@ -48,10 +48,6 @@ describe('mtw.ephemera.affordanceCache DataSource', () => {
         })
     }
 
-    it('uses publish outbound bus delivery', () => {
-        expect(ephemeraAffordanceCacheDataSource.outboundBusDelivery).toBe('publish')
-    })
-
     it('publishes Affordances Pertain StreamingEvent on Slice Ready pass-through path', async () => {
         const publishSpy = spyPublish()
 

@@ -32,7 +32,6 @@ export class EphemeraDataSource<
         }) => Promise<void>;
         eventSerializer?: any;
         publisherStrategy?: DataSourcePublisherStrategy;
-        outboundBusDelivery?: 'send' | 'publish';
         subscriptionPriority?: number;
     }) {
         super({

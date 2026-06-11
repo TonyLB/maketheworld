@@ -45,15 +45,13 @@ Snapshots use the same header semantics as streaming events. A single shared `he
 
 ### **Integration with MessageBus**: The data source integrates seamlessly with the existing messageBus pattern:
 - **Type Safety**: Full TypeScript integration with type guards derived from `receiveEvent` signature
-- **Priority Ordering**: Events are processed according to messageBus priority system
+- **Concurrent handlers**: `publish` schedules matching subscribers immediately; boundary `flushAndSettle` quiesces the invocation
 - **Error Handling**: Graceful failure without breaking other messageBus handlers
-- **Stream Processing**: Events persist in messageBus for multiple handler consumption
+- **Bus outbounds**: `streamEvent` / `streamEnvelope` call `messageBus.publish` for local delivery
 
-### **Message bus lanes (`streamEvent` / `streamEnvelope`)**
+### **Message bus outbounds (`streamEvent` / `streamEnvelope`)**
 
-The constructor `messageBus` port supports `send(payload, laneId?)` (named lane = non-empty string; omit second argument for the default lane) and, during the `publish`/`settle` migration, `publish(payload)` for outbound delivery. **`outboundBusDelivery`** constructor option (`'send'` default, `'publish'` when a DataSource directory migrates) branches `sendStreamingEventOnBus`: the `'send'` path keeps lane behavior below; the `'publish'` path calls `messageBus.publish(payload)` only (no lane argument; lanes are a `send`/`flush` concern). See [`taskPlanning/.../AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md). P2 closeout removes `outboundBusDelivery`, port `send`, lane stack, and `StreamEventParams.laneId`.
-
-`streamEvent` accepts optional `laneId` on `StreamEventParams`: non-empty string sends on that lane, empty string forces the default lane, and omitted `laneId` inherits the **inbound** lane for the duration of the `subscribe` callback (`activeFlushLane` from `InternalMessageBus.flush` / `flush(laneId)`), via a small stack so nested flushes do not clobber. `streamEnvelope` takes an optional second argument with the same override semantics; omitting it inherits the inbound lane the same way. Callers that need explicit default-lane delivery from inside a named-lane drain should pass `laneId: ''` on `streamEvent` or `''` as the `streamEnvelope` override. Lane inheritance applies only when `outboundBusDelivery` is `'send'`.
+[`DataSourceMessageBusPort`](index.ts) exposes `publish` and `subscribe`. All bus outbounds use **`messageBus.publish(payload)`** (no lanes, no `send`). See [`../messageBus/AGENT.implementation.md`](../messageBus/AGENT.implementation.md).
 
 ### **EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
 - **Event Reception**: Lambda receives EventBridge events and deserializes them to internal format before routing to messageBus
@@ -257,7 +255,7 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 2. **Subscribed payload type and per-event envelope guards**: A TypeScript union of the payload types this DataSource subscribes to. Per-event guards should accept `StreamingEventEnvelope<SubscribedContent>` (the type `receiveEvents` actually receives) and narrow to the specific envelope variant (e.g. `event is Extract<AssetsIncomingEvent, { header: { type: 'Zone Changed' } }>`), so they work without casting the events array. Export any constants used by the aggregate guard (e.g. event type sets).
 
-3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { send: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, getContent) and calls `bus.send(...)`.
+3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { publish: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, getContent) and calls `bus.publish(...)`.
 
 **Conventions:**
 
@@ -285,7 +283,7 @@ Events with `dataSourceKey: 'api.wml'` or `'api.assets'` are **in-process only**
 
 **Contents of `localApiEvents.ts`:** Payload types and type guards for those internal events (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`). No serializers; no EventBridge logic.
 
-**Flow:** API handler (in `app.ts`) receives request → send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'api.wml'` or `'api.assets'` and calls `messageBus.send()` → existing `receiveEvents` handles the event via type guards and handlers.
+**Flow:** API handler (in `app.ts`) receives request -> send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'api.wml'` or `'api.assets'` and calls `messageBus.publish()` -> existing `receiveEvents` handles the event via type guards and handlers.
 
 **Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 

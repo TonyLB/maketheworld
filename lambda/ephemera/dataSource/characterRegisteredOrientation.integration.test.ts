@@ -96,7 +96,7 @@ const characterRegisteredEvent: ConnectionsCharacterRegisteredEvent = {
 function sendCharacterRegisteredEvent(event: ConnectionsCharacterRegisteredEvent): void {
     const timestamp = Date.now()
     const streamKey = event.characterId
-    messageBus.send({
+    messageBus.publish({
         type: 'StreamingEvent',
         dataSourceKey: 'mtw.connections',
         streamKey,

@@ -138,7 +138,6 @@ export const contentHeadersDataSource = new AssetsDataSource<
     ContentHeadersSnapshotExternal
 >({
     dataSourceKey: 'mtw.assets.contentHeaders',
-    outboundBusDelivery: 'publish',
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,

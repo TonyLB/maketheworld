@@ -111,7 +111,6 @@ export const charactersDataSource = new AssetsDataSource<
     CharactersSubscribedContent
 >({
     dataSourceKey: 'mtw.assets.characters',
-    outboundBusDelivery: 'publish',
     replayable: true,
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
     subscribedEventTypeGuard: isCharactersSubscribedEnvelope,

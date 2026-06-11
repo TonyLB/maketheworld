@@ -53,7 +53,6 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
     dataSourceKey: 'mtw.ephemera.affordanceOrchestration',
     replayable: false,
     publisherStrategy: 'busOnly',
-    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isAffordanceOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {

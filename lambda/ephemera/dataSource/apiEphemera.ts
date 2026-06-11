@@ -166,8 +166,7 @@ export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHea
 >(isEphemeraApiSubscribedHeader)
 
 type ApiEphemeraCommandBus = {
-    publish?: (payload: StreamingEventMessage) => void
-    send?: (payload: StreamingEventMessage, laneId?: string) => void
+    publish: (payload: StreamingEventMessage) => void
 }
 
 function postApiEphemeraStreamingEvent(
@@ -175,7 +174,6 @@ function postApiEphemeraStreamingEvent(
     streamKey: string,
     header: StreamingEventHeader,
     getContent: () => Promise<unknown>,
-    laneId?: string
 ): void {
     const timestamp = Date.now()
     const message: StreamingEventMessage = {
@@ -186,17 +184,7 @@ function postApiEphemeraStreamingEvent(
         getContent: getContent as StreamingEventMessage['getContent'],
         timestamp,
     }
-    if (laneId !== undefined && laneId !== '') {
-        if (bus.send === undefined) {
-            throw new Error('api.ephemera: laneId requires bus.send')
-        }
-        bus.send(message, laneId)
-    } else {
-        if (bus.publish === undefined) {
-            throw new Error('api.ephemera: omitting laneId requires bus.publish')
-        }
-        bus.publish(message)
-    }
+    bus.publish(message)
 }
 
 const apiEphemeraSerializer = {
@@ -210,7 +198,6 @@ export function sendPutCacheRecord(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: PutCacheRecordCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -219,14 +206,13 @@ export function sendPutCacheRecord(
         type: 'Put Cache Record',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 export function sendDeleteCacheRecords(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: DeleteCacheRecordsCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -235,7 +221,7 @@ export function sendDeleteCacheRecords(
         type: 'Delete Cache Records',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -245,7 +231,6 @@ export function sendStateChange(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: StateChangeCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -254,7 +239,7 @@ export function sendStateChange(
         type: 'State Change',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -265,7 +250,6 @@ export function sendObjectsChange(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: ObjectsChangeCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -274,7 +258,7 @@ export function sendObjectsChange(
         type: 'Objects Change',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -284,7 +268,6 @@ export function sendParseRequested(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: ParseRequestedCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -293,7 +276,7 @@ export function sendParseRequested(
         type: 'Parse Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -303,7 +286,6 @@ export function sendPutThinkingSchedule(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: PutThinkingScheduleCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -312,7 +294,7 @@ export function sendPutThinkingSchedule(
         type: 'Put Thinking Schedule',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -322,7 +304,6 @@ export function sendPutThinkingJobCreate(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: PutThinkingJobCreateCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -331,7 +312,7 @@ export function sendPutThinkingJobCreate(
         type: 'Put Thinking Job Create',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }
 
 /**
@@ -341,7 +322,6 @@ export function sendPutThinkingJobError(
     bus: ApiEphemeraCommandBus,
     streamKey: string,
     content: PutThinkingJobErrorCommand,
-    laneId?: string
 ): void {
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.ephemera',
@@ -350,5 +330,5 @@ export function sendPutThinkingJobError(
         type: 'Put Thinking Job Error',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent, laneId)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
 }

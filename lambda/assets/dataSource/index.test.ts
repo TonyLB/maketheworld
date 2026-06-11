@@ -92,7 +92,6 @@ describe('AssetsDataSource (mtw.assets)', () => {
         it('should create instance with correct configuration', () => {
             expect(assetsDataSource.dataSourceKey).toBe('mtw.assets')
             expect(assetsDataSource.replayable).toBe(false)
-            expect(assetsDataSource.outboundBusDelivery).toBe('publish')
             expect(assetsDataSource.getSerializer()).toBeDefined()
         })
     })

@@ -112,7 +112,6 @@ describe('ComponentVerticalsDataSource (mtw.assets.components.verticals)', () =>
     describe('Constructor', () => {
         it('should create instance with correct configuration', () => {
             expect(componentVerticalsDataSource.dataSourceKey).toBe('mtw.assets.components.verticals')
-            expect(componentVerticalsDataSource.outboundBusDelivery).toBe('publish')
             expect(componentVerticalsDataSource.replayable).toBe(false)
             expect(componentVerticalsDataSource.primaryKeyName).toBe('AssetId')
         })

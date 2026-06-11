@@ -190,7 +190,6 @@ const emitAssetRemoved = async (
 
 export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEventUpdate, PlayersSubscribedContent>({
     dataSourceKey: 'mtw.assets.players',
-    outboundBusDelivery: 'publish',
     replayable: true,
     snapshotContentGenerator: generatePlayerSnapshot,
     eventSerializer: new PlayerEventSerializer(),

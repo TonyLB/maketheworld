@@ -161,7 +161,6 @@ export const diagnosticsDataSource = new DataSource<
     dataSourceKey: 'mtw.diagnostics',
     feedbackTopicArn: process.env.FEEDBACK_TOPIC ?? '',
     replayable: false,
-    outboundBusDelivery: 'publish',
     eventSerializer: diagnosticsEventSerializer,
     subscribedEventTypeGuard: isDiagnosticsSubscribedEnvelope as any,
     receiveEvents: async ({ events }) => {

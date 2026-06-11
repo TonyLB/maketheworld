@@ -2,86 +2,37 @@
 
 This guide provides detailed code examples and implementation patterns for the MessageBus system. For high-level concepts and navigation, see [`AGENT.md`](./AGENT.md).
 
-## Virtual lanes (`InternalMessageBus`)
+## `publish` / `settle` steady state
 
-Ephemera and other lambdas use **virtual lanes** on a **single** `InternalMessageBus` instance: queue items may carry optional **`laneId`**, and **`flush()`** / **`flush(laneId)`** drain only items in the matching lane. Implementation: [`index.ts`](./index.ts).
-
-### API (summary)
-
-- **Queue cell:** `{ processedBy, payload, laneId? }`. **Default lane:** omit `laneId` on the cell (use `send(payload)` or `send(payload, laneId)` with `laneId` absent / empty string; empty string is treated as default).
-- **`send(payload, laneId?)`:** second argument is a **non-empty string** for a named lane.
-- **`flush()`:** drains **default-lane** items only. **`flush(laneId)`:** drains only that named lane.
-- **Subscriptions:** callbacks receive **`InternalMessageBusCallbackProps`**: `payloads`, `messageBus`, and **`activeFlushLane`** (`undefined` = default lane drain, `string` = named lane being drained). Lane id stays on the queue cell for routing; payload types are unchanged.
-
-### Drain behavior
-
-**`flushLane`** re-invokes itself with the **same** `activeLane` until no matching work remains, so a single outer `flush` / `flush(laneId)` runs that lane to quiescence for the current wave of matching items. Nested or concurrent `flush` calls are the same class of concern as any shared async resource; see tests in [`index.test.ts`](./index.test.ts). For tests that `await` slow work while asserting bus side effects, see [`AGENT.testing.md`](./AGENT.testing.md) (`createAsyncGate` with `flush()` / `flush(laneId)`).
-
-### Naming and architecture
-
-- Use **`laneId`**, not **`busId`**: one physical bus and one subscription graph; lanes partition the **queue**, not process identity. A second `MessageBus` instance was rejected to avoid duplicate subscriptions and because `DataSource` is constructed against a single bus reference.
-- **DataSource outbound** events (`streamEvent` / `streamEnvelope`) inherit or override lanes from inbound drains; see **Message bus lanes** in [`../dataSource/AGENT.implementation.md`](../dataSource/AGENT.implementation.md).
-
-### Non-goals and follow-ons (product)
-
-- No **cross-lane ordering** guarantees beyond an explicit later pattern (e.g. hand off with `send` on the default lane and `flush()`).
-- Lanes do **not** change external EventBridge contracts.
-
-### Open questions
-
-- **`clear()`** is **global** (entire stream) in the current implementation; a lane-scoped clear is not defined.
-- **Performance:** each `flush` scans `_stream` for matching lanes; acceptable at typical Lambda scale; revisit if profiling says otherwise.
-- If **`send`** gains more per-send options, a single overload such as `send(payload, options?: { laneId?: string })` is an acceptable evolution from the positional second argument.
-
-## Migration: `publish` / `settle` (in progress)
-
-Task plan: [`taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/messageBus/AGENT.publishSettledMigration.planning.md). Steady-state docs here will replace this section at P6 closeout.
-
-**During migration (`send`/`flush` coexist with `publish`/`settle`):**
-
-- **DataSource outbound (P2a):** [`DataSourceMessageBusPort`](../dataSource/index.ts) adds `publish`. Constructor `outboundBusDelivery?: 'send' | 'publish'` (default `'send'`) branches `sendStreamingEventOnBus`; per-DataSource flips to `'publish'` in P2b/P3+ with Q2 atomic units. See **Message bus lanes** in [`../dataSource/AGENT.implementation.md`](../dataSource/AGENT.implementation.md).
-
-| Topic | `flush` path (today) | `publish` path (P1+) |
-| --- | --- | --- |
-| Ordering | `priority` tiers; `Promise.all` within a tier | **`priority` ignored**; all matching subscribers scheduled **concurrently** |
-| Delivery shape | Batched `payloads` per subscriber | **`payloads: [singleItem]`** per matching subscriber per `publish` |
-| `priority` field on subscriptions | Enforced | Retained on type; meaningful **only for `flush`** until P6 |
-| Lambda boundary drain | `flush()` (today) -> `flushAndSettle()` (P1) | Q1 dual idle loop (`flush` + `settle` until both no-op), then `runDeferrals()` (Q9); P6 drops `flush` arm only when `send`/`flush` deleted |
-
-**High/Medium migration constraints** (triage matrix in task plan): affordance cache-before-orchestration must use explicit sequencing on the publish path (not flush priority); multi-DS ordering specs are the passThrough integration tests.
-
-**Bucket-1 aggregation** (task plan **Bucket-1 deep dive**): flush batching was shielding, contract packaging, or orchestration -- not only traffic dedup. Fix axis per row: consumer idempotency (easy migrate), **producer coalescing** (`checkLocation` landed P4, `diagnostics`), **contract** (`mapSubscription` / `extractReturnValue`), or **Q9 defer buffer** (`publishMessage` orchestration). Do not assume all bucket-1 rows need consumer hardening. Ephemera **ReturnValue** boundary assembly uses a subscribe-based collector ([`lambda/ephemera/returnValue/collector.ts`](../../../lambda/ephemera/returnValue/collector.ts)) so both `send` and `publish` paths merge before HTTP response assembly.
-
-**Q9 defer buffer (locked):** orchestration outbound coalescing is **not** a second subscriber queue. **API:** `registerDeferral(tag, { onClear?, afterSettled })`; `clear()` runs `onClear`; `runDeferrals()` after **boundary drain** (`flushAndSettle` idle loop), not after producer-side mid-invocation drain. Per-need aggregator modules wrap registration at module load. **PublishMessage (P4, landed):** ephemera [`publishMessage/coalescer.ts`](../../../../lambda/ephemera/publishMessage/coalescer.ts) registers `'publishMessage'` deferral on [`lambda/ephemera/messageBus/index.ts`](../../../../lambda/ephemera/messageBus/index.ts). `deliveryMode?: 'immediate' | 'deferred'` (default **`immediate`**) on [`PublishMessageBase`](../../../../lambda/ephemera/messageBus/baseClasses.ts) -- **`deferred` only for character move** at producers (coalescer + `afterSettled`); Generating/terminal uses immediate wire + explicit `createdTime` revision pair; see task plan Q9 items 7-8 and **Single-invocation render cascades**. **CheckLocation (P4, landed):** [`checkLocation/coalescer.ts`](../../../../lambda/ephemera/checkLocation/coalescer.ts) registers `'checkLocation'` with `onClear` reset of per-invocation `tryClaim` state; repair and outbound `publish` stay in the **handler phase** (`afterSettled` is a no-op). **v1 contract:** `afterSettled` hooks are **IO-only** (no `publish`/`send`); one pass, no repeat loop. Avoid producer-side mid-invocation drain in aggregators for sequencing -- use shared entity + boundary drain; future repeat wrapper if boundary-phase bus enqueue is needed. Drain scopes: task plan **Bus drain terminology** and **Q9**.
-
-### `publish` / `settle` API
-
-Implementation: [`index.ts`](./index.ts). The publish path is **independent** from `_stream` / `flushLane`; hybrid migration drains both at lambda boundaries via `flushAndSettle()`.
+Implementation: [`index.ts`](./index.ts). Each lambda uses a single `InternalMessageBus` instance. Producers call **`publish`**; handler work is tracked in **`_inFlight`** and drained by **`settle()`**. Lambda boundaries call **`flushAndSettle()`** (settle loop + **`runDeferrals()`** tail).
 
 | Method | Returns | Behavior |
 | --- | --- | --- |
-| `publish(payload)` | `void` | Schedules all matching subscribers **concurrently** (ignores `priority`). Each callback receives `payloads: [payload]` and `activeFlushLane: undefined`. Handler promises tracked in `_inFlight` with subscription `tag`. |
-| `settle()` | `Promise<boolean>` | Inner quiescence loop: snapshot `_inFlight`, `Promise.allSettled`, log rejections with `tag`, repeat until empty. Returns `true` if any handler was scheduled; `false` if `_inFlight` empty throughout. **Does not reject** on handler failures (Q3). |
-| `flush()` / `flush(laneId)` | `Promise<boolean>` | Legacy path unchanged except return type: `true` if at least one callback ran with a non-empty batch; `false` on no-op. Still uses `Promise.all` (may reject). |
-| `flushAndSettle(laneId?)` | `Promise<void>` | Outer loop: `Promise.all([flush, settle])` until both return `false`, then `await runDeferrals()`. Handles cross-seam ping-pong (`flush` -> `publish` -> `settle` -> `send` -> ...). |
+| `publish(payload)` | `void` | Schedules all matching subscribers **concurrently** (ignores `priority`). Each callback receives `payloads: [payload]`. Handler promises tracked in `_inFlight` with subscription `tag`. |
+| `settle()` | `Promise<boolean>` | Inner quiescence loop: snapshot `_inFlight`, `Promise.allSettled`, log rejections with `tag`, repeat until empty. Returns `true` if any handler was scheduled; `false` if `_inFlight` empty throughout. **Does not reject** on handler failures. |
+| `flushAndSettle()` | `Promise<void>` | Outer loop: `while (await settle()) {}`, then `await runDeferrals()`. **Lambda boundary drain only** -- do not split `settle()` and `runDeferrals()` in `app.ts`. |
 | `registerDeferral(tag, hooks)` | `void` | Registers `{ onClear?, afterSettled }`; throws on duplicate `tag`. Registrations persist across invocations. |
-| `runDeferrals()` | `Promise<void>` | `Promise.allSettled` over all `afterSettled` hooks; logs rejections; does not reject. Called only from **boundary drain** (`flushAndSettle` tail), not from producer-side mid-invocation drain. |
-| `clear()` | `void` | Resets `_stream` and `_inFlight`; invokes each deferral's `onClear`. Does not cancel detached async work. |
+| `runDeferrals()` | `Promise<void>` | `Promise.allSettled` over all `afterSettled` hooks; logs rejections; does not reject. Called only from **`flushAndSettle` tail**, not from producer-side mid-invocation drain. |
+| `clear()` | `void` | Clears `_inFlight` tracking; invokes each deferral's `onClear`. Does not cancel detached async work. |
+
+**Subscription `priority`:** retained on the subscribe type for documentation; **`publish` does not enforce priority ordering**. Matching subscribers run concurrently.
+
+**Defer buffer (orchestration outbound coalescing):** not a second subscriber queue. **`registerDeferral`** + per-need aggregators at module load; **`afterSettled`** hooks are **IO-only** (no `publish` from registrants). Examples: ephemera [`publishMessage/coalescer.ts`](../../../lambda/ephemera/publishMessage/coalescer.ts) (`deliveryMode: 'deferred'` **character move only**), [`checkLocation/coalescer.ts`](../../../lambda/ephemera/checkLocation/coalescer.ts), [`returnValue/collector.ts`](../../../lambda/ephemera/returnValue/collector.ts).
 
 ```ts
 // Publish path (immediate scheduling)
 messageBus.publish({ type: 'SomeEvent', ... })
-await messageBus.settle()  // test harness drain only (Q6); not production handler bodies
+await messageBus.settle()  // test harness drain only; not production handler bodies
 
-// Lambda boundary drain (hybrid migration)
-await messageBus.flushAndSettle()  // flush + settle loop, then runDeferrals()
+// Lambda boundary drain
+await messageBus.flushAndSettle()  // settle loop, then runDeferrals()
 
-// Deferral registration (module load; see lambda/ephemera/publishMessage/coalescer.ts)
+// Deferral registration (module load)
 publishMessageCoalescer.registerDeferral(messageBus)
-// PublishMessage: deliveryMode 'immediate' (default) -> wire in handler; 'deferred' -> coalescer.enqueue
 checkLocationCoalescer.registerDeferral(messageBus)
-// CheckLocation: tryClaim dedup in handler; onClear resets Set; afterSettled no-op
 ```
+
+**DataSource outbounds:** [`streamEvent` / `streamEnvelope`](../dataSource/index.ts) always call `messageBus.publish` for bus delivery. See **Message bus integration** in [`../dataSource/AGENT.implementation.md`](../dataSource/AGENT.implementation.md).
 
 ## Generic InternalMessageBus Usage
 
@@ -126,13 +77,13 @@ messageBus.subscribe({
     priority: 5
 })
 
-messageBus.send({
+messageBus.publish({
     type: 'payloadOne',
     glueId: 'test',
     blahBlahBlah: {}
 })
 
-await messageBus.flush()
+await messageBus.flushAndSettle()
 ```
 
 ## Domain-Specific MessageBus Pattern
@@ -306,14 +257,14 @@ export const handler = async (event: any, context: any) => {
     
     // Send messages based on API requests
     if (isSomeAPIMessage(request)) {
-        messageBus.send({
+        messageBus.publish({
             type: 'SomeMessage',
             // ... message-specific data
         })
     }
     
     // Process all messages
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
     
     return { statusCode: 200, body: JSON.stringify({ messageType: 'Success' }) }
 }
@@ -367,7 +318,7 @@ export const handlerName = async ({ payloads, messageBus }: HandlerProps): Promi
         const result = await processMessage(payload)
         
         // Send follow-up message
-        messageBus.send({
+        messageBus.publish({
             type: 'FollowUpMessage',
             result,
             originalId: payload.id
@@ -466,7 +417,7 @@ export const handler = async (event: any, context: any) => {
     
     // ... process messages
     
-    await messageBus.flush()
+    await messageBus.flushAndSettle()
 }
 ```
 

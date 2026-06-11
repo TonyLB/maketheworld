@@ -33,7 +33,6 @@ describe('mtw.ephemera.thinking.scheduling DataSource', () => {
     it('is replayable with EventBridge+bus publish and combined api.ephemera subscription guard', () => {
         expect(ephemeraThinkingSchedulingDataSource.dataSourceKey).toBe('mtw.ephemera.thinking.scheduling')
         expect(ephemeraThinkingSchedulingDataSource.replayable).toBe(true)
-        expect(ephemeraThinkingSchedulingDataSource.outboundBusDelivery).toBe('publish')
         expect(ephemeraThinkingSchedulingDataSource.publisherStrategy).toBe('eventBridge+bus')
         expect(ephemeraThinkingSchedulingDataSource.subscribedEventTypeGuard).toBe(isThinkingSchedulingSubscribedEnvelope)
         expect(typeof ephemeraThinkingSchedulingDataSource.receiveEvents).toBe('function')

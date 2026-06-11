@@ -1,21 +1,6 @@
-type InternalMessageItem<PayloadType> = {
-    processedBy: string[];
-    payload: PayloadType;
-    laneId?: string;
-}
-
-function matchesActiveLane<PayloadType>(item: InternalMessageItem<PayloadType>, activeLane: string | undefined): boolean {
-    if (activeLane === undefined) {
-        return item.laneId === undefined
-    }
-    return item.laneId === activeLane
-}
-
 export type InternalMessageBusCallbackProps<PayloadType> = {
     payloads: PayloadType[];
     messageBus: InternalMessageBus<PayloadType>;
-    /** Lane being drained by the active `flush()` / `flush(laneId)`; `undefined` means default lane. */
-    activeFlushLane: string | undefined;
 }
 
 export type DeferralRegistration = {
@@ -34,12 +19,12 @@ type ConstrainedInternalMessageSubscription<PayloadType, P extends PayloadType> 
     tag: string;
     priority: number;
     filter: (payload: PayloadType) => payload is P;
-    callback: (props: { payloads: P[]; messageBus: InternalMessageBus<PayloadType>; activeFlushLane: string | undefined }) => Promise<void>;
+    callback: (props: { payloads: P[]; messageBus: InternalMessageBus<PayloadType> }) => Promise<void>;
 }
 
 function assertSubscriptionCallback<PayloadType>(
     subscription: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>,
-    stage: 'subscribe' | 'flush' | 'publish'
+    stage: 'subscribe' | 'publish'
 ): void {
     if (typeof subscription.callback !== 'function') {
         const callbackType = typeof subscription.callback
@@ -50,27 +35,9 @@ function assertSubscriptionCallback<PayloadType>(
 }
 
 export class InternalMessageBus<PayloadType> {
-    _stream: InternalMessageItem<PayloadType>[] = []
     _subscriptions: (UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>)[] = []
     _inFlight: Map<Promise<void>, string> = new Map()
     _deferrals: Map<string, DeferralRegistration> = new Map()
-
-    send(payload: PayloadType): void;
-    send(payload: PayloadType, laneId: string): void;
-    send(payload: PayloadType, laneId?: string): void {
-        if (laneId === undefined || laneId === '') {
-            this._stream.push({
-                processedBy: [],
-                payload
-            })
-        } else {
-            this._stream.push({
-                processedBy: [],
-                payload,
-                laneId
-            })
-        }
-    }
 
     publish(payload: PayloadType): void {
         const matchingSubscriptions = this._subscriptions.filter(({ filter: filterFunc }) => filterFunc(payload))
@@ -84,7 +51,6 @@ export class InternalMessageBus<PayloadType> {
             const promise = callback({
                 payloads: [payload],
                 messageBus: this,
-                activeFlushLane: undefined
             }).finally(() => {
                 this._inFlight.delete(promise)
             })
@@ -131,72 +97,14 @@ export class InternalMessageBus<PayloadType> {
         return didWork
     }
 
-    flush(): Promise<boolean>;
-    flush(laneId: string): Promise<boolean>;
-    async flush(laneId?: string): Promise<boolean> {
-        const activeLane = laneId === undefined ? undefined : laneId
-        return this.flushLane(activeLane)
-    }
-
-    async flushAndSettle(laneId?: string): Promise<void> {
-        while (true) {
-            const [didFlush, didSettle] = await Promise.all([
-                laneId === undefined ? this.flush() : this.flush(laneId),
-                this.settle(),
-            ])
-            if (!didFlush && !didSettle) {
-                break
-            }
+    async flushAndSettle(): Promise<void> {
+        while (await this.settle()) {
+            // outer loop; settle inner loop drains recursive publish
         }
         await this.runDeferrals()
     }
 
-    private async flushLane(activeLane: string | undefined): Promise<boolean> {
-        const priorities = [...(new Set(this._subscriptions.map(({ priority }) => (priority))))].sort()
-        const priorityToProcess = priorities.find((priority) => (
-            this._subscriptions
-                .filter((subscription) => (subscription.priority === priority))
-                .filter(({ filter: filterFunc, tag }) => (this._stream
-                    .filter((item) => (matchesActiveLane(item, activeLane)))
-                    .filter(({ processedBy }) => (!processedBy.includes(tag)))
-                    .map(({ payload }) => (payload))
-                    .filter(filterFunc)
-                    .length > 0
-                ))
-                .length > 0
-        ))
-        if (priorityToProcess === undefined) {
-            return false
-        }
-        const subscriptionsToProcess = this._subscriptions.filter(({ priority }) => (priority === priorityToProcess))
-        let didWork = false
-        const processSubscription = async ({ tag, filter: filterFunc, callback }): Promise<void> => {
-            if (typeof callback !== 'function') {
-                throw new TypeError(
-                    `InternalMessageBus flush error: subscription "${tag}" at priority ${priorityToProcess} has non-function callback (${typeof callback}).`
-                )
-            }
-            const filteredMessages = this._stream
-                .filter((item) => (matchesActiveLane(item, activeLane)))
-                .filter(({ processedBy }) => (!processedBy.includes(tag)))
-                .filter(({ payload }) => (filterFunc(payload)))
-            filteredMessages.forEach((message) => (message.processedBy.push(tag)))
-            if (filteredMessages.length > 0) {
-                didWork = true
-                await callback({
-                    payloads: filteredMessages.map(({ payload }) => (payload)),
-                    messageBus: this,
-                    activeFlushLane: activeLane
-                })
-            }
-        }
-        await Promise.all(subscriptionsToProcess.map(processSubscription))
-        const childDidWork = await this.flushLane(activeLane)
-        return didWork || childDidWork
-    }
-
     clear(): void {
-        this._stream = []
         this._inFlight.clear()
         for (const { onClear } of this._deferrals.values()) {
             onClear?.()

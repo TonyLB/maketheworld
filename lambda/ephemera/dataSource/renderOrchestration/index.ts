@@ -49,7 +49,6 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
     dataSourceKey: 'mtw.ephemera.renderOrchestration',
     replayable: false,
     publisherStrategy: 'busOnly',
-    outboundBusDelivery: 'publish',
     subscribedEventTypeGuard: isRenderOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
