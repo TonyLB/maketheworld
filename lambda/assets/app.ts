@@ -181,7 +181,7 @@ export const handler = async (event, context) => {
         }
         // Flush messageBus and return after handling EventBridge events
         await messageBus.flushAndSettle()
-        return
+        return await extractReturnValue(messageBus)
     }
 
     if (!request || !['fetch', 'metaData', 'fetchImportDefaults', 'fetchImports', 'upload', 'uploadImage', 'checkin', 'checkout', 'updatePlayerSettings', 'llmGenerate', 'collaborationStatus'].includes(request.message)) {

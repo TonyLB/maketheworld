@@ -10,7 +10,7 @@ All ingress and handler outbounds use **`messageBus.publish`**. Lambda exit drai
 
 | Handler / area | Notes |
 | --- | --- |
-| [`returnValue/collector`](../returnValue/collector.ts) | Subscribe at priority **16** collects `ReturnValue` and first `Error` from **`publish`**; [`extractReturnValue`](../returnValue/index.ts) reads collectors only; `onClear` on ingress `messageBus.clear()` |
+| [`returnValue/collector`](../returnValue/collector.ts) | [`createBoundaryResponseCollector`](../../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) at priority **16** collects `ReturnValue` and first bus `Error` from **`publish`**; [`extractReturnValue`](../returnValue/index.ts) reads collectors only; `onClear` on ingress `messageBus.clear()`. Separate priority-9 [`returnValue`](../returnValue/index.ts) SNS handler still delivers ReturnValue payloads to connected clients. |
 | [`fetch`](../fetch/index.ts), [`upload`](../upload/index.ts) | `ReturnValue` -> `publish`; boundary drain only |
 | [`contentHeaders`](../contentHeaders/index.ts) | `events.reduce` + aggregator merge; `Error` -> `publish` |
 | [`library`](../library/index.ts) | `Error` in `receiveEvents` catch -> `publish` |

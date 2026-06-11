@@ -1,18 +1,13 @@
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import {
+    InternalMessageBus,
+    type ReturnValueMessage,
+    type ErrorMessage,
+    isReturnValueMessage,
+    isErrorMessage,
+} from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 
-export type ReturnValueMessage = {
-    type: 'ReturnValue';
-    body: Record<string, any>;
-}
-
-export type ErrorMessage = {
-    type: 'Error';
-    body: {
-        error: string;
-        statusCode?: number;
-    };
-}
+export type { ReturnValueMessage, ErrorMessage }
 
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
@@ -25,7 +20,6 @@ export type StreamingEventMessage = {
 
 export type MessageType = ReturnValueMessage | ErrorMessage | StreamingEventMessage
 
-export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
-export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
+export { isReturnValueMessage, isErrorMessage }
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

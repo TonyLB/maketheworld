@@ -115,7 +115,7 @@ Consumers must treat absent or empty `RequestIds` as "no client pending confirma
 - Type-safe internal event bus using `@tonylb/mtw-lambda-patterns`
 - Ingress and coordination helpers use **`publish`**; lambda boundaries use **`flushAndSettle()`**
 - Supports `ReturnValue`, `Error`, and `StreamingEvent` message types
-- `ReturnValue` / `Error` collected at priority 16; `extractReturnValue` reads collectors only
+- `ReturnValue` / `Error` collected via [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) at priority 16; `extractReturnValue` reads collectors only
 - DataSource subscriptions enable event-driven processing; `streamEvent` outbounds use `messageBus.publish`
 
 **Event Processing Flow**:

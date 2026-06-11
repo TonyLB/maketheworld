@@ -81,7 +81,7 @@ export const handler = async (event: any, context: any) => {
         }
         // Flush messageBus and return after handling EventBridge events
         await messageBus.flushAndSettle()
-        return
+        return await extractReturnValue(messageBus)
     }
 
     // Type-guard: Validate incoming message is a recognized WML API message
