@@ -76,18 +76,9 @@ Current supported occupancy-healing finding:
 
 #### **`mtw.ephemera.positions` (positions in play)**
 
-Ephemera owns a general-purpose **positions in play** lane at [`dataSource/positions/`](dataSource/positions/) (`dataSourceKey: 'mtw.ephemera.positions'`). It is the home for any "where is X right now" projection ephemera owns -- characters today, additional entity kinds and refinements as we extend it.
+Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative slice 0), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map). Active task plan: [`taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md).
 
-This iteration's behavior is deliberately narrow: **only character positions as already recorded** in `Meta::Room.activeCharacters`, character `RoomId`, and `RoomStack`. The lane name and folder are intentionally general so future extensions are additive.
-
-First external ingress: `mtw.connections.characters` (see [`packages/mtw-interfaces/ts/eventBridge/connections/characters`](../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts)). Wiring is via `eventDeserializers` in [`app.ts`](app.ts) and the side-effect import `import './dataSource/positions'`.
-
-Handlers (in [`dataSource/positions/handleConnectionsCharactersPresence.ts`](dataSource/positions/handleConnectionsCharactersPresence.ts)):
-
-- **`Character Connected`**: publishes `CheckLocation` with `forceMove: true` and `arriveMessage: ' has connected.'`. The existing `moveCharacter` flow then performs the `Meta::Room.activeCharacters` add, arrival `WorldMessage`, and `CharacterInPlay` `EphemeraUpdate`. Per-session deduplication is upstream (`mtw.connections.characters` only emits `Character Connected` when `Meta::Character.sessions` was empty pre-mutation), so `suppressArrival: false` is correct here. This path is **world-facing only**; it does **not** deliver session-scoped RoomHeader bootstrap (see session orientation below). Bus delivery: **`publish`** + boundary **`flushAndSettle`** (no producer-side drain).
-- **`Character Disconnected`**: runs an `optimisticUpdate` against the character's `Meta::Room.activeCharacters`, removing the character entry. If the projection actually changed (idempotency gate), the handler invalidates `ComponentEphemeraMeta` / `AffordanceRoomDeliverable`, refreshes `RoomCharacterList`, and publishes the departure `WorldMessage` plus a `RoomUpdate`. Duplicate deliveries are no-ops because the second update finds nothing to remove.
-
-The lane is intentionally extensible: adding new position-affecting subscribers means registering a new header guard in [`dataSource/positions/subscribedEvents.ts`](dataSource/positions/subscribedEvents.ts) and a matching handler, not standing up a new DataSource.
+Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` bridges to `moveCharacter`; `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
 
 #### **Session orientation (`Character Registered`)**
 

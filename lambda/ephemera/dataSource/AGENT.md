@@ -48,7 +48,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderCache`** | [`renderCache/`](renderCache/) | Durable **`CACHE#...`** rows, invalidation, diagnostics heal, **`Render Pertains`**, orchestration handoff --- [`renderCache/AGENT.md`](renderCache/AGENT.md) |
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
-| **`mtw.ephemera.positions`** | [`positions/`](positions/) | Character positions in play; `mtw.connections.characters` presence ingress --- [`../AGENT.md`](../AGENT.md) |
+| **`mtw.ephemera.positions`** | [`positions/`](positions/) ([`positions/AGENT.md`](positions/AGENT.md)) | Positions in play; slice 0: `mtw.connections.characters` presence --- concepts, contract, implementation siblings |
 | **`mtw.ephemera.affordanceOrchestration`** | [`affordanceOrchestration/`](affordanceOrchestration/) | Affordance orchestration, **`Affordances Requested`** --- [`affordanceOrchestration/AGENT.md`](affordanceOrchestration/AGENT.md) |
 | **`mtw.ephemera.affordanceCache`** | [`affordanceCache/`](affordanceCache/) | Affordance cache rows, **`Affordances Pertain`** --- [`affordanceCache/AGENT.md`](affordanceCache/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
