@@ -50,6 +50,20 @@ This file records **where behavior lives** for `mtw.ephemera.positions` slice 0.
 
 ---
 
+## Downstream read paths (roster projection today)
+
+Affordance compose needs a room **roster** alongside exit topology. Today that read path is **not** graph-shaped:
+
+| System | Role |
+| --- | --- |
+| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | `RoomCharacterList` --- memo + direct `ephemeraDB` read of `Meta::Room.activeCharacters` on miss |
+| [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Composes affordance WML (roster + exits + objects) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection precedent (gateway + `internalCache`; not used for roster yet) |
+
+Planned engineering (membership persistence API, optional `mtw-gateways` roster read handler, storage swap): task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first) and [**Open decisions**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#open-decisions-implementation--plan-only) (S1-5, S2-2).
+
+---
+
 ## Verification
 
 From repo root:

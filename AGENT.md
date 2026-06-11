@@ -60,6 +60,7 @@ Where is code in THIS area?             -> AGENT.implementation.md
 Where is another system's doc?          -> AGENT.navigation.md
 How to test (non-default conventions)?  -> AGENT.testing.md
 How to use from outside?                -> AGENT.usage.md
+Open fork to implement in a known slice? -> taskPlanning/ plan "Open decisions"
 Future or in-flight initiative?         -> taskPlanning/ AGENT.*.planning.md
 Identity, scope, entry links?           -> AGENT.md
 ```

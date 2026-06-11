@@ -2,7 +2,7 @@
 
 Ephemera lane for **positions in play** --- runtime truth about where entities are and how they relate in the game world. `dataSourceKey: 'mtw.ephemera.positions'`, registered from [`../../app.ts`](../../app.ts).
 
-**Status:** Slice 0 shipped (connections presence ingress). Movement cutover and graph-shaped storage are in progress; see task plan below.
+**Status:** Slice 0 shipped. Next slices (localize execution, then graph-shaped storage): see task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
 
 ## Documentation
 

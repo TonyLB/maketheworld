@@ -36,6 +36,7 @@ To start a migration: copy the template into the `taskPlanning/` subfolder that 
 - **Getting Started** tailored to this task (which docs to read first and why)
 - **Verification** steps and grep commands for *this* slice
 - Coordination notes (e.g. "land client before lambda") that matter only until the work ships
+- **Open decisions (implementation)** --- forks you are resolving **in order to implement** the next slice(s); see below
 
 **Put in durable docs and link from the task plan:**
 
@@ -44,6 +45,45 @@ To start a migration: copy the template into the `taskPlanning/` subfolder that 
 - API contracts and types (package and interface docs)
 
 **Rule of thumb:** If it would still be useful to a new contributor **after** this task is merged and the planning file deleted, it should live outside `taskPlanning/`, with the task plan pointing to it.
+
+### Open decisions (implementation --- plan only)
+
+Decisions you are making **in order to implement** an upcoming slice belong in the task plan until they ship. They are **plan debt**, not mental models.
+
+**Use a named section** in each active task plan:
+
+```markdown
+## Open decisions (implementation --- plan only)
+
+Plan-only: decisions we are making in order to implement the next slice(s).
+Do not copy into package `AGENT.concepts.md`. When a decision ships, record it
+in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
+```
+
+A short table is enough: **ID**, **decision**, **blocks slice**, **status** (Open / Decided / N/A).
+
+**Litmus tests** (where does this bullet go?):
+
+| Test | Task plan | `AGENT.concepts.md` | `AGENT.contract.md` |
+| --- | --- | --- | --- |
+| **Deletion:** Still useful after this planning file is deleted? | Only if No | If Yes (vocabulary / mental model) | If Yes (normative rule) |
+| **Implementation:** Is the answer mergeable code + tests? | While open | No | When shipped (must/must-not) |
+| **Vocabulary:** Main outcome is a durable term readers need? | No | Yes | No |
+| **Normative:** Must other areas obey after decide? | While open | No | When shipped |
+
+**When a slice ships:**
+
+1. Remove resolved rows from **Open decisions**.
+2. Add falsifiable rules to **`AGENT.contract.md`** (not concepts).
+3. Update **`AGENT.implementation.md`** (paths and behavior).
+4. Update **`AGENT.concepts.md`** only when a **target mental model** graduates (Target -> Shipped) or new **vocabulary** is introduced --- not for implementation forks.
+
+**Anti-patterns:**
+
+- Open implementation forks in **`AGENT.concepts.md`** because they feel fuzzy (concepts are stable vocabulary, not unresolved engineering).
+- **Contract** clauses for behavior not yet shipped (wishlist normative text).
+- Dangling pointers ("see task plan history") after slimming a plan --- every plan-only item needs a **section name** or link.
+- Large option comparisons in the plan body --- use a root [**temporary analysis**](../AGENT.md#temporary-working-documents) doc linked from the decision row.
 
 ## Relationship to "Temporary Working Documents"
 
@@ -63,7 +103,7 @@ Add `AGENT.development.md` when a subtree has non-obvious tooling (Vitest vs Jes
 4. **Link area development notes** if present: e.g. [`charcoal-client/AGENT.development.md`](charcoal-client/AGENT.development.md) for client work.
 5. **Follow the root [Getting Started pattern for complex tasks](../AGENT.md#getting-started-pattern-for-complex-tasks)** for the body: foundations, integration points, tests, baseline commands.
 6. **Use the area `AGENT.development.md`** (or package testing docs) for **exact** test commands; do not rely on Jest-only examples from generic templates when the package uses Vitest or another runner.
-7. **Include Progress** (table or checklist), **Recommended order** (with checkboxes and an intro line per **Recommended order checkboxes** below), and **Verification** so status is visible without rereading the whole file.
+7. **Include Progress** (table or checklist), **Recommended order** (with checkboxes and an intro line per **Recommended order checkboxes** below), **Open decisions (implementation --- plan only)** when the next slice has unresolved forks, and **Verification** so status is visible without rereading the whole file.
 
 ## Getting Started testing-doc pattern
 

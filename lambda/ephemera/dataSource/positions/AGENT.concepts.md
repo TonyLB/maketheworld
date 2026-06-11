@@ -1,6 +1,6 @@
 # Positions --- concepts and vocabulary
 
-This file records **mental models and vocabulary** for `mtw.ephemera.positions`. Normative obligations for shipped behavior: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
+This file records **mental models and vocabulary** for `mtw.ephemera.positions` --- what positions **mean** in the game world, not how we migrate or wire code. Normative obligations for shipped behavior: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md). Migration sequencing and engineering forks: [`taskPlanning/.../AGENT.positionsDataSource.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md).
 
 Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
@@ -16,41 +16,32 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Play graph** | Ephemera runtime mutations: who is in which room **now**, object placement in play, etc. |
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
+| **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Target: a **node** in that room's play graph; shipped interim: scalar `RoomId` plus roster list kept in sync. |
 
 ---
 
-## Shipped mental model (aligned with code today)
+## Shipped mental model (aligned with play truth today)
 
-### What positions owns in slice 0
+### Play membership is flat, not graph-shaped yet
 
-- **Ingress:** `mtw.connections.characters` / `Character Connected` and `Character Disconnected`.
-- **Disconnect path:** Positions **directly** updates `Meta::Room.activeCharacters`, invalidates affordance-related caches, and publishes departure messaging when the roster projection **actually changes** (idempotency gate).
-- **Connect path:** Positions **bridges** to legacy `CheckLocation` -> `moveCharacter` for roster add, arrival messaging, `CharacterInPlay`, perception threads, and `MapUpdate`.
+At play time, room membership is expressed as **paired flat fields**, not as nodes in a room `positionGraph`:
 
-### Interim storage (not graph-shaped yet)
+- Each character has a current **`RoomId`** (and optional **`RoomStack`** for nested context).
+- Each room has an **`activeCharacters`** roster listing who is present.
 
-Play state is still **flat fields**, not a room `positionGraph` in Dynamo:
+These are **two views of the same membership fact** and must stay consistent. They are **projections of membership** we have not yet stored as graph nodes and edges.
 
-- `Meta::Character.RoomId` and `RoomStack`
-- `Meta::Room.activeCharacters` (roster list)
-- `internalCache.RoomCharacterList` memo
+### Two questions, two domains
 
-Treat these as **projections of a not-yet-materialized play graph**, maintained by positions (partially) and `moveCharacter` (connect and navigate).
+Area **topology** and in-room **membership** answer different questions:
 
-### Relationship to Area topology (shipped)
-
-Two questions, two owners:
-
-| Question | Owner | Play expression |
+| Question | Domain | Play expression (today) |
 | --- | --- | --- |
-| Which **exits** exist from this room at this perspective? | Area authored graph -> `projectRoomExits` -> affordance cache | `Affordance::row.topology.exits` |
-| Which **room** is this character in; who is on the roster? | Positions (target) / `moveCharacter` + slice 0 handlers (today) | `RoomId`, `activeCharacters`, `RoomCharacterList` |
+| Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
+| Which **room** is this character in; who is on the roster? | Play-time **position** / membership | `RoomId`, `activeCharacters`, roster projections |
 
-Positions does **not** own `projectRoomExits` or `ComponentTopology` hydrate. It **must** keep roster/membership consistent with what affordance compose reads.
-
-### Asymmetry (slice 0)
-
-Connect delegates to `moveCharacter`; disconnect is inline in positions. This is a **migration bridge**, not the target symmetry.
+Exit topology does **not** imply roster membership, and roster membership does **not** define exits. Consumers that need both (for example affordance WML) compose **separate projections**.
 
 ---
 
@@ -74,12 +65,12 @@ Area.positionGraph          Room.positionGraph (future)     Container graph (fut
 
 ### Characters are atomic across rooms
 
-At play time a character should appear in **at most one room graph** (best-effort enforcement at the positions authority). `RoomId` / roster lists become **caches or projections** of that invariant, not independent sources of truth.
+At play time a character should appear in **at most one room graph** (enforced at the positions authority). `RoomId` and roster lists become **projections** of that invariant, not independent sources of truth.
 
 ### Authored vs play graphs
 
 - **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
-- **Play mutations** (connect, navigate, pick up, place) update **play graphs** (or interim fields until graphs land); **projections** feed perception, affordance WML, nav, and LLM context.
+- **Play mutations** (connect, navigate, pick up, place) update **play graphs** (or interim flat fields until graphs land); **projections** feed perception, affordance WML, nav, and LLM context.
 
 ### Objects and `mtw.ephemera.objects`
 
@@ -93,4 +84,6 @@ WML **Position** facets on maps are a **separate** authoring idiom today ([`pack
 
 ## Graduation rule
 
-When a target concept ships in code and tests, **move** its description from **Target mental model** to **Shipped mental model** and add matching obligations to [`AGENT.contract.md`](AGENT.contract.md). Track graduation in the task plan **Recommended order**.
+When a **target mental model** ships in code and tests, **move** its description from **Target mental model** to **Shipped mental model**. Add matching **must/must-not** obligations to [`AGENT.contract.md`](AGENT.contract.md) and paths to [`AGENT.implementation.md`](AGENT.implementation.md).
+
+Implementation sequencing, module boundaries, and open engineering forks stay in the task plan [**Open decisions**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#open-decisions-implementation--plan-only) --- not in this file ([`taskPlanning/AGENT.md`](../../../../taskPlanning/AGENT.md#open-decisions-implementation--plan-only)).

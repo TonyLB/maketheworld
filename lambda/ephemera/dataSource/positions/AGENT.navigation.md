@@ -19,7 +19,8 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | Doc / path | Role |
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | DataSource index |
-| [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | **Area topology and affordance exits**, `RoomCharacterList` |
+| [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | **Area topology and affordance exits**, `RoomCharacterList` (roster projection today) |
+| [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose (roster + exits + objects) |
 | [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md) | Hydrated `Affordance::` rows, `topology.exits` |
 | [`../actions/AGENT.md`](../actions/AGENT.md) | Parse, `Character Navigate`, movement bridge |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
@@ -29,6 +30,16 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |
 
 ---
+
+## Gateways (engineering; planned)
+
+Roster **projection** for affordance compose today: [`RoomCharacterList`](../../internalCache/roomCharacterLists.ts) (see [`AGENT.implementation.md`](AGENT.implementation.md)). Exit projection precedent: gateway-backed affordance cache.
+
+| Doc / path | Role |
+| --- | --- |
+| [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) | Handler factory norms |
+| [`packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md) | Exits projection on `Affordance::` rows |
+| `packages/mtw-gateways/ts/ephemera/positions/` | **Planned:** roster read handler (timing: task plan S1-5) |
 
 ## Connections
 
