@@ -21,74 +21,89 @@ Make The World is a collaborative world-building platform that enables users to 
 
 ## Documentation Standards
 
-This project uses `AGENT.md` files as the primary documentation format for AI assistants and human collaborators. These files follow established patterns to ensure consistency and navigability.
+This project uses `AGENT*.md` files as the primary documentation format for AI assistants and human collaborators. **`AGENT.md` is the entry point** for an area; sibling files hold specific content types so implementation changes do not collapse everything into one drifted file.
 
-### **AGENT.md File Structure**
+**Migrating drifted docs:** Durable runbook [`taskPlanning/AGENT.docTaxonomy.migration-runbook.md`](taskPlanning/AGENT.docTaxonomy.migration-runbook.md). Per-area work: copy [`taskPlanning/AGENT.docMigration.planning.template.md`](taskPlanning/AGENT.docMigration.planning.template.md) into the matching `taskPlanning/` subfolder, rename to `AGENT.<areaSlug>DocMigration.planning.md`, delete the plan when migration merges.
 
-Each `AGENT.md` file should include these standard sections:
+### AGENT documentation taxonomy
 
-#### **1. Overview**
-- **Purpose**: Clear description of what the system/component does
-- **Context**: How it fits into the broader architecture
-- **Key Concepts**: Essential terminology and concepts
+**Aspirational standard, uneven adoption.** This taxonomy describes the **target** shape for durable docs. On disk, any given area may be anywhere from *just defined* (single drifted `AGENT.md` holding everything) to *fully aligned* (thin entry file plus the right siblings). Do not assume every path below exists or that every `AGENT.md` follows these rules yet. When **reading**, infer what you can from the files present and treat contradictions as migration debt, not as permission to ignore the taxonomy. When **writing**, move the area you touch toward this structure (see migration runbook above).
 
-#### **2. Core Purpose**
-- **Primary Function**: What the system is designed to accomplish
-- **Key Responsibilities**: Main tasks and operations
+Use this section when **writing or updating** docs alongside code. Not every area needs every sibling file --- create only buckets with non-trivial content.
 
-#### **3. Technical Details**
-- **Data Structures**: Key types, interfaces, and data formats
-- **Core Methods**: Essential functions and their usage
-- **Configuration**: Important settings and parameters
+#### File roles
 
-#### **4. Integration Points**
-- **Dependencies**: What other systems this component relies on
-- **Cross-References**: Links to related `AGENT.md` files
-- **API Contracts**: How other systems interact with this component
-- **System Relationships**: How this component fits into the broader architecture
+| File | Records | Does not record |
+| --- | --- | --- |
+| **`AGENT.md`** | Highest-level identity: what this area is for, scope, non-goals, links to siblings | Method tables, file inventories, falsifiable rules, cross-repo link graphs |
+| **`AGENT.concepts.md`** | Mental models and vocabulary **originated or anchored** here | "Must / must not" obligations |
+| **`AGENT.contract.md`** | Falsifiable rules (internal and external) the system **must** abide by | Code maps, changelog status |
+| **`AGENT.navigation.md`** | Dense cross-area link backbone (mostly to **other** areas' doc nodes) | Local source file paths (use implementation) |
+| **`AGENT.implementation.md`** | How to **find** behavior in this area's source tree | Full code recapitulation; normative rules without contract link |
+| **`AGENT.planning.md`** | Non-normative future work | Steady-state truth (prefer `taskPlanning/` disposable plans) |
 
-#### **5. Usage Patterns**
-- **Common Scenarios**: Typical use cases with code examples
-- **Best Practices**: Recommended approaches and patterns
-- **Error Handling**: How to handle common issues
+**Common optional siblings** (not universal):
 
-#### **6. Navigation Tips**
-- **Getting Started**: Where to begin when exploring the code
-- **Key Files**: Most important files to understand
-- **Related Documentation**: Links to other relevant docs
+| File | When to add |
+| --- | --- |
+| **`AGENT.testing.md`** | Test harness, async ordering, or runner conventions are non-obvious for this area |
+| **`AGENT.usage.md`** | External consumers need a cookbook (library-style APIs) |
 
-#### **7. Development Notes**
-- **Current State**: Known limitations or issues
-- **Future Plans**: Upcoming changes or improvements
-- **Technical Debt**: Areas that need attention
+Package- or repo-level **`AGENT.development.md`** (exact commands, tooling) may live at root or under `taskPlanning/<area>/` --- see [`taskPlanning/AGENT.md`](taskPlanning/AGENT.md).
+
+#### Decision tree (new content)
+
+```
+Normative and falsifiable?              -> AGENT.contract.md
+Vocabulary / mental model?              -> AGENT.concepts.md
+Where is code in THIS area?             -> AGENT.implementation.md
+Where is another system's doc?          -> AGENT.navigation.md
+How to test (non-default conventions)?  -> AGENT.testing.md
+How to use from outside?                -> AGENT.usage.md
+Future or in-flight initiative?         -> taskPlanning/ AGENT.*.planning.md
+Identity, scope, entry links?           -> AGENT.md
+```
+
+#### Header contract
+
+Each sibling file should open with a short scope line, for example:
+
+> This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGENT.concepts.md). Code map: [`AGENT.implementation.md`](./AGENT.implementation.md).
+
+#### Normative authority
+
+Cursor rules, cross-package references, and integration checklists should cite **`AGENT.contract.md`** (when the area has one), not a catch-all `AGENT.md`. If normative text lives only in `AGENT.md`, migration is incomplete.
+
+#### Touch policy (steady-state edits)
+
+When changing code, update **only** the bucket(s) that change affects --- often one, sometimes several (for example a new normative rule in `AGENT.contract.md` and a new module path in `AGENT.implementation.md`). Do not touch unrelated buckets. Default anti-pattern: appending everything to `AGENT.md` because it is the main file.
+
+**Reference shapes:** [`packages/mtw-lambda-patterns/ts/messageBus/`](packages/mtw-lambda-patterns/ts/messageBus/) (pattern + implementation sibling); [`lambda/assets/messageBus/AGENT.md`](lambda/assets/messageBus/AGENT.md) (thin local index).
+
+#### Topic extensions
+
+Large single topics may use `AGENT.<topic>.md` when one concepts or contract file is too large. Declare parent and type in the header (for example: "Concept extension of `AGENT.concepts.md`").
 
 ### **Cross-Reference Standards**
 
-#### **Linking Between AGENT.md Files**
-Use relative paths to link between documentation files:
+#### **Linking between AGENT files**
+Use relative paths. Link to the **specific sibling** (contract, implementation, concepts), not always `AGENT.md`:
 ```markdown
-See [`../internalCache/componentRender.AGENT.md`](../internalCache/componentRender.AGENT.md) for details
+See [`./AGENT.contract.md`](./AGENT.contract.md) for normative gateway wiring.
+See [`../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) for publish/settle behavior.
 ```
 
-#### **Integration Points Section**
-Always include an "Integration Points" section that:
-- Lists dependencies on other systems
-- Provides links to related `AGENT.md` files
-- Explains how systems work together
-
-#### **Navigation Tips**
-Include specific guidance for AI assistants:
-- Which files to examine first
-- How to understand the system's role
-- Where to find related functionality
+#### **Integration and navigation**
+- **Dependencies on other systems** --- `AGENT.navigation.md` when the link graph is large; otherwise a short list in `AGENT.md`.
+- **How other systems must interact** --- `AGENT.contract.md`.
+- **Where to start in code** --- `AGENT.implementation.md`.
 
 ### **Code Example Standards**
 
 #### **TypeScript Examples**
-- Use realistic but simple examples
-- Include type annotations where helpful
-- Show common usage patterns
-- Demonstrate error handling
+- Prefer **`AGENT.usage.md`** or **`AGENT.implementation.md`** for multi-step examples; keep `AGENT.md` examples minimal.
+- Use realistic but simple examples; include type annotations where helpful.
+- Demonstrate error handling where the example is contract-relevant.
 
 #### **WML Examples**
 - Use clear, well-formatted XML
@@ -99,19 +114,20 @@ Include specific guidance for AI assistants:
 ### **Documentation Hierarchy**
 
 #### **System-Level Documentation**
-- **Root `AGENT.md`**: Project overview and navigation
-- **Package `AGENT.md`**: Major subsystem documentation
-- **Directory `AGENT.md`**: Component group documentation
+- **Root `AGENT.md`**: Project overview, taxonomy (this section), and Quick Navigation
+- **Package `AGENT.md`**: Area entry point; siblings alongside as needed
+- **`AGENT.navigation.md`**: Optional dense hub when Quick Navigation at root is not enough for that subtree
 
 #### **Component-Level Documentation**
-- **File `AGENT.md`**: Individual component documentation
+- **Directory entry `AGENT.md`**: Scope and links; avoid monolithic technical detail
 - **Function Documentation**: Inline code comments
-- **Type Definitions**: Interface and type documentation
+- **Type Definitions**: Interface and type documentation; normative shapes in `AGENT.contract.md` when shared across packages
 
 #### **Task planning (`taskPlanning/`)**
-- **[`taskPlanning/AGENT.md`](taskPlanning/AGENT.md)**: What belongs in task plans versus durable package docs, durability expectations, and how to add a new planning document.
-- **Area notes**: Subfolders may include `AGENT.development.md` (for example [`taskPlanning/charcoal-client/AGENT.development.md`](taskPlanning/charcoal-client/AGENT.development.md)) with exact test commands and links to [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md).
-- **Example (ephemera / Coyote):** [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Engine testing harness (dev)** — graded Coyote hypothesis runs via `runCoyoteEngineTestHarness`.
+- **[`taskPlanning/AGENT.md`](taskPlanning/AGENT.md)**: Task plans vs durable docs, durability ladder, how to add a planning document.
+- **[`taskPlanning/AGENT.docTaxonomy.migration-runbook.md`](taskPlanning/AGENT.docTaxonomy.migration-runbook.md)**: Durable process for reorganizing drifted `AGENT*.md` files.
+- **[`taskPlanning/AGENT.docMigration.planning.template.md`](taskPlanning/AGENT.docMigration.planning.template.md)**: Copy to instantiate a per-area doc migration task plan.
+- **Area notes**: `AGENT.development.md` under `taskPlanning/<area>/` when tooling is non-obvious (for example [`taskPlanning/charcoal-client/AGENT.development.md`](taskPlanning/charcoal-client/AGENT.development.md)).
 
 ## Quick Navigation
 
@@ -327,9 +343,9 @@ Do this:
 ### **For AI Assistants**
 1. **Begin with Overview**: Read the project overview to understand the system
 2. **Follow Navigation**: Use the Quick Navigation section to find relevant docs
-3. **Study Patterns**: Pay attention to the documentation standards
+3. **Respect taxonomy**: Put new content in the correct `AGENT.*.md` sibling; cite `AGENT.contract.md` for normative rules
 4. **Cross-Reference**: Use links to understand system relationships
-5. **Check Examples**: Study code examples to understand implementation
+5. **Check Examples**: Study code examples in usage or implementation docs, not only `AGENT.md`
 
 ### **For Human Collaborators**
 1. **Browse Structure**: Use this file to understand the documentation organization
@@ -356,10 +372,9 @@ Do this:
 
 ### **Future Improvements**
 1. **Expand Coverage**: Document remaining subsystems
-2. **Add Examples**: Include more realistic code examples
+2. **Migrate drifted docs**: Apply [doc taxonomy migration runbook](taskPlanning/AGENT.docTaxonomy.migration-runbook.md) to high-authority areas
 3. **Improve Navigation**: Better cross-referencing between systems
-4. **Update Standards**: Refine documentation patterns based on usage
-5. **Add Diagrams**: Include architectural diagrams where helpful
+4. **Add Diagrams**: Include architectural diagrams where helpful
 
 ### **Known Issues**
 - **Interface Inconsistencies**: Perception system output doesn't match documented interfaces

@@ -13,7 +13,20 @@ Think of documentation in four rough tiers:
 | Package / area docs | `charcoal-client/AGENT.md`, `*/AGENT.md`, `AGENT.testing.md` | Long-lived; update when behavior changes |
 | Root navigation | [`AGENT.md`](../AGENT.md) | Long-lived index and conventions |
 
-Task plans sit **above** chat: they record goals, ordering, progress, and verification so work can resume without re-deriving context. They sit **below** package docs: they should not duplicate architecture that belongs in `AGENT.md` files next to code.
+Task plans sit **above** chat: they record goals, ordering, progress, and verification so work can resume without re-deriving context. They sit **below** package docs: they should not duplicate architecture that belongs in `AGENT*.md` files next to code.
+
+## AGENT documentation taxonomy and migration
+
+**Authoring rules (steady state):** [Root `AGENT.md` -- AGENT documentation taxonomy](../AGENT.md#agent-documentation-taxonomy) --- file roles, decision tree, touch policy.
+
+**Reorganizing drifted docs (process):**
+
+| Doc | Durability | Role |
+| --- | --- | --- |
+| [`AGENT.docTaxonomy.migration-runbook.md`](AGENT.docTaxonomy.migration-runbook.md) | **Keep** --- do not delete when a migration finishes | Phases 0--4: scope, inventory, move, authority, verify |
+| [`AGENT.docMigration.planning.template.md`](AGENT.docMigration.planning.template.md) | **Keep** --- copy to start each migration | Per-area checklist; delete the **copy** when that migration merges |
+
+To start a migration: copy the template into the `taskPlanning/` subfolder that matches the code area, rename to `AGENT.<areaSlug>DocMigration.planning.md`, fix relative links, work through **Recommended order**, merge durable doc changes, then delete the planning copy.
 
 ## What belongs in a task plan vs elsewhere
 
@@ -26,7 +39,7 @@ Task plans sit **above** chat: they record goals, ordering, progress, and verifi
 
 **Put in durable docs and link from the task plan:**
 
-- How a subsystem works in steady state (belongs in the relevant `AGENT.md` or module doc)
+- How a subsystem works in steady state (belongs in the relevant `AGENT*.md` siblings per [taxonomy](../AGENT.md#agent-documentation-taxonomy) --- not only `AGENT.md`)
 - Testing standards, framework choice, and patterns (e.g. [`charcoal-client/AGENT.testing.md`](../charcoal-client/AGENT.testing.md))
 - API contracts and types (package and interface docs)
 
