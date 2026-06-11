@@ -139,7 +139,7 @@ export const handler = async (event: any, context: any) => {
         }
         // Flush messageBus and return after handling EventBridge events
         await messageBus.flushAndSettle()
-        return
+        return await extractReturnValue(messageBus)
     }
 
     // Handle legacy EventBridge messages that don't use DataSource pattern yet
@@ -310,6 +310,6 @@ export const handler = async (event: any, context: any) => {
 
     // Boundary drain: quiesces hybrid publish/settle + send/flush graph for this invocation.
     await messageBus.flushAndSettle()
-    return extractReturnValue(messageBus)
+    return await extractReturnValue(messageBus)
 
 }

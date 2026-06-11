@@ -30,7 +30,7 @@ Implementation: [`boundaryResponseCollector.ts`](./boundaryResponseCollector.ts)
 - **Subscriptions:** priority **16** by default (`ReturnValueCollector`, `ErrorCollector`).
 - **Deferral:** registers `onClear: reset` so `messageBus.clear()` at ingress resets per-invocation buffers.
 
-**`extractReturnValue` stays per-lambda.** The package collects fragments; each lambda owns HTTP/API Gateway shaping (RequestId, default Success, WebSocket route-response passthrough, etc.). Reference consumer: [`lambda/diagnostics/returnValue/`](../../../lambda/diagnostics/returnValue/).
+**`extractReturnValue` stays per-lambda.** The package collects fragments; each lambda owns HTTP/API Gateway shaping (RequestId, default Success, WebSocket route-response passthrough, etc.). Reference consumers: [`lambda/diagnostics/returnValue/`](../../../lambda/diagnostics/returnValue/), [`lambda/ephemera/returnValue/`](../../../lambda/ephemera/returnValue/).
 
 ```ts
 import {
@@ -53,7 +53,22 @@ export const {
 } = createBoundaryResponseCollector<MessageType>()
 ```
 
-Set `includeError: false` when a lambda publishes `ReturnValue` only (e.g. ephemera today).
+Use default `includeError: true` when the lambda publishes bus `Error` messages for boundary assembly. Ephemera uses both bus `Error` (infrastructure) and `ReturnValue` bodies with `messageType: 'Error'` (WebSocket app contract); only the former is collected as bus `Error`.
+
+## Lambda roll-out checklist
+
+Mechanical steps to migrate a lambda from hand-rolled `returnValue/collector.ts` to the shared factory (diagnostics and ephemera are reference consumers):
+
+| Step | Action |
+| --- | --- |
+| 1 | Replace [`returnValue/collector.ts`](../../../lambda/assets/returnValue/collector.ts) with a thin `createBoundaryResponseCollector<MessageType>()` wrapper; preserve public exports (`registerReturnValueCollector`, `getCollected*`, `reset`, test helpers). |
+| 2 | Import/re-export `ReturnValueMessage`, `ErrorMessage`, `isReturnValueMessage`, `isErrorMessage` from `@tonylb/mtw-lambda-patterns/ts/messageBus` in `messageBus/baseClasses.ts`. |
+| 3 | Ensure `extractReturnValue` checks `getCollectedError()` before ReturnValue body assembly (lambda-specific response shaping stays local). |
+| 4 | Grep `messageBus.publish({ type: 'Error'` and verify each boundary exit calls `extractReturnValue` after `flushAndSettle`. |
+| 5 | Slim `returnValue/collector.test.ts` to integration-only (`extractReturnValue` policy); generic merge/reset/register tests live in [`boundaryResponseCollector.test.ts`](./boundaryResponseCollector.test.ts). |
+| 6 | Run lambda tests + package `boundaryResponseCollector.test.ts`. |
+
+**Per-lambda notes:** assets/wml keep SNS side-effect `ReturnValue` handlers at priority 9; connections `extractReturnValue` has WebSocket route-response passthrough; ephemera keeps `ReturnValue`-encoded app errors separate from bus `Error`.
 
 ```ts
 // Publish path (immediate scheduling)

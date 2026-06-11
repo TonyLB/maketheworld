@@ -1,4 +1,12 @@
-import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import {
+    InternalMessageBus,
+    type ReturnValueMessage,
+    type ErrorMessage,
+    isReturnValueMessage,
+    isErrorMessage,
+} from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+
+export type { ReturnValueMessage, ErrorMessage }
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -140,19 +148,6 @@ export type PublishMessage = PublishWorldMessage |
     PublishNarrateMessage |
     PublishOutOfCharacterMessage |
     PublishPerceptionMessage
-
-export type ReturnValueMessage = {
-    type: 'ReturnValue';
-    body: Record<string, any>;
-}
-
-export type ErrorMessage = {
-    type: 'Error';
-    body: {
-        error: string;
-        statusCode?: number;
-    };
-}
 
 export type RegisterCharacterMessage = {
     type: 'RegisterCharacter';
@@ -431,8 +426,7 @@ export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeech
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
 
-export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
-export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
+export { isReturnValueMessage, isErrorMessage }
 
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')

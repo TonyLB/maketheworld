@@ -7,7 +7,7 @@ import { handler } from './app'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { fetchEphemeraForCharacter } from './fetchEphemera'
-import { collectReturnValues, resetReturnValueCollector } from './returnValue/collector'
+import { collectReturnValues, collectErrors, resetReturnValueCollector } from './returnValue/collector'
 
 // Mock dependencies
 jest.mock('./messageBus')
@@ -28,6 +28,9 @@ describe('app handler', () => {
         mockMessageBus.publish.mockImplementation((payload) => {
             if (payload?.type === 'ReturnValue') {
                 collectReturnValues([payload])
+            }
+            if (payload?.type === 'Error') {
+                collectErrors([payload])
             }
         })
         mockThinkingResultsGet = jest.fn()
@@ -415,6 +418,30 @@ describe('app handler', () => {
             })
             expect(content).not.toHaveProperty('isFirstSessionForCharacter')
             expect(typeof (content as { timestamp?: string }).timestamp).toBe('string')
+        })
+
+        it('returns extractReturnValue error when EventBridge source has no deserializer', async () => {
+            const event = {
+                source: 'mtw.unknown',
+                'detail-type': 'Some Event',
+                detail: {},
+            }
+
+            const response = await handler(event, {})
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'Error',
+                body: {
+                    error: 'No deserializer available for data source: mtw.unknown',
+                },
+            })
+            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
+            expect(response).toEqual({
+                statusCode: 400,
+                body: JSON.stringify({
+                    error: 'No deserializer available for data source: mtw.unknown',
+                }),
+            })
         })
     })
 
