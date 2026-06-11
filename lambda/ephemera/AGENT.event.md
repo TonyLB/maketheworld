@@ -59,6 +59,7 @@ Registration is connections-owned (`registercharacter` on `service: connections`
 #### **Perception and Rendering Messages**
 - **`Perception`**: Requests character-perspective rendering of game components
 - **`ReturnValue`**: Queues response data for WebSocket delivery. The handler merges multiple **`ReturnValue`** messages into **one** response body for the API Gateway round-trip ([`returnValue/extractReturnValue`](../returnValue/index.ts)). Multi-message client streams (e.g. correlated **`ConversationStep`**) use direct **`PostToConnection`** / lifeLine patterns where implemented, not merged Lambda bodies.
+- **`Error`** (bus message): Boundary infrastructure failures (e.g. EventBridge missing deserializer). Collected by [`returnValue/collector`](../returnValue/collector.ts); **`extractReturnValue`** returns non-200. Distinct from **`ReturnValue` body `messageType: 'Error'`** (WebSocket app errors such as `fetchThinkingResult`, still HTTP 200) and from in-game **`PublishMessage`** feedback for parse failures.
 
 #### **Event Cascade Coordination**
 

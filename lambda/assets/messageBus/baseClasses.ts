@@ -1,20 +1,15 @@
-import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import {
+    InternalMessageBus,
+    type ReturnValueMessage,
+    type ErrorMessage,
+    isReturnValueMessage,
+    isErrorMessage,
+} from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetPlayerSettingsAPIMessage } from '@tonylb/mtw-interfaces/ts/asset';
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 
-export type ReturnValueMessage = {
-    type: 'ReturnValue';
-    body: Record<string, any>;
-}
-
-export type ErrorMessage = {
-    type: 'Error';
-    body: {
-        error: string;
-        statusCode?: number;
-    };
-}
+export type { ReturnValueMessage, ErrorMessage }
 
 type ImportFromAssetArgument = {
     assetId: `ASSET#${string}`;
@@ -74,8 +69,7 @@ export type MessageType = ReturnValueMessage |
     PlayerSettingsMessage |
     CollaborationStatusMessage
 
-export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
-export const isErrorMessage = (prop: MessageType): prop is ErrorMessage => (prop.type === 'Error')
+export { isReturnValueMessage, isErrorMessage }
 export const isStreamingEventMessage = (prop: MessageType): prop is StreamingEventMessage => (prop.type === 'StreamingEvent')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isFetchImportsAPIMessage = (prop: MessageType): prop is FetchImportsMessage => (prop.type === 'FetchImports')

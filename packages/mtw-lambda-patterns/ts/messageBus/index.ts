@@ -111,3 +111,17 @@ export class InternalMessageBus<PayloadType> {
         }
     }
 }
+
+export {
+    createBoundaryResponseCollector,
+    isReturnValueMessage,
+    isErrorMessage,
+} from './boundaryResponseCollector'
+export type {
+    ReturnValueMessage,
+    ErrorMessage,
+    BoundaryResponseMessage,
+    WithBoundaryResponseMessages,
+    BoundaryResponseCollectorOptions,
+    BoundaryResponseCollector,
+} from './boundaryResponseCollector'
