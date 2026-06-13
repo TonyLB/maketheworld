@@ -19,7 +19,7 @@ Framework conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 3. [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) --- `registerDeferral`, `afterSettled`, interaction with `flushAndSettle`
 4. [`lambda/ephemera/AGENT.narrativeTranscript.concepts.md`](../../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) --- fictional **`CreatedTime`**, delivery looseness vs correlation; fan-in specs must not re-encode accidental atomic-delivery constraints
 5. [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- **Phase 1 consumer** (`MembershipPresentationFanInCluster`, `FanInClusterStore`, world-line emission); PerceptionThreads retirement target (Phase 2--3)
-6. [`lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md) --- fact leg producer (`Character Moved`); slice **1b** coordinates with Phase 1 here
+6. [`lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md) --- fact leg producer; slice 1 TEMP emit (**S1-14**), slice 2 graph-diff (**F1-8**); slice **1b** coordinates with Phase 1 here
 
 Baseline (Phase 0; should pass before framework edits):
 
@@ -55,7 +55,7 @@ Fan-in **does not** gate header render lifecycle or beat timestamps. [`positions
 
 **Phase 1 limitations (render-blind emission):** Membership fan-in correlates only **`intent` + `fact`**. It does **not** subscribe to **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, or **`Generation Deferred`**. After correlation it publishes leave/arrive **without knowing** whether mover header render succeeded, failed, or was deferred. Header error placeholders stay on the render registry path in [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) --- decoupled from membership emission. Intentional tradeoff: stable fictional transcript position (anchor at fact) vs coupling world lines to render outcomes.
 
-**Known gap:** Navigate stream does not carry **`exitName`**; fan-in falls back to **`genericNavigate`** until a later slice enriches intent or extends the stream.
+**Exit-aware copy (F1-9 / positions S1-10):** optional **`exitName`** on **`Character Navigate`** intent when parse matched a named exit; fan-in uses **`copyKind: 'exitAware'`** when intent carries **`exitName`** (trust parse --- same posture as positions **S1-1**). Slice 1 does **not** populate **`legalExits`** on the fact leg; optional field on contract deferred until post-slice-2 spike if needed.
 
 **Future (deferred spike):** A richer fan-in spec might add optional **render outcome legs** (e.g. terminal **`Render Pertains`**, **`Orchestration Error`**) for render-aware leave/arrive policy --- without making render completion the fact or anchor source. Not an open decision row until product asks.
 
@@ -122,10 +122,25 @@ for (const envelope of events) {
 | Initiative | Depends on | Phase |
 | --- | --- | --- |
 | **Move emission policy** (intent + fact -> shape + copy) | Fan-in **Phase 0 + Phase 1** | Actions (or connections) emit **intent**; positions emit membership **fact**; **[`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)** runs **`onComplete`** / **`onDeferredIncomplete`** then **`PublishMessage`** with times from pre-assigned beat anchor |
-| [`positions` slice 1b emission](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#cross-initiative-dependencies) | Phase 0 + Phase 1 | **Not** a blocker for slice **1a** persistence boundary or Model A beat assignment. **Preferred order (positions S1-2):** fan-in Phase 0 + 1 **before** positions slice 1 --- then ship persistence + `Character Moved` + emission together (skip interim imperative copy). |
+| [`positions` slice 1b emission](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#cross-initiative-dependencies) | Phase 0 + Phase 1 | **Not** a blocker for slice **1a** persistence boundary or Model A beat assignment. **Preferred order (positions S1-2):** fan-in Phase 0 + 1 **before** positions slice 1 --- then ship persistence + `Character Moved` + fan-in emission together (skip interim imperative copy). Slice **1** emission scope: **navigate + disconnect**; connect deferred slice **3** (positions **S1-12**). |
 | **Model A beat orchestration** | **Independent** of fan-in framework | Stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply); header kick/render stays on existing perception paths |
 | **PerceptionThreads retirement (ordering / pre-bake)** | Phase 2 | Drop `characterMove` register-first + pre-baked `leaveWorldMessage` / `arriveWorldMessage` once emission fan-in owns world lines |
 | **PerceptionThreads slim (targeting-only)** | Phase 3+ | After emission + beat decouple: keep **who** + **which render thread** at register; [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) correlates async render --- **not** migrated into generic fan-in specs by default |
+
+## Cross-initiative coordination (positions fact producer)
+
+This plan owns the **fan-in framework** and **`mtw.ephemera.perception`** emission consumer. **Do not** duplicate positions persistence or **`Character Moved`** streaming as nested Phase 1 checklist rows --- track them in the authoritative positions plan and link progress here.
+
+| Work | Authoritative checklist | Fan-in Phase 1 needs it for |
+| --- | --- | --- |
+| Membership persistence API | [positions --- Slice **1a**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | End-to-end fact legs (navigate + disconnect) |
+| **`Character Moved`** stream + membership-changed bundle (**S1-11**, **S1-14**) | [positions --- Slice **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | **Publish** gate; perception already subscribes to the fact envelope |
+| **`beatAnchorTime`** at persistence apply (**F1-4**) | [positions slice **1a** / **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | Model A **`createdTime`** on published world lines |
+| Graph-diff fact emit (**F1-8** steady state) | [positions slice **2**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | Unchanged fan-in contract |
+
+**Coordination milestone (positions **S1-2**):** fan-in cluster + emission **policy** on synthetic legs may ship before the positions API (done). End-to-end Phase 1 **publish** + integration tests require positions streaming facts for **navigate + disconnect**; connect deferred positions **S1-12** / slice **3**.
+
+Phase 1 **Recommended order** below tracks **perception + actions intent** work owned by this initiative only.
 
 ## Proof case (Phase 1) --- membership presentation emission
 
@@ -137,20 +152,53 @@ for (const envelope of events) {
 
 | Leg | Source (decided) | Carries |
 | --- | --- | --- |
-| **Intent** | **`mtw.ephemera.actions`** (**`Character Navigate`**, **`Character Home`** --- admin teleport deferred) + **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected` per **F1-5**) | Why the transition happened; optional exit name |
-| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply (**F1-3**) | That membership changed; **`characterId`**, **`from`** / **`to`** endpoints (authoritative cluster key per **F1-1**); **legal exits** for exit-aware copy (emit-time read; positions **does not** re-validate `toRoomId` at apply per positions **S1-1**); fact recorded time (**F1-4**) |
+| **Intent** | **`mtw.ephemera.actions`** (**`Character Navigate`** with optional **`exitName`** per **F1-9**, **`Character Home`** --- admin teleport deferred) + **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected` per **F1-5**) | Why the transition happened; exit label for copy when parse matched an exit |
+| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply (**F1-3**) | That membership changed; **`characterId`**, **`from`** / **`to`** endpoints (authoritative cluster key per **F1-1**); fact recorded time (**F1-4**). Positions **does not** re-validate `toRoomId` at apply (**S1-1**). **`legalExits`** not populated slice 1 (**S1-10**) |
 
-**F1-1 rationale (`requestId` rejected):** [`Character Connected` / `Character Disconnected`](../../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) carry `characterId`, `sessionId`, `timestamp` only --- no `requestId`. [`Character Navigate`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) stream payload is `characterId`, `fromRoomId`, `toRoomId` only; `requestId` exists on **`Parse Requested`** ingress (for `ReturnValue`) but is not on the actions stream today and [`actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) discourages expanding navigate payload without positions scope.
+**F1-1 rationale (`requestId` rejected):** [`Character Connected` / `Character Disconnected`](../../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) carry `characterId`, `sessionId`, `timestamp` only --- no `requestId`. [`Character Navigate`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) stream payload is `characterId`, `fromRoomId`, `toRoomId`, and optional **`exitName`** (**F1-9**); `requestId` exists on **`Parse Requested`** ingress (for `ReturnValue`) but is not on the actions stream. Fan-in correlates on fact endpoints (**F1-1**), not `requestId`.
 
 **Correlation via partial clusters + unify:** stable **`clusterIdentity()`** comes from the **position-change fact** (`characterId` + `from` + `to` at persistence apply). Intent legs use the general **`canAcceptLeg` / `unifyWith`** path --- not a connections-only pending side table. Navigate intent often seeds a partial with full endpoints; connect/disconnect intent seeds a **provisional** partial (`characterId` + direction) unified when the fact arrives.
 
 **F1-3 rationale (`Character Moved`):** positions emits **`Character Moved`** on **`mtw.ephemera.positions`** via **`streamEvent`** (internal bus envelope; not a bespoke `messageBus` message type). Externally a character move is "an object changed position," but **in-product** it is the **player point-of-view** relocating --- fan-in emission, beat anchoring, session orientation, and roster/affordance cascades all hang off that fact. A domain-specific name signals those consumers; payload shape (including out-of-play `from`/`to` encoding) lands in [`positions/publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) at slice **1b** implementation.
 
+### Fact producer contract --- descriptive emission at persistence apply (**F1-8**)
+
+Fan-in depends on a clean **intent vs fact** split. **Intent** legs (navigate, home, connect, disconnect) carry *why*; the positions **fact** leg must carry *that membership changed* --- without re-encoding ingress type in **perception** (copy stays on intent legs).
+
+#### Steady-state target (positions **slice 2+**)
+
+**`Character Moved`** is emitted **descriptively** from the membership persistence API, not by branching on which ingress handler invoked apply:
+
+1. Read authoritative membership **before** apply (character room endpoint; `null` = out of play per **F1-7**).
+2. Apply the mutation via **`updatePositionGraphs`** (play graph storage per positions **slice 2**).
+3. Derive **`MembershipDiff`** from graph before/after (not from intent envelopes).
+4. **Only if endpoints changed** (`from !== to`): **`streamEvent`** **`Character Moved`** with observed `from` / `to`, **`beatAnchorTime`** (**F1-4**). Optional fact-side enrichments (e.g. **`legalExits`**) deferred --- not required for fan-in slice 1 (**S1-10** / **F1-9**).
+
+Precedent: [`Objects Changed`](../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) after [`mergePersistMetaRoomObjects`](../../../../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) (`priorObjects` / `newObjects`; emit only when `persisted: true`).
+
+**Why it matters for fan-in:** fact-authoritative **`clusterIdentity()`** (**F1-1**) must reflect **actual** play state after apply. Fact-only deferral (**`onDeferredIncomplete`**) for admin teleport and other callers without intent requires diff-shaped facts in steady state.
+
+#### Slice 1 temporary exception (**S1-14**)
+
+Until play **`positionGraph`** storage lands (**slice 2**), slice **1b** may emit facts using a **lighter, intent-assisted** path inside the same membership persistence boundary:
+
+1. **Apply first** (flat `activeCharacters` / `RoomId` / `RoomStack` transact --- no virtual-graph write adapter).
+2. **`from`** = authoritative pre-read (`CharacterMeta.RoomId`, `null` = out of play).
+3. **`to`** = successful apply target endpoint (not copied blindly off navigate stream payload without apply).
+4. **No-op gate:** emit only when apply changed membership (`from !== to`; positions **S1-8**).
+5. **`TEMP slice 1`** comments at the fact-builder seam; remove in the slice **2** PR that ships **`updatePositionGraphs`**.
+
+**Acceptable for slice 1:** expedient flat persistence + fan-in Phase 1 production path. **Not acceptable steady state:** branching **`streamEvent`** on ingress type inside positions handlers; emitting without apply; copying intent **`fromRoomId`/`toRoomId`** without pre-read / apply outcome.
+
+**Slice 2 cutover bundle (single PR):** stored **`Meta::Room.positionGraph`** + **`updatePositionGraphs`** + replace TEMP fact builder with diff-only emit + delete TEMP comments + graduate **F1-8** to contract. Fan-in / **`publishedEvents.ts`** payload shape unchanged.
+
+Positions detail: [`positions` task plan --- fact emission slices 1 vs 2](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#fact-emission-slice-1-temporary-vs-slice-2-steady-state).
+
 **`onComplete` (intent + fact correlate):** build an **emission plan** then publish (using **`beatAnchorTime`** = fact recorded time when the beat applies --- **F1-4**):
 
 | Correlated picture | World lines | Copy notes |
 | --- | --- | --- |
-| Room A -> Room B (in play) | Leave **and** arrive | Exit-aware when intent exit is in fact legal set; header kick separate (Model A anchor) |
+| Room A -> Room B (in play) | Leave **and** arrive | Exit-aware when navigate intent carries **`exitName`** (**F1-9**); header kick separate (Model A anchor) |
 | Out of play -> in play (connect) | Arrive **only** | e.g. " has connected." |
 | In play -> out of play (disconnect) | Leave **only** | e.g. " has disconnected." |
 
@@ -203,6 +251,8 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 | F1-5 | Connect/disconnect **intent** leg: **`mtw.connections.characters`** stream (`Character Connected` / `Character Disconnected`) | Phase 1 | Decided |
 | F1-6 | **Consumer DataSource:** [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- cluster in **`perception/`**, extend **`subscribedEvents`** for actions + connections + positions intent/fact legs; positions does **not** own emission policy | Phase 1 | Decided |
 | F1-7 | **`MembershipEndpoint`**: `null` = out of play (provisional; must match positions **`Character Moved`** payload at slice 1b) | Phase 1 | Decided |
+| F1-8 | **Descriptive fact emission:** steady state (**slice 2+**) = graph-diff via **`updatePositionGraphs`**; emit only on observed membership change. **Slice 1 exception (**S1-14**):** TEMP intent-assisted endpoints (pre-read + apply target) inside persistence boundary; removed in slice 2 cutover bundle | Phase 1 emit (slice 1b); full **F1-8** at slice 2 | **Decided** |
+| F1-9 | **Exit-aware copy (slice 1):** extend **`Character Navigate`** intent with optional **`exitName`** from parse; fan-in **`copyKind: 'exitAware'`** when intent has **`exitName`** (trust parse; no **`factLeg.legalExits`** gate). Positions omits **`legalExits`** on fact slice 1. Positions **S1-10** | Phase 1 | **Decided** |
 | F3-1 | Phase 3 registry: **keep `PerceptionThreads` name**; slim in place (delete dead fields; no rename/split) | Phase 3 | Decided |
 | F3-2 | Mover arrival **header**: **keep** slim **`characterMove`** PerceptionThread (targeting-only; optional UUID **`requestId`** on render kick for orchestrate match). **Affordance refresh** for all occupants: **separate** kick (today **`RoomUpdate`**); defer positions **`Object Moved`** generalization | Phase 3 | Decided |
 
@@ -221,17 +271,18 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Graduate API to [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)
 
 - [ ] **Phase 1 --- membership presentation emission ([`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md); **F1-6**)**
-  - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5, F1-6 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply)
+  - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5, F1-6, F1-9 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply; **S1-10** exit-aware via intent **`exitName`**)
   - [X] **May ship cluster + unit tests on synthetic legs before positions persistence API exists** (positions **S1-2** preferred order)
   - [X] Perception: add **`MembershipPresentationFanInCluster`** in [`perception/membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (intent + fact legs; `canUnifyWith` / fact-authoritative identity per **F1-1**)
   - [X] Actions: add **`Character Home`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (**F1-2**); type + guard on the stream contract. **Emit** when home is resuscitated on the actions path (legacy [`executeAction`](../../../../../lambda/ephemera/parse/executeAction.ts) **`MoveCharacter`** until then). Distinct from **`Character Navigate`** so fan-in can set **`copyKind: 'home'`** (navigate-to-`HomeId` alone is not sufficient).
   - [X] Perception: extend [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) for **`mtw.ephemera.actions`** **`Character Navigate`** + **`Character Home`** intent adapters, **`mtw.connections.characters`** connect/disconnect intent (**F1-5**), **`mtw.ephemera.positions`** **`Character Moved`** fact (**F1-3**). Admin teleport **out of scope** for Phase 1. Leg mappers in [`membershipPresentationLegAdapters.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts).
   - [X] Perception: module-scoped **`FanInClusterStore`** + **`registerDeferral`** on [`index.ts`](../../../../../lambda/ephemera/dataSource/perception/index.ts); wire **`receiveEvents`** (fan-in legs vs existing perception handlers). Tag: **`fanIn-mtw.ephemera.perception`**; sequential batch loop; **`afterSettled`** skips settle when no open partials.
-  - [ ] Positions: emit **`Character Moved`** from membership persistence API apply (navigate, connect, disconnect); contract in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) shipped
-  - [ ] At persistence apply: stamp **`beatAnchorTime`** from **fact** recorded time + ids when beat applies (Model A); do **not** pre-bake world copy on registration
+  - [ ] **Actions:** extend **`Character Navigate`** with optional **`exitName`**; emit from parse when navigation matched a named exit (**F1-9** / positions **S1-10**)
+  - [ ] **Perception:** map **`exitName`** on navigate intent leg; update **`buildMembershipEmissionPlan`** --- exit-aware when intent has **`exitName`** (remove **`legalExits?.includes`** gate)
+  - [ ] **Positions fact producer (external):** track [positions slice **1a** + **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) --- prerequisite for end-to-end publish + integration tests; detail not duplicated in this checklist
   - [X] Emission **policy** (shape + copy): **`buildMembershipEmissionPlan`** in [`membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) covers **`onComplete`** (intent + fact) and **`onDeferredIncomplete`** (fact-only / `deferralExecution`); unit-tested on synthetic legs. **Interim:** cluster **`handler`** still pushes plans onto **`ctx.plans`** --- staging only, not delivery.
   - [ ] **Publish** leave/arrive on correlation completion: add **`publishMembershipPresentation`** (or equivalent) called from cluster **`handler`** (pass **`messageBus`** on **`MembershipFanInHandlerContext`**) or a single emit helper at completion/deferral time; explicit **`createdTime`** from **`beatAnchorTime`** anchor (Model A). **Close staging seam:** retire **`ctx.plans`** accumulation and shrink/repurpose handler context once publish is wired. Kick header render independently (not gated on fan-in).
-  - [ ] Ephemera tests: cross-room leave+arrive; connect arrive-only; disconnect leave-only; exit-aware copy; fact-only at settle; leg order independence
+  - [ ] Ephemera tests: cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`**; disconnect leave-only; fact-only at settle; leg order independence. Connect arrive-only deferred to positions slice **3** (**S1-12**).
   - [ ] Document parallel operation with legacy imperative `MoveCharacter` suppress/copy flags until cutover
 
 - [ ] **Phase 2 --- retire `characterMove` ordering / pre-bake PerceptionThreads**
@@ -278,7 +329,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Phase 0 gate:** cluster completes on any leg order (including intent-first provisional partial unified by fact); `settleDeferrals` runs once per invocation after settle; no duplicate non-deferral `handler` for same cluster; `unifyWith` rejects contradictory endpoints.
 
-**Phase 1 gate:** correct emission shape (leave+arrive vs singleton) when intent + fact correlate; exit-aware copy when intent exit matches fact legal set; fact-only deferral yields endpoint-inferred shape + generic copy; published rows use explicit beat anchor times (Model A).
+**Phase 1 gate:** correct emission shape (leave+arrive vs singleton) when intent + fact correlate; exit-aware copy when navigate intent carries **`exitName`** (**F1-9**); fact-only deferral yields endpoint-inferred shape + generic copy; published rows use explicit beat anchor times (Model A).
 
 ---
 
@@ -287,7 +338,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Milestone | Status |
 | --- | --- |
 | Phase 0: framework pattern | Done |
-| Phase 1: membership presentation emission | In progress (policy + store wiring shipped; publish + retire `ctx.plans` staging pending) |
+| Phase 1: membership presentation emission | In progress (policy + store wiring shipped; **publish** pending; positions fact stream --- track [positions slice **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order)) |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |
