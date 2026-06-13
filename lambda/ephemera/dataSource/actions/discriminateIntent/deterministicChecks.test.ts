@@ -140,12 +140,12 @@ describe('deterministicIntentChecks', () => {
         expect(deterministicIntentChecks({
             command: 'north',
             roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-        })).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        })).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
 
         expect(deterministicIntentChecks({
             command: '  GO   NORTH  ',
             roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-        })).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        })).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
     })
 
     it('returns null when deterministic navigation does not resolve', () => {

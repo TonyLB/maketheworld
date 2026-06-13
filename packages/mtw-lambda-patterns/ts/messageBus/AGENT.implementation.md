@@ -17,7 +17,7 @@ Implementation: [`index.ts`](./index.ts). Each lambda uses a single `InternalMes
 
 **Subscription `priority`:** retained on the subscribe type for documentation; **`publish` does not enforce priority ordering**. Matching subscribers run concurrently.
 
-**Defer buffer (orchestration outbound coalescing):** not a second subscriber queue. **`registerDeferral`** + per-need aggregators at module load; **`afterSettled`** hooks are **IO-only** (no `publish` from registrants). Examples: ephemera [`publishMessage/coalescer.ts`](../../../lambda/ephemera/publishMessage/coalescer.ts) (`deliveryMode: 'deferred'` **character move only**), [`checkLocation/coalescer.ts`](../../../lambda/ephemera/checkLocation/coalescer.ts), [`returnValue/collector.ts`](../../../lambda/ephemera/returnValue/collector.ts).
+**Defer buffer (orchestration outbound coalescing):** not a second subscriber queue. **`registerDeferral`** + per-need aggregators at module load; **`afterSettled`** hooks are **IO-only** (no `publish` from registrants). Examples: ephemera [`publishMessage/coalescer.ts`](../../../lambda/ephemera/publishMessage/coalescer.ts) (`deliveryMode: 'deferred'` **character move only**), [`checkLocation/coalescer.ts`](../../../lambda/ephemera/checkLocation/coalescer.ts), [`returnValue/collector.ts`](../../../lambda/ephemera/returnValue/collector.ts). DataSource fan-in stores ([`FanInClusterStore`](../dataSource/fanInClusterStore.ts)) also register deferrals for settle-time incomplete clusters; see [Fan-in cluster pattern](../dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation).
 
 ## Boundary response collector
 

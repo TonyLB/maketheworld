@@ -10,7 +10,7 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). On each **`Parse Requested`**, **`index.ts`** **`PublishMessage`** **`CommandTranscriptMessage`** to the requesting character first (trimmed raw command text), then parse-side-effect messages. Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). When **`requestId`** is present on the parse payload, **`index.ts`** also emits **`ReturnValue`** **`Success`** with machine-oriented **`message: 'parse_request_handled'`** (human echo is only on the transcript row). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard).
+Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). On each **`Parse Requested`**, **`index.ts`** **`PublishMessage`** **`CommandTranscriptMessage`** to the requesting character first (trimmed raw command text), then parse-side-effect messages. Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Character Home`** (legacy home via [`sendPublishedEvents.ts`](sendPublishedEvents.ts) from [`executeAction`](../../parse/executeAction.ts)), **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). When **`requestId`** is present on the parse payload, **`index.ts`** also emits **`ReturnValue`** **`Success`** with machine-oriented **`message: 'parse_request_handled'`** (human echo is only on the transcript row). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard). **`mtw.ephemera.perception`** subscribes to **`Character Navigate`** and **`Character Home`** for membership fan-in intent legs.
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
@@ -31,7 +31,8 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 ## Movement bridge and deferred positions cutover
 
 - Current movement behavior in actions is intentionally **event + imperative** for parity:
-  - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`) for downstream/event-first workflows.
+  - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) for downstream/event-first workflows and fan-in exit-aware copy (**F1-9**).
+  - Legacy home (`executeAction` `case 'home'`) emits **`Character Home`** (same endpoint fields, distinct type for fan-in **`copyKind: 'home'`**) via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present.
   - actions also publishes `MoveCharacter` imperatively so movement executes in current runtime.
 - This dual-path behavior is transitional and scoped to the movement-affordance task.
 - Event-only movement execution ownership is deferred to **`mtw.ephemera.positions`**.
@@ -39,7 +40,6 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 ### Explicit non-goals (until positions lands)
 
 - Do not treat `mtw.ephemera.actions` as long-term authority for room/position state ownership.
-- Do not expand `Character Navigate` payload beyond `characterId`, `fromRoomId`, `toRoomId` without positions-scope requirements.
 - Do not add object-position or relative-position semantics in actions; those belong to future positions design.
 
 ---

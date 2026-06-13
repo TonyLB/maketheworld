@@ -10,6 +10,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` slice 0.
 | --- | --- |
 | [`index.ts`](index.ts) | `EphemeraDataSource` instance; `receiveEvents` dispatches by envelope type |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
+| [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved`; emit pending slice 1b) |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect/disconnect handlers |
 
 ### Tests
@@ -17,6 +18,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` slice 0.
 | File | Covers |
 | --- | --- |
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection |
+| [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` payload guard |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect `CheckLocation` publish; disconnect roster + idempotency |
 
 ---

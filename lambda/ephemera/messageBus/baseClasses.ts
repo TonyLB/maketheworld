@@ -126,7 +126,7 @@ export type PublishOutOfCharacterMessage = {
 
 /**
  * Room **`PerceptionMessage`** rows (wire / bus): **`displayProtocol: 'PerceptionMessage'`** with **`metaData`** from **`@tonylb/mtw-interfaces`**.
- * For **`ROOM#...`** metadata, **`metaData.roomChannel`** (`'render' | 'affordances'`, omitted = treat as **`render`**) discriminates **room-render** vs **room-affordances**; see **`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`**.
+ * For **`ROOM#...`** metadata, **`metaData.roomChannel`** (`'render' | 'affordances'`, omitted = treat as **`render`**) discriminates **room-render** vs **room-affordances**; see **`lambda/ephemera/AGENT.multiChannel.contract.md`**.
  * Emitters setting **`roomChannel`** on publishes are **Phase B**; this type already carries the field when present on **`PerceptionRoomMetaData`**.
  */
 export type PublishPerceptionMessage = {

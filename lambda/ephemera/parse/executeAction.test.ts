@@ -5,6 +5,7 @@ import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, EphemeraRoomId, EphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscribedEvents'
 import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
+import { sendCharacterHome } from '../dataSource/actions/sendPublishedEvents'
 
 // Mock dependencies
 jest.mock('../messageBus', () => ({
@@ -34,12 +35,20 @@ jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
         sendRenderRequested: jest.fn(),
     }
 })
+jest.mock('../dataSource/actions/sendPublishedEvents', () => {
+    const actual = jest.requireActual('../dataSource/actions/sendPublishedEvents') as object
+    return {
+        ...actual,
+        sendCharacterHome: jest.fn(),
+    }
+})
 
 const MockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
 const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
+const mockSendCharacterHome = sendCharacterHome as jest.MockedFunction<typeof sendCharacterHome>
 
 describe('executeAction', () => {
     beforeEach(() => {
@@ -48,6 +57,7 @@ describe('executeAction', () => {
         internalCacheMock.CharacterMeta.get.mockClear()
         mockSendPerceptionThreadRegistered.mockClear()
         mockSendRenderRequested.mockClear()
+        mockSendCharacterHome.mockClear()
         internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.ComponentRender = {
@@ -166,11 +176,11 @@ describe('executeAction', () => {
     })
 
     describe('home action', () => {
-        it('should send MoveCharacter message for home action', async () => {
+        it('should send Character Home stream and MoveCharacter for home action', async () => {
             internalCacheMock.CharacterMeta.get.mockResolvedValue({
                 EphemeraId: 'CHARACTER#123',
                 Name: 'TestCharacter',
-                RoomId: 'ROOM#456',
+                RoomId: 'ROOM#456' as EphemeraRoomId,
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#HOME' as EphemeraRoomId,
                 assets: ['Personal']
@@ -187,6 +197,16 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
+            expect(mockSendCharacterHome).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    type: 'Character Home',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: 'ROOM#456',
+                    toRoomId: 'ROOM#HOME',
+                }
+            )
             expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
@@ -195,7 +215,7 @@ describe('executeAction', () => {
             })
         })
 
-        it('should handle home action when character has no home', async () => {
+        it('should not send Character Home stream when character has no home', async () => {
             internalCacheMock.CharacterMeta.get.mockResolvedValue({
                 EphemeraId: 'CHARACTER#123',
                 Name: 'TestCharacter',
@@ -216,6 +236,7 @@ describe('executeAction', () => {
             await executeAction(MockMessageBus, request)
 
             expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
+            expect(mockSendCharacterHome).not.toHaveBeenCalled()
             expect(MockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',

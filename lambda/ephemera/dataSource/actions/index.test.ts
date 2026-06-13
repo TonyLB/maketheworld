@@ -250,7 +250,12 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Character Navigate streamEvent when target is a valid exit', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
+            mockedParseCommand.mockResolvedValue({
+                type: 'Navigation',
+                targetId: dest,
+                exitName: 'north',
+                confidence: 0.9,
+            })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: [dest],
@@ -284,6 +289,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     fromRoomId: from,
                     toRoomId: dest,
+                    exitName: 'north',
                 },
             })
             expect(mockMessageBus.publish).toHaveBeenCalledWith({

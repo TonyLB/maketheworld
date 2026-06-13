@@ -52,6 +52,8 @@ export type ParseCommandErrorResult = {
 export type ParseCommandNavigationResult = {
     type: 'Navigation'
     targetId: EphemeraRoomId
+    /** Normalized exit label when navigation matched a named exit. */
+    exitName?: string
     confidence: ParseCommandConfidence
 }
 

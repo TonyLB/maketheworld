@@ -36,6 +36,7 @@ export async function discriminateIntent(
         return {
             type: 'Navigation',
             targetId: resolved.targetId,
+            exitName: resolved.exitName,
             confidence: discriminatedIntent.confidence,
         }
     }

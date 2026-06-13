@@ -1,4 +1,9 @@
-import { isAcmeOrderPublishedOrder, isLookCommandRequestedPublishedPayload } from './publishedEvents'
+import {
+    isAcmeOrderPublishedOrder,
+    isCharacterHomePublishedPayload,
+    isCharacterNavigatePublishedPayload,
+    isLookCommandRequestedPublishedPayload,
+} from './publishedEvents'
 
 describe('isAcmeOrderPublishedOrder', () => {
     const minimal = {
@@ -225,6 +230,64 @@ describe('isAcmeOrderPublishedOrder', () => {
                 tropeAffinitiesFailed: true,
             })
         ).toBe(false)
+    })
+})
+
+describe('isCharacterNavigatePublishedPayload', () => {
+    const minimal = {
+        type: 'Character Navigate' as const,
+        characterId: 'CHARACTER#test',
+        fromRoomId: 'ROOM#from',
+        toRoomId: 'ROOM#to',
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isCharacterNavigatePublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts optional exitName', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: 'north' })).toBe(true)
+    })
+
+    it('rejects empty or non-string exitName', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: '' })).toBe(false)
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: '   ' })).toBe(false)
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: 1 } as unknown)).toBe(false)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, type: 'Character Home' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isCharacterNavigatePublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects non-string endpoint fields', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, fromRoomId: 1 } as unknown)).toBe(false)
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, toRoomId: null } as unknown)).toBe(false)
+    })
+})
+
+describe('isCharacterHomePublishedPayload', () => {
+    const minimal = {
+        type: 'Character Home' as const,
+        characterId: 'CHARACTER#test',
+        fromRoomId: 'ROOM#from',
+        toRoomId: 'ROOM#home',
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isCharacterHomePublishedPayload(minimal)).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isCharacterHomePublishedPayload({ ...minimal, type: 'Character Navigate' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isCharacterHomePublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects non-string endpoint fields', () => {
+        expect(isCharacterHomePublishedPayload({ ...minimal, characterId: 1 } as unknown)).toBe(false)
+        expect(isCharacterHomePublishedPayload({ ...minimal, fromRoomId: null } as unknown)).toBe(false)
     })
 })
 

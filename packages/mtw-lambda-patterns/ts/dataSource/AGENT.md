@@ -207,6 +207,7 @@ The multi-stream architecture enables:
 ### Cross-References
 - **[SingleFlight Pattern](../singleFlight/AGENT.md)**: Distributed coordination for snapshot generation (when replay is enabled)
 - **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination and subscription management
+- **[Fan-in cluster pattern](./AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)** (optional): Multi-leg ingress correlation inside `receiveEvents` via `FanInCluster` + `FanInClusterStore`
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
 - **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
 - **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles

@@ -245,6 +245,7 @@ const publishStreamEventsForIntent = async (
                     characterId,
                     fromRoomId,
                     toRoomId: parseResult.targetId,
+                    ...(parseResult.exitName !== undefined ? { exitName: parseResult.exitName } : {}),
                 },
             })
             messageBus.publish({

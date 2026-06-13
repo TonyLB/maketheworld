@@ -59,7 +59,7 @@ describe('discriminateIntent', () => {
             }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 0.88 })
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 0.88 })
     })
 
     it('returns no-exit-context Error for NavigationIntent without exits', async () => {

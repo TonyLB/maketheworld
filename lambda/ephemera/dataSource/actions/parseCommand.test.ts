@@ -637,7 +637,7 @@ describe('parseCommand LLM path', () => {
             { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
@@ -653,7 +653,7 @@ describe('parseCommand LLM path', () => {
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 1 })
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
@@ -786,7 +786,7 @@ describe('parseCommand LLM path', () => {
             { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, confidence: 0.64 })
+        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 0.64 })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 

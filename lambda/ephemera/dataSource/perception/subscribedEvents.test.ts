@@ -176,4 +176,38 @@ describe('perception subscribedEvents', () => {
         expect(isPerceptionSubscribedEnvelope(accepted as any)).toBe(true)
         expect(isPerceptionSubscribedEnvelope(rejected as any)).toBe(false)
     })
+
+    it('isPerceptionSubscribedEnvelope matches membership presentation ingress', () => {
+        const navigate = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#Alice',
+                timestamp: Date.now(),
+                type: 'Character Navigate',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Character Navigate',
+                characterId: 'CHARACTER#Alice',
+                fromRoomId: 'ROOM#a',
+                toRoomId: 'ROOM#b',
+            }),
+        }
+        const moved = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.positions',
+                streamKey: 'CHARACTER#Alice',
+                timestamp: Date.now(),
+                type: 'Character Moved',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Character Moved',
+                characterId: 'CHARACTER#Alice',
+                from: 'ROOM#a',
+                to: 'ROOM#b',
+                beatAnchorTime: Date.now(),
+            }),
+        }
+        expect(isPerceptionSubscribedEnvelope(navigate as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(moved as any)).toBe(true)
+    })
 })
