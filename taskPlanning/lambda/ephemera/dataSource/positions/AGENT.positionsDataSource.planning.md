@@ -150,9 +150,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
 
 - [ ] **Slice 1b --- membership emission (prefer fan-in Phase 1 **before** slice 1a; then ship with slice 1 per **S1-2**)**
-  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1 complete in **[`mtw.ephemera.perception`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md)** (Phase 0 framework shipped; may use synthetic legs in tests before persistence API exists)
-  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **legal exits** on fact for emission; payload in **`publishedEvents.ts`** per **F1-3**)
-  - [ ] Perception: **`MembershipPresentationFanInCluster`** + **`FanInClusterStore`** on **`ephemeraPerceptionDataSource`** (**F1-6**); subscribe to actions + connections intent legs
+  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1 complete in **[`mtw.ephemera.perception`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md)** (Phase 0 framework shipped; cluster spec + synthetic tests landed --- wiring + publish pending)
+  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **`null`** out-of-play per fan-in **F1-7**; **legal exits** on fact for emission; payload in **`publishedEvents.ts`** per **F1-3**)
+  - [X] Perception: **`MembershipPresentationFanInCluster`** cluster spec in [`membershipPresentationFanIn.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (synthetic-leg unit tests; **F1-6** store wiring on **`ephemeraPerceptionDataSource`** pending)
   - [ ] Fan-in **`onComplete`**: emission plan (leave+arrive vs singleton) + copy; publish world lines **after** correlation with Model A times
   - [ ] Fan-in **`onDeferredIncomplete`**: shape from fact endpoints + generic copy
   - [ ] Cross-room: register slim **`characterMove`** header targeting (mover); affordance kick for room occupants separately (**F3-2**; keep **`RoomUpdate`** path for now)
@@ -210,7 +210,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
 | Slice 1a: persistence boundary | Not started |
-| Slice 1b: membership emission (fan-in) | Blocked on fan-in Phase 1 |
+| Slice 1b: membership emission (fan-in) | In progress (cluster spec + synthetic tests shipped) |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close | Not started |

@@ -123,7 +123,7 @@ for (const envelope of events) {
 
 | Leg | Source (decided) | Carries |
 | --- | --- | --- |
-| **Intent** | **`mtw.ephemera.actions`** (navigate, home, admin teleport, ...) + **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected` per **F1-5**) | Why the transition happened; optional exit name |
+| **Intent** | **`mtw.ephemera.actions`** (**`Character Navigate`**, **`Character Home`** --- admin teleport deferred) + **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected` per **F1-5**) | Why the transition happened; optional exit name |
 | **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply (**F1-3**) | That membership changed; **`characterId`**, **`from`** / **`to`** endpoints (authoritative cluster key per **F1-1**); **legal exits** for exit-aware copy (emit-time read; positions **does not** re-validate `toRoomId` at apply per positions **S1-1**); fact recorded time (**F1-4**) |
 
 **F1-1 rationale (`requestId` rejected):** [`Character Connected` / `Character Disconnected`](../../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) carry `characterId`, `sessionId`, `timestamp` only --- no `requestId`. [`Character Navigate`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) stream payload is `characterId`, `fromRoomId`, `toRoomId` only; `requestId` exists on **`Parse Requested`** ingress (for `ReturnValue`) but is not on the actions stream today and [`actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) discourages expanding navigate payload without positions scope.
@@ -140,7 +140,7 @@ for (const envelope of events) {
 | Out of play -> in play (connect) | Arrive **only** | e.g. " has connected." |
 | In play -> out of play (disconnect) | Leave **only** | e.g. " has disconnected." |
 
-**`onDeferredIncomplete` (fact at settle, no aligned intent):** infer shape from **fact endpoints**; generic copy (connect, home, admin teleport, navigate without retained intent).
+**`onDeferredIncomplete` (fact at settle, no aligned intent):** infer shape from **fact endpoints**; generic copy (connect/disconnect/navigate/home without retained intent; admin teleport deferred to generic).
 
 **Explicit non-goals for Phase 1:** correlating header **`Generation Started`** / **`Render Pertains`**; synchronous leave+header+arrive handler burst; replacing `OrchestrateMessages` offset trees for beat order (Model A explicit times instead).
 
@@ -183,11 +183,12 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
 | F1-1 | **Fact-authoritative identity** (`characterId`, `from`, `to` at persistence apply) via `clusterIdentity()`; intent joins through **`canAcceptLeg` / `unifyWith`** (not `requestId`; not a connections-only pending table) | Phase 1 | Decided |
-| F1-2 | Navigate / home / teleport **intent**: owned by **`mtw.ephemera.actions`** (not `api.ephemera` ingress) | Phase 1 | Decided |
+| F1-2 | Navigate + **home** **intent**: owned by **`mtw.ephemera.actions`** (not `api.ephemera` ingress). **Admin teleport deferred** out of Phase 1 (deferral/generic copy covers fact-only moves) | Phase 1 | Decided |
 | F1-3 | Fact leg: **`Character Moved`** on **`mtw.ephemera.positions`** via **`streamEvent`** (not a bespoke bus message type) | Phase 1 | Decided |
 | F1-4 | **`beatAnchorTime`**: align with recorded time of the position move (**fact** at persistence apply) | Phase 1 | Decided |
 | F1-5 | Connect/disconnect **intent** leg: **`mtw.connections.characters`** stream (`Character Connected` / `Character Disconnected`) | Phase 1 | Decided |
 | F1-6 | **Consumer DataSource:** [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- cluster in **`perception/`**, extend **`subscribedEvents`** for actions + connections + positions intent/fact legs; positions does **not** own emission policy | Phase 1 | Decided |
+| F1-7 | **`MembershipEndpoint`**: `null` = out of play (provisional; must match positions **`Character Moved`** payload at slice 1b) | Phase 1 | Decided |
 | F3-1 | Phase 3 registry: **keep `PerceptionThreads` name**; slim in place (delete dead fields; no rename/split) | Phase 3 | Decided |
 | F3-2 | Mover arrival **header**: **keep** slim **`characterMove`** PerceptionThread (targeting-only; optional UUID **`requestId`** on render kick for orchestrate match). **Affordance refresh** for all occupants: **separate** kick (today **`RoomUpdate`**); defer positions **`Object Moved`** generalization | Phase 3 | Decided |
 
@@ -207,9 +208,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 - [ ] **Phase 1 --- membership presentation emission ([`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md); **F1-6**)**
   - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5, F1-6 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply)
-  - [ ] **May ship cluster + unit tests on synthetic legs before positions persistence API exists** (positions **S1-2** preferred order)
-  - [ ] Perception: add **`MembershipPresentationFanInCluster`** in [`perception/membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (intent + fact legs; `canUnifyWith` / fact-authoritative identity per **F1-1**)
-  - [ ] Perception: extend [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) for **`mtw.ephemera.actions`** navigate/home/teleport intent, **`mtw.connections.characters`** connect/disconnect intent (**F1-2**, **F1-5**), **`mtw.ephemera.positions`** **`Character Moved`** fact (**F1-3**)
+  - [X] **May ship cluster + unit tests on synthetic legs before positions persistence API exists** (positions **S1-2** preferred order)
+  - [X] Perception: add **`MembershipPresentationFanInCluster`** in [`perception/membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (intent + fact legs; `canUnifyWith` / fact-authoritative identity per **F1-1**)
+  - [ ] Actions: add **`Character Home`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (**F1-2**); type + guard on the stream contract. **Emit** when home is resuscitated on the actions path (legacy [`executeAction`](../../../../../lambda/ephemera/parse/executeAction.ts) **`MoveCharacter`** until then). Distinct from **`Character Navigate`** so fan-in can set **`copyKind: 'home'`** (navigate-to-`HomeId` alone is not sufficient).
+  - [ ] Perception: extend [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) for **`mtw.ephemera.actions`** **`Character Navigate`** + **`Character Home`** intent adapters, **`mtw.connections.characters`** connect/disconnect intent (**F1-5**), **`mtw.ephemera.positions`** **`Character Moved`** fact (**F1-3**). Admin teleport **out of scope** for Phase 1.
   - [ ] Perception: module-scoped **`FanInClusterStore`** + **`registerDeferral`** on [`index.ts`](../../../../../lambda/ephemera/dataSource/perception/index.ts); wire **`receiveEvents`** (fan-in legs vs existing perception handlers)
   - [ ] Positions: add **`Character Moved`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts); emit from membership persistence API apply (navigate, connect, disconnect)
   - [ ] At persistence apply: stamp **`beatAnchorTime`** from **fact** recorded time + ids when beat applies (Model A); do **not** pre-bake world copy on registration
@@ -271,7 +273,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Milestone | Status |
 | --- | --- |
 | Phase 0: framework pattern | Done |
-| Phase 1: membership presentation emission | Not started |
+| Phase 1: membership presentation emission | In progress (cluster spec + synthetic tests shipped) |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |

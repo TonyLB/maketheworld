@@ -191,7 +191,7 @@ for (const envelope of events) {
 - Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.
 - `onClear` is independent: fan-in drops partials; coalescers reset enqueue buffers --- both run on `messageBus.clear()` at ingress.
 
-**First consumer (ephemera):** membership presentation emission on [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- see [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1.
+**First consumer (ephemera):** membership presentation emission on [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- cluster spec in [`membershipPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (synthetic-leg tests shipped; **`FanInClusterStore`** wiring on [`index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts) pending). Task plan: [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1.
 
 ### **Header/Content Envelope Model**
 
