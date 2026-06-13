@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Next: **slice 1** --- localize **all character room-membership execution** behind one persistence boundary (still writing legacy `activeCharacters` / `RoomId` fields). **Slice 2** swaps that boundary to `Meta::Room` play `positionGraph` (+ projection). See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Next: **slice 1a** --- membership persistence boundary (unblocked). **Slice 1b** --- navigate presentation (intent/fact fan-in) blocked on [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1. **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -36,8 +36,17 @@ Track the initiative to grow `mtw.ephemera.positions` into ephemera's authority 
 | --- | --- |
 | Character play position; localized execution; `Meta::Room` play graph; graph-shaped storage over time | WML Position facet x/y overhaul ([`AGENT.positionSubsystemOverhaul.planning.md`](../../../../packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)) |
 | Graduating concepts into contract as slices land | Area **authored** topology authoring UI (Workbench AreaEdit) |
+| Slice **1a** persistence boundary (may use legacy PerceptionThreads for move side effects) | Generic DataSource fan-in framework ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) --- owned there; slice **1b** depends on Phase 0 + Phase 1) |
 
 Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md), [`positions/AGENT.navigation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.navigation.md).
+
+## Cross-initiative dependencies
+
+**Dependency (navigate presentation on fan-in):** Full **intent + fact + perception** correlation for player moves (exit-aware leave/arrive, settle-time negative case) depends on [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) **Phase 0 + Phase 1**.
+
+**Slice 1a (persistence boundary) is not blocked** --- it may land while still using legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) orchestration (see **S1-2**).
+
+**Slice 1b (presentation)** --- intent events from actions, `Character Moved` fact from positions, perception fan-in handler --- **blocked** until fan-in Phase 1 ships. Positions emits the fact leg; actions emits the intent leg; correlation policy lives in perception fan-in spec.
 
 ## Migration strategy (routing-first)
 
@@ -60,7 +69,8 @@ Thin routing (`subscribe -> publish MoveCharacter` to legacy handler) **does not
 | Slice | Goal | Doc graduation |
 | --- | --- | --- |
 | **0** (done) | `mtw.connections.characters` presence ingress | Contract + implementation + concepts Shipped |
-| **1** | Localize membership **execution**: `Character Navigate`, shared persistence API, orchestration; retire imperative `MoveCharacter` from actions; **refactor disconnect** onto same API | Contract + implementation |
+| **1a** | Localize membership **execution**: persistence API, `Character Navigate` -> positions, disconnect refactor; legacy move side effects OK | Contract + implementation |
+| **1b** | Navigate **presentation**: intent/fact events + perception fan-in (exit-aware narrative); retire `moveCharacter` PerceptionThreads registration | Contract + implementation; coordinates with fan-in Phase 2 |
 | **2** | **`Meta::Room` play `positionGraph`** schema; swap persistence API to graph (+ projection / dual-write to `activeCharacters`) | Contract; concepts Target -> Shipped for room play graph (character nodes) |
 | **3** | Unify **connect** through membership API (retire `CheckLocation` bridge) | Contract + implementation |
 | **4** | Retire `disconnectMessage` / legacy `Disconnect Character` | Contract; slim parent event docs |
@@ -75,7 +85,7 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | S1-1 | On navigate execute: **trust** actions exit resolution (`toRoomId`) vs **re-validate** topology in positions | 1 | Open |
-| S1-2 | Cross-room move side effects: keep **`PerceptionThreads` / `characterMove`** vs conversations fragment handoff ([`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md)) | 1 | Open |
+| S1-2 | Cross-room move side effects: keep **`PerceptionThreads` / `characterMove`** (slice **1a**) vs **fan-in move cluster** (slice **1b**, [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)) vs conversations fragment handoff ([`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md)) | 1a / 1b | Open |
 | S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | Open |
 | S1-4 | Module layout for **membership persistence boundary** (e.g. `applyCharacterRoomMembership` vs split orchestration / persistence files) | 1 | Open |
 | S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | Open |
@@ -111,16 +121,23 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Disconnect handler + connect bridge
   - [X] Unit tests
 
-- [ ] **Slice 1 --- localize membership execution (legacy storage)**
-  - [ ] Resolve **Open decisions** S1-1 through S1-5
+- [ ] **Slice 1a --- persistence boundary (legacy storage; unblocked)**
+  - [ ] Resolve **Open decisions** S1-1, S1-3, S1-4, S1-5 (S1-2: use legacy PerceptionThreads until slice 1b unless fan-in lands first)
   - [ ] Introduce **membership persistence boundary** (single API; slice 1 impl still writes `activeCharacters` / `RoomId` / `RoomStack`)
   - [ ] Refactor **disconnect** handler to call persistence API (not inline `optimisticUpdate`)
   - [ ] Extract move **orchestration** from `moveCharacter`; wire navigate through persistence API
   - [ ] Subscribe positions to `Character Navigate`; remove imperative `MoveCharacter` from actions
   - [ ] Grep: no new direct `Meta::Room.activeCharacters` writes outside persistence API + documented exceptions
-  - [ ] If **S1-5 = slice 1**: add `mtw-gateways/ts/ephemera/positions/` read surface (v1: project `activeCharacters`); register on `internalCache`; point **`AffordanceRoomDeliverable`** (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
-  - [ ] Graduate docs: contract + implementation; clear resolved Open decision rows
-  - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1)
+  - [ ] If **S1-5 = slice 1a**: add `mtw-gateways/ts/ephemera/positions/` read surface (v1: project `activeCharacters`); register on `internalCache`; point **`AffordanceRoomDeliverable`** (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
+  - [ ] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
+  - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
+
+- [ ] **Slice 1b --- navigate presentation (blocked on fan-in Phase 0 + Phase 1)**
+  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1 complete
+  - [ ] Positions stream **`Character Moved`** fact (from, to, legal exits) after persistence API apply
+  - [ ] Actions stream move **intent** (from, to, exit used); resolve **F1-*** / **S1-2** with perception fan-in spec
+  - [ ] Retire `moveCharacter` direct **`PerceptionThreads.register`** for cross-room presentation when fan-in owns output
+  - [ ] Graduate docs + tests for exit-aware vs generic move narrative
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` (storage swap)**
   - [ ] Resolve **Open decisions** S2-1 through S2-3
@@ -158,7 +175,9 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
   moveCharacter/index.test.ts
 ```
 
-**Slice 1 gate:** navigate -> positions tests; actions tests without imperative `MoveCharacter`; disconnect tests still pass after persistence API refactor.
+**Slice 1a gate:** navigate -> positions tests; actions tests without imperative `MoveCharacter`; disconnect tests still pass after persistence API refactor.
+
+**Slice 1b gate:** fan-in move cluster tests; exit-aware narrative when intent + fact correlate; generic narrative at settle when intent absent.
 
 **Slice 2 gate:** persistence API tests against `positionGraph` + projection invariants; affordance/roster smoke paths unchanged for players.
 
@@ -170,7 +189,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | --- | --- |
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
-| Slice 1: localize execution (legacy storage) | Not started |
+| Slice 1a: persistence boundary | Not started |
+| Slice 1b: navigate presentation (fan-in) | Blocked on fan-in Phase 0 + Phase 1 |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close | Not started |
