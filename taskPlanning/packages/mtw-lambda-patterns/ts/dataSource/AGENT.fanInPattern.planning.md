@@ -108,7 +108,7 @@ for (const envelope of events) {
 | Initiative | Depends on | Phase |
 | --- | --- | --- |
 | **Move emission policy** (intent + fact -> shape + copy) | Fan-in **Phase 0 + Phase 1** | Actions (or connections) emit **intent**; positions emit membership **fact**; consumer runs **`onComplete`** / **`onDeferredIncomplete`** then **`PublishMessage`** with times from pre-assigned beat anchor |
-| [`positions` slice 1b emission](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#cross-initiative-dependencies) | Phase 0 + Phase 1 | **Not** a blocker for slice **1a** persistence boundary or Model A beat assignment |
+| [`positions` slice 1b emission](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#cross-initiative-dependencies) | Phase 0 + Phase 1 | **Not** a blocker for slice **1a** persistence boundary or Model A beat assignment. **Preferred order (positions S1-2):** fan-in Phase 0 + 1 **before** positions slice 1 --- then ship persistence + `Character Moved` + emission together (skip interim imperative copy). |
 | **Model A beat orchestration** | **Independent** of fan-in framework | Stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply); header kick/render stays on existing perception paths |
 | **PerceptionThreads retirement (ordering / pre-bake)** | Phase 2 | Drop `characterMove` register-first + pre-baked `leaveWorldMessage` / `arriveWorldMessage` once emission fan-in owns world lines |
 | **PerceptionThreads slim (targeting-only)** | Phase 3+ | After emission + beat decouple: keep **who** + **which render thread** at register; [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) correlates async render --- **not** migrated into generic fan-in specs by default |
@@ -122,7 +122,7 @@ for (const envelope of events) {
 | Leg | Source (decided) | Carries |
 | --- | --- | --- |
 | **Intent** | **`mtw.ephemera.actions`** (navigate, home, admin teleport, ...) + **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected` per **F1-5**) | Why the transition happened; optional exit name |
-| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply (**F1-3**) | That membership changed; **`characterId`**, **`from`** / **`to`** endpoints (authoritative cluster key per **F1-1**); legal exits for topology check; fact recorded time (**F1-4**) |
+| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply (**F1-3**) | That membership changed; **`characterId`**, **`from`** / **`to`** endpoints (authoritative cluster key per **F1-1**); **legal exits** for exit-aware copy (emit-time read; positions **does not** re-validate `toRoomId` at apply per positions **S1-1**); fact recorded time (**F1-4**) |
 
 **F1-1 rationale (`requestId` rejected):** [`Character Connected` / `Character Disconnected`](../../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) carry `characterId`, `sessionId`, `timestamp` only --- no `requestId`. [`Character Navigate`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) stream payload is `characterId`, `fromRoomId`, `toRoomId` only; `requestId` exists on **`Parse Requested`** ingress (for `ReturnValue`) but is not on the actions stream today and [`actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) discourages expanding navigate payload without positions scope.
 
@@ -206,7 +206,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Graduate API to [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)
 
 - [ ] **Phase 1 --- membership presentation emission (consumer TBD)**
-  - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md))
+  - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply)
+  - [ ] **May ship cluster + unit tests on synthetic legs before positions persistence API exists** (positions **S1-2** preferred order)
   - [ ] Positions: add **`Character Moved`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts); emit from membership persistence API apply (navigate, connect, disconnect)
   - [ ] Add **`MembershipPresentationFanInCluster`** subclass (intent + fact legs; `canUnifyWith` / fact-authoritative identity per **F1-1**)
   - [ ] Wire consumer DataSource `receiveEvents` through **`FanInClusterStore`**

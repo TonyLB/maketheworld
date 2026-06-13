@@ -44,9 +44,9 @@ Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/epheme
 
 **Two presentation concerns (decoupled):** see [Presentation model](#presentation-model-beat-vs-emission) and [`AGENT.fanInPattern.planning.md` --- Beat orchestration vs emission correlation](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#beat-orchestration-vs-emission-correlation). Transcript vocabulary: [`AGENT.narrativeTranscript.concepts.md`](../../../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md).
 
-**Slice 1a (persistence boundary) is not blocked** --- it may land while still using legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) for header render and imperative leave/arrive copy (see **S1-2**). **Model A**: stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply; fan-in **F1-4**) without fan-in.
+**Slice 1a (persistence boundary) is not blocked by fan-in** --- but **preferred order** (per **S1-2**): complete fan-in Phase 0 + Phase 1 first, then land slice 1 **without** interim imperative leave/arrive (persistence + `Character Moved` + fan-in emission together). Header render stays on legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) targeting through fan-in Phase 2. **Model A**: stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply; fan-in **F1-4**) --- independent of fan-in framework.
 
-**Slice 1b (emission)** --- positions streams membership **fact** (authoritative **`characterId` / `from` / `to`** per fan-in **F1-1**); **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-5**); fan-in consumer builds emission plan (which world lines + copy) and publishes **after** correlation --- **blocked** until fan-in Phase 0 + Phase 1. Does **not** own header Generating/terminal lifecycle.
+**Slice 1b (emission)** --- positions streams membership **fact** (authoritative **`characterId` / `from` / `to`** per fan-in **F1-1**; **legal exits** on fact for exit-aware copy per **S1-1**); **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-5**); fan-in consumer builds emission plan and publishes **after** correlation --- **blocked** until fan-in Phase 0 + Phase 1. With **S1-2** ordering, 1b ships in the **same slice 1 PR** as persistence, not a follow-on. Does **not** own header Generating/terminal lifecycle.
 
 ## Presentation model (beat vs emission)
 
@@ -100,21 +100,21 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| S1-1 | On navigate execute: **trust** actions exit resolution (`toRoomId`) vs **re-validate** topology in positions | 1 | Open |
-| S1-2 | Cross-room side effects: **1a** --- legacy header render (`PerceptionThreads` / kick render) + optional **Model A** `beatAnchorTime`; imperative leave/arrive until **1b** fan-in emission. **1b** --- fan-in emission policy ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). Conversations fragment handoff: [`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md) | 1a / 1b | Open |
-| S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | Open |
+| S1-1 | On navigate execute: **trust** actions exit resolution (`toRoomId`) vs **re-validate** topology in positions | 1 | **Decided:** trust --- positions applies the validated `toRoomId`; no topology re-check at persistence apply. Fan-in exit-aware copy still uses **legal exits on the `Character Moved` fact** (read at emit time), not a second gate on the move. |
+| S1-2 | Cross-room side effects: **1a** --- legacy header render (`PerceptionThreads` / kick render) + optional **Model A** `beatAnchorTime`; imperative leave/arrive until **1b** fan-in emission. **1b** --- fan-in emission policy ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). Conversations fragment handoff: [`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md) | 1a / 1b | **Decided:** sequencing milestones, not an either/or fork. **Beat/header (Model A + slim `characterMove` targeting)** stays independent of fan-in. With **fan-in Phase 0 + 1 before positions slice 1**, skip building interim imperative leave/arrive --- land persistence boundary together with `Character Moved` + fan-in emission (no separate 1a-then-1b copy path). Header render remains legacy PerceptionThreads through fan-in Phase 2. |
+| S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | **Decided:** positions **`streamEvent`** outbound on `mtw.ephemera.positions` (`publisherStrategy: 'busOnly'`); types in [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts). Same net delivery as bus-only today --- difference is **scope-of-authority** (positions owns the stream contract). |
 | S1-4 | Module layout for **membership persistence boundary** (e.g. `applyCharacterRoomMembership` vs split orchestration / persistence files) | 1 | Open |
-| S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | Open |
+| S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | **Decided:** first read surface returns **`positionGraph` for a component** (Room or Character v1; future Features/Objects). Land in **slice 1** with a **projection adapter** from legacy flat fields until slice 2 storage swap; register on `internalCache`; point affordance roster reads at the handler (not raw `ephemeraDB`). Roster is a **projection** of the graph, not the primary gateway shape. |
 
-**S1-5 context:** Today affordance compose reads roster via [`RoomCharacterList`](../../../../../../lambda/ephemera/internalCache/roomCharacterLists.ts) (direct `ephemeraDB` `activeCharacters` on miss), while exits use gateway-backed [`AffordanceCache`](../../../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) + [`ComponentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/). A positions read handler mirrors that pattern: **authoritative writer** = positions persistence API; **steady-state readers** = `create*CacheHandler` on `internalCache` ([`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)). Slice 1 gateway is optional for parity but reduces slice 2 blast radius if affordance already depends on the read surface.
+**S1-5 context:** Today affordance compose reads roster via [`RoomCharacterList`](../../../../../../lambda/ephemera/internalCache/roomCharacterLists.ts) (direct `ephemeraDB` `activeCharacters` on miss), while exits use gateway-backed [`AffordanceCache`](../../../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) + [`ComponentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/). Target: **`createPositionsCacheHandler`** (name TBD) returns graph-shaped play state per component id; slice 1 implementation **projects** character nodes from `RoomId` / `activeCharacters`; slice 2 swaps the backing read to stored `Meta::Room.positionGraph` without changing the handler API. **Authoritative writer** = positions persistence API; **steady-state readers** = `internalCache` ([`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)).
 
 ### Slice 2 (decide before slice 2 PR; may spike during slice 1)
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| S2-1 | **Play-only** `positionGraph` on `Meta::Room` (ephemera Dynamo) vs also **WML `StandardRoom.positionGraph`** in same slice | 2 | Open |
-| S2-2 | **Dual-write** (`positionGraph` + `activeCharacters`) vs **graph-primary** with synchronous projection to `activeCharacters` for affordance readers | 2 | Open |
-| S2-3 | Slice 2 graph **v1**: character **nodes only** (no in-room edges) vs wait for edge types | 2 | Open |
+| S2-1 | **Play-only** `positionGraph` on `Meta::Room` (ephemera Dynamo) vs also **WML `StandardRoom.positionGraph`** in same slice | 2 | **Decided:** slice 2 adds **play-only** `Meta::Room.positionGraph` only. WML / asset **blueprint** placement (e.g. Objects, Characters assigned to rooms) is a **starting position** to prime play; in-play positions are expected to **diverge**. Reconciling a later blueprint change against current play --- **deferred** to later iterations. |
+| S2-2 | **Dual-write** (`positionGraph` + `activeCharacters`) vs **graph-primary** with synchronous projection to `activeCharacters` for affordance readers | 2 | **Decided:** **graph-primary**; synchronous projection to `activeCharacters` (or gateway-derived roster projection) as a **migration bridge** until readers migrate off the stored roster field. |
+| S2-3 | Slice 2 graph **v1**: character **nodes only** (no in-room edges) vs wait for edge types | 2 | **Decided:** character **nodes only** in slice 2 v1 (no in-room edges). |
 
 For a long option comparison on any row, add a root [**temporary analysis**](../../../../../../AGENT.md#temporary-working-documents) doc and link it from the table (do not bloat concepts).
 
@@ -138,20 +138,20 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Unit tests
 
 - [ ] **Slice 1a --- persistence boundary (legacy storage; unblocked)**
-  - [ ] Resolve **Open decisions** S1-1, S1-3, S1-4, S1-5 (S1-2: legacy header render + imperative world copy until slice 1b; optional Model A beat anchor in orchestration extract)
+  - [X] Resolve **Open decisions** S1-1, S1-2, S1-3, S1-5 (**S1-4** still open)
   - [ ] Introduce **membership persistence boundary** (single API; slice 1 impl still writes `activeCharacters` / `RoomId` / `RoomStack`)
   - [ ] Refactor **disconnect** handler to call persistence API (not inline `optimisticUpdate`)
   - [ ] Extract move **orchestration** from `moveCharacter`; wire navigate through persistence API
-  - [ ] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive copy still imperative until 1b)
+  - [ ] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive via fan-in emission per **S1-2**)
   - [ ] Subscribe positions to `Character Navigate`; remove imperative `MoveCharacter` from actions
   - [ ] Grep: no new direct `Meta::Room.activeCharacters` writes outside persistence API + documented exceptions
-  - [ ] If **S1-5 = slice 1a**: add `mtw-gateways/ts/ephemera/positions/` read surface (v1: project `activeCharacters`); register on `internalCache`; point **`AffordanceRoomDeliverable`** (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
+  - [ ] Add `mtw-gateways/ts/ephemera/positions/` read surface (v1: **`positionGraph`** API; slice 1 adapter projects from flat fields); register on `internalCache`; point **`AffordanceRoomDeliverable`** roster path (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
   - [ ] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
   - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
 
-- [ ] **Slice 1b --- membership emission (blocked on fan-in Phase 0 + Phase 1)**
-  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1 complete
-  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; payload in **`publishedEvents.ts`** per **F1-3**)
+- [ ] **Slice 1b --- membership emission (prefer fan-in Phase 0 + Phase 1 **before** slice 1a; then ship with slice 1 per **S1-2**)**
+  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1 complete (may use synthetic legs in tests before persistence API exists)
+  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **legal exits** on fact for emission; payload in **`publishedEvents.ts`** per **F1-3**)
   - [ ] **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-2**, **F1-5**); wire fan-in emission spec with **S1-2**
   - [ ] Fan-in **`onComplete`**: emission plan (leave+arrive vs singleton) + copy; publish world lines **after** correlation with Model A times
   - [ ] Fan-in **`onDeferredIncomplete`**: shape from fact endpoints + generic copy
@@ -160,7 +160,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Graduate docs + tests: cross-room, connect, disconnect, exit-aware, deferral generic
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` (storage swap)**
-  - [ ] Resolve **Open decisions** S2-1 through S2-3
+  - [X] Resolve **Open decisions** S2-1 through S2-3
   - [ ] Add `positionGraph` (or agreed shape) to [`EphemeraMetaRoom`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)
   - [ ] Reimplement persistence API against play graph (+ projection / dual-write per S2-2)
   - [ ] If **S1-5 = slice 2**: add positions read gateway + affordance wire-up here; else **swap gateway projection** to read graph / project roster
