@@ -1,6 +1,6 @@
 # DataSource fan-in pattern (`mtw-lambda-patterns`)
 
-**Status:** Not started. **Next:** Phase 0 --- `FanInCluster` + `FanInClusterStore` in `mtw-lambda-patterns` (partial clusters, unify, deferral integration).
+**Status:** Phase 0 shipped. **Next:** Phase 1 --- membership presentation emission (`MembershipPresentationFanInCluster` + ephemera consumer).
 
 ## Purpose
 
@@ -180,9 +180,6 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| F0-1 | Fan-in inside DataSource pipeline: **`receiveEvents`** routes legs through per-instance **`FanInClusterStore`** (not an external `receiveEvents` wrapper) | Phase 0 | Decided |
-| F0-2 | Cluster store scope: **per DataSource instance** (not shared per-invocation service) | Phase 0 | Decided |
-| F0-3 | Deferral: **per DataSource** `registerDeferral` handler; DataSource fans out to its `fanInSpec`s at `afterSettled` (not one global tag, not one registrant per spec) | Phase 0 | Decided |
 | F1-1 | **Fact-authoritative identity** (`characterId`, `from`, `to` at persistence apply) via `clusterIdentity()`; intent joins through **`canAcceptLeg` / `unifyWith`** (not `requestId`; not a connections-only pending table) | Phase 1 | Decided |
 | F1-2 | Navigate / home / teleport **intent**: owned by **`mtw.ephemera.actions`** (not `api.ephemera` ingress) | Phase 1 | Decided |
 | F1-3 | Fact leg: **`Character Moved`** on **`mtw.ephemera.positions`** via **`streamEvent`** (not a bespoke bus message type) | Phase 1 | Decided |
@@ -197,13 +194,13 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as each sub-step lands.
 
-- [ ] **Phase 0 --- framework pattern (`FanInCluster` + store)**
-  - [X] Resolve **Open decisions** F0-1, F0-2, F0-3
-  - [ ] Implement abstract **`FanInCluster`** (`canAcceptLeg`, `canUnifyWith`, `unifyWith`, `registerLeg`, `clusterIdentity`, `completed`, `handler`)
-  - [ ] Implement **`FanInClusterStore`** (`route`, `settleDeferrals`, `clear`) with constructor registry
-  - [ ] Wire per-DataSource **`registerDeferral`** (`afterSettled` -> `settleDeferrals`, `onClear` -> `clear`; document coalescer interaction)
-  - [ ] Unit tests: leg order independence; provisional intent partial + fact unify; duplicate-leg rejection; deferral path; no double `handler`; multi-partial unify (synthetic two-intent fixture)
-  - [ ] Graduate API to [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)
+- [X] **Phase 0 --- framework pattern (`FanInCluster` + store)**
+  - [X] Resolve **Open decisions** F0-1, F0-2, F0-3 (graduated to [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation))
+  - [X] Implement abstract **`FanInCluster`** (`canAcceptLeg`, `canUnifyWith`, `unifyWith`, `registerLeg`, `clusterIdentity`, `completed`, `handler`)
+  - [X] Implement **`FanInClusterStore`** (`route`, `settleDeferrals`, `clear`) with constructor registry
+  - [X] Wire per-DataSource **`registerDeferral`** (`afterSettled` -> `settleDeferrals`, `onClear` -> `clear`; document coalescer interaction)
+  - [X] Unit tests: leg order independence; provisional intent partial + fact unify; duplicate-leg rejection; deferral path; no double `handler`; multi-partial unify (synthetic two-intent fixture); mixed fan-in + non-fan-in batch
+  - [X] Graduate API to [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)
 
 - [ ] **Phase 1 --- membership presentation emission (consumer TBD)**
   - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply)
@@ -269,7 +266,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 | Milestone | Status |
 | --- | --- |
-| Phase 0: framework pattern | Not started |
+| Phase 0: framework pattern | Done |
 | Phase 1: membership presentation emission | Not started |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |

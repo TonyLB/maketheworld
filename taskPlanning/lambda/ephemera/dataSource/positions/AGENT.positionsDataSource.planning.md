@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Next: **slice 1a** --- membership persistence boundary (unblocked). **Slice 1b** --- membership **emission** (intent/fact fan-in for shape + copy; blocked on [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1). Model A **beat orchestration** may land in **1a** without fan-in. **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Fan-in **Phase 0 shipped** (framework in `mtw-lambda-patterns`). **Next:** **slice 1a** --- membership persistence boundary (unblocked). **Slice 1b** --- membership **emission** (blocked on fan-in **Phase 1** only). Model A **beat orchestration** may land in **1a** without fan-in. **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Track the initiative to grow `mtw.ephemera.positions` into ephemera's authority 
 | --- | --- |
 | Character play position; localized execution; `Meta::Room` play graph; graph-shaped storage over time | WML Position facet x/y overhaul ([`AGENT.positionSubsystemOverhaul.planning.md`](../../../../packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)) |
 | Graduating concepts into contract as slices land | Area **authored** topology authoring UI (Workbench AreaEdit) |
-| Slice **1a** persistence boundary (may use legacy PerceptionThreads for header render; Model A beat anchor optional here) | Generic DataSource fan-in framework ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) --- owned there; slice **1b emission** depends on Phase 0 + Phase 1) |
+| Slice **1a** persistence boundary (may use legacy PerceptionThreads for header render; Model A beat anchor optional here) | Generic DataSource fan-in framework ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) --- Phase 0 shipped; slice **1b emission** depends on Phase 1) |
 
 Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md), [`positions/AGENT.navigation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.navigation.md).
 
@@ -46,7 +46,7 @@ Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/epheme
 
 **Slice 1a (persistence boundary) is not blocked by fan-in** --- but **preferred order** (per **S1-2**): complete fan-in Phase 0 + Phase 1 first, then land slice 1 **without** interim imperative leave/arrive (persistence + `Character Moved` + fan-in emission together). Header render stays on legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) targeting through fan-in Phase 2. **Model A**: stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply; fan-in **F1-4**) --- independent of fan-in framework.
 
-**Slice 1b (emission)** --- positions streams membership **fact** (authoritative **`characterId` / `from` / `to`** per fan-in **F1-1**; **legal exits** on fact for exit-aware copy per **S1-1**); **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-5**); fan-in consumer builds emission plan and publishes **after** correlation --- **blocked** until fan-in Phase 0 + Phase 1. With **S1-2** ordering, 1b ships in the **same slice 1 PR** as persistence, not a follow-on. Does **not** own header Generating/terminal lifecycle.
+**Slice 1b (emission)** --- positions streams membership **fact** (authoritative **`characterId` / `from` / `to`** per fan-in **F1-1**; **legal exits** on fact for exit-aware copy per **S1-1**); **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-5**); fan-in consumer builds emission plan and publishes **after** correlation --- **blocked** until fan-in **Phase 1** (Phase 0 framework shipped). With **S1-2** ordering, 1b ships in the **same slice 1 PR** as persistence, not a follow-on. Does **not** own header Generating/terminal lifecycle.
 
 ## Presentation model (beat vs emission)
 
@@ -149,8 +149,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
   - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
 
-- [ ] **Slice 1b --- membership emission (prefer fan-in Phase 0 + Phase 1 **before** slice 1a; then ship with slice 1 per **S1-2**)**
-  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 0 + Phase 1 complete (may use synthetic legs in tests before persistence API exists)
+- [ ] **Slice 1b --- membership emission (prefer fan-in Phase 1 **before** slice 1a; then ship with slice 1 per **S1-2**)**
+  - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1 complete (Phase 0 framework shipped; may use synthetic legs in tests before persistence API exists)
   - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **legal exits** on fact for emission; payload in **`publishedEvents.ts`** per **F1-3**)
   - [ ] **`mtw.ephemera.actions`** streams navigate/home/teleport **intent**; **`mtw.connections.characters`** streams connect/disconnect **intent** (**F1-2**, **F1-5**); wire fan-in emission spec with **S1-2**
   - [ ] Fan-in **`onComplete`**: emission plan (leave+arrive vs singleton) + copy; publish world lines **after** correlation with Model A times
@@ -210,7 +210,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
 | Slice 1a: persistence boundary | Not started |
-| Slice 1b: membership emission (fan-in) | Blocked on fan-in Phase 0 + Phase 1 |
+| Slice 1b: membership emission (fan-in) | Blocked on fan-in Phase 1 |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close | Not started |

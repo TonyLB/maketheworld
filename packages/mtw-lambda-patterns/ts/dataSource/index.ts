@@ -852,3 +852,7 @@ export { maybeFetchSidecarString } from './sidecarResolve'
 
 // Node/lambda DataSourceEnvironment for backend serializers (Step 2 env-agnostic refactor)
 export { createNodeDataSourceEnvironment } from './nodeEnvironment'
+
+// Fan-in cluster pattern (multi-leg ingress correlation)
+export { FanInCluster, FanInHandlerOptions, FanInClusterConstructor } from './fanInCluster'
+export { FanInClusterStore } from './fanInClusterStore'

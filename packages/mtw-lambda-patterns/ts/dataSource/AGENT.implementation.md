@@ -125,6 +125,74 @@ Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot 
 - **Processing Foundation**: Provides the foundation for advanced event processing patterns
 - **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
 
+### **Fan-in cluster pattern (multi-leg ingress correlation)**
+
+Implementation: [`fanInCluster.ts`](./fanInCluster.ts), [`fanInClusterStore.ts`](./fanInClusterStore.ts), tests in [`fanInCluster.test.ts`](./fanInCluster.test.ts).
+
+**Purpose:** Correlate **multi-leg ingress** inside a DataSource `receiveEvents` pipeline --- e.g. membership **intent + fact** emission (Phase 1 consumer). Partial clusters accumulate legs in any order, **unify** when a leg proves two open partials are the same transition, complete when required legs are present, and handle negative cases (optional legs never arrive) via [`messageBus` deferral](../messageBus/AGENT.implementation.md) at `flushAndSettle` tail.
+
+**Scope:** One `FanInClusterStore` **per DataSource instance** (not shared per-invocation). Fan-in runs **inside** `receiveEvents` --- route legs through the store; do not wrap `receiveEvents` externally. Non-fan-in envelopes in the same batch continue through normal domain handlers (see mixed-batch test in `fanInCluster.test.ts`).
+
+#### `FanInCluster` (abstract; concrete subclasses per spec)
+
+Each fan-in **spec** is a subclass holding a leg bag and completion rules. Legs may arrive in **any order**; identity may be **provisional** until an authoritative leg (usually the **fact**) arrives.
+
+| Method / property | Role |
+| --- | --- |
+| **`canAcceptLeg(leg)`** | Spec guard + no contradiction with legs already in this partial. |
+| **`canUnifyWith(other)`** | Same transition, compatible endpoints --- not blind merge of unrelated partials. |
+| **`unifyWith(other)`** | Merge leg bags; store removes the absorbed partial. |
+| **`registerLeg(leg)`** | Add leg; recompute `completed`. |
+| **`clusterIdentity()`** | Stable store key when computable (fact-authoritative); `null` while provisional. |
+| **`completed`** | All **required** legs for this spec are present. |
+| **`handler(ctx, { deferralExecution })`** | Positive completion (`deferralExecution: false`) or settle-time negative case (`deferralExecution: true`). |
+
+**Unify guardrails (subclass responsibility):** same character (or spec-specific identity); fact endpoints authoritative when present; reject endpoint contradictions; at most one leg per kind unless spec allows more; store removes cluster from open set after non-deferral `handler`.
+
+#### `FanInClusterStore`
+
+| Operation | Role |
+| --- | --- |
+| **`route(leg)`** | Find join target via `canAcceptLeg`; else seed partial via constructor registry; after register, unify compatible open partials; fire `handler` when `completed`. |
+| **`settleDeferrals()`** | For each still-open partial: `handler({ deferralExecution: true })`. |
+| **`clear()`** | Drop open partials; wired to deferral **`onClear`** at invocation boundary. |
+| **`setHandlerContext(ctx)`** | Required before `route` / `settleDeferrals`; set at start of each `receiveEvents` batch. |
+| **`registerDeferral(messageBus, tag)`** | Registers `{ onClear: clear, afterSettled: settleDeferrals }`; unique tag per DataSource. |
+
+**Constructor registry:** DataSource passes an array of `(leg) => Cluster | null` factories --- one per fan-in spec. A factory returns a new empty cluster when the leg can **seed** that spec, or `null` when the leg does not match.
+
+#### Wiring sketch
+
+```typescript
+// Module scope (one store per DataSource instance)
+const fanInStore = new FanInClusterStore([membershipPresentationClusterFromLeg])
+
+// Module load: register deferral with unique tag
+fanInStore.registerDeferral(messageBus, 'fanIn-myDataSource')
+
+// In receiveEvents
+fanInStore.setHandlerContext({ streamEvent, /* ... */ })
+for (const envelope of events) {
+    const leg = await toFanInLeg(envelope)   // spec-specific; may be undefined
+    if (leg) {
+        await fanInStore.route(leg)
+    } else {
+        await handleNonFanInEvent(envelope)  // normal domain logic
+    }
+}
+// Tail: messageBus.flushAndSettle() -> fanInStore.settleDeferrals() via registerDeferral
+```
+
+#### Deferral interaction with coalescers
+
+[`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). Ephemera registers outbound coalescers (e.g. [`publishMessage/coalescer.ts`](../../../../lambda/ephemera/publishMessage/coalescer.ts)) that flush deferred WebSocket batches IO-only at the same tail.
+
+- Fan-in `afterSettled` may invoke handlers that publish world lines (Phase 1).
+- Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.
+- `onClear` is independent: fan-in drops partials; coalescers reset enqueue buffers --- both run on `messageBus.clear()` at ingress.
+
+**Phase 1 pointer:** membership presentation emission (`MembershipPresentationFanInCluster` + ephemera consumer) --- see [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md).
+
 ### **Header/Content Envelope Model**
 
 DataSource events use a header + getContent contract. The same logical envelope appears in three regimes: **CoreExternalFormat** (external, before/after format transforms), **StreamingEventEnvelope** (messageBus, lazy content via getContent), and **ResolvedStreamingEnvelope** (aggregators, replay, serializer params); all share the same header semantics.
