@@ -151,8 +151,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 - [ ] **Slice 1b --- membership emission (prefer fan-in Phase 1 **before** slice 1a; then ship with slice 1 per **S1-2**)**
   - [ ] [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1 complete in **[`mtw.ephemera.perception`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md)** (Phase 0 framework shipped; cluster spec + synthetic tests landed --- wiring + publish pending)
-  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **`null`** out-of-play per fan-in **F1-7**; **legal exits** on fact for emission; payload in **`publishedEvents.ts`** per **F1-3**)
+  - [ ] Positions stream **`Character Moved`** after persistence API apply (navigate, connect, disconnect; authoritative `from`/`to` per **F1-1**; **`null`** out-of-play per fan-in **F1-7**; **legal exits** on fact for emission). **Contract** in [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) shipped; **emit** pending persistence API (see fan-in planning line 216). **`beatAnchorTime`** defined at persistence apply per Model A ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#model-a-beat-anchor-pattern-positions-creates-render-consumes)).
   - [X] Perception: **`MembershipPresentationFanInCluster`** cluster spec in [`membershipPresentationFanIn.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (synthetic-leg unit tests; **F1-6** store wiring on **`ephemeraPerceptionDataSource`** pending)
+  - [X] Perception: membership ingress adapters in [`membershipPresentationLegAdapters.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts) + [`subscribedEvents.ts`](../../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) guards for actions / connections / positions legs
   - [ ] Fan-in **`onComplete`**: emission plan (leave+arrive vs singleton) + copy; publish world lines **after** correlation with Model A times
   - [ ] Fan-in **`onDeferredIncomplete`**: shape from fact endpoints + generic copy
   - [ ] Cross-room: register slim **`characterMove`** header targeting (mover); affordance kick for room occupants separately (**F3-2**; keep **`RoomUpdate`** path for now)
@@ -210,7 +211,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
 | Slice 1a: persistence boundary | Not started |
-| Slice 1b: membership emission (fan-in) | In progress (cluster spec + synthetic tests shipped) |
+| Slice 1b: membership emission (fan-in) | In progress (ingress adapters + `Character Moved` contract shipped; emit + publish pending) |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close | Not started |

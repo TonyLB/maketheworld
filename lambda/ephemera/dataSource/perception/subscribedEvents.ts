@@ -23,6 +23,25 @@ import {
     AFFORDANCE_CACHE_DATA_SOURCE_KEY,
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
+import type { CharacterHomePublishedPayload } from '../actions/publishedEvents'
+import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { ConnectionsCharactersEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
+import type { CharacterMovedPublishedPayload } from '../positions/publishedEvents'
+import {
+    isPerceptionActionsCharacterHomeEnvelope,
+    isPerceptionActionsCharacterNavigateEnvelope,
+    isPerceptionConnectionsCharactersEnvelope,
+    isPerceptionPositionsCharacterMovedEnvelope,
+    toMembershipPresentationLeg,
+} from './membershipPresentationLegAdapters'
+
+export {
+    isPerceptionActionsCharacterHomeEnvelope,
+    isPerceptionActionsCharacterNavigateEnvelope,
+    isPerceptionConnectionsCharactersEnvelope,
+    isPerceptionPositionsCharacterMovedEnvelope,
+    toMembershipPresentationLeg,
+} from './membershipPresentationLegAdapters'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -74,6 +93,10 @@ export type PerceptionSubscribedContent =
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
     | AffordancesPertainPayload
+    | CharacterNavigatePublishedPayload
+    | CharacterHomePublishedPayload
+    | ConnectionsCharactersEventUpdate
+    | CharacterMovedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -104,6 +127,10 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
+        || isPerceptionActionsCharacterNavigateEnvelope(envelope)
+        || isPerceptionActionsCharacterHomeEnvelope(envelope)
+        || isPerceptionConnectionsCharactersEnvelope(envelope)
+        || isPerceptionPositionsCharacterMovedEnvelope(envelope)
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>

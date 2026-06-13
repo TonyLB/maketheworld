@@ -45,6 +45,20 @@ Two concerns were conflated in early planning (and in shipped [`characterMove`](
 
 Fan-in **does not** gate header render lifecycle or beat timestamps. [`positions` slice 1b presentation emission](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#cross-initiative-dependencies) depends on fan-in Phase 0 + Phase 1; **`beatAnchorTime`** can be stamped at persistence apply in slice **1a** (see **F1-4**, positions **S1-2**).
 
+### Model A beat-anchor pattern (positions creates; render consumes)
+
+| Role | Owner | Phase 1 behavior |
+| --- | --- | --- |
+| **Define anchor** | Positions at persistence apply | `beatAnchorTime` on **`Character Moved`** fact leg |
+| **Emission shape + copy** | Membership fan-in (`intent` + `fact`) | Leave/arrive **`WorldMessage`** after correlation; **`createdTime`** from anchor |
+| **Header content + revision** | Perception orchestrate + render pipeline | Slim **`characterMove`** targeting; Generating/terminal on **`PerceptionFanInOrchestrationPayload`** path; header **`createdTime`** should align to anchor (not `getCurrentTimestamp()` at render kick) |
+
+**Phase 1 limitations (render-blind emission):** Membership fan-in correlates only **`intent` + `fact`**. It does **not** subscribe to **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, or **`Generation Deferred`**. After correlation it publishes leave/arrive **without knowing** whether mover header render succeeded, failed, or was deferred. Header error placeholders stay on the render registry path in [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) --- decoupled from membership emission. Intentional tradeoff: stable fictional transcript position (anchor at fact) vs coupling world lines to render outcomes.
+
+**Known gap:** Navigate stream does not carry **`exitName`**; fan-in falls back to **`genericNavigate`** until a later slice enriches intent or extends the stream.
+
+**Future (deferred spike):** A richer fan-in spec might add optional **render outcome legs** (e.g. terminal **`Render Pertains`**, **`Orchestration Error`**) for render-aware leave/arrive policy --- without making render completion the fact or anchor source. Not an open decision row until product asks.
+
 ## Problem (first draft today)
 
 [`PerceptionThreads`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) is a **per-invocation correlation registry** with known limits:
@@ -210,10 +224,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Resolve **Open decisions** F1-1, F1-2, F1-3, F1-4, F1-5, F1-6 (coordinate with [`positions` S1-2 / slice 1b](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md); positions **S1-1** trusts actions `toRoomId` at apply)
   - [X] **May ship cluster + unit tests on synthetic legs before positions persistence API exists** (positions **S1-2** preferred order)
   - [X] Perception: add **`MembershipPresentationFanInCluster`** in [`perception/membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) (intent + fact legs; `canUnifyWith` / fact-authoritative identity per **F1-1**)
-  - [ ] Actions: add **`Character Home`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (**F1-2**); type + guard on the stream contract. **Emit** when home is resuscitated on the actions path (legacy [`executeAction`](../../../../../lambda/ephemera/parse/executeAction.ts) **`MoveCharacter`** until then). Distinct from **`Character Navigate`** so fan-in can set **`copyKind: 'home'`** (navigate-to-`HomeId` alone is not sufficient).
-  - [ ] Perception: extend [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) for **`mtw.ephemera.actions`** **`Character Navigate`** + **`Character Home`** intent adapters, **`mtw.connections.characters`** connect/disconnect intent (**F1-5**), **`mtw.ephemera.positions`** **`Character Moved`** fact (**F1-3**). Admin teleport **out of scope** for Phase 1.
+  - [X] Actions: add **`Character Home`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (**F1-2**); type + guard on the stream contract. **Emit** when home is resuscitated on the actions path (legacy [`executeAction`](../../../../../lambda/ephemera/parse/executeAction.ts) **`MoveCharacter`** until then). Distinct from **`Character Navigate`** so fan-in can set **`copyKind: 'home'`** (navigate-to-`HomeId` alone is not sufficient).
+  - [X] Perception: extend [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) for **`mtw.ephemera.actions`** **`Character Navigate`** + **`Character Home`** intent adapters, **`mtw.connections.characters`** connect/disconnect intent (**F1-5**), **`mtw.ephemera.positions`** **`Character Moved`** fact (**F1-3**). Admin teleport **out of scope** for Phase 1. Leg mappers in [`membershipPresentationLegAdapters.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts). **Next:** store wiring on [`index.ts`](../../../../../lambda/ephemera/dataSource/perception/index.ts) (line below).
   - [ ] Perception: module-scoped **`FanInClusterStore`** + **`registerDeferral`** on [`index.ts`](../../../../../lambda/ephemera/dataSource/perception/index.ts); wire **`receiveEvents`** (fan-in legs vs existing perception handlers)
-  - [ ] Positions: add **`Character Moved`** to [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts); emit from membership persistence API apply (navigate, connect, disconnect)
+  - [ ] Positions: emit **`Character Moved`** from membership persistence API apply (navigate, connect, disconnect); contract in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) shipped
   - [ ] At persistence apply: stamp **`beatAnchorTime`** from **fact** recorded time + ids when beat applies (Model A); do **not** pre-bake world copy on registration
   - [ ] Implement `onComplete` emission plan (shape + copy) and `onDeferredIncomplete` (fact-endpoint shape + generic copy)
   - [ ] Publish leave/arrive **after** correlation with explicit **`createdTime`** from anchor; kick header render independently
@@ -273,7 +287,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Milestone | Status |
 | --- | --- |
 | Phase 0: framework pattern | Done |
-| Phase 1: membership presentation emission | In progress (cluster spec + synthetic tests shipped) |
+| Phase 1: membership presentation emission | In progress (ingress adapters + Character Home shipped; store wiring + publish pending) |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |

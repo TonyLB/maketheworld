@@ -16,6 +16,13 @@ export type CharacterNavigatePublishedPayload = {
     toRoomId: EphemeraRoomId;
 }
 
+export type CharacterHomePublishedPayload = {
+    type: 'Character Home';
+    characterId: EphemeraCharacterId;
+    fromRoomId: EphemeraRoomId;
+    toRoomId: EphemeraRoomId;
+}
+
 export type AwaitRoadRunnerPublishedPayload = {
     type: 'Await RoadRunner';
     characterId: EphemeraCharacterId;
@@ -60,6 +67,50 @@ export const isAwaitRoadRunnerPublishedPayload = (
         return false
     }
     if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+        return false
+    }
+    return true
+}
+
+export const isCharacterNavigatePublishedPayload = (
+    value: unknown
+): value is CharacterNavigatePublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Character Navigate') {
+        return false
+    }
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.fromRoomId !== 'string') {
+        return false
+    }
+    if (typeof v.toRoomId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export const isCharacterHomePublishedPayload = (
+    value: unknown
+): value is CharacterHomePublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Character Home') {
+        return false
+    }
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.fromRoomId !== 'string') {
+        return false
+    }
+    if (typeof v.toRoomId !== 'string') {
         return false
     }
     return true
@@ -129,6 +180,7 @@ export const isAcmeOrderPublishedPayload = (
 export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
+    | CharacterHomePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload
     | LookCommandRequestedPublishedPayload
