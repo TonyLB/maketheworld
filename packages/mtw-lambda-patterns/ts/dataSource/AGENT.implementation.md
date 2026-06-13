@@ -129,7 +129,7 @@ Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot 
 
 Implementation: [`fanInCluster.ts`](./fanInCluster.ts), [`fanInClusterStore.ts`](./fanInClusterStore.ts), tests in [`fanInCluster.test.ts`](./fanInCluster.test.ts).
 
-**Purpose:** Correlate **multi-leg ingress** inside a DataSource `receiveEvents` pipeline --- e.g. membership **intent + fact** emission (Phase 1 consumer). Partial clusters accumulate legs in any order, **unify** when a leg proves two open partials are the same transition, complete when required legs are present, and handle negative cases (optional legs never arrive) via [`messageBus` deferral](../messageBus/AGENT.implementation.md) at `flushAndSettle` tail.
+**Purpose:** Correlate **multi-leg ingress** inside a DataSource `receiveEvents` pipeline. Partial clusters accumulate legs in any order, **unify** when a leg proves two open partials are the same transition, complete when required legs are present, and handle negative cases (optional legs never arrive) via [`messageBus` deferral](../messageBus/AGENT.implementation.md) at `flushAndSettle` tail.
 
 **Scope:** One `FanInClusterStore` **per DataSource instance** (not shared per-invocation). Fan-in runs **inside** `receiveEvents` --- route legs through the store; do not wrap `receiveEvents` externally. Non-fan-in envelopes in the same batch continue through normal domain handlers (see mixed-batch test in `fanInCluster.test.ts`).
 
@@ -143,11 +143,11 @@ Each fan-in **spec** is a subclass holding a leg bag and completion rules. Legs 
 | **`canUnifyWith(other)`** | Same transition, compatible endpoints --- not blind merge of unrelated partials. |
 | **`unifyWith(other)`** | Merge leg bags; store removes the absorbed partial. |
 | **`registerLeg(leg)`** | Add leg; recompute `completed`. |
-| **`clusterIdentity()`** | Stable store key when computable (fact-authoritative); `null` while provisional. |
+| **`clusterIdentity()`** | Stable store key when computable from authoritative legs; `null` while provisional. |
 | **`completed`** | All **required** legs for this spec are present. |
 | **`handler(ctx, { deferralExecution })`** | Positive completion (`deferralExecution: false`) or settle-time negative case (`deferralExecution: true`). |
 
-**Unify guardrails (subclass responsibility):** same character (or spec-specific identity); fact endpoints authoritative when present; reject endpoint contradictions; at most one leg per kind unless spec allows more; store removes cluster from open set after non-deferral `handler`.
+**Unify guardrails (subclass responsibility):** compatible transition identity; authoritative legs win over provisional endpoints when present; reject endpoint contradictions; at most one leg per kind unless spec allows more; store removes cluster from open set after non-deferral `handler`.
 
 #### `FanInClusterStore`
 
@@ -164,14 +164,14 @@ Each fan-in **spec** is a subclass holding a leg bag and completion rules. Legs 
 #### Wiring sketch
 
 ```typescript
-// Module scope (one store per DataSource instance)
-const fanInStore = new FanInClusterStore([membershipPresentationClusterFromLeg])
+// Module scope (one FanInClusterStore per DataSource instance)
+const fanInStore = new FanInClusterStore([myClusterFromLeg, /* other spec factories */])
 
-// Module load: register deferral with unique tag
+// Module load: register deferral; tag must be unique per DataSource
 fanInStore.registerDeferral(messageBus, 'fanIn-myDataSource')
 
 // In receiveEvents
-fanInStore.setHandlerContext({ streamEvent, /* ... */ })
+fanInStore.setHandlerContext(ctx)
 for (const envelope of events) {
     const leg = await toFanInLeg(envelope)   // spec-specific; may be undefined
     if (leg) {
@@ -187,11 +187,11 @@ for (const envelope of events) {
 
 [`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). Ephemera registers outbound coalescers (e.g. [`publishMessage/coalescer.ts`](../../../../lambda/ephemera/publishMessage/coalescer.ts)) that flush deferred WebSocket batches IO-only at the same tail.
 
-- Fan-in `afterSettled` may invoke handlers that publish world lines (Phase 1).
+- Fan-in `afterSettled` may invoke handlers that publish derived side effects (e.g. bus messages).
 - Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.
 - `onClear` is independent: fan-in drops partials; coalescers reset enqueue buffers --- both run on `messageBus.clear()` at ingress.
 
-**Phase 1 pointer:** membership presentation emission (`MembershipPresentationFanInCluster` + ephemera consumer) --- see [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md).
+**First consumer (ephemera):** membership presentation emission on [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- see [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) Phase 1.
 
 ### **Header/Content Envelope Model**
 
