@@ -81,10 +81,10 @@ describe('membershipPresentationFanIn', () => {
     })
 
     describe('buildMembershipEmissionPlan', () => {
-        it('returns exit-aware copy when navigate exit is in legal set', () => {
+        it('returns exit-aware copy when navigate intent has exitName', () => {
             const plan = buildMembershipEmissionPlan([
                 navigateIntent({ exitName: 'north' }),
-                crossRoomFact({ legalExits: ['north', 'south'] }),
+                crossRoomFact(),
             ], { deferralExecution: false })
 
             expect(plan).toMatchObject({
@@ -95,10 +95,10 @@ describe('membershipPresentationFanIn', () => {
             })
         })
 
-        it('returns genericNavigate when navigate has no matching exit', () => {
+        it('returns genericNavigate when navigate has no exitName', () => {
             const plan = buildMembershipEmissionPlan([
                 navigateIntent(),
-                crossRoomFact({ legalExits: ['south'] }),
+                crossRoomFact(),
             ], { deferralExecution: false })
 
             expect(plan).toMatchObject({
@@ -196,7 +196,7 @@ describe('membershipPresentationFanIn', () => {
                 const ctx = makeCtx()
                 store.setHandlerContext(ctx)
 
-                await store.route(crossRoomFact({ legalExits: ['north'] }))
+                await store.route(crossRoomFact())
                 expect(store.getOpenPartialCount()).toBe(1)
 
                 await store.route(navigateIntent({ exitName: 'north' }))

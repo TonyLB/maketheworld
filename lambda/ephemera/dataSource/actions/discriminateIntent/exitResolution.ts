@@ -2,7 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ParseCommandInput } from '../baseClasses'
 
 export type ExitResolutionResult =
-    | { type: 'Resolved'; targetId: EphemeraRoomId }
+    | { type: 'Resolved'; targetId: EphemeraRoomId; exitName: string }
     | { type: 'NoExitContext' }
     | { type: 'NoMatch' }
     | { type: 'AmbiguousMatch' }
@@ -39,5 +39,5 @@ export function resolveExitLabelToTargetId(
     if (matchingTargets.length > 1) {
         return { type: 'AmbiguousMatch' }
     }
-    return { type: 'Resolved', targetId: matchingTargets[0] }
+    return { type: 'Resolved', targetId: matchingTargets[0], exitName: normalizedCandidate }
 }

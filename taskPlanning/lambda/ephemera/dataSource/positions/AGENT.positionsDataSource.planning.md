@@ -57,7 +57,7 @@ Track **positions-owned** work in [Recommended order](#recommended-order) below.
 | **`positions/membership/`** persist + coordinator (**S1-4**, **S1-13**, **S1-11**) | Positions slice **1a** |
 | **`Character Moved`** stream + **`beatAnchorTime`** (**S1-14**, **F1-4**) | Positions slice **1b** |
 | Fan-in **`publishMembershipPresentation`**, integration tests | Fan-in Phase **1** |
-| **`exitName`** on **`Character Navigate`** + perception policy (**S1-10**, **F1-9**) | Fan-in Phase **1** (positions decision; actions/perception code) |
+| **`exitName`** on **`Character Navigate`** + perception policy (**S1-10**, **F1-9**) | Fan-in Phase **1** (shipped: actions stream + perception policy; positions fact side still omits **`legalExits`** at slice **1b**) |
 
 ## Presentation model (beat vs emission)
 
@@ -196,9 +196,9 @@ Slice **1** consolidates exit-aware presentation on **intent**, extending the sa
 
 **Implementation (slice 1 bundle):**
 
-1. **Actions:** extend [`Character Navigate`](../../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) with optional **`exitName`**; emit from parse when navigation matched a named exit ([`actions/index.ts`](../../../../../../lambda/ephemera/dataSource/actions/index.ts)).
-2. **Perception:** map **`exitName`** in [`membershipPresentationLegAdapters.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts); simplify [`membershipPresentationFanIn.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) --- exit-aware when **`intentKind === 'navigate' && intentLeg.exitName`** (remove **`legalExits?.includes`** check).
-3. **Positions:** omit **`legalExits`** on emitted facts.
+1. **Actions:** extend [`Character Navigate`](../../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) with optional **`exitName`**; emit from parse when navigation matched a named exit ([`actions/index.ts`](../../../../../../lambda/ephemera/dataSource/actions/index.ts)). **Shipped** (fan-in Phase 1).
+2. **Perception:** map **`exitName`** in [`membershipPresentationLegAdapters.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts); simplify [`membershipPresentationFanIn.ts`](../../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) --- exit-aware when **`intentKind === 'navigate' && intentLeg.exitName`** (remove **`legalExits?.includes`** check). **Shipped** (fan-in Phase 1).
+3. **Positions:** omit **`legalExits`** on emitted facts (slice **1b**).
 
 **After slice 2:** optional spike whether stored play graphs warrant reintroducing **`legalExits`** on the fact for leg-only fan-in or other consumers --- not a slice 1 blocker.
 

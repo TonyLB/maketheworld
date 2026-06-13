@@ -148,6 +148,26 @@ describe('membershipPresentationLegAdapters', () => {
             } satisfies MembershipPresentationLeg)
         })
 
+        it('maps Character Navigate exitName to navigate intent leg', async () => {
+            const leg = await toMembershipPresentationLeg(
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                    type: 'Character Navigate',
+                    characterId: CHARACTER,
+                    fromRoomId: ROOM_A,
+                    toRoomId: ROOM_B,
+                    exitName: 'north',
+                })
+            )
+            expect(leg).toEqual({
+                kind: 'intent',
+                intentKind: 'navigate',
+                characterId: CHARACTER,
+                fromRoomId: ROOM_A,
+                toRoomId: ROOM_B,
+                exitName: 'north',
+            } satisfies MembershipPresentationLeg)
+        })
+
         it('maps Character Home to home intent leg', async () => {
             const leg = await toMembershipPresentationLeg(
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Home', {

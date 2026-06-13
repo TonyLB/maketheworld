@@ -31,7 +31,12 @@ function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseComm
     if (resolved.type !== 'Resolved') {
         return null
     }
-    return { type: 'Navigation', targetId: resolved.targetId, confidence: 1 }
+    return {
+        type: 'Navigation',
+        targetId: resolved.targetId,
+        exitName: resolved.exitName,
+        confidence: 1,
+    }
 }
 
 export function deterministicIntentChecks(input: ParseCommandInput): ParseCommandResult | null {

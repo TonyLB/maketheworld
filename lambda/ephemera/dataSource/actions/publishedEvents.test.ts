@@ -245,6 +245,16 @@ describe('isCharacterNavigatePublishedPayload', () => {
         expect(isCharacterNavigatePublishedPayload(minimal)).toBe(true)
     })
 
+    it('accepts optional exitName', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: 'north' })).toBe(true)
+    })
+
+    it('rejects empty or non-string exitName', () => {
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: '' })).toBe(false)
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: '   ' })).toBe(false)
+        expect(isCharacterNavigatePublishedPayload({ ...minimal, exitName: 1 } as unknown)).toBe(false)
+    })
+
     it('rejects wrong or missing type', () => {
         expect(isCharacterNavigatePublishedPayload({ ...minimal, type: 'Character Home' })).toBe(false)
         const { type: _t, ...rest } = minimal

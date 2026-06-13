@@ -127,11 +127,7 @@ export const buildMembershipEmissionPlan = (
     let exitName: string | undefined
 
     if (!options.deferralExecution && intentLeg) {
-        if (
-            intentLeg.intentKind === 'navigate'
-            && intentLeg.exitName
-            && factLeg.legalExits?.includes(intentLeg.exitName)
-        ) {
+        if (intentLeg.intentKind === 'navigate' && intentLeg.exitName) {
             copyKind = 'exitAware'
             exitName = intentLeg.exitName
         } else if (intentLeg.intentKind === 'home') {

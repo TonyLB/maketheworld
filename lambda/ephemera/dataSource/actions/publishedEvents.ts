@@ -14,6 +14,8 @@ export type CharacterNavigatePublishedPayload = {
     characterId: EphemeraCharacterId;
     fromRoomId: EphemeraRoomId;
     toRoomId: EphemeraRoomId;
+    /** Normalized exit label when parse matched a named exit (fan-in exit-aware copy). */
+    exitName?: string;
 }
 
 export type CharacterHomePublishedPayload = {
@@ -90,6 +92,11 @@ export const isCharacterNavigatePublishedPayload = (
     }
     if (typeof v.toRoomId !== 'string') {
         return false
+    }
+    if (v.exitName !== undefined) {
+        if (typeof v.exitName !== 'string' || v.exitName.trim().length === 0) {
+            return false
+        }
     }
     return true
 }
