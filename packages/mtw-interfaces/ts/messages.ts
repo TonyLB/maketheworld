@@ -206,7 +206,7 @@ type PerceptionMessageMetaDataBase = {
     componentUUID: ComponentUUID;
 }
 
-/** Multi-channel room UI: which logical channel this `PerceptionMessage` row belongs to (see ephemera `AGENT.multiChannel.contract.md`). */
+/** Multi-channel room UI: which logical channel this `PerceptionMessage` row belongs to (see `lambda/ephemera/AGENT.multiChannel.contract.md`). */
 export type PerceptionRoomChannel = 'render' | 'affordances'
 
 /** When `roomChannel` is omitted on stored or legacy messages, treat as render (backward compatible). */

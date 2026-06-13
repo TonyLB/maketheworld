@@ -4,6 +4,8 @@
 
 The `messages` slice manages the Redux state for all game messages received via WebSocket. It handles message storage, retrieval, and synchronization with the local cache database. The same logical `MessageId` can receive multiple revisions over time; the slice keeps a full **history** log and a separate **presentation** view for the default transcript (see **Transcript model** below).
 
+**Authoritative transcript concepts (server + wire):** [`lambda/ephemera/AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md). This file documents **client ingest and selectors**; producers assign **`CreatedTime`** per that doc.
+
 ## Core Purpose
 
 - **Message Storage**: Maintains message history in Redux state

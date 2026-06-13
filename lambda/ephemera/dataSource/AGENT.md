@@ -10,8 +10,11 @@
 
 | Doc | Role |
 | --- | --- |
-| [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, **room-render** vs **room-affordances** direction, decision norms |
-| Multi-channel room UI (initiative complete) | Norms: [`AGENT.multiChannel.contract.md`](AGENT.multiChannel.contract.md); server publish map: [`perception/AGENT.md`](perception/AGENT.md) **Server publish sites (multi-channel)** |
+| [**AGENT.multiChannel.concepts.md**](../AGENT.multiChannel.concepts.md) | Multi-channel mental models (render vs affordances) |
+| [**AGENT.multiChannel.contract.md**](../AGENT.multiChannel.contract.md) | Multi-channel norms: wire shape, `messageId`, Phase B/C |
+| [**AGENT.narrativeTranscript.concepts.md**](../AGENT.narrativeTranscript.concepts.md) | Fictional transcript **`CreatedTime`**, delivery looseness vs fan-in correlation |
+| Multi-channel room UI (initiative complete) | Norms: [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md); server publish map: [`perception/AGENT.md`](perception/AGENT.md) **Server publish sites (multi-channel)** |
+| Cross-cutting concepts index | [`../AGENT.concepts.md`](../AGENT.concepts.md) |
 
 **Wire note:** **`PublishPerceptionMessage`** ([`messageBus/baseClasses.ts`](../messageBus/baseClasses.ts)) uses **`PerceptionMessageMetaData`**; room rows distinguish channels with **`metaData.roomChannel`** per the multi-channel contract. **Where emits happen (ephemera lambda):** [`perception/AGENT.md` **Server publish sites (multi-channel)**](perception/AGENT.md#server-publish-sites-multi-channel) (durable inventory). The task plan **Publisher inventory** section was the working copy and is **superseded** by that subsection for steady-state truth.
 

@@ -4,7 +4,7 @@
 
 This package owns **runtime object lists** for rooms: stored on ephemera **`Meta::Room`** as **`objects?: EphemeraMetaRoomObject[]`** (optional; missing treated as empty when patching). Each row is **`uuid`** + **`shortName`** + **`stableKey`** (Coyote machine-correlation slug; distinct from human-facing **`shortName`**; uniqueness for Acme-created keys is Coyote-wide --- see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**), with optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object membership, **not** named as a sub-feature of a room aggregate, even though v1 stores the field on **`Meta::Room`**. Long term, object lists may attach to **other** ephemera kinds; v1 does **not** encode "objects are only a room concern" in the **`dataSourceKey`**.
 
-**Co-location on `Meta::Room`** is an **implementation** choice (atomicity, read efficiency, cache keying); domain boundaries and invalidation are documented here and in [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md).
+**Co-location on `Meta::Room`** is an **implementation** choice (atomicity, read efficiency, cache keying); domain boundaries and invalidation are documented here and in [`AGENT.multiChannel.contract.md`](../../AGENT.multiChannel.contract.md).
 
 ## Bus events
 
@@ -86,7 +86,7 @@ npm run test -- --watchAll=false
 | Doc | Role |
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | dataSource directory index |
-| [`../AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md) | Shared **`Meta::Room`** row vs DataSource domains; affordance channel norms |
+| [`../AGENT.multiChannel.contract.md`](../../AGENT.multiChannel.contract.md) | Shared **`Meta::Room`** row vs DataSource domains; affordance channel norms |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Perception delivery; **Server publish sites (multi-channel)** |
 | [`../state/AGENT.md`](../state/AGENT.md) | Symmetry: **`mtw.ephemera.state`** |
 | [`../../internalCache/componentEphemeraMeta.AGENT.md`](../../internalCache/componentEphemeraMeta.AGENT.md) | **`Meta::Room`** cache; invalidation after writes |

@@ -98,7 +98,7 @@ Each room header displays:
 - **Exit List**: Available navigation options
 - **Environmental Status**: Current room state
 
-**Multi-channel (render vs affordances, Phase C):** Agreed client norms (sticky **`RoomHeader`** shell: **`VirtualMessageList`** + **`RoomDescription`** **`header`**; virtual header from **`roomChannel`**; full **`StandardForm.merge`** (**render** base / **affordances** incoming); **`Contents:`** only when objects exist; **10 s** affordance withhold timeout; transcript **anchor**; **`RoomUpdate`** never visible; no storage purge mandate) live in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)**. Small layout improvisations are fine; follow existing **Material** / **MUI** patterns in this package.
+**Multi-channel (render vs affordances, Phase C):** Agreed client norms live in [`lambda/ephemera/AGENT.multiChannel.contract.md`](../../../../lambda/ephemera/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)**. Mental models: [`AGENT.multiChannel.concepts.md`](../../../../lambda/ephemera/AGENT.multiChannel.concepts.md). Narrative transcript: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md).
 
 ### **Dynamic Header Updates**
 

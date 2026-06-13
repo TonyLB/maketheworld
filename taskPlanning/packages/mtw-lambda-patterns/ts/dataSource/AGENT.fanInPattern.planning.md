@@ -10,6 +10,8 @@ Track a **generic DataSource fan-in processor** that replaces bespoke, order-sen
 
 Framework conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
+**Prerequisites (read before tightening cluster output):** [`lambda/ephemera/AGENT.narrativeTranscript.concepts.md`](../../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) --- fictional **`CreatedTime`**, delivery looseness vs correlation; fan-in specs must not re-encode accidental atomic-delivery constraints.
+
 ## Problem (first draft today)
 
 [`PerceptionThreads`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) is a **per-invocation correlation registry** with known limits:

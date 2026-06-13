@@ -42,7 +42,7 @@ Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/epheme
 
 ## Cross-initiative dependencies
 
-**Dependency (navigate presentation on fan-in):** Full **intent + fact + perception** correlation for player moves (exit-aware leave/arrive, settle-time negative case) depends on [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) **Phase 0 + Phase 1**.
+**Dependency (navigate presentation on fan-in):** Full **intent + fact + perception** correlation for player moves (exit-aware leave/arrive, settle-time negative case) depends on [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) **Phase 0 + Phase 1**. Transcript output shape: [`AGENT.narrativeTranscript.concepts.md`](../../../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md).
 
 **Slice 1a (persistence boundary) is not blocked** --- it may land while still using legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) orchestration (see **S1-2**).
 

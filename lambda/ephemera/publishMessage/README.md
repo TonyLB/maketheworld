@@ -32,6 +32,8 @@ Some messages need to be delivered before or after other messages: e.g., "Tess l
 fractionally before the Room perception message for the place Tess is arriving to, and "Tess arrives" should
 be delivered fractionally after that perception event.
 
+Narrative ordering uses **fictional transcript time** (`CreatedTime`), not wire packet order. See [`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md).
+
 ---
 
 ## Tree fragments
