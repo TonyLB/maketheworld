@@ -30,9 +30,38 @@ import { EPHEMERA_OBJECTS_DATA_SOURCE_KEY } from '../objects/events'
 import { AFFORDANCE_CACHE_DATA_SOURCE_KEY } from '../affordanceCache/publishedEvents'
 import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/sendPublishedEvents'
+import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
+import * as orchestrateModule from './orchestrate'
 import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
+
+const MEMBERSHIP_CHARACTER = 'CHARACTER#Alice' as const
+const MEMBERSHIP_ROOM_A = 'ROOM#a' as const
+const MEMBERSHIP_ROOM_B = 'ROOM#b' as const
+const MEMBERSHIP_ANCHOR_TIME = 1_700_000_000_000
+
+function publishMembershipStreamingEvent(
+    dataSourceKey: string,
+    type: string,
+    content: object
+): void {
+    const ts = Date.now()
+    messageBus.publish({
+        type: 'StreamingEvent',
+        dataSourceKey,
+        streamKey: MEMBERSHIP_CHARACTER,
+        timestamp: ts,
+        header: {
+            dataSourceKey,
+            streamKey: MEMBERSHIP_CHARACTER,
+            timestamp: ts,
+            type,
+        },
+        getContent: () => Promise.resolve(content),
+    })
+}
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const originalMessageBusPublish = messageBus.publish.bind(messageBus)
@@ -895,5 +924,86 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(affordancePublishes).toHaveLength(0)
 
         publishSpy.mockRestore()
+    })
+
+    describe('membership presentation fan-in receiveEvents routing', () => {
+        it('routes Character Navigate through fan-in without calling orchestrateRoomDescriptionStreams', async () => {
+            const orchestrateSpy = jest.spyOn(orchestrateModule, 'orchestrateRoomDescriptionStreams')
+
+            publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                type: 'Character Navigate',
+                characterId: MEMBERSHIP_CHARACTER,
+                fromRoomId: MEMBERSHIP_ROOM_A,
+                toRoomId: MEMBERSHIP_ROOM_B,
+            })
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateSpy).not.toHaveBeenCalled()
+            orchestrateSpy.mockRestore()
+        })
+
+        it('mixed batch: Character Navigate and Perception Thread Registered both handled', async () => {
+            const orchestrateSpy = jest.spyOn(orchestrateModule, 'orchestrateRoomDescriptionStreams')
+
+            publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                type: 'Character Navigate',
+                characterId: MEMBERSHIP_CHARACTER,
+                fromRoomId: MEMBERSHIP_ROOM_A,
+                toRoomId: MEMBERSHIP_ROOM_B,
+            })
+            sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
+                threadKind: 'roomDescription',
+                componentId: 'ROOM#REG',
+                perspectiveKey: 'view-1',
+                characterId: 'CHARACTER#viewer',
+            })
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateSpy).not.toHaveBeenCalled()
+            const listed = internalCache.PerceptionThreads.list('ROOM#REG', 'view-1')
+            expect(listed).toHaveLength(1)
+            expect(listed[0].registration).toMatchObject({
+                threadKind: 'roomDescription',
+                componentId: 'ROOM#REG',
+            })
+            orchestrateSpy.mockRestore()
+        })
+
+        it('intent + fact batch completes without WorldMessage PublishMessage', async () => {
+            const publishSpy = spyPublish()
+
+            publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                type: 'Character Navigate',
+                characterId: MEMBERSHIP_CHARACTER,
+                fromRoomId: MEMBERSHIP_ROOM_A,
+                toRoomId: MEMBERSHIP_ROOM_B,
+            })
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                from: MEMBERSHIP_ROOM_A,
+                to: MEMBERSHIP_ROOM_B,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(0)
+            publishSpy.mockRestore()
+        })
+
+        it('fact-only at settle runs deferral without error', async () => {
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                from: MEMBERSHIP_ROOM_A,
+                to: MEMBERSHIP_ROOM_B,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+            })
+            await expect(messageBus.flushAndSettle()).resolves.toBeUndefined()
+        })
     })
 })
