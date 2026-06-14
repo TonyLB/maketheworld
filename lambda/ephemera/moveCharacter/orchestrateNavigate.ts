@@ -7,7 +7,6 @@ import {
     getCharacterRoomPerspectiveKey,
     kickPassiveRenderRequestedForCharacterInRoom,
 } from '../dataSource/perception/kickRoomHeaderBroadcast'
-import { type CharacterMoveDeliveryKey } from '../dataSource/perception/characterMoveDelivery'
 
 export type OrchestrateCharacterNavigateArgs = {
     payload: MoveCharacterMessage;
@@ -20,7 +19,7 @@ export type OrchestrateCharacterNavigateArgs = {
 
 /**
  * Post-persist navigate presentation (S1-13): PerceptionThreads header targeting,
- * passive render kick, imperative fallback copy, MapUpdate.
+ * passive render kick, imperative header fallback, MapUpdate.
  * Does not perform membership Dynamo writes or RoomUpdate / EphemeraUpdate (coordinator owns those).
  */
 export const orchestrateCharacterNavigate = async ({
@@ -35,20 +34,17 @@ export const orchestrateCharacterNavigate = async ({
         return
     }
 
-    // Temporary singular bridge: downstream PerceptionThreads / MapUpdate / imperative leave
-    // still take one room; fan-in Phase 2+ owns multi-departure leave. Use first prior container.
+    // Temporary singular bridge: MapUpdate still takes one room; fan-in owns multi-departure leave.
     const primaryDeparture = froms[0] ?? characterMeta.RoomId
 
     const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
-    let characterMoveKey: CharacterMoveDeliveryKey | null = null
+    let registeredCharacterMove = false
 
     const perspectiveKey = await getCharacterRoomPerspectiveKey(
         to,
         characterMeta.assets || []
     )
     if (perspectiveKey) {
-        const leaveMessageGroupId = internalCache.OrchestrateMessages.before(messageGroupId)
-        const arriveMessageGroupId = internalCache.OrchestrateMessages.after(messageGroupId)
         const registrationId = uuidv4()
         const headerMessageId = beatAnchorTime !== undefined ? `MESSAGE#${uuidv4()}` : undefined
         internalCache.PerceptionThreads.register({
@@ -56,45 +52,12 @@ export const orchestrateCharacterNavigate = async ({
             componentId: to,
             perspectiveKey,
             characterId: payload.characterId,
-            departureRoomId: primaryDeparture,
             messageGroupId,
-            leaveMessageGroupId,
-            arriveMessageGroupId,
             registrationId,
             ...(headerMessageId !== undefined ? { messageId: headerMessageId } : {}),
             ...(beatAnchorTime !== undefined ? { createdTime: beatAnchorTime } : {}),
-            leaveWorldMessage: !payload.suppressDeparture
-                ? {
-                    targets: [primaryDeparture, payload.characterId],
-                    message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
-                }
-                : undefined,
-            arriveWorldMessage: !payload.suppressArrival
-                ? {
-                    targets: [
-                        to,
-                        payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId,
-                    ],
-                    message: [`${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.'}`],
-                }
-                : undefined,
         })
-        characterMoveKey = {
-            componentId: to,
-            perspectiveKey,
-            registrationId,
-        }
-    }
-
-    if (!characterMoveKey && primaryDeparture && !payload.suppressDeparture) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [primaryDeparture, payload.characterId],
-            displayProtocol: 'WorldMessage',
-            message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
-            messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId),
-            deliveryMode: 'deferred',
-        })
+        registeredCharacterMove = true
     }
 
     const kickedPassiveRender = await kickPassiveRenderRequestedForCharacterInRoom({
@@ -104,24 +67,13 @@ export const orchestrateCharacterNavigate = async ({
         messageBus,
     })
 
-    if (!characterMoveKey && !kickedPassiveRender) {
+    if (!registeredCharacterMove && !kickedPassiveRender) {
         messageBus.publish({
             type: 'Perception',
             characterId: payload.characterId,
             ephemeraId: to,
             header: true,
             messageGroupId,
-        })
-    }
-
-    if (!characterMoveKey && !payload.suppressArrival) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [to, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],
-            displayProtocol: 'WorldMessage',
-            message: [`${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.'}`],
-            messageGroupId: internalCache.OrchestrateMessages.after(messageGroupId),
-            deliveryMode: 'deferred',
         })
     }
 

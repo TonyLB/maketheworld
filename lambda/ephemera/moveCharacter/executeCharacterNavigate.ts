@@ -38,8 +38,6 @@ export const executeCharacterNavigate = async ({
                 type: 'MoveCharacter',
                 characterId,
                 roomId: targetRoomId,
-                suppressDeparture: true,
-                suppressArrival: true,
                 ...payload,
             },
             characterMeta,

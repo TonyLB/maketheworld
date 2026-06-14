@@ -11,8 +11,6 @@ import {
     type EphemeraCharacterId,
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
@@ -70,14 +68,7 @@ export type PerceptionThreadRegisterSessionOrientationAffordancesCommand = {
     registrationId?: string;
 }
 
-/** Wire payload for Leave / Arrive WorldMessage legs (same shape as PublishWorldMessage). */
-export type CharacterMoveWorldMessageSpec = {
-    targets: PublishTarget[];
-    message: RenderTree;
-}
-
-/** Character move: correlated header fan-in on arrival room + perspectiveKey, with ordered WorldMessage legs.
- * Ordering ids must be the concrete values from OrchestrateMessages.before / root / after.
+/** Character move: targeting-only registration for mover arrival-room header render fan-in.
  * Optional messageId + createdTime anchor header revision to the position-move fact time (Model A).
  */
 export type PerceptionThreadRegisterCharacterMoveCommand = {
@@ -85,12 +76,7 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     componentId: EphemeraRoomId;
     perspectiveKey: string;
     characterId: EphemeraCharacterId;
-    departureRoomId: EphemeraRoomId;
     messageGroupId: MessageGroupId;
-    leaveMessageGroupId: MessageGroupId;
-    arriveMessageGroupId: MessageGroupId;
-    leaveWorldMessage?: CharacterMoveWorldMessageSpec;
-    arriveWorldMessage?: CharacterMoveWorldMessageSpec;
     headerTargets?: PublishTarget[];
     registrationId?: string;
     /** Pre-assigned header MessageId (Model A). */
@@ -119,17 +105,6 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterStubCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
-
-export const isCharacterMoveWorldMessageSpec = (value: unknown): value is CharacterMoveWorldMessageSpec => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const o = value as Record<string, unknown>
-    if (!Array.isArray(o.targets) || o.targets.length === 0 || !o.targets.every((t) => typeof t === 'string')) {
-        return false
-    }
-    return isRenderTree(o.message)
-}
 
 export const isCharacterPerceptionRequestedCommand = (value: unknown): value is CharacterPerceptionRequestedCommand => {
     if (!value || typeof value !== 'object') {
@@ -201,22 +176,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
             return false
         }
-        if (typeof v.departureRoomId !== 'string' || !isEphemeraRoomId(v.departureRoomId)) {
-            return false
-        }
         if (typeof v.messageGroupId !== 'string' || v.messageGroupId.length === 0) {
-            return false
-        }
-        if (typeof v.leaveMessageGroupId !== 'string' || v.leaveMessageGroupId.length === 0) {
-            return false
-        }
-        if (typeof v.arriveMessageGroupId !== 'string' || v.arriveMessageGroupId.length === 0) {
-            return false
-        }
-        if (v.leaveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(v.leaveWorldMessage)) {
-            return false
-        }
-        if (v.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(v.arriveWorldMessage)) {
             return false
         }
         if (v.headerTargets !== undefined && !isNonEmptyPublishTargetArray(v.headerTargets)) {

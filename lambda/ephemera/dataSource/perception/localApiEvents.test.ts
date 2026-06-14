@@ -34,19 +34,16 @@ describe('isPerceptionThreadRegisterCommand', () => {
         ).toBe(false)
     })
 
-    it('accepts characterMove with required ordering ids and optional world message specs', () => {
+    it('accepts characterMove with required messageGroupId and optional header fields', () => {
         expect(
             isPerceptionThreadRegisterCommand({
                 threadKind: 'characterMove',
                 componentId: 'ROOM#dest',
                 perspectiveKey: 'PERSPECTIVE#v1#x',
                 characterId: 'CHARACTER#a',
-                departureRoomId: 'ROOM#src',
                 messageGroupId: 'root-id',
-                leaveMessageGroupId: 'leave-id',
-                arriveMessageGroupId: 'arrive-id',
-                leaveWorldMessage: { targets: ['ROOM#src', 'CHARACTER#a'], message: ['left'] },
-                arriveWorldMessage: { targets: ['ROOM#dest', 'CHARACTER#a'], message: ['hi'] },
+                messageId: 'MESSAGE#header',
+                createdTime: 1_700_000_000_000,
             })
         ).toBe(true)
     })
@@ -58,9 +55,6 @@ describe('isPerceptionThreadRegisterCommand', () => {
                 componentId: 'ROOM#dest',
                 perspectiveKey: 'pk',
                 characterId: 'CHARACTER#a',
-                departureRoomId: 'ROOM#src',
-                leaveMessageGroupId: 'l',
-                arriveMessageGroupId: 'a',
             } as unknown)
         ).toBe(false)
     })

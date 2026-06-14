@@ -188,8 +188,6 @@ describe('moveCharacter', () => {
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#Test',
                 roomId: 'ROOM#TestTwo',
-                suppressDeparture: true,
-                suppressArrival: true,
             },
             froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',

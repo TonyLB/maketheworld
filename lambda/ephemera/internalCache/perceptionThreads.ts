@@ -7,8 +7,6 @@
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../messageBus/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    isCharacterMoveWorldMessageSpec,
-    type CharacterMoveWorldMessageSpec,
     type PerceptionThreadRegisterCharacterMoveCommand,
     type PerceptionThreadRegisterCommand,
 } from '../dataSource/perception/localApiEvents'
@@ -56,15 +54,13 @@ export type SessionOrientationAffordancesPerceptionThread = {
     cacheId?: string;
 }
 
-/** Character move: header fan-in + Leave/Arrive WorldMessage specs on registration (see characterMoveDelivery). */
+/** Character move: targeting-only registration for mover arrival-room header render fan-in. */
 export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-    leaveDispatched?: boolean;
-    arriveDispatched?: boolean;
 }
 
 export type PerceptionThread =
@@ -201,12 +197,6 @@ export function isCharacterMovePerceptionThread(value: unknown): value is Charac
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
         return false
     }
-    if (v.leaveDispatched !== undefined && typeof v.leaveDispatched !== 'boolean') {
-        return false
-    }
-    if (v.arriveDispatched !== undefined && typeof v.arriveDispatched !== 'boolean') {
-        return false
-    }
     return true
 }
 
@@ -263,10 +253,6 @@ export type CharacterMovePerceptionThreadPatch = {
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-    leaveDispatched?: boolean;
-    arriveDispatched?: boolean;
-    leaveWorldMessage?: CharacterMoveWorldMessageSpec;
-    arriveWorldMessage?: CharacterMoveWorldMessageSpec;
     headerTargets?: PublishTarget[];
 }
 
@@ -288,10 +274,6 @@ const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
     'messageId',
     'createdTime',
     'cacheId',
-    'leaveDispatched',
-    'arriveDispatched',
-    'leaveWorldMessage',
-    'arriveWorldMessage',
     'headerTargets',
 ])
 
@@ -450,18 +432,6 @@ export function isCharacterMovePerceptionThreadPatch(value: unknown): value is C
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
         return false
     }
-    if ('leaveDispatched' in p && p.leaveDispatched !== undefined && typeof p.leaveDispatched !== 'boolean') {
-        return false
-    }
-    if ('arriveDispatched' in p && p.arriveDispatched !== undefined && typeof p.arriveDispatched !== 'boolean') {
-        return false
-    }
-    if ('leaveWorldMessage' in p && p.leaveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.leaveWorldMessage)) {
-        return false
-    }
-    if ('arriveWorldMessage' in p && p.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.arriveWorldMessage)) {
-        return false
-    }
     if ('headerTargets' in p && p.headerTargets !== undefined && !isNonEmptyPublishTargetArray(p.headerTargets)) {
         return false
     }
@@ -577,13 +547,7 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
                     'PerceptionThreads.mergePerceptionThreadPatch: characterMove patch requires characterMove thread'
                 )
             }
-            const {
-                threadKind: _tk,
-                leaveWorldMessage: _lw,
-                arriveWorldMessage: _aw,
-                headerTargets: _ht,
-                ...threadRest
-            } = patch
+            const { threadKind: _, headerTargets: _ht, ...threadRest } = patch
             const merged = { ...base, ...threadRest }
             if (!isCharacterMovePerceptionThread(merged)) {
                 throw new Error(
@@ -665,17 +629,10 @@ function mergeCharacterMoveRegistration(
     reg: PerceptionThreadRegisterCharacterMoveCommand,
     patch: CharacterMovePerceptionThreadPatch
 ): PerceptionThreadRegisterCharacterMoveCommand {
-    let next: PerceptionThreadRegisterCharacterMoveCommand = { ...reg }
-    if (patch.leaveWorldMessage !== undefined) {
-        next = { ...next, leaveWorldMessage: patch.leaveWorldMessage }
-    }
-    if (patch.arriveWorldMessage !== undefined) {
-        next = { ...next, arriveWorldMessage: patch.arriveWorldMessage }
-    }
     if (patch.headerTargets !== undefined) {
-        next = { ...next, headerTargets: patch.headerTargets }
+        return { ...reg, headerTargets: patch.headerTargets }
     }
-    return next
+    return reg
 }
 
 export type PerceptionThreadEntry = {
@@ -822,8 +779,6 @@ export default class PerceptionThreadsData {
                     || p.messageId !== undefined
                     || p.createdTime !== undefined
                     || p.cacheId !== undefined
-                    || p.leaveDispatched !== undefined
-                    || p.arriveDispatched !== undefined
                 if (hasThreadPatchFields) {
                     const threadPatch: CharacterMovePerceptionThreadPatch = {
                         threadKind: 'characterMove',
@@ -831,8 +786,6 @@ export default class PerceptionThreadsData {
                         ...(p.messageId !== undefined ? { messageId: p.messageId } : {}),
                         ...(p.createdTime !== undefined ? { createdTime: p.createdTime } : {}),
                         ...(p.cacheId !== undefined ? { cacheId: p.cacheId } : {}),
-                        ...(p.leaveDispatched !== undefined ? { leaveDispatched: p.leaveDispatched } : {}),
-                        ...(p.arriveDispatched !== undefined ? { arriveDispatched: p.arriveDispatched } : {}),
                     }
                     entry.thread = mergePerceptionThreadPatch(entry.thread, {
                         ...threadPatch

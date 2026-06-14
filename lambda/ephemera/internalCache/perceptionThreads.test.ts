@@ -71,10 +71,7 @@ const makeCharacterMoveRegistration = (
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#mover',
-    departureRoomId: 'ROOM#from',
     messageGroupId: 'MSG#root',
-    leaveMessageGroupId: 'MSG#leave',
-    arriveMessageGroupId: 'MSG#arrive',
     ...overrides,
 })
 
@@ -345,7 +342,7 @@ describe('PerceptionThreadsData', () => {
         expect(listed[0].registration.threadKind).toBe('characterMove')
     })
 
-    it('update merges characterMove thread and registration leaveWorldMessage', () => {
+    it('update merges characterMove thread and registration headerTargets', () => {
         cache.register(makeCharacterMoveRegistration())
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
         const ok = cache.update(
@@ -354,7 +351,7 @@ describe('PerceptionThreadsData', () => {
                 threadKind: 'characterMove',
                 status: 'Generating',
                 messageId: 'MESSAGE#cm1',
-                leaveWorldMessage: { targets: ['ROOM#from'], message: ['bye'] },
+                headerTargets: ['CHARACTER#alt'],
             }
         )
         expect(ok).toBe(true)
@@ -366,7 +363,7 @@ describe('PerceptionThreadsData', () => {
         })
         expect(row.registration.threadKind).toBe('characterMove')
         if (row.registration.threadKind === 'characterMove') {
-            expect(row.registration.leaveWorldMessage).toEqual({ targets: ['ROOM#from'], message: ['bye'] })
+            expect(row.registration.headerTargets).toEqual(['CHARACTER#alt'])
         }
     })
 })
@@ -394,7 +391,7 @@ describe('mergePerceptionThreadPatch characterMove', () => {
             threadKind: 'characterMove',
             status: 'Generating',
             messageId: 'MESSAGE#cm',
-            leaveWorldMessage: { targets: ['ROOM#r'], message: ['x'] },
+            headerTargets: ['CHARACTER#mover'],
         })
         expect(merged).toEqual({
             kind: 'characterMove',

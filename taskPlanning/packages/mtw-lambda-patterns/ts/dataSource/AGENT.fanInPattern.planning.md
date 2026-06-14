@@ -1,6 +1,6 @@
 # DataSource fan-in pattern (`mtw-lambda-patterns`)
 
-**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect + **connect** membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Next:** Phase 2 --- retire `characterMove` pre-bake / ordering.
+**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect + **connect** membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Phase 2 shipped** --- retire `characterMove` pre-bake / ordering. **Next:** Phase 3+ --- PerceptionThreads targeting-only consolidation.
 
 ## Purpose
 
@@ -301,11 +301,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **`publishMembershipPresentation`:** multi-leave --- iterate **`froms`**; exit-aware suffix only when intent correlates and **`fromRoomId ===`** that entry; generic leave for other entries
   - [X] Tests: slice **1b** parity (singleton **`froms`**); synthetic drift **`[A,C]->B`** (exit-aware at A when intent from A, generic at C); race intent A->B fact **`[C]->B`** (fact-only generic); disconnect **`froms: [A]`**, **`to: null`**
 
-- [ ] **Phase 2 --- retire `characterMove` ordering / pre-bake PerceptionThreads**
-  - [ ] Stop using `characterMove` PerceptionThreads to gate leave/arrive dispatch on `Generation Started` / `Render Pertains`
-  - [ ] Remove pre-baked `leaveWorldMessage` / `arriveWorldMessage` on `PerceptionThreads.register`
-  - [ ] Mover header: keep **`characterMove`** registration (targeting-only per **F3-2**); affordance refresh stays separate (`RoomUpdate` path until generalized)
-  - [ ] Update [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery paths table
+- [X] **Phase 2 --- retire `characterMove` ordering / pre-bake PerceptionThreads**
+  - [X] Stop using `characterMove` PerceptionThreads to gate leave/arrive dispatch on `Generation Started` / `Render Pertains`
+  - [X] Remove pre-baked `leaveWorldMessage` / `arriveWorldMessage` on `PerceptionThreads.register`
+  - [X] Mover header: keep **`characterMove`** registration (targeting-only per **F3-2**); affordance refresh stays separate (`RoomUpdate` path until generalized)
+  - [X] Update [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery paths table
 
 - [ ] **Phase 3+ --- PerceptionThreads targeting-only consolidation**
   - [X] Resolve **Open decisions** F3-2 (F3-1 decided: keep name, slim in place)
@@ -349,6 +349,16 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **F2-2 gate (slice 1d):** **`froms[]`** only on bus; navigate/disconnect parity with Phase 1 for singleton **`froms`**; synthetic multi-from tests pass; no **`froms.length > 1`** from positions real persist until slice **2**.
 
+**Phase 2 gate:** `characterMove` orchestration publishes header Generating/terminal only (no `WorldMessage` from [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts)); registration is targeting-only (no pre-baked leave/arrive); membership fan-in tests still pass for leave+arrive emission.
+
+```bash
+npm --prefix lambda/ephemera run test -- --watchAll=false \
+  dataSource/perception/ \
+  moveCharacter/index.test.ts \
+  moveCharacter/orchestrateNavigate.test.ts \
+  internalCache/perceptionThreads.test.ts
+```
+
 ---
 
 ## Progress
@@ -359,6 +369,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Phase 1: membership presentation emission | Done (navigate + disconnect + connect) |
 | Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Done |
 | Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + **`updatePositionGraphs`** persist + gateway backing; **F1-8** steady-state emit shipped) |
-| Phase 2: retire characterMove ordering / pre-bake | Not started |
+| Phase 2: retire characterMove ordering / pre-bake | Done |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |

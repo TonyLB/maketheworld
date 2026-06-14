@@ -556,18 +556,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
-            departureRoomId: 'ROOM#other',
             messageGroupId: 'MSG#root',
-            leaveMessageGroupId: 'MSG#leave',
-            arriveMessageGroupId: 'MSG#arrive',
-            leaveWorldMessage: {
-                targets: ['ROOM#other', 'CHARACTER#viewer'],
-                message: ['Viewer has left.'],
-            },
-            arriveWorldMessage: {
-                targets: ['ROOM#fixture', 'CHARACTER#viewer'],
-                message: ['Viewer has arrived.'],
-            },
         })
         await messageBus.flushAndSettle()
 
@@ -602,24 +591,12 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         const mid = (genPublish![0] as { messageId?: string }).messageId
         expect(mid).toMatch(/^MESSAGE#/)
-        const leavePublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
-            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#leave'
-        })
-        expect(leavePublish).toBeDefined()
-        expect((leavePublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
-        const arrivePublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
-            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#arrive'
-        })
-        expect(arrivePublish).toBeDefined()
-        expect((arrivePublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
         expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
-        const leaveIndex = publishSpy.mock.calls.indexOf(leavePublish!)
-        const headerIndex = publishSpy.mock.calls.indexOf(genPublish!)
-        const arriveIndex = publishSpy.mock.calls.indexOf(arrivePublish!)
-        expect(leaveIndex).toBeLessThan(headerIndex)
-        expect(headerIndex).toBeLessThan(arriveIndex)
+        const worldMessages = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+        })
+        expect(worldMessages).toHaveLength(0)
 
         const tsCache = Date.now()
         messageBus.publish({
@@ -659,7 +636,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         publishSpy.mockRestore()
     })
 
-    it('characterMove dispatches leave/arrive at most once across repeated orchestration events', async () => {
+    it('characterMove publishes header at most once across repeated orchestration events', async () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
 
@@ -668,18 +645,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
-            departureRoomId: 'ROOM#other',
             messageGroupId: 'MSG#root',
-            leaveMessageGroupId: 'MSG#leave',
-            arriveMessageGroupId: 'MSG#arrive',
-            leaveWorldMessage: {
-                targets: ['ROOM#other', 'CHARACTER#viewer'],
-                message: ['Viewer has left.'],
-            },
-            arriveWorldMessage: {
-                targets: ['ROOM#fixture', 'CHARACTER#viewer'],
-                message: ['Viewer has arrived.'],
-            },
         })
         await messageBus.flushAndSettle()
 
@@ -727,16 +693,16 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         await messageBus.flushAndSettle()
 
-        const leavePublishes = publishSpy.mock.calls.filter((c) => {
-            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
-            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#leave'
+        const headerPublishes = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header'
         })
-        const arrivePublishes = publishSpy.mock.calls.filter((c) => {
-            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
-            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#arrive'
+        expect(headerPublishes.length).toBeGreaterThanOrEqual(1)
+        const worldMessages = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
         })
-        expect(leavePublishes).toHaveLength(1)
-        expect(arrivePublishes).toHaveLength(1)
+        expect(worldMessages).toHaveLength(0)
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
