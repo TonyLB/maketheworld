@@ -1,6 +1,6 @@
 # DataSource fan-in pattern (`mtw-lambda-patterns`)
 
-**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect + **connect** membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Phase 2 shipped** --- retire `characterMove` pre-bake / ordering. **Next:** Phase 3+ --- PerceptionThreads targeting-only consolidation.
+**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect + **connect** membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Phase 2 shipped** --- retire `characterMove` pre-bake / ordering. **Phase 3+ shipped** --- PerceptionThreads targeting-only consolidation. **Next:** Initiative close.
 
 ## Purpose
 
@@ -261,7 +261,7 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 | F2-1 | **Graph persist end-state model (positions S2-4):** pure end-state apply; full **`getMembershipContainers`** pre-read; no stream **`fromRoomId`** for persist. Fan-in intent endpoints stay non-authoritative (**F1-1**). Positions **S1-15** shipped; **S2-5** / **S2-6** decided | slice 2 (positions) | **Decided** (positions **S2-4**) |
 | F2-2 | **Plural `froms` on fact leg (positions S2-7 slice 1d):** **pre-slice-2** --- one PR with positions: **`Character Moved.froms[]`**, remove **`from`**; fan-in **`MembershipFactLeg.froms`**, **`intent.fromRoomId in froms`**, canonical **`clusterIdentity()`**, **multi-leave** **`publishMembershipPresentation`** (degenerate when length `<= 1`). Positions real persist emits **0--1** elements only until slice **2**. Tests: slice **1b** parity + synthetic **`[A,C]->B`** + race **`[C]->B`** | positions slice **1d** | **Shipped** |
 | F3-1 | Phase 3 registry: **keep `PerceptionThreads` name**; slim in place (delete dead fields; no rename/split) | Phase 3 | Decided |
-| F3-2 | Mover arrival **header**: **keep** slim **`characterMove`** PerceptionThread (targeting-only; optional UUID **`requestId`** on render kick for orchestrate match). **Affordance refresh** for all occupants: **separate** kick (today **`RoomUpdate`**); defer positions **`Object Moved`** generalization | Phase 3 | Decided |
+| F3-2 | Mover arrival **header**: **keep** slim **`characterMove`** PerceptionThread (targeting-only; optional UUID **`requestId`** on render kick for orchestrate match). **Affordance refresh** for all occupants: **separate** kick (today **`RoomUpdate`**); defer positions **`Object Moved`** generalization | Phase 3 | **Decided** (`requestId` evaluated and **deferred** --- **`registrationId`** sufficient while render orchestration correlates on routing identity only) |
 
 ---
 
@@ -307,16 +307,16 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Mover header: keep **`characterMove`** registration (targeting-only per **F3-2**); affordance refresh stays separate (`RoomUpdate` path until generalized)
   - [X] Update [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) delivery paths table
 
-- [ ] **Phase 3+ --- PerceptionThreads targeting-only consolidation**
+- [X] **Phase 3+ --- PerceptionThreads targeting-only consolidation**
   - [X] Resolve **Open decisions** F3-2 (F3-1 decided: keep name, slim in place)
-  - [ ] Slim **`characterMove`** row: `targets`, routing identity, `messageId` (+ optional render-kick **`requestId`**); drop emission/beat fields
-  - [ ] Document affordance kick as separate from mover header; note deferred **`Object Moved`** affordance consumer on positions
-  - [ ] Audit each **`threadKind`**: delete emission/beat fields; keep **`targets`**, routing identity, revision ids
-  - [ ] **`roomDescription`**, **`roomHeaderBroadcast`**, **`sessionOrientationRender`**: document as targeting registrations + orchestrate correlation (no fan-in migration required)
-  - [ ] **`sessionOrientationAffordances`**: align with targeting-only terminal pattern
-  - [ ] Slim or split mover header registration after Phase 2
-  - [ ] Graduate perception docs: fan-in vs render registry responsibilities
-  - [ ] Delete dead code paths; keep slim **in-place** `PerceptionThreads` registry (**F3-1**)
+  - [X] Slim **`characterMove`** row: `targets`, routing identity, `messageId` (+ optional render-kick **`requestId`** evaluated/deferred); drop emission/beat fields
+  - [X] Document affordance kick as separate from mover header; note deferred **`Object Moved`** affordance consumer on positions
+  - [X] Audit each **`threadKind`**: delete emission/beat fields; keep **`targets`**, routing identity, revision ids
+  - [X] **`roomDescription`**, **`roomHeaderBroadcast`**, **`sessionOrientationRender`**: document as targeting registrations + orchestrate correlation (no fan-in migration required)
+  - [X] **`sessionOrientationAffordances`**: align with targeting-only terminal pattern
+  - [X] Slim mover header registration after Phase 2 (`headerTargets` -> **`targets`**; optional **`messageGroupId`**)
+  - [X] Graduate perception docs: fan-in vs render registry responsibilities
+  - [X] Delete dead code paths (`stub` threadKind, legacy affordance export); keep slim **in-place** `PerceptionThreads` registry (**F3-1**)
 
 - [ ] **Close initiative**
   - [ ] Merge lasting **fan-in** pattern docs into package `AGENT*.md`
@@ -351,6 +351,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Phase 2 gate:** `characterMove` orchestration publishes header Generating/terminal only (no `WorldMessage` from [`orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts)); registration is targeting-only (no pre-baked leave/arrive); membership fan-in tests still pass for leave+arrive emission.
 
+**Phase 3 gate:** `characterMove` registration uses **`targets`** only (no `headerTargets`); orchestration publishes header Generating/terminal only; membership fan-in tests pass; delivery docs distinguish affordance kick from mover header; fan-in vs render registry split documented.
+
 ```bash
 npm --prefix lambda/ephemera run test -- --watchAll=false \
   dataSource/perception/ \
@@ -370,5 +372,5 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Done |
 | Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + **`updatePositionGraphs`** persist + gateway backing; **F1-8** steady-state emit shipped) |
 | Phase 2: retire characterMove ordering / pre-bake | Done |
-| Phase 3+: PerceptionThreads targeting-only | Not started |
+| Phase 3+: PerceptionThreads targeting-only | Done |
 | Initiative close | Not started |

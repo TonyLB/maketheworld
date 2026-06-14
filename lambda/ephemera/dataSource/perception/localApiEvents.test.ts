@@ -34,13 +34,14 @@ describe('isPerceptionThreadRegisterCommand', () => {
         ).toBe(false)
     })
 
-    it('accepts characterMove with required messageGroupId and optional header fields', () => {
+    it('accepts characterMove with required targets and optional header fields', () => {
         expect(
             isPerceptionThreadRegisterCommand({
                 threadKind: 'characterMove',
                 componentId: 'ROOM#dest',
                 perspectiveKey: 'PERSPECTIVE#v1#x',
                 characterId: 'CHARACTER#a',
+                targets: ['CHARACTER#a'],
                 messageGroupId: 'root-id',
                 messageId: 'MESSAGE#header',
                 createdTime: 1_700_000_000_000,
@@ -48,7 +49,7 @@ describe('isPerceptionThreadRegisterCommand', () => {
         ).toBe(true)
     })
 
-    it('rejects characterMove when messageGroupId missing', () => {
+    it('rejects characterMove when targets missing', () => {
         expect(
             isPerceptionThreadRegisterCommand({
                 threadKind: 'characterMove',
@@ -56,6 +57,18 @@ describe('isPerceptionThreadRegisterCommand', () => {
                 perspectiveKey: 'pk',
                 characterId: 'CHARACTER#a',
             } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects characterMove with empty targets', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'characterMove',
+                componentId: 'ROOM#dest',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                targets: [],
+            })
         ).toBe(false)
     })
 

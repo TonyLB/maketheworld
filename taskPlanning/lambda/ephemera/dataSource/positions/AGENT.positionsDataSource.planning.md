@@ -74,7 +74,7 @@ Connect/disconnect: usually **singleton** world line (no three-part beat); sessi
 | Concern | Audience | This initiative |
 | --- | --- | --- |
 | Mover arrival **render header** | Mover only | Slim **`characterMove`** PerceptionThread + render kick (optional UUID **`requestId`** for orchestrate match) |
-| **Affordance refresh** ("who is here?", exits, ...) | All occupants in affected room(s) | Keep separate affordance kick (today **`RoomUpdate`** from persistence apply). **Deferred:** general **`Object Moved`** (or similar) consumer on **`mtw.ephemera.positions`** |
+| **Affordance refresh** ("who is here?", exits, ...) | All occupants in affected room(s) | Keep separate affordance kick (today **`RoomUpdate`** from persistence apply). **Deferred:** general **`Object Moved`** (or similar) consumer on **`mtw.ephemera.positions`**. Fan-in Phase 3+ shipped: mover header uses **`characterMove`** **`targets`** only; docs in [`dataSource/perception/AGENT.md`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md#post-move-presentation-f3-2). |
 
 ## Fact emission: slice 1 (temporary) vs slice 2 (steady state)
 
@@ -595,4 +595,5 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 3: connect unify + **S3-EL-1** eviction-ladder algorithm | Done |
 | Slice 4: legacy disconnect retirement | Done |
 | Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
+| Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

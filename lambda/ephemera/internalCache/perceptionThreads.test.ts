@@ -5,7 +5,6 @@ import PerceptionThreadsData, {
     isRoomHeaderBroadcastPerceptionThread,
     isSessionOrientationAffordancesPerceptionThread,
     isSessionOrientationRenderPerceptionThread,
-    isStubPerceptionThread,
     mergePerceptionThreadPatch,
     type RoomDescriptionPerceptionThread,
     type RoomHeaderBroadcastPerceptionThread,
@@ -20,15 +19,6 @@ const makeRoomRegistration = (
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#viewer',
-    ...overrides,
-})
-
-const makeStubRegistration = (
-    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }>> = {}
-): Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }> => ({
-    threadKind: 'stub',
-    componentId: 'FEATURE#test',
-    perspectiveKey: 'pk-one',
     ...overrides,
 })
 
@@ -71,6 +61,7 @@ const makeCharacterMoveRegistration = (
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#mover',
+    targets: ['CHARACTER#mover'],
     messageGroupId: 'MSG#root',
     ...overrides,
 })
@@ -93,19 +84,19 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('register and list round-trip', () => {
-        const reg = makeStubRegistration()
+        const reg = makeRoomRegistration()
         cache.register(reg)
-        const listed = cache.list('FEATURE#test', 'pk-one')
+        const listed = cache.list('ROOM#test', 'pk-one')
         expect(listed).toHaveLength(1)
-        expect(listed[0].thread).toEqual({ kind: 'stub' })
-        expect(listed[0].registration.threadKind).toBe('stub')
+        expect(listed[0].thread).toEqual({ kind: 'roomDescription', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('roomDescription')
         expect(listed[0].registrationId).toMatch(/^[\da-f-]{36}$/i)
     })
 
     it('register stores caller registrationId when provided', () => {
-        const reg = makeStubRegistration({ registrationId: 'custom-reg-id' })
+        const reg = makeRoomRegistration({ registrationId: 'custom-reg-id' })
         cache.register(reg)
-        expect(cache.list('FEATURE#test', 'pk-one')[0].registrationId).toBe('custom-reg-id')
+        expect(cache.list('ROOM#test', 'pk-one')[0].registrationId).toBe('custom-reg-id')
     })
 
     it('update shallow-merges when registrationId matches', () => {
@@ -152,17 +143,6 @@ describe('PerceptionThreadsData', () => {
         expect((cache.list('ROOM#test', 'pk-one')[0].thread as { status: string }).status).toBe('Initial')
     })
 
-    it('update throws on stub row', () => {
-        cache.register(makeStubRegistration())
-        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
-        expect(() =>
-            cache.update(
-                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
-                { status: 'Generating' }
-            )
-        ).toThrow('stub threads do not support updates')
-    })
-
     it('update throws on roomDescription patch with unknown key', () => {
         cache.register(makeRoomRegistration())
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
@@ -191,9 +171,9 @@ describe('PerceptionThreadsData', () => {
         expect(() =>
             cache.update(
                 { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
-                { threadKind: 'stub' }
+                { threadKind: 'characterMove', status: 'Generating' }
             )
-        ).toThrow('stub patch requires stub thread')
+        ).toThrow('characterMove patch requires characterMove thread')
     })
 
     it('update throws on roomDescription patch with invalid status', () => {
@@ -230,37 +210,34 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('two registers under same composite key coexist', () => {
-        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#one' }))
-        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }))
-        const listed = cache.list('FEATURE#test', 'same')
+        cache.register(makeRoomRegistration({ perspectiveKey: 'same', registrationId: 'r1' }))
+        cache.register(makeRoomRegistration({ perspectiveKey: 'same', registrationId: 'r2', characterId: 'CHARACTER#other' }))
+        const listed = cache.list('ROOM#test', 'same')
         expect(listed).toHaveLength(2)
-        const chars = listed
-            .map((e) => (e.registration.threadKind === 'stub' ? e.registration.characterId : undefined))
-            .filter((c) => c !== undefined)
-            .sort()
-        expect(chars).toEqual(['CHARACTER#one', 'CHARACTER#two'].sort())
+        const ids = listed.map((e) => e.registrationId).sort()
+        expect(ids).toEqual(['r1', 'r2'])
     })
 
     it('remove drops one entry and leaves sibling', () => {
-        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r1' }))
-        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r2' }))
-        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'same', registrationId: 'r1' })
-        const listed = cache.list('FEATURE#test', 'same')
+        cache.register(makeRoomRegistration({ perspectiveKey: 'same', registrationId: 'r1' }))
+        cache.register(makeRoomRegistration({ perspectiveKey: 'same', registrationId: 'r2' }))
+        cache.remove({ componentId: 'ROOM#test', perspectiveKey: 'same', registrationId: 'r1' })
+        const listed = cache.list('ROOM#test', 'same')
         expect(listed).toHaveLength(1)
         expect(listed[0].registrationId).toBe('r2')
     })
 
     it('remove clears bucket when last entry removed', () => {
-        cache.register(makeStubRegistration())
-        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
-        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId })
-        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        cache.remove({ componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId })
+        expect(cache.list('ROOM#test', 'pk-one')).toEqual([])
     })
 
     it('clear removes all entries', () => {
-        cache.register(makeStubRegistration())
+        cache.register(makeRoomRegistration())
         cache.clear()
-        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
+        expect(cache.list('ROOM#test', 'pk-one')).toEqual([])
     })
 
     it('list returns empty array for missing key', () => {
@@ -334,15 +311,18 @@ describe('PerceptionThreadsData', () => {
         })
     })
 
-    it('register characterMove stores Initial thread', () => {
+    it('register characterMove stores Initial thread and targets', () => {
         cache.register(makeCharacterMoveRegistration())
         const listed = cache.list('ROOM#test', 'pk-one')
         expect(listed).toHaveLength(1)
         expect(listed[0].thread).toEqual({ kind: 'characterMove', status: 'Initial' })
         expect(listed[0].registration.threadKind).toBe('characterMove')
+        if (listed[0].registration.threadKind === 'characterMove') {
+            expect(listed[0].registration.targets).toEqual(['CHARACTER#mover'])
+        }
     })
 
-    it('update merges characterMove thread and registration headerTargets', () => {
+    it('update merges characterMove thread', () => {
         cache.register(makeCharacterMoveRegistration())
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
         const ok = cache.update(
@@ -351,20 +331,14 @@ describe('PerceptionThreadsData', () => {
                 threadKind: 'characterMove',
                 status: 'Generating',
                 messageId: 'MESSAGE#cm1',
-                headerTargets: ['CHARACTER#alt'],
             }
         )
         expect(ok).toBe(true)
-        const row = cache.list('ROOM#test', 'pk-one')[0]
-        expect(row.thread).toMatchObject({
+        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
             kind: 'characterMove',
             status: 'Generating',
             messageId: 'MESSAGE#cm1',
         })
-        expect(row.registration.threadKind).toBe('characterMove')
-        if (row.registration.threadKind === 'characterMove') {
-            expect(row.registration.headerTargets).toEqual(['CHARACTER#alt'])
-        }
     })
 })
 
@@ -385,13 +359,12 @@ describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
 })
 
 describe('mergePerceptionThreadPatch characterMove', () => {
-    it('merges status stripping registration-only patch fields from thread body', () => {
+    it('merges status and messageId', () => {
         const base = { kind: 'characterMove' as const, status: 'Initial' as const }
         const merged = mergePerceptionThreadPatch(base, {
             threadKind: 'characterMove',
             status: 'Generating',
             messageId: 'MESSAGE#cm',
-            headerTargets: ['CHARACTER#mover'],
         })
         expect(merged).toEqual({
             kind: 'characterMove',
@@ -401,12 +374,7 @@ describe('mergePerceptionThreadPatch characterMove', () => {
     })
 })
 
-describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
-    it('accepts stub shape', () => {
-        expect(isStubPerceptionThread({ kind: 'stub' })).toBe(true)
-        expect(isPerceptionThread({ kind: 'stub' })).toBe(true)
-    })
-
+describe('isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
     it('accepts roomDescription shape', () => {
         const t = roomDescriptionInitial()
         expect(isRoomDescriptionPerceptionThread(t)).toBe(true)
@@ -442,12 +410,6 @@ describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPercept
             kind: 'sessionOrientationAffordances',
             status: 'Generating',
         })).toBe(false)
-    })
-
-    it('rejects wrong kind', () => {
-        expect(isStubPerceptionThread({ kind: 'other' })).toBe(false)
-        expect(isStubPerceptionThread(null)).toBe(false)
-        expect(isStubPerceptionThread({})).toBe(false)
     })
 
     it('rejects roomDescription with invalid status', () => {

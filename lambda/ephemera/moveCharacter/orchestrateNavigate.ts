@@ -52,6 +52,7 @@ export const orchestrateCharacterNavigate = async ({
             componentId: to,
             perspectiveKey,
             characterId: payload.characterId,
+            targets: [payload.characterId],
             messageGroupId,
             registrationId,
             ...(headerMessageId !== undefined ? { messageId: headerMessageId } : {}),

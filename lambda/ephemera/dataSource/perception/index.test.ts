@@ -556,6 +556,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
             messageGroupId: 'MSG#root',
         })
         await messageBus.flushAndSettle()
@@ -645,6 +646,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
             messageGroupId: 'MSG#root',
         })
         await messageBus.flushAndSettle()

@@ -17,7 +17,6 @@ import {
     isSessionOrientationRenderPerceptionThread,
 } from '../../internalCache/perceptionThreads'
 import type { PublishTarget } from '../../messageBus/baseClasses'
-import type { PerceptionThreadRegisterCharacterMoveCommand } from './localApiEvents'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
@@ -89,12 +88,6 @@ async function resolveFallbackRenderTargetsForPerspective(
         })
     )
     return matches.filter((target): target is EphemeraCharacterId => Boolean(target))
-}
-
-function headerTargetsForCharacterMove(
-    registration: PerceptionThreadRegisterCharacterMoveCommand
-): PublishTarget[] {
-    return registration.headerTargets?.length ? registration.headerTargets : [registration.characterId]
 }
 
 function terminalCreatedTime(thread: { createdTime?: number }): number {
@@ -288,7 +281,7 @@ async function handleRenderPertains(
             skippedCharacterMoveTerminal += 1
             continue
         }
-        const targets = headerTargetsForCharacterMove(registration)
+        const targets = registration.targets
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
@@ -505,7 +498,7 @@ async function handleGenerationStarted(
             continue
         }
         const roomId = payload.componentId
-        const targets = headerTargetsForCharacterMove(registration)
+        const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         const t0 = thread.createdTime ?? getCurrentTimestamp()
         bus.publish({
@@ -666,7 +659,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             continue
         }
         const roomId = payload.componentId
-        const targets = headerTargetsForCharacterMove(registration)
+        const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         bus.publish({
             type: 'PublishMessage',

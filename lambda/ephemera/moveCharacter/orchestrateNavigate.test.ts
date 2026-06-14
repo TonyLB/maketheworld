@@ -50,6 +50,7 @@ describe('orchestrateCharacterNavigate', () => {
         expect(register).toHaveBeenCalledWith(expect.objectContaining({
             threadKind: 'characterMove',
             characterId: 'CHARACTER#Test',
+            targets: ['CHARACTER#Test'],
             messageGroupId: 'UUID#MessageGroup',
         }))
         expect(messageBus.publish).toHaveBeenCalledWith(expect.objectContaining({

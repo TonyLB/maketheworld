@@ -76,23 +76,13 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     componentId: EphemeraRoomId;
     perspectiveKey: string;
     characterId: EphemeraCharacterId;
-    messageGroupId: MessageGroupId;
-    headerTargets?: PublishTarget[];
+    targets: PublishTarget[];
+    messageGroupId?: MessageGroupId;
     registrationId?: string;
     /** Pre-assigned header MessageId (Model A). */
     messageId?: string;
     /** Fictional anchor time for header revision (Model A / F1-4). */
     createdTime?: number;
-}
-
-/** Non-room component registration placeholder (stub thread body). */
-export type PerceptionThreadRegisterStubCommand = {
-    threadKind: 'stub';
-    componentId: Exclude<EphemeraCacheComponentId, EphemeraRoomId>;
-    perspectiveKey: string;
-    messageGroupId?: MessageGroupId;
-    registrationId?: string;
-    characterId?: EphemeraCharacterId;
 }
 
 /** Discriminated command for `Perception Thread Registered` ingress and PerceptionThreads.register. */
@@ -102,7 +92,6 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterSessionOrientationRenderCommand
     | PerceptionThreadRegisterSessionOrientationAffordancesCommand
     | PerceptionThreadRegisterCharacterMoveCommand
-    | PerceptionThreadRegisterStubCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
 
@@ -119,10 +108,6 @@ export const isCharacterPerceptionRequestedCommand = (value: unknown): value is 
     )
 }
 
-const isStubComponentId = (id: string): id is Exclude<EphemeraCacheComponentId, EphemeraRoomId> => (
-    isEphemeraCacheComponentId(id) && !isEphemeraRoomId(id)
-)
-
 export const isPerceptionThreadRegisterCommand = (value: unknown): value is PerceptionThreadRegisterCommand => {
     if (!value || typeof value !== 'object') {
         return false
@@ -134,7 +119,6 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         && v.threadKind !== 'sessionOrientationRender'
         && v.threadKind !== 'sessionOrientationAffordances'
         && v.threadKind !== 'characterMove'
-        && v.threadKind !== 'stub'
     ) {
         return false
     }
@@ -144,7 +128,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
     if (typeof v.perspectiveKey !== 'string' || v.perspectiveKey.length === 0) {
         return false
     }
-    if (v.threadKind !== 'characterMove' && v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
+    if (v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
         return false
     }
     if (v.registrationId !== undefined && typeof v.registrationId !== 'string') {
@@ -170,25 +154,14 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         )
     }
     if (v.threadKind === 'characterMove') {
-        if (!isEphemeraRoomId(v.componentId)) {
-            return false
-        }
-        if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
-            return false
-        }
-        if (typeof v.messageGroupId !== 'string' || v.messageGroupId.length === 0) {
-            return false
-        }
-        if (v.headerTargets !== undefined && !isNonEmptyPublishTargetArray(v.headerTargets)) {
-            return false
-        }
-        if (v.messageId !== undefined && typeof v.messageId !== 'string') {
-            return false
-        }
-        if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
-            return false
-        }
-        return true
+        return (
+            isEphemeraRoomId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
+            && isNonEmptyPublishTargetArray(v.targets)
+            && (v.messageId === undefined || typeof v.messageId === 'string')
+            && (v.createdTime === undefined || typeof v.createdTime === 'number')
+        )
     }
-    return isStubComponentId(v.componentId)
+    return false
 }
