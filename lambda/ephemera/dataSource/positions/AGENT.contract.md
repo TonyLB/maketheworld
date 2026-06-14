@@ -17,7 +17,7 @@ Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **ad
 
 ## Membership persistence API (slice 2)
 
-All character **room-membership** mutations for **disconnect** and **navigate** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
+All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
 ### Public apply shape (S1-7)
 
@@ -89,10 +89,13 @@ Positions **must** subscribe to:
 | --- | --- |
 | `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
 
-### `Character Connected` (bridge)
+### `Character Connected` (positions-owned)
 
-- **Must** publish exactly one `CheckLocation` message with `forceMove: true`, `arriveMessage: ' has connected.'`, `suppressArrival: false`.
-- **Must not** perform membership Dynamo writes directly in positions for connect (delegated to `moveCharacter` via `CheckLocation` until slice 3).
+- **Must** resolve `targetRoomId` via [`resolveConnectTargetRoom`](membership/resolveConnectTargetRoom.ts) (trim eviction ladder to accessible assets, then top surviving frame).
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
+- **Must not** publish `CheckLocation` or perform inline membership Dynamo writes outside [`membership/`](membership/).
+- **Idempotency:** duplicate connect when already in target room (`changed: false`) **must** be a no-op (no bundle, no orchestration).
+- Arrive world-line copy for connect is owned by fan-in emission; connect orchestration **must** suppress imperative arrive (`suppressArrival: true` in [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) / connect handler).
 
 ### `Character Disconnected` (positions-owned)
 

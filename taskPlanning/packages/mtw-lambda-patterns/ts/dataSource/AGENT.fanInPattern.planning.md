@@ -1,6 +1,6 @@
 # DataSource fan-in pattern (`mtw-lambda-patterns`)
 
-**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Next:** Phase 2 --- retire `characterMove` pre-bake / ordering.
+**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect + **connect** membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **F1-8 steady-state shipped** (positions slice **2** --- graph-diff emit via **`updatePositionGraphs`**). **Next:** Phase 2 --- retire `characterMove` pre-bake / ordering.
 
 ## Purpose
 
@@ -287,9 +287,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **Perception:** map **`exitName`** on navigate intent leg; update **`buildMembershipEmissionPlan`** --- exit-aware when intent has **`exitName`** (remove **`legalExits?.includes`** gate)
   - [X] **Positions fact producer (external):** slice **1a** shipped (navigate ingress + coordinator + S1-5 read surface); slice **1b** `Character Moved` stream shipped --- [positions slice **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order)
   - [X] Emission **policy** (shape + copy): **`buildMembershipEmissionPlan`** in [`membershipPresentationFanIn.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) covers **`onComplete`** (intent + fact) and **`onDeferredIncomplete`** (fact-only / `deferralExecution`); unit-tested on synthetic legs.
-  - [X] **Publish** leave/arrive on correlation completion: **`publishMembershipPresentation`** in [`publishMembershipPresentation.ts`](../../../../../lambda/ephemera/dataSource/perception/publishMembershipPresentation.ts) called from cluster **`handler`**; explicit **`createdTime`** from **`beatAnchorTime`** anchor (Model A). Navigate orchestration defaults **`suppressDeparture`/`suppressArrival`** so fan-in owns parse navigate world lines; connect bridge unchanged until positions slice **3**.
-  - [X] Ephemera tests: cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`**; disconnect leave-only; fact-only at settle; leg order independence. Connect arrive-only deferred to positions slice **3** (**S1-12**).
-  - [X] Document parallel operation with legacy imperative `MoveCharacter` suppress/copy flags until cutover (connect bridge only; parse navigate uses fan-in)
+  - [X] **Publish** leave/arrive on correlation completion: **`publishMembershipPresentation`** in [`publishMembershipPresentation.ts`](../../../../../lambda/ephemera/dataSource/perception/publishMembershipPresentation.ts) called from cluster **`handler`**; explicit **`createdTime`** from **`beatAnchorTime`** anchor (Model A). Navigate orchestration defaults **`suppressDeparture`/`suppressArrival`** so fan-in owns parse navigate world lines; connect uses same suppress posture via positions slice **3** membership API.
+  - [X] Ephemera tests: cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`**; disconnect leave-only; connect arrive-only; fact-only at settle; leg order independence.
+  - [X] Document parallel operation with legacy imperative `MoveCharacter` suppress/copy flags until cutover (parse navigate + connect use fan-in)
 
 - [X] **Pre-slice-2 --- plural `froms` fact leg (**F2-2**; positions slice **1d** / **S2-7**)**
   - [X] **One PR with positions** ([positions slice **1d**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order)): atomic bus contract cutover --- no window with singular **`from`** and no **`froms[]`** reader
@@ -355,7 +355,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Milestone | Status |
 | --- | --- |
 | Phase 0: framework pattern | Done |
-| Phase 1: membership presentation emission | Done (navigate + disconnect; connect arrive-only deferred positions slice **3**) |
+| Phase 1: membership presentation emission | Done (navigate + disconnect + connect) |
 | Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Done |
 | Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + **`updatePositionGraphs`** persist + gateway backing; **F1-8** steady-state emit shipped) |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |

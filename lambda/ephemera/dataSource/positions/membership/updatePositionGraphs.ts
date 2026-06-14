@@ -100,28 +100,20 @@ export const updatePositionGraphs = async (
         }
     }))
 
-    let roomStackArgs: {
-        targetAsset?: string;
-        targetAssetListIndex?: number;
-        orderIndexByAsset: Record<string, number>;
-    } | undefined
+    let roomStackArgs: { destinationChain: string[] } | undefined
 
     if (diff.to) {
         const [roomAssets = [], canonAssets = []] = await Promise.all([
             getRoomAssets(diff.to),
             getCanonAssets(),
         ])
-        const { targetAsset, targetAssetListIndex } = computeRoomStackUpdate({
+        const { destinationChain } = computeRoomStackUpdate({
             targetRoomId: diff.to,
             characterMeta,
             roomAssets,
             canonAssets,
         })
-        const orderIndexByAsset = Object.assign(
-            {},
-            ...([...canonAssets, ...(characterMeta.assets || [])].map((asset, index) => ({ [asset]: index })))
-        ) as Record<string, number>
-        roomStackArgs = { targetAsset, targetAssetListIndex, orderIndexByAsset }
+        roomStackArgs = { destinationChain }
     }
 
     try {
@@ -155,7 +147,8 @@ export const updatePositionGraphs = async (
                         updateReducer: (draft) => {
                             applyRoomStackToCharacterDraft(draft, {
                                 targetRoomId: diff.to!,
-                                ...roomStackArgs!,
+                                destinationChain: roomStackArgs!.destinationChain,
+                                priorRoomStack: characterMeta.RoomStack,
                             })
                         },
                     },

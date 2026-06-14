@@ -169,6 +169,21 @@ describe('updatePositionGraphs', () => {
         ) as { activeCharacters: unknown[]; positionGraph?: { nodes: unknown[]; edges: unknown[] } }
         expect(departureDraft.activeCharacters).toEqual([])
         expect(departureDraft.positionGraph).toEqual({ nodes: [], edges: [] })
+
+        const characterDraft = produce(
+            {
+                RoomId: 'VORTEX',
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            },
+            items[0].Update.updateReducer
+        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        expect(characterDraft).toEqual({
+            RoomId: 'TestTwo',
+            RoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+        })
     })
 
     it('disconnect removes graph membership, adjacency, and RoomId', async () => {

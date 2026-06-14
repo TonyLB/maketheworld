@@ -3,14 +3,13 @@
  *
  * Owns the ephemera-side projection of character presence transitions emitted
  * by `mtw.connections.characters`:
- *   - Character Connected   -> trigger CheckLocation(forceMove) so moveCharacter
- *                              runs the room.activeCharacters add and arrival
- *                              messaging through the existing flow.
+ *   - Character Connected   -> resolve eviction-ladder target room, membership
+ *                              persistence API, post-persist orchestration.
  *   - Character Disconnected -> membership persistence API (applyCharacterRoomMembership).
  *
  * At-least-once delivery: duplicate events are no-ops because the second
  * disconnect finds the character already out of play (`changed: false`) and the
- * second connect CheckLocation/moveCharacter sees the character already in the target room.
+ * second connect finds the character already in the target room.
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import {
@@ -18,20 +17,44 @@ import {
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { MessageBus } from '../../messageBus/baseClasses'
+import { orchestrateCharacterNavigate } from '../../moveCharacter/orchestrateNavigate'
 import type { PositionsPublishedPayload } from './publishedEvents'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
+import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 
 export const handleCharacterConnected = async (
     event: ConnectionsCharactersConnectedEvent,
-    { messageBus }: { messageBus: MessageBus }
+    {
+        messageBus,
+        streamEvent,
+    }: {
+        messageBus: MessageBus;
+        streamEvent: StreamEventFunction<PositionsPublishedPayload>;
+    }
 ): Promise<void> => {
-    messageBus.publish({
-        type: 'CheckLocation',
-        characterId: event.characterId,
-        forceMove: true,
-        arriveMessage: ' has connected.',
-        suppressArrival: false
-    })
+    const { targetRoomId, characterMeta } = await resolveConnectTargetRoom(event.characterId)
+    const result = await applyCharacterRoomMembership(
+        { characterId: event.characterId, targetRoomId },
+        { messageBus, streamEvent }
+    )
+
+    if (result.ok && result.changed) {
+        await orchestrateCharacterNavigate({
+            payload: {
+                type: 'MoveCharacter',
+                characterId: event.characterId,
+                roomId: targetRoomId,
+                suppressDeparture: true,
+                suppressArrival: true,
+                suppressSelfMessage: true,
+            },
+            characterMeta,
+            froms: result.froms,
+            to: result.to,
+            beatAnchorTime: result.beatAnchorTime,
+            messageBus,
+        })
+    }
 }
 
 export const handleCharacterDisconnected = async (

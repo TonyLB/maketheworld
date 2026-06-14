@@ -1,6 +1,6 @@
 # Positions --- implementation map
 
-This file records **where behavior lives** for `mtw.ephemera.positions` through slice **2**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
+This file records **where behavior lives** for `mtw.ephemera.positions` through slice **3**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
 
 ---
 
@@ -11,7 +11,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`index.ts`](index.ts) | `EphemeraDataSource` instance (`publisherStrategy: 'busOnly'`); `receiveEvents` dispatches by envelope type |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` with **`froms[]`** + **`to`**) + stream helpers |
-| [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect/disconnect handlers |
+| [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
 
 ### `membership/` (slice 2 graph persist + fact emit)
@@ -20,7 +20,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
 | [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character nodes, seed from roster) |
-| [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Eviction ladder maintenance on navigate (`computeRoomStackUpdate`, `applyRoomStackToCharacterDraft`) |
+| [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Eviction ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
+| [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) | Pure trim helpers shared with connect resolution and `checkLocation` |
+| [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect target resolution: trim ladder, persist trim-only, return `targetRoomId` |
 | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency + S2-2 dual-write) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
@@ -33,7 +35,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | --- | --- |
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate) |
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
-| [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect `CheckLocation` publish; disconnect routes through coordinator |
+| [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + orchestrate; disconnect routes through coordinator |
+| [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
+| [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
 | [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
 | [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Legacy flat persist (reference) |
@@ -59,7 +63,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | `moveCharacter` bus entry (connect / legacy bridge) | [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) |
 | Post-persist presentation (PerceptionThreads, render kicks, `MapUpdate`) | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** (singular bridge: **`froms[0]`** for `departureRoomId` / `MapUpdate.previousRoomId`) |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
-| Leave/arrive world copy (navigate + disconnect) | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in |
+| Leave/arrive world copy (navigate + disconnect + connect) | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in |
 
 ---
 
@@ -70,18 +74,21 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Contr
 | Concern | Location |
 | --- | --- |
 | **Storage** | `Meta::Character.RoomStack` --- array of `{ asset, RoomId }` ([`membership/types.ts`](membership/types.ts) `RoomStackItem`) |
-| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) in the same character `transactWrite` as graph membership |
-| **Trim + relocate on asset loss** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- filter frames by accessible assets; if surviving top room `!==` `RoomId`, publish `MoveCharacter` (membership apply on execution path) |
+| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) |
+| **Trim + connect target resolution** | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) |
+| **Trim + relocate on asset loss** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- uses shared trim helper; if surviving top room `!==` `RoomId`, publish `MoveCharacter` |
 | **Default root frame** | [`../../internalCache/characterMeta.ts`](../../internalCache/characterMeta.ts) --- `[{ asset: 'primitives', RoomId: 'VORTEX' }]` when absent |
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).
 
-**Navigate algorithm note:** today's `membershipRoomStack` picks a single target asset from the destination room's participating assets and truncates using **global canon + character asset order index**. That is **not yet** the full asset-chain extend / rewrite-tail / fork comparison documented in concepts --- track alignment in task plan **S3-EL-1**.
+**Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder-shipped).
 
 ### Tests (eviction ladder)
 
 | File | Covers |
 | --- | --- |
+| [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend, rewrite-tail, fork, circus-style overlay trim |
+| [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | `RoomStack` shape on graph persist transact |
 | [`../../moveCharacter/index.test.ts`](../../moveCharacter/index.test.ts) | Same-asset replace, child push, parent truncate on navigate |
 | [`../../checkLocation/index.test.ts`](../../checkLocation/index.test.ts) | Trim inaccessible frames; relocate to first valid history room; trim-only no move |
 | [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Ladder shape on flat persist reference path |
@@ -92,7 +99,6 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Contr
 
 | Concern | Location |
 | --- | --- |
-| Connect execution (`CheckLocation`) | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- also owns eviction **trim** today |
 | Legacy disconnect bus handlers | [`../../disconnectMessage/index.ts`](../../disconnectMessage/index.ts) (slice 4) |
 | Legacy API move/home | [`../../parse/executeAction.ts`](../../parse/executeAction.ts) (imperative `MoveCharacter`) |
 
@@ -136,7 +142,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
   dataSource/positions/ \
   dataSource/perception/ \
   dataSource/actions/index.test.ts \
-  moveCharacter/index.test.ts
+  moveCharacter/index.test.ts \
+  checkLocation/index.test.ts
 
 npm --prefix packages/mtw-gateways run test -- --watchAll=false ts/ephemera/positions/
 ```

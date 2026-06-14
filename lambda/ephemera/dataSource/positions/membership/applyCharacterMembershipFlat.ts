@@ -96,16 +96,12 @@ export const applyCharacterMembershipFlat = async (
                 getRoomAssets(to),
                 getCanonAssets(),
             ])
-            const { targetAsset, targetAssetListIndex } = computeRoomStackUpdate({
+            const { destinationChain } = computeRoomStackUpdate({
                 targetRoomId: to,
                 characterMeta,
                 roomAssets,
                 canonAssets,
             })
-            const orderIndexByAsset = Object.assign(
-                {},
-                ...([...canonAssets, ...(characterMeta.assets || [])].map((asset, index) => ({ [asset]: index })))
-            ) as Record<string, number>
 
             await transactWrite([
                 {
@@ -118,9 +114,8 @@ export const applyCharacterMembershipFlat = async (
                         updateReducer: (draft) => {
                             applyRoomStackToCharacterDraft(draft, {
                                 targetRoomId: to,
-                                targetAsset,
-                                targetAssetListIndex,
-                                orderIndexByAsset,
+                                destinationChain,
+                                priorRoomStack: characterMeta.RoomStack,
                             })
                         },
                     },

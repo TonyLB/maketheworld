@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Next:** slice **3** unify connect. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Next:** slice **4** legacy disconnect retirement. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -218,7 +218,7 @@ type MembershipApplyResult = {
 
 **Internal slice 2:** coordinator translates **`MembershipApplyArgs`** into an **`updatePositionGraphs`** immer draft (parent room ids + character node moves). **`updatePositionGraphs`** is **not** the ingress API; it is the swappable persist engine behind **`applyCharacterRoomMembership`**.
 
-**Eviction ladder (`RoomStack`):** not part of **`MembershipApplyArgs`** (**S1-9**). Mental model: [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped). **`updatePositionGraphs`** maintains the ladder on navigate (same character transact as membership). Trim on asset loss today: [`checkLocation`](../../../../../../lambda/ephemera/checkLocation/index.ts). Navigate algorithm vs asset-chain rules: **S3-EL-1** (open). Optional rename **`RoomStack`** -> eviction-ladder field name: **S3-EL-2** (open).
+**Eviction ladder (`RoomStack`):** not part of **`MembershipApplyArgs`** (**S1-9**). Mental model: [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped). **`updatePositionGraphs`** maintains the ladder on navigate (same character transact as membership). Trim on asset loss: [`checkLocation`](../../../../../../lambda/ephemera/checkLocation/index.ts) + connect [`resolveConnectTargetRoom`](../../../../../../lambda/ephemera/dataSource/positions/membership/resolveConnectTargetRoom.ts). Navigate algorithm: **S3-EL-1** shipped. Optional rename **`RoomStack`** -> eviction-ladder field name: **S3-EL-2** (open).
 
 **No-op gate (**S1-8**):** **`streamMembershipFact`** runs only when membership endpoints changed after apply. Slice 1: **`from !== to`** on singular pre-read + target. Slice 2 (**S2-4**): prior container set `!==` `{ targetRoomId }` (equivalently **`MembershipDiff.changed`**). Same gate, different persist backend.
 
@@ -372,11 +372,11 @@ When **`!changed`**: skip the **entire** bundle --- no fact, no **`RoomUpdate`**
 | **S1-7** | **Apply API input** | **Decided:** public **`MembershipApplyArgs`** = `{ characterId, targetRoomId \| null }`; returns **`MembershipApplyResult`** with **`froms`**, `to`, `changed` (apply-result **`froms[]`** cutover shipped post-slice 2). **`updatePositionGraphs`** is internal slice 2 persist only. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
 | **S1-8** | **No-op gate** | **Decided:** emit only when **`MembershipApplyResult.changed`** (`from !== to`); slice 2 uses same gate on graph **`MembershipDiff`**. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
 | **S1-9** | **Eviction-ladder-only mutation** | **Decided:** no **`Character Moved`** when room membership endpoint unchanged. Concept: [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped). Contract: [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage). |
-| **S3-EL-1** | **Navigate ladder algorithm** | **Open:** align **`membershipRoomStack`** to asset-chain **extend / rewrite tail / fork** (concepts); replace order-index heuristic; add tests for circus-style overlay path |
+| **S3-EL-1** | **Navigate ladder algorithm** | **Decided:** asset-chain extend / rewrite-tail / fork in `membershipRoomStack`; circus-style overlay tests |
 | **S3-EL-2** | **Rename `RoomStack` storage/API** | **Open:** optional repo-wide rename to match **eviction ladder** vocabulary after **S3-EL-1** |
 | **S1-10** | **Exit-aware copy (slice 1)** | **Decided:** trust parse (**S1-1** extension). Add **`exitName`** to **`Character Navigate`** intent (**F1-9**); fan-in exit-aware when intent has **`exitName`**; **do not** populate **`legalExits`** on fact slice 1. See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). |
 | **S1-11** | **Side-effect gating** | **Decided:** single **`changed`** gate drives fact + cache + **`RoomUpdate`** + **`EphemeraUpdate`** bundle; do not preserve legacy per-effect gates. See [Side-effect gating (**S1-11**)](#side-effect-gating-s1-11). |
-| **S1-12** | **Connect path in slice 1** | **Decided:** defer --- slice **1** = navigate + disconnect through membership API only; connect facts + `applyCharacterRoomMembership` routing land slice **3** (may coordinate with slice **2** storage cutover; not a slice **1** requirement). Fan-in connect intent wiring stays; end-to-end connect emission tests defer to slice **3**. |
+| **S1-12** | **Connect path in slice 1** | **Decided:** shipped slice **3** --- connect through **`resolveConnectTargetRoom`** + **`applyCharacterRoomMembership`**; fan-in arrive-only |
 | **S1-13** | **Persistence vs orchestration** | **Decided:** move Dynamo membership writes, roster projection, cache memo, **`RoomUpdate`**, **`EphemeraUpdate`** room projection into **`positions/membership/`** flat persist + coordinator; keep PerceptionThreads header, render kicks, **`MapUpdate`** in navigate orchestration. See [Persistence vs orchestration (**S1-13**)](#persistence-vs-orchestration-s1-13). |
 | **S1-14** | **Slice 1 TEMP fact emit vs slice 2 graph-diff** | **Decided** --- this section |
 | **S1-15** | **Gateway forward vs reverse reads** | **Decided:** **`getPositionGraph(hostId)`** + **`getMembershipContainers(componentId)`** returning **array**; slice **1c** implementation; see [Positions gateway (**S1-15**)](#positions-gateway-forward-vs-reverse-reads-s1-15). **`roomEndpoint`** on character graphs: convenience vs deprecate --- decide at implementation. |
@@ -436,7 +436,7 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 | S1-6 | **Diff source for `from`/`to`:** slice 1 pre-read + apply target vs slice 2 graph-diff | 1b / 2 | **Decided:** slice 1 = **`getMembershipContainers`** pre-read + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
 | S1-9 | **Eviction-ladder-only mutation** (same membership endpoint): emit fact or skip | 1b | **Decided:** skip --- no **`Character Moved`**. Graduated to concepts + contract. |
 | S1-10 | **Exit-aware copy (slice 1):** **`exitName`** on navigate intent; no **`legalExits`** on fact | 1b | **Decided:** trust action-parse (**S1-1** extension). See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). Optional **`legalExits`** on contract unused until post-slice-2 spike if needed. |
-| S1-12 | **Connect path:** slice 1 vs defer | 1b | **Decided:** defer to slice **3** (connect-unification milestone; not slice **1**). Slice **1** ships navigate + disconnect through membership API; connect keeps `CheckLocation` / `moveCharacter` bridge. Fan-in connect **intent** adapters remain; positions **`Character Moved`** for connect deferred. |
+| S1-12 | **Connect path:** slice 1 vs defer | 1b | **Decided:** deferred to slice **3** (shipped) --- connect through membership API + fan-in arrive-only |
 | S1-14 | **Slice 1 TEMP fact emit** (intent-assisted flat path) vs **slice 2 graph-diff** (**F1-8** steady state) | 1b / 2 | **Decided:** slice 1 TEMP with code comments; slice 2 cutover bundle replaces emit path. No virtual-graph write adapter in slice 1. |
 
 **Graduated to contract / implementation (slice 1a):** S1-4 (module layout), S1-5 (read surface), S1-7 (apply API), S1-8 (no-op gate), S1-11 (side-effect bundle), S1-13 (persistence vs orchestration), navigate ingress + actions cutover.
@@ -449,8 +449,7 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| S3-EL-1 | **`membershipRoomStack` asset-chain algorithm:** extend / rewrite tail / fork per [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped) | 3+ | **Open** |
-| S3-EL-2 | **Rename `RoomStack`** field/types to eviction-ladder vocabulary | 3+ | **Open** (optional; after **S3-EL-1**) |
+| S3-EL-2 | **Rename `RoomStack`** field/types to eviction-ladder vocabulary | 3+ | **Open** (optional; deferred) |
 
 ### Slice 2 (decide before slice 2 PR; may spike during slice 1)
 
@@ -533,11 +532,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Coordinator + legacy flat persist return **`froms`** only; navigate orchestration args **`froms[]`** with documented **`froms[0]`** bridge for singular downstream (**`departureRoomId`**, **`MapUpdate.previousRoomId`**)
   - [X] Contract + implementation + tests
 
-- [ ] **Slice 3 --- unify connect**
-  - [ ] Route `Character Connected` through membership API (retire `CheckLocation` bridge)
-  - [ ] Graduate contract + implementation
-  - [ ] **Eviction ladder (**S3-EL-1**):** align **`membershipRoomStack`** to asset-chain extend / rewrite tail / fork; circus-style overlay tests
-  - [ ] **Optional (**S3-EL-2**):** rename **`RoomStack`** storage/API to eviction-ladder vocabulary
+- [X] **Slice 3 --- unify connect**
+  - [X] Route `Character Connected` through membership API (retire `CheckLocation` bridge)
+  - [X] Graduate contract + implementation
+  - [X] **Eviction ladder (**S3-EL-1**):** align **`membershipRoomStack`** to asset-chain extend / rewrite tail / fork; circus-style overlay tests
+  - [ ] **Optional (**S3-EL-2**):** rename **`RoomStack`** storage/API to eviction-ladder vocabulary (deferred)
 
 - [ ] **Slice 4 --- legacy disconnect retirement**
   - [ ] Remove `disconnectMessage` overlap; retire `Disconnect Character` ingress
@@ -576,6 +575,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Slice 2 gate:** slice **1d** prerequisite met; **`updatePositionGraphs`** end-state apply (**S2-4**); **adjacency index**; graph-diff emit with **`froms.length > 1`** on drift scrub; no **`TEMP slice 1`** path; persistence tests against **`positionGraph`** + adjacency; race stale-intent integration; affordance/roster smoke via gateway.
 
+**Slice 3 gate:** connect handler does **not** publish **`CheckLocation`**; **`resolveConnectTargetRoom`** + **`applyCharacterRoomMembership`**; fan-in connect intent + fact E2E arrive-only; **`membershipRoomStack`** extend / rewrite-tail / fork + circus trim tests pass.
+
 **Initiative close gate (**S2-6**):** no Dynamo authority on **`activeCharacters`** / **`RoomId`** for play membership; **`getMembershipContainers`** reads adjacency only; forward roster from **`positionGraph`**; conflict repair prefers graph.
 
 ---
@@ -594,6 +595,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 2 schema foundation: **`positionGraph`** + adjacency types | Done |
 | Slice 2: `Meta::Room` play graph storage swap | Done |
 | Apply-result **`froms[]`** cutover (ingress-facing **`MembershipApplyResult`**) | Done |
-| Eviction ladder mental model in [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) | Done (**S3-EL-1** navigate algorithm alignment still open) |
-| Slice 3--4: connect unify + legacy retirement | Not started |
+| Slice 3: connect unify + **S3-EL-1** eviction-ladder algorithm | Done |
+| Slice 3--4: legacy disconnect retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |
