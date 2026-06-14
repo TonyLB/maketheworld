@@ -1,13 +1,33 @@
 import { produce } from 'immer'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
-import {
-    ephemeraDB
-} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 import PerceptionThreadsData from '../internalCache/perceptionThreads'
+
+const mockPositionsStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+jest.mock('../dataSource/positions', () => ({
+    __esModule: true,
+    default: {
+        streamEvent: mockPositionsStreamEvent,
+    },
+    ephemeraPositionsDataSource: {
+        streamEvent: mockPositionsStreamEvent,
+    },
+}))
+
+jest.mock('../dataSource/positions/membership/applyCharacterRoomMembership', () => ({
+    applyCharacterRoomMembership: jest.fn(),
+}))
+import * as membership from '../dataSource/positions/membership/applyCharacterRoomMembership'
+
+jest.mock('./orchestrateNavigate', () => ({
+    orchestrateCharacterNavigate: jest.fn(),
+}))
+import * as orchestrateNavigate from './orchestrateNavigate'
 
 jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
     const actual = jest.requireActual('../dataSource/renderOrchestration/subscribedEvents') as object
@@ -23,6 +43,13 @@ import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
+
+const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<
+    typeof membership.applyCharacterRoomMembership
+>
+const orchestrateCharacterNavigateMock = orchestrateNavigate.orchestrateCharacterNavigate as jest.MockedFunction<
+    typeof orchestrateNavigate.orchestrateCharacterNavigate
+>
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
@@ -94,6 +121,14 @@ describe('moveCharacter', () => {
         jest.restoreAllMocks()
         messageBusPublish.mockClear()
         mockSendRenderRequested.mockClear()
+        applyCharacterRoomMembershipMock.mockResolvedValue({
+            ok: true,
+            from: 'ROOM#VORTEX',
+            to: 'ROOM#TestTwo',
+            changed: true,
+            beatAnchorTime: 1_700_000_000_000,
+        })
+        orchestrateCharacterNavigateMock.mockResolvedValue(undefined)
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
         internalCacheMock.OrchestrateMessages.newMessageGroup.mockReturnValue('UUID#MessageGroup')
@@ -124,7 +159,7 @@ describe('moveCharacter', () => {
         internalCacheMock.PerceptionThreads = new PerceptionThreadsData() as any
     })
 
-    it('should change rooms appropriately', async () => {
+    it('routes membership persist through applyCharacterRoomMembership then orchestration', async () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#TestTwo',
@@ -134,153 +169,43 @@ describe('moveCharacter', () => {
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
             messageBus: messageBusMock
         })
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
-            Update: {
-                Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-                updateKeys: ['RoomId', 'RoomStack'],
-                updateReducer: expect.any(Function),
-                successCallback: expect.any(Function)
-            }
-        },
-        {
-            Update: {
-                Key: { EphemeraId: 'ROOM#VORTEX', DataCategory: 'Meta::Room' },
-                updateKeys: ['activeCharacters'],
-                updateReducer: expect.any(Function),
-                successCallback: expect.any(Function)
-            }
-        },
-        {
-            Update: {
-                Key: { EphemeraId: 'ROOM#TestTwo', DataCategory: 'Meta::Room' },
-                updateKeys: ['activeCharacters'],
-                updateReducer: expect.any(Function),
-                successCallback: expect.any(Function)
-            }
-        }])
-        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
-        if (!('Update' in firstTransact)) {
-            expect('Update' in firstTransact).toBe(true)
-        }
-        else {
-            expect(produce({ RoomId: 'ROOM#VORTEX', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] }, firstTransact.Update.updateReducer)).toEqual({
-                RoomId: 'TestTwo',
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TestTwo' }
-                ]
-            })
-        }
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'EphemeraUpdate',
-            updates: [{
-                type: 'CharacterInPlay',
-                CharacterId: 'CHARACTER#Test',
-                Connected: true,
-                RoomId: 'ROOM#TestTwo',
-                connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
-            }]
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'RoomUpdate',
-            roomId: 'ROOM#VORTEX'
-        })
-        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'RoomUpdate',
-            roomId: 'ROOM#TestTwo'
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'MapUpdate',
-            characterId: 'CHARACTER#Test',
-            previousRoomId: 'ROOM#VORTEX',
-            roomId: 'ROOM#TestTwo'
-        })
-        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
-        expect(mockSendRenderRequested).toHaveBeenCalledWith(
-            messageBusMock,
-            'ROOM#TestTwo',
+        expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            { characterId: 'CHARACTER#Test', targetRoomId: 'ROOM#TestTwo' },
             expect.objectContaining({
-                componentId: 'ROOM#TestTwo',
-                characterId: 'CHARACTER#Test',
-                perspective: { assetStack: ['ASSET#TownCenter'] },
-            }),
-        )
-    })
-
-    it('should handle appearance from disconnected', async () => {
-        wrapMocks(
-            [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            'ROOM#VORTEX',
-            ['draftOne', 'draftTwo'],
-            true
-        )
-        await moveCharacter({
-            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#VORTEX', arriveMessage: ' has connected.', suppressSelfMessage: true }],
-            messageBus: messageBusMock
-        })
-        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledWith([{
-            Update: {
-                Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-                updateKeys: ['RoomId', 'RoomStack'],
-                updateReducer: expect.any(Function),
-                successCallback: expect.any(Function)
-            }
-        },
-        {
-            Update: {
-                Key: { EphemeraId: 'ROOM#VORTEX', DataCategory: 'Meta::Room' },
-                updateKeys: ['activeCharacters'],
-                updateReducer: expect.any(Function),
-                successCallback: expect.any(Function)
-            }
-        }])
-        const firstTransact = ephemeraDBMock.transactWrite.mock.calls[0][0][0]
-        if (!('Update' in firstTransact)) {
-            expect('Update' in firstTransact).toBe(true)
-        }
-        else {
-            expect(produce({ RoomId: 'ROOM#VORTEX', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] }, firstTransact.Update.updateReducer)).toEqual({
-                RoomId: 'VORTEX',
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' }
-                ]
+                messageBus: messageBusMock,
+                streamEvent: expect.any(Function),
             })
-        }
-        expect(messageBusPublish).toHaveBeenCalledTimes(4)
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'EphemeraUpdate',
-            updates: [{
-                type: 'CharacterInPlay',
-                CharacterId: 'CHARACTER#Test',
-                Connected: true,
-                RoomId: 'ROOM#VORTEX',
-                connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
-            }]
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['ROOM#VORTEX', '!CHARACTER#Test'],
-            displayProtocol: 'WorldMessage',
-            message: ['Test has connected.'],
-            messageGroupId: 'UUID#After',
-            deliveryMode: 'deferred',
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'RoomUpdate',
-            roomId: 'ROOM#VORTEX'
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'MapUpdate',
-            characterId: 'CHARACTER#Test',
-            previousRoomId: 'ROOM#VORTEX',
-            roomId: 'ROOM#VORTEX'
-        })
-        expect(mockSendRenderRequested).not.toHaveBeenCalled()
-        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+        )
+        const passedStreamEvent = applyCharacterRoomMembershipMock.mock.calls[0][1].streamEvent
+        await passedStreamEvent({
+            streamKey: 'CHARACTER#Test',
+            header: { type: 'Character Moved' },
+            update: { type: 'Character Moved' },
+        } as any)
+        expect(mockPositionsStreamEvent).toHaveBeenCalled()
+        expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
+            payload: {
+                type: 'MoveCharacter',
+                characterId: 'CHARACTER#Test',
+                roomId: 'ROOM#TestTwo',
+                suppressDeparture: true,
+                suppressArrival: true,
+            },
+            from: 'ROOM#VORTEX',
+            to: 'ROOM#TestTwo',
+            beatAnchorTime: 1_700_000_000_000,
+            messageBus: messageBusMock,
+        }))
+        expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()
     })
 
-    it('does not kick room headers on same-room forceMove (orientation owns session bootstrap)', async () => {
+    it('skips orchestration when membership apply is a no-op', async () => {
+        applyCharacterRoomMembershipMock.mockResolvedValue({
+            ok: true,
+            from: 'ROOM#VORTEX',
+            to: 'ROOM#VORTEX',
+            changed: false,
+        })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#VORTEX',
@@ -296,59 +221,26 @@ describe('moveCharacter', () => {
             }],
             messageBus: messageBusMock,
         })
-        expect(messageBusPublish).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'EphemeraUpdate',
-            updates: [expect.objectContaining({ type: 'CharacterInPlay', Connected: true })],
-        }))
-        expect(mockSendRenderRequested).not.toHaveBeenCalled()
-        expect(messageBusPublish.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
-    })
-
-    it('kicks passive render with Canon-only perspective when character assets do not overlap', async () => {
-        wrapMocks(
-            [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            'ROOM#TestTwo',
-            []
-        )
-        await moveCharacter({
-            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
-            messageBus: messageBusMock,
-        })
-        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
-        expect(mockSendRenderRequested).toHaveBeenCalledWith(
-            messageBusMock,
-            'ROOM#TestTwo',
-            {
-                componentId: 'ROOM#TestTwo',
-                perspective: { assetStack: ['ASSET#TownCenter'] },
-                characterId: 'CHARACTER#Test',
-            },
-        )
-    })
-
-    it('publishes deferred leave WorldMessage on fallback path when perspectiveKey is empty', async () => {
-        jest.spyOn(kickRoomHeaderBroadcast, 'getCharacterRoomPerspectiveKey').mockResolvedValue(null)
-        jest.spyOn(kickRoomHeaderBroadcast, 'kickPassiveRenderRequestedForCharacterInRoom').mockResolvedValue(false)
-        wrapMocks(
-            [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            'ROOM#TestTwo',
-            assetsIntersectingTestRooms
-        )
-        await moveCharacter({
-            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
-            messageBus: messageBusMock,
-        })
-        expect(messageBusPublish).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
-            displayProtocol: 'WorldMessage',
-            message: ['Test has left.'],
-            messageGroupId: 'UUID#Before',
-            deliveryMode: 'deferred',
-        })
+        expect(applyCharacterRoomMembershipMock).toHaveBeenCalled()
+        expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
     })
 
     it('should replace items in RoomStack when moved in same asset', async () => {
+        const fromRoom = 'ROOM#TestTwo' as EphemeraRoomId
+        applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
+            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
+            const flatResult = await applyCharacterMembershipFlat(args, {
+                readMembershipEndpoint: async () => fromRoom,
+                transactWrite: ephemeraDBMock.transactWrite,
+                getCharacterMeta: internalCacheMock.CharacterMeta.get,
+                getCharacterSessions: internalCacheMock.CharacterSessions.get,
+                getRoomAssets: internalCacheMock.RoomAssets.get,
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            })
+            return flatResult.ok && flatResult.changed
+                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
+                : flatResult
+        })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
             'ROOM#TestThree',
@@ -374,6 +266,21 @@ describe('moveCharacter', () => {
     })
 
     it('should add items to RoomStack when moved into a child asset', async () => {
+        const fromRoom = 'ROOM#TestTwo' as EphemeraRoomId
+        applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
+            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
+            const flatResult = await applyCharacterMembershipFlat(args, {
+                readMembershipEndpoint: async () => fromRoom,
+                transactWrite: ephemeraDBMock.transactWrite,
+                getCharacterMeta: internalCacheMock.CharacterMeta.get,
+                getCharacterSessions: internalCacheMock.CharacterSessions.get,
+                getRoomAssets: internalCacheMock.RoomAssets.get,
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            })
+            return flatResult.ok && flatResult.changed
+                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
+                : flatResult
+        })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
             'ROOM#TestFour',
@@ -400,6 +307,21 @@ describe('moveCharacter', () => {
     })
 
     it('should remove items from RoomStack when moved back to a parent asset', async () => {
+        const fromRoom = 'ROOM#TestFour' as EphemeraRoomId
+        applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
+            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
+            const flatResult = await applyCharacterMembershipFlat(args, {
+                readMembershipEndpoint: async () => fromRoom,
+                transactWrite: ephemeraDBMock.transactWrite,
+                getCharacterMeta: internalCacheMock.CharacterMeta.get,
+                getCharacterSessions: internalCacheMock.CharacterSessions.get,
+                getRoomAssets: internalCacheMock.RoomAssets.get,
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            })
+            return flatResult.ok && flatResult.changed
+                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
+                : flatResult
+        })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }],
             'ROOM#TestOne',

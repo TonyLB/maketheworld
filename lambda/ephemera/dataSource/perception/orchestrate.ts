@@ -569,7 +569,8 @@ async function handleGenerationStarted(
         publishCharacterMoveLeaveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
-        const messageId = `MESSAGE#${uuidv4()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
+        const t0 = thread.createdTime ?? getCurrentTimestamp()
         bus.publish({
             type: 'PublishMessage',
             targets,
@@ -583,12 +584,13 @@ async function handleGenerationStarted(
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: t0,
             deliveryMode: 'deferred',
         })
 
         internalCache.PerceptionThreads.update(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { threadKind: 'characterMove', status: 'Generating', messageId }
+            { threadKind: 'characterMove', status: 'Generating', messageId, createdTime: t0 }
         )
         publishCharacterMoveArriveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
     }

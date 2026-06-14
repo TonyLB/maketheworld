@@ -1,6 +1,6 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { RoomStackItem } from '../moveCharacter';
+import type { RoomStackItem } from '../dataSource/positions/membership/types';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;
@@ -23,6 +23,9 @@ export class CacheCharacterMetaData {
     CharacterMetaById: Record<EphemeraCharacterId, CharacterMetaItem> = {};
     clear() {
         this.CharacterMetaById = {}
+    }
+    invalidate(characterId: EphemeraCharacterId): void {
+        delete this.CharacterMetaById[characterId]
     }
     async get(characterId: EphemeraCharacterId, options: { check: true }): Promise<CharacterMetaItem | undefined>
     async get(characterId: EphemeraCharacterId, options?: { check: false }): Promise<CharacterMetaItem>

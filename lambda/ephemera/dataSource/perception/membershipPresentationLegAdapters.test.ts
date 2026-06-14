@@ -269,7 +269,7 @@ describe('membershipPresentationLegAdapters', () => {
                 createMembershipPresentationFanInStore,
                 createMembershipFanInHandlerContext,
             } = await import('./membershipPresentationFanIn')
-            const ctx = createMembershipFanInHandlerContext()
+            const ctx = createMembershipFanInHandlerContext({ publish: jest.fn() } as any)
             const store = createMembershipPresentationFanInStore()
             store.setHandlerContext(ctx)
 
@@ -295,11 +295,12 @@ describe('membershipPresentationLegAdapters', () => {
             await store.route(homeLeg!)
             await store.route(factLeg!)
 
-            expect(ctx.plans).toHaveLength(1)
-            expect(ctx.plans[0]).toMatchObject({
-                copyKind: 'home',
-                shape: 'leaveAndArrive',
-                deferralExecution: false,
+            const worldPublishes = (ctx.messageBus.publish as jest.Mock).mock.calls
+                .map((call) => call[0])
+                .filter((message) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
+            expect(worldPublishes).toHaveLength(2)
+            expect(worldPublishes[0]).toMatchObject({
+                message: ['Someone left to return home.'],
             })
         })
     })

@@ -969,7 +969,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             orchestrateSpy.mockRestore()
         })
 
-        it('intent + fact batch completes without WorldMessage PublishMessage', async () => {
+        it('intent + fact batch publishes leave and arrive WorldMessages', async () => {
             const publishSpy = spyPublish()
 
             publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
@@ -991,11 +991,72 @@ describe('mtw.ephemera.perception DataSource', () => {
                 const m = c[0] as { type?: string; displayProtocol?: string }
                 return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
             })
-            expect(worldPublishes).toHaveLength(0)
+            expect(worldPublishes).toHaveLength(2)
+            expect((worldPublishes[0][0] as { createdTime?: number }).createdTime).toBe(MEMBERSHIP_ANCHOR_TIME - 1)
+            expect((worldPublishes[1][0] as { createdTime?: number }).createdTime).toBe(MEMBERSHIP_ANCHOR_TIME + 1)
             publishSpy.mockRestore()
         })
 
-        it('fact-only at settle runs deferral without error', async () => {
+        it('navigate intent with exitName publishes exit-aware leave copy', async () => {
+            const publishSpy = spyPublish()
+
+            publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                type: 'Character Navigate',
+                characterId: MEMBERSHIP_CHARACTER,
+                fromRoomId: MEMBERSHIP_ROOM_A,
+                toRoomId: MEMBERSHIP_ROOM_B,
+                exitName: 'north',
+            })
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                from: MEMBERSHIP_ROOM_A,
+                to: MEMBERSHIP_ROOM_B,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+                characterName: 'Alice',
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string; message?: string[] }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(2)
+            expect((worldPublishes[0][0] as { message?: string[] }).message).toEqual(['Alice left by north exit.'])
+            publishSpy.mockRestore()
+        })
+
+        it('disconnect intent + fact publishes leave-only disconnect copy', async () => {
+            const publishSpy = spyPublish()
+
+            publishMembershipStreamingEvent('mtw.connections.characters', 'Character Disconnected', {
+                type: 'Character Disconnected',
+                characterId: MEMBERSHIP_CHARACTER,
+                sessionId: 'SESSION#1',
+                timestamp: '2026-05-08T12:00:00.000Z',
+            })
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                from: MEMBERSHIP_ROOM_A,
+                to: null,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+                characterName: 'Alice',
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string; message?: string[] }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            expect((worldPublishes[0][0] as { message?: string[] }).message).toEqual(['Alice has disconnected.'])
+            publishSpy.mockRestore()
+        })
+
+        it('fact before intent still publishes after correlation', async () => {
+            const publishSpy = spyPublish()
+
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
@@ -1003,7 +1064,42 @@ describe('mtw.ephemera.perception DataSource', () => {
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
             })
-            await expect(messageBus.flushAndSettle()).resolves.toBeUndefined()
+            publishMembershipStreamingEvent(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Character Navigate', {
+                type: 'Character Navigate',
+                characterId: MEMBERSHIP_CHARACTER,
+                fromRoomId: MEMBERSHIP_ROOM_A,
+                toRoomId: MEMBERSHIP_ROOM_B,
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(2)
+            publishSpy.mockRestore()
+        })
+
+        it('fact-only at settle publishes generic leave and arrive copy', async () => {
+            const publishSpy = spyPublish()
+
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                from: MEMBERSHIP_ROOM_A,
+                to: MEMBERSHIP_ROOM_B,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+                characterName: 'Alice',
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string; message?: string[] }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(2)
+            expect((worldPublishes[0][0] as { message?: string[] }).message).toEqual(['Alice has left.'])
+            publishSpy.mockRestore()
         })
     })
 })

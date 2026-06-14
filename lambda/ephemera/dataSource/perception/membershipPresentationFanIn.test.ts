@@ -1,4 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
+import type { MessageBus } from '../../messageBus/baseClasses'
 import {
     buildMembershipEmissionPlan,
     createMembershipFanInHandlerContext,
@@ -165,7 +166,13 @@ describe('membershipPresentationFanIn', () => {
     })
 
     describe('FanInClusterStore integration', () => {
-        const makeCtx = createMembershipFanInHandlerContext
+        const makeCtx = () => createMembershipFanInHandlerContext({ publish: jest.fn() } as any)
+
+        const worldPublishes = (messageBus: { publish: jest.Mock | MessageBus['publish'] }) => (
+            (messageBus.publish as jest.Mock).mock.calls
+                .map((call) => call[0])
+                .filter((message) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
+        )
 
         describe('leg order independence', () => {
             it('completes when intent arrives before fact', async () => {
@@ -175,20 +182,19 @@ describe('membershipPresentationFanIn', () => {
 
                 await store.route(navigateIntent())
                 expect(store.getOpenPartialCount()).toBe(1)
-                expect(ctx.plans).toHaveLength(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
 
                 await store.route(crossRoomFact())
                 expect(store.getOpenPartialCount()).toBe(0)
-                expect(ctx.plans).toEqual([{
-                    shape: 'leaveAndArrive',
-                    copyKind: 'genericNavigate',
-                    beatAnchorTime: ANCHOR_TIME,
-                    characterId: CHARACTER,
-                    from: ROOM_A,
-                    to: ROOM_B,
-                    characterName: 'Alice',
-                    deferralExecution: false,
-                }])
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice has left.'],
+                    createdTime: ANCHOR_TIME - 1,
+                })
+                expect(worldPublishes(ctx.messageBus)[1]).toMatchObject({
+                    message: ['Alice has arrived.'],
+                    createdTime: ANCHOR_TIME + 1,
+                })
             })
 
             it('completes when fact arrives before intent', async () => {
@@ -201,10 +207,8 @@ describe('membershipPresentationFanIn', () => {
 
                 await store.route(navigateIntent({ exitName: 'north' }))
                 expect(store.getOpenPartialCount()).toBe(0)
-                expect(ctx.plans[0]).toMatchObject({
-                    copyKind: 'exitAware',
-                    exitName: 'north',
-                    deferralExecution: false,
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice left by north exit.'],
                 })
             })
         })
@@ -219,9 +223,9 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact({ from: null, to: ROOM_B }))
 
                 expect(store.getOpenPartialCount()).toBe(0)
-                expect(ctx.plans[0]).toMatchObject({
-                    shape: 'arriveOnly',
-                    copyKind: 'connect',
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice has connected.'],
                 })
             })
 
@@ -234,9 +238,9 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact({ from: ROOM_A, to: null }))
 
                 expect(store.getOpenPartialCount()).toBe(0)
-                expect(ctx.plans[0]).toMatchObject({
-                    shape: 'leaveOnly',
-                    copyKind: 'disconnect',
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice has disconnected.'],
                 })
             })
 
@@ -249,7 +253,7 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact())
 
                 expect(store.getOpenPartialCount()).toBe(0)
-                expect(ctx.plans).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
             })
         })
 
@@ -263,7 +267,7 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(connectIntent())
 
                 expect(store.getOpenPartialCount()).toBe(1)
-                expect(ctx.plans).toHaveLength(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
             })
 
             it('rejects a duplicate fact without firing handler again', async () => {
@@ -275,7 +279,7 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact())
 
                 expect(store.getOpenPartialCount()).toBe(1)
-                expect(ctx.plans).toHaveLength(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
             })
         })
 
@@ -289,7 +293,7 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(navigateIntent({ toRoomId: 'ROOM#other' as const }))
 
                 expect(store.getOpenPartialCount()).toBe(2)
-                expect(ctx.plans).toHaveLength(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
             })
         })
 
@@ -300,19 +304,14 @@ describe('membershipPresentationFanIn', () => {
                 store.setHandlerContext(ctx)
 
                 await store.route(crossRoomFact())
-                expect(ctx.plans).toHaveLength(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
 
                 await store.settleDeferrals()
-                expect(ctx.plans).toEqual([{
-                    shape: 'leaveAndArrive',
-                    copyKind: 'genericFactOnly',
-                    beatAnchorTime: ANCHOR_TIME,
-                    characterId: CHARACTER,
-                    from: ROOM_A,
-                    to: ROOM_B,
-                    characterName: 'Alice',
-                    deferralExecution: true,
-                }])
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice has left.'],
+                    createdTime: ANCHOR_TIME - 1,
+                })
                 expect(store.getOpenPartialCount()).toBe(0)
             })
 
@@ -326,16 +325,11 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact({ from: null, to: ROOM_B }))
                 await bus.flushAndSettle()
 
-                expect(ctx.plans).toEqual([{
-                    shape: 'arriveOnly',
-                    copyKind: 'genericFactOnly',
-                    beatAnchorTime: ANCHOR_TIME,
-                    characterId: CHARACTER,
-                    from: null,
-                    to: ROOM_B,
-                    characterName: 'Alice',
-                    deferralExecution: true,
-                }])
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice has arrived.'],
+                    createdTime: ANCHOR_TIME + 1,
+                })
             })
         })
 
@@ -349,7 +343,7 @@ describe('membershipPresentationFanIn', () => {
                 await store.route(crossRoomFact())
                 await store.route(connectIntent())
 
-                expect(ctx.plans).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
             })
         })
     })

@@ -6,9 +6,9 @@
  * deliberately narrow: only **character positions as already recorded today**
  * (`Meta::Room.activeCharacters`, character `RoomId`/`RoomStack`).
  *
- * First external ingress: `mtw.connections.characters` (`Character Connected`,
- * `Character Disconnected`). Additional position-affecting subscriptions can
- * be added here without inventing another one-off DataSource module.
+ * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
+ * (`Character Navigate`). Additional position-affecting subscriptions can be
+ * added here without inventing another one-off DataSource module.
  *
  * Future iterations may extend the lane with new entity kinds and richer
  * position semantics; the wiring above (`dataSourceKey: 'mtw.ephemera.positions'`,
@@ -22,7 +22,9 @@ import {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
+import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
 import {
+    isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
@@ -31,17 +33,33 @@ import {
     handleCharacterConnected,
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
+import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
+import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
     never,
-    never,
+    PositionsPublishedPayload,
     EphemeraPositionsSubscribedContent
 >({
     dataSourceKey: 'mtw.ephemera.positions',
     replayable: false,
+    publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isEphemeraPositionsSubscribedEnvelope,
-    receiveEvents: async ({ events }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (envelope) => {
+            if (isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope)) {
+                const content = await envelope.getContent() as CharacterNavigatePublishedPayload
+                if (!content || typeof content !== 'object') {
+                    return
+                }
+                await executeCharacterNavigate({
+                    characterId: content.characterId,
+                    targetRoomId: content.toRoomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
             if (!isEphemeraPositionsConnectionsCharactersEnvelope(envelope)) {
                 return
             }
@@ -54,7 +72,10 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 return
             }
             if (envelope.header.type === 'Character Disconnected') {
-                await handleCharacterDisconnected(content as ConnectionsCharactersDisconnectedEvent, { messageBus })
+                await handleCharacterDisconnected(content as ConnectionsCharactersDisconnectedEvent, {
+                    messageBus,
+                    streamEvent,
+                })
                 return
             }
         }))

@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Fan-in **Phase 0 shipped** (framework in `mtw-lambda-patterns`). **Next:** **slice 1a** --- membership persistence boundary (unblocked). **Slice 1b** --- membership **emission** (blocked on fan-in **Phase 1** only). Model A **beat orchestration** may land in **1a** without fan-in. **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Next:** slice **1c** disentangles positions gateway forward/reverse reads (**S1-15**); then slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -87,7 +87,8 @@ Cross-initiative contract: fan-in **F1-8** ([`AGENT.fanInPattern.planning.md` --
 Caller (any ingress)          updatePositionGraphs (slice 2)           Downstream
 --------------------          ------------------------------           ----------
 navigate / disconnect /  -->  immer update on loaded play graphs  -->  MembershipDiff
-connect (when unified)        transact per-room + denorm projections      streamEvent if from !== to
+connect (when unified)        transact per-room graphs + adjacency index   streamEvent if from !== to
+                              (transitional denorm per S2-2 until S2-6)
                               diff before/after holistically
 ```
 
@@ -128,10 +129,32 @@ Shipped contract [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSo
 One PR (do not split):
 
 1. **`Meta::Room.positionGraph`** schema (S2-1--S2-3)
-2. **`updatePositionGraphs`** helper (immer draft over parent component graphs, holistic diff, decomposed **`transactWrite`** + denorm projections per S2-2)
+2. **`updatePositionGraphs`** helper (immer draft over parent component graphs, holistic diff, decomposed **`transactWrite`** + **membership adjacency** index per **S2-5**; **transitional** sync to legacy projection fields per **S2-2** until **S2-6**)
 3. Replace slice 1 TEMP fact builder with **diff-only** emit
 4. Delete **`TEMP slice 1`** comments; graduate **F1-8** rules to [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)
-5. Swap gateway read adapter from flat projection to stored graph (S1-5)
+5. Swap gateway read **backing** to stored **`positionGraph`** (forward) + adjacency (reverse) per **S1-15** / **S2-5** (handler API unchanged)
+
+### Steady-state storage authority (**S2-5**, **S2-6**)
+
+**Decided** play membership persistence and reads converge on two authoritative structures (initiative **close** retires legacy projection **storage**):
+
+| Role | Authority | Notes |
+| --- | --- | --- |
+| **Forward (what a host contains)** | **`Meta::Room.positionGraph`** | **Primary source of truth.** Roster and in-room membership derive from graph nodes. |
+| **Reverse (which hosts contain a component)** | **Adjacency index** --- **`COMPONENT#X`** partition, **`POSITION#COMPONENT#Y`** (or equivalent) rows pointing at container host(s) | Backs **`getMembershipContainers`** (**S1-15** array). Multi-container drift is **visible**, not silent. |
+| **Conflict / diagnostics** | **`positionGraph` wins** | Reconciliation and drift repair treat room play graphs as primary; adjacency is kept in sync at persist; mismatch => repair from graph + rewrite adjacency. |
+
+**Not steady-state (remove by initiative close --- S2-6):** stored legacy membership **projections** migrated away from:
+
+- **`Meta::Room.activeCharacters`** (roster/list denorm)
+- **`Meta::Character.RoomId`** as reverse membership index (singular endpoint denorm)
+- Steady-state **reads/writes** of those fields for play membership (gateway + membership API use graph + adjacency only)
+
+**Transitional only (slice 2 cutover --- S2-2):** membership apply may **dual-write** graph + adjacency + legacy projection fields until readers and ops paths migrate; dual-write is a **cutover tactic**, not a permanent dual reverse index. **No** long-lived hybrid where **`RoomId`** and adjacency both serve **`getMembershipContainers`**.
+
+**Out of initiative close (may remain):** **`RoomStack`** and other nested-context fields until a later slice defines graph-native nested placement (**S1-9**); **`RoomCharacterList`** cache if retained as pure memo over gateway reads (not Dynamo authority).
+
+**Initiative close gate:** grep / contract --- no play membership persist or steady-state read of **`activeCharacters`** / **`RoomId`** as authority outside documented diagnostics migration shims (then remove shims).
 
 ### Module layout (**S1-4**)
 
@@ -182,6 +205,30 @@ type MembershipApplyResult = {
 
 **No-op gate (**S1-8**):** **`streamMembershipFact`** runs only when **`MembershipApplyResult.changed`** is true (equivalently **`from !== to`**). Slice 1: set from flat apply result. Slice 2: set from **`MembershipDiff`** / graph membership slice of **`updatePositionGraphs`** output. Same gate, different persist backend.
 
+#### Intent `fromRoomId` asymmetry (slice 1 trust vs slice 2 persist bite)
+
+Slice 1 ships an intentional **asymmetric trust** posture for navigate endpoints:
+
+| Endpoint | On **`Character Navigate`** intent | At positions apply | Fan-in (**F1-1**) |
+| --- | --- | --- | --- |
+| **`toRoomId`** | From actions exit resolution (parse-time topology) | **Trusted** target (**S1-1**) | Optional hint; fact **`to`** authoritative |
+| **`fromRoomId`** | Server snapshot from [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) at parse (not LLM **`NavigationIntent`**) | **Not consumed** from stream; **`from`** from pre-read ([`readMembershipEndpoint`](../../../../../../lambda/ephemera/dataSource/positions/membership/applyCharacterMembershipFlat.ts)) | Optional hint for partial seed / unify; fact **`from`** authoritative |
+
+**Reasonable for slice 1:** flat storage --- pre-read is a cheap **`Meta::Character.RoomId`** projection; positions and fan-in keep **fact** endpoints descriptive at apply time (**S1-14**, **F1-8**).
+
+**Slice 2 bite:** persist becomes **remove character node from departure room `positionGraph` + add to arrival room `positionGraph`** (**S2-1**--**S2-3**). The coordinator must know **departure room id** to load the right graph and plan transact decomposition. Treating stream **`fromRoomId`** as correlation-only forces **re-derive `from` on every apply** even when parse navigate already computed the same snapshot moments earlier --- and without a reliable denorm index, mismatch recovery devolves to graph search rather than occasional edge-case handling.
+
+**Two roles for the same field (do not conflate):**
+
+1. **Emission / fan-in trust** --- fact diff after apply remains authoritative; intent **`fromRoomId`** must not override **`Character Moved.from`** for cluster identity or copy.
+2. **Persist planning** --- navigate may supply **expected departure room** for **`updatePositionGraphs`** (optimistic remove-from + verify-on-transact); **mismatch => reconcile**, not re-read-as-default on every happy path.
+
+**Already duplicated in slice 1:** actions reads **`CharacterMeta.RoomId`** for exit context; positions pre-reads again at apply and ignores stream **`fromRoomId`**. Slice 2 amplifies cost (load two room graphs; conditional node removal). **Mitigation (planned):** slice **1c** --- explicit reverse read **`getMembershipContainers`** on **`internalCache.Positions`** + wire navigate hot path through the gateway (**S1-15**); see [Positions gateway: forward vs reverse reads (**S1-15**)](#positions-gateway-forward-vs-reverse-reads-s1-15).
+
+**Does not change without S2-4:** public **`MembershipApplyArgs`** (**S1-7**) stays `{ characterId, targetRoomId | null }` for disconnect/connect uniformity; navigate-specific expected departure is **ingress-internal** or a coordinator option, not a public command field until decided.
+
+Open decisions: **S2-4** (graph apply expected departure; **S1-15** + **S2-5** decided --- implement slice **1c** / **2**) in [Open decisions](#open-decisions-implementation---plan-only). Fan-in cross-link: [`AGENT.fanInPattern.planning.md` --- intent `fromRoomId` vs persist planning](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#proof-case-phase-1----membership-presentation-emission).
+
 #### Exit-aware copy (**S1-10** / fan-in **F1-9**)
 
 Slice **1** consolidates exit-aware presentation on **intent**, extending the same **trust action-parse** posture as **S1-1**:
@@ -202,14 +249,47 @@ Slice **1** consolidates exit-aware presentation on **intent**, extending the sa
 
 **After slice 2:** optional spike whether stored play graphs warrant reintroducing **`legalExits`** on the fact for leg-only fan-in or other consumers --- not a slice 1 blocker.
 
+#### Positions gateway: forward vs reverse reads (**S1-15**)
+
+**Decided (implement slice 1c):** disentangle collapsed S1-5 read surface into two explicit, separately cacheable operations on **`internalCache.Positions`**. Slice **1c** adapter may project from legacy fields; slice **2+** backs reverse reads from **adjacency** (**S2-5**).
+
+**S1-5 shipped** a single collapsed read surface: **`getPositionGraph(componentId)`** on **`internalCache.Positions`** projects **forward** membership for rooms (`activeCharacters` -> nodes) and embeds **reverse** membership for characters as **`roomEndpoint`** on the same graph shape ([`packages/mtw-gateways/ts/ephemera/positions/`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/)). Affordance compose uses **`getRoomRoster`** (forward). Navigate parse and membership apply **do not** use the gateway today --- they read **`CharacterMeta.RoomId`** and raw **`readMembershipEndpoint`** separately.
+
+**Target (slice 1c):** two **explicit**, separately cacheable operations on the **same** **`PositionsCacheHandler`** / **`internalCache.Positions`** instance:
+
+| Operation | Question | Return shape (normative) |
+| --- | --- | --- |
+| **`getPositionGraph(hostComponentId)`** | What does this host **contain**? | Play **`positionGraph`** for the host (room roster / nested nodes). |
+| **`getMembershipContainers(componentId)`** | Which host graphs **contain** this component? | **Array** of container ids (slice 1: **`EphemeraRoomId`** room endpoints; slice 5+ may add container / object hosts). **Not** a singular optional --- always an array. |
+
+**Why array (even when length is 0 or 1 today):**
+
+- **Characters (slice 1--2):** invariant is at most one room container; adapter returns **`[]`** or **`[roomId]`**.
+- **Objects (future):** may legitimately span multiple rooms (e.g. rope across a threshold).
+- **Drift / error remediation:** duplicate membership (character present in more than one room graph) must be **representable** so persistence and diagnostics can reason about and repair it --- not hide behind a singular **`RoomId`**.
+
+**Slice 1c adapter (no slice 2 storage required):** project **`getMembershipContainers(characterId)`** from **`Meta::Character.RoomId`** (0--1 elements). Project **`getPositionGraph(roomId)`** from **`activeCharacters`** as today.
+
+**Slice 2+ backing (**S2-5** decided):** forward **`getPositionGraph(roomId)`** from stored **`Meta::Room.positionGraph`**; reverse **`getMembershipContainers`** from **adjacency** rows (**`COMPONENT#X`** x **`POSITION#COMPONENT#Y`**). Handler API unchanged (**S1-15**). On conflict, trust **`positionGraph`** (**Steady-state storage authority**).
+
+**Wiring (slice 1c):**
+
+1. **`mtw-gateways`:** add **`getMembershipContainers`** + fetch/projection helpers; disentangle character **`getPositionGraph`** from being the sole reverse path (may retain **`roomEndpoint`** on character graphs as derived/convenience or deprecate in favor of reverse call --- decide at implementation).
+2. **`internalCache.Positions`:** expose both methods; separate memo keys for forward vs reverse where needed; **`set`** / **`invalidate`** on membership apply for **both** affected host(s) and contained component(s).
+3. **Navigate hot path:** [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) and membership pre-read / expected-departure validation use **`getMembershipContainers`** (not ad hoc **`CharacterMeta`** / raw Dynamo).
+4. **Slice 2 persist (**S2-5**):** adjacency index maintained in same transact bundle as **`updatePositionGraphs`**; legacy projection dual-write only per **S2-2** bridge until **S2-6**.
+
+**Relation to S2-4:** once parse and apply share **`getMembershipContainers`** memo within an invocation, validating stream **`fromRoomId`** against cached containers is cheap; graph apply can use **expected departure + verify-on-transact + reconcile** instead of unconditional re-fetch. Fan-in fact **`from`** / **`to`** remain post-apply diff (**F1-8**, **F1-1**).
+
 #### Persistence vs orchestration (**S1-13**)
 
 Slice **1a** extracts from [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) everything that **`updatePositionGraphs`** will own in slice **2** --- into **`applyCharacterMembershipFlat`** + **`applyCharacterRoomMembership`** coordinator (flat storage is **temporary**; API and side-effect ownership stay stable across the slice **2** swap).
 
 | Concern | Slice 1 owner | Notes |
 | --- | --- | --- |
-| **`Meta::Character`** `RoomId` / `RoomStack` transact | **`applyCharacterMembershipFlat`** | Same rows slice **2** mutates via graph draft |
-| **`Meta::Room.activeCharacters`** departure removal + arrival add/update | **`applyCharacterMembershipFlat`** | Slice **2:** projection from **`positionGraph`** (**S2-2**) |
+| **`Meta::Room.activeCharacters`** departure removal + arrival add/update | **`applyCharacterMembershipFlat`** | Slice **2:** **`positionGraph`** + adjacency (**S2-5**); **transitional** projection sync (**S2-2**) until **S2-6** retires stored field |
+| **`Meta::Character` `RoomId`** (reverse denorm) | **`applyCharacterMembershipFlat`** | Slice **2:** adjacency (**S2-5**); **transitional** `RoomId` sync until **S2-6** |
+| **`Meta::Character` `RoomStack`** | **`applyCharacterMembershipFlat`** | Unchanged slice **2** v1; graph-native nested placement deferred (**S1-9**, slice **5+**) |
 | Pre-read **`from`** / apply **`to`** / **`changed`** gate | **Coordinator** | Slice **2:** from **`MembershipDiff`** |
 | Cache memo: **`RoomCharacterList`**, **`ComponentEphemeraMeta`**, **`AffordanceRoomDeliverable`**, positions read handler (**S1-5**) | **Coordinator** when **`changed`** (**S1-11**) | Same bundle as fact emit; not on same-room / no-op applies |
 | **`RoomUpdate`** (affordance refresh path) | **Coordinator** when **`changed`** (**S1-11**) | Affected endpoint room(s): non-null **`from`** and/or **`to`** |
@@ -265,8 +345,12 @@ When **`!changed`**: skip the **entire** bundle --- no fact, no **`RoomUpdate`**
 | **S1-12** | **Connect path in slice 1** | **Decided:** defer --- slice **1** = navigate + disconnect through membership API only; connect facts + `applyCharacterRoomMembership` routing land slice **3** (may coordinate with slice **2** storage cutover; not a slice **1** requirement). Fan-in connect intent wiring stays; end-to-end connect emission tests defer to slice **3**. |
 | **S1-13** | **Persistence vs orchestration** | **Decided:** move Dynamo membership writes, roster projection, cache memo, **`RoomUpdate`**, **`EphemeraUpdate`** room projection into **`positions/membership/`** flat persist + coordinator; keep PerceptionThreads header, render kicks, **`MapUpdate`** in navigate orchestration. See [Persistence vs orchestration (**S1-13**)](#persistence-vs-orchestration-s1-13). |
 | **S1-14** | **Slice 1 TEMP fact emit vs slice 2 graph-diff** | **Decided** --- this section |
+| **S1-15** | **Gateway forward vs reverse reads** | **Decided:** **`getPositionGraph(hostId)`** + **`getMembershipContainers(componentId)`** returning **array**; slice **1c** implementation; see [Positions gateway (**S1-15**)](#positions-gateway-forward-vs-reverse-reads-s1-15). **`roomEndpoint`** on character graphs: convenience vs deprecate --- decide at implementation. |
+| **S2-4** | **Expected departure for graph apply** | **Open** --- depends on slice **1c** shipped; see [Intent `fromRoomId` asymmetry](#intent-fromroomid-asymmetry-slice-1-trust-vs-slice-2-persist-bite) |
+| **S2-5** | **Reverse membership persistence backing** | **Decided:** **adjacency index** (**`COMPONENT#X`** x **`POSITION#COMPONENT#Y`**) backs **`getMembershipContainers`**; **`positionGraph`** primary on conflict. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
+| **S2-6** | **Legacy projection storage retirement** | **Decided:** by **initiative close**, remove stored **`activeCharacters`** / **`RoomId`** membership authority; graph + adjacency only. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
 
-When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) and remove from **Open decisions** below. **Slice 1 open decisions:** all resolved --- graduate at implementation.
+When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) and remove from **Open decisions** below.
 
 ## Migration strategy (routing-first)
 
@@ -274,11 +358,13 @@ When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../..
 
 | Phase | Slice | What changes | What stays stable |
 | --- | --- | --- | --- |
-| **Localize execution** | **1** (+ finish **0** disconnect alignment) | Ingress (`Character Navigate`), orchestration (perception threads, `RoomUpdate`, caches), **single membership persistence API**; optional **`mtw-gateways` read surface** (see S1-5) | Dynamo still uses `activeCharacters`, `RoomId`, `RoomStack`; readers may stay on `RoomCharacterList` until S1-5 / slice 2 |
-| **Storage swap** | **2** | `Meta::Room.positionGraph`, **`updatePositionGraphs`** persistence impl, graph-diff **`Character Moved`** (replaces slice 1 TEMP emit), `activeCharacters` projection; swap read gateway if not done in slice 1 | Orchestration and ingress paths from slice 1 |
-| **Unify ingress** | **3** | Connect path through same API (retire `CheckLocation` bridge) | --- |
-| **Legacy cleanup** | **4** | `disconnectMessage`, `Disconnect Character` ingress | --- |
-| **Richer graphs** | **5+** | In-room edges, objects in graph, inventory subgraphs, stream outbounds | --- |
+| **Localize execution** | **1** (+ finish **0** disconnect alignment) | Ingress (`Character Navigate`), orchestration (perception threads, `RoomUpdate`, caches), **single membership persistence API**; **`mtw-gateways` read surface** (S1-5 shipped; **S1-15** forward/reverse disentangle in **1c**) | Dynamo still uses `activeCharacters`, `RoomId`, `RoomStack`; readers may stay on `RoomCharacterList` until S1-5 / slice 2 |
+| **Gateway reads** | **1c** | **`getPositionGraph`** + **`getMembershipContainers`** (array) on **`internalCache.Positions`**; wire navigate parse + apply through gateway memo | Slice **2** storage swap; fan-in trust model |
+| **Storage swap** | **2** | `Meta::Room.positionGraph`, **`updatePositionGraphs`**, **adjacency reverse index** (**S2-5**), graph-diff **`Character Moved`**; gateway backing swap (**S1-15**); **transitional** dual-write to legacy projections (**S2-2**) | Orchestration and ingress paths from slice 1 / 1c |
+| **Unify ingress** | **3** | Connect path through same API (retire `CheckLocation` bridge) | Graph + adjacency persist |
+| **Legacy ingress cleanup** | **4** | `disconnectMessage`, `Disconnect Character` ingress | --- |
+| **Richer graphs** | **5+** | In-room edges, object placement in graph, container graphs, stream outbounds | --- |
+| **Projection retirement** | **Close** | Remove stored **`activeCharacters`** / **`RoomId`** membership authority (**S2-6**); readers on gateway only; diagnostics reconcile from **`positionGraph`** | --- |
 
 **Slice 1 success criterion (not optional):** every character **room-membership** mutation (disconnect today; navigate after slice 1; connect after slice 3) goes through **one** positions-owned **membership persistence boundary** --- even though slice 1 still writes flat fields and uses **TEMP intent-assisted fact emit (**S1-14**)**. Slice 2 rewrites **only that module** to **`updatePositionGraphs`** + graph-diff facts (**F1-8** steady state), not every caller across the lambda.
 
@@ -291,10 +377,12 @@ Thin routing (`subscribe -> publish MoveCharacter` to legacy handler) **does not
 | **0** (done) | `mtw.connections.characters` presence ingress | Contract + implementation + concepts Shipped |
 | **1a** | Localize membership **execution**: persistence API, `Character Navigate` -> positions, disconnect refactor; optional Model A beat anchor; legacy header render + imperative world copy OK | Contract + implementation |
 | **1b** | Membership **emission**: **`Character Moved`** at persistence apply (**S1-14** TEMP slice 1) for **navigate + disconnect**; intent + fact fan-in; publish world lines after correlation; retire imperative suppress/copy on `MoveCharacter` | Contract + implementation; coordinates with fan-in Phase 1--2 |
-| **2** | **`Meta::Room` play `positionGraph`** + **`updatePositionGraphs`**; graph-diff **`Character Moved`** (replace TEMP emit); projection to `activeCharacters` | Contract; concepts Target -> Shipped for room play graph (character nodes) |
+| **1c** | **Gateway reads:** disentangle **`getPositionGraph`** (forward) and **`getMembershipContainers`** (reverse, **array**); wire navigate parse + apply through **`internalCache.Positions`**; memo both directions on membership apply (**S1-15**) | Contract + [`mtw-gateways` positions AGENT](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); implementation |
+| **2** | **`Meta::Room` play `positionGraph`** + **adjacency reverse index** + **`updatePositionGraphs`**; graph-diff **`Character Moved`**; transitional projection dual-write (**S2-2**); gateway backing swap | Contract; concepts Target -> Shipped for room play graph (character nodes) |
 | **3** | Unify **connect** through membership API (retire `CheckLocation` bridge) | Contract + implementation |
 | **4** | Retire `disconnectMessage` / legacy `Disconnect Character` | Contract; slim parent event docs |
 | **5+** | In-room edges, object placement in graph, container graphs, stream outbounds | Concepts + contract as each lands |
+| **Close** | **S2-6:** retire legacy membership projection **storage** (`activeCharacters`, `RoomId` authority); verification matrix; delete this plan | Contract + implementation + concepts graduation |
 
 ## Open decisions (implementation --- plan only)
 
@@ -307,27 +395,30 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 | S1-1 | On navigate execute: **trust** actions exit resolution (`toRoomId`) vs **re-validate** topology in positions | 1 | **Decided:** trust --- positions applies the validated `toRoomId`; no topology re-check at persistence apply. Exit-aware **copy** also trusts parse: **`exitName`** on **`Character Navigate`** intent (**S1-10** / **F1-9**). |
 | S1-2 | Cross-room side effects: **1a** --- legacy header render (`PerceptionThreads` / kick render) + optional **Model A** `beatAnchorTime`; imperative leave/arrive until **1b** fan-in emission. **1b** --- fan-in emission policy ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). Conversations fragment handoff: [`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md) | 1a / 1b | **Decided:** sequencing milestones, not an either/or fork. **Beat/header (Model A + slim `characterMove` targeting)** stays independent of fan-in. With **fan-in Phase 0 + 1 before positions slice 1**, skip building interim imperative leave/arrive --- land persistence boundary together with `Character Moved` + fan-in emission (no separate 1a-then-1b copy path). Header render remains legacy PerceptionThreads through fan-in Phase 2. |
 | S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | **Decided:** positions **`streamEvent`** outbound on `mtw.ephemera.positions` (`publisherStrategy: 'busOnly'`); types in [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts). Same net delivery as bus-only today --- difference is **scope-of-authority** (positions owns the stream contract). |
-| S1-4 | Module layout for **membership persistence boundary** | 1 | **Decided:** split modules under **`positions/membership/`** --- thin **`applyCharacterRoomMembership`** coordinator; **`applyCharacterMembershipFlat`** (slice 1) / **`updatePositionGraphs`** (slice 2); separate TEMP fact builder + stream helper. Not split by ingress type. See [Module layout (**S1-4**)](#module-layout-s1-4). |
-| S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | **Decided:** first read surface returns **`positionGraph` for a component** (Room or Character v1; future Features/Objects). Land in **slice 1** with a **projection adapter** from legacy flat fields until slice 2 storage swap; register on `internalCache`; point affordance roster reads at the handler (not raw `ephemeraDB`). Roster is a **projection** of the graph, not the primary gateway shape. |
+| S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | **Shipped:** [`packages/mtw-gateways/ts/ephemera/positions/`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/); **`internalCache.Positions`**; affordance compose roster via **`getRoomRoster`**. Slice 2 swaps backing read to stored graph. |
 | S1-6 | **Diff source for `from`/`to`:** slice 1 pre-read + apply target vs slice 2 graph-diff | 1b / 2 | **Decided:** slice 1 = **`CharacterMeta.RoomId`** pre-read + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
-| S1-7 | **Persistence apply API input** shape | 1a / 1b | **Decided:** **`MembershipApplyArgs`** `{ characterId, targetRoomId \| null }`; **`MembershipApplyResult`** `{ from, to, changed }`. **`updatePositionGraphs`** internal only. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
-| S1-8 | **No-op gate:** stream **`Character Moved`** only when `from !== to` after apply | 1b | **Decided:** **`changed`** on apply result / graph **`MembershipDiff`**; both slices |
 | S1-9 | **`RoomStack`-only mutation** (same room endpoint): emit fact or skip | 1b | **Decided:** skip --- no **`Character Moved`** |
 | S1-10 | **Exit-aware copy (slice 1):** **`exitName`** on navigate intent; no **`legalExits`** on fact | 1b | **Decided:** trust action-parse (**S1-1** extension). See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). Optional **`legalExits`** on contract unused until post-slice-2 spike if needed. |
-| S1-11 | **Side-effect gating:** fact-consolidated bundle vs legacy per-effect gates | 1a / 1b | **Decided:** **`changed`** only --- **`Character Moved`** + cache + **`RoomUpdate`** + **`EphemeraUpdate`** run together or not at all. See [Side-effect gating (**S1-11**)](#side-effect-gating-s1-11). |
 | S1-12 | **Connect path:** slice 1 vs defer | 1b | **Decided:** defer to slice **3** (connect-unification milestone; not slice **1**). Slice **1** ships navigate + disconnect through membership API; connect keeps `CheckLocation` / `moveCharacter` bridge. Fan-in connect **intent** adapters remain; positions **`Character Moved`** for connect deferred. |
-| S1-13 | **Persistence vs orchestration** boundary (`moveCharacter` split) | 1a | **Decided:** persistence module owns all membership Dynamo writes + roster projection side effects that slice **2** `updatePositionGraphs` will inherit; orchestration owns PerceptionThreads header, render kicks, **`MapUpdate`**. See [Persistence vs orchestration (**S1-13**)](#persistence-vs-orchestration-s1-13). |
 | S1-14 | **Slice 1 TEMP fact emit** (intent-assisted flat path) vs **slice 2 graph-diff** (**F1-8** steady state) | 1b / 2 | **Decided:** slice 1 TEMP with code comments; slice 2 cutover bundle replaces emit path. No virtual-graph write adapter in slice 1. |
+| S1-15 | **Gateway forward vs reverse reads:** **`getPositionGraph(hostId)`** + **`getMembershipContainers(componentId)`** (**array**); wire navigate parse + apply through **`internalCache.Positions`**; slice 1c adapter from **`RoomId`** | 1c | **Decided:** see [Positions gateway (**S1-15**)](#positions-gateway-forward-vs-reverse-reads-s1-15). Reverse backing **S2-5** adjacency at slice **2**. |
 
-**S1-5 context:** Today affordance compose reads roster via [`RoomCharacterList`](../../../../../../lambda/ephemera/internalCache/roomCharacterLists.ts) (direct `ephemeraDB` `activeCharacters` on miss), while exits use gateway-backed [`AffordanceCache`](../../../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) + [`ComponentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/). Target: **`createPositionsCacheHandler`** (name TBD) returns graph-shaped play state per component id; slice 1 implementation **projects** character nodes from `RoomId` / `activeCharacters`; slice 2 swaps the backing read to stored `Meta::Room.positionGraph` without changing the handler API. **Authoritative writer** = positions persistence API; **steady-state readers** = `internalCache` ([`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)).
+**Graduated to contract / implementation (slice 1a):** S1-4 (module layout), S1-5 (read surface), S1-7 (apply API), S1-8 (no-op gate), S1-11 (side-effect bundle), S1-13 (persistence vs orchestration), navigate ingress + actions cutover.
+
+**Decided, pending slice 1c implementation:** S1-15 (forward/reverse gateway disentangle).
+
+**S1-5 context (shipped):** Affordance compose reads roster via **`internalCache.Positions.getRoomRoster`** (gateway-backed; slice 1 projects from `activeCharacters` on miss). Exits remain gateway-backed **`AffordanceCache`** + **`ComponentTopology`**. Slice 2 swaps backing read to stored `Meta::Room.positionGraph` without changing handler API.
 
 ### Slice 2 (decide before slice 2 PR; may spike during slice 1)
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | S2-1 | **Play-only** `positionGraph` on `Meta::Room` (ephemera Dynamo) vs also **WML `StandardRoom.positionGraph`** in same slice | 2 | **Decided:** slice 2 adds **play-only** `Meta::Room.positionGraph` only. WML / asset **blueprint** placement (e.g. Objects, Characters assigned to rooms) is a **starting position** to prime play; in-play positions are expected to **diverge**. Reconciling a later blueprint change against current play --- **deferred** to later iterations. |
-| S2-2 | **Dual-write** (`positionGraph` + `activeCharacters`) vs **graph-primary** with synchronous projection to `activeCharacters` for affordance readers | 2 | **Decided:** **graph-primary**; synchronous projection to `activeCharacters` (or gateway-derived roster projection) as a **migration bridge** until readers migrate off the stored roster field. |
+| S2-2 | **Dual-write** (`positionGraph` + `activeCharacters`) vs **graph-primary** with synchronous projection to `activeCharacters` for affordance readers | 2 | **Decided:** **graph-primary** forward truth on **`positionGraph`**. Slice **2** cutover may **transitionally** dual-write legacy projection fields (**`activeCharacters`**, **`RoomId`**) until readers migrate --- **not** steady state. **S2-6** requires removing stored projection authority by initiative **close**. |
 | S2-3 | Slice 2 graph **v1**: character **nodes only** (no in-room edges) vs wait for edge types | 2 | **Decided:** character **nodes only** in slice 2 v1 (no in-room edges). |
+| S2-4 | **Expected departure for graph apply:** how **`updatePositionGraphs`** learns departure room id on navigate (stream / parse snapshot vs always pre-read vs hybrid verify-on-transact) | 2 | **Open** --- see [Intent `fromRoomId` asymmetry](#intent-fromroomid-asymmetry-slice-1-trust-vs-slice-2-persist-bite). **Prerequisite:** slice **1c** shipped (**S1-15** **`getMembershipContainers`** on shared **`internalCache.Positions`** memo). Use adjacency + cached containers (**S2-5**). **Emission trust unchanged:** fact **`from`** still from post-apply diff (**F1-8**); fan-in intent **`fromRoomId`** stays non-authoritative (**F1-1**). **Persist efficiency:** validate stream **`fromRoomId`** against cached containers; **`updatePositionGraphs`** optimistic remove + transact verify; reconcile on mismatch (race, drift, multi-container drift). Public **`MembershipApplyArgs`** (**S1-7**) unchanged unless decision expands API. |
+| S2-5 | **Reverse membership persistence backing** | 2 | **Decided:** **adjacency index** on ephemera Dynamo (**`COMPONENT#X`** partition, **`POSITION#COMPONENT#Y`** sort keys or equivalent) maintained in **`updatePositionGraphs`** transact bundle; backs **`getMembershipContainers`**. Denorm **`RoomId`** is **not** steady-state reverse authority (transitional dual-write only per **S2-2**). **`positionGraph`** wins on conflict/diagnostics. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
+| S2-6 | **Legacy projection storage retirement at initiative close** | Close | **Decided:** remove stored **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** as play membership authority; **`positionGraph` + adjacency** only. Migrate all steady-state readers to **`internalCache.Positions`**; grep gate at close. Optional perf-only memo caches OK; not Dynamo truth. |
 
 For a long option comparison on any row, add a root [**temporary analysis**](../../../../../../AGENT.md#temporary-working-documents) doc and link it from the table (do not bloat concepts).
 
@@ -350,32 +441,40 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Disconnect handler + connect bridge
   - [X] Unit tests
 
-- [ ] **Slice 1a --- persistence boundary (legacy storage; unblocked)**
+- [X] **Slice 1a --- persistence boundary (legacy storage)**
   - [X] Resolve **Open decisions** S1-1 through S1-14 (all slice **1** decisions resolved)
-  - [ ] Add **`positions/membership/`** module layout per **S1-4** (`applyCharacterRoomMembership` coordinator + flat persist impl)
-  - [ ] Implement flat persist + coordinator per **S1-13** + **S1-11** (membership-changed bundle when **`changed`**: persist, cache, **`RoomUpdate`**, **`EphemeraUpdate`**); slice 1b adds TEMP fact emit per **S1-14** in **`buildCharacterMovedFact`** / **`streamMembershipFact`**
-  - [ ] Refactor **disconnect** handler to call **`applyCharacterRoomMembership`** (not inline `optimisticUpdate`)
-  - [ ] Extract navigate **orchestration** from `moveCharacter` per **S1-13** (PerceptionThreads header, render kicks, **`MapUpdate`**); wire navigate persist through **`applyCharacterRoomMembership`**
-  - [ ] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive via fan-in emission per **S1-2**)
-  - [ ] Subscribe positions to `Character Navigate`; remove imperative `MoveCharacter` from actions
-  - [ ] Grep: no new direct `Meta::Room.activeCharacters` writes outside persistence API + documented exceptions
-  - [ ] Add `mtw-gateways/ts/ephemera/positions/` read surface (v1: **`positionGraph`** API; slice 1 adapter projects from flat fields); register on `internalCache`; point **`AffordanceRoomDeliverable`** roster path (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
-  - [ ] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
-  - [ ] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
+  - [X] Add **`positions/membership/`** module layout per **S1-4** (`applyCharacterRoomMembership` coordinator + flat persist impl)
+  - [X] Implement flat persist + coordinator per **S1-13** + **S1-11** (membership-changed bundle when **`changed`**: persist, cache, **`RoomUpdate`**, **`EphemeraUpdate`**); slice 1b adds TEMP fact emit per **S1-14** in **`buildCharacterMovedFact`** / **`streamMembershipFact`**
+  - [X] Refactor **disconnect** handler to call **`applyCharacterRoomMembership`** (not inline `optimisticUpdate`)
+  - [X] Extract navigate **orchestration** from `moveCharacter` per **S1-13** (PerceptionThreads header, render kicks, **`MapUpdate`**); wire navigate persist through **`applyCharacterRoomMembership`**
+  - [X] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive via fan-in emission per **S1-2**)
+  - [X] Subscribe positions to `Character Navigate`; remove imperative `MoveCharacter` from actions
+  - [X] Grep: no new direct `Meta::Room.activeCharacters` writes outside persistence API + documented exceptions
+  - [X] Add `mtw-gateways/ts/ephemera/positions/` read surface (v1: **`positionGraph`** API; slice 1 adapter projects from flat fields); register on `internalCache`; point **`AffordanceRoomDeliverable`** roster path (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
+  - [X] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
+  - [X] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
 
-- [ ] **Slice 1b --- fact producer (membership-changed bundle + stream)**
-  - [ ] **`buildCharacterMovedFact`** + **`streamMembershipFact`**: **`Character Moved`** at persistence apply (**S1-14** TEMP: pre-read `from`, apply target `to`, no-op gate **S1-8**); **`TEMP slice 1`** comments at fact-builder seam; **`beatAnchorTime`** (**F1-4**); **omit** **`legalExits`** (**S1-10**)
-  - [ ] Wire fact stream into membership-changed bundle (**S1-11**): when **`changed`**, emit fact with cache memo, **`RoomUpdate`**, **`EphemeraUpdate`**
-  - [ ] Scope: **navigate + disconnect** through **`applyCharacterRoomMembership`**; connect deferred (**S1-12** / slice **3**). Contract: [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) (shipped)
-  - [ ] **Fan-in consumer (external):** track publish + end-to-end emission tests in [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) Phase **1**
+- [X] **Slice 1b --- fact producer (membership-changed bundle + stream)**
+  - [X] **`buildCharacterMovedFact`** + **`streamMembershipFact`**: **`Character Moved`** at persistence apply (**S1-14** TEMP: pre-read `from`, apply target `to`, no-op gate **S1-8**); **`TEMP slice 1`** comments at fact-builder seam; **`beatAnchorTime`** (**F1-4**); **omit** **`legalExits`** (**S1-10**)
+  - [X] Wire fact stream into membership-changed bundle (**S1-11**): when **`changed`**, emit fact with cache memo, **`RoomUpdate`**, **`EphemeraUpdate`**
+  - [X] Scope: **navigate + disconnect** through **`applyCharacterRoomMembership`**; connect deferred (**S1-12** / slice **3**). Contract: [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) (shipped)
+  - [X] **Fan-in consumer (external):** track publish + end-to-end emission tests in [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) Phase **1**
 
-- [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + graph-diff facts (cutover bundle)**
-  - [X] Resolve **Open decisions** S2-1 through S2-3
+- [ ] **Slice 1c --- positions gateway forward/reverse reads (S1-15 decided)**
+  - [ ] **`mtw-gateways`:** add **`getMembershipContainers(componentId)`** returning **array**; disentangle from collapsed character **`getPositionGraph`** reverse path; slice 1 adapter projects from **`RoomId`** (0--1 elements)
+  - [ ] **`internalCache.Positions`:** separate memo keys / **`set`** / **`invalidate`** for forward vs reverse reads; extend membership coordinator memo for contained components
+  - [ ] Wire [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) and membership apply pre-read / **`fromRoomId`** validation through **`getMembershipContainers`** (remove ad hoc **`CharacterMeta`** / raw Dynamo on navigate hot path)
+  - [ ] Unit tests (gateway + actions + positions navigate); graduate [`mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) + positions contract/implementation read-path rules
+
+- [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
+  - [X] Resolve **Open decisions** S2-1 through S2-3, S2-5, S2-6 (intent)
+  - [ ] Resolve **Open decision** S2-4 (expected departure for graph apply; **requires slice 1c** shipped)
   - [ ] Add `positionGraph` (or agreed shape) to [`EphemeraMetaRoom`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)
-  - [ ] Implement **`updatePositionGraphs`** (immer draft, holistic diff, decomposed **`transactWrite`** + denorm / **`activeCharacters`** projection per S2-2); swap into **`applyCharacterRoomMembership`** (**S1-4**)
+  - [ ] Define adjacency row schema (**S2-5**) on ephemera Dynamo; document key layout in interfaces / gateways
+  - [ ] Implement **`updatePositionGraphs`** (immer draft, holistic diff, decomposed **`transactWrite`**: room **`positionGraph`** + **adjacency** + **transitional** legacy projection sync per **S2-2**); swap into **`applyCharacterRoomMembership`** (**S1-4**)
   - [ ] Replace slice 1 TEMP fact builder with **MembershipDiff**-only **`Character Moved`** emit; delete **`TEMP slice 1`** comments; graduate **F1-8** to contract
-  - [ ] Swap positions read gateway from flat projection to stored graph (S1-5)
-  - [ ] Graduate concepts (room play graph, character-as-node) + contract + implementation
+  - [ ] Swap positions gateway **backing**: forward from stored **`positionGraph`**, reverse from **adjacency** (**S1-15** / **S2-5**)
+  - [ ] Graduate concepts (room play graph, character-as-node, adjacency reverse index) + contract + implementation
 
 - [ ] **Slice 3 --- unify connect**
   - [ ] Route `Character Connected` through membership API (retire `CheckLocation` bridge)
@@ -389,6 +488,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] In-room edges, object nodes, container graphs (separate planning rows as needed)
 
 - [ ] **Close initiative**
+  - [ ] **S2-6:** Remove legacy membership projection **storage** --- stop persisting / authority reads of **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership; **`positionGraph` + adjacency** only (**Steady-state storage authority**)
+  - [ ] Grep: no steady-state **`activeCharacters`** / **`RoomId`** membership writes outside diagnostics; readers use **`internalCache.Positions`** only
   - [ ] Run verification matrix
   - [ ] Slim bridge notes in [`actions/AGENT.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.md)
   - [ ] Delete this planning file
@@ -410,7 +511,11 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Slice 1b gate:** fan-in emission tests --- cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`** (**S1-10**); disconnect leave-only; generic copy at deferral when intent absent; world lines use Model A anchor times. Slice 1 facts may use TEMP intent-assisted emit (**S1-14**). Connect arrive-only deferred to slice **3** (**S1-12**).
 
-**Slice 2 gate:** **`updatePositionGraphs`** + graph-diff **`Character Moved`**; no remaining **`TEMP slice 1`** emit path; persistence API tests against `positionGraph` + projection invariants; affordance/roster smoke paths unchanged for players.
+**Slice 1c gate:** **`getMembershipContainers`** returns **`[]`** or **`[roomId]`** for characters under flat storage; parse + apply share **`internalCache.Positions`** memo within invocation (no second Dynamo read on happy-path navigate); coordinator invalidates/memos reverse cache on membership apply.
+
+**Slice 2 gate:** **`updatePositionGraphs`** + **adjacency index** + graph-diff **`Character Moved`**; no remaining **`TEMP slice 1`** emit path; persistence API tests against **`positionGraph`** + adjacency invariants; transitional projection dual-write if any legacy readers remain; affordance/roster smoke paths via gateway.
+
+**Initiative close gate (**S2-6**):** no Dynamo authority on **`activeCharacters`** / **`RoomId`** for play membership; **`getMembershipContainers`** reads adjacency only; forward roster from **`positionGraph`**; conflict repair prefers graph.
 
 ---
 
@@ -420,8 +525,9 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | --- | --- |
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
-| Slice 1a: persistence boundary | Not started |
-| Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Not started (fan-in consumer publish --- track [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
+| Slice 1a: persistence boundary | Done |
+| Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Done (fan-in publish for navigate + disconnect --- [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
+| Slice 1c: gateway forward/reverse reads (**S1-15**) | Not started |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
-| Initiative close | Not started |
+| Initiative close (**S2-6** legacy projection retirement) | Not started |

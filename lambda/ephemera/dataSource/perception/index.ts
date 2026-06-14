@@ -41,7 +41,7 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isPerceptionSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
-        const fanInCtx = createMembershipFanInHandlerContext()
+        const fanInCtx = createMembershipFanInHandlerContext(messageBus)
         membershipPresentationFanInStore.setHandlerContext(fanInCtx)
 
         for (const event of events) {
@@ -66,8 +66,6 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
             }
             await orchestrateRoomDescriptionStreams(raw, messageBus)
         }
-
-        // fanInCtx.plans: collected by cluster handler; publish deferred to next slice
     },
 })
 

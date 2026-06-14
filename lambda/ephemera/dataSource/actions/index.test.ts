@@ -292,11 +292,9 @@ describe('ephemeraActionsDataSource', () => {
                     exitName: 'north',
                 },
             })
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
                 type: 'MoveCharacter',
-                characterId: 'CHARACTER#123',
-                roomId: dest,
-            })
+            }))
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
                     roomExits: [{ normalizedName: 'north', targetId: dest }],
