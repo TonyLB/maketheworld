@@ -9,7 +9,7 @@ type StreamEventFn = (params: {
     header: { type: string }
 }) => Promise<void>
 
-const getSessionIdFromConnectionId = async (connectionId: string): Promise<string | undefined> => {
+export const getSessionIdFromConnectionId = async (connectionId: string): Promise<string | undefined> => {
     const response = await connectionDB.getItem<{ SessionId?: string }>({
         Key: {
             ConnectionId: `CONNECTION#${connectionId}`,

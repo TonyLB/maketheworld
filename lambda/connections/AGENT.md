@@ -33,7 +33,7 @@ When changing session storage, update this section so the trade-off stays visibl
 - `connections` now uses a shared lambda-level bus ([`messageBus/index.ts`](messageBus/index.ts)) for both ingress adapters and DataSource subscription handling; `app.ts` clears the bus per invocation.
 - Non-EventBridge ingress is normalized into canonical internal `api.connections` envelopes via [`dataSource/apiConnections.ts`](dataSource/apiConnections.ts) and enqueued onto that shared bus:
   - API Gateway/WebSocket: `$disconnect`, `/validateInvitation`, `/signIn`, `/signUp`, `/accessToken`
-  - API Gateway/WebSocket: `service: connections`, `message: registercharacter` (registration ingress authority)
+  - API Gateway/WebSocket: `service: connections`, `message: registercharacter` and `message: unregistercharacter` (registration / unregistration ingress authority)
   - direct invoke control messages: `dropConnection`, `checkSession`, `generateInvitation`
 - EventBridge finding intake (`source: mtw.diagnostics`, `detail-type: Stale SessionId Finding`) is adapted into streaming envelopes and published onto the same shared bus, then routed through DataSource subscription wiring plus subscribed-event guards in [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts).
 - API/direct-invoke responses follow the established lambda pattern: API handlers `publish` bus `ReturnValue`/`Error` messages; [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) (via [`returnValue/collector.ts`](returnValue/collector.ts), priority **16**) collects them; ingress returns through [`returnValue/extractReturnValue`](returnValue/index.ts) after `messageBus.flushAndSettle()` (reads collectors only, not `_stream`). The interim request-id promise correlation map (`pendingResponses`) was removed.
@@ -46,7 +46,9 @@ When changing session storage, update this section so the trade-off stays visibl
 
 **`Character Registered` ownership:** `registercharacter` ingress routes through `connections` (`service: connections`) and applies authoritative adjacency/session mutation in [`registerCharacter/index.ts`](registerCharacter/index.ts) before emitting `Character Registered` on `mtw.connections` with stream key `CHARACTER#...`. Derived presence transitions (`Character Connected`) are emitted on `mtw.connections.characters`.
 
-**Registration steady state:** no registration bridge remains in `ephemera`. Authoritative ingress is `service: connections` only, through [`ingress.ts`](ingress.ts) and [`registerCharacter/index.ts`](registerCharacter/index.ts).
+**`unregistercharacter` ownership:** `unregistercharacter` ingress routes through `connections` (`service: connections`) and removes session adjacency in [`unregisterCharacter/index.ts`](unregisterCharacter/index.ts) via [`disconnect/index.ts`](disconnect/index.ts) `atomicallyRemoveCharacterAdjacency`. When post-removal `sessions` is empty, the handler streams `Character Disconnected` on `mtw.connections.characters` (not `Session Disconnect` --- the session may remain alive for other characters).
+
+**Registration steady state:** no registration bridge remains in `ephemera`. Authoritative ingress is `service: connections` only, through [`ingress.ts`](ingress.ts) and [`registerCharacter/index.ts`](registerCharacter/index.ts) / [`unregisterCharacter/index.ts`](unregisterCharacter/index.ts).
 
 **`mtw.connections.characters` producer invariants:**
 
@@ -71,7 +73,7 @@ Two distinct product needs (separate producer events, separate ephemera owners):
 | Event | Source | Ephemera consumer | Steady-state intent |
 | --- | --- | --- | --- |
 | **`Character Registered`** | `mtw.connections` | **`renderOrchestration`** + **`affordanceOrchestration`** (guards: [`connectionsCharacterRegistered/subscribedEvents.ts`](../ephemera/dataSource/connectionsCharacterRegistered/subscribedEvents.ts)); terminal delivery via **`perception`** to **`characterId`** | Session-scoped RoomHeader bootstrap for the logging-in client. **Not** world projection. |
-| **`Character Connected`** / **`Character Disconnected`** | `mtw.connections.characters` | **`mtw.ephemera.positions`** ([`dataSource/positions/`](../ephemera/dataSource/positions/)) | World projection: `Meta::Room.activeCharacters`, arrival/departure `WorldMessage`, `RoomUpdate`. **Not** session RoomHeader bootstrap. |
+| **`Character Connected`** / **`Character Disconnected`** | `mtw.connections.characters` | **`mtw.ephemera.positions`** ([`dataSource/positions/`](../ephemera/dataSource/positions/)) | Membership apply (`applyCharacterRoomMembership`), `Character Moved` fact, cache/`RoomUpdate` bundle; world copy via fan-in. **Not** session RoomHeader bootstrap. |
 
 **Session orientation mechanics (ephemera):** on **`Character Registered`**, [`handleCharacterRegisteredOrientation`](../ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with **`targets: [characterId]`**, then kicks render and affordance orchestration with **room + perspective only**. Delivery intent lives on the thread rows; orchestration and cache emit **`* Pertains`** with routing identity only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in. Both consumers tolerate duplicate events; orientation may re-send headers on every registration (including second tab).
 

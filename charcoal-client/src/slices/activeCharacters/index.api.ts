@@ -70,7 +70,7 @@ export const unregisterAction: ActiveCharacterAction = (incoming) => async (disp
         LifeLinePubSub.unsubscribe(subscription)
     }
     if (id) {
-        await dispatch(socketDispatchPromise({ message: 'unregistercharacter', CharacterId: id }))
+        await dispatch(socketDispatchPromise({ message: 'unregistercharacter', CharacterId: id }, { service: 'connections' }))
     }
     else {
         console.log(`NO ID for ACTIVE CHARACTER`)

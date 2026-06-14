@@ -14,7 +14,6 @@ import {
     isMapSubscribeAPIMessage,
     isEphemeraAPIMessage,
     isMapUnsubscribeAPIMessage,
-    isUnregisterCharacterAPIMessage,
     isCommandAPIMessage,
     isActionAPIMessage,
     isEphemeraApiStateChangeAPIMessage,
@@ -145,15 +144,6 @@ export const handler = async (event: any, context: any) => {
     // Handle legacy EventBridge messages that don't use DataSource pattern yet
     if (['mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
-            case 'Disconnect Character':
-                console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)
-                if (event.detail.characterId) {
-                    messageBus.publish({
-                        type: 'DisconnectCharacter',
-                        characterId: event.detail.characterId
-                    })
-                }
-                break
             case 'Player Connected':
                 await confirmGuestCharacter(event.detail.player)
                 await messageBus.flushAndSettle()
@@ -162,20 +152,6 @@ export const handler = async (event: any, context: any) => {
     }
     else {
         if (isEphemeraAPIMessage(request)) {
-            if (isUnregisterCharacterAPIMessage(request)) {
-                if (request.CharacterId && isEphemeraCharacterId(request.CharacterId)) {
-                    messageBus.publish({
-                        type: 'UnregisterCharacter',
-                        characterId: request.CharacterId
-                    })
-                }
-                else {
-                    //
-                    // TODO: Error messages back to client
-                    //
-                    console.log(`TEMPORARY WARNING: '${request.CharacterId}' is not a legitimate CharacterId`)
-                }
-            }
             if (isFetchEphemeraAPIMessage(request)) {
                 //
                 // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages

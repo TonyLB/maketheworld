@@ -10,9 +10,7 @@ import {
     isMapSubscription,
     isMapUpdateMessage,
     isMapUnsubscribe,
-    isUnregisterCharacterMessage,
     isCheckLocation,
-    isDisconnectCharacterMessage,
     isCharacterEventMessage,
     isExecuteActionMessage
 } from "./baseClasses"
@@ -21,7 +19,6 @@ import publishMessage from '../publishMessage'
 import { publishMessageCoalescer } from '../publishMessage/coalescer'
 import { checkLocationCoalescer } from '../checkLocation/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
-import { unregisterCharacterMessage, disconnectCharacterMessage } from '../disconnectMessage'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
@@ -46,18 +43,6 @@ messageBus.subscribe({
     priority: 10,
     filter: isEphemeraUpdate,
     callback: ephemeraUpdate
-})
-messageBus.subscribe({
-    tag: 'UnregisterCharacter',
-    priority: 1,
-    filter: isUnregisterCharacterMessage,
-    callback: unregisterCharacterMessage
-})
-messageBus.subscribe({
-    tag: 'DisconnectCharacter',
-    priority: 1,
-    filter: isDisconnectCharacterMessage,
-    callback: disconnectCharacterMessage
 })
 messageBus.subscribe({
     tag: 'FetchPlayerEphemera',

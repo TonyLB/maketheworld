@@ -128,9 +128,13 @@ Positions **must** subscribe to:
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
 - **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
-- **Must not** write play membership fields outside [`membership/`](membership/) except documented legacy:
-  - [`../../disconnectMessage/index.ts`](../../disconnectMessage/index.ts) (retire slice 4)
+- **Must not** write play membership fields outside [`membership/`](membership/) except documented diagnostics:
   - [`../selfHealing/roomOccupancyDriftFinding.ts`](../selfHealing/roomOccupancyDriftFinding.ts) (diagnostics self-healing rebuild)
+
+### Disconnect ingress (slice 4)
+
+- **Must** consume disconnect only via **`mtw.connections.characters`** / **`Character Disconnected`** (not legacy `Disconnect Character` EventBridge or ephemera `disconnectMessage`).
+- **`unregistercharacter`** WebSocket ingress is **connections-owned** (`service: connections`); ephemera does not handle it.
 
 ---
 

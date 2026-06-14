@@ -10,12 +10,14 @@ import { createCognitoUser } from "../createUser"
 import { disconnect } from "../disconnect"
 import { generateInvitationCode, validateInvitationCode } from "../invitationCodes"
 import { registerCharacterMessage } from "../registerCharacter"
+import { unregisterCharacterMessage } from "../unregisterCharacter"
 import { handleStaleSessionFinding } from "../staleSessionFinding"
 import { getSessionPlayerForTeardown, tearDownStaleSession } from "../staleSessionTeardown"
 import messageBus from "../messageBus"
 import { ConnectionsAPIPayload, isApiConnectionsEnvelope } from "./apiConnections"
 import { ConnectionsExternalSubscribedContent, isConnectionsSubscribedEnvelope, isDiagnosticsStaleSessionFindingEnvelope } from "./subscribedEvents"
 import "./charactersDataSource"
+import { streamConnectionsCharactersEvent } from "./charactersDataSource"
 
 export const diagnosticsDeserializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 const connectionsEventSerializer = new ConnectionsEventSerializer(createNodeDataSourceEnvironment())
@@ -94,6 +96,15 @@ const handleApiConnectionsPayload = async (content: ConnectionsAPIPayload) => {
                 characterId: content.characterId,
                 requestId: content.requestId,
                 streamEvent: streamConnectionsEvent
+            })
+            return result
+        }
+        case 'unregisterCharacter': {
+            const result = await unregisterCharacterMessage({
+                connectionId: content.connectionId,
+                characterId: content.characterId,
+                requestId: content.requestId,
+                streamCharactersEvent: streamConnectionsCharactersEvent
             })
             return result
         }

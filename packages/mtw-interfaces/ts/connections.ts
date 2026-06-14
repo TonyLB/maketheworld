@@ -6,14 +6,26 @@ export type RegisterCharacterConnectionsAPIMessage = {
     CharacterId: EphemeraCharacterId
 }
 
+export type UnregisterCharacterConnectionsAPIMessage = {
+    message: "unregistercharacter"
+    CharacterId: EphemeraCharacterId
+}
+
 export type ConnectionsAPIMessage = { RequestId?: string } & (
-    RegisterCharacterConnectionsAPIMessage
+    RegisterCharacterConnectionsAPIMessage |
+    UnregisterCharacterConnectionsAPIMessage
 )
 
 export const isRegisterCharacterConnectionsAPIMessage = (
     message: ConnectionsAPIMessage
 ): message is RegisterCharacterConnectionsAPIMessage => (
     message.message === "registercharacter"
+)
+
+export const isUnregisterCharacterConnectionsAPIMessage = (
+    message: ConnectionsAPIMessage
+): message is UnregisterCharacterConnectionsAPIMessage => (
+    message.message === "unregistercharacter"
 )
 
 export const isConnectionsAPIMessage = (message: any): message is ConnectionsAPIMessage => {
@@ -25,6 +37,7 @@ export const isConnectionsAPIMessage = (message: any): message is ConnectionsAPI
     }
     switch(message.message) {
         case "registercharacter":
+        case "unregistercharacter":
             return Boolean(
                 checkTypes(message, { CharacterId: "string" }, { RequestId: "string" })
                 && isEphemeraCharacterId(message.CharacterId)

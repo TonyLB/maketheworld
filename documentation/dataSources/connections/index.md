@@ -16,7 +16,7 @@ Events:
 Notes:
 
 - `Session Disconnect` carries an optional `characterIds` field: the teardown-time candidate set of characters adjacently attached to the dropped session; the derived `mtw.connections.characters` lane uses this field to perform its final connected/disconnected judgment.
-- Registration ingress authority is now in `connections`: websocket `service: connections` with `message: registercharacter` writes adjacency/session membership and emits `Character Registered`.
+- Registration ingress authority is now in `connections`: websocket `service: connections` with `message: registercharacter` writes adjacency/session membership and emits `Character Registered`; `message: unregistercharacter` removes session adjacency and may emit `Character Disconnected` when aggregate sessions reach zero.
 - Ephemera registration bridge paths are removed; `service: ephemera` is no longer a valid registration ingress target.
 - Client request contract for websocket `service: connections` is now isolated as `ConnectionsAPIMessage` in `packages/mtw-interfaces/ts/connections.ts` (no longer piggybacked on ephemera request typings).
 
@@ -54,7 +54,7 @@ Producer boundary semantics:
 
 Consumers:
 
-- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` triggers `CheckLocation`/`MoveCharacter` (room arrival, `Meta::Room.activeCharacters` add); `Character Disconnected` runs a conditional `Meta::Room.activeCharacters` projection that gates departure `WorldMessage`/`RoomUpdate` on actual change. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md). Session RoomHeader bootstrap is **not** this path; see `Character Registered` consumers under `mtw.connections` above.
+- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` resolves connect target room and applies membership via `applyCharacterRoomMembership`; `Character Disconnected` applies out-of-play membership. Fan-in owns arrive/leave world copy; coordinator owns `Character Moved`, cache memo, and `RoomUpdate` when `changed`. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md). Session RoomHeader bootstrap is **not** this path; see `Character Registered` consumers under `mtw.connections` above.
 
 Operational guardrails:
 

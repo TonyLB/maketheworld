@@ -10,6 +10,7 @@ export type ConnectionsAPIPayload =
     | { type: 'signUp'; userName: string; inviteCode: string; password: string }
     | { type: 'accessToken'; RefreshToken: string }
     | { type: 'registerCharacter'; connectionId: string; characterId: EphemeraCharacterId; requestId?: string }
+    | { type: 'unregisterCharacter'; connectionId: string; characterId: EphemeraCharacterId; requestId?: string }
     | { type: 'dropConnection'; sessionId: string; connectionId: string }
     | { type: 'checkSession'; sessionId: string }
     | { type: 'generateInvitation' }
@@ -23,7 +24,7 @@ const isApiConnectionsHeader: HeaderGuard<ConnectionsApiSubscribedHeader> = (
     header
 ): header is ConnectionsApiSubscribedHeader => (
     header.dataSourceKey === 'api.connections' &&
-    ['$disconnect', 'validateInvitation', 'signIn', 'signUp', 'accessToken', 'registerCharacter', 'dropConnection', 'checkSession', 'generateInvitation'].includes(header.type)
+    ['$disconnect', 'validateInvitation', 'signIn', 'signUp', 'accessToken', 'registerCharacter', 'unregisterCharacter', 'dropConnection', 'checkSession', 'generateInvitation'].includes(header.type)
 )
 
 export const isApiConnectionsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<

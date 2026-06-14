@@ -184,8 +184,8 @@ describe('app handler', () => {
     })
 
     describe('WebSocket wire routes', () => {
-        it('routes unregisterCharacter to UnregisterCharacter publish', async () => {
-            await handler(
+        it('does not route unregistercharacter on ephemera ingress', async () => {
+            const response = await handler(
                 {
                     requestContext: { connectionId: 'test-connection' },
                     body: JSON.stringify({
@@ -196,11 +196,12 @@ describe('app handler', () => {
                 {}
             )
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'UnregisterCharacter',
-                characterId: 'CHARACTER#abc',
-            })
-            expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
+            const unregisterCall = mockMessageBus.publish.mock.calls.find(
+                ([payload]) => (payload as { type?: string })?.type === 'UnregisterCharacter'
+            )
+            expect(unregisterCall).toBeUndefined()
+            expect(response).toEqual(expect.objectContaining({ statusCode: 400 }))
+            expect(mockMessageBus.flushAndSettle).not.toHaveBeenCalled()
         })
 
         it('returns fetchEphemera snapshot via ReturnValue publish and extractReturnValue', async () => {

@@ -5,16 +5,6 @@ import { isThinkingResultEvent, type ThinkingResultEvent } from "./eventBridge/e
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
 
-export type RegisterCharacterAPIMessage = {
-    message: 'registercharacter';
-    CharacterId: EphemeraCharacterId;
-}
-
-export type UnregisterCharacterAPIMessage = {
-    message: 'unregistercharacter';
-    CharacterId: EphemeraCharacterId;
-}
-
 export type FetchEphemeraAPIMessage = {
     message: 'fetchEphemera';
     CharacterId?: string;
@@ -127,8 +117,6 @@ export type FetchThinkingResultAPIMessage = {
 export type EphemeraApiCommand = 'stateChange'
 
 export type EphemeraAPIMessage = { RequestId?: string } & (
-    RegisterCharacterAPIMessage |
-    UnregisterCharacterAPIMessage |
     FetchEphemeraAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
@@ -141,8 +129,6 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     FetchThinkingResultAPIMessage
 )
 
-export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
-export const isUnregisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is UnregisterCharacterAPIMessage => (message.message === 'unregistercharacter')
 export const isFetchEphemeraAPIMessage = (message: EphemeraAPIMessage): message is FetchEphemeraAPIMessage => (message.message === 'fetchEphemera')
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
@@ -203,12 +189,6 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
         return false
     }
     switch(message.message) {
-        case 'registercharacter':
-        case 'unregistercharacter':
-            return Boolean(
-                checkTypes(message, { CharacterId: 'string' })
-                && isEphemeraCharacterId(message.CharacterId)
-            )
         case 'subscribeToMaps':
         case 'unsubscribeFromMaps':
         case 'fetchEphemera':
