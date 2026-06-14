@@ -98,6 +98,56 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
     return true
 }
 
+/** Slice 2 v1: Character membership nodes only; edges empty until slice 5+. Play identity is universalKey only (no asset-local key). */
+export type EphemeraPlayPositionGraphNode = {
+    tag: 'Character';
+    universalKey: EphemeraCharacterId;
+}
+
+/** Play-time membership graph stored on Meta::Room (topology only; roster display via activeCharacters during S2-2). */
+export type EphemeraPlayPositionGraph = {
+    nodes: EphemeraPlayPositionGraphNode[];
+    /** Slice 2 v1: must be absent or []. In-room edges deferred. */
+    edges?: [];
+}
+
+export const isEphemeraPlayPositionGraphNode = (value: unknown): value is EphemeraPlayPositionGraphNode => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const entry = value as EphemeraPlayPositionGraphNode
+    if (entry.tag !== 'Character') {
+        return false
+    }
+    if (!isEphemeraCharacterId(entry.universalKey)) {
+        return false
+    }
+    if ('key' in entry) {
+        return false
+    }
+    return true
+}
+
+export const isEphemeraPlayPositionGraph = (value: unknown): value is EphemeraPlayPositionGraph => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const graph = value as EphemeraPlayPositionGraph
+    if (!Array.isArray(graph.nodes)) {
+        return false
+    }
+    if (!graph.nodes.every((entry) => isEphemeraPlayPositionGraphNode(entry))) {
+        return false
+    }
+    if ('edges' in graph) {
+        const edges = graph.edges
+        if (!Array.isArray(edges) || edges.length > 0) {
+            return false
+        }
+    }
+    return true
+}
+
 export type EphemeraMetaRoom = {
     EphemeraId: EphemeraRoomId;
     DataCategory: 'Meta::Room';
@@ -106,6 +156,11 @@ export type EphemeraMetaRoom = {
     // Existing field used for presence lists and room updates.
     //
     activeCharacters?: EphemeraRoomActiveCharacter[];
+
+    //
+    // Play-time membership graph (slice 2+ authority). Slice 2 v1: character nodes only.
+    //
+    positionGraph?: EphemeraPlayPositionGraph;
 
     //
     // v1 world-state fields for state-driven, cache-backed Room rendering.
@@ -197,6 +252,9 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
         if (!objects.every((entry: unknown) => isEphemeraMetaRoomObject(entry))) {
             return false
         }
+    }
+    if ('positionGraph' in value && !isEphemeraPlayPositionGraph(value.positionGraph)) {
+        return false
     }
     return true
 }

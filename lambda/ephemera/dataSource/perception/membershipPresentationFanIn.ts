@@ -4,7 +4,7 @@ import { FanInClusterStore } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fan
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { publishMembershipPresentation } from './publishMembershipPresentation'
 
-/** Provisional until positions publishedEvents.ts (slice 1b); null = out of play. */
+/** Singular `to` endpoint; null = out of play. Fact leg uses `froms[]` (`[]` = out of play). */
 export type MembershipEndpoint = EphemeraRoomId | null
 
 export type MembershipIntentKind = 'navigate' | 'home' | 'teleport' | 'connect' | 'disconnect'
@@ -21,7 +21,7 @@ export type MembershipIntentLeg = {
 export type MembershipFactLeg = {
     kind: 'fact'
     characterId: EphemeraCharacterId
-    from: MembershipEndpoint
+    froms: EphemeraRoomId[]
     to: MembershipEndpoint
     legalExits?: string[]
     beatAnchorTime: number
@@ -46,8 +46,9 @@ export type MembershipEmissionPlan = {
     exitName?: string
     beatAnchorTime: number
     characterId: EphemeraCharacterId
-    from: MembershipEndpoint
+    froms: EphemeraRoomId[]
     to: MembershipEndpoint
+    intentFromRoomId?: EphemeraRoomId
     characterName?: string
 }
 
@@ -59,21 +60,34 @@ const formatEndpointForIdentity = (endpoint: MembershipEndpoint): string => (
     endpoint ?? 'out'
 )
 
+export const canonicalFromsForIdentity = (froms: EphemeraRoomId[]): string => (
+    froms.length === 0 ? 'out' : [...froms].sort().join('+')
+)
+
+export const fromsEqual = (left: EphemeraRoomId[], right: EphemeraRoomId[]): boolean => {
+    if (left.length !== right.length) {
+        return false
+    }
+    const sortedLeft = [...left].sort()
+    const sortedRight = [...right].sort()
+    return sortedLeft.every((entry, index) => entry === sortedRight[index])
+}
+
 export const membershipClusterIdentity = (
     characterId: EphemeraCharacterId,
-    from: MembershipEndpoint,
+    froms: EphemeraRoomId[],
     to: MembershipEndpoint
 ): string => (
-    `${characterId}:${formatEndpointForIdentity(from)}->${formatEndpointForIdentity(to)}`
+    `${characterId}:${canonicalFromsForIdentity(froms)}->${formatEndpointForIdentity(to)}`
 )
 
 export const inferMembershipEmissionShape = (
-    from: MembershipEndpoint,
+    froms: EphemeraRoomId[],
     to: MembershipEndpoint
 ): MembershipEmissionShape => {
-    const fromInPlay = from !== null
+    const fromInPlay = froms.length > 0
     const toInPlay = to !== null
-    if (fromInPlay && toInPlay && from !== to) {
+    if (fromInPlay && toInPlay && !(froms.length === 1 && froms[0] === to)) {
         return 'leaveAndArrive'
     }
     if (!fromInPlay && toInPlay) {
@@ -89,7 +103,7 @@ const intentEndpointsCompatibleWithFact = (
     intent: MembershipIntentLeg,
     fact: MembershipFactLeg
 ): boolean => {
-    if (intent.fromRoomId !== undefined && intent.fromRoomId !== fact.from) {
+    if (intent.fromRoomId !== undefined && !fact.froms.includes(intent.fromRoomId)) {
         return false
     }
     if (intent.toRoomId !== undefined && intent.toRoomId !== fact.to) {
@@ -123,7 +137,7 @@ export const buildMembershipEmissionPlan = (
     }
 
     const intentLeg = legs.find((leg): leg is MembershipIntentLeg => leg.kind === 'intent')
-    const shape = inferMembershipEmissionShape(factLeg.from, factLeg.to)
+    const shape = inferMembershipEmissionShape(factLeg.froms, factLeg.to)
 
     let copyKind: MembershipEmissionCopyKind = 'genericFactOnly'
     let exitName: string | undefined
@@ -149,8 +163,9 @@ export const buildMembershipEmissionPlan = (
         exitName,
         beatAnchorTime: factLeg.beatAnchorTime,
         characterId: factLeg.characterId,
-        from: factLeg.from,
+        froms: factLeg.froms,
         to: factLeg.to,
+        intentFromRoomId: intentLeg?.fromRoomId,
         characterName: factLeg.characterName,
     }
 }
@@ -204,7 +219,7 @@ export class MembershipPresentationFanInCluster extends FanInCluster<
         const myFact = this.factLeg()
         const otherFact = other.factLeg()
         if (myFact && otherFact) {
-            return myFact.from === otherFact.from && myFact.to === otherFact.to
+            return fromsEqual(myFact.froms, otherFact.froms) && myFact.to === otherFact.to
         }
 
         const myIntent = this.intentLeg()
@@ -249,7 +264,7 @@ export class MembershipPresentationFanInCluster extends FanInCluster<
         if (!fact) {
             return null
         }
-        return membershipClusterIdentity(fact.characterId, fact.from, fact.to)
+        return membershipClusterIdentity(fact.characterId, fact.froms, fact.to)
     }
 
     get completed(): boolean {

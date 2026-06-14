@@ -93,7 +93,7 @@ describe('membershipPresentationLegAdapters', () => {
             const moved: CharacterMovedPublishedPayload = {
                 type: 'Character Moved',
                 characterId: CHARACTER,
-                from: ROOM_A,
+                froms: [ROOM_A],
                 to: ROOM_B,
                 beatAnchorTime: ANCHOR_TIME,
             }
@@ -223,7 +223,7 @@ describe('membershipPresentationLegAdapters', () => {
                 envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                     type: 'Character Moved',
                     characterId: CHARACTER,
-                    from: ROOM_A,
+                    froms: [ROOM_A],
                     to: ROOM_B,
                     beatAnchorTime: ANCHOR_TIME,
                     legalExits: ['north'],
@@ -233,7 +233,7 @@ describe('membershipPresentationLegAdapters', () => {
             expect(leg).toEqual({
                 kind: 'fact',
                 characterId: CHARACTER,
-                from: ROOM_A,
+                froms: [ROOM_A],
                 to: ROOM_B,
                 beatAnchorTime: ANCHOR_TIME,
                 legalExits: ['north'],
@@ -282,7 +282,7 @@ describe('membershipPresentationLegAdapters', () => {
             const factEnvelope = envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: CHARACTER,
-                from: ROOM_A,
+                froms: [ROOM_A],
                 to: ROOM_B,
                 beatAnchorTime: ANCHOR_TIME,
             })

@@ -113,3 +113,9 @@ export const connectionsCharactersDataSource = new DataSource<
 
 connectionsCharactersDataSource.subscribe()
 
+export const streamConnectionsCharactersEvent = async (params: {
+    update: ConnectionsCharactersEventUpdate;
+    streamKey: string;
+    header: { type: string };
+}) => connectionsCharactersDataSource.streamEvent(params as any)
+

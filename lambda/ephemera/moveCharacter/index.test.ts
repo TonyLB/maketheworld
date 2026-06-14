@@ -123,7 +123,7 @@ describe('moveCharacter', () => {
         mockSendRenderRequested.mockClear()
         applyCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
-            from: 'ROOM#VORTEX',
+            froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
@@ -191,7 +191,7 @@ describe('moveCharacter', () => {
                 suppressDeparture: true,
                 suppressArrival: true,
             },
-            from: 'ROOM#VORTEX',
+            froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',
             beatAnchorTime: 1_700_000_000_000,
             messageBus: messageBusMock,
@@ -202,7 +202,7 @@ describe('moveCharacter', () => {
     it('skips orchestration when membership apply is a no-op', async () => {
         applyCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
-            from: 'ROOM#VORTEX',
+            froms: ['ROOM#VORTEX'],
             to: 'ROOM#VORTEX',
             changed: false,
         })

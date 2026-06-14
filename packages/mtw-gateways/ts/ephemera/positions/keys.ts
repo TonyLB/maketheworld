@@ -5,3 +5,6 @@ export const positionGraphCacheKey = (componentId: EphemeraCharacterId | Ephemer
 
 export const roomRosterCacheKey = (roomId: EphemeraRoomId): string =>
     `${roomId}::roomRoster`
+
+export const membershipContainersCacheKey = (componentId: EphemeraCharacterId): string =>
+    `${componentId}::membershipContainers`

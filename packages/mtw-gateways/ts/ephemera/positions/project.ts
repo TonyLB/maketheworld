@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPlayPositionGraph, EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
 import type { PlayPositionGraph, PlayPositionRoomRosterEntry } from './types'
@@ -21,8 +21,7 @@ const characterNodeReference = (characterId: EphemeraCharacterId): StandardRefer
 })
 
 /**
- * TEMP slice 1 --- projects flat `activeCharacters` into a play position graph.
- * Slice 2 swaps backing read to stored `Meta::Room.positionGraph`.
+ * Projects flat `activeCharacters` into a play position graph (bootstrap read fallback).
  */
 export const projectRoomGraphFromActiveCharacters = (
     activeCharacters: EphemeraRoomActiveCharacter[]
@@ -40,6 +39,31 @@ export const projectRoomGraphFromActiveCharacters = (
     }
 }
 
+/**
+ * Slice 2 forward read: stored topology from Meta::Room.positionGraph plus transitional
+ * roster display metadata from activeCharacters when present (S2-2 until S2-6).
+ */
+export const projectRoomGraphFromStoredPositionGraph = (
+    stored: EphemeraPlayPositionGraph,
+    activeCharacters?: EphemeraRoomActiveCharacter[]
+): PlayPositionGraph => {
+    const characterRosterMeta: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>> = {}
+    if (activeCharacters) {
+        for (const entry of activeCharacters) {
+            characterRosterMeta[entry.EphemeraId] = toRosterEntry(entry)
+        }
+    }
+    const nodes: StandardReferenceData[] = stored.nodes.map((node) => ({
+        tag: 'Character',
+        universalKey: node.universalKey,
+    }))
+    return {
+        nodes,
+        edges: [],
+        ...(Object.keys(characterRosterMeta).length > 0 ? { characterRosterMeta } : {}),
+    }
+}
+
 export const projectCharacterGraphFromRoomEndpoint = (
     characterId: EphemeraCharacterId,
     roomEndpoint: EphemeraRoomId | null
@@ -48,6 +72,16 @@ export const projectCharacterGraphFromRoomEndpoint = (
     edges: [],
     roomEndpoint,
 })
+
+/** Forward-looking stub for future character inventory (container-scale play graph). */
+export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
+    nodes: [],
+    edges: [],
+})
+
+export const projectMembershipContainersFromRoomEndpoint = (
+    roomEndpoint: EphemeraRoomId | null
+): EphemeraRoomId[] => (roomEndpoint ? [roomEndpoint] : [])
 
 export const projectRoomRosterFromGraph = (graph: PlayPositionGraph): PlayPositionRoomRosterEntry[] => {
     const meta = graph.characterRosterMeta ?? {}

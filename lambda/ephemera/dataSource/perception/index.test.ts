@@ -981,7 +981,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
             })
@@ -1010,7 +1010,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',
@@ -1038,7 +1038,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: null,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',
@@ -1054,13 +1054,41 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishSpy.mockRestore()
         })
 
+        it('connect intent + fact publishes arrive-only connect copy', async () => {
+            const publishSpy = spyPublish()
+
+            publishMembershipStreamingEvent('mtw.connections.characters', 'Character Connected', {
+                type: 'Character Connected',
+                characterId: MEMBERSHIP_CHARACTER,
+                sessionId: 'SESSION#1',
+                timestamp: '2026-05-08T12:00:00.000Z',
+            })
+            publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: MEMBERSHIP_CHARACTER,
+                froms: [],
+                to: MEMBERSHIP_ROOM_B,
+                beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
+                characterName: 'Alice',
+            })
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string; message?: string[] }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            expect((worldPublishes[0][0] as { message?: string[] }).message).toEqual(['Alice has connected.'])
+            publishSpy.mockRestore()
+        })
+
         it('fact before intent still publishes after correlation', async () => {
             const publishSpy = spyPublish()
 
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
             })
@@ -1086,7 +1114,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',

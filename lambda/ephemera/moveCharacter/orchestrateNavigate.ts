@@ -12,7 +12,7 @@ import { type CharacterMoveDeliveryKey } from '../dataSource/perception/characte
 export type OrchestrateCharacterNavigateArgs = {
     payload: MoveCharacterMessage;
     characterMeta: CharacterMetaItem;
-    from: EphemeraRoomId | null;
+    froms: EphemeraRoomId[];
     to: EphemeraRoomId | null;
     beatAnchorTime?: number;
     messageBus: MessageBus;
@@ -26,14 +26,18 @@ export type OrchestrateCharacterNavigateArgs = {
 export const orchestrateCharacterNavigate = async ({
     payload,
     characterMeta,
-    from,
+    froms,
     to,
     beatAnchorTime,
     messageBus,
 }: OrchestrateCharacterNavigateArgs): Promise<void> => {
-    if (!to || from === to) {
+    if (!to || (froms.length === 1 && froms[0] === to)) {
         return
     }
+
+    // Temporary singular bridge: downstream PerceptionThreads / MapUpdate / imperative leave
+    // still take one room; fan-in Phase 2+ owns multi-departure leave. Use first prior container.
+    const primaryDeparture = froms[0] ?? characterMeta.RoomId
 
     const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
     let characterMoveKey: CharacterMoveDeliveryKey | null = null
@@ -52,7 +56,7 @@ export const orchestrateCharacterNavigate = async ({
             componentId: to,
             perspectiveKey,
             characterId: payload.characterId,
-            departureRoomId: from ?? characterMeta.RoomId,
+            departureRoomId: primaryDeparture,
             messageGroupId,
             leaveMessageGroupId,
             arriveMessageGroupId,
@@ -61,7 +65,7 @@ export const orchestrateCharacterNavigate = async ({
             ...(beatAnchorTime !== undefined ? { createdTime: beatAnchorTime } : {}),
             leaveWorldMessage: !payload.suppressDeparture
                 ? {
-                    targets: [from ?? characterMeta.RoomId, payload.characterId],
+                    targets: [primaryDeparture, payload.characterId],
                     message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
                 }
                 : undefined,
@@ -82,10 +86,10 @@ export const orchestrateCharacterNavigate = async ({
         }
     }
 
-    if (!characterMoveKey && from && !payload.suppressDeparture) {
+    if (!characterMoveKey && primaryDeparture && !payload.suppressDeparture) {
         messageBus.publish({
             type: 'PublishMessage',
-            targets: [from, payload.characterId],
+            targets: [primaryDeparture, payload.characterId],
             displayProtocol: 'WorldMessage',
             message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
             messageGroupId: internalCache.OrchestrateMessages.before(messageGroupId),
@@ -124,7 +128,7 @@ export const orchestrateCharacterNavigate = async ({
     messageBus.publish({
         type: 'MapUpdate',
         characterId: payload.characterId,
-        previousRoomId: from ?? characterMeta.RoomId,
+        previousRoomId: primaryDeparture,
         roomId: to,
     })
 }

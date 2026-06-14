@@ -49,24 +49,27 @@ const exitLabelFromFacetPayload = (payload: { toJSON: () => unknown; _payload?: 
 export async function getRoomExitTargetsForCharacter(
     characterId: EphemeraCharacterId
 ): Promise<RoomExitTargetsForCharacter> {
-    const characterMeta = await internalCache.CharacterMeta.get(characterId) || {}
-    const { RoomId, assets: characterAssets = [] } = characterMeta
-    if (!RoomId || !isEphemeraRoomId(RoomId)) {
+    const containers = await internalCache.Positions.getMembershipContainers(characterId)
+    const fromRoomId = containers[0] ?? null
+    if (!fromRoomId || !isEphemeraRoomId(fromRoomId)) {
         return { fromRoomId: null, toRoomIds: [], exits: [] }
     }
 
-    const resolvedPerspective = await resolveCharacterRoomPerspectiveForRoom(RoomId, characterAssets)
+    const characterMeta = await internalCache.CharacterMeta.get(characterId) || {}
+    const { assets: characterAssets = [] } = characterMeta
+
+    const resolvedPerspective = await resolveCharacterRoomPerspectiveForRoom(fromRoomId, characterAssets)
     if (resolvedPerspective === null) {
-        return { fromRoomId: RoomId, toRoomIds: [], exits: [] }
+        return { fromRoomId, toRoomIds: [], exits: [] }
     }
 
     const { perspective, perspectiveKey } = resolvedPerspective
-    await ensureAffordanceTopology({ roomId: RoomId, perspective })
+    await ensureAffordanceTopology({ roomId: fromRoomId, perspective })
 
-    const affordanceRow = await internalCache.AffordanceCache.getAffordanceRow(RoomId, perspectiveKey)
+    const affordanceRow = await internalCache.AffordanceCache.getAffordanceRow(fromRoomId, perspectiveKey)
     if (affordanceRow === undefined) {
         throw new Error(
-            `AFFORDANCE_TOPOLOGY_NOT_READY: ${RoomId} at ${perspectiveKey} (call ensureAffordanceTopology first)`
+            `AFFORDANCE_TOPOLOGY_NOT_READY: ${fromRoomId} at ${perspectiveKey} (call ensureAffordanceTopology first)`
         )
     }
 
@@ -84,5 +87,5 @@ export async function getRoomExitTargetsForCharacter(
     })
     const toRoomIds = exits.map(({ toRoomId }) => toRoomId)
 
-    return { fromRoomId: RoomId, toRoomIds: [...new Set(toRoomIds)], exits }
+    return { fromRoomId, toRoomIds: [...new Set(toRoomIds)], exits }
 }

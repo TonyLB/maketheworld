@@ -4,7 +4,7 @@ This directory holds the ephemera **`MessageBus`** type union ([`baseClasses.ts`
 
 Steady-state bus API: [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md).
 
-All ingress and handler outbounds use **`messageBus.publish`**. Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts) (settle loop + deferral tail). **EventBridge ingress** (deserialized `StreamingEvent`, Initialize Subscription, legacy `DisconnectCharacter`) and **WebSocket API ingress** (imperative handler triggers, `api.ephemera` synthetic events, ingress `ReturnValue`) use **`publish`**.
+All ingress and handler outbounds use **`messageBus.publish`**. Lambda exit drains via **`flushAndSettle`** in [`../app.ts`](../app.ts) (settle loop + deferral tail). **EventBridge ingress** (deserialized `StreamingEvent`, Initialize Subscription) and **WebSocket API ingress** (imperative handler triggers, `api.ephemera` synthetic events, ingress `ReturnValue`) use **`publish`**.
 
 ## Bucket-1 handlers (deferral / coalesce / contract)
 

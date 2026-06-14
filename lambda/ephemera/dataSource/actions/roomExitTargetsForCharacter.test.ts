@@ -8,6 +8,9 @@ jest.mock('../../internalCache', () => ({
         AffordanceCache: {
             getAffordanceRow: jest.fn(),
         },
+        Positions: {
+            getMembershipContainers: jest.fn(),
+        },
     },
 }))
 
@@ -40,6 +43,7 @@ const resolvePerspectiveMock = resolveCharacterRoomPerspectiveForRoom as jest.Mo
     typeof resolveCharacterRoomPerspectiveForRoom
 >
 const getAffordanceRowMock = internalCache.AffordanceCache.getAffordanceRow as jest.Mock
+const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.Mock
 
 describe('normalizeExitName', () => {
     it('trims, lowercases, and collapses whitespace', () => {
@@ -54,6 +58,7 @@ describe('getRoomExitTargetsForCharacter', () => {
     })
 
     it('returns empty result when character has no room', async () => {
+        getMembershipContainersMock.mockResolvedValue([])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
             assets: [],
@@ -67,9 +72,9 @@ describe('getRoomExitTargetsForCharacter', () => {
     })
 
     it('returns empty exits when filtered perspective is empty', async () => {
+        getMembershipContainersMock.mockResolvedValue([roomId])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
-            RoomId: roomId,
             assets: [],
         } as any)
         resolvePerspectiveMock.mockResolvedValue(null)
@@ -81,9 +86,9 @@ describe('getRoomExitTargetsForCharacter', () => {
     })
 
     it('hydrates topology and maps projected exits for navigation', async () => {
+        getMembershipContainersMock.mockResolvedValue([roomId])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
-            RoomId: roomId,
             assets: ['ASSET#personal'],
         } as any)
         resolvePerspectiveMock.mockResolvedValue({ perspective, perspectiveKey })
@@ -123,9 +128,9 @@ describe('getRoomExitTargetsForCharacter', () => {
     })
 
     it('throws when affordance row is missing after ensure', async () => {
+        getMembershipContainersMock.mockResolvedValue([roomId])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
-            RoomId: roomId,
             assets: ['ASSET#personal'],
         } as any)
         resolvePerspectiveMock.mockResolvedValue({ perspective, perspectiveKey })
@@ -137,9 +142,9 @@ describe('getRoomExitTargetsForCharacter', () => {
     })
 
     it('preserves duplicate exit labels to different rooms for ambiguousMatch resolution', async () => {
+        getMembershipContainersMock.mockResolvedValue([roomId])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
-            RoomId: roomId,
             assets: ['ASSET#personal'],
         } as any)
         resolvePerspectiveMock.mockResolvedValue({ perspective, perspectiveKey })

@@ -68,7 +68,10 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 return
             }
             if (envelope.header.type === 'Character Connected') {
-                await handleCharacterConnected(content as ConnectionsCharactersConnectedEvent, { messageBus })
+                await handleCharacterConnected(content as ConnectionsCharactersConnectedEvent, {
+                    messageBus,
+                    streamEvent,
+                })
                 return
             }
             if (envelope.header.type === 'Character Disconnected') {

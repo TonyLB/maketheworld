@@ -1,5 +1,9 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom, EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type {
+    EphemeraMetaRoom,
+    EphemeraPlayPositionGraph,
+    EphemeraRoomActiveCharacter,
+} from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export type EphemeraPositionsReadDB = {
@@ -8,6 +12,11 @@ export type EphemeraPositionsReadDB = {
         ProjectionFields?: string[]
         getAllFields?: boolean
     }): Promise<Item | undefined>
+    query?<Item extends Record<string, unknown>>(props: {
+        Key: { EphemeraId: string }
+        KeyConditionExpression: string
+        ExpressionAttributeValues: Record<string, string>
+    }): Promise<Item[]>
 }
 
 type CharacterMetaRoomProjection = {
@@ -27,6 +36,20 @@ export async function getRoomActiveCharactersFromDynamo(
         ProjectionFields: ['activeCharacters'],
     })
     return row?.activeCharacters ?? []
+}
+
+export async function getRoomPositionGraphFromDynamo(
+    db: EphemeraPositionsReadDB,
+    roomId: EphemeraRoomId
+): Promise<EphemeraPlayPositionGraph | undefined> {
+    const row = await db.getItem<Pick<EphemeraMetaRoom, 'positionGraph'>>({
+        Key: {
+            EphemeraId: roomId,
+            DataCategory: 'Meta::Room',
+        },
+        ProjectionFields: ['positionGraph'],
+    })
+    return row?.positionGraph
 }
 
 export async function getCharacterRoomIdFromDynamo(

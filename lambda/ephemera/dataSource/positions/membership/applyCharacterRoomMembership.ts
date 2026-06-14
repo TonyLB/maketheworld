@@ -5,29 +5,26 @@ import internalCache from '../../../internalCache'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import {
-    applyCharacterMembershipFlat,
-    type ApplyCharacterMembershipFlatDependencies,
-} from './applyCharacterMembershipFlat'
 import { buildCharacterMovedFact } from './buildCharacterMovedFact'
 import { streamMembershipFact } from './streamMembershipFact'
 import type { ActiveCharacterRosterEntry, MembershipApplyArgs, MembershipApplyResult } from './types'
+import {
+    updatePositionGraphs,
+    type UpdatePositionGraphsDependencies,
+} from './updatePositionGraphs'
 
 export type ApplyCharacterRoomMembershipDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-    flatPersist?: ApplyCharacterMembershipFlatDependencies;
+    graphPersist?: UpdatePositionGraphsDependencies;
     getSessionId?: () => Promise<string | undefined>;
 }
 
 const memoRoomRosterCaches = (
     roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> | undefined,
-    endpoints: Array<EphemeraRoomId | null>
+    affectedRooms: EphemeraRoomId[]
 ): void => {
-    for (const roomId of endpoints) {
-        if (!roomId) {
-            continue
-        }
+    affectedRooms.forEach((roomId) => {
         internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
         internalCache.Positions.invalidate(roomId)
@@ -46,22 +43,31 @@ const memoRoomRosterCaches = (
                 ),
             })
         }
-    }
+    })
 }
+
+const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
+    [...new Set([...froms, ...(to ? [to] : [])])]
 
 export const applyCharacterRoomMembership = async (
     args: MembershipApplyArgs,
     deps: ApplyCharacterRoomMembershipDependencies
 ): Promise<MembershipApplyResult> => {
-    const result = await applyCharacterMembershipFlat(args, deps.flatPersist)
+    const result = await updatePositionGraphs(args, deps.graphPersist)
 
     if (!result.ok) {
-        console.error(`[mtw.ephemera.positions] applyCharacterMembershipFlat failed: ${result.errorMessage}`)
+        console.error(`[mtw.ephemera.positions] updatePositionGraphs failed: ${result.errorMessage}`)
         return result
     }
 
-    if (!result.changed) {
-        return result
+    const { diff } = result
+
+    if (!diff.changed) {
+        return { ok: true, ...diff }
+    }
+
+    if (!result.persisted) {
+        return { ok: true, ...diff }
     }
 
     const beatAnchorTime = getCurrentTimestamp()
@@ -71,28 +77,28 @@ export const applyCharacterRoomMembership = async (
 
     const fact = buildCharacterMovedFact({
         characterId: args.characterId,
-        applyResult: {
-            from: result.from,
-            to: result.to,
-            beatAnchorTime,
-        },
+        diff,
+        beatAnchorTime,
         characterName: characterMeta.Name,
     })
     if (fact) {
         await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
     }
 
-    memoRoomRosterCaches(result.roomRosterSnapshots, [result.from, result.to])
+    const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
+    memoRoomRosterCaches(result.roomRosterSnapshots, affectedRooms)
+    internalCache.Positions.setMembershipContainers({
+        componentId: args.characterId,
+        containers: diff.to ? [diff.to] : [],
+    })
     internalCache.CharacterMeta.invalidate(args.characterId)
 
-    for (const roomId of [result.from, result.to]) {
-        if (roomId) {
-            deps.messageBus.publish({
-                type: 'RoomUpdate',
-                roomId,
-            })
-        }
-    }
+    affectedRooms.forEach((roomId) => {
+        deps.messageBus.publish({
+            type: 'RoomUpdate',
+            roomId,
+        })
+    })
 
     deps.messageBus.publish({
         type: 'EphemeraUpdate',
@@ -100,13 +106,15 @@ export const applyCharacterRoomMembership = async (
             type: 'CharacterInPlay',
             CharacterId: characterMeta.EphemeraId,
             Connected: true,
-            RoomId: result.to ?? characterMeta.HomeId,
+            RoomId: diff.to ?? characterMeta.HomeId,
             connectionTargets: ['GLOBAL', `SESSION#${sessionId}`],
         }],
     })
 
     return {
-        ...result,
+        ok: true,
+        ...diff,
         beatAnchorTime,
+        roomRosterSnapshots: result.roomRosterSnapshots,
     }
 }

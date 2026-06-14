@@ -154,16 +154,6 @@ export type RegisterCharacterMessage = {
     characterId: EphemeraCharacterId;
 }
 
-export type UnregisterCharacterMessage = {
-    type: 'UnregisterCharacter';
-    characterId: EphemeraCharacterId;
-}
-
-export type DisconnectCharacterMessage = {
-    type: 'DisconnectCharacter';
-    characterId: EphemeraCharacterId;
-}
-
 export type EphemeraPublishTarget = PublishTargetCharacter | PublishTargetGlobal | PublishTargetExcludeCharacter | PublishTargetSession | PublishTargetExcludeSession
 
 export type EphemeraPartialCharacterInPlayActive = Pick<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'> & Partial<Omit<EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, 'type' | 'CharacterId' | 'Connected'>>
@@ -394,8 +384,6 @@ export type MessageType = PublishMessage |
     ReturnValueMessage |
     ErrorMessage |
     RegisterCharacterMessage |
-    UnregisterCharacterMessage |
-    DisconnectCharacterMessage |
     EphemeraUpdateMessage |
     FetchPlayerEphemeraMessage |
     MapSubscriptionMessage |
@@ -429,8 +417,6 @@ export const isPerceptionPublishMessage = (prop: PublishMessage): prop is Publis
 export { isReturnValueMessage, isErrorMessage }
 
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
-export const isUnregisterCharacterMessage = (prop: MessageType): prop is UnregisterCharacterMessage => (prop.type === 'UnregisterCharacter')
-export const isDisconnectCharacterMessage = (prop: MessageType): prop is DisconnectCharacterMessage => (prop.type === 'DisconnectCharacter')
 
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
 export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')

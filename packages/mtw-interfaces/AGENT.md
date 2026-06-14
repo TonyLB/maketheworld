@@ -43,8 +43,6 @@ Defines interfaces for asset library operations, file management, and player dat
 Defines interfaces for real-time game state and character interactions:
 
 #### **API Messages** (Client → Server)
-- **`RegisterCharacterAPIMessage`**: Join game as a character
-- **`UnregisterCharacterAPIMessage`**: Leave game
 - **`FetchEphemeraAPIMessage`**: Get current game state
 - **`SyncAPIMessage`**: Synchronize with server state
 - **`MapSubscribe/UnsubscribeAPIMessage`**: Map update subscriptions

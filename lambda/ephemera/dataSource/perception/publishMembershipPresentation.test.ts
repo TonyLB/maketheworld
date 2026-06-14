@@ -10,6 +10,7 @@ import type { MembershipEmissionPlan } from './membershipPresentationFanIn'
 const CHARACTER_ID = 'CHARACTER#Alice' as EphemeraCharacterId
 const ROOM_A = 'ROOM#a' as EphemeraRoomId
 const ROOM_B = 'ROOM#b' as EphemeraRoomId
+const ROOM_C = 'ROOM#c' as EphemeraRoomId
 const ANCHOR = 1_700_000_000_000
 
 const basePlan = (overrides: Partial<MembershipEmissionPlan> = {}): MembershipEmissionPlan => ({
@@ -17,7 +18,7 @@ const basePlan = (overrides: Partial<MembershipEmissionPlan> = {}): MembershipEm
     copyKind: 'genericNavigate',
     beatAnchorTime: ANCHOR,
     characterId: CHARACTER_ID,
-    from: ROOM_A,
+    froms: [ROOM_A],
     to: ROOM_B,
     characterName: 'Alice',
     ...overrides,
@@ -65,16 +66,38 @@ describe('publishMembershipPresentation', () => {
         })
     })
 
-    it('publishes exit-aware leave copy when plan carries exitName', () => {
+    it('publishes exit-aware leave copy when plan carries exitName and intentFromRoomId matches', () => {
         const messageBus = { publish: jest.fn() }
 
         publishMembershipPresentation(messageBus as any, basePlan({
             copyKind: 'exitAware',
             exitName: 'north',
+            intentFromRoomId: ROOM_A,
         }))
 
         expect(messageBus.publish).toHaveBeenNthCalledWith(1, expect.objectContaining({
             message: ['Alice left by north exit.'],
+        }))
+    })
+
+    it('publishes multi-leave with exit-aware at matching from and generic at others', () => {
+        const messageBus = { publish: jest.fn() }
+
+        publishMembershipPresentation(messageBus as any, basePlan({
+            froms: [ROOM_A, ROOM_C],
+            copyKind: 'exitAware',
+            exitName: 'north',
+            intentFromRoomId: ROOM_A,
+        }))
+
+        expect(messageBus.publish).toHaveBeenCalledTimes(3)
+        expect(messageBus.publish).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            targets: [ROOM_A, CHARACTER_ID],
+            message: ['Alice left by north exit.'],
+        }))
+        expect(messageBus.publish).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            targets: [ROOM_C, CHARACTER_ID],
+            message: ['Alice has left.'],
         }))
     })
 
@@ -85,6 +108,7 @@ describe('publishMembershipPresentation', () => {
             shape: 'leaveOnly',
             copyKind: 'disconnect',
             to: null,
+            intentFromRoomId: ROOM_A,
         }))
 
         expect(messageBus.publish).toHaveBeenCalledTimes(1)
@@ -101,7 +125,7 @@ describe('publishMembershipPresentation', () => {
         publishMembershipPresentation(messageBus as any, basePlan({
             shape: 'arriveOnly',
             copyKind: 'connect',
-            from: null,
+            froms: [],
         }))
 
         expect(messageBus.publish).toHaveBeenCalledTimes(1)
@@ -117,7 +141,7 @@ describe('publishMembershipPresentation', () => {
 
         publishMembershipPresentation(messageBus as any, basePlan({
             shape: 'none',
-            from: ROOM_A,
+            froms: [ROOM_A],
             to: ROOM_A,
         }))
 

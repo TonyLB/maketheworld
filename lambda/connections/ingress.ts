@@ -43,6 +43,20 @@ const normalizeApiIngress = (event: any): ConnectionsAPIPayload | undefined => {
                 ...(typeof json.RequestId === 'string' ? { requestId: json.RequestId } : {})
             }
         }
+        if (
+            typeof json === 'object' &&
+            json !== null &&
+            json.message === 'unregistercharacter' &&
+            typeof json.CharacterId === 'string' &&
+            isEphemeraCharacterId(json.CharacterId)
+        ) {
+            return {
+                type: 'unregisterCharacter',
+                connectionId,
+                characterId: json.CharacterId,
+                ...(typeof json.RequestId === 'string' ? { requestId: json.RequestId } : {})
+            }
+        }
     }
     if (event.message === 'dropConnection') {
         return { type: 'dropConnection', sessionId: event.sessionId, connectionId: event.connectionId }

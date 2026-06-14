@@ -12,6 +12,9 @@ jest.mock('../../internalCache', () => ({
         AffordanceCache: {
             getAffordanceRow: jest.fn(),
         },
+        Positions: {
+            getMembershipContainers: jest.fn(),
+        },
     },
 }))
 
@@ -42,14 +45,15 @@ const resolvePerspectiveMock = resolveCharacterRoomPerspectiveForRoom as jest.Mo
     typeof resolveCharacterRoomPerspectiveForRoom
 >
 const getAffordanceRowMock = internalCache.AffordanceCache.getAffordanceRow as jest.Mock
+const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.Mock
 
 describe('room exit ambiguousMatch regression (topology slice -> discriminateIntent)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(ensureAffordanceTopology as jest.Mock).mockResolvedValue(undefined)
+        getMembershipContainersMock.mockResolvedValue([roomId])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: characterId,
-            RoomId: roomId,
             assets: ['ASSET#personal'],
         } as any)
         resolvePerspectiveMock.mockResolvedValue({ perspective, perspectiveKey })

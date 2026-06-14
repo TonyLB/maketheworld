@@ -9,7 +9,11 @@ import {
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey } from "@tonylb/mtw-utilities/ts/types"
-import { RoomStackItem } from "../moveCharacter"
+import type { RoomStackItem } from "../dataSource/positions/membership/types"
+import {
+    normalizeRoomStack,
+    trimRoomStackToAccessibleAssets,
+} from "../dataSource/positions/membership/trimEvictionLadder"
 import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { checkLocationCoalescer } from "./coalescer"
 
@@ -82,12 +86,10 @@ const repairCharacterLocation = async (
         },
         updateKeys: ['RoomId', 'RoomStack'],
         updateReducer: (draft) => {
-            if (!draft.RoomStack) {
-                draft.RoomStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
-            }
-            else {
-                draft.RoomStack = (draft.RoomStack as RoomStackItem[]).filter(({ asset }) => (accessibleAssets.includes(asset)))
-            }
+            draft.RoomStack = trimRoomStackToAccessibleAssets(
+                normalizeRoomStack(draft.RoomStack as RoomStackItem[] | undefined),
+                accessibleAssets
+            )
         },
         successCallback: ({ RoomStack, RoomId }) => {
             const { forceMove, forceRender, arriveMessage, leaveMessage, suppressArrival, suppressDeparture } = payload

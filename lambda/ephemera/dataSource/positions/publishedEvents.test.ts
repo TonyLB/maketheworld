@@ -4,7 +4,7 @@ describe('isCharacterMovedPublishedPayload', () => {
     const minimal = {
         type: 'Character Moved' as const,
         characterId: 'CHARACTER#test',
-        from: 'ROOM#a' as const,
+        froms: ['ROOM#a' as const],
         to: 'ROOM#b' as const,
         beatAnchorTime: 1_700_000_000_000,
     }
@@ -13,9 +13,9 @@ describe('isCharacterMovedPublishedPayload', () => {
         expect(isCharacterMovedPublishedPayload(minimal)).toBe(true)
     })
 
-    it('accepts null endpoints for connect/disconnect', () => {
-        expect(isCharacterMovedPublishedPayload({ ...minimal, from: null, to: 'ROOM#b' })).toBe(true)
-        expect(isCharacterMovedPublishedPayload({ ...minimal, from: 'ROOM#a', to: null })).toBe(true)
+    it('accepts empty froms or null to for connect/disconnect', () => {
+        expect(isCharacterMovedPublishedPayload({ ...minimal, froms: [], to: 'ROOM#b' })).toBe(true)
+        expect(isCharacterMovedPublishedPayload({ ...minimal, froms: ['ROOM#a'], to: null })).toBe(true)
     })
 
     it('accepts optional legalExits and characterName', () => {
@@ -34,8 +34,19 @@ describe('isCharacterMovedPublishedPayload', () => {
         expect(isCharacterMovedPublishedPayload(rest)).toBe(false)
     })
 
-    it('rejects invalid endpoints or beatAnchorTime', () => {
-        expect(isCharacterMovedPublishedPayload({ ...minimal, from: 'not-a-room' })).toBe(false)
+    it('rejects legacy singular from field', () => {
+        expect(isCharacterMovedPublishedPayload({
+            type: 'Character Moved',
+            characterId: 'CHARACTER#test',
+            from: 'ROOM#a',
+            to: 'ROOM#b',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(false)
+    })
+
+    it('rejects invalid froms, to, or beatAnchorTime', () => {
+        expect(isCharacterMovedPublishedPayload({ ...minimal, froms: ['not-a-room'] })).toBe(false)
+        expect(isCharacterMovedPublishedPayload({ ...minimal, froms: 'ROOM#a' } as unknown)).toBe(false)
         expect(isCharacterMovedPublishedPayload({ ...minimal, to: 1 } as unknown)).toBe(false)
         expect(isCharacterMovedPublishedPayload({ ...minimal, beatAnchorTime: NaN })).toBe(false)
     })
@@ -53,7 +64,7 @@ describe('streamEventFromMessageBus', () => {
         const content = {
             type: 'Character Moved' as const,
             characterId: 'CHARACTER#test' as const,
-            from: 'ROOM#a' as const,
+            froms: ['ROOM#a' as const],
             to: 'ROOM#b' as const,
             beatAnchorTime: 1_700_000_000_000,
         }
@@ -82,7 +93,7 @@ describe('sendCharacterMovedPublish', () => {
         sendCharacterMovedPublish(bus, 'CHARACTER#test', {
             type: 'Character Moved',
             characterId: 'CHARACTER#test',
-            from: 'ROOM#a',
+            froms: ['ROOM#a'],
             to: 'ROOM#b',
             beatAnchorTime: 1_700_000_000_000,
         })

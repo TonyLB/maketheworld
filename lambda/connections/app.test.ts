@@ -16,8 +16,7 @@ jest.mock('@tonylb/mtw-utilities/ts/eventBridge')
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 jest.mock('./disconnect', () => ({
     disconnect: jest.fn().mockResolvedValue(undefined),
-    atomicallyRemoveCharacterAdjacency: jest.fn().mockResolvedValue(undefined),
-    unregisterCharacterMessage: jest.fn()
+    atomicallyRemoveCharacterAdjacency: jest.fn().mockResolvedValue({ sessionsAfterRemoval: [] }),
 }))
 jest.mock('./invitationCodes', () => ({
     validateInvitationCode: jest.fn(),
@@ -29,10 +28,14 @@ jest.mock('./staleSessionFinding', () => ({
 jest.mock('./registerCharacter', () => ({
     registerCharacterMessage: jest.fn()
 }))
+jest.mock('./unregisterCharacter', () => ({
+    unregisterCharacterMessage: jest.fn()
+}))
 
 import { disconnect } from './disconnect'
 import { generateInvitationCode, validateInvitationCode } from './invitationCodes'
 import { registerCharacterMessage } from './registerCharacter'
+import { unregisterCharacterMessage } from './unregisterCharacter'
 import { handleStaleSessionFinding } from './staleSessionFinding'
 import { handler } from './app'
 
@@ -42,6 +45,7 @@ const disconnectMock = jest.mocked(disconnect)
 const generateInvitationCodeMock = jest.mocked(generateInvitationCode)
 const validateInvitationCodeMock = jest.mocked(validateInvitationCode)
 const registerCharacterMessageMock = jest.mocked(registerCharacterMessage)
+const unregisterCharacterMessageMock = jest.mocked(unregisterCharacterMessage)
 const handleStaleSessionFindingMock = jest.mocked(handleStaleSessionFinding)
 const queryMock = connectionDB.query as unknown as jest.Mock
 
@@ -137,6 +141,43 @@ describe('connections app checkSession', () => {
             statusCode: 200,
             body: JSON.stringify({
                 messageType: 'Registration',
+                CharacterId: 'CHARACTER#abc',
+                RequestId: 'request-1'
+            })
+        })
+    })
+
+    it('routes websocket unregistercharacter through connections unregistration path', async () => {
+        unregisterCharacterMessageMock.mockResolvedValue({
+            messageType: 'Unregistration',
+            CharacterId: 'CHARACTER#abc',
+            RequestId: 'request-1'
+        })
+
+        const response = await handler({
+            requestContext: {
+                routeKey: 'connections',
+                connectionId: 'connection-1'
+            },
+            body: JSON.stringify({
+                service: 'connections',
+                message: 'unregistercharacter',
+                CharacterId: 'CHARACTER#abc',
+                RequestId: 'request-1'
+            })
+        })
+
+        expect(unregisterCharacterMessageMock).toHaveBeenCalledTimes(1)
+        expect(unregisterCharacterMessageMock).toHaveBeenCalledWith(expect.objectContaining({
+            connectionId: 'connection-1',
+            characterId: 'CHARACTER#abc',
+            requestId: 'request-1',
+            streamCharactersEvent: expect.any(Function)
+        }))
+        expect(response).toEqual({
+            statusCode: 200,
+            body: JSON.stringify({
+                messageType: 'Unregistration',
                 CharacterId: 'CHARACTER#abc',
                 RequestId: 'request-1'
             })

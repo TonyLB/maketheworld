@@ -28,7 +28,7 @@ Any code path that **writes** `Meta::Room` in ephemeraDB must call `internalCach
 - State merge: [`mergePersistMetaRoomMarks.ts`](../dataSource/state/mergePersistMetaRoomMarks.ts)
 - Objects merge (`Meta::Room.objects`): [`mergePersistMetaRoomObjects.ts`](../dataSource/objects/mergePersistMetaRoomObjects.ts); DataSource **`mtw.ephemera.objects`** --- [`../dataSource/objects/AGENT.md`](../dataSource/objects/AGENT.md)
 - Render intake/orchestration: [`requestIntake.ts`](../dataSource/renderOrchestration/requestIntake.ts), [`orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts)
-- Movement / disconnect: [`moveCharacter/index.ts`](../moveCharacter/index.ts), [`disconnectMessage/index.ts`](../disconnectMessage/index.ts)
+- Movement: [`moveCharacter/index.ts`](../moveCharacter/index.ts), [`dataSource/positions/`](../dataSource/positions/)
 
 ## Navigation
 

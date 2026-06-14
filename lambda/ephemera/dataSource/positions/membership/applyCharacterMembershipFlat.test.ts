@@ -60,7 +60,7 @@ describe('applyCharacterMembershipFlat', () => {
 
         expect(result).toEqual({
             ok: true,
-            from: FROM_ROOM,
+            froms: [],
             to: FROM_ROOM,
             changed: false,
         })
@@ -81,7 +81,7 @@ describe('applyCharacterMembershipFlat', () => {
 
         expect(result).toEqual({
             ok: true,
-            from: null,
+            froms: [],
             to: null,
             changed: false,
         })
@@ -108,7 +108,7 @@ describe('applyCharacterMembershipFlat', () => {
             return
         }
         expect(result.changed).toBe(true)
-        expect(result.from).toBe(FROM_ROOM)
+        expect(result.froms).toEqual([FROM_ROOM])
         expect(result.to).toBe(TO_ROOM)
         expect(transactWrite).toHaveBeenCalledTimes(1)
 
@@ -157,7 +157,7 @@ describe('applyCharacterMembershipFlat', () => {
 
         expect(result).toEqual(expect.objectContaining({
             ok: true,
-            from: FROM_ROOM,
+            froms: [FROM_ROOM],
             to: null,
             changed: true,
         }))
