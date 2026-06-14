@@ -61,6 +61,7 @@ export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
     leaveDispatched?: boolean;
     arriveDispatched?: boolean;
@@ -194,6 +195,9 @@ export function isCharacterMovePerceptionThread(value: unknown): value is Charac
     if (v.messageId !== undefined && typeof v.messageId !== 'string') {
         return false
     }
+    if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
+        return false
+    }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
         return false
     }
@@ -257,6 +261,7 @@ export type CharacterMovePerceptionThreadPatch = {
     threadKind: 'characterMove';
     status?: CharacterMovePerceptionThread['status'];
     messageId?: string;
+    createdTime?: number;
     cacheId?: string;
     leaveDispatched?: boolean;
     arriveDispatched?: boolean;
@@ -281,6 +286,7 @@ const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
     'threadKind',
     'status',
     'messageId',
+    'createdTime',
     'cacheId',
     'leaveDispatched',
     'arriveDispatched',
@@ -436,6 +442,9 @@ export function isCharacterMovePerceptionThreadPatch(value: unknown): value is C
         }
     }
     if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('createdTime' in p && p.createdTime !== undefined && typeof p.createdTime !== 'number') {
         return false
     }
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
@@ -722,7 +731,12 @@ export default class PerceptionThreadsData {
                 thread = { kind: 'sessionOrientationAffordances', status: 'Initial' }
                 break
             case 'characterMove':
-                thread = { kind: 'characterMove', status: 'Initial' }
+                thread = {
+                    kind: 'characterMove',
+                    status: 'Initial',
+                    ...(cmd.messageId !== undefined ? { messageId: cmd.messageId } : {}),
+                    ...(cmd.createdTime !== undefined ? { createdTime: cmd.createdTime } : {}),
+                }
                 break
             case 'stub':
                 thread = { kind: 'stub' }
@@ -806,6 +820,7 @@ export default class PerceptionThreadsData {
                 const hasThreadPatchFields =
                     p.status !== undefined
                     || p.messageId !== undefined
+                    || p.createdTime !== undefined
                     || p.cacheId !== undefined
                     || p.leaveDispatched !== undefined
                     || p.arriveDispatched !== undefined
@@ -814,6 +829,7 @@ export default class PerceptionThreadsData {
                         threadKind: 'characterMove',
                         ...(p.status !== undefined ? { status: p.status } : {}),
                         ...(p.messageId !== undefined ? { messageId: p.messageId } : {}),
+                        ...(p.createdTime !== undefined ? { createdTime: p.createdTime } : {}),
                         ...(p.cacheId !== undefined ? { cacheId: p.cacheId } : {}),
                         ...(p.leaveDispatched !== undefined ? { leaveDispatched: p.leaveDispatched } : {}),
                         ...(p.arriveDispatched !== undefined ? { arriveDispatched: p.arriveDispatched } : {}),

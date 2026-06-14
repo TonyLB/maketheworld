@@ -26,7 +26,9 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | `Meta::Room.objects` (flat list v1) |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage` |
-| [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | Movement executor (legacy owner) |
+| [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge; calls `applyCharacterRoomMembership` |
+| [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
+| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |
 
 ---

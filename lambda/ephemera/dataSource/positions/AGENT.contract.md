@@ -1,8 +1,8 @@
-# Positions --- contracts (slice 0)
+# Positions --- contracts (slice 1a)
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Target-model obligations (graph-shaped storage, navigate ownership, atomic character across rooms) are **not** normative here until a slice lands and this file is updated.
+Graph-shaped storage and `Character Moved` fact streaming are **not** normative here until slice 1b / slice 2 land.
 
 ---
 
@@ -14,7 +14,33 @@ Target-model obligations (graph-shaped storage, navigate ownership, atomic chara
 
 ---
 
-## Ingress (slice 0)
+## Membership persistence API (slice 1a)
+
+All character **room-membership** mutations for **disconnect** (and navigate via the `moveCharacter` bridge) **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
+
+### Public apply shape
+
+- **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect).
+- **Result:** `{ from, to, changed }` where `changed` is true iff room endpoints differ after apply (`from !== to`).
+- **Flat persist engine:** [`applyCharacterMembershipFlat`](membership/applyCharacterMembershipFlat.ts) (slice 2 swaps to `updatePositionGraphs` behind the same coordinator).
+
+### Membership-changed bundle (S1-11)
+
+When **`changed`** is true, the coordinator **must** run (together or not at all):
+
+1. Cache memo for each non-null endpoint among `from` / `to` (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `RoomCharacterList.set` when roster snapshot available).
+2. `CharacterMeta.invalidate(characterId)`.
+3. `RoomUpdate` for each non-null endpoint.
+4. `EphemeraUpdate` `CharacterInPlay` room projection.
+5. Record `beatAnchorTime` at apply (Model A prep for slice 1b / fan-in).
+
+When **`changed`** is false: **must** skip the entire bundle (no cache, no `RoomUpdate`, no `EphemeraUpdate`).
+
+**Must not** stream `Character Moved` in slice 1a (slice 1b).
+
+---
+
+## Ingress
 
 ### `mtw.connections.characters`
 
@@ -27,33 +53,33 @@ Positions **must** subscribe to:
 
 Positions **must not** subscribe to `Character Registered` (session orientation is render + affordance orchestration; see [`../../AGENT.md`](../../AGENT.md)).
 
----
-
-## `Character Connected` (bridge)
+### `Character Connected` (bridge)
 
 - **Must** publish exactly one `CheckLocation` message with `forceMove: true`, `arriveMessage: ' has connected.'`, `suppressArrival: false`.
-- **Must not** perform `Meta::Room.activeCharacters` mutation directly in positions for connect (delegated to `moveCharacter` via `CheckLocation`).
+- **Must not** perform membership Dynamo writes directly in positions for connect (delegated to `moveCharacter` via `CheckLocation` until slice 3).
+
+### `Character Disconnected` (positions-owned)
+
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })`.
+- **Must not** perform inline `ephemeraDB.optimisticUpdate` on `activeCharacters` in the disconnect handler.
+- **Idempotency:** duplicate disconnect when already out of play (`from === to === null`) **must** be a no-op (no bundle).
+- World-line copy for disconnect is deferred to slice 1b fan-in emission (no imperative `PublishMessage` in the handler).
+
+### Navigate (bridge via `moveCharacter`)
+
+- Player-initiated navigation still enters through [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) (`MoveCharacter` bus) until positions subscribes to `Character Navigate` (slice 1 follow-on).
+- `moveCharacter` **must** call `applyCharacterRoomMembership` for persistence; presentation (PerceptionThreads, render kicks, `MapUpdate`) lives in [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts).
 
 ---
 
-## `Character Disconnected` (positions-owned)
-
-- **Must** read current room from `internalCache.CharacterMeta.get(characterId)`; if `RoomId` is absent, **must** return without Dynamo or bus side effects.
-- **Must** remove the character from `Meta::Room.activeCharacters` via `ephemeraDB.optimisticUpdate` on `DataCategory: 'Meta::Room'`.
-- **Idempotency:** **Must** treat duplicate disconnect deliveries as no-ops for **user-visible** departure: publish `PublishMessage` (departure `WorldMessage`) and `RoomUpdate` **only** when the optimistic update **actually removed** the character from the roster.
-- **Must** on success callback (whether or not removal occurred): invalidate `ComponentEphemeraMeta` and `AffordanceRoomDeliverable` for the room; refresh `RoomCharacterList` for the room.
-- Bus delivery for published messages: **`messageBus.publish`**; quiescence at lambda boundary only ([`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md)).
-
----
-
-## Explicit non-ownership (slice 0)
+## Explicit non-ownership
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
-- **Must not** own player-initiated navigation execution (`Character Navigate` / `MoveCharacter` remain actions + `moveCharacter` until a later slice updates this file).
 - **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
+- **Must not** write `Meta::Room.activeCharacters` or `Meta::Character.RoomId` outside [`membership/`](membership/) except documented legacy [`../../disconnectMessage/index.ts`](../../disconnectMessage/index.ts) (retire slice 4).
 
 ---
 
 ## Consumer expectations
 
-Downstream code **may** assume that after a **successful** disconnect projection that removed a character, `RoomCharacterList` and affordance invalidation reflect the updated roster. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).
+Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `RoomCharacterList` and affordance invalidation reflect the updated roster for affected endpoint rooms. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).

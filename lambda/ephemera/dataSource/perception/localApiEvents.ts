@@ -76,9 +76,9 @@ export type CharacterMoveWorldMessageSpec = {
     message: RenderTree;
 }
 
-/**
- * Character move: correlated header fan-in on arrival room + perspectiveKey, with ordered WorldMessage legs.
+/** Character move: correlated header fan-in on arrival room + perspectiveKey, with ordered WorldMessage legs.
  * Ordering ids must be the concrete values from OrchestrateMessages.before / root / after.
+ * Optional messageId + createdTime anchor header revision to the position-move fact time (Model A).
  */
 export type PerceptionThreadRegisterCharacterMoveCommand = {
     threadKind: 'characterMove';
@@ -93,6 +93,10 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     arriveWorldMessage?: CharacterMoveWorldMessageSpec;
     headerTargets?: PublishTarget[];
     registrationId?: string;
+    /** Pre-assigned header MessageId (Model A). */
+    messageId?: string;
+    /** Fictional anchor time for header revision (Model A / F1-4). */
+    createdTime?: number;
 }
 
 /** Non-room component registration placeholder (stub thread body). */
@@ -216,6 +220,12 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             return false
         }
         if (v.headerTargets !== undefined && !isNonEmptyPublishTargetArray(v.headerTargets)) {
+            return false
+        }
+        if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+            return false
+        }
+        if (v.createdTime !== undefined && typeof v.createdTime !== 'number') {
             return false
         }
         return true

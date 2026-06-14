@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Durable docs landed.** Fan-in **Phase 0 shipped** (framework in `mtw-lambda-patterns`). **Next:** **slice 1a** --- membership persistence boundary (unblocked). **Slice 1b** --- membership **emission** (blocked on fan-in **Phase 1** only). Model A **beat orchestration** may land in **1a** without fan-in. **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a core persistence shipped** (membership API, disconnect refactor, `moveCharacter` split, Model A anchor); **slice 1a checklist remainder open** (lines 357--361: `Character Navigate` subscription, activeCharacters grep gate, S1-5 read surface, doc graduation, parity tests). Fan-in **Phase 0 shipped.** **Next:** finish slice 1a remainder and/or slice **1b** (`Character Moved` emit + fan-in publish). **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -307,17 +307,14 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 | S1-1 | On navigate execute: **trust** actions exit resolution (`toRoomId`) vs **re-validate** topology in positions | 1 | **Decided:** trust --- positions applies the validated `toRoomId`; no topology re-check at persistence apply. Exit-aware **copy** also trusts parse: **`exitName`** on **`Character Navigate`** intent (**S1-10** / **F1-9**). |
 | S1-2 | Cross-room side effects: **1a** --- legacy header render (`PerceptionThreads` / kick render) + optional **Model A** `beatAnchorTime`; imperative leave/arrive until **1b** fan-in emission. **1b** --- fan-in emission policy ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). Conversations fragment handoff: [`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md) | 1a / 1b | **Decided:** sequencing milestones, not an either/or fork. **Beat/header (Model A + slim `characterMove` targeting)** stays independent of fan-in. With **fan-in Phase 0 + 1 before positions slice 1**, skip building interim imperative leave/arrive --- land persistence boundary together with `Character Moved` + fan-in emission (no separate 1a-then-1b copy path). Header render remains legacy PerceptionThreads through fan-in Phase 2. |
 | S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | **Decided:** positions **`streamEvent`** outbound on `mtw.ephemera.positions` (`publisherStrategy: 'busOnly'`); types in [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts). Same net delivery as bus-only today --- difference is **scope-of-authority** (positions owns the stream contract). |
-| S1-4 | Module layout for **membership persistence boundary** | 1 | **Decided:** split modules under **`positions/membership/`** --- thin **`applyCharacterRoomMembership`** coordinator; **`applyCharacterMembershipFlat`** (slice 1) / **`updatePositionGraphs`** (slice 2); separate TEMP fact builder + stream helper. Not split by ingress type. See [Module layout (**S1-4**)](#module-layout-s1-4). |
 | S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | **Decided:** first read surface returns **`positionGraph` for a component** (Room or Character v1; future Features/Objects). Land in **slice 1** with a **projection adapter** from legacy flat fields until slice 2 storage swap; register on `internalCache`; point affordance roster reads at the handler (not raw `ephemeraDB`). Roster is a **projection** of the graph, not the primary gateway shape. |
 | S1-6 | **Diff source for `from`/`to`:** slice 1 pre-read + apply target vs slice 2 graph-diff | 1b / 2 | **Decided:** slice 1 = **`CharacterMeta.RoomId`** pre-read + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
-| S1-7 | **Persistence apply API input** shape | 1a / 1b | **Decided:** **`MembershipApplyArgs`** `{ characterId, targetRoomId \| null }`; **`MembershipApplyResult`** `{ from, to, changed }`. **`updatePositionGraphs`** internal only. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
-| S1-8 | **No-op gate:** stream **`Character Moved`** only when `from !== to` after apply | 1b | **Decided:** **`changed`** on apply result / graph **`MembershipDiff`**; both slices |
 | S1-9 | **`RoomStack`-only mutation** (same room endpoint): emit fact or skip | 1b | **Decided:** skip --- no **`Character Moved`** |
 | S1-10 | **Exit-aware copy (slice 1):** **`exitName`** on navigate intent; no **`legalExits`** on fact | 1b | **Decided:** trust action-parse (**S1-1** extension). See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). Optional **`legalExits`** on contract unused until post-slice-2 spike if needed. |
-| S1-11 | **Side-effect gating:** fact-consolidated bundle vs legacy per-effect gates | 1a / 1b | **Decided:** **`changed`** only --- **`Character Moved`** + cache + **`RoomUpdate`** + **`EphemeraUpdate`** run together or not at all. See [Side-effect gating (**S1-11**)](#side-effect-gating-s1-11). |
 | S1-12 | **Connect path:** slice 1 vs defer | 1b | **Decided:** defer to slice **3** (connect-unification milestone; not slice **1**). Slice **1** ships navigate + disconnect through membership API; connect keeps `CheckLocation` / `moveCharacter` bridge. Fan-in connect **intent** adapters remain; positions **`Character Moved`** for connect deferred. |
-| S1-13 | **Persistence vs orchestration** boundary (`moveCharacter` split) | 1a | **Decided:** persistence module owns all membership Dynamo writes + roster projection side effects that slice **2** `updatePositionGraphs` will inherit; orchestration owns PerceptionThreads header, render kicks, **`MapUpdate`**. See [Persistence vs orchestration (**S1-13**)](#persistence-vs-orchestration-s1-13). |
 | S1-14 | **Slice 1 TEMP fact emit** (intent-assisted flat path) vs **slice 2 graph-diff** (**F1-8** steady state) | 1b / 2 | **Decided:** slice 1 TEMP with code comments; slice 2 cutover bundle replaces emit path. No virtual-graph write adapter in slice 1. |
+
+**Graduated to contract / implementation (slice 1a):** S1-4 (module layout), S1-7 (apply API), S1-8 (no-op gate), S1-11 (side-effect bundle), S1-13 (persistence vs orchestration).
 
 **S1-5 context:** Today affordance compose reads roster via [`RoomCharacterList`](../../../../../../lambda/ephemera/internalCache/roomCharacterLists.ts) (direct `ephemeraDB` `activeCharacters` on miss), while exits use gateway-backed [`AffordanceCache`](../../../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) + [`ComponentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/). Target: **`createPositionsCacheHandler`** (name TBD) returns graph-shaped play state per component id; slice 1 implementation **projects** character nodes from `RoomId` / `activeCharacters`; slice 2 swaps the backing read to stored `Meta::Room.positionGraph` without changing the handler API. **Authoritative writer** = positions persistence API; **steady-state readers** = `internalCache` ([`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)).
 
@@ -350,13 +347,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Disconnect handler + connect bridge
   - [X] Unit tests
 
-- [ ] **Slice 1a --- persistence boundary (legacy storage; unblocked)**
+- [ ] **Slice 1a --- persistence boundary (legacy storage)**
   - [X] Resolve **Open decisions** S1-1 through S1-14 (all slice **1** decisions resolved)
-  - [ ] Add **`positions/membership/`** module layout per **S1-4** (`applyCharacterRoomMembership` coordinator + flat persist impl)
-  - [ ] Implement flat persist + coordinator per **S1-13** + **S1-11** (membership-changed bundle when **`changed`**: persist, cache, **`RoomUpdate`**, **`EphemeraUpdate`**); slice 1b adds TEMP fact emit per **S1-14** in **`buildCharacterMovedFact`** / **`streamMembershipFact`**
-  - [ ] Refactor **disconnect** handler to call **`applyCharacterRoomMembership`** (not inline `optimisticUpdate`)
-  - [ ] Extract navigate **orchestration** from `moveCharacter` per **S1-13** (PerceptionThreads header, render kicks, **`MapUpdate`**); wire navigate persist through **`applyCharacterRoomMembership`**
-  - [ ] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive via fan-in emission per **S1-2**)
+  - [X] Add **`positions/membership/`** module layout per **S1-4** (`applyCharacterRoomMembership` coordinator + flat persist impl)
+  - [X] Implement flat persist + coordinator per **S1-13** + **S1-11** (membership-changed bundle when **`changed`**: persist, cache, **`RoomUpdate`**, **`EphemeraUpdate`**); slice 1b adds TEMP fact emit per **S1-14** in **`buildCharacterMovedFact`** / **`streamMembershipFact`**
+  - [X] Refactor **disconnect** handler to call **`applyCharacterRoomMembership`** (not inline `optimisticUpdate`)
+  - [X] Extract navigate **orchestration** from `moveCharacter` per **S1-13** (PerceptionThreads header, render kicks, **`MapUpdate`**); wire navigate persist through **`applyCharacterRoomMembership`**
+  - [X] Optional **Model A**: at persistence apply, stamp **`beatAnchorTime`** from **fact** recorded time + header **`MessageId`**; publish with explicit **`createdTime`** (leave/arrive via fan-in emission per **S1-2**)
   - [ ] Subscribe positions to `Character Navigate`; remove imperative `MoveCharacter` from actions
   - [ ] Grep: no new direct `Meta::Room.activeCharacters` writes outside persistence API + documented exceptions
   - [ ] Add `mtw-gateways/ts/ephemera/positions/` read surface (v1: **`positionGraph`** API; slice 1 adapter projects from flat fields); register on `internalCache`; point **`AffordanceRoomDeliverable`** roster path (and memo `set`/`invalidate` from persistence API) at handler --- not raw `ephemeraDB` in compose path
@@ -420,7 +417,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | --- | --- |
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
-| Slice 1a: persistence boundary | Not started |
+| Slice 1a: persistence boundary | In progress (core shipped: lines 351--356; open: 357--361) |
 | Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Not started (fan-in consumer publish --- track [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
