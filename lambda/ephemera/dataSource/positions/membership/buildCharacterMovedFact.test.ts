@@ -4,17 +4,19 @@ import { buildCharacterMovedFact } from './buildCharacterMovedFact'
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
+const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 const ANCHOR = 1_700_000_000_000
 
 describe('buildCharacterMovedFact', () => {
-    it('builds a Character Moved payload from apply result', () => {
+    it('builds a Character Moved payload from membership diff', () => {
         const fact = buildCharacterMovedFact({
             characterId: CHARACTER_ID,
-            applyResult: {
-                from: FROM_ROOM,
+            diff: {
+                froms: [FROM_ROOM],
                 to: TO_ROOM,
-                beatAnchorTime: ANCHOR,
+                changed: true,
             },
+            beatAnchorTime: ANCHOR,
             characterName: 'Test',
         })
 
@@ -29,14 +31,15 @@ describe('buildCharacterMovedFact', () => {
         expect(fact).not.toHaveProperty('legalExits')
     })
 
-    it('maps null from to empty froms array', () => {
+    it('maps empty froms for arrive-only diff', () => {
         const fact = buildCharacterMovedFact({
             characterId: CHARACTER_ID,
-            applyResult: {
-                from: null,
+            diff: {
+                froms: [],
                 to: TO_ROOM,
-                beatAnchorTime: ANCHOR,
+                changed: true,
             },
+            beatAnchorTime: ANCHOR,
         })
 
         expect(fact).toEqual({
@@ -48,26 +51,29 @@ describe('buildCharacterMovedFact', () => {
         })
     })
 
-    it('returns undefined when beatAnchorTime is missing', () => {
+    it('returns undefined when diff.changed is false', () => {
         expect(buildCharacterMovedFact({
             characterId: CHARACTER_ID,
-            applyResult: {
-                from: FROM_ROOM,
-                to: TO_ROOM,
+            diff: {
+                froms: [],
+                to: FROM_ROOM,
+                changed: false,
             },
+            beatAnchorTime: ANCHOR,
         })).toBeUndefined()
     })
 
-    it('never emits froms.length > 1 from flat apply result', () => {
+    it('emits multi-from on drift scrub diff', () => {
         const fact = buildCharacterMovedFact({
             characterId: CHARACTER_ID,
-            applyResult: {
-                from: FROM_ROOM,
+            diff: {
+                froms: [FROM_ROOM, ROOM_C],
                 to: TO_ROOM,
-                beatAnchorTime: ANCHOR,
+                changed: true,
             },
+            beatAnchorTime: ANCHOR,
         })
 
-        expect(fact?.froms.length).toBeLessThanOrEqual(1)
+        expect(fact?.froms).toEqual([FROM_ROOM, ROOM_C])
     })
 })

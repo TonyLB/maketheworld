@@ -2,10 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { CharacterMovedPublishedPayload } from '../publishedEvents'
 import { publishCharacterMovedStreamEvent } from '../publishedEvents'
 
-/**
- * TEMP slice 1 --- replace with MembershipDiff from updatePositionGraphs in slice 2.
- * Streams Character Moved at persistence apply (S1-14).
- */
+/** Streams Character Moved at persistence apply (F1-8 graph-diff). */
 export const streamMembershipFact = async (
     payload: CharacterMovedPublishedPayload,
     deps: { streamEvent: StreamEventFunction<CharacterMovedPublishedPayload> }

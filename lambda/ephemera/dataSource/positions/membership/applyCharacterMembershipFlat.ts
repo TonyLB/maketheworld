@@ -1,15 +1,15 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
-import { RoomKey, splitType } from '@tonylb/mtw-utilities/ts/types'
+import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type {
     ActiveCharacterRosterEntry,
     MembershipApplyArgs,
     MembershipApplyResult,
-    RoomStackItem,
 } from './types'
+import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './membershipRoomStack'
 
 export type ApplyCharacterMembershipFlatDependencies = {
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -23,33 +23,6 @@ export type ApplyCharacterMembershipFlatDependencies = {
 const defaultReadMembershipEndpoint = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId | null> => {
     const containers = await internalCache.Positions.getMembershipContainers(characterId)
     return containers[0] ?? null
-}
-
-const computeRoomStackUpdate = (
-    args: {
-        targetRoomId: EphemeraRoomId;
-        characterMeta: CharacterMetaItem;
-        roomAssets: string[];
-        canonAssets: string[];
-    }
-): { targetAsset?: string; targetAssetListIndex?: number } => {
-    const { targetRoomId, characterMeta, roomAssets, canonAssets } = args
-    const orderIndexByAsset = Object.assign(
-        {},
-        ...([...canonAssets, ...(characterMeta.assets || [])].map((asset, index) => ({ [asset]: index })))
-    ) as Record<string, number>
-    return roomAssets.reduce<{ targetAsset?: string; targetAssetListIndex?: number }>((previous, asset) => {
-        const assetIndex = orderIndexByAsset[asset.split('#')[1]]
-        if (typeof assetIndex !== 'undefined') {
-            if (typeof previous.targetAssetListIndex === 'undefined' || previous.targetAssetListIndex > assetIndex) {
-                return {
-                    targetAsset: asset.split('#')[1],
-                    targetAssetListIndex: assetIndex,
-                }
-            }
-        }
-        return previous
-    }, {})
 }
 
 export const applyCharacterMembershipFlat = async (
@@ -140,22 +113,12 @@ export const applyCharacterMembershipFlat = async (
                         },
                         updateKeys: ['RoomId', 'RoomStack'],
                         updateReducer: (draft) => {
-                            draft.RoomId = splitType(to)[1]
-                            if (!(typeof targetAssetListIndex === 'undefined')) {
-                                const roomStack = (draft.RoomStack || [{ asset: 'primitives', RoomId: 'VORTEX' }]) as RoomStackItem[]
-                                const indexOfFirstReplacement = roomStack.findIndex(
-                                    ({ asset: stackAsset }) => (
-                                        !(stackAsset in orderIndexByAsset && orderIndexByAsset[stackAsset] < targetAssetListIndex)
-                                    )
-                                )
-                                draft.RoomStack = [
-                                    ...(indexOfFirstReplacement === -1 ? roomStack : roomStack.slice(0, indexOfFirstReplacement)),
-                                    {
-                                        asset: targetAsset,
-                                        RoomId: draft.RoomId,
-                                    },
-                                ]
-                            }
+                            applyRoomStackToCharacterDraft(draft, {
+                                targetRoomId: to,
+                                targetAsset,
+                                targetAssetListIndex,
+                                orderIndexByAsset,
+                            })
                         },
                     },
                 },

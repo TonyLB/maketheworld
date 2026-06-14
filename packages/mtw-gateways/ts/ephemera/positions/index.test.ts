@@ -100,14 +100,23 @@ describe('positions project', () => {
 })
 
 describe('PositionsCacheHandler', () => {
-    it('loads room graph from Dynamo on miss', async () => {
+    it('loads room graph from stored positionGraph with roster meta merge', async () => {
         const db: EphemeraPositionsReadDB = {
-            getItem: jest.fn().mockResolvedValue({
-                activeCharacters: [{
-                    EphemeraId: characterId,
-                    DisplayName: 'Alpha',
-                    SessionIds: ['sess-1'],
-                }],
+            getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
+                if (ProjectionFields?.includes('positionGraph')) {
+                    return {
+                        positionGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                return {
+                    activeCharacters: [{
+                        EphemeraId: characterId,
+                        DisplayName: 'Alpha',
+                        SessionIds: ['sess-1'],
+                    }],
+                }
             }),
         }
         const handler = createPositionsCacheHandler(db)
@@ -115,20 +124,45 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getPositionGraph(roomId)
         const roster = await handler.getRoomRoster(roomId)
 
-        expect(db.getItem).toHaveBeenCalledWith({
-            Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
-            ProjectionFields: ['activeCharacters'],
-        })
-        expect(graph).toEqual(projectRoomGraphFromActiveCharacters([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }]))
+        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph(
+            { nodes: [{ tag: 'Character', universalKey: characterId }] },
+            [{
+                EphemeraId: characterId,
+                DisplayName: 'Alpha',
+                SessionIds: ['sess-1'],
+            }]
+        ))
         expect(roster).toEqual([{
             EphemeraId: characterId,
             DisplayName: 'Alpha',
             SessionIds: ['sess-1'],
         }])
+    })
+
+    it('falls back to activeCharacters when stored positionGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
+                if (ProjectionFields?.includes('positionGraph')) {
+                    return {}
+                }
+                return {
+                    activeCharacters: [{
+                        EphemeraId: characterId,
+                        DisplayName: 'Alpha',
+                        SessionIds: ['sess-1'],
+                    }],
+                }
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getPositionGraph(roomId)
+
+        expect(graph).toEqual(projectRoomGraphFromActiveCharacters([{
+            EphemeraId: characterId,
+            DisplayName: 'Alpha',
+            SessionIds: ['sess-1'],
+        }]))
     })
 
     it('returns empty inventory stub for character getPositionGraph without Dynamo', async () => {
@@ -142,9 +176,25 @@ describe('PositionsCacheHandler', () => {
         expect(db.getItem).not.toHaveBeenCalled()
     })
 
-    it('loads membership containers from Dynamo on miss', async () => {
+    it('loads membership containers from adjacency on miss', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn(),
+            query: jest.fn().mockResolvedValue([{
+                EphemeraId: characterId,
+                DataCategory: buildPositionAdjacencyDataCategory(roomId),
+            }]),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        await expect(handler.getMembershipContainers(characterId)).resolves.toEqual([roomId])
+        expect(db.query).toHaveBeenCalled()
+        expect(db.getItem).not.toHaveBeenCalled()
+    })
+
+    it('falls back to RoomId when adjacency query is empty', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockResolvedValue({ RoomId: roomId }),
+            query: jest.fn().mockResolvedValue([]),
         }
         const handler = createPositionsCacheHandler(db)
 
@@ -158,6 +208,7 @@ describe('PositionsCacheHandler', () => {
     it('returns empty membership containers when character is out of play', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockResolvedValue({}),
+            query: jest.fn().mockResolvedValue([]),
         }
         const handler = createPositionsCacheHandler(db)
 
@@ -185,18 +236,22 @@ describe('PositionsCacheHandler', () => {
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {
         const getItem = jest.fn().mockResolvedValue({ RoomId: roomId })
-        const db: EphemeraPositionsReadDB = { getItem }
+        const query = jest.fn().mockResolvedValue([])
+        const db: EphemeraPositionsReadDB = { getItem, query }
         const handler = createPositionsCacheHandler(db)
 
         await handler.getMembershipContainers(characterId)
+        expect(query).toHaveBeenCalledTimes(1)
         expect(getItem).toHaveBeenCalledTimes(1)
 
         handler.setMembershipContainers({ componentId: characterId, containers: [] })
         await expect(handler.getMembershipContainers(characterId)).resolves.toEqual([])
+        expect(query).toHaveBeenCalledTimes(1)
         expect(getItem).toHaveBeenCalledTimes(1)
 
         handler.invalidateMembershipContainers(characterId)
         await handler.getMembershipContainers(characterId)
+        expect(query).toHaveBeenCalledTimes(2)
         expect(getItem).toHaveBeenCalledTimes(2)
     })
 })

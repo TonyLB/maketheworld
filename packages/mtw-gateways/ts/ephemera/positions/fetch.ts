@@ -12,6 +12,11 @@ export type EphemeraPositionsReadDB = {
         ProjectionFields?: string[]
         getAllFields?: boolean
     }): Promise<Item | undefined>
+    query?<Item extends Record<string, unknown>>(props: {
+        Key: { EphemeraId: string }
+        KeyConditionExpression: string
+        ExpressionAttributeValues: Record<string, string>
+    }): Promise<Item[]>
 }
 
 type CharacterMetaRoomProjection = {

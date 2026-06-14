@@ -1,6 +1,6 @@
 # Positions --- implementation map
 
-This file records **where behavior lives** for `mtw.ephemera.positions` through slice **1d**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
+This file records **where behavior lives** for `mtw.ephemera.positions` through slice **2**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
 
 ---
 
@@ -14,15 +14,18 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect/disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
 
-### `membership/` (slice 1a--1b persistence + fact emit)
+### `membership/` (slice 2 graph persist + fact emit)
 
 | File | Role |
 | --- | --- |
-| [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipApplyResult`, `RoomStackItem` |
-| [`membership/applyCharacterMembershipFlat.ts`](membership/applyCharacterMembershipFlat.ts) | Flat-field `transactWrite` (navigate + disconnect); slice 2 swaps engine |
-| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: persist, `changed` gate, S1-11 bundle (fact stream first) |
-| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | TEMP slice 1 fact payload: maps apply **`from`** -> **`froms[]`** (S1-14 / slice **1d**) |
+| [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
+| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character nodes, seed from roster) |
+| [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Shared `RoomStack` update logic |
+| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency + S2-2 dual-write) |
+| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: graph persist, `changed` gate, S1-11 bundle (fact stream first) |
+| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
 | [`membership/streamMembershipFact.ts`](membership/streamMembershipFact.ts) | `Character Moved` `streamEvent` at persistence apply |
+| [`membership/applyCharacterMembershipFlat.ts`](membership/applyCharacterMembershipFlat.ts) | Legacy flat-field persist (retained for unit tests; not called by coordinator) |
 
 ### Tests
 
@@ -31,10 +34,12 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate) |
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect `CheckLocation` publish; disconnect routes through coordinator |
-| [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Flat persist transact + `changed` gate |
+| [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
+| [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
+| [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Legacy flat persist (reference) |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
-| [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects) |
-| [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | TEMP fact builder (`froms[]` mapping; 0-1 elements from flat persist) |
+| [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects; multi-from) |
+| [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Graph-diff fact builder (including multi-from) |
 | [`membership/streamMembershipFact.test.ts`](membership/streamMembershipFact.test.ts) | Fact stream helper |
 
 ---
@@ -72,12 +77,12 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 | System | Use |
 | --- | --- |
-| `ephemeraDB.transactWrite` | `Meta::Character` `RoomId` / `RoomStack`; `Meta::Room.activeCharacters` (flat persist) |
+| `ephemeraDB.transactWrite` | `Meta::Room.positionGraph` + `activeCharacters`; adjacency rows; `Meta::Character` `RoomId` / `RoomStack` |
 | `internalCache.CharacterMeta` | Full meta for transact; `invalidate` after apply |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
 | `internalCache.Positions.set` / `invalidate` | Room forward position graph memo (S1-5) |
-| `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15 slice 1c) |
+| `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents` or `ephemeraPositionsDataSource` on legacy bus paths) | `Character Moved` when `changed` |
 
@@ -88,27 +93,12 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | System | Role |
 | --- | --- |
 | [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | **`Positions`** gateway handler on `internalCache` |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph`, `getRoomRoster`; character inventory stub + `getMembershipContainers` (slice 1c) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph` (stored graph + roster meta); `getMembershipContainers` (adjacency + RoomId fallback) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`Positions.getRoomRoster`** |
-| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Legacy roster read (other callers; migrate in slice 2) |
+| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Legacy roster read (other callers; migrate at initiative close) |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
 | [`../perception/membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) | Fan-in fact leg consumer for **`Character Moved`** |
-
-Slice 2 swaps room forward + reverse backing to stored `Meta::Room.positionGraph` + adjacency --- task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
-
----
-
-## Slice 2 schema foundation (landed; persist not wired)
-
-| Artifact | Location |
-| --- | --- |
-| **`EphemeraPlayPositionGraph`** on **`Meta::Room`** | [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) --- character nodes only; empty edges in v1 |
-| Adjacency row type + key builders (**S2-5**) | [`packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts`](../../../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) |
-| Gateway read helpers (secondary; factory swap pending) | [`packages/mtw-gateways/ts/ephemera/positions/fetch.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts) **`getRoomPositionGraphFromDynamo`**; [`adjacency.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/adjacency.ts) **`queryMembershipContainersFromDynamo`**; [`project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts) **`projectRoomGraphFromStoredPositionGraph`** |
-| Storage schema doc | [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) **Storage schema (slice 2)** |
-
-Membership apply still uses flat-field persist; no lambda writes to **`positionGraph`** or adjacency rows yet.
 
 ---
 

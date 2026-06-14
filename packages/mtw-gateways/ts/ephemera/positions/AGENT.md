@@ -13,15 +13,15 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
-## Slice 1 adapter (flat fields; slice 1c forward/reverse split)
+## Slice 2 backing (shipped)
 
-| Operation | Question | Slice 1 backing |
+| Operation | Question | Backing |
 | --- | --- | --- |
-| **`getPositionGraph(roomId)`** | What does this room **contain**? | `Meta::Room.activeCharacters` -> character nodes + `characterRosterMeta` |
+| **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` + transitional `activeCharacters` roster meta; bootstrap from `activeCharacters` when graph absent |
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | **Stub:** empty `{ nodes: [], edges: [] }` --- no Dynamo read |
-| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | `Meta::Character.RoomId` -> `[]` or `[roomId]` |
+| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index (**S2-5**); transitional fallback to `Meta::Character.RoomId` when adjacency empty (**S2-2** until **S2-6**) |
 
-**Slice 2:** forward room graph from stored `Meta::Room.positionGraph`; reverse from adjacency index (**S2-5**). Handler API unchanged. **Factory backing swap** (wire stored reads into **`PositionsCacheHandler`**) is a separate slice 2 checklist row --- schema + secondary helpers ship first.
+Handler API unchanged from slice 1c. Read fallbacks retire at initiative close (**S2-6**).
 
 ## Storage schema (slice 2; types landed)
 

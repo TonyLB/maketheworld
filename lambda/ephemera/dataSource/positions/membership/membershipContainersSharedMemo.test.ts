@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { createPositionsCacheHandler } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import { getRoomExitTargetsForCharacter } from '../../actions/roomExitTargetsForCharacter'
-import { applyCharacterMembershipFlat } from './applyCharacterMembershipFlat'
+import { updatePositionGraphs } from './updatePositionGraphs'
 
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
@@ -43,13 +43,18 @@ describe('membership containers shared memo (slice 1c)', () => {
     })
 
     it('reuses reverse memo within invocation when parse and apply both read containers', async () => {
+        const querySpy = jest.fn().mockResolvedValue([])
         const getItemSpy = jest.fn().mockResolvedValue({ RoomId: ROOM_ID })
-        internalCache.Positions = createPositionsCacheHandler({ getItem: getItemSpy }) as typeof internalCache.Positions
+        internalCache.Positions = createPositionsCacheHandler({
+            getItem: getItemSpy,
+            query: querySpy,
+        }) as typeof internalCache.Positions
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
-        await applyCharacterMembershipFlat(
+        await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_ID },
             {
+                getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
                 transactWrite: jest.fn(),
                 getCharacterMeta: async () => ({
                     EphemeraId: CHARACTER_ID,
@@ -62,6 +67,7 @@ describe('membership containers shared memo (slice 1c)', () => {
             }
         )
 
+        expect(querySpy).toHaveBeenCalledTimes(1)
         expect(getItemSpy).toHaveBeenCalledTimes(1)
         expect(getItemSpy).toHaveBeenCalledWith({
             Key: { EphemeraId: CHARACTER_ID, DataCategory: 'Meta::Character' },

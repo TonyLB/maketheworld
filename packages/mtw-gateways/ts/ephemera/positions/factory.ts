@@ -6,12 +6,15 @@ import type { EphemeraPositionsReadDB } from './fetch'
 import {
     getCharacterRoomIdFromDynamo,
     getRoomActiveCharactersFromDynamo,
+    getRoomPositionGraphFromDynamo,
 } from './fetch'
+import { queryMembershipContainersFromDynamo } from './adjacency'
 import { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
 import {
     projectCharacterInventoryGraphStub,
     projectMembershipContainersFromRoomEndpoint,
     projectRoomGraphFromActiveCharacters,
+    projectRoomGraphFromStoredPositionGraph,
     projectRoomRosterFromGraph,
 } from './project'
 import type {
@@ -104,13 +107,28 @@ export class PositionsCacheHandler {
     private async loadRoomPositionGraphFromDynamo(
         roomId: EphemeraRoomId
     ): Promise<PlayPositionGraph> {
-        const activeCharacters = await getRoomActiveCharactersFromDynamo(this.db, roomId)
+        const [stored, activeCharacters] = await Promise.all([
+            getRoomPositionGraphFromDynamo(this.db, roomId),
+            getRoomActiveCharactersFromDynamo(this.db, roomId),
+        ])
+        if (stored) {
+            return projectRoomGraphFromStoredPositionGraph(stored, activeCharacters)
+        }
         return projectRoomGraphFromActiveCharacters(activeCharacters)
     }
 
     private async loadMembershipContainersFromDynamo(
         characterId: EphemeraCharacterId
     ): Promise<EphemeraRoomId[]> {
+        if (this.db.query) {
+            const fromAdjacency = await queryMembershipContainersFromDynamo(
+                { query: this.db.query.bind(this.db) },
+                characterId
+            )
+            if (fromAdjacency.length > 0) {
+                return fromAdjacency
+            }
+        }
         const roomEndpoint = await getCharacterRoomIdFromDynamo(this.db, characterId)
         return projectMembershipContainersFromRoomEndpoint(roomEndpoint)
     }

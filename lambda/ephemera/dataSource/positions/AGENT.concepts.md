@@ -17,20 +17,21 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Target: a **node** in that room's play graph; shipped interim: scalar `RoomId` plus roster list kept in sync. |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**; transitional **`RoomId`** / **`activeCharacters`** dual-write (**S2-2**). |
 
 ---
 
 ## Shipped mental model (aligned with play truth today)
 
-### Play membership is flat, not graph-shaped yet
+### Room play graph + adjacency reverse index (slice 2)
 
-At play time, room membership is expressed as **paired flat fields**, not as nodes in a room `positionGraph`:
+At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each character has a current **`RoomId`** (and optional **`RoomStack`** for nested context).
-- Each room has an **`activeCharacters`** roster listing who is present.
+- Each room hosts **`Meta::Room.positionGraph`** --- character **nodes** (slice 2 v1; no in-room edges yet).
+- Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
+- **Transitional dual-write:** `activeCharacters` (roster display) and `Meta::Character.RoomId` stay in sync at persist until initiative close (**S2-6**). Gateway reads prefer stored graph + adjacency; bootstrap fallbacks use legacy fields when adjacency/graph absent.
 
-These are **two views of the same membership fact** and must stay consistent. They are **projections of membership** we have not yet stored as graph nodes and edges.
+A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**).
 
 ### Two questions, two domains
 
@@ -39,7 +40,7 @@ Area **topology** and in-room **membership** answer different questions:
 | Question | Domain | Play expression (today) |
 | --- | --- | --- |
 | Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
-| Which **room** is this character in; who is on the roster? | Play-time **position** / membership | `RoomId`, `activeCharacters`, roster projections |
+| Which **room** is this character in; who is on the roster? | Play-time **position** / membership | `positionGraph` nodes, adjacency index, roster projection from `activeCharacters` |
 
 Exit topology does **not** imply roster membership, and roster membership does **not** define exits. Consumers that need both (for example affordance WML) compose **separate projections**.
 
@@ -47,25 +48,21 @@ Exit topology does **not** imply roster membership, and roster membership does *
 
 ## Target mental model (not yet enforced in contract or storage)
 
-### Fractal position graphs
+### Fractal position graphs (container scale and edges)
 
-The same **node + edge** pattern recurs at finer granularity:
+The same **node + edge** pattern recurs at finer granularity beyond room character nodes:
 
 ```text
-Area.positionGraph          Room.positionGraph (future)     Container graph (future)
-  rooms, macro edges    ->    characters, objects, features  ->  inventory / nested objects
-  Exit, bearing, ...        On, Against, Inside, ...          In, On, ...
+Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (future)
+  rooms, macro edges    ->    characters (nodes only)       ->  inventory / nested objects
+  Exit, bearing, ...        in-room edges (slice 5+)            In, On, ...
 ```
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Room scale (future):** each room hosts a play (and optionally authored) graph. **Character presence** in a room means: the **Character node appears in that room's graph** --- not only a scalar `RoomId` duplicated elsewhere.
+**Room scale (shipped v1):** each room hosts a play graph with **character nodes**. In-room edges and object nodes land in slice **5+**.
 
 **Container scale (future):** a Character (or held Object) hosts a graph for inventory and nested placement ("glass on tray on table", "broom against wall").
-
-### Characters are atomic across rooms
-
-At play time a character should appear in **at most one room graph** (enforced at the positions authority). `RoomId` and roster lists become **projections** of that invariant, not independent sources of truth.
 
 ### Authored vs play graphs
 

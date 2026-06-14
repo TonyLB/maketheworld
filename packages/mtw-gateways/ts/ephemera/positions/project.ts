@@ -21,8 +21,7 @@ const characterNodeReference = (characterId: EphemeraCharacterId): StandardRefer
 })
 
 /**
- * TEMP slice 1 --- projects flat `activeCharacters` into a play position graph.
- * Slice 2 swaps backing read to stored `Meta::Room.positionGraph`.
+ * Projects flat `activeCharacters` into a play position graph (bootstrap read fallback).
  */
 export const projectRoomGraphFromActiveCharacters = (
     activeCharacters: EphemeraRoomActiveCharacter[]

@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Next:** slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Next:** slice **3** unify connect. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -507,16 +507,16 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Parity tests: navigate + disconnect emission unchanged vs slice **1b** (singleton **`froms`**)
   - [X] Graduate contract: **`froms` / `to`** fact shape; link **F2-2**
 
-- [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
+- [X] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
   - [X] Resolve **Open decisions** S2-1 through S2-4, S2-5, S2-6, **S2-7** (intent)
   - [X] **Prerequisite:** slice **1d** shipped
   - [X] Add `positionGraph` (or agreed shape) to [`EphemeraMetaRoom`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)
   - [X] Define adjacency row schema (**S2-5**) on ephemera Dynamo; document key layout in interfaces / gateways
-  - [ ] Implement **`updatePositionGraphs`** (**S2-4** end-state apply: full-container pre-read, remove from all prior hosts `!== target`, immer draft, holistic **`MembershipDiff`** with **`froms[]`**, decomposed **`transactWrite`**: room **`positionGraph`** + **adjacency** + **transitional** legacy projection sync per **S2-2**); swap into **`applyCharacterRoomMembership`** (**S1-4**)
-  - [ ] Replace slice 1 TEMP fact builder with diff-only emit; extend **S1-11** bundle for all **`froms`** + **`to`** rooms; delete **`TEMP slice 1`** comments; graduate **F1-8** / **S2-4** to contract
-  - [ ] Swap positions gateway **backing**: forward from stored **`positionGraph`**, reverse from **adjacency** (**S1-15** / **S2-5**)
-  - [ ] Tests: end-state race (stale intent A->B, reality **`froms: [C]`** -> B); drift scrub **`froms: [A,C]`** -> B (multi-from from persist); affordance/roster smoke paths via gateway
-  - [ ] Graduate concepts (room play graph, character-as-node, adjacency reverse index) + contract + implementation
+  - [X] Implement **`updatePositionGraphs`** (**S2-4** end-state apply: full-container pre-read, remove from all prior hosts `!== target`, immer draft, holistic **`MembershipDiff`** with **`froms[]`**, decomposed **`transactWrite`**: room **`positionGraph`** + **adjacency** + **transitional** legacy projection sync per **S2-2**); swap into **`applyCharacterRoomMembership`** (**S1-4**)
+  - [X] Replace slice 1 TEMP fact builder with diff-only emit; extend **S1-11** bundle for all **`froms`** + **`to`** rooms; delete **`TEMP slice 1`** comments; graduate **F1-8** / **S2-4** to contract
+  - [X] Swap positions gateway **backing**: forward from stored **`positionGraph`**, reverse from **adjacency** (**S1-15** / **S2-5**)
+  - [X] Tests: end-state race (stale intent A->B, reality **`froms: [C]`** -> B); drift scrub **`froms: [A,C]`** -> B (multi-from from persist); affordance/roster smoke paths via gateway
+  - [X] Graduate concepts (room play graph, character-as-node, adjacency reverse index) + contract + implementation
 
 - [ ] **Slice 3 --- unify connect**
   - [ ] Route `Character Connected` through membership API (retire `CheckLocation` bridge)
@@ -575,6 +575,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 2 decisions: end-state apply (**S2-4**), plural **`froms`** (**S2-7**) | Decided |
 | Slice 1d: **`froms[]`** fact contract + fan-in **F2-2** | Done |
 | Slice 2 schema foundation: **`positionGraph`** + adjacency types | Done |
-| Slice 2: `Meta::Room` play graph storage swap | Not started |
+| Slice 2: `Meta::Room` play graph storage swap | Done |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

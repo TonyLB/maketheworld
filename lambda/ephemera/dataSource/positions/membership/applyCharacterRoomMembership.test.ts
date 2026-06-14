@@ -1,9 +1,9 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
-import * as flatPersist from './applyCharacterMembershipFlat'
+import * as graphPersist from './updatePositionGraphs'
 
-jest.mock('./applyCharacterMembershipFlat', () => ({
-    applyCharacterMembershipFlat: jest.fn(),
+jest.mock('./updatePositionGraphs', () => ({
+    updatePositionGraphs: jest.fn(),
 }))
 
 jest.mock('../../../internalCache', () => ({
@@ -27,13 +27,14 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 
 import internalCache from '../../../internalCache'
 
-const applyCharacterMembershipFlatMock = flatPersist.applyCharacterMembershipFlat as jest.MockedFunction<
-    typeof flatPersist.applyCharacterMembershipFlat
+const updatePositionGraphsMock = graphPersist.updatePositionGraphs as jest.MockedFunction<
+    typeof graphPersist.updatePositionGraphs
 >
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
+const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 
 describe('applyCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -50,11 +51,10 @@ describe('applyCharacterRoomMembership', () => {
     })
 
     it('skips side-effect bundle when membership endpoint is unchanged', async () => {
-        applyCharacterMembershipFlatMock.mockResolvedValue({
+        updatePositionGraphsMock.mockResolvedValue({
             ok: true,
-            from: FROM_ROOM,
-            to: FROM_ROOM,
-            changed: false,
+            persisted: false,
+            diff: { froms: [], to: FROM_ROOM, changed: false },
         })
 
         const result = await applyCharacterRoomMembership(
@@ -64,8 +64,9 @@ describe('applyCharacterRoomMembership', () => {
 
         expect(result).toEqual({
             ok: true,
-            from: FROM_ROOM,
+            from: null,
             to: FROM_ROOM,
+            froms: [],
             changed: false,
         })
         expect(messageBus.publish).not.toHaveBeenCalled()
@@ -74,11 +75,10 @@ describe('applyCharacterRoomMembership', () => {
     })
 
     it('runs membership-changed bundle when endpoint changes', async () => {
-        applyCharacterMembershipFlatMock.mockResolvedValue({
+        updatePositionGraphsMock.mockResolvedValue({
             ok: true,
-            from: FROM_ROOM,
-            to: TO_ROOM,
-            changed: true,
+            persisted: true,
+            diff: { froms: [FROM_ROOM], to: TO_ROOM, changed: true },
             roomRosterSnapshots: {
                 [FROM_ROOM]: [],
                 [TO_ROOM]: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
@@ -94,6 +94,7 @@ describe('applyCharacterRoomMembership', () => {
             ok: true,
             from: FROM_ROOM,
             to: TO_ROOM,
+            froms: [FROM_ROOM],
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         }))
@@ -140,9 +141,37 @@ describe('applyCharacterRoomMembership', () => {
         })
     })
 
-    it('logs and returns when flat persist fails', async () => {
+    it('runs side-effect bundle for all froms on drift scrub', async () => {
+        updatePositionGraphsMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            diff: { froms: [FROM_ROOM, ROOM_C], to: TO_ROOM, changed: true },
+            roomRosterSnapshots: {
+                [FROM_ROOM]: [],
+                [ROOM_C]: [],
+                [TO_ROOM]: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
+            },
+        })
+
+        await applyCharacterRoomMembership(
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                froms: [FROM_ROOM, ROOM_C],
+                to: TO_ROOM,
+            }),
+        }))
+        expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: FROM_ROOM })
+        expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_C })
+        expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: TO_ROOM })
+    })
+
+    it('logs and returns when graph persist fails', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
-        applyCharacterMembershipFlatMock.mockResolvedValue({
+        updatePositionGraphsMock.mockResolvedValue({
             ok: false,
             errorCode: 'MEMBERSHIP_TRANSACT_FAILED',
             errorMessage: 'boom',

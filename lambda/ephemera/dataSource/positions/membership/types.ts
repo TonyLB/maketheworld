@@ -20,10 +20,31 @@ export type ActiveCharacterRosterEntry = {
     SessionIds?: string[];
 }
 
+export type MembershipDiff = {
+    /** Distinct prior in-play containers removed from (S2-4 / S2-7). */
+    froms: EphemeraRoomId[];
+    to: EphemeraRoomId | null;
+    changed: boolean;
+}
+
+export type MembershipGraphPersistSuccess = {
+    ok: true;
+    persisted: true;
+    diff: MembershipDiff;
+    roomRosterSnapshots?: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>;
+}
+
+export type UpdatePositionGraphsResult =
+    | MembershipGraphPersistSuccess
+    | { ok: true; persisted: false; diff: MembershipDiff }
+    | MembershipApplyErrorResult
+
 export type MembershipApplySuccessResult = {
     ok: true;
     from: EphemeraRoomId | null;
     to: EphemeraRoomId | null;
+    /** Plural prior containers removed from; slice 2 graph-diff (S2-7). */
+    froms?: EphemeraRoomId[];
     changed: boolean;
     /** Set when changed; Model A / slice 1b fact anchor (F1-4). */
     beatAnchorTime?: number;
