@@ -132,8 +132,6 @@ describe('moveCharacter', () => {
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
         internalCacheMock.OrchestrateMessages.newMessageGroup.mockReturnValue('UUID#MessageGroup')
-        internalCacheMock.OrchestrateMessages.before.mockReturnValue('UUID#Before')
-        internalCacheMock.OrchestrateMessages.after.mockReturnValue('UUID#After')
         internalCacheMock.AssetMetaData = {
             get: jest.fn().mockImplementation(async (ids: string[]) => (
                 ids.map((id) => ({ AssetId: id, zone: 'Canon' as const }))
@@ -188,8 +186,6 @@ describe('moveCharacter', () => {
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#Test',
                 roomId: 'ROOM#TestTwo',
-                suppressDeparture: true,
-                suppressArrival: true,
             },
             froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',

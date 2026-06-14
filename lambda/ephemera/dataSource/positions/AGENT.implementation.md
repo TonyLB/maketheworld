@@ -62,7 +62,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | --- | --- |
 | Shared navigate execution (persist + orchestrate) | [`../../moveCharacter/executeCharacterNavigate.ts`](../../moveCharacter/executeCharacterNavigate.ts) |
 | `moveCharacter` bus entry (connect / legacy bridge) | [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) |
-| Post-persist presentation (PerceptionThreads, render kicks, `MapUpdate`) | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** (singular bridge: **`froms[0]`** for `departureRoomId` / `MapUpdate.previousRoomId`) |
+| Post-persist presentation (targeting-only `characterMove` header, render kicks, `MapUpdate`) | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** (singular bridge: **`froms[0]`** for `MapUpdate.previousRoomId`) |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
 | Leave/arrive world copy (navigate + disconnect + connect) | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in |
 

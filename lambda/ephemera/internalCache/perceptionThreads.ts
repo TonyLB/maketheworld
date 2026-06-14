@@ -1,22 +1,13 @@
 /**
- * In-memory perception fan-in threads (PerceptionThreads). Cleared each lambda invocation via InternalCache.clear().
+ * In-memory render targeting registry (PerceptionThreads). Cleared each lambda invocation via InternalCache.clear().
  * See lambda/ephemera/dataSource/perception/AGENT.md (Normative decisions and obligations).
  *
  * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
-import { isNonEmptyPublishTargetArray, type PublishTarget } from '../messageBus/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    isCharacterMoveWorldMessageSpec,
-    type CharacterMoveWorldMessageSpec,
-    type PerceptionThreadRegisterCharacterMoveCommand,
     type PerceptionThreadRegisterCommand,
 } from '../dataSource/perception/localApiEvents'
-
-/** Stub thread body; more variants may be added in later refactor steps. */
-export type StubPerceptionThread = {
-    kind: 'stub';
-}
 
 /**
  * Correlated room full-description delivery. After terminal PublishMessage we need not retain finished
@@ -56,32 +47,21 @@ export type SessionOrientationAffordancesPerceptionThread = {
     cacheId?: string;
 }
 
-/** Character move: header fan-in + Leave/Arrive WorldMessage specs on registration (see characterMoveDelivery). */
+/** Character move: targeting-only registration for mover arrival-room header render fan-in. */
 export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-    leaveDispatched?: boolean;
-    arriveDispatched?: boolean;
 }
 
 export type PerceptionThread =
-    | StubPerceptionThread
     | RoomDescriptionPerceptionThread
     | RoomHeaderBroadcastPerceptionThread
     | SessionOrientationRenderPerceptionThread
     | SessionOrientationAffordancesPerceptionThread
     | CharacterMovePerceptionThread
-
-export function isStubPerceptionThread(value: unknown): value is StubPerceptionThread {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const v = value as Record<string, unknown>
-    return v.kind === 'stub'
-}
 
 export function isRoomDescriptionPerceptionThread(value: unknown): value is RoomDescriptionPerceptionThread {
     if (!value || typeof value !== 'object') {
@@ -201,19 +181,12 @@ export function isCharacterMovePerceptionThread(value: unknown): value is Charac
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
         return false
     }
-    if (v.leaveDispatched !== undefined && typeof v.leaveDispatched !== 'boolean') {
-        return false
-    }
-    if (v.arriveDispatched !== undefined && typeof v.arriveDispatched !== 'boolean') {
-        return false
-    }
     return true
 }
 
 export function isPerceptionThread(value: unknown): value is PerceptionThread {
     return (
-        isStubPerceptionThread(value)
-        || isRoomDescriptionPerceptionThread(value)
+        isRoomDescriptionPerceptionThread(value)
         || isRoomHeaderBroadcastPerceptionThread(value)
         || isSessionOrientationRenderPerceptionThread(value)
         || isSessionOrientationAffordancesPerceptionThread(value)
@@ -228,10 +201,6 @@ export type RoomDescriptionPerceptionThreadPatch = {
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-}
-
-export type StubPerceptionThreadPatch = {
-    threadKind: 'stub';
 }
 
 export type RoomHeaderBroadcastPerceptionThreadPatch = {
@@ -263,11 +232,6 @@ export type CharacterMovePerceptionThreadPatch = {
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-    leaveDispatched?: boolean;
-    arriveDispatched?: boolean;
-    leaveWorldMessage?: CharacterMoveWorldMessageSpec;
-    arriveWorldMessage?: CharacterMoveWorldMessageSpec;
-    headerTargets?: PublishTarget[];
 }
 
 export type PerceptionThreadPatch =
@@ -276,24 +240,12 @@ export type PerceptionThreadPatch =
     | SessionOrientationRenderPerceptionThreadPatch
     | SessionOrientationAffordancesPerceptionThreadPatch
     | CharacterMovePerceptionThreadPatch
-    | StubPerceptionThreadPatch
 
 const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const SESSION_ORIENTATION_RENDER_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const SESSION_ORIENTATION_AFFORDANCES_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
-const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
-    'threadKind',
-    'status',
-    'messageId',
-    'createdTime',
-    'cacheId',
-    'leaveDispatched',
-    'arriveDispatched',
-    'leaveWorldMessage',
-    'arriveWorldMessage',
-    'headerTargets',
-])
+const CHARACTER_MOVE_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 
 export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is RoomDescriptionPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -450,33 +402,7 @@ export function isCharacterMovePerceptionThreadPatch(value: unknown): value is C
     if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
         return false
     }
-    if ('leaveDispatched' in p && p.leaveDispatched !== undefined && typeof p.leaveDispatched !== 'boolean') {
-        return false
-    }
-    if ('arriveDispatched' in p && p.arriveDispatched !== undefined && typeof p.arriveDispatched !== 'boolean') {
-        return false
-    }
-    if ('leaveWorldMessage' in p && p.leaveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.leaveWorldMessage)) {
-        return false
-    }
-    if ('arriveWorldMessage' in p && p.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.arriveWorldMessage)) {
-        return false
-    }
-    if ('headerTargets' in p && p.headerTargets !== undefined && !isNonEmptyPublishTargetArray(p.headerTargets)) {
-        return false
-    }
     return true
-}
-
-export function isStubPerceptionThreadPatch(value: unknown): value is StubPerceptionThreadPatch {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return false
-    }
-    const p = value as Record<string, unknown>
-    if (p.threadKind !== 'stub') {
-        return false
-    }
-    return Object.keys(p).length === 1 && p.threadKind === 'stub'
 }
 
 export function isPerceptionThreadPatch(value: unknown): value is PerceptionThreadPatch {
@@ -498,9 +424,6 @@ export function isPerceptionThreadPatch(value: unknown): value is PerceptionThre
     }
     if (p.threadKind === 'characterMove') {
         return isCharacterMovePerceptionThreadPatch(value)
-    }
-    if (p.threadKind === 'stub') {
-        return isStubPerceptionThreadPatch(value)
     }
     return false
 }
@@ -577,26 +500,14 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
                     'PerceptionThreads.mergePerceptionThreadPatch: characterMove patch requires characterMove thread'
                 )
             }
-            const {
-                threadKind: _tk,
-                leaveWorldMessage: _lw,
-                arriveWorldMessage: _aw,
-                headerTargets: _ht,
-                ...threadRest
-            } = patch
-            const merged = { ...base, ...threadRest }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
             if (!isCharacterMovePerceptionThread(merged)) {
                 throw new Error(
                     'PerceptionThreads.mergePerceptionThreadPatch: merged characterMove thread failed validation'
                 )
             }
             return merged
-        }
-        case 'stub': {
-            if (base.kind !== 'stub') {
-                throw new Error('PerceptionThreads.mergePerceptionThreadPatch: stub patch requires stub thread')
-            }
-            return { ...base }
         }
         default: {
             const _never: never = patch
@@ -648,34 +559,9 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
         }
         return
     }
-    if (registration.threadKind === 'stub') {
-        if (thread.kind !== 'stub') {
-            throw new Error(
-                'PerceptionThreads.update: registration.threadKind stub does not match stored thread.kind'
-            )
-        }
-        return
-    }
     const _exhaustive: never = registration
     void _exhaustive
     throw new Error('PerceptionThreads.update: unexpected registration.threadKind')
-}
-
-function mergeCharacterMoveRegistration(
-    reg: PerceptionThreadRegisterCharacterMoveCommand,
-    patch: CharacterMovePerceptionThreadPatch
-): PerceptionThreadRegisterCharacterMoveCommand {
-    let next: PerceptionThreadRegisterCharacterMoveCommand = { ...reg }
-    if (patch.leaveWorldMessage !== undefined) {
-        next = { ...next, leaveWorldMessage: patch.leaveWorldMessage }
-    }
-    if (patch.arriveWorldMessage !== undefined) {
-        next = { ...next, arriveWorldMessage: patch.arriveWorldMessage }
-    }
-    if (patch.headerTargets !== undefined) {
-        next = { ...next, headerTargets: patch.headerTargets }
-    }
-    return next
 }
 
 export type PerceptionThreadEntry = {
@@ -738,9 +624,6 @@ export default class PerceptionThreadsData {
                     ...(cmd.createdTime !== undefined ? { createdTime: cmd.createdTime } : {}),
                 }
                 break
-            case 'stub':
-                thread = { kind: 'stub' }
-                break
         }
         const entry: PerceptionThreadEntry = {
             registrationId,
@@ -764,8 +647,7 @@ export default class PerceptionThreadsData {
      * Shallow-merge validated patch fields into the stored thread when `registrationId` matches a row in the bucket.
      *
      * Returns `false` if the composite key or `registrationId` is not found. Throws if `registration` and `thread.kind`
-     * disagree, if the row kind does not support updates (stub), or if `partial` is not a valid
-     * {@link PerceptionThreadPatch} / fails merge (e.g. patch `threadKind` does not match the row).
+     * disagree or if `partial` is not a valid {@link PerceptionThreadPatch} / fails merge.
      */
     update(key: PerceptionThreadUpdateKey, partial: unknown): boolean {
         const bucket = this.buckets[PerceptionThreadsData.makeKey(key.componentId, key.perspectiveKey)]
@@ -777,76 +659,11 @@ export default class PerceptionThreadsData {
             return false
         }
         assertRegistrationMatchesThread(entry)
-        switch (entry.thread.kind) {
-            case 'stub':
-                throw new Error('PerceptionThreads.update: stub threads do not support updates')
-            case 'roomDescription': {
-                if (!isPerceptionThreadPatch(partial)) {
-                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
-                }
-                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
-                return true
-            }
-            case 'roomHeaderBroadcast': {
-                if (!isPerceptionThreadPatch(partial)) {
-                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
-                }
-                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
-                return true
-            }
-            case 'sessionOrientationRender': {
-                if (!isPerceptionThreadPatch(partial)) {
-                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
-                }
-                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
-                return true
-            }
-            case 'sessionOrientationAffordances': {
-                if (!isPerceptionThreadPatch(partial)) {
-                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
-                }
-                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
-                return true
-            }
-            case 'characterMove': {
-                if (!isCharacterMovePerceptionThreadPatch(partial)) {
-                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
-                }
-                if (entry.registration.threadKind !== 'characterMove') {
-                    throw new Error('PerceptionThreads.update: registration not characterMove')
-                }
-                const p = partial
-                entry.registration = mergeCharacterMoveRegistration(entry.registration, p)
-                const hasThreadPatchFields =
-                    p.status !== undefined
-                    || p.messageId !== undefined
-                    || p.createdTime !== undefined
-                    || p.cacheId !== undefined
-                    || p.leaveDispatched !== undefined
-                    || p.arriveDispatched !== undefined
-                if (hasThreadPatchFields) {
-                    const threadPatch: CharacterMovePerceptionThreadPatch = {
-                        threadKind: 'characterMove',
-                        ...(p.status !== undefined ? { status: p.status } : {}),
-                        ...(p.messageId !== undefined ? { messageId: p.messageId } : {}),
-                        ...(p.createdTime !== undefined ? { createdTime: p.createdTime } : {}),
-                        ...(p.cacheId !== undefined ? { cacheId: p.cacheId } : {}),
-                        ...(p.leaveDispatched !== undefined ? { leaveDispatched: p.leaveDispatched } : {}),
-                        ...(p.arriveDispatched !== undefined ? { arriveDispatched: p.arriveDispatched } : {}),
-                    }
-                    entry.thread = mergePerceptionThreadPatch(entry.thread, {
-                        ...threadPatch
-                    })
-                }
-                return true
-            }
-            default: {
-                const _never: never = entry.thread
-                throw new Error(
-                    `PerceptionThreads.update: unhandled thread.kind ${String((_never as PerceptionThread).kind)}`
-                )
-            }
+        if (!isPerceptionThreadPatch(partial)) {
+            throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
         }
+        entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+        return true
     }
 
     /** Remove one registration row from the bucket; drops empty buckets. */

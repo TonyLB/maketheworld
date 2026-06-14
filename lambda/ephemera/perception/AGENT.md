@@ -52,10 +52,11 @@ The perception system can be triggered by several different categories of events
 - **Source**: `MoveCharacter` internal message bus events
 - **Trigger Pattern**: Character moves rooms → New room perception → Header updates → Map updates
 - **Perception Flow** (when the mover has a **non-empty** arrival-room **`perspectiveKey`**):
-  1. [`moveCharacter`](../moveCharacter/index.ts) registers a **`characterMove`** perception thread on **`internalCache.PerceptionThreads`** (synchronous **`register`** before transact) and kicks passive **`Render Requested`** for the new room.
-  2. Header **Generating** / terminal **`PublishMessage`** for the mover (and optional **`headerTargets`**) is delivered by fan-in in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), analogous to **`roomHeaderBroadcast`**.
-  3. Leave/Arrive narrative **`WorldMessage`** sends use [`../dataSource/perception/characterMoveDelivery.ts`](../dataSource/perception/characterMoveDelivery.ts) with correlated **`OrchestrateMessages`** group ids (**`before`** / root / **`after`**).
-  4. **`MapUpdate`** still updates the character's map view.
+  1. [`moveCharacter`](../moveCharacter/index.ts) persists via positions, then [`orchestrateCharacterNavigate`](../moveCharacter/orchestrateNavigate.ts) registers a targeting-only **`characterMove`** perception thread and kicks passive **`Render Requested`** for the new room.
+  2. Header **Generating** / terminal **`PublishMessage`** for the mover (**`targets`**) is delivered by render correlation in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), analogous to **`roomHeaderBroadcast`**.
+  3. Leave/Arrive narrative **`WorldMessage`** rows are published by **membership presentation fan-in** on intent + **`Character Moved`** fact correlation ([`../dataSource/perception/publishMembershipPresentation.ts`](../dataSource/perception/publishMembershipPresentation.ts)) --- not gated on header render lifecycle.
+  4. Affordance refresh ("who is here?") is a **separate** **`RoomUpdate`** kick from membership apply (not **`characterMove`** lifecycle).
+  5. **`MapUpdate`** still updates the character's map view.
 - **Fallback**: empty filtered perspective or same-room updates may still use imperative **`Perception`** / **`perceptionMessage`** where the code path requires it.
 - **Special Behavior**: Room headers use in-place updates rather than timeline entries
 

@@ -23,7 +23,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist (**S2-4**).
 - **Result:** `{ froms, to, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play). **`froms`** is required (same semantics as **`MembershipDiff`** / bus fact).
-- **Navigate orchestration bridge (temporary):** [`orchestrateCharacterNavigate`](../../moveCharacter/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result; singular downstream surfaces (`PerceptionThreads.departureRoomId`, imperative leave fallback, `MapUpdate.previousRoomId`) use **`froms[0]`** until fan-in Phase **2** retires pre-baked leave/arrive and Phase **3** slims `characterMove` targeting. Multi-departure leave remains fan-in's job (**F2-2**).
+- **Navigate orchestration bridge (temporary):** [`orchestrateCharacterNavigate`](../../moveCharacter/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result; **`MapUpdate.previousRoomId`** uses **`froms[0]`** until Phase **3** slims remaining beat fields. Multi-departure leave is fan-in's job (**F2-2**). Leave/arrive world lines are **not** emitted from navigate orchestration (membership fan-in owns them).
 - **Graph persist engine:** [`updatePositionGraphs`](membership/updatePositionGraphs.ts) --- end-state apply: pre-read full **`getMembershipContainers`**, remove from every prior container `!== target`, ensure at target; holistic **`MembershipDiff`**.
 
 ### Graph apply (S2-4)
@@ -45,6 +45,8 @@ When **`MembershipDiff.changed`** is true and persist succeeds, the coordinator 
 6. Record `beatAnchorTime` at apply (Model A / fan-in **F1-4**).
 
 When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`). This includes eviction-ladder-only updates where room membership endpoint is unchanged (**S1-9**).
+
+**Post-move presentation split (F3-2):** step 4 **`RoomUpdate`** (affordance refresh for all occupants in **`froms`** / **`to`**) is **separate** from mover-only arrival header render (**`characterMove`** PerceptionThread in navigate orchestration). Positions **must not** conflate affordance refresh with header render on the membership API. **Deferred:** positions-stream consumer for generalized **`Object Moved`** affordance refresh.
 
 ### Eviction ladder (`RoomStack` storage)
 

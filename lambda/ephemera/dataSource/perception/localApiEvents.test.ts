@@ -34,34 +34,41 @@ describe('isPerceptionThreadRegisterCommand', () => {
         ).toBe(false)
     })
 
-    it('accepts characterMove with required ordering ids and optional world message specs', () => {
+    it('accepts characterMove with required targets and optional header fields', () => {
         expect(
             isPerceptionThreadRegisterCommand({
                 threadKind: 'characterMove',
                 componentId: 'ROOM#dest',
                 perspectiveKey: 'PERSPECTIVE#v1#x',
                 characterId: 'CHARACTER#a',
-                departureRoomId: 'ROOM#src',
+                targets: ['CHARACTER#a'],
                 messageGroupId: 'root-id',
-                leaveMessageGroupId: 'leave-id',
-                arriveMessageGroupId: 'arrive-id',
-                leaveWorldMessage: { targets: ['ROOM#src', 'CHARACTER#a'], message: ['left'] },
-                arriveWorldMessage: { targets: ['ROOM#dest', 'CHARACTER#a'], message: ['hi'] },
+                messageId: 'MESSAGE#header',
+                createdTime: 1_700_000_000_000,
             })
         ).toBe(true)
     })
 
-    it('rejects characterMove when messageGroupId missing', () => {
+    it('rejects characterMove when targets missing', () => {
         expect(
             isPerceptionThreadRegisterCommand({
                 threadKind: 'characterMove',
                 componentId: 'ROOM#dest',
                 perspectiveKey: 'pk',
                 characterId: 'CHARACTER#a',
-                departureRoomId: 'ROOM#src',
-                leaveMessageGroupId: 'l',
-                arriveMessageGroupId: 'a',
             } as unknown)
+        ).toBe(false)
+    })
+
+    it('rejects characterMove with empty targets', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'characterMove',
+                componentId: 'ROOM#dest',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                targets: [],
+            })
         ).toBe(false)
     })
 

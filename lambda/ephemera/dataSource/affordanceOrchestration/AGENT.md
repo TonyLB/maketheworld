@@ -97,13 +97,7 @@ From [`lambda/ephemera/`](../../):
 npm test -- --watchAll=false dataSource/affordanceOrchestration/
 ```
 
-**Hygiene (grep):** no production path outside **`affordanceOrchestration`** ingress should call **`publishRoomAffordancePerceptionMessages`** directly:
-
-```bash
-rg 'publishRoomAffordancePerceptionMessages' lambda/ephemera --glob '!**/affordanceOrchestration/**'
-```
-
-Expected: definition in [`publishRoomAffordancePerceptionMessages.ts`](../perception/publishRoomAffordancePerceptionMessages.ts) only (legacy export; production path is **`handleAffordancesPertain`** on **`Affordances Pertain`**).
+**Hygiene (grep):** no production path should bypass **`handleAffordancesPertain`** on **`Affordances Pertain`** for terminal affordance **`PublishMessage`** rows (production path is **`affordanceOrchestration`** ingress -> **`affordanceCache`** -> **`Affordances Pertain`**).
 
 ## Key concepts
 

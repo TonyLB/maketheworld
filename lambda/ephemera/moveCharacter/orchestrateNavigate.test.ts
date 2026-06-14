@@ -48,7 +48,10 @@ describe('orchestrateCharacterNavigate', () => {
         })
 
         expect(register).toHaveBeenCalledWith(expect.objectContaining({
-            departureRoomId: 'ROOM#VORTEX',
+            threadKind: 'characterMove',
+            characterId: 'CHARACTER#Test',
+            targets: ['CHARACTER#Test'],
+            messageGroupId: 'UUID#MessageGroup',
         }))
         expect(messageBus.publish).toHaveBeenCalledWith(expect.objectContaining({
             type: 'MapUpdate',

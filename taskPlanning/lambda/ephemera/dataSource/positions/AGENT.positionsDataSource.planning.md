@@ -45,7 +45,7 @@ Full boundaries: [`positions/AGENT.concepts.md`](../../../../../../lambda/epheme
 
 **Two presentation concerns (decoupled):** see [Presentation model](#presentation-model-beat-vs-emission) and [`AGENT.fanInPattern.planning.md` --- Beat orchestration vs emission correlation](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#beat-orchestration-vs-emission-correlation). Transcript vocabulary: [`AGENT.narrativeTranscript.concepts.md`](../../../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md).
 
-**Slice 1a (persistence boundary) is not blocked by fan-in** --- but **preferred order** (per **S1-2**): complete fan-in Phase 0 + Phase 1 first, then land slice 1 **without** interim imperative leave/arrive (persistence + `Character Moved` + fan-in emission together). Header render stays on legacy [`PerceptionThreads`](../../../../../../lambda/ephemera/internalCache/perceptionThreads.ts) / [`moveCharacter`](../../../../../../lambda/ephemera/moveCharacter/index.ts) targeting through fan-in Phase 2. **Model A**: stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply; fan-in **F1-4**) --- independent of fan-in framework.
+**Slice 1a (persistence boundary) is not blocked by fan-in** --- but **preferred order** (per **S1-2**): complete fan-in Phase 0 + Phase 1 first, then land slice 1 **without** interim imperative leave/arrive (persistence + `Character Moved` + fan-in emission together). Header render uses targeting-only **`characterMove`** PerceptionThreads (**fan-in Phase 2 shipped**). **Model A**: stamp **`beatAnchorTime`** at position-move **fact** time (persistence apply; fan-in **F1-4**) --- independent of fan-in framework.
 
 **Slice 1b (emission)** --- positions streams **`Character Moved`** at persistence apply using **slice 1 TEMP intent-assisted emit (**S1-14**)** until slice **2** graph-diff; fan-in **F1-8** steady state deferred to slice **2** cutover bundle. **`mtw.ephemera.actions`** / **`mtw.connections.characters`** stream **intent**; **[`mtw.ephemera.perception`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md)** fan-in (**F1-6**) publishes after correlation. Ships with slice 1 per **S1-2** for **navigate + disconnect**; connect end-to-end deferred to slice **3** (**S1-12**). See [Fact emission: slice 1 vs slice 2](#fact-emission-slice-1-temporary-vs-slice-2-steady-state).
 
@@ -74,7 +74,7 @@ Connect/disconnect: usually **singleton** world line (no three-part beat); sessi
 | Concern | Audience | This initiative |
 | --- | --- | --- |
 | Mover arrival **render header** | Mover only | Slim **`characterMove`** PerceptionThread + render kick (optional UUID **`requestId`** for orchestrate match) |
-| **Affordance refresh** ("who is here?", exits, ...) | All occupants in affected room(s) | Keep separate affordance kick (today **`RoomUpdate`** from persistence apply). **Deferred:** general **`Object Moved`** (or similar) consumer on **`mtw.ephemera.positions`** |
+| **Affordance refresh** ("who is here?", exits, ...) | All occupants in affected room(s) | Keep separate affordance kick (today **`RoomUpdate`** from persistence apply). **Deferred:** general **`Object Moved`** (or similar) consumer on **`mtw.ephemera.positions`**. Fan-in Phase 3+ shipped: mover header uses **`characterMove`** **`targets`** only; docs in [`dataSource/perception/AGENT.md`](../../../../../../lambda/ephemera/dataSource/perception/AGENT.md#post-move-presentation-f3-2). |
 
 ## Fact emission: slice 1 (temporary) vs slice 2 (steady state)
 
@@ -328,7 +328,7 @@ Slice **1a** extracts from [`moveCharacter`](../../../../../../lambda/ephemera/m
 | **`RoomUpdate`** (affordance refresh path) | **Coordinator** when **`changed`** (**S1-11**) | Affected endpoint room(s): non-null **`from`** and/or **`to`** |
 | **`EphemeraUpdate`** `CharacterInPlay` room projection | **Coordinator** when **`changed`** (**S1-11**) | Client roster/orientation tied to membership endpoint change |
 | **`Character Moved`** stream (**S1-14**) | **`streamMembershipFact`** when **`changed`** (**S1-11**) | Head of membership-changed bundle; slice **1b** |
-| PerceptionThreads **`characterMove`** registration | **Navigate orchestration** (slim `moveCharacter` successor) | Targeting-only through fan-in Phase 2 |
+| PerceptionThreads **`characterMove`** registration | **Navigate orchestration** (slim `moveCharacter` successor) | Targeting-only (**fan-in Phase 2 shipped**) |
 | Passive render kick, **`Perception`** header kick | **Navigate orchestration** | **F3-2** --- mover-only header |
 | **`MapUpdate`** | **Navigate orchestration** | Out of scope for membership module |
 | Imperative leave/arrive **`PublishMessage`** | **Retire slice 1b** (fan-in emission) | Until then: legacy bridge only for connect (**S1-12**) |
@@ -594,4 +594,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Apply-result **`froms[]`** cutover (ingress-facing **`MembershipApplyResult`**) | Done |
 | Slice 3: connect unify + **S3-EL-1** eviction-ladder algorithm | Done |
 | Slice 4: legacy disconnect retirement | Done |
+| Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
+| Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |
