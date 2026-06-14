@@ -12,11 +12,13 @@
  * disconnect finds the character already out of play (`changed: false`) and the
  * second connect CheckLocation/moveCharacter sees the character already in the target room.
  */
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import {
     ConnectionsCharactersConnectedEvent,
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { MessageBus } from '../../messageBus/baseClasses'
+import type { PositionsPublishedPayload } from './publishedEvents'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 
 export const handleCharacterConnected = async (
@@ -34,10 +36,16 @@ export const handleCharacterConnected = async (
 
 export const handleCharacterDisconnected = async (
     event: ConnectionsCharactersDisconnectedEvent,
-    { messageBus }: { messageBus: MessageBus }
+    {
+        messageBus,
+        streamEvent,
+    }: {
+        messageBus: MessageBus;
+        streamEvent: StreamEventFunction<PositionsPublishedPayload>;
+    }
 ): Promise<void> => {
     await applyCharacterRoomMembership(
         { characterId: event.characterId, targetRoomId: null },
-        { messageBus }
+        { messageBus, streamEvent }
     )
 }

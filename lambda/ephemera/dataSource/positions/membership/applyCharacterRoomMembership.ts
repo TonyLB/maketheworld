@@ -1,16 +1,21 @@
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { projectRoomGraphFromRosterEntries } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import internalCache from '../../../internalCache'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
+import type { PositionsPublishedPayload } from '../publishedEvents'
 import {
     applyCharacterMembershipFlat,
     type ApplyCharacterMembershipFlatDependencies,
 } from './applyCharacterMembershipFlat'
+import { buildCharacterMovedFact } from './buildCharacterMovedFact'
+import { streamMembershipFact } from './streamMembershipFact'
 import type { ActiveCharacterRosterEntry, MembershipApplyArgs, MembershipApplyResult } from './types'
 
 export type ApplyCharacterRoomMembershipDependencies = {
     messageBus: MessageBus;
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     flatPersist?: ApplyCharacterMembershipFlatDependencies;
     getSessionId?: () => Promise<string | undefined>;
 }
@@ -63,6 +68,19 @@ export const applyCharacterRoomMembership = async (
     const getSessionId = deps.getSessionId ?? (() => internalCache.Global.get('SessionId'))
     const sessionId = await getSessionId()
     const characterMeta = await internalCache.CharacterMeta.get(args.characterId)
+
+    const fact = buildCharacterMovedFact({
+        characterId: args.characterId,
+        applyResult: {
+            from: result.from,
+            to: result.to,
+            beatAnchorTime,
+        },
+        characterName: characterMeta.Name,
+    })
+    if (fact) {
+        await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
+    }
 
     memoRoomRosterCaches(result.roomRosterSnapshots, [result.from, result.to])
     internalCache.CharacterMeta.invalidate(args.characterId)

@@ -34,16 +34,18 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
+import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
     never,
-    never,
+    PositionsPublishedPayload,
     EphemeraPositionsSubscribedContent
 >({
     dataSourceKey: 'mtw.ephemera.positions',
     replayable: false,
+    publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isEphemeraPositionsSubscribedEnvelope,
-    receiveEvents: async ({ events }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (envelope) => {
             if (isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope)) {
                 const content = await envelope.getContent() as CharacterNavigatePublishedPayload
@@ -54,6 +56,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     characterId: content.characterId,
                     targetRoomId: content.toRoomId,
                     messageBus,
+                    streamEvent,
                 })
                 return
             }
@@ -69,7 +72,10 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 return
             }
             if (envelope.header.type === 'Character Disconnected') {
-                await handleCharacterDisconnected(content as ConnectionsCharactersDisconnectedEvent, { messageBus })
+                await handleCharacterDisconnected(content as ConnectionsCharactersDisconnectedEvent, {
+                    messageBus,
+                    streamEvent,
+                })
                 return
             }
         }))

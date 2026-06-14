@@ -1,12 +1,14 @@
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { CharacterMovedPublishedPayload } from '../publishedEvents'
+import { publishCharacterMovedStreamEvent } from '../publishedEvents'
 
 /**
- * TEMP slice 1 --- slice 1b streams Character Moved at persistence apply (S1-14).
- * Not called in slice 1a.
+ * TEMP slice 1 --- replace with MembershipDiff from updatePositionGraphs in slice 2.
+ * Streams Character Moved at persistence apply (S1-14).
  */
 export const streamMembershipFact = async (
-    _payload: CharacterMovedPublishedPayload,
-    _deps: { streamEvent: unknown }
+    payload: CharacterMovedPublishedPayload,
+    deps: { streamEvent: StreamEventFunction<CharacterMovedPublishedPayload> }
 ): Promise<void> => {
-    // Slice 1b implementation.
+    await publishCharacterMovedStreamEvent(deps.streamEvent, payload.characterId, payload)
 }

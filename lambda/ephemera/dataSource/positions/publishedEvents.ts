@@ -1,5 +1,9 @@
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 /**
  * Outbound stream payloads for mtw.ephemera.positions (bus-only DataSource).
@@ -50,4 +54,59 @@ export const isCharacterMovedPublishedPayload = (
         return false
     }
     return true
+}
+
+type PublishBus = Pick<MessageBus, 'publish'>
+
+const positionsPublishSerializer = {
+    serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
+        type: header.type,
+        ...(content as Record<string, unknown>),
+    }),
+}
+
+export async function publishCharacterMovedStreamEvent(
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>,
+    streamKey: string,
+    content: CharacterMovedPublishedPayload,
+): Promise<void> {
+    await streamEvent({
+        update: content,
+        streamKey,
+        header: { type: 'Character Moved' },
+    })
+}
+
+/**
+ * Test / harness adapter: implements `streamEvent` by delegating to {@link sendCharacterMovedPublish}
+ * so assertions can keep using `messageBus.publish` for `StreamingEvent` payloads.
+ */
+export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<PositionsPublishedPayload> {
+    return async (params) => {
+        sendCharacterMovedPublish(bus, params.streamKey, params.update)
+    }
+}
+
+export function sendCharacterMovedPublish(
+    bus: PublishBus,
+    streamKey: string,
+    content: CharacterMovedPublishedPayload,
+): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        timestamp,
+        type: 'Character Moved',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, positionsPublishSerializer)
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    }
+    bus.publish(message)
 }

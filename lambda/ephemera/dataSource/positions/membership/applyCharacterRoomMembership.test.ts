@@ -37,6 +37,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 
 describe('applyCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -58,7 +59,7 @@ describe('applyCharacterRoomMembership', () => {
 
         const result = await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM },
-            { messageBus: messageBus as any }
+            { messageBus: messageBus as any, streamEvent }
         )
 
         expect(result).toEqual({
@@ -85,7 +86,7 @@ describe('applyCharacterRoomMembership', () => {
 
         const result = await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
-            { messageBus: messageBus as any }
+            { messageBus: messageBus as any, streamEvent }
         )
 
         expect(result).toEqual(expect.objectContaining({
@@ -95,6 +96,20 @@ describe('applyCharacterRoomMembership', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         }))
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: CHARACTER_ID,
+            header: { type: 'Character Moved' },
+            update: expect.objectContaining({
+                type: 'Character Moved',
+                characterId: CHARACTER_ID,
+                from: FROM_ROOM,
+                to: TO_ROOM,
+                beatAnchorTime: 1_700_000_000_000,
+                characterName: 'Test',
+            }),
+        })
+        const streamCallOrder = streamEvent.mock.invocationCallOrder[0]
+        expect(streamCallOrder).toBeLessThan(messageBus.publish.mock.invocationCallOrder[0])
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(FROM_ROOM)
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(TO_ROOM)
         expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(FROM_ROOM)
@@ -130,7 +145,7 @@ describe('applyCharacterRoomMembership', () => {
 
         const result = await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
-            { messageBus: messageBus as any }
+            { messageBus: messageBus as any, streamEvent }
         )
 
         expect(result).toEqual({

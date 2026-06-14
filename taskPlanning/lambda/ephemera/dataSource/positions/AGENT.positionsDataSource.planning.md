@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Next:** slice **1b** (`Character Moved` emit + fan-in publish). **Slice 2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Next:** slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -360,11 +360,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Graduate docs: contract + implementation for persistence path; clear resolved Open decision rows
   - [X] Parity tests (actions, moveCharacter, positions disconnect + navigate; affordance deliverable if S1-5 = slice 1a)
 
-- [ ] **Slice 1b --- fact producer (membership-changed bundle + stream)**
-  - [ ] **`buildCharacterMovedFact`** + **`streamMembershipFact`**: **`Character Moved`** at persistence apply (**S1-14** TEMP: pre-read `from`, apply target `to`, no-op gate **S1-8**); **`TEMP slice 1`** comments at fact-builder seam; **`beatAnchorTime`** (**F1-4**); **omit** **`legalExits`** (**S1-10**)
-  - [ ] Wire fact stream into membership-changed bundle (**S1-11**): when **`changed`**, emit fact with cache memo, **`RoomUpdate`**, **`EphemeraUpdate`**
-  - [ ] Scope: **navigate + disconnect** through **`applyCharacterRoomMembership`**; connect deferred (**S1-12** / slice **3**). Contract: [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) (shipped)
-  - [ ] **Fan-in consumer (external):** track publish + end-to-end emission tests in [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) Phase **1**
+- [X] **Slice 1b --- fact producer (membership-changed bundle + stream)**
+  - [X] **`buildCharacterMovedFact`** + **`streamMembershipFact`**: **`Character Moved`** at persistence apply (**S1-14** TEMP: pre-read `from`, apply target `to`, no-op gate **S1-8**); **`TEMP slice 1`** comments at fact-builder seam; **`beatAnchorTime`** (**F1-4**); **omit** **`legalExits`** (**S1-10**)
+  - [X] Wire fact stream into membership-changed bundle (**S1-11**): when **`changed`**, emit fact with cache memo, **`RoomUpdate`**, **`EphemeraUpdate`**
+  - [X] Scope: **navigate + disconnect** through **`applyCharacterRoomMembership`**; connect deferred (**S1-12** / slice **3**). Contract: [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) (shipped)
+  - [X] **Fan-in consumer (external):** track publish + end-to-end emission tests in [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) Phase **1**
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + graph-diff facts (cutover bundle)**
   - [X] Resolve **Open decisions** S2-1 through S2-3
@@ -418,7 +418,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 0 code | Done |
 | Phase 0 durable docs | Done |
 | Slice 1a: persistence boundary | Done |
-| Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Not started (fan-in consumer publish --- track [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
+| Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Done (fan-in publish for navigate + disconnect --- [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close | Not started |

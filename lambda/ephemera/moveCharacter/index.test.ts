@@ -7,6 +7,18 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 import PerceptionThreadsData from '../internalCache/perceptionThreads'
 
+const mockPositionsStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+jest.mock('../dataSource/positions', () => ({
+    __esModule: true,
+    default: {
+        streamEvent: mockPositionsStreamEvent,
+    },
+    ephemeraPositionsDataSource: {
+        streamEvent: mockPositionsStreamEvent,
+    },
+}))
+
 jest.mock('../dataSource/positions/membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
 }))
@@ -159,10 +171,26 @@ describe('moveCharacter', () => {
         })
         expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
             { characterId: 'CHARACTER#Test', targetRoomId: 'ROOM#TestTwo' },
-            { messageBus: messageBusMock }
+            expect.objectContaining({
+                messageBus: messageBusMock,
+                streamEvent: expect.any(Function),
+            })
         )
+        const passedStreamEvent = applyCharacterRoomMembershipMock.mock.calls[0][1].streamEvent
+        await passedStreamEvent({
+            streamKey: 'CHARACTER#Test',
+            header: { type: 'Character Moved' },
+            update: { type: 'Character Moved' },
+        } as any)
+        expect(mockPositionsStreamEvent).toHaveBeenCalled()
         expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
-            payload: { type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' },
+            payload: {
+                type: 'MoveCharacter',
+                characterId: 'CHARACTER#Test',
+                roomId: 'ROOM#TestTwo',
+                suppressDeparture: true,
+                suppressArrival: true,
+            },
             from: 'ROOM#VORTEX',
             to: 'ROOM#TestTwo',
             beatAnchorTime: 1_700_000_000_000,

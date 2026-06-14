@@ -14,6 +14,7 @@ const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership
 
 describe('handleConnectionsCharactersPresence', () => {
     const messageBus = { publish: jest.fn() } as any
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -55,11 +56,11 @@ describe('handleConnectionsCharactersPresence', () => {
                 characterId: 'CHARACTER#alpha',
                 sessionId: 'SESSION#1',
                 timestamp: '2026-05-08T12:00:00.000Z',
-            }, { messageBus })
+            }, { messageBus, streamEvent })
 
             expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
                 { characterId: 'CHARACTER#alpha', targetRoomId: null },
-                { messageBus }
+                { messageBus, streamEvent }
             )
         })
 
@@ -76,7 +77,7 @@ describe('handleConnectionsCharactersPresence', () => {
                 characterId: 'CHARACTER#alpha',
                 sessionId: 'SESSION#1',
                 timestamp: '2026-05-08T12:00:00.000Z',
-            }, { messageBus })
+            }, { messageBus, streamEvent })
 
             expect(applyCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
             expect(messageBus.publish).not.toHaveBeenCalled()

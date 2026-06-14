@@ -1,6 +1,8 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { FanInCluster, FanInHandlerOptions } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInCluster'
 import { FanInClusterStore } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInClusterStore'
+import type { MessageBus } from '../../messageBus/baseClasses'
+import { publishMembershipPresentation } from './publishMembershipPresentation'
 
 /** Provisional until positions publishedEvents.ts (slice 1b); null = out of play. */
 export type MembershipEndpoint = EphemeraRoomId | null
@@ -50,7 +52,7 @@ export type MembershipEmissionPlan = {
 }
 
 export type MembershipFanInHandlerContext = {
-    plans: Array<MembershipEmissionPlan & { deferralExecution: boolean }>
+    messageBus: MessageBus;
 }
 
 const formatEndpointForIdentity = (endpoint: MembershipEndpoint): string => (
@@ -259,7 +261,7 @@ export class MembershipPresentationFanInCluster extends FanInCluster<
             deferralExecution: options.deferralExecution,
         })
         if (plan) {
-            ctx.plans.push({ ...plan, deferralExecution: options.deferralExecution })
+            publishMembershipPresentation(ctx.messageBus, plan)
         }
     }
 }
@@ -281,6 +283,6 @@ export const createMembershipPresentationFanInStore = () => new FanInClusterStor
     membershipPresentationClusterFromLeg,
 ])
 
-export const createMembershipFanInHandlerContext = (): MembershipFanInHandlerContext => ({
-    plans: [],
+export const createMembershipFanInHandlerContext = (messageBus: MessageBus): MembershipFanInHandlerContext => ({
+    messageBus,
 })

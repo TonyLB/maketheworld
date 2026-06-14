@@ -1,8 +1,8 @@
-# Positions --- contracts (slice 1a)
+# Positions --- contracts (slice 1b)
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Graph-shaped storage and `Character Moved` fact streaming are **not** normative here until slice 1b / slice 2 land.
+Graph-shaped storage is **not** normative here until slice 2 lands. **`Character Moved`** fact streaming is normative for slice **1b** (TEMP slice 1 emit; slice 2 replaces with graph-diff).
 
 ---
 
@@ -10,11 +10,12 @@ Graph-shaped storage and `Character Moved` fact streaming are **not** normative 
 
 - **`dataSourceKey`** must be `mtw.ephemera.positions`.
 - **`replayable`** is `false` for v1.
+- **`publisherStrategy`** is `busOnly` (outbound **`Character Moved`** on internal bus).
 - Subscription guards live in [`subscribedEvents.ts`](subscribedEvents.ts); new ingress types must register a header guard there (not a separate DataSource module).
 
 ---
 
-## Membership persistence API (slice 1a)
+## Membership persistence API (slice 1a--1b)
 
 All character **room-membership** mutations for **disconnect** and **navigate** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
@@ -28,15 +29,25 @@ All character **room-membership** mutations for **disconnect** and **navigate** 
 
 When **`changed`** is true, the coordinator **must** run (together or not at all):
 
-1. Cache memo for each non-null endpoint among `from` / `to` (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `Positions.set` / `Positions.invalidate` when roster snapshot available).
-2. `CharacterMeta.invalidate(characterId)`.
-3. `RoomUpdate` for each non-null endpoint.
-4. `EphemeraUpdate` `CharacterInPlay` room projection.
-5. Record `beatAnchorTime` at apply (Model A prep for slice 1b / fan-in).
+1. **`streamMembershipFact`** --- **`Character Moved`** on `mtw.ephemera.positions` (slice 1b; TEMP slice 1 fact builder).
+2. Cache memo for each non-null endpoint among `from` / `to` (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `Positions.set` / `Positions.invalidate` when roster snapshot available).
+3. `CharacterMeta.invalidate(characterId)`.
+4. `RoomUpdate` for each non-null endpoint.
+5. `EphemeraUpdate` `CharacterInPlay` room projection.
+6. Record `beatAnchorTime` at apply (Model A / fan-in **F1-4**).
 
-When **`changed`** is false: **must** skip the entire bundle (no cache, no `RoomUpdate`, no `EphemeraUpdate`).
+When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`).
 
-**Must not** stream `Character Moved` in slice 1a (slice 1b).
+### `Character Moved` fact (slice 1b; S1-14 TEMP)
+
+- **Must** stream only when **`changed`** (`from !== to`; S1-8).
+- **`from`** = authoritative pre-read membership endpoint (`null` = out of play).
+- **`to`** = successful apply target (`null` on disconnect).
+- **`beatAnchorTime`** = recorded time at persistence apply.
+- **Must not** populate **`legalExits`** on emitted facts (slice 1; S1-10).
+- **Must not** branch **`streamEvent`** on ingress type (navigate vs disconnect); emission is descriptive at the membership boundary only.
+- **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`; legacy **`moveCharacter`** bus paths obtain it from **`ephemeraPositionsDataSource`** via lazy require (avoids messageBus load cycle).
+- Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fact builder marked **`TEMP slice 1`** until slice 2 graph-diff cutover.
 
 ---
 
@@ -71,13 +82,14 @@ Positions **must** subscribe to:
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })`.
 - **Must not** perform inline `ephemeraDB.optimisticUpdate` on `activeCharacters` in the disconnect handler.
 - **Idempotency:** duplicate disconnect when already out of play (`from === to === null`) **must** be a no-op (no bundle).
-- World-line copy for disconnect is deferred to slice 1b fan-in emission (no imperative `PublishMessage` in the handler).
+- World-line copy for disconnect is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); no imperative `PublishMessage` in the handler.
 
 ### `Character Navigate` (positions-owned)
 
 - **Must** trust actions-validated `toRoomId` at apply (S1-1 --- no topology re-check in positions).
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` from actions for parse-based navigation.
+- Leave/arrive world copy for navigate is owned by fan-in emission; navigate orchestration **must** suppress imperative leave/arrive (`suppressDeparture` / `suppressArrival` defaults in [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
 
 ---
 
