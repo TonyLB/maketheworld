@@ -8,7 +8,7 @@ Ephemera lane for **positions in play** --- runtime truth about where entities a
 
 | Doc | Role |
 | --- | --- |
-| [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models: fractal position graphs, authored vs play, projections (shipped vs target) |
+| [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models: room membership, **eviction ladder**, fractal graphs, projections (shipped vs target) |
 | [**AGENT.contract.md**](AGENT.contract.md) | Normative rules enforced **today** (slice 1d) |
 | [**AGENT.implementation.md**](AGENT.implementation.md) | Code map for this folder |
 | [**AGENT.navigation.md**](AGENT.navigation.md) | Cross-area links (topology, actions, objects, perception) |

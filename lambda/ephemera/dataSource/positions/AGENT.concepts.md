@@ -18,6 +18,8 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
 | **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**; transitional **`RoomId`** / **`activeCharacters`** dual-write (**S2-2**). |
+| **Eviction ladder** | A character's **stack of recoverable presences** --- ordered frames `{ asset, room }` kept in **trim-ready shape** so layered assets can vanish without stranding play. Each frame: "if everything above this asset layer is lost, presence falls back to this room." Stored today as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
+| **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
 
 ---
 
@@ -33,16 +35,39 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 
 A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**).
 
-### Two questions, two domains
+### Three play-time questions
 
-Area **topology** and in-room **membership** answer different questions:
+Area **topology**, **room membership**, and the **eviction ladder** answer different questions:
 
 | Question | Domain | Play expression (today) |
 | --- | --- | --- |
 | Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
-| Which **room** is this character in; who is on the roster? | Play-time **position** / membership | `positionGraph` nodes, adjacency index, roster projection from `activeCharacters` |
+| Which **room** is this character in; who is on the roster? | Play-time **membership** | `positionGraph` nodes, adjacency index, roster projection from `activeCharacters` |
+| If **layered assets** stop being available, where does presence **fall back**? | **Eviction ladder** | `Meta::Character.RoomStack` --- trim invalid outer frames, relocate if the membership endpoint changes |
 
-Exit topology does **not** imply roster membership, and roster membership does **not** define exits. Consumers that need both (for example affordance WML) compose **separate projections**.
+Exit topology does **not** imply roster membership. Membership does **not** define exits. The eviction ladder does **not** define roster membership --- it defines **recoverable presences** when overlays (events, temporary layers) disappear. Consumers that need several views compose **separate projections**.
+
+### Eviction ladder (shipped)
+
+When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. The eviction ladder is the data structure that makes that survivable.
+
+**Shape:** an ordered stack of frames `{ asset, room }` from root outward. Outermost frame aligns with **current** presence at the deepest active asset layer; inner frames are **past presences** still valid to restore to when outer layers are stripped away.
+
+**Purpose:** not a travel diary or breadcrumb log. At every moment the stack is maintained in the shape needed for **straight-line trim** when asset access is lost --- pop outer frames whose assets are no longer accessible until the top surviving frame is valid, then restore membership to that room if it differs from where the character is now.
+
+**Navigate maintenance** (conceptual operations --- compare destination **asset chain** to the current ladder):
+
+| Operation | When | Effect on ladder |
+| --- | --- | --- |
+| **Extend rung** | Destination chain **continues** the current chain (adds a further asset layer) | Push a new outer frame |
+| **Rewrite tail rung** | Same chain prefix and same deepest asset; different room (lateral move within the layer) | Replace the outer frame's room only |
+| **Fork** | Destination chain **diverges** from the current branch (sibling asset at some depth) | Truncate abandoned branch; set the new tail frame |
+
+Example: while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (for example suburbs in canon, not a vanished circus tent).
+
+**Relationship to room membership:** membership is **where the character is now** (roster, fan-in, `Character Moved`). The ladder is **where they land when layers vanish**. A trim that only fixes the ladder while the membership endpoint stays the same is not a membership change. A trim that changes the endpoint is a real move --- membership apply owns that relocation.
+
+Code paths: [`AGENT.implementation.md`](AGENT.implementation.md#eviction-ladder-roomstack-storage). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ---
 

@@ -44,7 +44,16 @@ When **`MembershipDiff.changed`** is true and persist succeeds, the coordinator 
 5. `EphemeraUpdate` `CharacterInPlay` room projection.
 6. Record `beatAnchorTime` at apply (Model A / fan-in **F1-4**).
 
-When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`).
+When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`). This includes eviction-ladder-only updates where room membership endpoint is unchanged (**S1-9**).
+
+### Eviction ladder (`RoomStack` storage)
+
+Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Code map: [`AGENT.implementation.md` --- Eviction ladder](AGENT.implementation.md#eviction-ladder-roomstack-storage).
+
+- **Must not** expose eviction ladder edits on **`MembershipApplyArgs`** --- public apply remains `{ characterId, targetRoomId | null }` only (**S1-9**).
+- On successful navigate/disconnect membership persist, **`updatePositionGraphs`** **must** update `Meta::Character.RoomStack` in the same character-row transact when the membership endpoint changes (ladder maintenance bundled with membership apply).
+- **Must not** emit **`Character Moved`** or run the membership-changed bundle when **only** the eviction ladder changes and the room membership endpoint is unchanged (**S1-9**).
+- When asset loss **trim** changes the membership endpoint, relocation **must** go through membership apply (today: [`checkLocation`](../../checkLocation/index.ts) filters the ladder then publishes `MoveCharacter`).
 
 ### `Character Moved` fact (F1-8 steady state)
 
