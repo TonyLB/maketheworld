@@ -1,6 +1,6 @@
 # Positions --- implementation map
 
-This file records **where behavior lives** for `mtw.ephemera.positions` through slice **1b**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
+This file records **where behavior lives** for `mtw.ephemera.positions` through slice **1c**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
 
 ---
 
@@ -32,6 +32,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect `CheckLocation` publish; disconnect routes through coordinator |
 | [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Flat persist transact + `changed` gate |
+| [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
 | [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects) |
 | [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | TEMP fact builder |
 | [`membership/streamMembershipFact.test.ts`](membership/streamMembershipFact.test.ts) | Fact stream helper |
@@ -72,10 +73,11 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | System | Use |
 | --- | --- |
 | `ephemeraDB.transactWrite` | `Meta::Character` `RoomId` / `RoomStack`; `Meta::Room.activeCharacters` (flat persist) |
-| `internalCache.CharacterMeta` | Pre-read membership endpoint; `invalidate` after apply |
+| `internalCache.CharacterMeta` | Full meta for transact; `invalidate` after apply |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` / `invalidate` | Play position graph memo (S1-5) |
+| `internalCache.Positions.set` / `invalidate` | Room forward position graph memo (S1-5) |
+| `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15 slice 1c) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents` or `ephemeraPositionsDataSource` on legacy bus paths) | `Character Moved` when `changed` |
 
@@ -86,13 +88,14 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | System | Role |
 | --- | --- |
 | [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | **`Positions`** gateway handler on `internalCache` |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | `getPositionGraph`, `getRoomRoster`; slice 1 projects from flat fields |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph`, `getRoomRoster`; character inventory stub + `getMembershipContainers` (slice 1c) |
+| [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`Positions.getRoomRoster`** |
 | [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Legacy roster read (other callers; migrate in slice 2) |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
 | [`../perception/membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) | Fan-in fact leg consumer for **`Character Moved`** |
 
-Slice 2 swaps `Positions` backing read to stored `Meta::Room.positionGraph` --- task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
+Slice 2 swaps room forward + reverse backing to stored `Meta::Room.positionGraph` + adjacency --- task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
 
 ---
 

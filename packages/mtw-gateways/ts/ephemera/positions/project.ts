@@ -49,6 +49,16 @@ export const projectCharacterGraphFromRoomEndpoint = (
     roomEndpoint,
 })
 
+/** Forward-looking stub for future character inventory (container-scale play graph). */
+export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
+    nodes: [],
+    edges: [],
+})
+
+export const projectMembershipContainersFromRoomEndpoint = (
+    roomEndpoint: EphemeraRoomId | null
+): EphemeraRoomId[] => (roomEndpoint ? [roomEndpoint] : [])
+
 export const projectRoomRosterFromGraph = (graph: PlayPositionGraph): PlayPositionRoomRosterEntry[] => {
     const meta = graph.characterRosterMeta ?? {}
     const nodes = graph.nodes ?? []

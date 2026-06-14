@@ -25,3 +25,8 @@ export type PositionsCacheSetParams = {
     componentId: EphemeraCharacterId | EphemeraRoomId;
     graph: PlayPositionGraph;
 }
+
+export type MembershipContainersCacheSetParams = {
+    componentId: EphemeraCharacterId;
+    containers: EphemeraRoomId[];
+}

@@ -83,6 +83,10 @@ export const applyCharacterRoomMembership = async (
     }
 
     memoRoomRosterCaches(result.roomRosterSnapshots, [result.from, result.to])
+    internalCache.Positions.setMembershipContainers({
+        componentId: args.characterId,
+        containers: result.to ? [result.to] : [],
+    })
     internalCache.CharacterMeta.invalidate(args.characterId)
 
     for (const roomId of [result.from, result.to]) {

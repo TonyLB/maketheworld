@@ -93,10 +93,12 @@ Positions **must** subscribe to:
 
 ---
 
-## Read surface (S1-5)
+## Read surface (S1-5, S1-15 slice 1c)
 
-- Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions`** (`getRoomRoster` / `getPositionGraph`), not raw `ephemeraDB` `activeCharacters` in the compose path.
-- **Authoritative writer** for play position state remains the membership persistence API; gateway memo **`set`** / **`invalidate`** runs from the coordinator when `changed`.
+- Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions`** (`getRoomRoster` / room `getPositionGraph`), not raw `ephemeraDB` `activeCharacters` in the compose path.
+- **Character `getPositionGraph`** is a forward **inventory stub** (empty graph today) --- **must not** be used for room-membership / reverse reads.
+- **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in [`membership/applyCharacterMembershipFlat.ts`](membership/applyCharacterMembershipFlat.ts)) **must** use **`internalCache.Positions.getMembershipContainers`**, not raw `Meta::Character.RoomId`, `CharacterMeta.RoomId`, or `getPositionGraph(characterId).roomEndpoint`.
+- **Authoritative writer** for play position state remains the membership persistence API; gateway memo runs from the coordinator when `changed`: forward **`set`** / **`invalidate`** for endpoint rooms; **`setMembershipContainers`** for the character (`invalidateMembershipContainers` available but not required before `set`).
 
 ---
 

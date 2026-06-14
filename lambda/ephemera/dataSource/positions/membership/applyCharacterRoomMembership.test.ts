@@ -15,7 +15,7 @@ jest.mock('../../../internalCache', () => ({
         },
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
-        Positions: { set: jest.fn(), invalidate: jest.fn() },
+        Positions: { set: jest.fn(), invalidate: jest.fn(), setMembershipContainers: jest.fn() },
         Global: { get: jest.fn() },
     },
 }))
@@ -70,6 +70,7 @@ describe('applyCharacterRoomMembership', () => {
         })
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(internalCache.CharacterMeta.invalidate).not.toHaveBeenCalled()
+        expect(internalCache.Positions.setMembershipContainers).not.toHaveBeenCalled()
     })
 
     it('runs membership-changed bundle when endpoint changes', async () => {
@@ -121,6 +122,10 @@ describe('applyCharacterRoomMembership', () => {
                     expect.objectContaining({ tag: 'Character', universalKey: CHARACTER_ID }),
                 ]),
             }),
+        })
+        expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
+            componentId: CHARACTER_ID,
+            containers: [TO_ROOM],
         })
         expect(internalCache.CharacterMeta.invalidate).toHaveBeenCalledWith(CHARACTER_ID)
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: FROM_ROOM })

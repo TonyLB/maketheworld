@@ -21,17 +21,8 @@ export type ApplyCharacterMembershipFlatDependencies = {
 }
 
 const defaultReadMembershipEndpoint = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId | null> => {
-    const characterData = await ephemeraDB.getItem<{ RoomId?: string }>({
-        Key: {
-            EphemeraId: characterId,
-            DataCategory: 'Meta::Character',
-        },
-        ProjectionFields: ['RoomId'],
-    })
-    if (!characterData?.RoomId) {
-        return null
-    }
-    return RoomKey(characterData.RoomId) as EphemeraRoomId
+    const containers = await internalCache.Positions.getMembershipContainers(characterId)
+    return containers[0] ?? null
 }
 
 const computeRoomStackUpdate = (

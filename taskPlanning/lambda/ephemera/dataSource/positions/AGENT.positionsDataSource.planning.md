@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Next:** slice **1c** disentangles positions gateway forward/reverse reads (**S1-15**); then slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **Next:** slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -396,16 +396,15 @@ Plan-only: decisions we are making **in order to implement** the next slice(s). 
 | S1-2 | Cross-room side effects: **1a** --- legacy header render (`PerceptionThreads` / kick render) + optional **Model A** `beatAnchorTime`; imperative leave/arrive until **1b** fan-in emission. **1b** --- fan-in emission policy ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). Conversations fragment handoff: [`conversations/AGENT.planning.md`](../../../../../../lambda/ephemera/conversations/AGENT.planning.md) | 1a / 1b | **Decided:** sequencing milestones, not an either/or fork. **Beat/header (Model A + slim `characterMove` targeting)** stays independent of fan-in. With **fan-in Phase 0 + 1 before positions slice 1**, skip building interim imperative leave/arrive --- land persistence boundary together with `Character Moved` + fan-in emission (no separate 1a-then-1b copy path). Header render remains legacy PerceptionThreads through fan-in Phase 2. |
 | S1-3 | Slice 1 egress: **bus-only** vs positions **stream outbound** for navigate | 1 | **Decided:** positions **`streamEvent`** outbound on `mtw.ephemera.positions` (`publisherStrategy: 'busOnly'`); types in [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts). Same net delivery as bus-only today --- difference is **scope-of-authority** (positions owns the stream contract). |
 | S1-5 | **`mtw-gateways` positions read surface** (roster projection from play state): land in **slice 1** (v1 projects `activeCharacters`; wire [`AffordanceRoomDeliverable`](../../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) via `internalCache`) vs **slice 2** (paired with `positionGraph` storage swap only) | 1 | **Shipped:** [`packages/mtw-gateways/ts/ephemera/positions/`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/); **`internalCache.Positions`**; affordance compose roster via **`getRoomRoster`**. Slice 2 swaps backing read to stored graph. |
-| S1-6 | **Diff source for `from`/`to`:** slice 1 pre-read + apply target vs slice 2 graph-diff | 1b / 2 | **Decided:** slice 1 = **`CharacterMeta.RoomId`** pre-read + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
+| S1-6 | **Diff source for `from`/`to`:** slice 1 pre-read + apply target vs slice 2 graph-diff | 1b / 2 | **Decided:** slice 1 = **`getMembershipContainers`** pre-read + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
 | S1-9 | **`RoomStack`-only mutation** (same room endpoint): emit fact or skip | 1b | **Decided:** skip --- no **`Character Moved`** |
 | S1-10 | **Exit-aware copy (slice 1):** **`exitName`** on navigate intent; no **`legalExits`** on fact | 1b | **Decided:** trust action-parse (**S1-1** extension). See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). Optional **`legalExits`** on contract unused until post-slice-2 spike if needed. |
 | S1-12 | **Connect path:** slice 1 vs defer | 1b | **Decided:** defer to slice **3** (connect-unification milestone; not slice **1**). Slice **1** ships navigate + disconnect through membership API; connect keeps `CheckLocation` / `moveCharacter` bridge. Fan-in connect **intent** adapters remain; positions **`Character Moved`** for connect deferred. |
 | S1-14 | **Slice 1 TEMP fact emit** (intent-assisted flat path) vs **slice 2 graph-diff** (**F1-8** steady state) | 1b / 2 | **Decided:** slice 1 TEMP with code comments; slice 2 cutover bundle replaces emit path. No virtual-graph write adapter in slice 1. |
-| S1-15 | **Gateway forward vs reverse reads:** **`getPositionGraph(hostId)`** + **`getMembershipContainers(componentId)`** (**array**); wire navigate parse + apply through **`internalCache.Positions`**; slice 1c adapter from **`RoomId`** | 1c | **Decided:** see [Positions gateway (**S1-15**)](#positions-gateway-forward-vs-reverse-reads-s1-15). Reverse backing **S2-5** adjacency at slice **2**. |
 
 **Graduated to contract / implementation (slice 1a):** S1-4 (module layout), S1-5 (read surface), S1-7 (apply API), S1-8 (no-op gate), S1-11 (side-effect bundle), S1-13 (persistence vs orchestration), navigate ingress + actions cutover.
 
-**Decided, pending slice 1c implementation:** S1-15 (forward/reverse gateway disentangle).
+**Graduated to contract / implementation (slice 1c):** S1-15 (forward/reverse gateway reads --- `getMembershipContainers`, character `getPositionGraph` inventory stub, navigate parse + apply wired through **`internalCache.Positions`**).
 
 **S1-5 context (shipped):** Affordance compose reads roster via **`internalCache.Positions.getRoomRoster`** (gateway-backed; slice 1 projects from `activeCharacters` on miss). Exits remain gateway-backed **`AffordanceCache`** + **`ComponentTopology`**. Slice 2 swaps backing read to stored `Meta::Room.positionGraph` without changing handler API.
 
@@ -460,11 +459,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Scope: **navigate + disconnect** through **`applyCharacterRoomMembership`**; connect deferred (**S1-12** / slice **3**). Contract: [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) (shipped)
   - [X] **Fan-in consumer (external):** track publish + end-to-end emission tests in [`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) Phase **1**
 
-- [ ] **Slice 1c --- positions gateway forward/reverse reads (S1-15 decided)**
-  - [ ] **`mtw-gateways`:** add **`getMembershipContainers(componentId)`** returning **array**; disentangle from collapsed character **`getPositionGraph`** reverse path; slice 1 adapter projects from **`RoomId`** (0--1 elements)
-  - [ ] **`internalCache.Positions`:** separate memo keys / **`set`** / **`invalidate`** for forward vs reverse reads; extend membership coordinator memo for contained components
-  - [ ] Wire [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) and membership apply pre-read / **`fromRoomId`** validation through **`getMembershipContainers`** (remove ad hoc **`CharacterMeta`** / raw Dynamo on navigate hot path)
-  - [ ] Unit tests (gateway + actions + positions navigate); graduate [`mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) + positions contract/implementation read-path rules
+- [X] **Slice 1c --- positions gateway forward/reverse reads (S1-15 decided)**
+  - [X] **`mtw-gateways`:** add **`getMembershipContainers(componentId)`** returning **array**; disentangle from collapsed character **`getPositionGraph`** reverse path (character forward = empty inventory stub); slice 1 adapter projects from **`RoomId`** (0--1 elements)
+  - [X] **`internalCache.Positions`:** separate memo keys / **`setMembershipContainers`** / **`invalidateMembershipContainers`** for reverse reads; extend membership coordinator memo for contained components
+  - [X] Wire [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) and membership apply pre-read through **`getMembershipContainers`** (remove ad hoc **`CharacterMeta.RoomId`** / raw Dynamo on navigate hot path)
+  - [X] Unit tests (gateway + actions + positions navigate); graduate [`mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) + positions contract/implementation read-path rules
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
   - [X] Resolve **Open decisions** S2-1 through S2-3, S2-5, S2-6 (intent)
@@ -511,7 +510,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Slice 1b gate:** fan-in emission tests --- cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`** (**S1-10**); disconnect leave-only; generic copy at deferral when intent absent; world lines use Model A anchor times. Slice 1 facts may use TEMP intent-assisted emit (**S1-14**). Connect arrive-only deferred to slice **3** (**S1-12**).
 
-**Slice 1c gate:** **`getMembershipContainers`** returns **`[]`** or **`[roomId]`** for characters under flat storage; parse + apply share **`internalCache.Positions`** memo within invocation (no second Dynamo read on happy-path navigate); coordinator invalidates/memos reverse cache on membership apply.
+**Slice 1c gate:** **`getMembershipContainers`** returns **`[]`** or **`[roomId]`** for characters under flat storage; parse + apply share **`internalCache.Positions`** memo within invocation (no second Dynamo read on happy-path navigate); coordinator **`setMembershipContainers`** on membership apply when **`changed`**.
 
 **Slice 2 gate:** **`updatePositionGraphs`** + **adjacency index** + graph-diff **`Character Moved`**; no remaining **`TEMP slice 1`** emit path; persistence API tests against **`positionGraph`** + adjacency invariants; transitional projection dual-write if any legacy readers remain; affordance/roster smoke paths via gateway.
 
@@ -527,7 +526,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Phase 0 durable docs | Done |
 | Slice 1a: persistence boundary | Done |
 | Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Done (fan-in publish for navigate + disconnect --- [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
-| Slice 1c: gateway forward/reverse reads (**S1-15**) | Not started |
+| Slice 1c: gateway forward/reverse reads (**S1-15**) | Done |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

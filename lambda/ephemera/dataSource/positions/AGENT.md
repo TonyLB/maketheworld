@@ -2,14 +2,14 @@
 
 Ephemera lane for **positions in play** --- runtime truth about where entities are and how they relate in the game world. `dataSourceKey: 'mtw.ephemera.positions'`, registered from [`../../app.ts`](../../app.ts).
 
-**Status:** Slice 0 shipped. Slice **1a** (membership persistence boundary) and slice **1b** (`Character Moved` fact stream) shipped. Next: slice **2** graph storage swap --- see task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
+**Status:** Slice 0 shipped. Slice **1a** (membership persistence boundary), slice **1b** (`Character Moved` fact stream), and slice **1c** (gateway forward/reverse reads, **S1-15**) shipped. Next: slice **2** graph storage swap --- see task plan [**Migration strategy**](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#migration-strategy-routing-first).
 
 ## Documentation
 
 | Doc | Role |
 | --- | --- |
 | [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models: fractal position graphs, authored vs play, projections (shipped vs target) |
-| [**AGENT.contract.md**](AGENT.contract.md) | Normative rules enforced **today** (slice 1b) |
+| [**AGENT.contract.md**](AGENT.contract.md) | Normative rules enforced **today** (slice 1c) |
 | [**AGENT.implementation.md**](AGENT.implementation.md) | Code map for this folder |
 | [**AGENT.navigation.md**](AGENT.navigation.md) | Cross-area links (topology, actions, objects, perception) |
 
