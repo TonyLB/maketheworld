@@ -41,16 +41,11 @@ export type UpdatePositionGraphsResult =
 
 export type MembershipApplySuccessResult = {
     ok: true;
-    from: EphemeraRoomId | null;
-    to: EphemeraRoomId | null;
-    /** Plural prior containers removed from; slice 2 graph-diff (S2-7). */
-    froms?: EphemeraRoomId[];
-    changed: boolean;
     /** Set when changed; Model A / slice 1b fact anchor (F1-4). */
     beatAnchorTime?: number;
     /** Room roster snapshots after apply; used by coordinator cache memo. */
     roomRosterSnapshots?: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>;
-}
+} & MembershipDiff
 
 export type MembershipApplyErrorResult = {
     ok: false;

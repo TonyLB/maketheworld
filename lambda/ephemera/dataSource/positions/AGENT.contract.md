@@ -22,7 +22,8 @@ All character **room-membership** mutations for **disconnect** and **navigate** 
 ### Public apply shape (S1-7)
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist (**S2-4**).
-- **Result:** `{ from, to, froms?, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play).
+- **Result:** `{ froms, to, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play). **`froms`** is required (same semantics as **`MembershipDiff`** / bus fact).
+- **Navigate orchestration bridge (temporary):** [`orchestrateCharacterNavigate`](../../moveCharacter/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result; singular downstream surfaces (`PerceptionThreads.departureRoomId`, imperative leave fallback, `MapUpdate.previousRoomId`) use **`froms[0]`** until fan-in Phase **2** retires pre-baked leave/arrive and Phase **3** slims `characterMove` targeting. Multi-departure leave remains fan-in's job (**F2-2**).
 - **Graph persist engine:** [`updatePositionGraphs`](membership/updatePositionGraphs.ts) --- end-state apply: pre-read full **`getMembershipContainers`**, remove from every prior container `!== target`, ensure at target; holistic **`MembershipDiff`**.
 
 ### Graph apply (S2-4)

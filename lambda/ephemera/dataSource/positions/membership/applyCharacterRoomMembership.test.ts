@@ -64,9 +64,8 @@ describe('applyCharacterRoomMembership', () => {
 
         expect(result).toEqual({
             ok: true,
-            from: null,
-            to: FROM_ROOM,
             froms: [],
+            to: FROM_ROOM,
             changed: false,
         })
         expect(messageBus.publish).not.toHaveBeenCalled()
@@ -92,9 +91,8 @@ describe('applyCharacterRoomMembership', () => {
 
         expect(result).toEqual(expect.objectContaining({
             ok: true,
-            from: FROM_ROOM,
-            to: TO_ROOM,
             froms: [FROM_ROOM],
+            to: TO_ROOM,
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         }))

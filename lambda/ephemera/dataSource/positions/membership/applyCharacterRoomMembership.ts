@@ -63,23 +63,11 @@ export const applyCharacterRoomMembership = async (
     const { diff } = result
 
     if (!diff.changed) {
-        return {
-            ok: true,
-            from: diff.froms[0] ?? null,
-            to: diff.to,
-            froms: diff.froms,
-            changed: false,
-        }
+        return { ok: true, ...diff }
     }
 
     if (!result.persisted) {
-        return {
-            ok: true,
-            from: diff.froms[0] ?? null,
-            to: diff.to,
-            froms: diff.froms,
-            changed: true,
-        }
+        return { ok: true, ...diff }
     }
 
     const beatAnchorTime = getCurrentTimestamp()
@@ -125,10 +113,7 @@ export const applyCharacterRoomMembership = async (
 
     return {
         ok: true,
-        from: diff.froms[0] ?? null,
-        to: diff.to,
-        froms: diff.froms,
-        changed: true,
+        ...diff,
         beatAnchorTime,
         roomRosterSnapshots: result.roomRosterSnapshots,
     }

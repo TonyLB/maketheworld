@@ -43,7 +43,7 @@ export const executeCharacterNavigate = async ({
                 ...payload,
             },
             characterMeta,
-            from: result.from,
+            froms: result.froms,
             to: result.to,
             beatAnchorTime: result.beatAnchorTime,
             messageBus,

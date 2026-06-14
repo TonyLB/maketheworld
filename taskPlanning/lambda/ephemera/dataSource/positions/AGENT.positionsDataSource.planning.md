@@ -368,7 +368,7 @@ When **`!changed`**: skip the **entire** bundle --- no fact, no **`RoomUpdate`**
 | --- | --- | --- |
 | **S1-6** | **Diff source for `from`/`to`** | **Decided:** slice 1 = pre-read **`RoomId`** + apply target (**S1-14**). Slice 2 = **`MembershipDiff`** from **`updatePositionGraphs`**. |
 | **S1-4** | **Module layout** | **Decided:** split under **`positions/membership/`** --- see [Module layout (**S1-4**)](#module-layout-s1-4). Thin **`applyCharacterRoomMembership`** coordinator; swappable flat vs graph persist impl. |
-| **S1-7** | **Apply API input** | **Decided:** public **`MembershipApplyArgs`** = `{ characterId, targetRoomId \| null }`; returns **`MembershipApplyResult`** with `from`, `to`, `changed`. **`updatePositionGraphs`** is internal slice 2 persist only. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
+| **S1-7** | **Apply API input** | **Decided:** public **`MembershipApplyArgs`** = `{ characterId, targetRoomId \| null }`; returns **`MembershipApplyResult`** with **`froms`**, `to`, `changed` (apply-result **`froms[]`** cutover shipped post-slice 2). **`updatePositionGraphs`** is internal slice 2 persist only. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
 | **S1-8** | **No-op gate** | **Decided:** emit only when **`MembershipApplyResult.changed`** (`from !== to`); slice 2 uses same gate on graph **`MembershipDiff`**. See [Apply API shape (**S1-7**)](#apply-api-shape-s1-7-and-no-op-gate-s1-8). |
 | **S1-9** | **`RoomStack`-only mutation** | **Decided:** no **`Character Moved`** (room endpoint unchanged) |
 | **S1-10** | **Exit-aware copy (slice 1)** | **Decided:** trust parse (**S1-1** extension). Add **`exitName`** to **`Character Navigate`** intent (**F1-9**); fan-in exit-aware when intent has **`exitName`**; **do not** populate **`legalExits`** on fact slice 1. See [Exit-aware copy (**S1-10**)](#exit-aware-copy-s1-10--fan-in-f1-9). |
@@ -518,6 +518,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Tests: end-state race (stale intent A->B, reality **`froms: [C]`** -> B); drift scrub **`froms: [A,C]`** -> B (multi-from from persist); affordance/roster smoke paths via gateway
   - [X] Graduate concepts (room play graph, character-as-node, adjacency reverse index) + contract + implementation
 
+- [X] **Apply-result `froms[]` cutover (post-slice 2)**
+  - [X] **`MembershipApplySuccessResult`**: remove singular **`from`**; require **`froms`** via **`MembershipDiff`** intersection (**S1-7** result shape)
+  - [X] Coordinator + legacy flat persist return **`froms`** only; navigate orchestration args **`froms[]`** with documented **`froms[0]`** bridge for singular downstream (**`departureRoomId`**, **`MapUpdate.previousRoomId`**)
+  - [X] Contract + implementation + tests
+
 - [ ] **Slice 3 --- unify connect**
   - [ ] Route `Character Connected` through membership API (retire `CheckLocation` bridge)
   - [ ] Graduate contract + implementation
@@ -576,5 +581,6 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 1d: **`froms[]`** fact contract + fan-in **F2-2** | Done |
 | Slice 2 schema foundation: **`positionGraph`** + adjacency types | Done |
 | Slice 2: `Meta::Room` play graph storage swap | Done |
+| Apply-result **`froms[]`** cutover (ingress-facing **`MembershipApplyResult`**) | Done |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

@@ -25,6 +25,9 @@ const defaultReadMembershipEndpoint = async (characterId: EphemeraCharacterId): 
     return containers[0] ?? null
 }
 
+const membershipFromsForEndpoint = (from: EphemeraRoomId | null): EphemeraRoomId[] =>
+    from ? [from] : []
+
 export const applyCharacterMembershipFlat = async (
     args: MembershipApplyArgs,
     deps?: ApplyCharacterMembershipFlatDependencies
@@ -41,7 +44,7 @@ export const applyCharacterMembershipFlat = async (
     const changed = from !== to
 
     if (!changed) {
-        return { ok: true, from, to, changed: false }
+        return { ok: true, froms: [], to, changed: false }
     }
 
     const characterMeta = await getCharacterMeta(args.characterId)
@@ -187,7 +190,7 @@ export const applyCharacterMembershipFlat = async (
 
     return {
         ok: true,
-        from,
+        froms: membershipFromsForEndpoint(from),
         to,
         changed: true,
         roomRosterSnapshots,

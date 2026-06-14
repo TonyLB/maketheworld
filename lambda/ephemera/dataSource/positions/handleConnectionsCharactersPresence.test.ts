@@ -45,7 +45,7 @@ describe('handleConnectionsCharactersPresence', () => {
         it('routes disconnect through applyCharacterRoomMembership with targetRoomId null', async () => {
             applyCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
-                from: 'ROOM#roomA',
+                froms: ['ROOM#roomA'],
                 to: null,
                 changed: true,
                 beatAnchorTime: 1_700_000_000_000,
@@ -67,7 +67,7 @@ describe('handleConnectionsCharactersPresence', () => {
         it('does not perform inline persistence when membership apply is a no-op', async () => {
             applyCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
-                from: null,
+                froms: [],
                 to: null,
                 changed: false,
             })
