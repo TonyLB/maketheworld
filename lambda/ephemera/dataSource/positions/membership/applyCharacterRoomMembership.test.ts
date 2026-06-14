@@ -15,7 +15,7 @@ jest.mock('../../../internalCache', () => ({
         },
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
-        RoomCharacterList: { set: jest.fn() },
+        Positions: { set: jest.fn(), invalidate: jest.fn() },
         Global: { get: jest.fn() },
     },
 }))
@@ -97,9 +97,15 @@ describe('applyCharacterRoomMembership', () => {
         }))
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(FROM_ROOM)
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(TO_ROOM)
-        expect(internalCache.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: TO_ROOM,
-            value: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
+        expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(FROM_ROOM)
+        expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(TO_ROOM)
+        expect(internalCache.Positions.set).toHaveBeenCalledWith({
+            componentId: TO_ROOM,
+            graph: expect.objectContaining({
+                nodes: expect.arrayContaining([
+                    expect.objectContaining({ tag: 'Character', universalKey: CHARACTER_ID }),
+                ]),
+            }),
         })
         expect(internalCache.CharacterMeta.invalidate).toHaveBeenCalledWith(CHARACTER_ID)
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: FROM_ROOM })

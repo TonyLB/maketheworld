@@ -6,9 +6,9 @@
  * deliberately narrow: only **character positions as already recorded today**
  * (`Meta::Room.activeCharacters`, character `RoomId`/`RoomStack`).
  *
- * First external ingress: `mtw.connections.characters` (`Character Connected`,
- * `Character Disconnected`). Additional position-affecting subscriptions can
- * be added here without inventing another one-off DataSource module.
+ * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
+ * (`Character Navigate`). Additional position-affecting subscriptions can be
+ * added here without inventing another one-off DataSource module.
  *
  * Future iterations may extend the lane with new entity kinds and richer
  * position semantics; the wiring above (`dataSourceKey: 'mtw.ephemera.positions'`,
@@ -22,7 +22,9 @@ import {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
+import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
 import {
+    isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
@@ -31,6 +33,7 @@ import {
     handleCharacterConnected,
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
+import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
     never,
@@ -42,6 +45,18 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
     subscribedEventTypeGuard: isEphemeraPositionsSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
         await Promise.all(events.map(async (envelope) => {
+            if (isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope)) {
+                const content = await envelope.getContent() as CharacterNavigatePublishedPayload
+                if (!content || typeof content !== 'object') {
+                    return
+                }
+                await executeCharacterNavigate({
+                    characterId: content.characterId,
+                    targetRoomId: content.toRoomId,
+                    messageBus,
+                })
+                return
+            }
             if (!isEphemeraPositionsConnectionsCharactersEnvelope(envelope)) {
                 return
             }

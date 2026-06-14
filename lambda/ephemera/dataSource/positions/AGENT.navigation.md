@@ -19,29 +19,30 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | Doc / path | Role |
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | DataSource index |
-| [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | **Area topology and affordance exits**, `RoomCharacterList` (roster projection today) |
-| [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose (roster + exits + objects) |
+| [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | **`Positions`** read handler, affordance compose |
+| [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | Lambda wrapper for positions gateway |
+| [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose (roster via **`Positions`**, exits via affordance cache) |
 | [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md) | Hydrated `Affordance::` rows, `topology.exits` |
-| [`../actions/AGENT.md`](../actions/AGENT.md) | Parse, `Character Navigate`, movement bridge |
+| [`../actions/AGENT.md`](../actions/AGENT.md) | Parse, `Character Navigate` stream (execution in positions) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | `Meta::Room.objects` (flat list v1) |
-| [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage` |
-| [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge; calls `applyCharacterRoomMembership` |
+| [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
+| [`index.ts`](index.ts) | Navigate execution ingress (`Character Navigate` -> `executeCharacterNavigate`) |
+| [`../../moveCharacter/executeCharacterNavigate.ts`](../../moveCharacter/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
+| [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge (connect / legacy API) |
 | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |
 
 ---
 
-## Gateways (engineering; planned)
-
-Roster **projection** for affordance compose today: [`RoomCharacterList`](../../internalCache/roomCharacterLists.ts) (see [`AGENT.implementation.md`](AGENT.implementation.md)). Exit projection precedent: gateway-backed affordance cache.
+## Gateways
 
 | Doc / path | Role |
 | --- | --- |
 | [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) | Handler factory norms |
+| [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Play position graph read surface (slice 1 flat projection) |
 | [`packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md) | Exits projection on `Affordance::` rows |
-| `packages/mtw-gateways/ts/ephemera/positions/` | **Planned:** roster read handler (timing: task plan S1-5) |
 
 ## Connections
 

@@ -16,7 +16,7 @@ Graph-shaped storage and `Character Moved` fact streaming are **not** normative 
 
 ## Membership persistence API (slice 1a)
 
-All character **room-membership** mutations for **disconnect** (and navigate via the `moveCharacter` bridge) **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
+All character **room-membership** mutations for **disconnect** and **navigate** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
 ### Public apply shape
 
@@ -28,7 +28,7 @@ All character **room-membership** mutations for **disconnect** (and navigate via
 
 When **`changed`** is true, the coordinator **must** run (together or not at all):
 
-1. Cache memo for each non-null endpoint among `from` / `to` (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `RoomCharacterList.set` when roster snapshot available).
+1. Cache memo for each non-null endpoint among `from` / `to` (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `Positions.set` / `Positions.invalidate` when roster snapshot available).
 2. `CharacterMeta.invalidate(characterId)`.
 3. `RoomUpdate` for each non-null endpoint.
 4. `EphemeraUpdate` `CharacterInPlay` room projection.
@@ -53,6 +53,14 @@ Positions **must** subscribe to:
 
 Positions **must not** subscribe to `Character Registered` (session orientation is render + affordance orchestration; see [`../../AGENT.md`](../../AGENT.md)).
 
+### `mtw.ephemera.actions`
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
+
 ### `Character Connected` (bridge)
 
 - **Must** publish exactly one `CheckLocation` message with `forceMove: true`, `arriveMessage: ' has connected.'`, `suppressArrival: false`.
@@ -65,10 +73,18 @@ Positions **must not** subscribe to `Character Registered` (session orientation 
 - **Idempotency:** duplicate disconnect when already out of play (`from === to === null`) **must** be a no-op (no bundle).
 - World-line copy for disconnect is deferred to slice 1b fan-in emission (no imperative `PublishMessage` in the handler).
 
-### Navigate (bridge via `moveCharacter`)
+### `Character Navigate` (positions-owned)
 
-- Player-initiated navigation still enters through [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) (`MoveCharacter` bus) until positions subscribes to `Character Navigate` (slice 1 follow-on).
-- `moveCharacter` **must** call `applyCharacterRoomMembership` for persistence; presentation (PerceptionThreads, render kicks, `MapUpdate`) lives in [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts).
+- **Must** trust actions-validated `toRoomId` at apply (S1-1 --- no topology re-check in positions).
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
+- **Must not** rely on imperative `MoveCharacter` from actions for parse-based navigation.
+
+---
+
+## Read surface (S1-5)
+
+- Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions`** (`getRoomRoster` / `getPositionGraph`), not raw `ephemeraDB` `activeCharacters` in the compose path.
+- **Authoritative writer** for play position state remains the membership persistence API; gateway memo **`set`** / **`invalidate`** runs from the coordinator when `changed`.
 
 ---
 
@@ -76,10 +92,12 @@ Positions **must not** subscribe to `Character Registered` (session orientation 
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
 - **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
-- **Must not** write `Meta::Room.activeCharacters` or `Meta::Character.RoomId` outside [`membership/`](membership/) except documented legacy [`../../disconnectMessage/index.ts`](../../disconnectMessage/index.ts) (retire slice 4).
+- **Must not** write `Meta::Room.activeCharacters` or `Meta::Character.RoomId` outside [`membership/`](membership/) except documented legacy:
+  - [`../../disconnectMessage/index.ts`](../../disconnectMessage/index.ts) (retire slice 4)
+  - [`../selfHealing/roomOccupancyDriftFinding.ts`](../selfHealing/roomOccupancyDriftFinding.ts) (diagnostics self-healing rebuild)
 
 ---
 
 ## Consumer expectations
 
-Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `RoomCharacterList` and affordance invalidation reflect the updated roster for affected endpoint rooms. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).
+Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for affected endpoint rooms. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).

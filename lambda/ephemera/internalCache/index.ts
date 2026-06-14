@@ -51,6 +51,7 @@ import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import { AffordanceCacheData } from './affordanceCache';
+import { PositionsData } from './positions';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
@@ -81,6 +82,7 @@ export class InternalCache {
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
     AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
+    Positions: PositionsData = new PositionsData()
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
@@ -160,7 +162,7 @@ export class InternalCache {
         this.AffordanceRoomDeliverable = new AffordanceRoomDeliverableData(
             this.ComponentAggregate,
             this.AffordanceCache,
-            this.RoomCharacterList,
+            this.Positions,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)
@@ -201,6 +203,7 @@ export class InternalCache {
         this.Conversations.clear()
         this.RenderCache.clear()
         this.AffordanceCache.clear()
+        this.Positions.clear()
     }
 
     async flush() {
@@ -219,6 +222,7 @@ export class InternalCache {
             this.GenerationContext.flush(),
             this.RenderCache.flush(),
             this.AffordanceCache.flush(),
+            this.Positions.flush(),
         ])
     }
 

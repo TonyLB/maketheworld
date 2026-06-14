@@ -1,6 +1,7 @@
 import {
     isEphemeraPositionsSubscribedEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
+    isEphemeraPositionsActionsCharacterNavigateEnvelope,
 } from './subscribedEvents'
 
 describe('mtw.ephemera.positions subscribedEvents', () => {
@@ -70,5 +71,40 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         }
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts mtw.ephemera.actions Character Navigate envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Character Navigate' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Character Navigate' as const,
+                characterId: 'CHARACTER#alpha' as const,
+                fromRoomId: 'ROOM#from' as const,
+                toRoomId: 'ROOM#to' as const,
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('rejects unrelated event type on mtw.ephemera.actions', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Character Home',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
     })
 })

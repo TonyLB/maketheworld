@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { projectRoomGraphFromRosterEntries } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import internalCache from '../../../internalCache'
-import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import {
@@ -25,11 +25,20 @@ const memoRoomRosterCaches = (
         }
         internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
+        internalCache.Positions.invalidate(roomId)
         const roster = roomRosterSnapshots?.[roomId]
         if (roster) {
-            internalCache.RoomCharacterList.set({
-                key: roomId,
-                value: roster as RoomCharacterListItem[],
+            internalCache.Positions.set({
+                componentId: roomId,
+                graph: projectRoomGraphFromRosterEntries(
+                    roster.map((entry) => ({
+                        EphemeraId: entry.EphemeraId,
+                        DisplayName: entry.DisplayName ?? '',
+                        SessionIds: entry.SessionIds ?? [],
+                        ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
+                        ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
+                    }))
+                ),
             })
         }
     }

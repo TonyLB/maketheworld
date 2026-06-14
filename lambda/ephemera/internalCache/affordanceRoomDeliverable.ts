@@ -5,10 +5,10 @@
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { AffordanceCacheData } from './affordanceCache'
+import type { PositionsData } from './positions'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { CacheRoomCharacterListsData } from './roomCharacterLists'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
@@ -36,7 +36,7 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
     _affordanceCache: AffordanceCacheData
-    _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
+    _positions: PositionsData
     _getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     _Cache: DeferredCache<StandardForm>
     _Store: Record<string, StandardForm> = {}
@@ -44,12 +44,12 @@ export class AffordanceRoomDeliverableData {
     constructor(
         componentAggregate: ComponentAggregateMergedCache,
         affordanceCache: AffordanceCacheData,
-        roomCharacterList: CacheRoomCharacterListsData,
+        positions: PositionsData,
         getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     ) {
         this._componentAggregate = componentAggregate
         this._affordanceCache = affordanceCache
-        this._roomCharacterList = (RoomId) => roomCharacterList.get(RoomId)
+        this._positions = positions
         this._getMetaRoom = getMetaRoom
         this._Cache = new DeferredCache<StandardForm>({
             callback: (key, description) => {
@@ -81,11 +81,18 @@ export class AffordanceRoomDeliverableData {
         roomId: EphemeraRoomId,
         perspectiveKey: string
     ): Promise<StandardForm> {
-        const [affordanceRow, roomCharacterList, meta] = await Promise.all([
+        const [affordanceRow, rosterEntries, meta] = await Promise.all([
             this._affordanceCache.getAffordanceRow(roomId, perspectiveKey),
-            this._roomCharacterList(roomId),
+            this._positions.getRoomRoster(roomId),
             this._getMetaRoom(roomId),
         ])
+        const roomCharacterList: RoomCharacterListItem[] = rosterEntries.map((entry) => ({
+            EphemeraId: entry.EphemeraId,
+            DisplayName: entry.DisplayName,
+            SessionIds: entry.SessionIds,
+            ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
+            ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
+        }))
 
         if (affordanceRow === undefined) {
             throw new Error(

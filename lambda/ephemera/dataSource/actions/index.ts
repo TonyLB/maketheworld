@@ -248,11 +248,6 @@ const publishStreamEventsForIntent = async (
                     ...(parseResult.exitName !== undefined ? { exitName: parseResult.exitName } : {}),
                 },
             })
-            messageBus.publish({
-                type: 'MoveCharacter',
-                characterId,
-                roomId: parseResult.targetId,
-            })
         }
     }
     else if (isParseCommandLookRoomResult(parseResult)) {

@@ -30,14 +30,12 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 
 ## Movement bridge and deferred positions cutover
 
-- Current movement behavior in actions is intentionally **event + imperative** for parity:
-  - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) for downstream/event-first workflows and fan-in exit-aware copy (**F1-9**).
-  - Legacy home (`executeAction` `case 'home'`) emits **`Character Home`** (same endpoint fields, distinct type for fan-in **`copyKind: 'home'`**) via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present.
-  - actions also publishes `MoveCharacter` imperatively so movement executes in current runtime.
-- This dual-path behavior is transitional and scoped to the movement-affordance task.
-- Event-only movement execution ownership is deferred to **`mtw.ephemera.positions`**.
+- Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) is **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
+- actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) for fan-in intent legs and positions execution.
+- Legacy home (`executeAction` `case 'home'`) still emits **`Character Home`** via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present.
+- Legacy API **`move`** / **`home`** and connect (**`CheckLocation`**) still use imperative **`MoveCharacter`** until slice 3 connect unification.
 
-### Explicit non-goals (until positions lands)
+### Explicit non-goals (until positions lands remaining paths)
 
 - Do not treat `mtw.ephemera.actions` as long-term authority for room/position state ownership.
 - Do not add object-position or relative-position semantics in actions; those belong to future positions design.
