@@ -28,11 +28,7 @@ describe('orchestrateCharacterNavigate', () => {
 
     it('uses froms[0] as primaryDeparture when multiple prior containers', async () => {
         await orchestrateCharacterNavigate({
-            payload: {
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#Test',
-                roomId: 'ROOM#TestTwo',
-            },
+            characterId: 'CHARACTER#Test',
             characterMeta: {
                 EphemeraId: 'CHARACTER#Test',
                 Name: 'Test',

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { MoveCharacterMessage, MessageBus } from '../messageBus/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import type { CharacterMetaItem } from '../internalCache/characterMeta'
 import {
@@ -9,7 +9,7 @@ import {
 } from '../dataSource/perception/kickRoomHeaderBroadcast'
 
 export type OrchestrateCharacterNavigateArgs = {
-    payload: MoveCharacterMessage;
+    characterId: EphemeraCharacterId;
     characterMeta: CharacterMetaItem;
     froms: EphemeraRoomId[];
     to: EphemeraRoomId | null;
@@ -23,7 +23,7 @@ export type OrchestrateCharacterNavigateArgs = {
  * Does not perform membership Dynamo writes or RoomUpdate / EphemeraUpdate (coordinator owns those).
  */
 export const orchestrateCharacterNavigate = async ({
-    payload,
+    characterId,
     characterMeta,
     froms,
     to,
@@ -51,8 +51,8 @@ export const orchestrateCharacterNavigate = async ({
             threadKind: 'characterMove',
             componentId: to,
             perspectiveKey,
-            characterId: payload.characterId,
-            targets: [payload.characterId],
+            characterId,
+            targets: [characterId],
             messageGroupId,
             registrationId,
             ...(headerMessageId !== undefined ? { messageId: headerMessageId } : {}),
@@ -63,7 +63,7 @@ export const orchestrateCharacterNavigate = async ({
 
     const kickedPassiveRender = await kickPassiveRenderRequestedForCharacterInRoom({
         roomId: to,
-        characterId: payload.characterId,
+        characterId,
         assets: characterMeta.assets || [],
         messageBus,
     })
@@ -71,7 +71,7 @@ export const orchestrateCharacterNavigate = async ({
     if (!registeredCharacterMove && !kickedPassiveRender) {
         messageBus.publish({
             type: 'Perception',
-            characterId: payload.characterId,
+            characterId,
             ephemeraId: to,
             header: true,
             messageGroupId,
@@ -80,7 +80,7 @@ export const orchestrateCharacterNavigate = async ({
 
     messageBus.publish({
         type: 'MapUpdate',
-        characterId: payload.characterId,
+        characterId,
         previousRoomId: primaryDeparture,
         roomId: to,
     })

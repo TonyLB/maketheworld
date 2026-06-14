@@ -98,7 +98,8 @@ export const applyCharacterMembershipFlat = async (
             ])
             const { destinationChain } = computeRoomStackUpdate({
                 targetRoomId: to,
-                characterMeta,
+                currentRoomStack: characterMeta.RoomStack,
+                characterAssets: characterMeta.assets || [],
                 roomAssets,
                 canonAssets,
             })
@@ -115,7 +116,6 @@ export const applyCharacterMembershipFlat = async (
                             applyRoomStackToCharacterDraft(draft, {
                                 targetRoomId: to,
                                 destinationChain,
-                                priorRoomStack: characterMeta.RoomStack,
                             })
                         },
                     },

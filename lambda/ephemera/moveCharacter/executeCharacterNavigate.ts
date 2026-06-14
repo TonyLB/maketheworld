@@ -4,7 +4,7 @@ import internalCache from '../internalCache'
 import { applyCharacterRoomMembership } from '../dataSource/positions/membership/applyCharacterRoomMembership'
 import type { PositionsPublishedPayload } from '../dataSource/positions/publishedEvents'
 import type { MembershipApplyResult } from '../dataSource/positions/membership/types'
-import type { MoveCharacterMessage, MessageBus } from '../messageBus/baseClasses'
+import type { MessageBus } from '../messageBus/baseClasses'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 export type ExecuteCharacterNavigateArgs = {
@@ -12,7 +12,6 @@ export type ExecuteCharacterNavigateArgs = {
     targetRoomId: EphemeraRoomId;
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-    payload?: Partial<Omit<MoveCharacterMessage, 'characterId' | 'roomId'>>;
 }
 
 /**
@@ -24,7 +23,6 @@ export const executeCharacterNavigate = async ({
     targetRoomId,
     messageBus,
     streamEvent,
-    payload = {},
 }: ExecuteCharacterNavigateArgs): Promise<MembershipApplyResult> => {
     const characterMeta = await internalCache.CharacterMeta.get(characterId)
     const result = await applyCharacterRoomMembership(
@@ -34,12 +32,7 @@ export const executeCharacterNavigate = async ({
 
     if (result.ok && result.changed) {
         await orchestrateCharacterNavigate({
-            payload: {
-                type: 'MoveCharacter',
-                characterId,
-                roomId: targetRoomId,
-                ...payload,
-            },
+            characterId,
             characterMeta,
             froms: result.froms,
             to: result.to,

@@ -4,6 +4,7 @@ import {
     sendStateChange,
     sendObjectsChange,
     sendParseRequested,
+    sendActionAssessed,
     sendPutThinkingSchedule,
     sendPutThinkingJobCreate,
     sendPutThinkingJobError,
@@ -243,6 +244,40 @@ describe('apiEphemera', () => {
         })
         expect(publish).toHaveBeenCalledTimes(1)
         expect(publish.mock.calls[0][0].header.type).toBe('Parse Requested')
+    })
+
+    it('sendActionAssessed posts StreamingEvent with Action Assessed header and streamKey', async () => {
+        const { published, bus } = makeBus()
+        sendActionAssessed(bus, 'CHARACTER#123', {
+            characterId: 'CHARACTER#123' as const,
+            assessed: {
+                type: 'Navigation',
+                targetId: 'ROOM#789' as const,
+                exitName: 'north',
+                confidence: 1,
+            },
+            source: 'uiExit',
+        })
+
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('CHARACTER#123')
+        expect(msg.header.dataSourceKey).toBe('api.ephemera')
+        expect(msg.header.type).toBe('Action Assessed')
+        expect(msg.header.streamKey).toBe('CHARACTER#123')
+        const content = await msg.getContent()
+        expect(content).toMatchObject({
+            characterId: 'CHARACTER#123',
+            source: 'uiExit',
+            assessed: {
+                type: 'Navigation',
+                targetId: 'ROOM#789',
+                exitName: 'north',
+                confidence: 1,
+            },
+        })
     })
 
     it('sendPutThinkingSchedule posts StreamingEvent with Put Thinking Schedule type', async () => {

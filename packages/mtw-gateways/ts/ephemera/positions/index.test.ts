@@ -283,4 +283,14 @@ describe('queryMembershipContainersFromDynamo', () => {
             ExpressionAttributeValues: { ':prefix': 'POSITION#' },
         })
     })
+
+    it('parses DataCategory-only rows from default ephemeraDB query projection', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                { DataCategory: buildPositionAdjacencyDataCategory(roomId) },
+            ]),
+        }
+
+        await expect(queryMembershipContainersFromDynamo(db, characterId)).resolves.toEqual([roomId])
+    })
 })

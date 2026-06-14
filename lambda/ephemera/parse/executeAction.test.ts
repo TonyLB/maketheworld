@@ -6,6 +6,7 @@ import { EphemeraCharacterId, EphemeraRoomId, EphemeraFeatureId } from '@tonylb/
 import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscribedEvents'
 import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
 import { sendCharacterHome } from '../dataSource/actions/sendPublishedEvents'
+import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 // Mock dependencies
 jest.mock('../messageBus', () => ({
@@ -42,6 +43,13 @@ jest.mock('../dataSource/actions/sendPublishedEvents', () => {
         sendCharacterHome: jest.fn(),
     }
 })
+jest.mock('../dataSource/apiEphemera', () => {
+    const actual = jest.requireActual('../dataSource/apiEphemera') as object
+    return {
+        ...actual,
+        sendActionAssessed: jest.fn(),
+    }
+})
 
 const MockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 // @ts-ignore
@@ -49,6 +57,7 @@ const internalCacheMock = jest.mocked(internalCache, true)
 const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
 const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
 const mockSendCharacterHome = sendCharacterHome as jest.MockedFunction<typeof sendCharacterHome>
+const mockSendActionAssessed = sendActionAssessed as jest.MockedFunction<typeof sendActionAssessed>
 
 describe('executeAction', () => {
     beforeEach(() => {
@@ -58,6 +67,7 @@ describe('executeAction', () => {
         mockSendPerceptionThreadRegistered.mockClear()
         mockSendRenderRequested.mockClear()
         mockSendCharacterHome.mockClear()
+        mockSendActionAssessed.mockClear()
         internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.ComponentRender = {
@@ -133,7 +143,7 @@ describe('executeAction', () => {
     })
 
     describe('move action', () => {
-        it('should send MoveCharacter message for move action', async () => {
+        it('should send Action Assessed Navigation for move action', async () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'move',
@@ -146,15 +156,26 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#123',
-                roomId: 'ROOM#789',
-                leaveMessage: ' left by north exit.'
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'Navigation',
+                        targetId: 'ROOM#789',
+                        exitName: 'north',
+                        confidence: 1,
+                    },
+                    source: 'uiExit',
+                }
+            )
+            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'MoveCharacter' })
+            )
         })
 
-        it('should send MoveCharacter message for move action without exit name', async () => {
+        it('should send Action Assessed Navigation for move action without exit name', async () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'move',
@@ -166,12 +187,22 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#123',
-                roomId: 'ROOM#789',
-                leaveMessage: ' left.'
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'Navigation',
+                        targetId: 'ROOM#789',
+                        confidence: 1,
+                    },
+                    source: 'uiExit',
+                }
+            )
+            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'MoveCharacter' })
+            )
         })
     })
 
@@ -211,7 +242,6 @@ describe('executeAction', () => {
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: 'ROOM#HOME',
-                leaveMessage: ' left to return home.'
             })
         })
 
@@ -241,7 +271,6 @@ describe('executeAction', () => {
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#123',
                 roomId: undefined,
-                leaveMessage: ' left to return home.'
             })
         })
     })

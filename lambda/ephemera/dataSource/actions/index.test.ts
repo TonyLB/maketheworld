@@ -384,6 +384,111 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    describe('Action Assessed Navigation', () => {
+        const dest = 'ROOM#dest' as EphemeraRoomId
+        const from = 'ROOM#from' as EphemeraRoomId
+
+        it('streams Character Navigate without CommandTranscriptMessage or parseCommand', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [dest],
+                exits: [{ normalizedName: 'north', toRoomId: dest }],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'Navigation' as const,
+                            targetId: dest,
+                            exitName: 'north',
+                            confidence: 1,
+                        },
+                        source: 'uiExit' as const,
+                        requestId: 'req-ui',
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedParseCommand).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
+                displayProtocol: 'CommandTranscriptMessage',
+            }))
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Navigate' },
+                update: {
+                    type: 'Character Navigate',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: from,
+                    toRoomId: dest,
+                    exitName: 'north',
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-ui',
+                    message: 'action_assessed_handled',
+                },
+            })
+        })
+
+        it('publishes WorldOOCMessage when assessed target is not a valid exit', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: ['ROOM#other' as EphemeraRoomId],
+                exits: [{ normalizedName: 'north', toRoomId: 'ROOM#other' as EphemeraRoomId }],
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'Navigation' as const,
+                            targetId: dest,
+                            confidence: 1,
+                        },
+                        source: 'uiExit' as const,
+                    }),
+                } as any],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['There is no exit to that place from here.'],
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
+        })
+    })
+
     describe('ParseCommandLookRoomResult', () => {
         const currentRoom = 'ROOM#from' as EphemeraRoomId
 

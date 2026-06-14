@@ -40,14 +40,7 @@ export const handleCharacterConnected = async (
 
     if (result.ok && result.changed) {
         await orchestrateCharacterNavigate({
-            payload: {
-                type: 'MoveCharacter',
-                characterId: event.characterId,
-                roomId: targetRoomId,
-                suppressDeparture: true,
-                suppressArrival: true,
-                suppressSelfMessage: true,
-            },
+            characterId: event.characterId,
             characterMeta,
             froms: result.froms,
             to: result.to,

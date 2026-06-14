@@ -64,8 +64,14 @@ export async function getCharacterRoomIdFromDynamo(
         ProjectionFields: ['RoomId'],
     })
     const roomId = row?.RoomId
-    if (roomId && isEphemeraRoomId(roomId)) {
-        return roomId
+    if (typeof roomId === 'string' && roomId.length > 0) {
+        if (isEphemeraRoomId(roomId)) {
+            return roomId
+        }
+        const normalized = `ROOM#${roomId}` as EphemeraRoomId
+        if (isEphemeraRoomId(normalized)) {
+            return normalized
+        }
     }
     return null
 }

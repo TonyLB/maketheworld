@@ -17,6 +17,7 @@ import {
     isSessionOrientationRenderPerceptionThread,
 } from '../../internalCache/perceptionThreads'
 import type { PublishTarget } from '../../messageBus/baseClasses'
+import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
@@ -93,6 +94,35 @@ async function resolveFallbackRenderTargetsForPerspective(
 function terminalCreatedTime(thread: { createdTime?: number }): number {
     const t0 = thread.createdTime ?? getCurrentTimestamp()
     return Math.max(t0 + 1, getCurrentTimestamp())
+}
+
+/** Model A beat anchor: Generating placeholder at T0 (cache-hit may skip Generation Started). */
+function publishCharacterMoveGeneratingHeader(
+    bus: MessageBus,
+    args: {
+        roomId: EphemeraRoomId;
+        targets: PublishTarget[];
+        messageGroupId?: MessageGroupId;
+        messageId: string;
+        t0: number;
+    }
+): void {
+    bus.publish({
+        type: 'PublishMessage',
+        targets: args.targets,
+        displayProtocol: 'PerceptionMessage',
+        wmlContent: roomHeaderGeneratingPlaceholderWml(args.roomId),
+        metaData: {
+            componentUUID: args.roomId,
+            displayMode: 'header',
+            status: 'generating',
+            roomChannel: 'render',
+        },
+        messageGroupId: args.messageGroupId,
+        messageId: args.messageId,
+        createdTime: args.t0,
+        deliveryMode: 'deferred',
+    })
 }
 
 export async function orchestrateRoomDescriptionStreams(
@@ -284,6 +314,20 @@ async function handleRenderPertains(
         const targets = registration.targets
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
+        const t0 = thread.createdTime ?? getCurrentTimestamp()
+        if (thread.status === 'Initial') {
+            publishCharacterMoveGeneratingHeader(bus, {
+                roomId,
+                targets,
+                messageGroupId: registration.messageGroupId,
+                messageId,
+                t0,
+            })
+            internalCache.PerceptionThreads.update(
+                { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
+                { threadKind: 'characterMove', status: 'Generating', messageId, createdTime: t0 }
+            )
+        }
         if (targets.length) {
             bus.publish({
                 type: 'PublishMessage',
@@ -297,6 +341,7 @@ async function handleRenderPertains(
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
+                createdTime: terminalCreatedTime({ createdTime: t0 }),
                 deliveryMode: 'deferred',
             })
             publishedCharacterMove += 1
@@ -501,21 +546,12 @@ async function handleGenerationStarted(
         const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         const t0 = thread.createdTime ?? getCurrentTimestamp()
-        bus.publish({
-            type: 'PublishMessage',
+        publishCharacterMoveGeneratingHeader(bus, {
+            roomId,
             targets,
-            displayProtocol: 'PerceptionMessage',
-            wmlContent: roomHeaderGeneratingPlaceholderWml(roomId),
-            metaData: {
-                componentUUID: roomId,
-                displayMode: 'header',
-                status: 'generating',
-                roomChannel: 'render',
-            },
             messageGroupId: registration.messageGroupId,
             messageId,
-            createdTime: t0,
-            deliveryMode: 'deferred',
+            t0,
         })
 
         internalCache.PerceptionThreads.update(
@@ -673,6 +709,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             },
             messageGroupId: registration.messageGroupId,
             messageId,
+            createdTime: terminalCreatedTime(thread),
             deliveryMode: 'deferred',
         })
 

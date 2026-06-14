@@ -92,7 +92,7 @@ const repairCharacterLocation = async (
             )
         },
         successCallback: ({ RoomStack, RoomId }) => {
-            const { forceMove, forceRender, arriveMessage, leaveMessage, suppressArrival, suppressDeparture } = payload
+            const { forceMove, forceRender } = payload
             internalCache.CharacterMeta.set({ ...characterMeta, RoomStack })
             const stackRoomId = (RoomStack as RoomStackItem[]).slice(-1)[0]?.RoomId
 
@@ -101,11 +101,6 @@ const repairCharacterLocation = async (
                     type: 'MoveCharacter',
                     characterId: payload.characterId,
                     roomId: RoomKey(stackRoomId),
-                    suppressArrival,
-                    arriveMessage,
-                    suppressDeparture,
-                    leaveMessage,
-                    suppressSelfMessage: true
                 })
             }
             else if (forceRender) {

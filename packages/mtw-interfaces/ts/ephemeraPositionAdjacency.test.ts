@@ -3,6 +3,7 @@ import {
     buildPositionAdjacencyDataCategory,
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
     isEphemeraPositionAdjacencyRow,
+    parseMembershipContainerFromAdjacencyQueryItem,
     parsePositionAdjacencyDataCategory,
 } from './ephemeraPositionAdjacency'
 
@@ -46,5 +47,25 @@ describe('isEphemeraPositionAdjacencyRow', () => {
             EphemeraId: characterId,
             DataCategory: 'POSITION#bad',
         })).toBe(false)
+    })
+
+    it('rejects row when EphemeraId is absent (query projection shape)', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            DataCategory: buildPositionAdjacencyDataCategory(roomId),
+        })).toBe(false)
+    })
+})
+
+describe('parseMembershipContainerFromAdjacencyQueryItem', () => {
+    it('parses host room from DataCategory-only query item', () => {
+        expect(parseMembershipContainerFromAdjacencyQueryItem({
+            DataCategory: buildPositionAdjacencyDataCategory(roomId),
+        })).toBe(roomId)
+    })
+
+    it('ignores malformed DataCategory', () => {
+        expect(parseMembershipContainerFromAdjacencyQueryItem({
+            DataCategory: 'POSITION#bad',
+        })).toBeUndefined()
     })
 })

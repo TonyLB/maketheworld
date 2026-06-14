@@ -182,11 +182,7 @@ describe('moveCharacter', () => {
         } as any)
         expect(mockPositionsStreamEvent).toHaveBeenCalled()
         expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
-            payload: {
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#Test',
-                roomId: 'ROOM#TestTwo',
-            },
+            characterId: 'CHARACTER#Test',
             froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',
             beatAnchorTime: 1_700_000_000_000,
@@ -212,8 +208,6 @@ describe('moveCharacter', () => {
                 type: 'MoveCharacter',
                 characterId: 'CHARACTER#Test',
                 roomId: 'ROOM#VORTEX',
-                arriveMessage: ' has connected.',
-                suppressSelfMessage: true,
             }],
             messageBus: messageBusMock,
         })

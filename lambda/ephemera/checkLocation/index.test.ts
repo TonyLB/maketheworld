@@ -106,7 +106,6 @@ describe('checkLocation', () => {
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#TownSquare',
-            suppressSelfMessage: true
         })
     })
 
@@ -193,11 +192,10 @@ describe('checkLocation', () => {
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Oubliette',
-            suppressSelfMessage: true
         })
     })
 
-    it('should convey arriveMessage and leaveMessage', async () => {
+    it('should publish MoveCharacter on forceMove even when message copy fields are present on payload', async () => {
         wrapMocks(
             [
                 { asset: 'primitives', RoomId: 'VORTEX' },
@@ -240,9 +238,6 @@ describe('checkLocation', () => {
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Oubliette',
-            leaveMessage: ' has vanished.',
-            arriveMessage: ' has appeared.',
-            suppressSelfMessage: true
         })
     })
 
@@ -288,9 +283,6 @@ describe('checkLocation', () => {
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Laboratory',
-            leaveMessage: ' has vanished.',
-            arriveMessage: ' has appeared.',
-            suppressSelfMessage: true
         })
     })
 
@@ -357,9 +349,6 @@ describe('checkLocation', () => {
             type: 'MoveCharacter',
             characterId: 'CHARACTER#Test',
             roomId: 'ROOM#Laboratory',
-            leaveMessage: ' has vanished.',
-            arriveMessage: ' has appeared.',
-            suppressSelfMessage: true
         })
     })
 

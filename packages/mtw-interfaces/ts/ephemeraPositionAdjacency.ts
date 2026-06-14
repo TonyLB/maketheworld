@@ -33,12 +33,29 @@ export const parsePositionAdjacencyDataCategory = (
     return hostComponentId
 }
 
+/**
+ * Parse host room from an adjacency query item. Query projection may omit `EphemeraId`
+ * (partition key only); membership is implied by the query PK.
+ */
+export const parseMembershipContainerFromAdjacencyQueryItem = (
+    item: unknown
+): EphemeraRoomId | undefined => {
+    if (!item || typeof item !== 'object') {
+        return undefined
+    }
+    const dataCategory = (item as { DataCategory?: unknown }).DataCategory
+    if (typeof dataCategory !== 'string') {
+        return undefined
+    }
+    return parsePositionAdjacencyDataCategory(dataCategory)
+}
+
 export const isEphemeraPositionAdjacencyRow = (item: unknown): item is EphemeraPositionAdjacencyRow => {
     if (!item || typeof item !== 'object') {
         return false
     }
     const row = item as EphemeraPositionAdjacencyRow
-    if (!isEphemeraCharacterId(row.EphemeraId)) {
+    if (typeof row.EphemeraId !== 'string' || !isEphemeraCharacterId(row.EphemeraId)) {
         return false
     }
     if (typeof row.DataCategory !== 'string') {

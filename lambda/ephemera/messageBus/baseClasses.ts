@@ -232,11 +232,6 @@ export type MoveCharacterMessage = {
     type: 'MoveCharacter';
     characterId: EphemeraCharacterId;
     roomId: EphemeraRoomId;
-    suppressArrival?: boolean;
-    arriveMessage?: string;
-    suppressDeparture?: boolean;
-    leaveMessage?: string;
-    suppressSelfMessage?: boolean;
 }
 
 export type CheckLocationMessageInvariantPayload = {

@@ -27,7 +27,7 @@ Use this checklist when adding a parse affordance (for example, `help`).
 
 ### 3) Handle affordance in actions receive path
 
-1. In [`index.ts`](index.ts), branch on the new affordance guard.
+1. In [`index.ts`](index.ts), branch on the new affordance guard (from **`parseCommand`** on **`Parse Requested`**, or from **`content.assessed`** on **`Action Assessed`** when the outcome is server-trusted).
 2. Choose one of two output paths:
    - `streamEvent` (preferred for cross-DataSource workflows and durable internal contracts)
    - `PublishMessage` side effect only (for strictly local player feedback with no stream contract)
@@ -50,6 +50,15 @@ If the affordance introduces a new display protocol (for example, a specialized 
 3. Ensure publish translation exists in [`../../publishMessage/index.ts`](../../publishMessage/index.ts).
 4. Add client renderer route in [`../../../../charcoal-client/src/components/Message/index.tsx`](../../../../charcoal-client/src/components/Message/index.tsx) and component/test coverage.
 5. If visual tokens are introduced, update client theme extensions in `charcoal-client/src/theme/`.
+
+### Action Assessed (server-trusted outcomes)
+
+When adding a new assessed outcome type (beyond v1 **`Navigation`**):
+
+1. Extend **`ActionAssessedCommand.assessed`** union and **`isActionAssessedCommand`** in [`../localApiEvents.ts`](../localApiEvents.ts).
+2. Add **`sendActionAssessed`** callers only from trusted server ingress (never raw websocket payloads).
+3. Branch in [`index.ts`](index.ts) **`handleActionAssessed`** / shared **`processAssessedParseResult`** tail --- skip **`CommandTranscriptMessage`**.
+4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation).
 
 ---
 

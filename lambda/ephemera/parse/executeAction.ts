@@ -5,6 +5,7 @@ import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@ton
 import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
 import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter'
 import { sendCharacterHome } from '../dataSource/actions/sendPublishedEvents'
+import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 const narrateOOCOrSpeech = async (
     messageBus: Pick<MessageBus, 'publish'>,
@@ -52,11 +53,18 @@ export const executeAction = async (messageBus: Pick<MessageBus, 'publish'>, req
             await narrateOOCOrSpeech(messageBus, { ...request.payload, DisplayProtocol: request.actionType })
             break
         case 'move':
-            messageBus.publish({
-                type: 'MoveCharacter',
+            if (!isEphemeraRoomId(request.payload.RoomId)) {
+                break
+            }
+            sendActionAssessed(messageBus, request.payload.CharacterId, {
                 characterId: request.payload.CharacterId,
-                roomId: request.payload.RoomId,
-                leaveMessage: ` left${request.payload.ExitName ? ` by ${request.payload.ExitName} exit` : ''}.`
+                assessed: {
+                    type: 'Navigation',
+                    targetId: request.payload.RoomId,
+                    ...(request.payload.ExitName !== undefined ? { exitName: request.payload.ExitName } : {}),
+                    confidence: 1,
+                },
+                source: 'uiExit',
             })
             break
         case 'home': {
@@ -74,7 +82,6 @@ export const executeAction = async (messageBus: Pick<MessageBus, 'publish'>, req
                 type: 'MoveCharacter',
                 characterId: request.payload.CharacterId,
                 roomId: HomeId,
-                leaveMessage: ' left to return home.'
             })
             break
         }
