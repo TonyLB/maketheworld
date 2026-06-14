@@ -592,6 +592,8 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         const mid = (genPublish![0] as { messageId?: string }).messageId
         expect(mid).toMatch(/^MESSAGE#/)
+        const genCreatedTime = (genPublish![0] as { createdTime?: number }).createdTime
+        expect(genCreatedTime).toBe(1000000000000)
         expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
         const worldMessages = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; displayProtocol?: string }
@@ -629,6 +631,56 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
+        expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
+        expect(
+            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        ).toEqual([])
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove cache hit synthesizes Generating at beat anchor then terminal Render Pertains', async () => {
+        const BEAT_ANCHOR = 1_700_000_000_000
+        mockGetCurrentTimestamp.mockImplementation(() => BEAT_ANCHOR + 5)
+
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
+            messageGroupId: 'MSG#root',
+            messageId: 'MESSAGE#move-header',
+            createdTime: BEAT_ANCHOR,
+        })
+        await messageBus.flushAndSettle()
+
+        await sendRenderPertainsStreamingEvent()
+
+        const genPublish = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header' && m?.metaData?.status === 'generating'
+        })
+        expect(genPublish).toBeDefined()
+        expect((genPublish![0] as { createdTime?: number }).createdTime).toBe(BEAT_ANCHOR)
+        expect((genPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
+
+        const terminalPublish = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string; status?: string } }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.wmlContent === '<HeaderMoveTerminal />'
+                && m?.metaData?.displayMode === 'header'
+                && m?.metaData?.status !== 'generating'
+            )
+        })
+        expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
+        expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(BEAT_ANCHOR)
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
