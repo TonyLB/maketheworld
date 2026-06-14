@@ -1,4 +1,9 @@
-import { isEphemeraMetaRoomObject } from './ephemeraMeta'
+import {
+    isEphemeraMetaRoom,
+    isEphemeraMetaRoomObject,
+    isEphemeraPlayPositionGraph,
+    isEphemeraPlayPositionGraphNode,
+} from './ephemeraMeta'
 
 const baseRow = {
     uuid: 'OBJECT#helmet' as const,
@@ -89,5 +94,80 @@ describe('isEphemeraMetaRoomObject', () => {
                 shortName: 'Anvil',
             })
         ).toBe(false)
+    })
+})
+
+describe('isEphemeraPlayPositionGraphNode', () => {
+    it('accepts character node with universalKey', () => {
+        expect(isEphemeraPlayPositionGraphNode({
+            tag: 'Character',
+            universalKey: 'CHARACTER#Alpha',
+        })).toBe(true)
+    })
+
+    it('rejects non-character tag', () => {
+        expect(isEphemeraPlayPositionGraphNode({
+            tag: 'Room',
+            universalKey: 'ROOM#Test',
+        })).toBe(false)
+    })
+
+    it('rejects invalid universalKey', () => {
+        expect(isEphemeraPlayPositionGraphNode({
+            tag: 'Character',
+            universalKey: 'ROOM#Test',
+        })).toBe(false)
+    })
+
+    it('rejects asset-local key on play node', () => {
+        expect(isEphemeraPlayPositionGraphNode({
+            tag: 'Character',
+            universalKey: 'CHARACTER#Alpha',
+            key: 'hero',
+        })).toBe(false)
+    })
+})
+
+describe('isEphemeraPlayPositionGraph', () => {
+    it('accepts character nodes with empty edges', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            edges: [],
+        })).toBe(true)
+    })
+
+    it('accepts graph without edges field', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+        })).toBe(true)
+    })
+
+    it('rejects non-empty edges in slice 2 v1', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            edges: [{ tag: 'Exit', uuid: 'exit-1' }],
+        })).toBe(false)
+    })
+})
+
+describe('isEphemeraMetaRoom positionGraph', () => {
+    it('accepts Meta::Room with positionGraph', () => {
+        expect(isEphemeraMetaRoom({
+            EphemeraId: 'ROOM#Test',
+            DataCategory: 'Meta::Room',
+            positionGraph: {
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            },
+        })).toBe(true)
+    })
+
+    it('rejects invalid positionGraph on Meta::Room', () => {
+        expect(isEphemeraMetaRoom({
+            EphemeraId: 'ROOM#Test',
+            DataCategory: 'Meta::Room',
+            positionGraph: {
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#Other' }],
+            },
+        })).toBe(false)
     })
 })

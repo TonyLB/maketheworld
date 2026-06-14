@@ -9,7 +9,7 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 | Surface | Use |
 | --- | --- |
 | **Primary** | **`createPositionsCacheHandler(ephemeraDB)`** / **`PositionsCacheHandler`** --- register on Ephemera **`internalCache.Positions`**. |
-| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`projectRoomGraphFromActiveCharacters`**, **`projectCharacterGraphFromRoomEndpoint`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
+| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomPositionGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectRoomGraphFromActiveCharacters`**, **`projectRoomGraphFromStoredPositionGraph`**, **`projectCharacterGraphFromRoomEndpoint`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
@@ -21,7 +21,37 @@ Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | **Stub:** empty `{ nodes: [], edges: [] }` --- no Dynamo read |
 | **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | `Meta::Character.RoomId` -> `[]` or `[roomId]` |
 
-**Slice 2:** forward room graph from stored `Meta::Room.positionGraph`; reverse from adjacency index (**S2-5**). Handler API unchanged.
+**Slice 2:** forward room graph from stored `Meta::Room.positionGraph`; reverse from adjacency index (**S2-5**). Handler API unchanged. **Factory backing swap** (wire stored reads into **`PositionsCacheHandler`**) is a separate slice 2 checklist row --- schema + secondary helpers ship first.
+
+## Storage schema (slice 2; types landed)
+
+Play membership persistence converges on two authoritative structures (**S2-5**). **Conflict policy:** stored **`positionGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch.
+
+### Forward: `Meta::Room.positionGraph`
+
+| Field | Shape |
+| --- | --- |
+| **`positionGraph.nodes`** | Character membership nodes only (slice 2 v1). Each node: `{ tag: 'Character', universalKey: EphemeraCharacterId }` --- play identity only; no asset-local `key`. |
+| **`positionGraph.edges`** | Absent or `[]` until in-room edges land (slice 5+). |
+
+**Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
+
+**Topology only:** roster display fields (`DisplayName`, `SessionIds`, ...) stay on **`activeCharacters`** during transitional dual-write (**S2-2** until **S2-6**). Gateway compose: **`projectRoomGraphFromStoredPositionGraph(stored, activeCharacters?)`** merges stored nodes + legacy roster meta for **`getRoomRoster`**.
+
+**Read helper:** **`getRoomPositionGraphFromDynamo`** in [`fetch.ts`](fetch.ts).
+
+### Reverse: membership adjacency index
+
+| Key | Value |
+| --- | --- |
+| **PK (`EphemeraId`)** | Contained component --- slice 2 v1: `CHARACTER#...` |
+| **SK (`DataCategory`)** | `POSITION#${hostEphemeraId}` --- e.g. `POSITION#ROOM#cafe` |
+
+One row per host container. Multi-container drift (character in rooms A and C) yields two rows under the same PK.
+
+**Types + key builders:** [`ephemeraPositionAdjacency.ts`](../../../../mtw-interfaces/ts/ephemeraPositionAdjacency.ts).
+
+**Query helper:** **`queryMembershipContainersFromDynamo`** in [`adjacency.ts`](adjacency.ts) --- `begins_with(DataCategory, 'POSITION#')` on character PK; parse SK to `EphemeraRoomId[]`.
 
 ## Handler API ([`factory.ts`](factory.ts))
 

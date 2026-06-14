@@ -2,6 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 
 import {
     projectRoomGraphFromActiveCharacters,
+    projectRoomGraphFromStoredPositionGraph,
     projectRoomRosterFromGraph,
     projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
@@ -10,6 +11,8 @@ import {
 } from './project'
 import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
+import { queryMembershipContainersFromDynamo } from './adjacency'
+import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -63,6 +66,36 @@ describe('positions project', () => {
         }]
         const graph = projectRoomGraphFromRosterEntries(roster)
         expect(projectRoomRosterFromGraph(graph)).toEqual(roster)
+    })
+
+    it('projectRoomGraphFromStoredPositionGraph maps stored nodes and merges roster meta', () => {
+        const graph = projectRoomGraphFromStoredPositionGraph(
+            {
+                nodes: [{ tag: 'Character', universalKey: characterId }],
+            },
+            [{
+                EphemeraId: characterId,
+                DisplayName: 'Alpha',
+                SessionIds: ['sess-1'],
+            }]
+        )
+        expect(graph.nodes).toEqual([{
+            tag: 'Character',
+            universalKey: characterId,
+        }])
+        expect(projectRoomRosterFromGraph(graph)).toEqual([{
+            EphemeraId: characterId,
+            DisplayName: 'Alpha',
+            SessionIds: ['sess-1'],
+        }])
+    })
+
+    it('projectRoomGraphFromStoredPositionGraph omits roster meta when activeCharacters absent', () => {
+        const graph = projectRoomGraphFromStoredPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        })
+        expect(graph.characterRosterMeta).toBeUndefined()
+        expect(projectRoomRosterFromGraph(graph)).toEqual([])
     })
 })
 
@@ -165,5 +198,34 @@ describe('PositionsCacheHandler', () => {
         handler.invalidateMembershipContainers(characterId)
         await handler.getMembershipContainers(characterId)
         expect(getItem).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('queryMembershipContainersFromDynamo', () => {
+    it('parses adjacency rows into host room ids', async () => {
+        const roomB = 'ROOM#B' as EphemeraRoomId
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                {
+                    EphemeraId: characterId,
+                    DataCategory: buildPositionAdjacencyDataCategory(roomId),
+                },
+                {
+                    EphemeraId: characterId,
+                    DataCategory: buildPositionAdjacencyDataCategory(roomB),
+                },
+                {
+                    EphemeraId: characterId,
+                    DataCategory: 'POSITION#bad',
+                },
+            ]),
+        }
+
+        await expect(queryMembershipContainersFromDynamo(db, characterId)).resolves.toEqual([roomId, roomB])
+        expect(db.query).toHaveBeenCalledWith({
+            Key: { EphemeraId: characterId },
+            KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
+            ExpressionAttributeValues: { ':prefix': 'POSITION#' },
+        })
     })
 })

@@ -2,7 +2,7 @@
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Graph-shaped storage is **not** normative here until slice 2 lands. **`Character Moved`** fact streaming is normative (TEMP slice 1 emit; slice 2 replaces with graph-diff). Fact bus shape uses plural **`froms[]`** (slice **1d** / fan-in **F2-2**).
+Graph-shaped storage **types** are defined (slice 2 schema foundation: `Meta::Room.positionGraph` + adjacency **S2-5**); **play membership authority** remains flat fields until the slice 2 cutover row ships. **`Character Moved`** fact streaming is normative (TEMP slice 1 emit; slice 2 replaces with graph-diff). Fact bus shape uses plural **`froms[]`** (slice **1d** / fan-in **F2-2**).
 
 ---
 

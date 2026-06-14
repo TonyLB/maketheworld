@@ -12,3 +12,4 @@ Events:
 - Character Navigate (mtw.ephemera.actions)
 - Character Home (mtw.ephemera.actions)
 - Character Moved (mtw.ephemera.positions; `froms[]` + `to` fact shape shipped; consumed by mtw.ephemera.perception fan-in F2-2)
+- Slice 2 storage schema: `Meta::Room.positionGraph` + membership adjacency index (S2-5 types; persist cutover pending)

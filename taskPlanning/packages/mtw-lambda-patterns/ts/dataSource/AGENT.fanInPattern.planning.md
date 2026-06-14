@@ -137,7 +137,8 @@ This plan owns the **fan-in framework** and **`mtw.ephemera.perception`** emissi
 | **`Character Moved`** stream + membership-changed bundle (**S1-11**, **S1-14**) | [positions --- Slice **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | **Publish** gate; perception already subscribes to the fact envelope |
 | **`beatAnchorTime`** at persistence apply (**F1-4**) | [positions slice **1a** / **1b**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | Model A **`createdTime`** on published world lines |
 | **`froms[]` fact contract + fan-in consumer (**F2-2** / positions **S2-7** slice **1d**) | [positions --- Slice **1d**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | **One PR:** bus **`froms[]`** (singleton emit) + perception **F2-2** before slice **2** |
-| Graph-diff fact emit (**F1-8** steady state; multi-from from persist) | [positions slice **2**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | **`froms.length > 1`** when drift; consumer already shipped slice **1d** |
+| Graph-diff fact emit (**F1-8** steady state; multi-from from persist) | [positions slice **2**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | **`froms.length > 1`** when drift; consumer already shipped slice **1d**; **F1-8** emit blocked until **`updatePositionGraphs`** row ships (storage schema landed) |
+| Positions slice 2 storage schema (`Meta::Room.positionGraph` + adjacency **S2-5**) | [positions slice **2**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) | Types + key layout only; fan-in unchanged |
 | Graph apply end-state model (**S2-4**) | [positions slice **2**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#graph-apply-end-state-model-s2-4) (**decided**) | Fan-in unchanged on persist; fact diff still authoritative (**F1-8**) |
 | Positions gateway forward/reverse reads (**S1-15**) | [positions slice **1c**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order) (**shipped:** shared **`getMembershipContainers`** memo for parse/apply; fan-in trust model unchanged) |
 
@@ -356,6 +357,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Phase 0: framework pattern | Done |
 | Phase 1: membership presentation emission | Done (navigate + disconnect; connect arrive-only deferred positions slice **3**) |
 | Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Done |
+| Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + gateway helpers; **F1-8** emit follows **`updatePositionGraphs`** row) |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |

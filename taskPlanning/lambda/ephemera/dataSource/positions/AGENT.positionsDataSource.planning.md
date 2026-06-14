@@ -509,9 +509,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
   - [X] Resolve **Open decisions** S2-1 through S2-4, S2-5, S2-6, **S2-7** (intent)
-  - [ ] **Prerequisite:** slice **1d** shipped
-  - [ ] Add `positionGraph` (or agreed shape) to [`EphemeraMetaRoom`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)
-  - [ ] Define adjacency row schema (**S2-5**) on ephemera Dynamo; document key layout in interfaces / gateways
+  - [X] **Prerequisite:** slice **1d** shipped
+  - [X] Add `positionGraph` (or agreed shape) to [`EphemeraMetaRoom`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)
+  - [X] Define adjacency row schema (**S2-5**) on ephemera Dynamo; document key layout in interfaces / gateways
   - [ ] Implement **`updatePositionGraphs`** (**S2-4** end-state apply: full-container pre-read, remove from all prior hosts `!== target`, immer draft, holistic **`MembershipDiff`** with **`froms[]`**, decomposed **`transactWrite`**: room **`positionGraph`** + **adjacency** + **transitional** legacy projection sync per **S2-2**); swap into **`applyCharacterRoomMembership`** (**S1-4**)
   - [ ] Replace slice 1 TEMP fact builder with diff-only emit; extend **S1-11** bundle for all **`froms`** + **`to`** rooms; delete **`TEMP slice 1`** comments; graduate **F1-8** / **S2-4** to contract
   - [ ] Swap positions gateway **backing**: forward from stored **`positionGraph`**, reverse from **adjacency** (**S1-15** / **S2-5**)
@@ -574,6 +574,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 1c: gateway forward/reverse reads (**S1-15**) | Done |
 | Slice 2 decisions: end-state apply (**S2-4**), plural **`froms`** (**S2-7**) | Decided |
 | Slice 1d: **`froms[]`** fact contract + fan-in **F2-2** | Done |
+| Slice 2 schema foundation: **`positionGraph`** + adjacency types | Done |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

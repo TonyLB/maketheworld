@@ -99,6 +99,19 @@ Slice 2 swaps room forward + reverse backing to stored `Meta::Room.positionGraph
 
 ---
 
+## Slice 2 schema foundation (landed; persist not wired)
+
+| Artifact | Location |
+| --- | --- |
+| **`EphemeraPlayPositionGraph`** on **`Meta::Room`** | [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) --- character nodes only; empty edges in v1 |
+| Adjacency row type + key builders (**S2-5**) | [`packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts`](../../../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) |
+| Gateway read helpers (secondary; factory swap pending) | [`packages/mtw-gateways/ts/ephemera/positions/fetch.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts) **`getRoomPositionGraphFromDynamo`**; [`adjacency.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/adjacency.ts) **`queryMembershipContainersFromDynamo`**; [`project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts) **`projectRoomGraphFromStoredPositionGraph`** |
+| Storage schema doc | [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) **Storage schema (slice 2)** |
+
+Membership apply still uses flat-field persist; no lambda writes to **`positionGraph`** or adjacency rows yet.
+
+---
+
 ## Verification
 
 From repo root:

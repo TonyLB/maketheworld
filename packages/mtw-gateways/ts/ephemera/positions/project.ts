@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPlayPositionGraph, EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
 import type { PlayPositionGraph, PlayPositionRoomRosterEntry } from './types'
@@ -37,6 +37,31 @@ export const projectRoomGraphFromActiveCharacters = (
         nodes,
         edges: [],
         characterRosterMeta,
+    }
+}
+
+/**
+ * Slice 2 forward read: stored topology from Meta::Room.positionGraph plus transitional
+ * roster display metadata from activeCharacters when present (S2-2 until S2-6).
+ */
+export const projectRoomGraphFromStoredPositionGraph = (
+    stored: EphemeraPlayPositionGraph,
+    activeCharacters?: EphemeraRoomActiveCharacter[]
+): PlayPositionGraph => {
+    const characterRosterMeta: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>> = {}
+    if (activeCharacters) {
+        for (const entry of activeCharacters) {
+            characterRosterMeta[entry.EphemeraId] = toRosterEntry(entry)
+        }
+    }
+    const nodes: StandardReferenceData[] = stored.nodes.map((node) => ({
+        tag: 'Character',
+        universalKey: node.universalKey,
+    }))
+    return {
+        nodes,
+        edges: [],
+        ...(Object.keys(characterRosterMeta).length > 0 ? { characterRosterMeta } : {}),
     }
 }
 
