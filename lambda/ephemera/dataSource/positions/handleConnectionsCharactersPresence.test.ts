@@ -74,14 +74,7 @@ describe('handleConnectionsCharactersPresence', () => {
                 { messageBus, streamEvent }
             )
             expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
-                payload: {
-                    type: 'MoveCharacter',
-                    characterId: 'CHARACTER#alpha',
-                    roomId: 'ROOM#TownSquare',
-                    suppressDeparture: true,
-                    suppressArrival: true,
-                    suppressSelfMessage: true,
-                },
+                characterId: 'CHARACTER#alpha',
                 froms: [],
                 to: 'ROOM#TownSquare',
                 beatAnchorTime: 1_700_000_000_000,

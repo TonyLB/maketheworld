@@ -97,7 +97,7 @@ Positions **must** subscribe to:
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
 - **Must not** publish `CheckLocation` or perform inline membership Dynamo writes outside [`membership/`](membership/).
 - **Idempotency:** duplicate connect when already in target room (`changed: false`) **must** be a no-op (no bundle, no orchestration).
-- Arrive world-line copy for connect is owned by fan-in emission; connect orchestration **must** suppress imperative arrive (`suppressArrival: true` in [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) / connect handler).
+- Arrive world-line copy for connect is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); connect orchestration does not publish imperative leave/arrive world lines.
 
 ### `Character Disconnected` (positions-owned)
 
@@ -108,10 +108,11 @@ Positions **must** subscribe to:
 
 ### `Character Navigate` (positions-owned)
 
+- **Ingress:** typed commands via actions **`Parse Requested`**, UI exit clicks via actions **`Action Assessed`** **`Navigation`** (same execution contract).
 - **Must** trust actions-validated `toRoomId` at apply (S1-1 --- no topology re-check in positions).
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
-- **Must not** rely on imperative `MoveCharacter` from actions for parse-based navigation.
-- Leave/arrive world copy for navigate is owned by fan-in emission; navigate orchestration **must** suppress imperative leave/arrive (`suppressDeparture` / `suppressArrival` defaults in [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
+- **Must not** rely on imperative `MoveCharacter` from actions for parse-based or UI-exit navigation.
+- Leave/arrive world copy for navigate is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
 ---
 

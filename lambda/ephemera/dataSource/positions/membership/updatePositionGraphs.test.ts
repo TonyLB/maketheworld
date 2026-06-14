@@ -20,7 +20,7 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
@@ -70,11 +70,13 @@ describe('computeMembershipDiff', () => {
 
 describe('updatePositionGraphs', () => {
     const transactWrite = ephemeraDB.transactWrite as jest.Mock
+    const exponentialBackoffWrapperMock = exponentialBackoffWrapper as jest.MockedFunction<typeof exponentialBackoffWrapper>
     const getMembershipContainers = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
         transactWrite.mockResolvedValue(undefined)
+        exponentialBackoffWrapperMock.mockImplementation(async (fn) => fn())
     })
 
     it('returns persisted false without transact when endpoint is unchanged', async () => {
@@ -117,7 +119,7 @@ describe('updatePositionGraphs', () => {
         expect(transactWrite).not.toHaveBeenCalled()
     })
 
-    it('cross-room navigate transacts graph, adjacency, and legacy fields', async () => {
+    it('cross-room navigate transacts graph, adjacency, and legacy fields without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
 
         const result = await updatePositionGraphs(
@@ -129,13 +131,6 @@ describe('updatePositionGraphs', () => {
                 getCharacterSessions: async () => ['abcdef'],
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
-                getMetaRoom: async (roomId) => ({
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room' as const,
-                    activeCharacters: roomId === ROOM_A
-                        ? [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }]
-                        : [],
-                }),
             }
         )
 
@@ -149,17 +144,16 @@ describe('updatePositionGraphs', () => {
         const items = transactWrite.mock.calls[0][0]
         expect(items).toHaveLength(5)
         expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
-        expect(items[0].Update.priorFetch).toEqual({
-            RoomId: 'VORTEX',
-            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-        })
+        expect(items[0].Update.priorFetch).toBeUndefined()
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
         expect(items[1].Update.updateKeys).toEqual(['positionGraph', 'activeCharacters'])
+        expect(items[1].Update.priorFetch).toBeUndefined()
         expect(items[2].Delete).toEqual({
             EphemeraId: CHARACTER_ID,
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_A),
         })
         expect(items[3].Update.Key.EphemeraId).toBe(ROOM_B)
+        expect(items[3].Update.priorFetch).toBeUndefined()
         expect(items[4].Put).toEqual({
             EphemeraId: CHARACTER_ID,
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_B),
@@ -190,7 +184,7 @@ describe('updatePositionGraphs', () => {
         })
     })
 
-    it('disconnect removes graph membership, adjacency, and RoomId', async () => {
+    it('disconnect removes graph membership, adjacency, and RoomId without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
         transactWrite.mockImplementation(async (items) => {
             items.forEach((item: {
@@ -217,11 +211,6 @@ describe('updatePositionGraphs', () => {
                 getMembershipContainers,
                 transactWrite,
                 getCharacterMeta: async () => characterMeta,
-                getMetaRoom: async (roomId) => ({
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room' as const,
-                    activeCharacters: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
-                }),
             }
         )
 
@@ -234,6 +223,7 @@ describe('updatePositionGraphs', () => {
         const items = transactWrite.mock.calls[0][0]
         expect(items).toHaveLength(3)
         expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
+        expect(items[0].Update.priorFetch).toBeUndefined()
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
         expect(items[2].Delete.DataCategory).toBe(buildPositionAdjacencyDataCategory(ROOM_A))
     })
@@ -250,11 +240,6 @@ describe('updatePositionGraphs', () => {
                 getCharacterSessions: async () => [],
                 getRoomAssets: async () => [],
                 getCanonAssets: async () => ['primitives'],
-                getMetaRoom: async (roomId) => ({
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room' as const,
-                    activeCharacters: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
-                }),
             }
         )
 
@@ -278,5 +263,107 @@ describe('updatePositionGraphs', () => {
             buildPositionAdjacencyDataCategory(ROOM_A),
             buildPositionAdjacencyDataCategory(ROOM_C),
         ])
+    })
+
+    it('character reducer uses draft RoomStack for ladder when CharacterMeta cache diverges', async () => {
+        getMembershipContainers.mockResolvedValue([ROOM_A])
+
+        const cacheStack = [
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'TownSquare' },
+        ]
+        const dynamoStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
+
+        await updatePositionGraphs(
+            { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
+            {
+                getMembershipContainers,
+                transactWrite,
+                getCharacterMeta: async () => ({
+                    ...characterMeta,
+                    RoomStack: cacheStack,
+                }),
+                getCharacterSessions: async () => [],
+                getRoomAssets: async () => ['ASSET#TownCenter'],
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            }
+        )
+
+        const items = transactWrite.mock.calls[0][0]
+        expect(items[0].Update.priorFetch).toBeUndefined()
+
+        const characterDraft = produce(
+            {
+                RoomId: 'VORTEX',
+                RoomStack: dynamoStack,
+            },
+            items[0].Update.updateReducer
+        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        expect(characterDraft).toEqual({
+            RoomId: 'TestTwo',
+            RoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+        })
+    })
+
+    it('rebuilds transact items on each exponentialBackoffWrapper retry', async () => {
+        getMembershipContainers.mockResolvedValue([ROOM_A])
+
+        let attempt = 0
+        transactWrite.mockImplementation(async () => {
+            attempt += 1
+            if (attempt === 1) {
+                throw new Error('TransactionCanceledException')
+            }
+        })
+
+        exponentialBackoffWrapperMock.mockImplementation(async (fn, options) => {
+            try {
+                await fn()
+            }
+            catch (error) {
+                if (options?.retryErrors?.includes('TransactionCanceledException')) {
+                    await fn()
+                    return
+                }
+                throw error
+            }
+        })
+
+        await updatePositionGraphs(
+            { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
+            {
+                getMembershipContainers,
+                transactWrite,
+                getCharacterMeta: async () => characterMeta,
+                getCharacterSessions: async () => [],
+                getRoomAssets: async () => ['ASSET#TownCenter'],
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            }
+        )
+
+        expect(transactWrite).toHaveBeenCalledTimes(2)
+        expect(transactWrite.mock.calls[0][0][0].Update.priorFetch).toBeUndefined()
+        expect(transactWrite.mock.calls[1][0][0].Update.priorFetch).toBeUndefined()
+
+        const secondAttemptDraft = produce(
+            {
+                RoomId: 'VORTEX',
+                RoomStack: [
+                    { asset: 'primitives', RoomId: 'VORTEX' },
+                    { asset: 'TownCenter', RoomId: 'TownSquare' },
+                ],
+            },
+            transactWrite.mock.calls[1][0][0].Update.updateReducer
+        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        expect(secondAttemptDraft).toEqual({
+            RoomId: 'TestTwo',
+            RoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+        })
     })
 })

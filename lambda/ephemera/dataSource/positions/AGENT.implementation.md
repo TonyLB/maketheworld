@@ -84,6 +84,14 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Contr
 
 **Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder-shipped).
 
+### `updatePositionGraphs` transact locking
+
+Character-row and room-row `Update` items inside `transactWrite` use the same `_optimisticUpdateFactory` / `updateReducer` pattern as standalone `optimisticUpdate` (fetch prior state, run immer reducer, conditional write).
+
+- **No explicit `priorFetch` on Update items.** `transactWrite` batch-fetches each row before running reducers; each retry rebuilds transact items so reducers see fresh Dynamo state.
+- Ladder maintenance runs in the character-row reducer: `computeRoomStackUpdate` reads `draft.RoomStack` (the fetched prior ladder), not `CharacterMeta` cache.
+- `CharacterMeta` remains valid for presentation fields (`Name`, `Color`, `assets`, sessions merge) until **S2-6** retires `RoomId` denorm.
+
 ### Tests (eviction ladder)
 
 | File | Covers |
@@ -109,7 +117,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Contr
 | System | Use |
 | --- | --- |
 | `ephemeraDB.transactWrite` | `Meta::Room.positionGraph` + `activeCharacters`; adjacency rows; `Meta::Character` `RoomId` / `RoomStack` |
-| `internalCache.CharacterMeta` | Full meta for transact; `invalidate` after apply |
+| `internalCache.CharacterMeta` | Presentation fields for roster merge; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
 | `internalCache.Positions.set` / `invalidate` | Room forward position graph memo (S1-5) |

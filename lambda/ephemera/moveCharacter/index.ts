@@ -17,13 +17,12 @@ const getPositionsStreamEvent = (): StreamEventFunction<PositionsPublishedPayloa
 export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
     const streamEvent = getPositionsStreamEvent()
     await Promise.all(payloads.map(async (payload) => {
-        const { characterId, roomId, ...rest } = payload
+        const { characterId, roomId } = payload
         await executeCharacterNavigate({
             characterId,
             targetRoomId: roomId,
             messageBus,
             streamEvent,
-            payload: rest,
         })
     }))
 }

@@ -2,7 +2,7 @@
 
 **Status:** Shipped --- bus-only **`EphemeraDataSource`** (**`replayable: false`**, **`outboundBusDelivery: 'publish'`**). Registered from [`../../app.ts`](../../app.ts) via **`import './dataSource/actions'`**.
 
-**Ingress:** **`api.ephemera`** **`Parse Requested`** (player command routing). See [`../apiEphemera.ts`](../apiEphemera.ts).
+**Ingress:** **`api.ephemera`** **`Parse Requested`** (player command routing) and **`Action Assessed`** (server-trusted pre-assessed outcomes; v1 Navigation only). See [`../apiEphemera.ts`](../apiEphemera.ts).
 
 **Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes and orchestrates via **`publish`** + boundary **`flushAndSettle`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
 
@@ -10,7 +10,7 @@
 
 ## Role
 
-Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). On each **`Parse Requested`**, **`index.ts`** **`PublishMessage`** **`CommandTranscriptMessage`** to the requesting character first (trimmed raw command text), then parse-side-effect messages. Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Character Home`** (legacy home via [`sendPublishedEvents.ts`](sendPublishedEvents.ts) from [`executeAction`](../../parse/executeAction.ts)), **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). When **`requestId`** is present on the parse payload, **`index.ts`** also emits **`ReturnValue`** **`Success`** with machine-oriented **`message: 'parse_request_handled'`** (human echo is only on the transcript row). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard). **`mtw.ephemera.perception`** subscribes to **`Character Navigate`** and **`Character Home`** for membership fan-in intent legs.
+Parses slash-free and natural-language commands (**Bedrock**: intent discrimination + Acme enrich when applicable). On each **`Parse Requested`**, **`index.ts`** **`PublishMessage`** **`CommandTranscriptMessage`** to the requesting character first (trimmed raw command text), then parse-side-effect messages. On **`Action Assessed`**, **`index.ts`** skips transcript and Bedrock --- it validates the pre-assessed outcome (v1: **`Navigation`**) and runs the same post-parse tail as typed navigation. Publishes internal bus streams such as **`Acme Order`**, **`Character Navigate`**, **`Character Home`** (legacy home via [`sendPublishedEvents.ts`](sendPublishedEvents.ts) from [`executeAction`](../../parse/executeAction.ts)), **`Await RoadRunner`**, and harness-only outcomes --- see [`publishedEvents.ts`](publishedEvents.ts); for terminal parse lines that need no stream contract, **`index.ts`** may **`PublishMessage`** as **`WorldOOCMessage`** (including **`PromptInjectionAttempt`**, discriminate-intent meta-instruction / jailbreak-tone classification) or **`CoyoteGameHelpMessage`** for **`Help`** intent (requesting character only, no stream contract). When **`requestId`** is present on the parse or assessed payload, **`index.ts`** also emits **`ReturnValue`** **`Success`** with machine-oriented **`message: 'parse_request_handled'`** or **`'action_assessed_handled'`** respectively (human echo is only on the transcript row for parse). **`mtw.ephemera.objects`** subscribes via [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) (**`Acme Order`** envelope guard). **`mtw.ephemera.perception`** subscribes to **`Character Navigate`** and **`Character Home`** for membership fan-in intent legs.
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
@@ -30,10 +30,10 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 
 ## Movement bridge and deferred positions cutover
 
-- Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) is **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
+- Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) and UI exit clicks (**`Action Assessed`** **`Navigation`** from [`executeAction`](../../parse/executeAction.ts) `case 'move'`) are **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
 - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) for fan-in intent legs and positions execution.
-- Legacy home (`executeAction` `case 'home'`) still emits **`Character Home`** via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present.
-- Legacy API **`move`** / **`home`** and connect (**`CheckLocation`**) still use imperative **`MoveCharacter`** until slice 3 connect unification.
+- Legacy home (`executeAction` `case 'home'`) still emits **`Character Home`** via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present. **Future:** migrate home to **`Action Assessed`** **`Navigation`** (or a dedicated assessed variant) and drop imperative **`MoveCharacter`** for home.
+- Legacy connect / eviction repair (**`CheckLocation`**) still use imperative **`MoveCharacter`** until slice 3 connect unification.
 
 ### Explicit non-goals (until positions lands remaining paths)
 

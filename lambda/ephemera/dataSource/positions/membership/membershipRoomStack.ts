@@ -7,7 +7,6 @@
  * extend, rewrite the tail rung, or fork (truncate abandoned branch).
  */
 import { splitType } from '@tonylb/mtw-utilities/ts/types'
-import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RoomStackItem } from './types'
 import { DEFAULT_ROOM_STACK, normalizeRoomStack } from './trimEvictionLadder'
@@ -139,7 +138,8 @@ export const applyLadderUpdateFromDestinationChain = (
 export const computeRoomStackUpdate = (
     args: {
         targetRoomId: EphemeraRoomId;
-        characterMeta: CharacterMetaItem;
+        currentRoomStack: RoomStackItem[];
+        characterAssets: string[];
         roomAssets: string[];
         canonAssets: string[];
     }
@@ -147,8 +147,8 @@ export const computeRoomStackUpdate = (
     const destinationChain = resolveDestinationAssetChain(
         args.roomAssets,
         args.canonAssets,
-        args.characterMeta.assets,
-        args.characterMeta.RoomStack
+        args.characterAssets,
+        args.currentRoomStack
     )
     return { destinationChain }
 }
@@ -158,13 +158,12 @@ export const applyRoomStackToCharacterDraft = (
     args: {
         targetRoomId: EphemeraRoomId;
         destinationChain: string[];
-        priorRoomStack?: RoomStackItem[];
     }
 ): void => {
     const targetRoomShortId = splitType(args.targetRoomId)[1]
     draft.RoomId = targetRoomShortId
     draft.RoomStack = applyLadderUpdateFromDestinationChain(
-        args.priorRoomStack ?? (draft.RoomStack as RoomStackItem[] | undefined),
+        draft.RoomStack as RoomStackItem[] | undefined,
         args.destinationChain,
         targetRoomShortId
     )

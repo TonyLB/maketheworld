@@ -12,7 +12,12 @@ import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import EphemeraDataSource from '../abstract'
 import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
 import type { ActionsSubscribedContent } from './subscribedEvents'
-import { isActionsSubscribedEnvelope } from './subscribedEvents'
+import {
+    isActionsActionAssessedEnvelope,
+    isActionsParseRequestedEnvelope,
+    isActionsSubscribedEnvelope,
+} from './subscribedEvents'
+import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import messageBus from '../../messageBus'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
@@ -314,6 +319,87 @@ const publishStreamEventsForIntent = async (
     }
 }
 
+type StreamEventFn = (event: {
+    streamKey: string
+    header: { type: string }
+    update: Record<string, unknown>
+}) => Promise<void>
+
+const processAssessedParseResult = async (
+    responseContext: ResponseContext,
+    streamEvent: StreamEventFn,
+): Promise<void> => {
+    await respondImperativelyForIntent(responseContext)
+    await publishStreamEventsForIntent(responseContext, streamEvent)
+}
+
+const publishReturnValueForRequest = (requestId: string | undefined, message: string): void => {
+    if (requestId) {
+        messageBus.publish({
+            type: 'ReturnValue',
+            body: {
+                messageType: 'Success',
+                RequestId: requestId,
+                message,
+            },
+        })
+    }
+}
+
+const handleParseRequested = async (
+    content: ParseRequestedCommand,
+    streamEvent: StreamEventFn,
+): Promise<void> => {
+    if (!isEphemeraCharacterId(content.characterId)) {
+        return
+    }
+    messageBus.publish({
+        type: 'PublishMessage',
+        targets: [content.characterId],
+        displayProtocol: 'CommandTranscriptMessage',
+        message: linesToRenderTree([content.command.trim()]),
+    })
+    const roomExitContext = await getRoomExitTargetsForCharacter(content.characterId)
+    const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
+    const parseResult = await parseCommand({
+        command: content.command,
+        roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
+            normalizedName,
+            targetId: toRoomId,
+        })),
+        occupiedStableKeys: [...coyoteOccupiedStableKeys],
+    }, { messageBus })
+    const responseContext: ResponseContext = {
+        characterId: content.characterId,
+        roomExitContext,
+        coyoteOccupiedStableKeys,
+        parseResult,
+    }
+
+    await processAssessedParseResult(responseContext, streamEvent)
+    publishReturnValueForRequest(content.requestId, 'parse_request_handled')
+}
+
+const handleActionAssessed = async (
+    content: ActionAssessedCommand,
+    streamEvent: StreamEventFn,
+): Promise<void> => {
+    if (!isActionAssessedCommand(content)) {
+        return
+    }
+    const roomExitContext = await getRoomExitTargetsForCharacter(content.characterId)
+    const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
+    const responseContext: ResponseContext = {
+        characterId: content.characterId,
+        roomExitContext,
+        coyoteOccupiedStableKeys,
+        parseResult: content.assessed,
+    }
+
+    await processAssessedParseResult(responseContext, streamEvent)
+    publishReturnValueForRequest(content.requestId, 'action_assessed_handled')
+}
+
 export const ephemeraActionsDataSource = new EphemeraDataSource<
     never,
     ActionsPublishedPayload,
@@ -324,50 +410,19 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isActionsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
+        const streamEventFn = streamEvent as StreamEventFn
         await Promise.all(events.map(async (event) => {
-            const content = await event.getContent()
-            if (!isEphemeraCharacterId(content.characterId)) {
+            if (isActionsParseRequestedEnvelope(event)) {
+                const content = await event.getContent()
+                if (!isParseRequestedCommand(content)) {
+                    return
+                }
+                await handleParseRequested(content, streamEventFn)
                 return
             }
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [content.characterId],
-                displayProtocol: 'CommandTranscriptMessage',
-                message: linesToRenderTree([content.command.trim()]),
-            })
-            const roomExitContext = await getRoomExitTargetsForCharacter(content.characterId)
-            const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
-            const parseResult = await parseCommand({
-                command: content.command,
-                roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
-                    normalizedName,
-                    targetId: toRoomId,
-                })),
-                occupiedStableKeys: [...coyoteOccupiedStableKeys],
-            }, { messageBus })
-            const responseContext: ResponseContext = {
-                characterId: content.characterId,
-                roomExitContext,
-                coyoteOccupiedStableKeys,
-                parseResult,
-            }
-
-            await respondImperativelyForIntent(responseContext)
-            await publishStreamEventsForIntent(responseContext, streamEvent as (event: {
-                streamKey: string
-                header: { type: string }
-                update: Record<string, unknown>
-            }) => Promise<void>)
-
-            if (content.requestId) {
-                messageBus.publish({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'Success',
-                        RequestId: content.requestId,
-                        message: 'parse_request_handled',
-                    },
-                })
+            if (isActionsActionAssessedEnvelope(event)) {
+                const content = await event.getContent()
+                await handleActionAssessed(content, streamEventFn)
             }
         }))
     },

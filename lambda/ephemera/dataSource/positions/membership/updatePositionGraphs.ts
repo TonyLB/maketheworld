@@ -5,7 +5,6 @@ import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
-import { characterMetaDynamoPriorFetch } from './characterMetaDynamoPriorFetch'
 import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './membershipRoomStack'
 import {
     addCharacterToGraph,
@@ -18,22 +17,19 @@ import type {
     MembershipDiff,
     UpdatePositionGraphsResult,
 } from './types'
+import type { RoomStackItem } from './types'
 
 export type UpdatePositionGraphsDependencies = {
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[] | undefined>;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
-    getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     transactWrite?: typeof ephemeraDB.transactWrite;
 }
 
 const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> =>
     internalCache.Positions.getMembershipContainers(characterId)
-
-const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> =>
-    internalCache.ComponentEphemeraMeta.get(roomId)
 
 const containersChanged = (priorContainers: EphemeraRoomId[], targetRoomId: EphemeraRoomId | null): boolean => {
     const priorSet = new Set(priorContainers)
@@ -65,6 +61,9 @@ export const computeMembershipDiff = (
 const snapshotRoster = (meta: Partial<EphemeraMetaRoom> | undefined): ActiveCharacterRosterEntry[] =>
     ((meta?.activeCharacters ?? []) as ActiveCharacterRosterEntry[])
 
+const normalizeCurrentRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>
+    stack ?? []
+
 export const updatePositionGraphs = async (
     args: MembershipApplyArgs,
     deps?: UpdatePositionGraphsDependencies
@@ -73,7 +72,6 @@ export const updatePositionGraphs = async (
     const getCharacterSessions = deps?.getCharacterSessions ?? ((characterId) => internalCache.CharacterSessions.get(characterId))
     const getRoomAssets = deps?.getRoomAssets ?? ((roomId) => internalCache.RoomAssets.get(roomId))
     const getCanonAssets = deps?.getCanonAssets ?? (() => internalCache.Global.get('assets'))
-    const getMetaRoom = deps?.getMetaRoom ?? defaultGetMetaRoom
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
@@ -88,34 +86,12 @@ export const updatePositionGraphs = async (
     const sessions = await getCharacterSessions(args.characterId)
     const roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> = {}
 
-    const touchedRoomIds = unique([
-        ...diff.froms,
-        ...(diff.to ? [diff.to] : []),
-    ]) as EphemeraRoomId[]
-
-    const roomMetaById = new Map<EphemeraRoomId, EphemeraMetaRoom>()
-    await Promise.all(touchedRoomIds.map(async (roomId) => {
-        const meta = await getMetaRoom(roomId)
-        if (meta) {
-            roomMetaById.set(roomId, meta)
-        }
-    }))
-
-    let roomStackArgs: { destinationChain: string[] } | undefined
-
-    if (diff.to) {
-        const [roomAssets = [], canonAssets = []] = await Promise.all([
+    const [roomAssets = [], canonAssets = []] = diff.to
+        ? await Promise.all([
             getRoomAssets(diff.to),
             getCanonAssets(),
         ])
-        const { destinationChain } = computeRoomStackUpdate({
-            targetRoomId: diff.to,
-            characterMeta,
-            roomAssets,
-            canonAssets,
-        })
-        roomStackArgs = { destinationChain }
-    }
+        : [[], []]
 
     try {
         let persisted = false
@@ -137,6 +113,8 @@ export const updatePositionGraphs = async (
                 })
             }
             else {
+                const targetRoomId = diff.to
+                const characterAssets = characterMeta.assets || []
                 transactItems.push({
                     Update: {
                         Key: {
@@ -144,12 +122,19 @@ export const updatePositionGraphs = async (
                             DataCategory: 'Meta::Character',
                         },
                         updateKeys: ['RoomId', 'RoomStack'],
-                        priorFetch: characterMetaDynamoPriorFetch(characterMeta),
                         updateReducer: (draft) => {
+                            const { destinationChain } = computeRoomStackUpdate({
+                                targetRoomId,
+                                currentRoomStack: normalizeCurrentRoomStack(
+                                    draft.RoomStack as RoomStackItem[] | undefined
+                                ),
+                                characterAssets,
+                                roomAssets,
+                                canonAssets,
+                            })
                             applyRoomStackToCharacterDraft(draft, {
-                                targetRoomId: diff.to!,
-                                destinationChain: roomStackArgs!.destinationChain,
-                                priorRoomStack: characterMeta.RoomStack,
+                                targetRoomId,
+                                destinationChain,
                             })
                         },
                     },
@@ -157,7 +142,6 @@ export const updatePositionGraphs = async (
             }
 
             for (const departureRoomId of diff.froms) {
-                const priorRoom = roomMetaById.get(departureRoomId)
                 transactItems.push({
                     Update: {
                         Key: {
@@ -165,7 +149,6 @@ export const updatePositionGraphs = async (
                             DataCategory: 'Meta::Room',
                         },
                         updateKeys: ['positionGraph', 'activeCharacters'],
-                        priorFetch: priorRoom,
                         updateReducer: (draft) => {
                             const graph = effectiveRoomPositionGraph(draft)
                             draft.positionGraph = removeCharacterFromGraph(graph, characterMeta.EphemeraId)
@@ -187,7 +170,6 @@ export const updatePositionGraphs = async (
             }
 
             if (diff.to) {
-                const priorRoom = roomMetaById.get(diff.to)
                 transactItems.push({
                     Update: {
                         Key: {
@@ -195,7 +177,6 @@ export const updatePositionGraphs = async (
                             DataCategory: 'Meta::Room',
                         },
                         updateKeys: ['positionGraph', 'activeCharacters'],
-                        priorFetch: priorRoom,
                         updateReducer: (draft) => {
                             const graph = effectiveRoomPositionGraph(draft)
                             draft.positionGraph = addCharacterToGraph(graph, characterMeta.EphemeraId)

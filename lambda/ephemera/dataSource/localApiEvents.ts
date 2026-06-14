@@ -4,7 +4,14 @@
  * Includes cache commands, thinking schedule (`PutThinkingScheduleCommand`), thinking job create/error,
  * room state, and parse requests.
  */
-import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    isEphemeraCharacterId,
+    isEphemeraObjectId,
+    type EphemeraCharacterId,
+    type EphemeraObjectId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { ParseCommandNavigationResult, ParseCommandResult } from './actions/baseClasses'
+import { isParseCommandNavigationResult } from './actions/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -66,6 +73,14 @@ export type ParseRequestedCommand = {
     requestId?: string;
 }
 
+/** v1: Navigation-only assessed outcomes. Expand union when adding LookRoom, Home, etc. */
+export type ActionAssessedCommand = {
+    characterId: EphemeraCharacterId;
+    assessed: ParseCommandNavigationResult;
+    source?: 'uiExit';
+    requestId?: string;
+}
+
 /** Thinking schedule row payload; paired with header `Put Thinking Schedule` on api.ephemera. */
 export type PutThinkingScheduleCommand = ThinkingScheduleEvent
 
@@ -120,6 +135,26 @@ export const isObjectsChangeCommand = (value: unknown): value is ObjectsChangeCo
         return false
     }
     if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
+        return false
+    }
+    return true
+}
+
+export const isActionAssessedCommand = (value: unknown): value is ActionAssessedCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (!isParseCommandNavigationResult(v.assessed as ParseCommandResult)) {
+        return false
+    }
+    if (v.source !== undefined && v.source !== 'uiExit') {
+        return false
+    }
+    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
         return false
     }
     return true
@@ -197,6 +232,7 @@ export type EphemeraApiCommandPayload =
     | StateChangeCommand
     | ObjectsChangeCommand
     | ParseRequestedCommand
+    | ActionAssessedCommand
     | PutThinkingScheduleCommand
     | PutThinkingJobCreateCommand
     | PutThinkingJobErrorCommand
