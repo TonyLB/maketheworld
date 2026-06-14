@@ -1,8 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
-    isEphemeraPositionAdjacencyRow,
-    parsePositionAdjacencyDataCategory,
+    parseMembershipContainerFromAdjacencyQueryItem,
     type EphemeraPositionAdjacencyRow,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
@@ -35,10 +34,7 @@ export async function queryMembershipContainersFromDynamo(
     })
     const containers: EphemeraRoomId[] = []
     for (const row of raw) {
-        if (!isEphemeraPositionAdjacencyRow(row)) {
-            continue
-        }
-        const hostId = parsePositionAdjacencyDataCategory(row.DataCategory)
+        const hostId = parseMembershipContainerFromAdjacencyQueryItem(row)
         if (hostId) {
             containers.push(hostId)
         }

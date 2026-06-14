@@ -5,6 +5,7 @@ import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
+import { characterMetaDynamoPriorFetch } from './characterMetaDynamoPriorFetch'
 import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './membershipRoomStack'
 import {
     addCharacterToGraph,
@@ -143,7 +144,7 @@ export const updatePositionGraphs = async (
                             DataCategory: 'Meta::Character',
                         },
                         updateKeys: ['RoomId', 'RoomStack'],
-                        priorFetch: characterMeta as unknown as EphemeraMetaRoom,
+                        priorFetch: characterMetaDynamoPriorFetch(characterMeta),
                         updateReducer: (draft) => {
                             applyRoomStackToCharacterDraft(draft, {
                                 targetRoomId: diff.to!,

@@ -149,6 +149,10 @@ describe('updatePositionGraphs', () => {
         const items = transactWrite.mock.calls[0][0]
         expect(items).toHaveLength(5)
         expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
+        expect(items[0].Update.priorFetch).toEqual({
+            RoomId: 'VORTEX',
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+        })
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
         expect(items[1].Update.updateKeys).toEqual(['positionGraph', 'activeCharacters'])
         expect(items[2].Delete).toEqual({
