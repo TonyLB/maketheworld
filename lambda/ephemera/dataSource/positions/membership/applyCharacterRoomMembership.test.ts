@@ -103,7 +103,7 @@ describe('applyCharacterRoomMembership', () => {
             update: expect.objectContaining({
                 type: 'Character Moved',
                 characterId: CHARACTER_ID,
-                from: FROM_ROOM,
+                froms: [FROM_ROOM],
                 to: TO_ROOM,
                 beatAnchorTime: 1_700_000_000_000,
                 characterName: 'Test',

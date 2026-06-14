@@ -21,7 +21,7 @@ describe('buildCharacterMovedFact', () => {
         expect(fact).toEqual({
             type: 'Character Moved',
             characterId: CHARACTER_ID,
-            from: FROM_ROOM,
+            froms: [FROM_ROOM],
             to: TO_ROOM,
             beatAnchorTime: ANCHOR,
             characterName: 'Test',
@@ -29,7 +29,7 @@ describe('buildCharacterMovedFact', () => {
         expect(fact).not.toHaveProperty('legalExits')
     })
 
-    it('omits characterName when not provided', () => {
+    it('maps null from to empty froms array', () => {
         const fact = buildCharacterMovedFact({
             characterId: CHARACTER_ID,
             applyResult: {
@@ -42,7 +42,7 @@ describe('buildCharacterMovedFact', () => {
         expect(fact).toEqual({
             type: 'Character Moved',
             characterId: CHARACTER_ID,
-            from: null,
+            froms: [],
             to: TO_ROOM,
             beatAnchorTime: ANCHOR,
         })
@@ -56,5 +56,18 @@ describe('buildCharacterMovedFact', () => {
                 to: TO_ROOM,
             },
         })).toBeUndefined()
+    })
+
+    it('never emits froms.length > 1 from flat apply result', () => {
+        const fact = buildCharacterMovedFact({
+            characterId: CHARACTER_ID,
+            applyResult: {
+                from: FROM_ROOM,
+                to: TO_ROOM,
+                beatAnchorTime: ANCHOR,
+            },
+        })
+
+        expect(fact?.froms.length).toBeLessThanOrEqual(1)
     })
 })

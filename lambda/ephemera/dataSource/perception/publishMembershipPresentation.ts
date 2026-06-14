@@ -35,6 +35,32 @@ export const buildMembershipArriveSuffix = (copyKind: MembershipEmissionCopyKind
     return ' has arrived.'
 }
 
+const leaveCopyKindForFrom = (
+    plan: MembershipEmissionPlan,
+    fromRoom: EphemeraRoomId
+): MembershipEmissionCopyKind => {
+    const matchesIntentFrom = plan.intentFromRoomId === undefined || plan.intentFromRoomId === fromRoom
+    if (plan.copyKind === 'exitAware' && matchesIntentFrom && plan.exitName) {
+        return 'exitAware'
+    }
+    if (plan.froms.length === 1) {
+        if (plan.copyKind === 'home' || plan.copyKind === 'disconnect') {
+            return plan.copyKind
+        }
+        if (plan.copyKind === 'genericNavigate' && matchesIntentFrom) {
+            return 'genericNavigate'
+        }
+    } else if (plan.intentFromRoomId === fromRoom) {
+        if (plan.copyKind === 'home') {
+            return 'home'
+        }
+        if (plan.copyKind === 'genericNavigate') {
+            return 'genericNavigate'
+        }
+    }
+    return 'genericFactOnly'
+}
+
 const publishLeaveWorldMessage = (
     messageBus: MessageBus,
     args: {
@@ -73,6 +99,20 @@ const publishArriveWorldMessage = (
     })
 }
 
+const publishLeaves = (messageBus: MessageBus, plan: MembershipEmissionPlan): void => {
+    const name = displayName(plan)
+    const createdTime = plan.beatAnchorTime - MEMBERSHIP_BEAT_EPSILON_MS
+    for (const fromRoom of plan.froms) {
+        const leaveCopyKind = leaveCopyKindForFrom(plan, fromRoom)
+        publishLeaveWorldMessage(messageBus, {
+            characterId: plan.characterId,
+            from: fromRoom,
+            message: `${name}${buildMembershipLeaveSuffix(leaveCopyKind, plan.exitName)}`,
+            createdTime,
+        })
+    }
+}
+
 const publishForShape = (
     messageBus: MessageBus,
     plan: MembershipEmissionPlan,
@@ -81,13 +121,8 @@ const publishForShape = (
     const name = displayName(plan)
     const anchor = plan.beatAnchorTime
 
-    if (shape === 'leaveAndArrive' && plan.from && plan.to) {
-        publishLeaveWorldMessage(messageBus, {
-            characterId: plan.characterId,
-            from: plan.from,
-            message: `${name}${buildMembershipLeaveSuffix(plan.copyKind, plan.exitName)}`,
-            createdTime: anchor - MEMBERSHIP_BEAT_EPSILON_MS,
-        })
+    if (shape === 'leaveAndArrive' && plan.froms.length > 0 && plan.to) {
+        publishLeaves(messageBus, plan)
         publishArriveWorldMessage(messageBus, {
             characterId: plan.characterId,
             to: plan.to,
@@ -97,13 +132,8 @@ const publishForShape = (
         return
     }
 
-    if (shape === 'leaveOnly' && plan.from) {
-        publishLeaveWorldMessage(messageBus, {
-            characterId: plan.characterId,
-            from: plan.from,
-            message: `${name}${buildMembershipLeaveSuffix(plan.copyKind, plan.exitName)}`,
-            createdTime: anchor - MEMBERSHIP_BEAT_EPSILON_MS,
-        })
+    if (shape === 'leaveOnly' && plan.froms.length > 0) {
+        publishLeaves(messageBus, plan)
         return
     }
 

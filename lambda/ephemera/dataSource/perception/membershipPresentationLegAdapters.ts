@@ -164,7 +164,7 @@ export const toMembershipPresentationLeg = async (
         return {
             kind: 'fact',
             characterId: content.characterId,
-            from: content.from,
+            froms: content.froms,
             to: content.to,
             beatAnchorTime: content.beatAnchorTime,
             legalExits: content.legalExits,

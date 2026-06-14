@@ -11,7 +11,7 @@ describe('streamMembershipFact', () => {
         const payload = {
             type: 'Character Moved' as const,
             characterId: CHARACTER_ID,
-            from: FROM_ROOM,
+            froms: [FROM_ROOM],
             to: TO_ROOM,
             beatAnchorTime: 1_700_000_000_000,
         }

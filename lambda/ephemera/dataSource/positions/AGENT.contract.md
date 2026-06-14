@@ -1,8 +1,8 @@
-# Positions --- contracts (slice 1b)
+# Positions --- contracts (slice 1d)
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Graph-shaped storage is **not** normative here until slice 2 lands. **`Character Moved`** fact streaming is normative for slice **1b** (TEMP slice 1 emit; slice 2 replaces with graph-diff).
+Graph-shaped storage is **not** normative here until slice 2 lands. **`Character Moved`** fact streaming is normative (TEMP slice 1 emit; slice 2 replaces with graph-diff). Fact bus shape uses plural **`froms[]`** (slice **1d** / fan-in **F2-2**).
 
 ---
 
@@ -38,16 +38,16 @@ When **`changed`** is true, the coordinator **must** run (together or not at all
 
 When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`).
 
-### `Character Moved` fact (slice 1b; S1-14 TEMP)
+### `Character Moved` fact (slice 1d; S1-14 TEMP)
 
 - **Must** stream only when **`changed`** (`from !== to`; S1-8).
-- **`from`** = authoritative pre-read membership endpoint (`null` = out of play).
+- **`froms: EphemeraRoomId[]`** = authoritative pre-read membership endpoint(s) at emit (`[]` = out of play). Flat persist maps singular apply **`from`** to **`froms: from ? [from] : []`** --- **must not** emit **`froms.length > 1`** from real persist until slice 2 graph-diff.
 - **`to`** = successful apply target (`null` on disconnect).
 - **`beatAnchorTime`** = recorded time at persistence apply.
 - **Must not** populate **`legalExits`** on emitted facts (slice 1; S1-10).
 - **Must not** branch **`streamEvent`** on ingress type (navigate vs disconnect); emission is descriptive at the membership boundary only.
 - **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`; legacy **`moveCharacter`** bus paths obtain it from **`ephemeraPositionsDataSource`** via lazy require (avoids messageBus load cycle).
-- Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fact builder marked **`TEMP slice 1`** until slice 2 graph-diff cutover.
+- Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fan-in consumer: [`../perception/membershipPresentationFanIn.ts`](../perception/membershipPresentationFanIn.ts) (**F2-2**). Fact builder marked **`TEMP slice 1`** until slice 2 graph-diff cutover.
 
 ---
 

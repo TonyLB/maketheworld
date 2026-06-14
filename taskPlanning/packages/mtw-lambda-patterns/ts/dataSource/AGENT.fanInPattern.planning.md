@@ -1,6 +1,6 @@
 # DataSource fan-in pattern (`mtw-lambda-patterns`)
 
-**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **Next:** **F2-2** pre-slice-2 --- **`froms[]`** fact contract + consumer (positions slice **1d**, singleton emit). **Then** Phase 2 --- retire `characterMove` pre-bake / ordering.
+**Status:** Phase 0 shipped. **Phase 1 shipped** for navigate + disconnect membership presentation emission (`MembershipPresentationFanInCluster` in [`mtw.ephemera.perception`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **F2-2 shipped** (positions slice **1d** --- **`froms[]`** fact contract + consumer). **Next:** Phase 2 --- retire `characterMove` pre-bake / ordering.
 
 ## Purpose
 
@@ -257,7 +257,7 @@ Plan-only. When a decision ships, record in durable DataSource / messageBus docs
 | F1-8 | **Descriptive fact emission:** steady state (**slice 2+**) = graph-diff via **`updatePositionGraphs`**; emit only on observed membership change. **Slice 1 exception (**S1-14**):** TEMP intent-assisted endpoints (pre-read + apply target) inside persistence boundary; removed in slice 2 cutover bundle | Phase 1 emit (slice 1b); full **F1-8** at slice 2 | **Decided** |
 | F1-9 | **Exit-aware copy (slice 1):** extend **`Character Navigate`** intent with optional **`exitName`** from parse; fan-in **`copyKind: 'exitAware'`** when intent has **`exitName`** (trust parse; no **`factLeg.legalExits`** gate). Positions omits **`legalExits`** on fact slice 1. Positions **S1-10** | Phase 1 | **Decided** |
 | F2-1 | **Graph persist end-state model (positions S2-4):** pure end-state apply; full **`getMembershipContainers`** pre-read; no stream **`fromRoomId`** for persist. Fan-in intent endpoints stay non-authoritative (**F1-1**). Positions **S1-15** shipped; **S2-5** / **S2-6** decided | slice 2 (positions) | **Decided** (positions **S2-4**) |
-| F2-2 | **Plural `froms` on fact leg (positions S2-7 slice 1d):** **pre-slice-2** --- one PR with positions: **`Character Moved.froms[]`**, remove **`from`**; fan-in **`MembershipFactLeg.froms`**, **`intent.fromRoomId in froms`**, canonical **`clusterIdentity()`**, **multi-leave** **`publishMembershipPresentation`** (degenerate when length `<= 1`). Positions real persist emits **0--1** elements only until slice **2**. Tests: slice **1b** parity + synthetic **`[A,C]->B`** + race **`[C]->B`** | positions slice **1d** | **Decided** --- **next** milestone |
+| F2-2 | **Plural `froms` on fact leg (positions S2-7 slice 1d):** **pre-slice-2** --- one PR with positions: **`Character Moved.froms[]`**, remove **`from`**; fan-in **`MembershipFactLeg.froms`**, **`intent.fromRoomId in froms`**, canonical **`clusterIdentity()`**, **multi-leave** **`publishMembershipPresentation`** (degenerate when length `<= 1`). Positions real persist emits **0--1** elements only until slice **2**. Tests: slice **1b** parity + synthetic **`[A,C]->B`** + race **`[C]->B`** | positions slice **1d** | **Shipped** |
 | F3-1 | Phase 3 registry: **keep `PerceptionThreads` name**; slim in place (delete dead fields; no rename/split) | Phase 3 | Decided |
 | F3-2 | Mover arrival **header**: **keep** slim **`characterMove`** PerceptionThread (targeting-only; optional UUID **`requestId`** on render kick for orchestrate match). **Affordance refresh** for all occupants: **separate** kick (today **`RoomUpdate`**); defer positions **`Object Moved`** generalization | Phase 3 | Decided |
 
@@ -290,14 +290,14 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Ephemera tests: cross-room leave+arrive with exit-aware copy when navigate intent carries **`exitName`**; disconnect leave-only; fact-only at settle; leg order independence. Connect arrive-only deferred to positions slice **3** (**S1-12**).
   - [X] Document parallel operation with legacy imperative `MoveCharacter` suppress/copy flags until cutover (connect bridge only; parse navigate uses fan-in)
 
-- [ ] **Pre-slice-2 --- plural `froms` fact leg (**F2-2**; positions slice **1d** / **S2-7**)**
-  - [ ] **One PR with positions** ([positions slice **1d**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order)): atomic bus contract cutover --- no window with singular **`from`** and no **`froms[]`** reader
-  - [ ] **Positions (same PR):** [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) **`froms[]`**, remove **`from`**; [`buildCharacterMovedFact`](../../../../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts) **`froms: from ? [from] : []`**; guard against **`froms.length > 1`** from real persist
-  - [ ] Extend **`MembershipFactLeg`** + [`membershipPresentationLegAdapters.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts): **`froms: EphemeraRoomId[]`**; update **`isCharacterMovedPublishedPayload`** alignment
-  - [ ] **`intentEndpointsCompatibleWithFact`:** **`intent.fromRoomId in fact.froms`** (when defined); strict **`toRoomId`** match unchanged
-  - [ ] **`inferMembershipEmissionShape` / `membershipClusterIdentity`:** derive from **`froms.length`** + **`to`**; canonical sorted **`froms`**
-  - [ ] **`publishMembershipPresentation`:** multi-leave --- iterate **`froms`**; exit-aware suffix only when intent correlates and **`fromRoomId ===`** that entry; generic leave for other entries
-  - [ ] Tests: slice **1b** parity (singleton **`froms`**); synthetic drift **`[A,C]->B`** (exit-aware at A when intent from A, generic at C); race intent A->B fact **`[C]->B`** (fact-only generic); disconnect **`froms: [A]`**, **`to: null`**
+- [X] **Pre-slice-2 --- plural `froms` fact leg (**F2-2**; positions slice **1d** / **S2-7**)**
+  - [X] **One PR with positions** ([positions slice **1d**](../../../../lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md#recommended-order)): atomic bus contract cutover --- no window with singular **`from`** and no **`froms[]`** reader
+  - [X] **Positions (same PR):** [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) **`froms[]`**, remove **`from`**; [`buildCharacterMovedFact`](../../../../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts) **`froms: from ? [from] : []`**; guard against **`froms.length > 1`** from real persist
+  - [X] Extend **`MembershipFactLeg`** + [`membershipPresentationLegAdapters.ts`](../../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts): **`froms: EphemeraRoomId[]`**; update **`isCharacterMovedPublishedPayload`** alignment
+  - [X] **`intentEndpointsCompatibleWithFact`:** **`intent.fromRoomId in fact.froms`** (when defined); strict **`toRoomId`** match unchanged
+  - [X] **`inferMembershipEmissionShape` / `membershipClusterIdentity`:** derive from **`froms.length`** + **`to`**; canonical sorted **`froms`**
+  - [X] **`publishMembershipPresentation`:** multi-leave --- iterate **`froms`**; exit-aware suffix only when intent correlates and **`fromRoomId ===`** that entry; generic leave for other entries
+  - [X] Tests: slice **1b** parity (singleton **`froms`**); synthetic drift **`[A,C]->B`** (exit-aware at A when intent from A, generic at C); race intent A->B fact **`[C]->B`** (fact-only generic); disconnect **`froms: [A]`**, **`to: null`**
 
 - [ ] **Phase 2 --- retire `characterMove` ordering / pre-bake PerceptionThreads**
   - [ ] Stop using `characterMove` PerceptionThreads to gate leave/arrive dispatch on `Generation Started` / `Render Pertains`
@@ -355,7 +355,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | --- | --- |
 | Phase 0: framework pattern | Done |
 | Phase 1: membership presentation emission | Done (navigate + disconnect; connect arrive-only deferred positions slice **3**) |
-| Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Not started |
+| Pre-slice-2: plural **`froms`** fact leg (**F2-2** / positions slice **1d**) | Done |
 | Phase 2: retire characterMove ordering / pre-bake | Not started |
 | Phase 3+: PerceptionThreads targeting-only | Not started |
 | Initiative close | Not started |

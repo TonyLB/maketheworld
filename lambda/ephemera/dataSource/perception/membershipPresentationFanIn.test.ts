@@ -13,6 +13,7 @@ import {
 const CHARACTER = 'CHARACTER#Alice' as const
 const ROOM_A = 'ROOM#a' as const
 const ROOM_B = 'ROOM#b' as const
+const ROOM_C = 'ROOM#c' as const
 const ANCHOR_TIME = 1_700_000_000_000
 
 const navigateIntent = (overrides: Partial<MembershipIntentLeg> = {}): MembershipIntentLeg => ({
@@ -48,7 +49,7 @@ const homeIntent = (overrides: Partial<MembershipIntentLeg> = {}): MembershipInt
 const crossRoomFact = (overrides: Partial<MembershipFactLeg> = {}): MembershipFactLeg => ({
     kind: 'fact',
     characterId: CHARACTER,
-    from: ROOM_A,
+    froms: [ROOM_A],
     to: ROOM_B,
     beatAnchorTime: ANCHOR_TIME,
     characterName: 'Alice',
@@ -58,26 +59,35 @@ const crossRoomFact = (overrides: Partial<MembershipFactLeg> = {}): MembershipFa
 describe('membershipPresentationFanIn', () => {
     describe('inferMembershipEmissionShape', () => {
         it('returns leaveAndArrive for cross-room in-play moves', () => {
-            expect(inferMembershipEmissionShape(ROOM_A, ROOM_B)).toBe('leaveAndArrive')
+            expect(inferMembershipEmissionShape([ROOM_A], ROOM_B)).toBe('leaveAndArrive')
+        })
+
+        it('returns leaveAndArrive for multi-from drift scrub', () => {
+            expect(inferMembershipEmissionShape([ROOM_A, ROOM_C], ROOM_B)).toBe('leaveAndArrive')
         })
 
         it('returns arriveOnly for connect', () => {
-            expect(inferMembershipEmissionShape(null, ROOM_B)).toBe('arriveOnly')
+            expect(inferMembershipEmissionShape([], ROOM_B)).toBe('arriveOnly')
         })
 
         it('returns leaveOnly for disconnect', () => {
-            expect(inferMembershipEmissionShape(ROOM_A, null)).toBe('leaveOnly')
+            expect(inferMembershipEmissionShape([ROOM_A], null)).toBe('leaveOnly')
         })
 
         it('returns none for same-room', () => {
-            expect(inferMembershipEmissionShape(ROOM_A, ROOM_A)).toBe('none')
+            expect(inferMembershipEmissionShape([ROOM_A], ROOM_A)).toBe('none')
         })
     })
 
     describe('membershipClusterIdentity', () => {
-        it('encodes null endpoints as out', () => {
-            expect(membershipClusterIdentity(CHARACTER, null, ROOM_B)).toBe(`${CHARACTER}:out->${ROOM_B}`)
-            expect(membershipClusterIdentity(CHARACTER, ROOM_A, null)).toBe(`${CHARACTER}:${ROOM_A}->out`)
+        it('encodes empty froms and null to as out', () => {
+            expect(membershipClusterIdentity(CHARACTER, [], ROOM_B)).toBe(`${CHARACTER}:out->${ROOM_B}`)
+            expect(membershipClusterIdentity(CHARACTER, [ROOM_A], null)).toBe(`${CHARACTER}:${ROOM_A}->out`)
+        })
+
+        it('uses canonical sorted froms regardless of input order', () => {
+            expect(membershipClusterIdentity(CHARACTER, [ROOM_C, ROOM_A], ROOM_B))
+                .toBe(membershipClusterIdentity(CHARACTER, [ROOM_A, ROOM_C], ROOM_B))
         })
     })
 
@@ -93,6 +103,7 @@ describe('membershipPresentationFanIn', () => {
                 copyKind: 'exitAware',
                 exitName: 'north',
                 beatAnchorTime: ANCHOR_TIME,
+                intentFromRoomId: ROOM_A,
             })
         })
 
@@ -111,7 +122,7 @@ describe('membershipPresentationFanIn', () => {
         it('returns connect copy for connect intent', () => {
             const plan = buildMembershipEmissionPlan([
                 connectIntent(),
-                crossRoomFact({ from: null, to: ROOM_B }),
+                crossRoomFact({ froms: [], to: ROOM_B }),
             ], { deferralExecution: false })
 
             expect(plan).toMatchObject({
@@ -123,7 +134,7 @@ describe('membershipPresentationFanIn', () => {
         it('returns disconnect copy for disconnect intent', () => {
             const plan = buildMembershipEmissionPlan([
                 disconnectIntent(),
-                crossRoomFact({ from: ROOM_A, to: null }),
+                crossRoomFact({ froms: [ROOM_A], to: null }),
             ], { deferralExecution: false })
 
             expect(plan).toMatchObject({
@@ -155,7 +166,7 @@ describe('membershipPresentationFanIn', () => {
 
         it('returns arriveOnly genericFactOnly for connect fact at deferral', () => {
             const plan = buildMembershipEmissionPlan([
-                crossRoomFact({ from: null, to: ROOM_B }),
+                crossRoomFact({ froms: [], to: ROOM_B }),
             ], { deferralExecution: true })
 
             expect(plan).toMatchObject({
@@ -220,7 +231,7 @@ describe('membershipPresentationFanIn', () => {
                 store.setHandlerContext(ctx)
 
                 await store.route(connectIntent())
-                await store.route(crossRoomFact({ from: null, to: ROOM_B }))
+                await store.route(crossRoomFact({ froms: [], to: ROOM_B }))
 
                 expect(store.getOpenPartialCount()).toBe(0)
                 expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
@@ -235,7 +246,7 @@ describe('membershipPresentationFanIn', () => {
                 store.setHandlerContext(ctx)
 
                 await store.route(disconnectIntent())
-                await store.route(crossRoomFact({ from: ROOM_A, to: null }))
+                await store.route(crossRoomFact({ froms: [ROOM_A], to: null }))
 
                 expect(store.getOpenPartialCount()).toBe(0)
                 expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
@@ -254,6 +265,26 @@ describe('membershipPresentationFanIn', () => {
 
                 expect(store.getOpenPartialCount()).toBe(0)
                 expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
+            })
+
+            it('correlates intent when fromRoomId is in fact.froms', async () => {
+                const store = createMembershipPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(navigateIntent({ fromRoomId: ROOM_A, toRoomId: ROOM_B, exitName: 'north' }))
+                await store.route(crossRoomFact({ froms: [ROOM_A, ROOM_C], to: ROOM_B }))
+
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(3)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    targets: [ROOM_A, CHARACTER],
+                    message: ['Alice left by north exit.'],
+                })
+                expect(worldPublishes(ctx.messageBus)[1]).toMatchObject({
+                    targets: [ROOM_C, CHARACTER],
+                    message: ['Alice has left.'],
+                })
             })
         })
 
@@ -295,6 +326,18 @@ describe('membershipPresentationFanIn', () => {
                 expect(store.getOpenPartialCount()).toBe(2)
                 expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
             })
+
+            it('does not correlate intent whose fromRoomId is not in fact.froms', async () => {
+                const store = createMembershipPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(crossRoomFact({ froms: [ROOM_C], to: ROOM_B }))
+                await store.route(navigateIntent({ fromRoomId: ROOM_A, toRoomId: ROOM_B }))
+
+                expect(store.getOpenPartialCount()).toBe(2)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
+            })
         })
 
         describe('deferral path', () => {
@@ -315,6 +358,28 @@ describe('membershipPresentationFanIn', () => {
                 expect(store.getOpenPartialCount()).toBe(0)
             })
 
+            it('publishes generic leave at stale from on race intent A->B fact [C]->B', async () => {
+                const store = createMembershipPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(navigateIntent({ fromRoomId: ROOM_A, toRoomId: ROOM_B, exitName: 'north' }))
+                await store.route(crossRoomFact({ froms: [ROOM_C], to: ROOM_B }))
+
+                expect(store.getOpenPartialCount()).toBe(2)
+
+                await store.settleDeferrals()
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(2)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    targets: [ROOM_C, CHARACTER],
+                    message: ['Alice has left.'],
+                })
+                expect(worldPublishes(ctx.messageBus)[1]).toMatchObject({
+                    targets: [ROOM_B, CHARACTER],
+                    message: ['Alice has arrived.'],
+                })
+            })
+
             it('runs deferral via registerDeferral after flushAndSettle', async () => {
                 const bus = new InternalMessageBus<string>()
                 const store = createMembershipPresentationFanInStore()
@@ -322,7 +387,7 @@ describe('membershipPresentationFanIn', () => {
                 store.setHandlerContext(ctx)
                 store.registerDeferral(bus, 'membershipPresentationFanIn')
 
-                await store.route(crossRoomFact({ from: null, to: ROOM_B }))
+                await store.route(crossRoomFact({ froms: [], to: ROOM_B }))
                 await bus.flushAndSettle()
 
                 expect(worldPublishes(ctx.messageBus)).toHaveLength(1)

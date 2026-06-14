@@ -13,7 +13,7 @@ export const EPHEMERA_POSITIONS_DATA_SOURCE_KEY = 'mtw.ephemera.positions' as co
 export type CharacterMovedPublishedPayload = {
     type: 'Character Moved';
     characterId: EphemeraCharacterId;
-    from: EphemeraRoomId | null;
+    froms: EphemeraRoomId[];
     to: EphemeraRoomId | null;
     beatAnchorTime: number;
     legalExits?: string[];
@@ -39,7 +39,13 @@ export const isCharacterMovedPublishedPayload = (
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
         return false
     }
-    if (!isMembershipEndpoint(v.from) || !isMembershipEndpoint(v.to)) {
+    if ('from' in v) {
+        return false
+    }
+    if (!Array.isArray(v.froms) || !v.froms.every((entry) => typeof entry === 'string' && isEphemeraRoomId(entry))) {
+        return false
+    }
+    if (!isMembershipEndpoint(v.to)) {
         return false
     }
     if (typeof v.beatAnchorTime !== 'number' || !Number.isFinite(v.beatAnchorTime)) {

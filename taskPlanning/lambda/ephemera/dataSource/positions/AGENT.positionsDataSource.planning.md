@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Next:** slice **1d** --- **`froms[]`** fact contract + fan-in consumer (**F2-2**; singleton arrays from current persist). **Then** slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Next:** slice **2** swaps persistence to `Meta::Room` play `positionGraph`. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -122,9 +122,9 @@ connect (when unified)        2. transact flat fields                  (only if 
 
 ### What the fact carries (decided)
 
-**Slice 1 (shipped today):** [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) --- singular **`from`** / **`to`** (`null` = out of play, **F1-7**), **`characterId`**, **`beatAnchorTime`** (**F1-4**), optional **`characterName`**. Fan-in **F1-1** uses fact endpoints as authoritative cluster identity. Optional **`legalExits`** not populated (**S1-10**).
+**Slice 1 (shipped through 1b):** [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) --- singular **`from`** / **`to`** (`null` = out of play, **F1-7**), **`characterId`**, **`beatAnchorTime`** (**F1-4**), optional **`characterName`**. Fan-in **F1-1** uses fact endpoints as authoritative cluster identity. Optional **`legalExits`** not populated (**S1-10**).
 
-**Slice 1d (S2-7 contract cutover --- pre-slice-2):** replace singular **`from`** with **`froms: EphemeraRoomId[]`**. **`[]`** = out of play. **`[roomId]`** = normal move (singleton array from current persist). **`to`** stays singular (`null` = out of play). **One PR** with fan-in **F2-2** consumer ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)): positions **`buildCharacterMovedFact`** maps apply result **`froms: from ? [from] : []`** --- **do not** emit **`froms.length > 1`** from real persist until slice **2** (flat apply still single-endpoint; multi-from would overclaim scrub). Fan-in implements **`fromRoomId in froms`**, multi-leave loop (degenerates to today when length `<= 1`); synthetic tests may use multi-from facts early.
+**Slice 1d (shipped):** replaced singular **`from`** with **`froms: EphemeraRoomId[]`**. **`[]`** = out of play. **`[roomId]`** = normal move (singleton array from flat persist). **`to`** stays singular (`null` = out of play). Fan-in **F2-2** consumer shipped in same PR.
 
 **Slice 2 (S2-4 persist):** **`MembershipDiff`** / graph-diff emit may produce **`froms.length > 1`** when drift repair removes character from multiple hosts. Side-effect bundle (**S1-11**) kicks **`RoomUpdate`** + cache for **every** room in **`froms`** and **`to`**. See [Graph apply: end-state model (**S2-4**)](#graph-apply-end-state-model-s2-4).
 
@@ -500,12 +500,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Wire [`getRoomExitTargetsForCharacter`](../../../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts) and membership apply pre-read through **`getMembershipContainers`** (remove ad hoc **`CharacterMeta.RoomId`** / raw Dynamo on navigate hot path)
   - [X] Unit tests (gateway + actions + positions navigate); graduate [`mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) + positions contract/implementation read-path rules
 
-- [ ] **Slice 1d --- `Character Moved` `froms[]` contract cutover (S2-7 / F2-2)**
-  - [ ] **One PR** with fan-in consumer ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) **F2-2**): no bus window where singular **`from`** ships without **`froms[]`** reader
-  - [ ] [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts): **`froms: EphemeraRoomId[]`**, remove **`from`**; update type guard (`[]` = out of play)
-  - [ ] [`buildCharacterMovedFact`](../../../../../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts): **`froms: applyResult.from ? [applyResult.from] : []`** --- **must not** emit **`froms.length > 1`** from real persist (guard / test)
-  - [ ] Parity tests: navigate + disconnect emission unchanged vs slice **1b** (singleton **`froms`**)
-  - [ ] Graduate contract: **`froms` / `to`** fact shape; link **F2-2**
+- [X] **Slice 1d --- `Character Moved` `froms[]` contract cutover (S2-7 / F2-2)**
+  - [X] **One PR** with fan-in consumer ([`AGENT.fanInPattern.planning.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order) **F2-2**): no bus window where singular **`from`** ships without **`froms[]`** reader
+  - [X] [`publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts): **`froms: EphemeraRoomId[]`**, remove **`from`**; update type guard (`[]` = out of play)
+  - [X] [`buildCharacterMovedFact`](../../../../../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts): **`froms: applyResult.from ? [applyResult.from] : []`** --- **must not** emit **`froms.length > 1`** from real persist (guard / test)
+  - [X] Parity tests: navigate + disconnect emission unchanged vs slice **1b** (singleton **`froms`**)
+  - [X] Graduate contract: **`froms` / `to`** fact shape; link **F2-2**
 
 - [ ] **Slice 2 --- `Meta::Room` play `positionGraph` + adjacency + graph-diff facts (cutover bundle)**
   - [X] Resolve **Open decisions** S2-1 through S2-4, S2-5, S2-6, **S2-7** (intent)
@@ -573,7 +573,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 1b: fact producer (`Character Moved` + **S1-11** bundle) | Done (fan-in publish for navigate + disconnect --- [fan-in Phase 1](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md#recommended-order)) |
 | Slice 1c: gateway forward/reverse reads (**S1-15**) | Done |
 | Slice 2 decisions: end-state apply (**S2-4**), plural **`froms`** (**S2-7**) | Decided |
-| Slice 1d: **`froms[]`** fact contract + fan-in **F2-2** | Not started |
+| Slice 1d: **`froms[]`** fact contract + fan-in **F2-2** | Done |
 | Slice 2: `Meta::Room` play graph storage swap | Not started |
 | Slice 3--4: connect unify + legacy retirement | Not started |
 | Initiative close (**S2-6** legacy projection retirement) | Not started |

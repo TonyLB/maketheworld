@@ -16,10 +16,14 @@ export const buildCharacterMovedFact = (args: {
     if (!applyResult.beatAnchorTime) {
         return undefined
     }
+    const froms = applyResult.from ? [applyResult.from] : []
+    if (froms.length > 1) {
+        return undefined
+    }
     return {
         type: 'Character Moved',
         characterId,
-        from: applyResult.from,
+        froms,
         to: applyResult.to,
         beatAnchorTime: applyResult.beatAnchorTime,
         ...(characterName !== undefined ? { characterName } : {}),

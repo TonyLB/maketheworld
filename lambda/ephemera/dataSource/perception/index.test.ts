@@ -981,7 +981,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
             })
@@ -1010,7 +1010,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',
@@ -1038,7 +1038,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: null,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',
@@ -1060,7 +1060,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
             })
@@ -1086,7 +1086,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             publishMembershipStreamingEvent(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
                 type: 'Character Moved',
                 characterId: MEMBERSHIP_CHARACTER,
-                from: MEMBERSHIP_ROOM_A,
+                froms: [MEMBERSHIP_ROOM_A],
                 to: MEMBERSHIP_ROOM_B,
                 beatAnchorTime: MEMBERSHIP_ANCHOR_TIME,
                 characterName: 'Alice',

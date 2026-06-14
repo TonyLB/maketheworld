@@ -202,7 +202,7 @@ describe('perception subscribedEvents', () => {
             getContent: () => Promise.resolve({
                 type: 'Character Moved',
                 characterId: 'CHARACTER#Alice',
-                from: 'ROOM#a',
+                froms: ['ROOM#a'],
                 to: 'ROOM#b',
                 beatAnchorTime: Date.now(),
             }),
