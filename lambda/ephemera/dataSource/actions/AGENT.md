@@ -33,7 +33,7 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 - Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) and UI exit clicks (**`Action Assessed`** **`Navigation`** from [`executeAction`](../../parse/executeAction.ts) `case 'move'`) are **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
 - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) for fan-in intent legs and positions execution.
 - Legacy home (`executeAction` `case 'home'`) still emits **`Character Home`** via **`sendCharacterHome`** before imperative **`MoveCharacter`** when **`HomeId`** and **`RoomId`** are present. **Future:** migrate home to **`Action Assessed`** **`Navigation`** (or a dedicated assessed variant) and drop imperative **`MoveCharacter`** for home.
-- Asset visibility repair (**`CheckLocation`**) routes through [`positions/membership/repairCharacterLegalPlacement.ts`](../positions/membership/repairCharacterLegalPlacement.ts) -> membership apply (not imperative **`MoveCharacter`**).
+- Asset visibility repair (**`repairCharacterLegalPlacement`**) is available under [`positions/membership/`](../positions/membership/repairCharacterLegalPlacement.ts) for future canon/zone ingress; **`CheckLocation` bus adapter retired** at Close **S2-6-DR**.
 
 ### Explicit non-goals (until positions lands remaining paths)
 

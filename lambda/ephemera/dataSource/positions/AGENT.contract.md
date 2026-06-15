@@ -116,6 +116,24 @@ Positions **must** subscribe to:
 - **Must not** rely on imperative `MoveCharacter` from actions for parse-based or UI-exit navigation.
 - Leave/arrive world copy for navigate is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
+### `mtw.diagnostics` --- occupancy drift repair (S2-6-DR)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Room Occupancy Drift Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`repairRoomOccupancyDrift`](membership/repairRoomOccupancyDrift.ts) |
+
+**Repair model (graph-forward):**
+
+- Enumerate character nodes on the room **`positionGraph`**; **must not** use **`Meta::Character.RoomId`** or **`Meta::Room.activeCharacters`** as authority.
+- **Sessions gate:** no live sessions -> **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** (full graph purge; S1-11 when `changed`).
+- **In-play, adjacency lag:** graph correct but **`getMembershipContainers`** omits this room -> [`syncMembershipAdjacencyToRoom`](membership/syncMembershipAdjacency.ts) only (**must not** run S1-11 bundle).
+- **Idempotency:** at-least-once finding delivery **must** be safe (no-op when already repaired).
+- **Explicit gap:** stale adjacency without a graph node is out of scope for this room-forward scan.
+
+Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/).
+
 ---
 
 ## Read surface (S1-5, S1-15 slice 2)
@@ -136,8 +154,8 @@ Positions **must** subscribe to:
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
 - **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
-- **Must not** write play membership fields outside [`membership/`](membership/) except documented diagnostics:
-  - [`../selfHealing/roomOccupancyDriftFinding.ts`](../selfHealing/roomOccupancyDriftFinding.ts) (diagnostics self-healing rebuild)
+- **Must not** write play membership fields outside [`membership/`](membership/).
+- **Must not** publish **`CheckLocation`** (retired at Close **S2-6-DR**).
 
 ### Disconnect ingress (slice 4)
 

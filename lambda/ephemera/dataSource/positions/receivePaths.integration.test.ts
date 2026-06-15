@@ -10,6 +10,10 @@ jest.mock('./membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
+jest.mock('./membership/repairRoomOccupancyDrift', () => ({
+    repairRoomOccupancyDrift: jest.fn(),
+}))
+
 jest.mock('../../moveCharacter/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
@@ -17,6 +21,7 @@ jest.mock('../../moveCharacter/executeCharacterNavigate', () => ({
 import messageBus from '../../messageBus'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
+import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
 
 import './index'
@@ -26,6 +31,9 @@ const applyCharacterRoomMembershipMock = applyCharacterRoomMembership as jest.Mo
 >
 const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnectTargetRoom
+>
+const repairRoomOccupancyDriftMock = repairRoomOccupancyDrift as jest.MockedFunction<
+    typeof repairRoomOccupancyDrift
 >
 const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
     typeof executeCharacterNavigate
@@ -86,6 +94,7 @@ describe('positions receive paths (integration)', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         })
+        repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
     })
 
     describe('Character Disconnected', () => {
@@ -149,6 +158,30 @@ describe('positions receive paths (integration)', () => {
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Room Occupancy Drift Finding', () => {
+        it('routes mtw.diagnostics finding through repairRoomOccupancyDrift', async () => {
+            publishPositionsStreamingEvent('mtw.diagnostics', 'Room Occupancy Drift Finding', {
+                type: 'Room Occupancy Drift Finding',
+                roomId: ROOM_A,
+                diagnosticRunId: 'diag-1',
+                timestamp: '2026-05-06T10:00:00.000Z',
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(repairRoomOccupancyDriftMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roomId: ROOM_A,
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
+            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
 })

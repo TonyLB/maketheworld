@@ -2,13 +2,13 @@
  * `mtw.ephemera.positions` DataSource
  *
  * General-purpose ephemera lane for **positions in play** -- the home for any
- * "where is X right now" projection ephemera owns. This iteration is
- * deliberately narrow: only **character positions as already recorded today**
- * (`Meta::Room.activeCharacters`, character `RoomId`/`RoomStack`).
+ * "where is X right now" projection ephemera owns. Membership authority is
+ * `Meta::Room.positionGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`). Additional position-affecting subscriptions can be
- * added here without inventing another one-off DataSource module.
+ * (`Character Navigate`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * position-affecting subscriptions can be added here without inventing another one-off
+ * DataSource module.
  *
  * Future iterations may extend the lane with new entity kinds and richer
  * position semantics; the wiring above (`dataSourceKey: 'mtw.ephemera.positions'`,
@@ -26,6 +26,7 @@ import type { CharacterNavigatePublishedPayload } from '../actions/publishedEven
 import {
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
+    isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
 } from './subscribedEvents'
@@ -34,6 +35,7 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
+import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
@@ -47,6 +49,18 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
     subscribedEventTypeGuard: isEphemeraPositionsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (envelope) => {
+            if (isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content?.roomId) {
+                    return
+                }
+                await repairRoomOccupancyDrift({
+                    roomId: content.roomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
             if (isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope)) {
                 const content = await envelope.getContent() as CharacterNavigatePublishedPayload
                 if (!content || typeof content !== 'object') {

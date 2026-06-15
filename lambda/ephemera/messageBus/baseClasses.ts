@@ -234,30 +234,6 @@ export type MoveCharacterMessage = {
     roomId: EphemeraRoomId;
 }
 
-export type CheckLocationMessageInvariantPayload = {
-    type: 'CheckLocation';
-    forceMove?: boolean;
-    forceRender?: boolean;
-    suppressArrival?: boolean;
-    arriveMessage?: string;
-    suppressDeparture?: boolean;
-    leaveMessage?: string;
-}
-
-export type CheckLocationPlayerMessage = CheckLocationMessageInvariantPayload & {
-    characterId: EphemeraCharacterId;
-}
-
-export type CheckLocationRoomMessage = CheckLocationMessageInvariantPayload & {
-    roomId: EphemeraRoomId
-}
-
-export type CheckLocationAssetMessage = CheckLocationMessageInvariantPayload & {
-    assetId: EphemeraAssetId
-}
-
-export type CheckLocationMessage = CheckLocationPlayerMessage | CheckLocationRoomMessage | CheckLocationAssetMessage
-
 export type CharacterEventMessage = {
     type: 'CharacterEvent';
 }
@@ -387,7 +363,6 @@ export type MessageType = PublishMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
     MoveCharacterMessage |
-    CheckLocationMessage |
     CharacterEventMessage |
     RoomUpdateMessage |
     MapUpdateMessage |
@@ -423,10 +398,6 @@ export const isCharacterEventMessage = (prop: MessageType): prop is CharacterEve
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
-export const isCheckLocation = (prop: MessageType): prop is CheckLocationMessage => (prop.type === 'CheckLocation')
-export const isCheckLocationPlayer = (prop: MessageType): prop is CheckLocationPlayerMessage => (isCheckLocation(prop) && 'characterId' in prop)
-export const isCheckLocationRoom = (prop: MessageType): prop is CheckLocationRoomMessage => (isCheckLocation(prop) && 'roomId' in prop)
-export const isCheckLocationAsset = (prop: MessageType): prop is CheckLocationAssetMessage => (isCheckLocation(prop) && 'assetId' in prop)
 
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')

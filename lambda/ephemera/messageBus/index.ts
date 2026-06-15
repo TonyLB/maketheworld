@@ -10,14 +10,12 @@ import {
     isMapSubscription,
     isMapUpdateMessage,
     isMapUnsubscribe,
-    isCheckLocation,
     isCharacterEventMessage,
     isExecuteActionMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
 import { publishMessageCoalescer } from '../publishMessage/coalescer'
-import { checkLocationCoalescer } from '../checkLocation/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -26,7 +24,6 @@ import roomUpdateMessage from '../roomUpdate'
 
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
-import checkLocation from "../checkLocation"
 import characterEvent from "../characterEvents"
 import { executeActionMessage } from "../parse/executeAction"
 import { registerReturnValueCollector } from '../returnValue/collector'
@@ -75,12 +72,6 @@ messageBus.subscribe({
     callback: moveCharacter
 })
 messageBus.subscribe({
-    tag: 'CheckLocation',
-    priority: 3,
-    filter: isCheckLocation,
-    callback: checkLocation
-})
-messageBus.subscribe({
     tag: 'CharacterEvent',
     priority: 3,
     filter: isCharacterEventMessage,
@@ -106,7 +97,6 @@ messageBus.subscribe({
 })
 
 publishMessageCoalescer.registerDeferral(messageBus)
-checkLocationCoalescer.registerDeferral(messageBus)
 registerReturnValueCollector(messageBus)
 
 export default messageBus

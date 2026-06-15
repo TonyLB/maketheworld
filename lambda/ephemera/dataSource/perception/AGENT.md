@@ -139,7 +139,7 @@ These paths **enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../..
 | Source | Reference |
 | --- | --- |
 | **`look` (non-room target)** | [`parse/executeAction.ts`](../../parse/executeAction.ts) |
-| **`checkLocation`** (`forceRender`) | [`checkLocation/index.ts`](../../checkLocation/index.ts) |
+| **`repairCharacterLegalPlacement`** (`forceRender`) | [`positions/membership/repairCharacterLegalPlacement.ts`](../positions/membership/repairCharacterLegalPlacement.ts) (no bus adapter; future asset-visibility ingress) |
 | **Link API** (feature, character, knowledge) | [`app.ts`](../../app.ts) |
 | **Map subscription** success path | [`mapSubscription/index.ts`](../../mapSubscription/index.ts) |
 | **`moveCharacter` fallback** | When there is **no** **`characterMove`** registration (empty arrival-room **`perspectiveKey`**) and passive render did not kick, header refresh uses imperative **`Perception`** with **`header: true`** ([`orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts)). Same-room connect/reconnect does **not** use this path; session RoomHeader bootstrap is owned by **`Character Registered`** orientation. |
@@ -182,7 +182,7 @@ Policy for the imperative handler in [`perception/index.ts`](../../perception/in
 ### Correlated room description (policy)
 
 - **No `Cache Updated`-only fan-in (v1):** Perception does **not** subscribe to fan-in driven **only** by **`Cache Updated`** for room description. Scenarios that would depend on **`Cache Updated`** alone stay **deferred**. A possible **future** end-of-invocation **sweep** of unfulfilled threads is **out of scope** until deliberately designed.
-- **Room examine entry (v1):** Correlated **room description** registers from **`parse/executeAction`** (room **`look`**, P4 bus kick) and from event-driven look in **`renderOrchestration`** (direct register). **`checkLocation`**, **`perceptionMessage`**, and other callers are **not** wired to that correlated path until a deliberate follow-on.
+- **Room examine entry (v1):** Correlated **room description** registers from **`parse/executeAction`** (room **`look`**, P4 bus kick) and from event-driven look in **`renderOrchestration`** (direct register). **`perceptionMessage`** and other callers are **not** wired to that correlated path until a deliberate follow-on.
 - **Bucket after terminal (room description):** After **terminal** delivery, the **room description** thread row **need not** retain the finished render (emit full description and drop the registration). **Other** thread kinds may later **retain** terminal material or combine with **separate** inputs; treat that as a **per-`threadKind`** choice when extending the model.
 - **Placeholder copy:** **Generating** / **Error** **`PublishMessage`** for room description use the **same shape** as terminal full room: **`displayProtocol`**, **`metaData`**, **`displayMode: 'full'`**, and related fields, with **dirt-simple** body text; copy is **throwaway** until product polish.
 - **No-slow path UX:** On cache **hit** paths (**`Current Cache Valid`** / **`Exact Match Found`** leading to **`Render Pertains`** without **`Generation Started`**), the user does **not** see a **Generating** placeholder---only the **terminal** description **`PublishMessage`**.
