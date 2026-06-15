@@ -1,5 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
@@ -7,6 +9,7 @@ import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './member
 import {
     addCharacterToGraph,
     effectiveRoomPositionGraph,
+    playPositionGraphToStoredTopology,
     removeCharacterFromGraph,
 } from './positionGraphMerge'
 import type {
@@ -21,6 +24,7 @@ export type UpdatePositionGraphsDependencies = {
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
+    getRoomPositionGraph?: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>;
     transactWrite?: typeof ephemeraDB.transactWrite;
 }
 
@@ -57,6 +61,32 @@ export const computeMembershipDiff = (
 const normalizeCurrentRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>
     stack ?? []
 
+const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
+    [...new Set([...froms, ...(to ? [to] : [])])]
+
+export const computePostApplyRoomGraphs = async (
+    characterId: EphemeraCharacterId,
+    diff: MembershipDiff,
+    getRoomPositionGraph: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>
+): Promise<Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>> => {
+    const postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> = {}
+    const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
+
+    await Promise.all(
+        affectedRooms.map(async (roomId) => {
+            const priorStored = playPositionGraphToStoredTopology(await getRoomPositionGraph(roomId))
+            if (diff.froms.includes(roomId)) {
+                postApplyRoomGraphs[roomId] = removeCharacterFromGraph(priorStored, characterId)
+            }
+            if (diff.to === roomId) {
+                postApplyRoomGraphs[roomId] = addCharacterToGraph(priorStored, characterId)
+            }
+        })
+    )
+
+    return postApplyRoomGraphs
+}
+
 export const updatePositionGraphs = async (
     args: MembershipApplyArgs,
     deps?: UpdatePositionGraphsDependencies
@@ -65,6 +95,8 @@ export const updatePositionGraphs = async (
     const getRoomAssets = deps?.getRoomAssets ?? ((roomId) => internalCache.RoomAssets.get(roomId))
     const getCanonAssets = deps?.getCanonAssets ?? (() => internalCache.Global.get('assets'))
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
+    const getRoomPositionGraph = deps?.getRoomPositionGraph
+        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getPositionGraph(roomId))
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const priorContainers = await getMembershipContainers(args.characterId)
@@ -82,6 +114,12 @@ export const updatePositionGraphs = async (
             getCanonAssets(),
         ])
         : [[], []]
+
+    const postApplyRoomGraphs = await computePostApplyRoomGraphs(
+        characterMeta.EphemeraId,
+        diff,
+        getRoomPositionGraph
+    )
 
     try {
         let persisted = false
@@ -177,6 +215,7 @@ export const updatePositionGraphs = async (
             ok: true,
             persisted: true,
             diff,
+            postApplyRoomGraphs,
         }
     }
     catch (error) {

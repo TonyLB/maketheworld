@@ -9,6 +9,11 @@ import { v4 as uuidv4 } from 'uuid'
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
 
+jest.mock('../internalCache/hydrateRoomRoster', () => ({
+    getRoomCharacterList: jest.fn(),
+}))
+import { getRoomCharacterList } from '../internalCache/hydrateRoomRoster'
+
 import publishMessage from './index'
 import { publishMessageCoalescer } from './coalescer'
 
@@ -17,6 +22,7 @@ const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
 const uuidMock = uuidv4 as jest.Mock
 // @ts-ignore
 const cacheMock = jest.mocked(internalCache, true)
+const getRoomCharacterListMock = jest.mocked(getRoomCharacterList)
 
 describe('PublishMessage', () => {
     const realDateNow = Date.now.bind(global.Date);
@@ -341,7 +347,7 @@ describe('PublishMessage', () => {
 
     it('should remap room targets dynamically', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
-        cacheMock.RoomCharacterList.get.mockResolvedValue([{
+        getRoomCharacterListMock.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             DisplayName: '',
             SessionIds: ['Z123']
@@ -413,7 +419,7 @@ describe('PublishMessage', () => {
 
     it('should exclude not-character targets', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
-        cacheMock.RoomCharacterList.get.mockResolvedValue([{
+        getRoomCharacterListMock.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
             DisplayName: '',
             SessionIds: ['Z123']

@@ -11,6 +11,9 @@ jest.mock('../publishMessage', () => ({
     __esModule: true,
     default: jest.fn().mockResolvedValue(undefined),
 }))
+jest.mock('../internalCache/hydrateRoomRoster', () => ({
+    getRoomCharacterList: jest.fn(),
+}))
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import messageBus from '../messageBus'
@@ -118,7 +121,6 @@ describe('Perception message', () => {
             const renderCacheGet = jest.fn().mockResolvedValue([sampleCacheRow])
             const mockInternalCache = {
                 RenderCache: { get: renderCacheGet },
-                RoomCharacterList: { get: jest.fn() },
                 ComponentRender: { get: jest.fn() },
             } as any
 
@@ -163,7 +165,6 @@ describe('Perception message', () => {
             const renderCacheGet = jest.fn().mockResolvedValue([])
             const mockInternalCache = {
                 RenderCache: { get: renderCacheGet },
-                RoomCharacterList: { get: jest.fn() },
                 ComponentRender: { get: jest.fn() },
             } as any
             const expectedWml = roomRenderChannelWmlForRoomId(roomId, [])

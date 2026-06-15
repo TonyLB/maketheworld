@@ -11,6 +11,7 @@ jest.mock('../../publishMessage', () => ({
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
+import * as hydrateRoomRoster from '../../internalCache/hydrateRoomRoster'
 import messageBus from '../../messageBus'
 import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -765,7 +766,7 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('Render Pertains fallback publishes render header to perspective-matched occupants when no threads registered', async () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<FallbackHeader />')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
             { EphemeraId: 'CHARACTER#Other', DisplayName: 'Other', Color: 'purple', SessionIds: [] },
         ])
@@ -806,7 +807,7 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('Render Pertains fallback does not publish when no occupants match perspective key', async () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<FallbackHeaderNoMatch />')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
             { EphemeraId: 'CHARACTER#B', DisplayName: 'B', Color: 'purple', SessionIds: [] },
         ])
@@ -840,7 +841,7 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('receiveEvents publishes affordance PerceptionMessage on Affordances Pertain stream', async () => {
         const publishSpy = spyPublish()
         jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
         ])
         jest.spyOn(roomHeaderBroadcastModule, 'getCharacterRoomPerspectiveKey')
@@ -908,7 +909,7 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('receiveEvents does not publish affordance PerceptionMessage on Objects Changed stream', async () => {
         const publishSpy = spyPublish()
         jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get').mockResolvedValue({ schema: {} } as any)
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
         ])
 

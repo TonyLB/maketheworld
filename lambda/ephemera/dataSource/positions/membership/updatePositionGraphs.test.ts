@@ -15,7 +15,10 @@ jest.mock('../../../internalCache', () => ({
         CharacterSessions: { get: jest.fn() },
         RoomAssets: { get: jest.fn() },
         Global: { get: jest.fn() },
-        Positions: { getMembershipContainers: jest.fn() },
+        Positions: {
+            getMembershipContainers: jest.fn(),
+            getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+        },
         ComponentEphemeraMeta: { get: jest.fn() },
     },
 }))
@@ -121,6 +124,15 @@ describe('updatePositionGraphs', () => {
 
     it('cross-room navigate transacts graph, adjacency, and RoomStack without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
+        const getRoomPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
+            if (roomId === ROOM_A) {
+                return {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                }
+            }
+            return { nodes: [], edges: [] }
+        })
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
@@ -130,6 +142,7 @@ describe('updatePositionGraphs', () => {
                 getCharacterMeta: async () => characterMeta,
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getRoomPositionGraph,
             }
         )
 
@@ -137,6 +150,13 @@ describe('updatePositionGraphs', () => {
             ok: true,
             persisted: true,
             diff: { froms: [ROOM_A], to: ROOM_B, changed: true },
+            postApplyRoomGraphs: {
+                [ROOM_A]: { nodes: [], edges: [] },
+                [ROOM_B]: {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                },
+            },
         }))
         expect(transactWrite).toHaveBeenCalledTimes(1)
 

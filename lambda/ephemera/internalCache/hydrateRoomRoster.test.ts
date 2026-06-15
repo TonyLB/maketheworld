@@ -1,11 +1,12 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from './index'
-import { hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
+import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 
 const CHARACTER_A = 'CHARACTER#Alpha' as EphemeraCharacterId
 const CHARACTER_B = 'CHARACTER#Beta' as EphemeraCharacterId
 const CHARACTER_MISSING = 'CHARACTER#Missing' as EphemeraCharacterId
+const TOWN_SQUARE = 'ROOM#TownSquare' as EphemeraRoomId
 
 describe('hydrateRoomRosterFromCharacterIds', () => {
     beforeEach(() => {
@@ -117,6 +118,35 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
                 EphemeraId: CHARACTER_A,
                 DisplayName: 'Alpha',
                 SessionIds: [],
+            },
+        ])
+    })
+})
+
+describe('getRoomCharacterList', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        internalCache.clear()
+    })
+
+    it('maps getRoomCharacterList from PlayPositionRoomRosterEntry shape', async () => {
+        jest.spyOn(internalCache.Positions, 'getRoomRoster').mockResolvedValue([
+            {
+                EphemeraId: CHARACTER_A,
+                DisplayName: 'Alpha',
+                SessionIds: ['sess-a'],
+                Color: 'blue',
+                fileURL: 'https://example.com/alpha.png',
+            },
+        ])
+
+        await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([
+            {
+                EphemeraId: CHARACTER_A,
+                DisplayName: 'Alpha',
+                SessionIds: ['sess-a'],
+                Color: 'blue',
+                fileURL: 'https://example.com/alpha.png',
             },
         ])
     })

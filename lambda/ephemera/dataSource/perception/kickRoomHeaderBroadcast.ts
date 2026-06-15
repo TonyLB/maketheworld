@@ -4,6 +4,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
+import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
@@ -28,7 +29,7 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
-    const characters = await internalCache.RoomCharacterList.get(roomId)
+    const characters = await getRoomCharacterList(roomId)
     const characterMetaRows = await Promise.all(
         characters.map(async (character) => {
             const characterId = character.EphemeraId as EphemeraCharacterId

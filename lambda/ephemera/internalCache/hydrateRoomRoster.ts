@@ -1,7 +1,18 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PlayPositionRoomRosterEntry } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { RoomCharacterListItem } from './baseClasses'
 import internalCache from './index'
+
+export const playPositionRosterEntryToRoomCharacterListItem = (
+    entry: PlayPositionRoomRosterEntry
+): RoomCharacterListItem => ({
+    EphemeraId: entry.EphemeraId,
+    DisplayName: entry.DisplayName,
+    SessionIds: entry.SessionIds,
+    ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
+    ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
+})
 
 export async function hydrateRoomRosterFromCharacterIds(
     characterIds: EphemeraCharacterId[]
@@ -28,4 +39,12 @@ export async function hydrateRoomRosterFromCharacterIds(
     )
 
     return entries.filter((entry): entry is PlayPositionRoomRosterEntry => entry !== undefined)
+}
+
+/** Derive hydrated room occupants in ephemera wire shape (no per-room memo). */
+export async function getRoomCharacterList(
+    roomId: EphemeraRoomId
+): Promise<RoomCharacterListItem[]> {
+    const roster = await internalCache.Positions.getRoomRoster(roomId)
+    return roster.map(playPositionRosterEntryToRoomCharacterListItem)
 }

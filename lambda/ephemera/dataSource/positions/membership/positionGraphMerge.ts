@@ -1,3 +1,5 @@
+import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { extractCharacterIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraPlayPositionGraph,
@@ -40,6 +42,14 @@ export const addCharacterToGraph = (
         nodes: [...graph.nodes, characterNode(characterId)],
     }
 }
+
+/** Topology-only stored graph from a play position graph read (no roster meta). */
+export const playPositionGraphToStoredTopology = (
+    graph: PlayPositionGraph
+): EphemeraPlayPositionGraph => ({
+    nodes: extractCharacterIdsFromPlayPositionGraph(graph).map(characterNode),
+    edges: [],
+})
 
 export const effectiveRoomPositionGraph = (meta: {
     positionGraph?: EphemeraPlayPositionGraph;

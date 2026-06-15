@@ -1,3 +1,13 @@
+const mockGetRoomCharacterList = jest.fn()
+jest.mock('./hydrateRoomRoster', () => {
+    const actual = jest.requireActual('./hydrateRoomRoster') as typeof import('./hydrateRoomRoster')
+    return {
+        ...actual,
+        getRoomCharacterList: (...args: Parameters<typeof actual.getRoomCharacterList>) =>
+            mockGetRoomCharacterList(...args),
+    }
+})
+
 import internalCache from "../internalCache"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
@@ -15,6 +25,7 @@ describe('ComponentRender cache handler', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        mockGetRoomCharacterList.mockResolvedValue([])
         internalCache.clear()
     })
 
@@ -40,7 +51,7 @@ describe('ComponentRender cache handler', () => {
                 </Room>
             `))),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+        mockGetRoomCharacterList.mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
@@ -89,7 +100,7 @@ describe('ComponentRender cache handler', () => {
                 exits: [],
             })),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
@@ -140,7 +151,7 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Feature',
             })),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentData.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
@@ -191,7 +202,7 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Knowledge',
             })),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentData.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
@@ -247,7 +258,7 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Feature',
             })),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
@@ -292,7 +303,7 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Feature',
             })),
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)><Feature uuid=(TestOne) ref={0} /></Asset>
@@ -360,7 +371,7 @@ describe('ComponentRender cache handler', () => {
             }
             throw new Error(`Invalid test EphemeraID: ${ephemeraId}`)
         })
-        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        mockGetRoomCharacterList.mockResolvedValue([])
         // EvaluateCode removed - Variable/Computed evaluation no longer available
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "MAP#TestOne")
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`

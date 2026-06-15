@@ -7,6 +7,7 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import internalCache from '../../internalCache'
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
@@ -46,7 +47,7 @@ export const resolveAffordanceRefreshGroupsForRoom = async (
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     }
-    const listGet = deps?.roomCharacterListGet ?? ((id: EphemeraRoomId) => internalCache.RoomCharacterList.get(id))
+    const listGet = deps?.roomCharacterListGet ?? getRoomCharacterList
     const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
 
     const roomAssetStack = await resolveRoomStack(roomId, {

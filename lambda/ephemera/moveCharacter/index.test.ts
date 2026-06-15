@@ -3,8 +3,12 @@ import { produce } from 'immer'
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
+jest.mock('../internalCache/hydrateRoomRoster', () => ({
+    getRoomCharacterList: jest.fn(),
+}))
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
+import { getRoomCharacterList } from '../internalCache/hydrateRoomRoster'
 import PerceptionThreadsData from '../internalCache/perceptionThreads'
 
 const mockPositionsStreamEvent = jest.fn().mockResolvedValue(undefined)
@@ -110,7 +114,7 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
         assets,
         Pronouns: 'they/them'
     })
-    internalCacheMock.RoomCharacterList.get.mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', DisplayName: 'Test', SessionIds: ['abcdef'] }])
+    ;(getRoomCharacterList as jest.Mock).mockResolvedValue(fromDisconnected ? [] : [{ EphemeraId: 'CHARACTER#Test', DisplayName: 'Test', SessionIds: ['abcdef'] }])
 }
 
 describe('moveCharacter', () => {
@@ -225,6 +229,12 @@ describe('moveCharacter', () => {
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getRoomPositionGraph: async (roomId) => ({
+                    nodes: roomId === fromRoom
+                        ? [{ tag: 'Character' as const, universalKey: 'CHARACTER#Test' }]
+                        : [],
+                    edges: [],
+                }),
             })
             return graphResult.ok && graphResult.diff.changed && graphResult.persisted
                 ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }
@@ -265,6 +275,12 @@ describe('moveCharacter', () => {
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getRoomPositionGraph: async (roomId) => ({
+                    nodes: roomId === fromRoom
+                        ? [{ tag: 'Character' as const, universalKey: 'CHARACTER#Test' }]
+                        : [],
+                    edges: [],
+                }),
             })
             return graphResult.ok && graphResult.diff.changed && graphResult.persisted
                 ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }
@@ -306,6 +322,12 @@ describe('moveCharacter', () => {
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getRoomPositionGraph: async (roomId) => ({
+                    nodes: roomId === fromRoom
+                        ? [{ tag: 'Character' as const, universalKey: 'CHARACTER#Test' }]
+                        : [],
+                    edges: [],
+                }),
             })
             return graphResult.ok && graphResult.diff.changed && graphResult.persisted
                 ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }

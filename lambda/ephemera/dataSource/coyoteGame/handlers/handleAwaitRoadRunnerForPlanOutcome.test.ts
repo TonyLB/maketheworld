@@ -1,8 +1,11 @@
+jest.mock('../../../internalCache/hydrateRoomRoster', () => ({
+    getRoomCharacterList: jest.fn(),
+}))
+
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         CoyoteGame: { get: jest.fn(), invalidate: jest.fn() },
-        RoomCharacterList: { get: jest.fn() },
     },
 }))
 
@@ -12,6 +15,7 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 }))
 
 import internalCache from '../../../internalCache'
+import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import type { CacheCoyoteGameKeys } from '../../../internalCache/coyoteGame'
 import { handleAwaitRoadRunnerForPlanOutcome } from './handleAwaitRoadRunnerForPlanOutcome'
 
@@ -19,7 +23,7 @@ const coyoteMock = internalCache.CoyoteGame.get as jest.MockedFunction<typeof in
 const coyoteInvalidateMock = internalCache.CoyoteGame.invalidate as jest.MockedFunction<
     typeof internalCache.CoyoteGame.invalidate
 >
-const roomListMock = internalCache.RoomCharacterList.get as jest.MockedFunction<typeof internalCache.RoomCharacterList.get>
+const roomListMock = getRoomCharacterList as jest.MockedFunction<typeof getRoomCharacterList>
 
 const awaitPayload = {
     type: 'Await RoadRunner' as const,

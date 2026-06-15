@@ -8,6 +8,7 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
+import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import {
@@ -73,7 +74,7 @@ async function resolveFallbackRenderTargetsForPerspective(
     roomId: EphemeraRoomId,
     perspectiveKey: string
 ): Promise<EphemeraCharacterId[]> {
-    const occupants = await internalCache.RoomCharacterList.get(roomId)
+    const occupants = await getRoomCharacterList(roomId)
     if (!occupants.length) {
         return []
     }

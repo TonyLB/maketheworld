@@ -24,6 +24,7 @@ import {
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
 import internalCache from '../../internalCache'
+import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import {
     collectPerspectivePointerEntries,
     type PerspectivePointerEntry,
@@ -151,7 +152,7 @@ export const fanOutStateChangedToPassiveRenders = async (
         RoomAssets: cache.RoomAssets as RoomAssetStackCache['RoomAssets'],
     })
     const roomCanonStack = await resolveCanon(roomId, cache)
-    const listGet = deps?.roomCharacterListGet ?? ((id: EphemeraRoomId) => internalCache.RoomCharacterList.get(id))
+    const listGet = deps?.roomCharacterListGet ?? getRoomCharacterList
     const characters = await listGet(roomId)
 
     const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))

@@ -6,6 +6,10 @@ jest.mock('./updatePositionGraphs', () => ({
     updatePositionGraphs: jest.fn(),
 }))
 
+jest.mock('../../../internalCache/hydrateRoomRoster', () => ({
+    getRoomCharacterList: jest.fn(),
+}))
+
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
@@ -17,11 +21,8 @@ jest.mock('../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             set: jest.fn(),
-            invalidate: jest.fn(),
             setMembershipContainers: jest.fn(),
-            getRoomRoster: jest.fn(),
         },
-        RoomCharacterList: { set: jest.fn() },
         Global: { get: jest.fn() },
     },
 }))
@@ -32,15 +33,25 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 }))
 
 import internalCache from '../../../internalCache'
+import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 
 const updatePositionGraphsMock = graphPersist.updatePositionGraphs as jest.MockedFunction<
     typeof graphPersist.updatePositionGraphs
 >
+const getRoomCharacterListMock = getRoomCharacterList as jest.MockedFunction<typeof getRoomCharacterList>
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
+
+const postApplyNavigateGraphs = {
+    [FROM_ROOM]: { nodes: [], edges: [] as [] },
+    [TO_ROOM]: {
+        nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
+        edges: [] as [],
+    },
+}
 
 describe('applyCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -54,14 +65,12 @@ describe('applyCharacterRoomMembership', () => {
             HomeId: 'ROOM#VORTEX',
         })
         ;(internalCache.Global.get as jest.Mock).mockResolvedValue('SESSION#abcdef')
-        ;(internalCache.Positions.getRoomRoster as jest.Mock).mockImplementation(
-            async (roomId: EphemeraRoomId) => {
-                if (roomId === TO_ROOM) {
-                    return [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }]
-                }
-                return []
+        getRoomCharacterListMock.mockImplementation(async (roomId: EphemeraRoomId) => {
+            if (roomId === TO_ROOM) {
+                return [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }]
             }
-        )
+            return []
+        })
     })
 
     it('skips side-effect bundle when membership endpoint is unchanged', async () => {
@@ -85,7 +94,7 @@ describe('applyCharacterRoomMembership', () => {
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(internalCache.CharacterMeta.invalidate).not.toHaveBeenCalled()
         expect(internalCache.Positions.setMembershipContainers).not.toHaveBeenCalled()
-        expect(internalCache.Positions.getRoomRoster).not.toHaveBeenCalled()
+        expect(getRoomCharacterListMock).not.toHaveBeenCalled()
     })
 
     it('runs membership-changed bundle when endpoint changes', async () => {
@@ -93,6 +102,7 @@ describe('applyCharacterRoomMembership', () => {
             ok: true,
             persisted: true,
             diff: { froms: [FROM_ROOM], to: TO_ROOM, changed: true },
+            postApplyRoomGraphs: postApplyNavigateGraphs,
         })
 
         const result = await applyCharacterRoomMembership(
@@ -127,10 +137,12 @@ describe('applyCharacterRoomMembership', () => {
         expect(streamCallOrder).toBeLessThan(messageBus.publish.mock.invocationCallOrder[0])
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(FROM_ROOM)
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(TO_ROOM)
-        expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(FROM_ROOM)
-        expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(TO_ROOM)
-        expect(internalCache.Positions.getRoomRoster).toHaveBeenCalledWith(FROM_ROOM)
-        expect(internalCache.Positions.getRoomRoster).toHaveBeenCalledWith(TO_ROOM)
+        expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith(FROM_ROOM)
+        expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith(TO_ROOM)
+        expect(internalCache.Positions.set).toHaveBeenCalledWith({
+            componentId: FROM_ROOM,
+            graph: expect.objectContaining({ nodes: [], edges: [] }),
+        })
         expect(internalCache.Positions.set).toHaveBeenCalledWith({
             componentId: TO_ROOM,
             graph: expect.objectContaining({
@@ -139,14 +151,8 @@ describe('applyCharacterRoomMembership', () => {
                 ]),
             }),
         })
-        expect(internalCache.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: FROM_ROOM,
-            value: [],
-        })
-        expect(internalCache.RoomCharacterList.set).toHaveBeenCalledWith({
-            key: TO_ROOM,
-            value: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }],
-        })
+        expect(getRoomCharacterListMock).toHaveBeenCalledWith(FROM_ROOM)
+        expect(getRoomCharacterListMock).toHaveBeenCalledWith(TO_ROOM)
         expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
             componentId: CHARACTER_ID,
             containers: [TO_ROOM],
@@ -169,6 +175,14 @@ describe('applyCharacterRoomMembership', () => {
             ok: true,
             persisted: true,
             diff: { froms: [FROM_ROOM, ROOM_C], to: TO_ROOM, changed: true },
+            postApplyRoomGraphs: {
+                [FROM_ROOM]: { nodes: [], edges: [] as [] },
+                [ROOM_C]: { nodes: [], edges: [] as [] },
+                [TO_ROOM]: {
+                    nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
+                    edges: [] as [],
+                },
+            },
         })
 
         await applyCharacterRoomMembership(
@@ -182,9 +196,9 @@ describe('applyCharacterRoomMembership', () => {
                 to: TO_ROOM,
             }),
         }))
-        expect(internalCache.Positions.getRoomRoster).toHaveBeenCalledWith(FROM_ROOM)
-        expect(internalCache.Positions.getRoomRoster).toHaveBeenCalledWith(ROOM_C)
-        expect(internalCache.Positions.getRoomRoster).toHaveBeenCalledWith(TO_ROOM)
+        expect(getRoomCharacterListMock).toHaveBeenCalledWith(FROM_ROOM)
+        expect(getRoomCharacterListMock).toHaveBeenCalledWith(ROOM_C)
+        expect(getRoomCharacterListMock).toHaveBeenCalledWith(TO_ROOM)
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: FROM_ROOM })
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_C })
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: TO_ROOM })
@@ -209,7 +223,7 @@ describe('applyCharacterRoomMembership', () => {
             errorMessage: 'boom',
         })
         expect(messageBus.publish).not.toHaveBeenCalled()
-        expect(internalCache.Positions.getRoomRoster).not.toHaveBeenCalled()
+        expect(getRoomCharacterListMock).not.toHaveBeenCalled()
         consoleSpy.mockRestore()
     })
 })

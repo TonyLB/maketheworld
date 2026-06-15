@@ -2,6 +2,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
+import { getRoomCharacterList } from './hydrateRoomRoster'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -50,7 +51,7 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
-    it('should fetch room roster via Positions.getRoomRoster only once', async () => {
+    it('getRoomCharacterList derives roster from Positions.getRoomRoster on each call', async () => {
         const expectedOutput = [
             {
                 EphemeraId: 'CHARACTER#123' as const,
@@ -68,11 +69,11 @@ describe('InternalCache', () => {
         const getRoomRosterSpy = jest.spyOn(internalCache.Positions, 'getRoomRoster')
             .mockResolvedValue(expectedOutput)
 
-        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
+        expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
         expect(getRoomRosterSpy).toHaveBeenCalledTimes(1)
         expect(getRoomRosterSpy).toHaveBeenCalledWith('ROOM#1234')
-        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
-        expect(getRoomRosterSpy).toHaveBeenCalledTimes(1)
+        expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
+        expect(getRoomRosterSpy).toHaveBeenCalledTimes(2)
 
         getRoomRosterSpy.mockRestore()
     })

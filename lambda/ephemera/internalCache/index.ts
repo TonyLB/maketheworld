@@ -1,6 +1,5 @@
 
 
-import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
@@ -52,6 +51,7 @@ import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import { AffordanceCacheData } from './affordanceCache';
 import { PositionsData } from './positions';
+import { getRoomCharacterList } from './hydrateRoomRoster';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
@@ -86,7 +86,6 @@ export class InternalCache {
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
-    RoomCharacterList!: CacheRoomCharacterListsData
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
     AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
     RoomAssets: CacheRoomAssetsData = new CacheRoomAssetsData()
@@ -137,9 +136,6 @@ export class InternalCache {
             },
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
-        this.RoomCharacterList = new CacheRoomCharacterListsData(
-            (roomId) => this.Positions.getRoomRoster(roomId)
-        )
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
         this.Graph = this._graphCache.Graph
         this.GraphNodes = this._graphCache.Nodes
@@ -147,7 +143,7 @@ export class InternalCache {
         // AssetMap removed - was used for Variable/Computed dependency resolution
         this.ComponentRender = new ComponentRenderData(
             this.ComponentData,
-            this.RoomCharacterList,
+            getRoomCharacterList,
             this.Global,
             this.CharacterMeta,
             this.RenderCache
@@ -181,7 +177,6 @@ export class InternalCache {
         this.PlayerMeta.clear()
         this.OrchestrateMessages.clear()
         this.PerceptionThreads.clear()
-        this.RoomCharacterList.clear()
         this.CharacterMeta.clear()
         this.AssetRooms.clear()
         this.RoomAssets.clear()
