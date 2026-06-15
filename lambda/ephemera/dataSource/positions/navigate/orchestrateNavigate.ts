@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { MessageBus } from '../messageBus/baseClasses'
-import internalCache from '../internalCache'
-import type { CharacterMetaItem } from '../internalCache/characterMeta'
+import { MessageBus } from '../../../messageBus/baseClasses'
+import internalCache from '../../../internalCache'
+import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import {
     getCharacterRoomPerspectiveKey,
     kickPassiveRenderRequestedForCharacterInRoom,
-} from '../dataSource/perception/kickRoomHeaderBroadcast'
+} from '../../perception/kickRoomHeaderBroadcast'
 
 export type OrchestrateCharacterNavigateArgs = {
     characterId: EphemeraCharacterId;

@@ -298,9 +298,6 @@ describe('ephemeraActionsDataSource', () => {
                     exitName: 'north',
                 },
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
                     roomExits: [{ normalizedName: 'north', targetId: dest }],
@@ -348,9 +345,6 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['You are not in a room, so you cannot go anywhere.'],
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
         })
 
         it('publishes WorldOOCMessage when target room is not reachable by an exit', async () => {
@@ -384,9 +378,6 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
         })
     })
 
@@ -431,9 +422,6 @@ describe('ephemeraActionsDataSource', () => {
                     toRoomId: home,
                 },
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
         })
 
         it('publishes WorldOOCMessage when already at home', async () => {
@@ -517,9 +505,6 @@ describe('ephemeraActionsDataSource', () => {
                     exitName: 'north',
                 },
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
             expect(mockMessageBus.publish).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
@@ -565,9 +550,6 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['There is no exit to that place from here.'],
             })
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
-                type: 'MoveCharacter',
-            }))
         })
     })
 

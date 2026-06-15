@@ -1,4 +1,4 @@
-jest.mock('../internalCache', () => ({
+jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         OrchestrateMessages: {
@@ -10,12 +10,12 @@ jest.mock('../internalCache', () => ({
     },
 }))
 
-jest.mock('../dataSource/perception/kickRoomHeaderBroadcast', () => ({
+jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
     getCharacterRoomPerspectiveKey: jest.fn(async () => 'perspective-key'),
     kickPassiveRenderRequestedForCharacterInRoom: jest.fn(async () => false),
 }))
 
-import internalCache from '../internalCache'
+import internalCache from '../../../internalCache'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 describe('orchestrateCharacterNavigate', () => {

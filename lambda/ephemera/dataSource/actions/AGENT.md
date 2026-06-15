@@ -6,7 +6,7 @@
 
 **Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes and orchestrates via **`publish`** + boundary **`flushAndSettle`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
 
-**Bus delivery:** Imperative **`PublishMessage`**, **`MoveCharacter`**, and correlated **`ReturnValue`** use **`messageBus.publish`**; quiescence at lambda boundary only (no producer-side drain). Legacy [`executeAction`](../../parse/executeAction.ts) uses the same **`publish`** path.
+**Bus delivery:** Imperative **`PublishMessage`** and correlated **`ReturnValue`** use **`messageBus.publish`**; quiescence at lambda boundary only (no producer-side drain). Legacy [`executeAction`](../../parse/executeAction.ts) uses the same **`publish`** path.
 
 ## Role
 
@@ -30,7 +30,7 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 
 ## Movement (actions stream vs positions execution)
 
-- Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) and UI exit clicks (**`Action Assessed`** **`Navigation`** from [`executeAction`](../../parse/executeAction.ts) `case 'move'`) are **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts)).
+- Parse-based navigation (**`Parse Requested`** -> **`Character Navigate`**) and UI exit clicks (**`Action Assessed`** **`Navigation`** from [`executeAction`](../../parse/executeAction.ts) `case 'move'`) are **stream-only** from actions; execution is owned by **`mtw.ephemera.positions`** ([`index.ts`](../positions/index.ts) -> [`navigate/executeCharacterNavigate`](../positions/navigate/executeCharacterNavigate.ts)).
 - Parse-based home (**bare `home`**, **`HomeIntent`**, **`Parse Requested`**) and trusted home (**`Action Assessed`** **`Home`** from [`executeAction`](../../parse/executeAction.ts) `case 'home'`, `source: 'uiHome'`) **`streamEvent`** **`Character Home`**; positions executes via the same **`executeCharacterNavigate`** path as navigate.
 - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) and `Character Home` (`characterId`, `fromRoomId`, `toRoomId` from `CharacterMeta.HomeId`) for fan-in intent legs and positions execution.
 - **Disconnect** and **connect** intent legs come from **`mtw.connections.characters`**; positions owns membership apply. Leave/arrive world copy is owned by **membership fan-in** on **`mtw.ephemera.perception`** ([`../perception/AGENT.md`](../perception/AGENT.md)).

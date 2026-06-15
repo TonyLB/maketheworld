@@ -36,7 +36,7 @@ import {
     handleCharacterConnected,
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
-import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
+import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import type { PositionsPublishedPayload } from './publishedEvents'
 

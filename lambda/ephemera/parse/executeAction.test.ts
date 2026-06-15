@@ -160,9 +160,6 @@ describe('executeAction', () => {
                     source: 'uiExit',
                 }
             )
-            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
-                expect.objectContaining({ type: 'MoveCharacter' })
-            )
         })
 
         it('should send Action Assessed Navigation for move action without exit name', async () => {
@@ -190,9 +187,6 @@ describe('executeAction', () => {
                     source: 'uiExit',
                 }
             )
-            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
-                expect.objectContaining({ type: 'MoveCharacter' })
-            )
         })
     })
 
@@ -219,9 +213,6 @@ describe('executeAction', () => {
                     },
                     source: 'uiHome',
                 }
-            )
-            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
-                expect.objectContaining({ type: 'MoveCharacter' })
             )
         })
     })

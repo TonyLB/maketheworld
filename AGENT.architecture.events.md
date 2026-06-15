@@ -91,7 +91,7 @@ await internalCache.RoomCharacterList.set({
 const characterList = await internalCache.RoomCharacterList.get(roomId)
 ```
 
-#### **Character Movement Events**
+#### **Character Movement Events** *(legacy `MoveCharacter` bus message retired --- see `mtw.ephemera.positions` / `navigate/executeCharacterNavigate`)*
 ```typescript
 export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParams) => {
     await Promise.all(payloads.map(async (payload) => {
@@ -176,9 +176,11 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 3. Render component description via `ComponentRender.get(characterId, ephemeraId)`
 4. Send appropriately formatted message (`FeatureDescription`, `KnowledgeDescription`, etc.)
 
-### Movement Events
+### Movement Events *(legacy)*
 
-#### **Character Movement**
+> **Retired:** Imperative `MoveCharacter` bus messages were removed. Character navigate/home execution is owned by **`mtw.ephemera.positions`** via stream ingress (`Character Navigate`, `Character Home`) and **`executeCharacterNavigate`**.
+
+#### **Character Movement** *(historical bus shape)*
 ```typescript
 {
     type: 'MoveCharacter',
@@ -267,12 +269,8 @@ The message bus (`lambda/ephemera/messageBus/index.ts`) coordinates event proces
 ```typescript
 export const messageBus = new MessageBus()
 
-// High priority: Character presence tracking
-messageBus.subscribe({
-    tag: 'MoveCharacter',
-    priority: 20,
-    callback: moveCharacter
-})
+// Character movement no longer uses a MoveCharacter bus subscriber.
+// Positions DataSource receiveEvents routes stream ingress to executeCharacterNavigate.
 
 // Medium priority: Perception processing
 messageBus.subscribe({
@@ -297,11 +295,10 @@ Coordinate related events that should be processed together:
 ```typescript
 const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
 
-// Multiple related events
-messageBus.send({
-    type: 'MoveCharacter',
+// Multiple related events (example: navigate orchestration messageGroupId)
+messageBus.publish({
+    type: 'MapUpdate',
     characterId,
-    roomId,
     messageGroupId
 })
 

@@ -79,7 +79,7 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 
 ## Relation to PerceptionThreads and fan-in
 
-Today **`characterMove`** registers a targeting-only PerceptionThreads row after membership persist so async header render can correlate to a bucket ([`orchestrateNavigate.ts`](moveCharacter/orchestrateNavigate.ts), [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)). That registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
+Today **`characterMove`** registers a targeting-only PerceptionThreads row after membership persist so async header render can correlate to a bucket ([`orchestrateNavigate.ts`](dataSource/positions/navigate/orchestrateNavigate.ts), [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)). That registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
 
 **Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`messageGroupId`** / **`CreatedTime`** assignments. Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
 
