@@ -26,7 +26,7 @@ Track the initiative to grow `mtw.ephemera.positions` into ephemera's authority 
 
 1. [`taskPlanning/AGENT.md`](../../../../AGENT.md) --- durability ladder; task plan vs package docs
 2. [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) --- domain mental models (room membership, **eviction ladder**, fractal graphs)
-3. [Migration strategy](#migration-strategy-routing-first) below --- **membership persistence boundary**, slice 1 TEMP vs slice 2 graph-diff fact emit (**S1-14** / **F1-8**), storage swap, read surfaces; **Close:** [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h) before **S2-6** storage retirement
+3. [Migration strategy](#migration-strategy-routing-first) below --- **membership persistence boundary**, slice 1 TEMP vs slice 2 graph-diff fact emit (**S1-14** / **F1-8**), storage swap, read surfaces; **Close:** [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h) before **S2-6** storage retirement; [Occupancy drift repair (**S2-6-DR**)](#occupancy-drift-repair-model-s2-6-dr) after **S2-6**
 4. [`positions/AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) --- what is binding now
 5. [`lambda/ephemera/dataSource/AGENT.md`](../../../../../../lambda/ephemera/dataSource/AGENT.md) --- DataSource index
 
@@ -180,16 +180,60 @@ One PR (do not split). **Prerequisite:** slice **1d** (**`froms[]`** contract + 
 | Track | ID | What changes |
 | --- | --- | --- |
 | **Storage retirement** | **S2-6** | Stop persisting / authority reads of **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); grep gate. **Prerequisite:** **S2-6-H** roster hydration on **`getRoomRoster`** |
-| **Drift repair centralization** | **S2-6-DR** | Replace diagnostics downstream repair: no direct **`activeCharacters`** optimistic rewrite; detect drift vs **`positionGraph` + adjacency** + connections session adjacency (via **`internalCache.Positions`**); repair through **`repairCharacterLegalPlacement`** / end-state membership apply; consume **`Room Occupancy Drift Finding`** on positions (or equivalent direct call); retire **`CheckLocation`** messageBus adapter ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts)); remove contract exception in [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) |
+| **Drift repair centralization** | **S2-6-DR** | Replace diagnostics downstream repair: no direct **`activeCharacters`** optimistic rewrite; **graph-forward** room scan + session gate + adjacency sync (see [Occupancy drift repair model](#occupancy-drift-repair-model-s2-6-dr)); repair through **`applyCharacterRoomMembership`** (disconnect / adjacency-only patch); consume **`Room Occupancy Drift Finding`** on positions; retire **`CheckLocation`** messageBus adapter ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts)); remove contract exception in [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) |
 
-**Eviction ladder processing** is already positions-owned (**slice 3**): connect via **`resolveConnectTargetRoom`**, asset visibility via **`repairCharacterLegalPlacement`**. **S2-6-DR** completes ingress alignment for occupancy drift --- same direct-repair posture as connect, not a revived **`CheckLocation`** bridge.
+**Eviction ladder processing** is already positions-owned (**slice 3**): connect via **`resolveConnectTargetRoom`**, asset visibility via **`repairCharacterLegalPlacement`**. **S2-6-DR** completes ingress alignment for occupancy drift --- same direct-repair posture as connect, not a revived **`CheckLocation`** bridge. **`repairCharacterLegalPlacement`** remains for **asset visibility** / ladder trim --- not the primary occupancy-drift repair path.
 
 **Diagnostics boundary (unchanged owner, updated contract):**
 
-- **Sweep** ([`lambda/diagnostics/roomOccupancyDriftSweep/`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/)): stays read-only finding emitter; re-evaluate drift classification when **`RoomId`** / stored **`activeCharacters`** are no longer authority (compare against graph + adjacency + connections adjacency).
+- **Sweep** ([`lambda/diagnostics/roomOccupancyDriftSweep/`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/)): stays read-only finding emitter; classify drift using the [graph-forward scan](#occupancy-drift-repair-model-s2-6-dr) (no **`RoomId`** / **`activeCharacters`** authority).
 - **Downstream repair**: moves from **`mtw.ephemera`** self-healing + **`CheckLocation`** bus hop to positions-owned handler on **`Room Occupancy Drift Finding`** (or thin wrapper calling **`membership/`** repair).
 
-**Out of Close (unless explicitly scoped later):** asset visibility ingress on canon/zone change (orphaned **`CanonAdd`** / **`CanonRemove`** bus publishes today --- no subscriber); **S3-EL-2** (`RoomStack` rename).
+**Out of Close (unless explicitly scoped later):** asset visibility ingress on canon/zone change (orphaned **`CanonAdd`** / **`CanonRemove`** bus publishes today --- no subscriber); **S3-EL-2** (`RoomStack` rename); **stale adjacency without graph node** cleanup (see [explicit gap](#occupancy-drift-repair-model-s2-6-dr) below).
+
+### Occupancy drift repair model (**S2-6-DR**)
+
+**Decided:** room-scoped occupancy drift detection and repair is **graph-forward**. Given a **`roomId`**, derive the candidate set from that room's stored **`positionGraph`** character nodes (via **`internalCache.Positions.getPositionGraph`** / **`extractCharacterIdsFromPlayPositionGraph`**). Do **not** use **`Meta::Character.RoomId`** or **`Meta::Room.activeCharacters`** as authority.
+
+#### Primacy (repair decisions)
+
+| Layer | Role in drift repair |
+| --- | --- |
+| **Connections sessions** | **Gate in-play vs out-of-play.** If a character has **no** live sessions (`CharacterSessions` / connections adjacency), they must **not** remain in play membership --- even if a **`positionGraph`** node still lists them. |
+| **`positionGraph`** (forward) | **Authoritative membership topology** when the character **is** being played. |
+| **Membership adjacency** (reverse) | **Derived index** kept in sync with graph when in-play; corrected when graph says the character is in this room but adjacency does not. |
+
+Within membership storage, **`positionGraph` wins over adjacency** on conflict (**S2-5**). Across layers: **sessions gate whether membership should exist**; among in-play characters, **graph wins over adjacency**.
+
+#### Per-room scan algorithm (normative)
+
+For each **`roomId`** under evaluation (sweep finding or direct handler):
+
+1. **Enumerate** `characterIds` from the room's **`positionGraph`** nodes.
+2. For each **`characterId`**:
+   - **Not being played** (no live sessions): graph is **wrong** --- character is a ghost on this room. **Repair:** **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** (end-state apply removes from **all** prior containers via **`updatePositionGraphs`**, not only this room).
+   - **Being played:** graph is **correct** for this room. **If** **`getMembershipContainers(characterId)`** does not include **`roomId`**: adjacency is **wrong**. **Repair:** adjacency-only correction for this character+room pair (add missing **`POSITION#${roomId}`** row; delete stale adjacency rows for other hosts if graph says at-most-one room). Prefer a small membership helper colocated with **`updatePositionGraphs`** rather than re-encoding adjacency writes outside **`membership/`**.
+3. **Do not** patch **`activeCharacters`**, **`RoomId`**, or roster denorms directly.
+
+**Connected but unplaced** (sessions present, **`getMembershipContainers`** empty, no graph node anywhere): **out of scope** for this room-forward scan --- handled by normal **connect** ingress or **`repairCharacterLegalPlacement`** (eviction ladder / asset visibility), not occupancy drift on a specific room's graph.
+
+#### Explicit gap (documented; out of **S2-6-DR** scope)
+
+This scan is **forward-graph-driven per room**. It **does not** detect or repair:
+
+- **Stale adjacency** pointing at **`roomId`** when the character is **not** listed in that room's **`positionGraph`** (orphan reverse index with no forward node).
+
+Reason: the scan never visits characters that are absent from the room graph, so adjacency-only ghosts for that room are invisible to step 2.
+
+**Follow-on (deferred unless explicitly scoped):** character-scoped or adjacency-scoped sweep pass (e.g. for each adjacency row, verify the host room's **`positionGraph`** contains the character; delete orphan adjacency or add graph node per product rule). Not required for **S2-6-DR** Close checklist.
+
+#### Module placement (target)
+
+| Piece | Location | Role |
+| --- | --- | --- |
+| **Classification** | [`lambda/diagnostics/roomOccupancyDriftSweep/`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) | Read-only: emit **`Room Occupancy Drift Finding`** when graph-forward rules detect drift for a room |
+| **Repair handler** | **`positions/membership/`** (new e.g. `repairRoomOccupancyDrift.ts` or extend coordinator seam) | Consume finding; run per-character repairs above via **`applyCharacterRoomMembership`** / adjacency helper |
+| **Retire** | [`roomOccupancyDriftFinding.ts`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts), [`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts) | Remove **`activeCharacters`** optimistic rewrite and **`CheckLocation`** bus hop |
 
 ### Roster hydration at read time (**S2-6-H**)
 
@@ -242,7 +286,7 @@ One PR (do not split). **Prerequisite:** slice **1d** (**`froms[]`** contract + 
 | **Gateway forward read** | **`positionGraph` + `activeCharacters` merge** | **`positionGraph` topology only** (no roster meta on graph load) |
 | **`chaos/addGhostSession`** | Patches **`activeCharacters`** | Out of scope unless grep finds it on steady path --- retarget or document test-only exception at Close grep |
 
-**Out of S2-6-H (S2-6-DR):** diagnostics drift sweep/repair classification uses graph + adjacency + connections --- not roster hydration helper directly.
+**Out of S2-6-H (S2-6-DR):** diagnostics drift sweep/repair uses [graph-forward occupancy model](#occupancy-drift-repair-model-s2-6-dr) --- not roster hydration helper directly.
 
 ### Module layout (**S1-4**)
 
@@ -456,7 +500,7 @@ When **`!changed`**: skip the **entire** bundle --- no fact, no **`RoomUpdate`**
 | **S2-5** | **Reverse membership persistence backing** | **Decided:** **adjacency index** (**`COMPONENT#X`** x **`POSITION#COMPONENT#Y`**) backs **`getMembershipContainers`**; **`positionGraph`** primary on conflict. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
 | **S2-6** | **Legacy projection storage retirement** | **Decided:** by **initiative close**, remove stored **`activeCharacters`** / **`RoomId`** membership authority; graph + adjacency only. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). Companion **S2-6-DR** retires diagnostics drift repair + **`CheckLocation`** ingress. |
 | **S2-6-H** | **Roster hydration at read time** | **Decided:** graph nodes = membership topology only; ephemera-local **`hydrateRoomRosterFromCharacterIds`** + **`PositionsData.getRoomRoster`** from **`CharacterMeta` + `CharacterSessions`**; positions gateway topology-only forward read. Land **before** dropping **`activeCharacters`** storage. See [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h). |
-| **S2-6-DR** | **Occupancy drift repair centralization** | **Decided:** at **Close**, replace ad-hoc **`activeCharacters`** self-healing with positions **`membership/`** repair; retire **`CheckLocation`** bus. See [Close initiative scope (**S2-6** + **S2-6-DR**)](#close-initiative-scope-s2-6--s2-6-dr). |
+| **S2-6-DR** | **Occupancy drift repair centralization** | **Decided:** graph-forward room scan; sessions gate disconnect; in-play graph syncs adjacency. Retire **`CheckLocation`** bus. See [Occupancy drift repair model (**S2-6-DR**)](#occupancy-drift-repair-model-s2-6-dr). |
 
 When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) and remove from **Open decisions** below.
 
@@ -472,7 +516,7 @@ When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../..
 | **Storage swap** | **2** | `Meta::Room.positionGraph`, **`updatePositionGraphs`**, **adjacency reverse index** (**S2-5**), graph-diff **`Character Moved`** (multi-from when drift); gateway backing swap (**S1-15**); **transitional** dual-write to legacy projections (**S2-2**) | Orchestration and ingress paths from slice 1 / 1c / **1d** |
 | **Unify ingress** | **3** | Connect path through same API (retire `CheckLocation` bridge) | Graph + adjacency persist |
 | **Legacy ingress cleanup** | **4** | `disconnectMessage`, `Disconnect Character` ingress | --- |
-| **Projection retirement + drift repair** | **Close** | **S2-6-H:** ephemera roster hydrate at read (`CharacterMeta` + `CharacterSessions`; not in **`mtw-gateways`**). **S2-6:** remove stored **`activeCharacters`** / **`RoomId`** membership authority; topology via positions gateway. **S2-6-DR:** replace diagnostics downstream repair + retire **`CheckLocation`** bus; positions-owned drift handler via membership API | --- |
+| **Projection retirement + drift repair** | **Close** | **S2-6-H:** ephemera roster hydrate at read (`CharacterMeta` + `CharacterSessions`; not in **`mtw-gateways`**). **S2-6:** remove stored **`activeCharacters`** / **`RoomId`** membership authority; topology via positions gateway. **S2-6-DR:** graph-forward occupancy sweep + positions **`membership/`** repair; retire **`CheckLocation`** (see [Occupancy drift repair model](#occupancy-drift-repair-model-s2-6-dr)) | --- |
 
 **Out of scope for this plan:** **S3-EL-2** (`RoomStack` rename) and **slice 5+** richer graphs (in-room edges, object placement, container graphs). Target mental models remain in [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md); implement under a follow-on plan if needed.
 
@@ -534,7 +578,7 @@ _All slice 3 open decisions shipped or out of scope. **S3-EL-2** (`RoomStack` re
 | S2-5 | **Reverse membership persistence backing** | 2 | **Decided:** **adjacency index** on ephemera Dynamo (**`COMPONENT#X`** partition, **`POSITION#COMPONENT#Y`** sort keys or equivalent) maintained in **`updatePositionGraphs`** transact bundle; backs **`getMembershipContainers`**. Denorm **`RoomId`** is **not** steady-state reverse authority (transitional dual-write only per **S2-2**). **`positionGraph`** wins on conflict/diagnostics. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
 | S2-6 | **Legacy projection storage retirement at initiative close** | Close | **Decided:** remove stored **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** as play membership authority; **`positionGraph` + adjacency** only. Migrate all steady-state readers to **`internalCache.Positions`**; grep gate at close. Optional perf-only memo caches OK; not Dynamo truth. **Prerequisite:** **S2-6-H** roster hydration shipped. |
 | S2-6-H | **Roster hydration at read time** | Close | **Decided:** ephemera-local **`hydrateRoomRosterFromCharacterIds`** + **`PositionsData.getRoomRoster`**; authorities **`CharacterMeta` + `CharacterSessions`** (not **`ComponentEphemeraMeta`**, not stored **`activeCharacters`**, **not** **`mtw-gateways`** assembly). Positions gateway forward read = topology only. Migrate **`RoomCharacterList.get`**. See [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h). |
-| S2-6-DR | **Occupancy drift repair centralization at Close** | Close | **Decided:** companion to **S2-6** --- replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) ad-hoc **`activeCharacters`** rewrite with positions-owned repair via **`repairCharacterLegalPlacement`** / membership apply; consume **`Room Occupancy Drift Finding`** on positions; retire **`CheckLocation`** messageBus adapter; update diagnostics sweep evaluation for graph + adjacency authority. See [Close initiative scope (**S2-6** + **S2-6-DR**)](#close-initiative-scope-s2-6--s2-6-dr). Asset visibility on canon/zone change out of scope unless explicitly added. |
+| S2-6-DR | **Occupancy drift repair centralization at Close** | Close | **Decided:** graph-forward room scan --- sessions gate out-of-play (**`targetRoomId: null`**); in-play graph authoritative over adjacency. Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts); consume finding on positions; retire **`CheckLocation`**. **Explicit gap:** stale adjacency without graph node deferred. See [Occupancy drift repair model (**S2-6-DR**)](#occupancy-drift-repair-model-s2-6-dr). Asset visibility on canon/zone change out of scope unless explicitly added. |
 
 For a long option comparison on any row, add a root [**temporary analysis**](../../../../../../AGENT.md#temporary-working-documents) doc and link it from the table (do not bloat concepts).
 
@@ -615,7 +659,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Migrate `unregistercharacter` to connections service; stream `Character Disconnected` on last-session removal
   - [X] Integration test for positions receive paths
 
-  - [ ] **Close initiative** (**S2-6-DR** --- see [Close initiative scope](#close-initiative-scope-s2-6--s2-6-dr), [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h))
+  - [ ] **Close initiative** (**S2-6-DR** --- see [Close initiative scope](#close-initiative-scope-s2-6--s2-6-dr), [Occupancy drift repair model](#occupancy-drift-repair-model-s2-6-dr))
   - [X] **S2-6-H --- roster hydration (land first; ephemera-local):**
     - [X] **`internalCache/hydrateRoomRoster.ts`** (or equivalent): **`hydrateRoomRosterFromCharacterIds`** via **`CharacterMeta.get`** + **`CharacterSessions.get`**; field mapping matches **`updatePositionGraphs`** arrival reducer; unit tests with stubbed caches
     - [X] **`PositionsData.getRoomRoster`:** override --- **`getPositionGraph(roomId)`** (topology) + hydrate; document as **primary** steady-state roster API on [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)
@@ -627,10 +671,23 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
     - [X] **`updatePositionGraphs` / coordinator:** **`roomRosterSnapshots`** from ephemera **`getRoomRoster`** --- not transact **`successCallback`** on **`activeCharacters`**
   - [X] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership in **`updatePositionGraphs`**; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); delete **`applyCharacterMembershipFlat`** if unused
   - [X] **S2-6 --- readers:** Remove gateway **`RoomId`** / **`activeCharacters`** fallbacks ([`getCharacterRoomIdFromDynamo`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts), **`projectRoomGraphFromActiveCharacters`** bootstrap except empty-graph edge); steady-state **`getMembershipContainers`** adjacency-only
-  - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) --- no direct **`activeCharacters`** optimistic rewrite; detect vs graph + adjacency + connections adjacency; repair via **`repairCharacterLegalPlacement`** / end-state **`applyCharacterRoomMembership`** when membership endpoint must change
-  - [ ] **S2-6-DR --- ingress:** Subscribe **`mtw.ephemera.positions`** to **`mtw.diagnostics`** / **`Room Occupancy Drift Finding`** (or equivalent positions handler); remove handler from **`mtw.ephemera`** self-healing path
-  - [ ] **S2-6-DR --- retire `CheckLocation`:** Remove messageBus **`CheckLocation`** subscriber ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts), coalescer); no positions connect-style **`CheckLocation`** publishes remain
-  - [ ] **S2-6-DR --- diagnostics sweep:** Update [`roomOccupancyDriftSweep`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) classification for graph + adjacency authority (sweep stays read-only in diagnostics)
+  - [ ] **S2-6-DR --- diagnostics sweep:** Update [`roomOccupancyDriftSweep`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) classification per [graph-forward scan](#occupancy-drift-repair-model-s2-6-dr) (sweep stays read-only in diagnostics)
+    - [ ] Load room **`positionGraph`** nodes per **`Meta::Room`** row (not **`activeCharacters`**)
+    - [ ] Build connections session adjacency map (reuse existing sweep pattern)
+    - [ ] **`roomHasOccupancyDrift`**: for each graph node in room, flag drift when (no sessions) OR (sessions and adjacency missing this **`roomId`**)
+    - [ ] Remove **`RoomId`** / **`activeCharacters`** fingerprint classification; remove **`needsCheckLocation`** / **`checkLocationCandidates`** from sweep return (retired with **`CheckLocation`**)
+    - [ ] Unit tests: ghost on graph (no sessions); live on graph + missing adjacency; clean room (no drift); document that stale adjacency-without-graph-node does **not** emit (explicit gap)
+  - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) with positions **`membership/`** handler per [repair algorithm](#occupancy-drift-repair-model-s2-6-dr)
+    - [ ] New handler (e.g. **`repairRoomOccupancyDrift`**) under **`positions/membership/`**: given **`roomId`**, enumerate graph character nodes; per character apply session gate + repair branch
+    - [ ] **Ghost (no sessions):** **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** --- full membership purge via **`updatePositionGraphs`**
+    - [ ] **In-play, adjacency lag:** adjacency-only patch (add **`POSITION#${roomId}`**; scrub orphan host rows if needed); **no** **`activeCharacters`** / **`RoomId`** writes
+    - [ ] Idempotent under at-least-once finding delivery; coordinator **`S1-11`** bundle runs on membership endpoint change only
+    - [ ] Delete or gut **`roomOccupancyDriftFinding.ts`** + tests; migrate scenarios to positions handler tests
+  - [ ] **S2-6-DR --- ingress:** Subscribe **`mtw.ephemera.positions`** to **`mtw.diagnostics`** / **`Room Occupancy Drift Finding`**; wire handler to **`repairRoomOccupancyDrift`** (or equivalent)
+    - [ ] Register guard in [`subscribedEvents.ts`](../../../../../../lambda/ephemera/dataSource/positions/subscribedEvents.ts)
+    - [ ] Remove downstream handler from **`mtw.ephemera`** self-healing path (no dual repair)
+  - [ ] **S2-6-DR --- retire `CheckLocation`:** Remove messageBus **`CheckLocation`** subscriber ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts), coalescer); grep no **`CheckLocation`** publishes from drift repair
+    - [ ] **`repairCharacterLegalPlacement`** stays for asset-visibility / ladder paths only (not occupancy drift)
   - [ ] Grep: no steady-state **`activeCharacters`** / **`RoomId`** membership writes; no ad-hoc diagnostics membership exception
   - [ ] Graduate contract + implementation (**S2-6**, **S2-6-DR**); remove self-healing exception row from [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)
   - [ ] Run verification matrix (Close gates below)
@@ -668,7 +725,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Initiative close gate (**S2-6**):** no Dynamo authority on **`activeCharacters`** / **`RoomId`** for play membership; **`getMembershipContainers`** reads adjacency only; forward membership from **`positionGraph`** nodes; roster display via ephemera **S2-6-H** hydrate; positions gateway topology-only forward read; conflict repair prefers graph.
 
-**Initiative close gate (**S2-6-DR**):** **`Room Occupancy Drift Finding`** downstream repair runs through positions **`membership/`** (no **`activeCharacters`** patch); no **`CheckLocation`** messageBus type in steady state; diagnostics sweep findings align with graph + adjacency authority.
+**Initiative close gate (**S2-6-DR**):** **`Room Occupancy Drift Finding`** downstream repair runs through positions **`membership/`** (no **`activeCharacters`** patch); no **`CheckLocation`** messageBus type in steady state; sweep + repair follow [graph-forward occupancy model](#occupancy-drift-repair-model-s2-6-dr) (sessions gate disconnect; in-play graph syncs adjacency); stale adjacency-without-graph-node explicitly deferred.
 
 **Close verification (from repo root):**
 
