@@ -28,12 +28,9 @@ export type {
 } from './adjacency'
 
 export {
-    projectRoomGraphFromActiveCharacters,
     projectRoomGraphFromStoredPositionGraph,
     projectCharacterInventoryGraphStub,
     extractCharacterIdsFromPlayPositionGraph,
-    projectRoomRosterFromGraph,
-    projectRoomGraphFromRosterEntries,
 } from './project'
 
 export {

@@ -23,7 +23,7 @@ export class PositionsData extends PositionsCacheHandler {
     /**
      * @deprecated Prefer `getRoomCharacterList`; callers should migrate in a follow-up slice (D2).
      */
-    override async getRoomRoster(roomId: EphemeraRoomId): Promise<PlayPositionRoomRosterEntry[]> {
+    async getRoomRoster(roomId: EphemeraRoomId): Promise<PlayPositionRoomRosterEntry[]> {
         const graph = await this.getPositionGraph(roomId)
         const characterIds = extractCharacterIdsFromPlayPositionGraph(graph)
         return hydrateRoomRosterFromCharacterIds(characterIds)

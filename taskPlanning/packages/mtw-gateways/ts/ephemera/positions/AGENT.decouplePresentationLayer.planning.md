@@ -1,6 +1,6 @@
 # Positions gateway: decouple presentation from topology
 
-**Status:** PR1 complete (Phase 0 + Phase 1). Next step: Phase 2 (topology-only `PlayPositionGraph`; drop package `getRoomRoster`). All implementation decisions (D1--D3) locked.
+**Status:** PR2 complete (Phase 2). Next step: Phase 3 (roster DTO consolidation + remove `PositionsData.getRoomRoster`; D1, D2). All implementation decisions (D1--D3) locked.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -81,7 +81,7 @@ None.
 | --- | --- | --- |
 | 0 | Deprecation markers (D3: doc obligation only) | Complete |
 | 1 | Remove `roomEndpoint` and reverse-encoding helpers | Complete |
-| 2 | Topology-only `PlayPositionGraph`; drop package `getRoomRoster` | Not started |
+| 2 | Topology-only `PlayPositionGraph`; drop package `getRoomRoster` | Complete |
 | 3 | Roster DTO consolidation + remove `PositionsData.getRoomRoster` (D1, D2) | Not started |
 | 4 | Durable doc + contract alignment | Not started |
 
@@ -100,14 +100,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 
 ### PR2 --- Phase 2 (topology-only gateway)
 
-- [ ] Narrow `PlayPositionGraph` to `StandardPositionGraphData` (topology only)
-- [ ] Simplify `projectRoomGraphFromStoredPositionGraph` --- drop optional `activeCharacters` arg
-- [ ] Delete `projectRoomGraphFromActiveCharacters`, `projectRoomRosterFromGraph`, `projectRoomGraphFromRosterEntries`, `toRosterEntry`
-- [ ] Remove `PositionsCacheHandler.getRoomRoster` from [`factory.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/factory.ts)
-- [ ] Tighten `PositionsCacheSetParams.graph` to topology-only type
-- [ ] Rewrite package tests: topology/adjacency/memo only (remove roster-from-graph assertions)
-- [ ] Confirm production paths unchanged: [`applyCharacterRoomMembership.ts`](../../../../../../lambda/ephemera/dataSource/positions/membership/applyCharacterRoomMembership.ts) still seeds via `projectRoomGraphFromStoredPositionGraph(storedGraph)` only
-- [ ] Run gateway + ephemera membership tests; run cleanup grep (see **Verification**); update this plan checkboxes
+- [X] Narrow `PlayPositionGraph` to `StandardPositionGraphData` (topology only)
+- [X] Simplify `projectRoomGraphFromStoredPositionGraph` --- drop optional `activeCharacters` arg
+- [X] Delete `projectRoomGraphFromActiveCharacters`, `projectRoomRosterFromGraph`, `projectRoomGraphFromRosterEntries`, `toRosterEntry`
+- [X] Remove `PositionsCacheHandler.getRoomRoster` from [`factory.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/factory.ts)
+- [X] Tighten `PositionsCacheSetParams.graph` to topology-only type
+- [X] Rewrite package tests: topology/adjacency/memo only (remove roster-from-graph assertions)
+- [X] Confirm production paths unchanged: [`applyCharacterRoomMembership.ts`](../../../../../../lambda/ephemera/dataSource/positions/membership/applyCharacterRoomMembership.ts) still seeds via `projectRoomGraphFromStoredPositionGraph(storedGraph)` only
+- [X] Run gateway + ephemera membership tests; run cleanup grep (see **Verification**); update this plan checkboxes
 
 ### PR3 --- Phase 3 (roster DTO consolidation + compose seam; D1, D2)
 

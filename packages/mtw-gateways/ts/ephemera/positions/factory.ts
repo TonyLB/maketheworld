@@ -9,12 +9,10 @@ import { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
 import {
     projectCharacterInventoryGraphStub,
     projectRoomGraphFromStoredPositionGraph,
-    projectRoomRosterFromGraph,
 } from './project'
 import type {
     MembershipContainersCacheSetParams,
     PlayPositionGraph,
-    PlayPositionRoomRosterEntry,
     PositionsCacheSetParams,
 } from './types'
 
@@ -91,14 +89,6 @@ export class PositionsCacheHandler {
         }
         await this._MembershipContainersCache.get(key)
         return this._MembershipContainersStore[key]
-    }
-
-    /**
-     * @deprecated Prefer ephemera `getRoomCharacterList`; removed in a follow-up slice (D2).
-     */
-    async getRoomRoster(roomId: EphemeraRoomId): Promise<PlayPositionRoomRosterEntry[]> {
-        const graph = await this.getPositionGraph(roomId)
-        return projectRoomRosterFromGraph(graph)
     }
 
     private async loadRoomPositionGraphFromDynamo(

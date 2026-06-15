@@ -9,7 +9,7 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 | Surface | Use |
 | --- | --- |
 | **Primary** | **`createPositionsCacheHandler(ephemeraDB)`** / **`PositionsCacheHandler`** --- register on Ephemera **`internalCache.Positions`**. |
-| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomPositionGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectRoomGraphFromActiveCharacters`**, **`projectRoomGraphFromStoredPositionGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
+| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomPositionGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectRoomGraphFromStoredPositionGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
@@ -47,7 +47,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 
 **Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
-**Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Ephemera **`PositionsData.getRoomRoster`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). Package **`getRoomRoster`** remains for tests; production roster is ephemera-local compose.
+**Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Roster compose is ephemera-only: **`PositionsData.getRoomRoster`** (scheduled for retirement in favor of **`getRoomCharacterList`**) hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
 
 **Read helper:** **`getRoomPositionGraphFromDynamo`** in [`fetch.ts`](fetch.ts).
 
@@ -70,7 +70,6 @@ Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoin
 
 - **`getPositionGraph(componentId)`** --- Room forward **topology** graph; Character forward **inventory stub** (empty graph today).
 - **`getMembershipContainers(componentId)`** --- reverse membership (**array**; always `EphemeraRoomId[]`).
-- **`getRoomRoster(roomId)`** --- roster projection on package handler (topology-only graphs return empty; production uses ephemera **`PositionsData`** override).
 - **Forward memo:** **`set`** / **`invalidate`** on room position graphs (`positionGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 

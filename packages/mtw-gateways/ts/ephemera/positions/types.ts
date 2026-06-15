@@ -12,17 +12,11 @@ export type PlayPositionRoomRosterEntry = {
 
 /**
  * Gateway read envelope for play position graphs (Room or Character host).
- * Topology is normalized to `StandardPositionGraphData`; optional fields are presentation or memo only.
+ * Topology only: normalized to `StandardPositionGraphData`.
  * Dynamo manipulation truth: `EphemeraPlayPositionGraph` on `Meta::Room.positionGraph`.
  * Mental model: lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority
  */
-export type PlayPositionGraph = StandardPositionGraphData & {
-    /**
-     * Presentation/memo only: roster display keyed by character id. Not stored on room `positionGraph` (S2-6-H).
-     * @deprecated Roster compose moves to ephemera `getRoomCharacterList`; removed in a follow-up slice.
-     */
-    characterRosterMeta?: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>>;
-}
+export type PlayPositionGraph = StandardPositionGraphData
 
 export type PositionsCacheSetParams = {
     componentId: EphemeraCharacterId | EphemeraRoomId;
