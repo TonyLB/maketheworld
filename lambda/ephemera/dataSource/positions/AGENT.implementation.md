@@ -143,6 +143,8 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 
 ## Downstream read paths
 
+Manipulation truth (`positionGraph`, adjacency) vs presentation compose (hydrated roster, affordance wire): [`AGENT.concepts.md`](AGENT.concepts.md#graph-roles-shared-shape-different-authority).
+
 | System | Role |
 | --- | --- |
 | [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | **`Positions`** gateway handler on `internalCache`; **`getRoomRoster`** override hydrates roster |

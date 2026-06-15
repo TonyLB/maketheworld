@@ -15,6 +15,28 @@ Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **ad
 
 ---
 
+## Scope of authority (manipulation vs presentation)
+
+Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-different-authority). This section states normative boundaries only.
+
+**Positions must own (play manipulation truth):**
+
+- Membership persist (`Meta::Room.positionGraph`, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
+- **`Character Moved`** descriptive fact stream from graph-diff at persistence apply.
+- Gateway topology read backing for stored membership graph and adjacency (see [Read surface](#read-surface-s1-5-s1-15-slice-2)).
+
+**Positions must not own (presentation truth):**
+
+- Roster **display** fields (`DisplayName`, `SessionIds`, `Color`, `fileURL`) as steady-state authority --- hydrate at read time per [Read surface](#read-surface-s1-5-s1-15-slice-2).
+- Affordance wire compose (`AffordanceRoomDeliverable`) or exit topology (`projectRoomExits`, `ComponentTopology`, `AffordanceCache`).
+
+**Gateway read envelope:**
+
+- Forward **`getPositionGraph`** **must** return topology only on Dynamo load.
+- Optional **`characterRosterMeta`** on **`PlayPositionGraph`** and **`projectRoomGraphFromRosterEntries`** **must** be treated as invocation memo / compose only --- **must not** be written to Dynamo as membership authority.
+
+---
+
 ## Membership persistence API (slice 2)
 
 All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).

@@ -27,6 +27,18 @@ Navigational exits on the affordances channel are **not** read from room bluepri
 
 **Production note:** Room-local blueprint exits were cleared; navigable exits come from merged Area **`positionGraph.edges`** via **`projectRoomExits`**. Production Coyote topology uses the overlay-asset pattern in [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md) (**Overlay asset topology**; play-mode verified 2026-06-09). Edge authoring rules: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
+### Membership presentation and roster (steady state)
+
+Play **membership** on the affordances channel is **not** stored as display fields on `Meta::Room.positionGraph`. The steady-state path (parallel to [exit presentation](#area-topology-and-affordance-exits-steady-state) above):
+
+1. **Play manipulation truth** --- **`internalCache.Positions.getPositionGraph`** / **`getMembershipContainers`** load stored **`Meta::Room.positionGraph`** character nodes and adjacency only ([`dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority)).
+2. **Roster hydration** --- **`PositionsData.getRoomRoster`** ([`positions.ts`](positions.ts)) extracts character ids from topology, then **`hydrateRoomRosterFromCharacterIds`** ([`hydrateRoomRoster.ts`](hydrateRoomRoster.ts)) joins **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`).
+3. **Affordance compose** --- **`AffordanceRoomDeliverable.get(roomId, perspectiveKey)`** joins hydrated roster with exit projection (`row.topology.exits`), aggregate **`shortName`**, and room **`objects`** -> ephemeraWire **`StandardForm`** for terminal publish.
+
+**Perspective vs room-global:** exits vary by **perspective** (from the affordance row); roster and **objects** are **room-global** on the wire form. Both are presentation layers over distinct truth sources (membership topology vs authored Area graph).
+
+**Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) uses **`getMembershipContainers`** for the character room endpoint only --- not hydrated roster.
+
 ### Per-invocation process state (not only deferred loads)
 
 Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.

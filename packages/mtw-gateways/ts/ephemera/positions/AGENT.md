@@ -13,6 +13,17 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
+## Scope (topology read, not presentation authority)
+
+Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority).
+
+| | |
+| --- | --- |
+| **Is** | Dynamo read + invocation memo for stored membership **topology** and **adjacency**; structural projection to `StandardPositionGraphData` |
+| **Is not** | Roster display authority, affordance wire compose, or exit topology (`ComponentTopology` / `AffordanceCache`) |
+
+Production roster: ephemera **`PositionsData.getRoomRoster`** ([`lambda/ephemera/internalCache/positions.ts`](../../../../lambda/ephemera/internalCache/positions.ts)) --- topology from **`getPositionGraph`**, display fields from [`hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts).
+
 ## Slice 2 backing (shipped; **S2-6** storage retirement)
 
 | Operation | Question | Backing |
@@ -55,7 +66,7 @@ One row per host container. Multi-container drift (character in rooms A and C) y
 
 ## Handler API ([`factory.ts`](factory.ts))
 
-- **`getPositionGraph(componentId)`** --- Room forward roster graph; Character forward **inventory stub** (empty graph today).
+- **`getPositionGraph(componentId)`** --- Room forward **topology** graph; Character forward **inventory stub** (empty graph today).
 - **`getMembershipContainers(componentId)`** --- reverse membership (**array**; always `EphemeraRoomId[]`).
 - **`getRoomRoster(roomId)`** --- roster projection on package handler (topology-only graphs return empty; production uses ephemera **`PositionsData`** override).
 - **Forward memo:** **`set`** / **`invalidate`** on room position graphs (`positionGraphCacheKey`).

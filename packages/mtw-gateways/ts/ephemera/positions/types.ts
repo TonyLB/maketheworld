@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardPositionGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/positionGraph'
 
-/** Roster projection entry derived from play position graph (slice 1 flat-field adapter). */
+/** Roster projection entry for affordance wire compose (presentation layer; not Dynamo membership truth). */
 export type PlayPositionRoomRosterEntry = {
     EphemeraId: EphemeraCharacterId;
     DisplayName: string;
@@ -11,13 +11,15 @@ export type PlayPositionRoomRosterEntry = {
 }
 
 /**
- * Play position graph for a Room or Character component.
- * Slice 1: projected from flat `activeCharacters` / `RoomId`; slice 2 swaps backing read.
+ * Gateway read envelope for play position graphs (Room or Character host).
+ * Topology is normalized to `StandardPositionGraphData`; optional fields are presentation or memo only.
+ * Dynamo manipulation truth: `EphemeraPlayPositionGraph` on `Meta::Room.positionGraph`.
+ * Mental model: lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority
  */
 export type PlayPositionGraph = StandardPositionGraphData & {
-    /** Slice 1 roster metadata keyed by character EphemeraId (room graphs). */
+    /** Presentation/memo only: roster display keyed by character id. Not stored on room `positionGraph` (S2-6-H). */
     characterRosterMeta?: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>>;
-    /** Character endpoint: current room membership (null = out of play). */
+    /** Memo/convenience: character room endpoint. Reverse reads use `getMembershipContainers`. */
     roomEndpoint?: EphemeraRoomId | null;
 }
 
