@@ -57,7 +57,7 @@
 
 **Evaluation:** For each `Meta::Room` row, enumerate character nodes from stored `positionGraph`. Per character on the graph, flag drift when (a) no live sessions (ghost on graph), or (b) sessions present but membership adjacency does not include this `roomId` (adjacency lag). Does **not** use `Meta::Room.activeCharacters` or `Meta::Character.RoomId`. **Explicit gap:** stale adjacency pointing at a room when the character is absent from that room's `positionGraph` is not detected (room-forward scan only). Implementation: [`roomOccupancyDriftSweep/`](roomOccupancyDriftSweep/).
 
-**Downstream handling (transitional):** Ephemera still consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` via legacy self-healing (`lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts`) until positions **S2-6-DR** drift repair centralization ships.
+**Downstream handling:** Ephemera **`mtw.ephemera.positions`** consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` via [`repairRoomOccupancyDrift`](../../lambda/ephemera/dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward repair; sessions gate; adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 

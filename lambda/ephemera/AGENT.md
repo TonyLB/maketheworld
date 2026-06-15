@@ -66,7 +66,7 @@ Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-
 
 #### **`mtw.ephemera.positions` (positions in play)**
 
-Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative slice 0), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map). Active task plan: [`taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md).
+Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative rules), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map).
 
 Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` bridges to `moveCharacter`; `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
 

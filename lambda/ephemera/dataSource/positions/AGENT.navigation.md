@@ -44,7 +44,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | Doc / path | Role |
 | --- | --- |
 | [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) | Handler factory norms |
-| [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Play position graph read surface (slice 1 flat projection) |
+| [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Play position graph read surface (topology + adjacency) |
 | [`packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md) | Exits projection on `Affordance::` rows |
 
 ## Connections
@@ -53,11 +53,3 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | --- | --- |
 | [`lambda/connections/AGENT.md`](../../../connections/AGENT.md) | Session adjacency authority |
 | [`packages/mtw-interfaces/ts/eventBridge/connections/characters`](../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) | `Character Connected` / `Disconnected` payloads |
-
----
-
-## Task planning
-
-| Doc | Role |
-| --- | --- |
-| [`taskPlanning/.../AGENT.positionsDataSource.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md) | Active initiative checklist |
