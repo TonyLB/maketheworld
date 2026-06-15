@@ -97,7 +97,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [ ] Phase 4 - action branch framework
   - [ ] Define branch registry/routing by intent (single dispatch point).
   - [X] Implement first minimal branch set aligned with current affordances (initial shipped branch: `LookRoom`).
-  - [ ] Extend branch set (e.g. move, home) through the new path.
+  - [X] Extend branch set (e.g. move, home) through the new path.
   - [ ] Ensure branch outputs map cleanly to response patterns (immediate success, error, or deferred conversation step).
   - [ ] Preserve parity checks against legacy imperative behavior while migrating.
 

@@ -280,6 +280,31 @@ describe('apiEphemera', () => {
         })
     })
 
+    it('sendActionAssessed posts Home assessed with uiHome source', async () => {
+        const { published, bus } = makeBus()
+        sendActionAssessed(bus, 'CHARACTER#123', {
+            characterId: 'CHARACTER#123' as const,
+            assessed: {
+                type: 'Home',
+                confidence: 1,
+            },
+            source: 'uiHome',
+        })
+
+        expect(published).toHaveLength(1)
+        const msg = message(published[0])
+        expect(msg.header.type).toBe('Action Assessed')
+        const content = await msg.getContent()
+        expect(content).toMatchObject({
+            characterId: 'CHARACTER#123',
+            source: 'uiHome',
+            assessed: {
+                type: 'Home',
+                confidence: 1,
+            },
+        })
+    })
+
     it('sendPutThinkingSchedule posts StreamingEvent with Put Thinking Schedule type', async () => {
         const { published, bus } = makeBus()
         sendPutThinkingSchedule(bus, 'JOB#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', minimalThinkingSchedule)

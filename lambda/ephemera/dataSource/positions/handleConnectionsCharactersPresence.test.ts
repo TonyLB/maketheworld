@@ -4,7 +4,7 @@ import {
 } from './handleConnectionsCharactersPresence'
 import * as membership from './membership/applyCharacterRoomMembership'
 import * as resolveConnect from './membership/resolveConnectTargetRoom'
-import * as orchestrateNavigate from '../../moveCharacter/orchestrateNavigate'
+import * as orchestrateNavigate from './navigate/orchestrateNavigate'
 
 jest.mock('./membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
@@ -14,7 +14,7 @@ jest.mock('./membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
-jest.mock('../../moveCharacter/orchestrateNavigate', () => ({
+jest.mock('./navigate/orchestrateNavigate', () => ({
     orchestrateCharacterNavigate: jest.fn(),
 }))
 

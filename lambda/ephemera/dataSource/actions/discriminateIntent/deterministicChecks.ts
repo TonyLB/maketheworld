@@ -17,6 +17,11 @@ function isBareHelpCommand(trimmed: string): boolean {
     return /^help$/i.test(trimmed)
 }
 
+/** After trim, case-insensitive home as the whole line. */
+function isBareHomeCommand(trimmed: string): boolean {
+    return /^home$/i.test(trimmed)
+}
+
 function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
     const trimmed = input.command.trim()
     if (!trimmed) {
@@ -71,6 +76,9 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
     }
     if (isBareHelpCommand(trimmedCommand)) {
         return { type: 'Help', confidence: 1 }
+    }
+    if (isBareHomeCommand(trimmedCommand)) {
+        return { type: 'Home', confidence: 1 }
     }
 
     return maybeDeterministicNavigationResult(input)

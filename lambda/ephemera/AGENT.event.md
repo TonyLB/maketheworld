@@ -52,7 +52,6 @@ The Ephemera Lambda uses an internal message bus pattern to decouple complex eve
 Registration is connections-owned (`registercharacter` on `service: connections`). Ephemera receives the cross-lambda outcome as EventBridge `Character Registered`, not an internal `RegisterCharacter` bus message.
 
 #### **Character State Management Messages**
-- **`MoveCharacter`**: Handles character movement between rooms
 - **`EphemeraUpdate`**: Broadcasts character state changes to connected clients
 - **`FetchPlayerEphemera`**: Requests comprehensive state updates for players
 

@@ -20,6 +20,7 @@ import {
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
+    isParseCommandHomeResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -27,10 +28,8 @@ import {
 import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
 import { ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE } from './enrich/acmeOrder'
-import {
-    ACME_ORDER_ENRICH_SEGMENT,
-    EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-} from './enrich/acmeOrder/acmeOrderThinkingPersistence'
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from './publishedEvents'
+import { ACME_ORDER_ENRICH_SEGMENT } from './enrich/acmeOrder/acmeOrderThinkingPersistence'
 import {
     navigationIntentErrorMessages,
     parseCommand,
@@ -101,6 +100,25 @@ const expectCompletedSchedulePutsMatchBootstrap = (segments: string[]) => {
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
+
+    describe('isParseCommandHomeResult', () => {
+        it('accepts valid Home with confidence in [0, 1]', () => {
+            expect(isParseCommandHomeResult({
+                type: 'Home',
+                confidence: 0.85,
+            })).toBe(true)
+        })
+
+        it('rejects missing or out-of-range confidence', () => {
+            expect(isParseCommandHomeResult({
+                type: 'Home',
+            } as any)).toBe(false)
+            expect(isParseCommandHomeResult({
+                type: 'Home',
+                confidence: 1.1,
+            })).toBe(false)
+        })
+    })
 
     describe('isParseCommandNavigationResult', () => {
         it('accepts valid Navigation with confidence in [0, 1]', () => {
@@ -623,6 +641,32 @@ describe('parseCommand LLM path', () => {
         }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns deterministic Home for bare home without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'home' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'Home', confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('resolves HomeIntent from Bedrock into Home terminal result', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"HomeIntent","confidence":0.72}',
+        })
+
+        const result = await parseCommand(
+            { command: 'go home' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'Home', confidence: 0.72 })
     })
 
     it('returns deterministic Navigation for exact exit name without Bedrock', async () => {

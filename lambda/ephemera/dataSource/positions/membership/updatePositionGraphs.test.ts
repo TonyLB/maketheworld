@@ -33,6 +33,8 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const ROOM_A = 'ROOM#VORTEX' as EphemeraRoomId
 const ROOM_B = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
+const ROOM_D = 'ROOM#TestFour' as EphemeraRoomId
+const ROOM_ONE = 'ROOM#TestOne' as EphemeraRoomId
 
 const characterMeta: CharacterMetaItem = {
     EphemeraId: CHARACTER_ID,
@@ -358,6 +360,107 @@ describe('updatePositionGraphs', () => {
             RoomStack: [
                 { asset: 'primitives', RoomId: 'VORTEX' },
                 { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+        })
+    })
+
+    const roomAssetsForLadder = async (roomId: EphemeraRoomId): Promise<string[]> => {
+        switch (roomId) {
+            case ROOM_ONE:
+                return ['ASSET#primitives', 'ASSET#TownCenter']
+            case ROOM_B:
+                return ['ASSET#TownCenter']
+            case ROOM_C:
+                return ['ASSET#TownCenter', 'ASSET#draftOne']
+            case ROOM_D:
+                return ['ASSET#draftOne']
+            default:
+                return ['ASSET#primitives', 'ASSET#TownCenter', 'ASSET#Dockside']
+        }
+    }
+
+    const expectCharacterRoomStackReducer = async ({
+        fromRoomId,
+        priorRoomStack,
+        targetRoomId,
+        expectedRoomStack,
+        characterAssets = ['primitives', 'TownCenter'],
+    }: {
+        fromRoomId: EphemeraRoomId;
+        priorRoomStack: CharacterMetaItem['RoomStack'];
+        targetRoomId: EphemeraRoomId;
+        expectedRoomStack: CharacterMetaItem['RoomStack'];
+        characterAssets?: string[];
+    }) => {
+        getMembershipContainers.mockResolvedValue([fromRoomId])
+
+        await updatePositionGraphs(
+            { characterId: CHARACTER_ID, targetRoomId },
+            {
+                getMembershipContainers,
+                transactWrite,
+                getCharacterMeta: async () => ({
+                    ...characterMeta,
+                    RoomStack: priorRoomStack,
+                    assets: characterAssets,
+                }),
+                getRoomAssets: roomAssetsForLadder,
+                getCanonAssets: async () => ['primitives', 'TownCenter'],
+            }
+        )
+
+        const items = transactWrite.mock.calls[0][0]
+        const characterDraft = produce(
+            { RoomStack: priorRoomStack },
+            items[0].Update.updateReducer
+        ) as { RoomStack: CharacterMetaItem['RoomStack'] }
+        expect(characterDraft).toEqual({ RoomStack: expectedRoomStack })
+    }
+
+    it('replaces same-asset tail when navigating within an asset chain', async () => {
+        await expectCharacterRoomStackReducer({
+            fromRoomId: ROOM_B,
+            priorRoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+            targetRoomId: ROOM_C,
+            expectedRoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestThree' },
+            ],
+        })
+    })
+
+    it('extends RoomStack when navigating into a child asset', async () => {
+        await expectCharacterRoomStackReducer({
+            fromRoomId: ROOM_B,
+            priorRoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+            targetRoomId: ROOM_D,
+            characterAssets: ['primitives', 'TownCenter', 'draftOne'],
+            expectedRoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+                { asset: 'draftOne', RoomId: 'TestFour' },
+            ],
+        })
+    })
+
+    it('truncates RoomStack when navigating back to a parent asset', async () => {
+        await expectCharacterRoomStackReducer({
+            fromRoomId: ROOM_D,
+            priorRoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+                { asset: 'draftOne', RoomId: 'TestFour' },
+            ],
+            targetRoomId: ROOM_ONE,
+            characterAssets: ['primitives', 'TownCenter', 'draftOne'],
+            expectedRoomStack: [
+                { asset: 'primitives', RoomId: 'TestOne' },
             ],
         })
     })

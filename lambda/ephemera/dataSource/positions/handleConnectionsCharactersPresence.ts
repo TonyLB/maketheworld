@@ -17,7 +17,7 @@ import {
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { orchestrateCharacterNavigate } from '../../moveCharacter/orchestrateNavigate'
+import { orchestrateCharacterNavigate } from './navigate/orchestrateNavigate'
 import type { PositionsPublishedPayload } from './publishedEvents'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'

@@ -1,4 +1,4 @@
-import { isParseCommandAcmeOrderIntentResult, isParseCommandNavigationIntentResult } from './baseClasses'
+import { isParseCommandAcmeOrderIntentResult, isParseCommandNavigationIntentResult, isParseCommandHomeIntentResult } from './baseClasses'
 import { buildIntentClassificationPrompt } from './buildIntentClassificationPrompt'
 import { interpretIntentClassificationBody } from './intentClassification'
 
@@ -20,6 +20,22 @@ describe('isParseCommandNavigationIntentResult', () => {
         expect(isParseCommandNavigationIntentResult({
             type: 'NavigationIntent',
             exitCandidate: 'north',
+            confidence: 2,
+        })).toBe(false)
+    })
+})
+
+describe('isParseCommandHomeIntentResult', () => {
+    it('accepts valid HomeIntent shape for intent discrimination', () => {
+        expect(isParseCommandHomeIntentResult({
+            type: 'HomeIntent',
+            confidence: 0.75,
+        })).toBe(true)
+    })
+
+    it('rejects invalid confidence', () => {
+        expect(isParseCommandHomeIntentResult({
+            type: 'HomeIntent',
             confidence: 2,
         })).toBe(false)
     })
@@ -71,6 +87,7 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('LookRoom')
         expect(prompt).toContain('Help')
         expect(prompt).toContain('NavigationIntent')
+        expect(prompt).toContain('HomeIntent')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
         expect(prompt).toContain('"type": "PromptInjectionAttempt"')
@@ -80,6 +97,7 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "LookRoom"')
         expect(prompt).toContain('"type": "Help"')
         expect(prompt).toContain('"type": "NavigationIntent"')
+        expect(prompt).toContain('"type": "HomeIntent"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
         expect(prompt).toContain('Available exits from current room: north, south')
@@ -106,7 +124,7 @@ describe('buildIntentClassificationPrompt', () => {
 })
 
 describe('interpretIntentClassificationBody', () => {
-    it('accepts bare JSON for MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder with raw orders, LookRoom, Help, NavigationIntent, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder with raw orders, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, and Unknown', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"MultipleCommands","confidence":0.67}'
         )).toEqual({ type: 'MultipleCommands', confidence: 0.67 })
@@ -143,6 +161,9 @@ describe('interpretIntentClassificationBody', () => {
             exitCandidate: 'north',
             confidence: 0.77,
         })
+        expect(interpretIntentClassificationBody(
+            '{"type":"HomeIntent","confidence":0.83}'
+        )).toEqual({ type: 'HomeIntent', confidence: 0.83 })
         expect(interpretIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
         )).toEqual({ type: 'Unimplemented', confidence: 0.8 })
@@ -220,7 +241,7 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -231,7 +252,7 @@ describe('interpretIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 

@@ -5,7 +5,6 @@ import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, EphemeraRoomId, EphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscribedEvents'
 import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
-import { sendCharacterHome } from '../dataSource/actions/sendPublishedEvents'
 import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 // Mock dependencies
@@ -36,13 +35,6 @@ jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
         sendRenderRequested: jest.fn(),
     }
 })
-jest.mock('../dataSource/actions/sendPublishedEvents', () => {
-    const actual = jest.requireActual('../dataSource/actions/sendPublishedEvents') as object
-    return {
-        ...actual,
-        sendCharacterHome: jest.fn(),
-    }
-})
 jest.mock('../dataSource/apiEphemera', () => {
     const actual = jest.requireActual('../dataSource/apiEphemera') as object
     return {
@@ -56,7 +48,6 @@ const MockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = jest.mocked(internalCache, true)
 const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
 const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
-const mockSendCharacterHome = sendCharacterHome as jest.MockedFunction<typeof sendCharacterHome>
 const mockSendActionAssessed = sendActionAssessed as jest.MockedFunction<typeof sendActionAssessed>
 
 describe('executeAction', () => {
@@ -66,7 +57,6 @@ describe('executeAction', () => {
         internalCacheMock.CharacterMeta.get.mockClear()
         mockSendPerceptionThreadRegistered.mockClear()
         mockSendRenderRequested.mockClear()
-        mockSendCharacterHome.mockClear()
         mockSendActionAssessed.mockClear()
         internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
@@ -170,9 +160,6 @@ describe('executeAction', () => {
                     source: 'uiExit',
                 }
             )
-            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
-                expect.objectContaining({ type: 'MoveCharacter' })
-            )
         })
 
         it('should send Action Assessed Navigation for move action without exit name', async () => {
@@ -200,23 +187,11 @@ describe('executeAction', () => {
                     source: 'uiExit',
                 }
             )
-            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
-                expect.objectContaining({ type: 'MoveCharacter' })
-            )
         })
     })
 
     describe('home action', () => {
-        it('should send Character Home stream and MoveCharacter for home action', async () => {
-            internalCacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#123',
-                Name: 'TestCharacter',
-                RoomId: 'ROOM#456' as EphemeraRoomId,
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#HOME' as EphemeraRoomId,
-                assets: ['Personal']
-            })
-
+        it('should send Action Assessed Home for home action', async () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'home',
@@ -227,51 +202,18 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(mockSendCharacterHome).toHaveBeenCalledWith(
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
                 MockMessageBus,
                 'CHARACTER#123',
                 {
-                    type: 'Character Home',
                     characterId: 'CHARACTER#123',
-                    fromRoomId: 'ROOM#456',
-                    toRoomId: 'ROOM#HOME',
+                    assessed: {
+                        type: 'Home',
+                        confidence: 1,
+                    },
+                    source: 'uiHome',
                 }
             )
-            expect(MockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#123',
-                roomId: 'ROOM#HOME',
-            })
-        })
-
-        it('should not send Character Home stream when character has no home', async () => {
-            internalCacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#123',
-                Name: 'TestCharacter',
-                RoomId: undefined as any,
-                RoomStack: [],
-                HomeId: undefined as any,
-                assets: []
-            })
-
-            const request: ActionAPIMessage = {
-                message: 'action',
-                actionType: 'home',
-                payload: {
-                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId
-                }
-            }
-
-            await executeAction(MockMessageBus, request)
-
-            expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
-            expect(mockSendCharacterHome).not.toHaveBeenCalled()
-            expect(MockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'MoveCharacter',
-                characterId: 'CHARACTER#123',
-                roomId: undefined,
-            })
         })
     })
 

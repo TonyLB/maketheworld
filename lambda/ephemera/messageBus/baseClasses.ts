@@ -228,12 +228,6 @@ export const isPerceptionRoomMessage = (message: PerceptionMessage): message is 
 export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId) || isEphemeraKnowledgeId(message.ephemeraId))
 export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
 
-export type MoveCharacterMessage = {
-    type: 'MoveCharacter';
-    characterId: EphemeraCharacterId;
-    roomId: EphemeraRoomId;
-}
-
 export type CharacterEventMessage = {
     type: 'CharacterEvent';
 }
@@ -362,7 +356,6 @@ export type MessageType = PublishMessage |
     ImportDefaultsMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
-    MoveCharacterMessage |
     CharacterEventMessage |
     RoomUpdateMessage |
     MapUpdateMessage |
@@ -397,7 +390,6 @@ export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDef
 export const isCharacterEventMessage = (prop: MessageType): prop is CharacterEventMessage => (prop.type === 'CharacterEvent')
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
-export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
 
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
 export const isMapUpdateMessage = (prop: MessageType): prop is MapUpdateMessage => (prop.type === 'MapUpdate')

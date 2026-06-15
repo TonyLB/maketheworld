@@ -51,9 +51,6 @@ export const parseCommand = async ({
     if (command.match(/^\s*(?:look|l)\s*$/gi) && roomId) {
         return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: roomId } }
     }
-    if (command.match(/^\s*home\s*$/gi)) {
-        return { message: 'action', actionType: 'home', payload: { CharacterId } }
-    }
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(command)
     if (lookMatch) {
         const lookTarget = lookMatch.slice(1)[0].toLowerCase().trim()

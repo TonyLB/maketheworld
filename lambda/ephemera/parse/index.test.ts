@@ -232,46 +232,6 @@ describe('parseCommand', () => {
         })
     })
 
-    describe('home commands', () => {
-        beforeEach(() => {
-            internalCacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#123',
-                Name: 'Test Character',
-                assets: ['Personal'],
-                RoomId: 'ROOM#456',
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#HOME'
-            })
-            
-            // Mock the ComponentRender.get to return a StandardForm with embedded WML
-            internalCacheMock.ComponentRender.get.mockResolvedValue(new StandardForm(`
-                <Asset uuid=(render)>
-                    <Room uuid=(ROOM#456)>
-                        <Exit to=(ROOM#789)>north</Exit>
-                        <Exit to=(ROOM#101)>south</Exit>
-                        <Character uuid=(CHARACTER#123) />
-                    </Room>
-                </Asset>
-            `, { standardizeMode: 'ephemeraWire' }))
-        })
-
-        it('should parse "home" command', async () => {
-            const request: CommandAPIMessage = {
-                message: 'command',
-                CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
-                command: 'home'
-            }
-
-            const result = await parseCommand(request)
-
-            expect(result).toEqual({
-                message: 'action',
-                actionType: 'home',
-                payload: { CharacterId: 'CHARACTER#123' }
-            })
-        })
-    })
-
     describe('communication commands', () => {
         beforeEach(() => {
             internalCacheMock.CharacterMeta.get.mockResolvedValue({

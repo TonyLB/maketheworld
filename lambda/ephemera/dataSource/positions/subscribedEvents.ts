@@ -17,7 +17,7 @@ import type {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
 import type { DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 export type EphemeraPositionsConnectionsCharactersHeader =
@@ -26,17 +26,22 @@ export type EphemeraPositionsConnectionsCharactersHeader =
 export type EphemeraPositionsActionsCharacterNavigateHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Navigate' }
 
+export type EphemeraPositionsActionsCharacterHomeHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Home' }
+
 export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Room Occupancy Drift Finding' }
 
 export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsConnectionsCharactersHeader
     | EphemeraPositionsActionsCharacterNavigateHeader
+    | EphemeraPositionsActionsCharacterHomeHeader
     | EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
 
 export type EphemeraPositionsSubscribedContent =
     | ConnectionsCharactersEventUpdate
     | CharacterNavigatePublishedPayload
+    | CharacterHomePublishedPayload
     | DiagnosticsRoomOccupancyDriftFindingEvent
 
 export type EphemeraPositionsConnectionsCharactersEnvelope =
@@ -46,6 +51,11 @@ export type EphemeraPositionsConnectionsCharactersEnvelope =
 export type EphemeraPositionsActionsCharacterNavigateEnvelope = {
     header: EphemeraPositionsActionsCharacterNavigateHeader;
     getContent: () => Promise<CharacterNavigatePublishedPayload>;
+}
+
+export type EphemeraPositionsActionsCharacterHomeEnvelope = {
+    header: EphemeraPositionsActionsCharacterHomeHeader;
+    getContent: () => Promise<CharacterHomePublishedPayload>;
 }
 
 export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = {
@@ -65,6 +75,12 @@ const isEphemeraPositionsActionsCharacterNavigateHeader: HeaderGuard<EphemeraPos
     header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Character Navigate'
 )
 
+const isEphemeraPositionsActionsCharacterHomeHeader: HeaderGuard<EphemeraPositionsActionsCharacterHomeHeader> = (
+    header
+): header is EphemeraPositionsActionsCharacterHomeHeader => (
+    header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Character Home'
+)
+
 const isEphemeraPositionsConnectionsCharactersHeader: HeaderGuard<EphemeraPositionsConnectionsCharactersHeader> = (
     header
 ): header is EphemeraPositionsConnectionsCharactersHeader => (
@@ -79,6 +95,7 @@ export const isEphemeraPositionsSubscribedHeader: HeaderGuard<EphemeraPositionsS
 ): header is EphemeraPositionsSubscribedHeader =>
     isEphemeraPositionsConnectionsCharactersHeader(header)
     || isEphemeraPositionsActionsCharacterNavigateHeader(header)
+    || isEphemeraPositionsActionsCharacterHomeHeader(header)
     || isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader(header)
 
 export const isEphemeraPositionsConnectionsCharactersEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -90,6 +107,11 @@ export const isEphemeraPositionsActionsCharacterNavigateEnvelope = makeStreaming
     CharacterNavigatePublishedPayload,
     EphemeraPositionsActionsCharacterNavigateHeader
 >(isEphemeraPositionsActionsCharacterNavigateHeader)
+
+export const isEphemeraPositionsActionsCharacterHomeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    CharacterHomePublishedPayload,
+    EphemeraPositionsActionsCharacterHomeHeader
+>(isEphemeraPositionsActionsCharacterHomeHeader)
 
 export const isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     DiagnosticsRoomOccupancyDriftFindingEvent,

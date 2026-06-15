@@ -4,7 +4,6 @@ import {
     isEphemeraUpdate,
     isFetchPlayerEphemera,
     isPerception,
-    isMoveCharacter,
     isRoomUpdateMessage,
 
     isMapSubscription,
@@ -19,7 +18,6 @@ import { publishMessageCoalescer } from '../publishMessage/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
-import moveCharacter from '../moveCharacter'
 import roomUpdateMessage from '../roomUpdate'
 
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
@@ -64,12 +62,6 @@ messageBus.subscribe({
     priority: 10,
     filter: isPerception,
     callback: perceptionMessage
-})
-messageBus.subscribe({
-    tag: 'MoveCharacter',
-    priority: 4,
-    filter: isMoveCharacter,
-    callback: moveCharacter
 })
 messageBus.subscribe({
     tag: 'CharacterEvent',

@@ -27,10 +27,9 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | `Meta::Room.objects` (flat list v1) |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
-| [`index.ts`](index.ts) | Navigate execution ingress (`Character Navigate` -> `executeCharacterNavigate`) |
-| [`../../moveCharacter/executeCharacterNavigate.ts`](../../moveCharacter/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
-| [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge (connect / legacy API) |
-| [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
+| [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `executeCharacterNavigate`) |
+| [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
+| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** (**S2-6-DR**) |
 | [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |

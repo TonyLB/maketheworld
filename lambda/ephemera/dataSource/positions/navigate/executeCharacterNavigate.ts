@@ -1,10 +1,10 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import internalCache from '../internalCache'
-import { applyCharacterRoomMembership } from '../dataSource/positions/membership/applyCharacterRoomMembership'
-import type { PositionsPublishedPayload } from '../dataSource/positions/publishedEvents'
-import type { MembershipApplyResult } from '../dataSource/positions/membership/types'
-import type { MessageBus } from '../messageBus/baseClasses'
+import internalCache from '../../../internalCache'
+import { applyCharacterRoomMembership } from '../membership/applyCharacterRoomMembership'
+import type { PositionsPublishedPayload } from '../publishedEvents'
+import type { MembershipApplyResult } from '../membership/types'
+import type { MessageBus } from '../../../messageBus/baseClasses'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 export type ExecuteCharacterNavigateArgs = {

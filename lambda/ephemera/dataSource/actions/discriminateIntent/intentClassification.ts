@@ -5,6 +5,7 @@ import type {
 } from '../baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
+    isParseCommandHomeIntentResult,
     isParseCommandNavigationIntentResult,
 } from './baseClasses'
 import {
@@ -28,6 +29,24 @@ const forbiddenNavigationIntentFields = new Set([
     'destinationId',
     'fromRoomId',
 ])
+
+const forbiddenHomeIntentFields = new Set([
+    'targetId',
+    'toRoomId',
+    'roomId',
+    'destinationId',
+    'fromRoomId',
+    'exitCandidate',
+])
+
+function hasForbiddenHomeIntentField(obj: Record<string, unknown>): boolean {
+    return Object.keys(obj).some((key) => {
+        if (forbiddenHomeIntentFields.has(key)) {
+            return true
+        }
+        return /id$/i.test(key) && /(target|room|destination|to|from|exit)/i.test(key)
+    })
+}
 
 function hasForbiddenNavigationIntentField(obj: Record<string, unknown>): boolean {
     return Object.keys(obj).some((key) => {
@@ -78,7 +97,7 @@ function extractJsonBody(raw: string): string {
 /**
  * Parses and validates LLM output for the intent-classification prompt.
  * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
- * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`HomeIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
 export function interpretIntentClassificationBody(body: string): IntentClassificationResult {
@@ -139,6 +158,22 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
             confidence: obj.confidence as number,
         }
         if (isParseCommandHelpResult(candidate)) {
+            return candidate
+        }
+    }
+
+    if (type === 'HomeIntent') {
+        if (hasForbiddenHomeIntentField(obj)) {
+            return {
+                type: 'Error',
+                errorMessage: 'HomeIntent must not include room-id routing fields',
+            }
+        }
+        const candidate = {
+            type: 'HomeIntent' as const,
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandHomeIntentResult(candidate)) {
             return candidate
         }
     }
@@ -217,6 +252,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

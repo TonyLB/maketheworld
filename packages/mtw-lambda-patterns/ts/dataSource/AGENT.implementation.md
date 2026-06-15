@@ -243,7 +243,7 @@ Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/epheme
 | **`requestId`** on `characterMove` render kick | **Deferred** --- `registrationId` sufficient while orchestrate correlates on routing identity only |
 | Positions-stream **`Object Moved`** affordance consumer | **Deferred** --- see positions contract F3-2 |
 | Admin teleport intent leg | **Deferred** --- fact-only deferral yields generic copy |
-| Legacy home via imperative `MoveCharacter` | **Deferred** --- future actions migration |
+| Legacy home via imperative `MoveCharacter` | **Shipped / retired** --- actions streams `Character Home`; positions executes |
 
 ### **Header/Content Envelope Model**
 

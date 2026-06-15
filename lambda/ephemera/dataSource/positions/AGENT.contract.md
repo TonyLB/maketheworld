@@ -23,7 +23,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist (**S2-4**).
 - **Result:** `{ froms, to, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play). **`froms`** is required (same semantics as **`MembershipDiff`** / bus fact).
-- **Navigate orchestration bridge (temporary):** [`orchestrateCharacterNavigate`](../../moveCharacter/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result; **`MapUpdate.previousRoomId`** uses **`froms[0]`** until Phase **3** slims remaining beat fields. Multi-departure leave is fan-in's job (**F2-2**). Leave/arrive world lines are **not** emitted from navigate orchestration (membership fan-in owns them).
+- **Navigate orchestration bridge (temporary):** [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result; **`MapUpdate.previousRoomId`** uses **`froms[0]`** until Phase **3** slims remaining beat fields. Multi-departure leave is fan-in's job (**F2-2**). Leave/arrive world lines are **not** emitted from navigate orchestration (membership fan-in owns them).
 - **Graph persist engine:** [`updatePositionGraphs`](membership/updatePositionGraphs.ts) --- end-state apply: pre-read full **`getMembershipContainers`**, remove from every prior container `!== target`, ensure at target; holistic **`MembershipDiff`**.
 
 ### Graph apply (S2-4)
@@ -67,7 +67,7 @@ Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). 
 - **`beatAnchorTime`** = recorded time at persistence apply.
 - **Must not** populate **`legalExits`** on emitted facts (**S1-10**).
 - **Must not** branch **`streamEvent`** on ingress type (navigate vs disconnect); emission is descriptive from **`MembershipDiff`** only.
-- **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`; legacy **`moveCharacter`** bus paths obtain it from **`ephemeraPositionsDataSource`** via lazy require (avoids messageBus load cycle).
+- **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`.
 - Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fan-in consumer: [`../perception/membershipPresentationFanIn.ts`](../perception/membershipPresentationFanIn.ts) (**F2-2**).
 
 ---
@@ -91,7 +91,16 @@ Positions **must** subscribe to:
 
 | Event | Handler |
 | --- | --- |
-| `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
+| `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
+| `Character Home` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
+
+### `Character Home` (positions-owned)
+
+- **Ingress:** typed **`home`** / **`HomeIntent`** via actions **`Parse Requested`**, trusted home via actions **`Action Assessed`** **`Home`** (`source: 'uiHome'`).
+- **Must** trust actions-resolved `toRoomId` (`CharacterMeta.HomeId`) at apply --- no exit topology re-check in positions.
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
+- **Must not** rely on imperative `MoveCharacter` bus messages from actions for home (retired).
+- Leave/arrive world copy for home is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
 ### `Character Connected` (positions-owned)
 
@@ -113,7 +122,7 @@ Positions **must** subscribe to:
 - **Ingress:** typed commands via actions **`Parse Requested`**, UI exit clicks via actions **`Action Assessed`** **`Navigation`** (same execution contract).
 - **Must** trust actions-validated `toRoomId` at apply (S1-1 --- no topology re-check in positions).
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
-- **Must not** rely on imperative `MoveCharacter` from actions for parse-based or UI-exit navigation.
+- **Must not** rely on imperative `MoveCharacter` bus messages from actions for parse-based or UI-exit navigation (retired).
 - Leave/arrive world copy for navigate is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
 ### `mtw.diagnostics` --- occupancy drift repair (S2-6-DR)

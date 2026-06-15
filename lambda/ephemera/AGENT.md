@@ -68,7 +68,7 @@ Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-
 
 Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative rules), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map).
 
-Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` bridges to `moveCharacter`; `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
+Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` / `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
 
 #### **Session orientation (`Character Registered`)**
 
@@ -274,7 +274,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **`app.ts`**: Main lambda handler with WebSocket routing and EventBridge processing
 - **`perception/index.ts`**: Core perception filtering and character presence detection
 - **`ephemeraUpdate/index.ts`**: Real-time state broadcasting to connected clients
-- **`moveCharacter/index.ts`**: Character movement coordination and room updates; bus outbounds use **`publish`** + boundary **`flushAndSettle`** (P4 MOVE-CHAR); fallback WorldMessage leave/arrive use **`deliveryMode: 'deferred'`**
+- **`dataSource/positions/navigate/`**: Character navigate/home execution and post-persist presentation (`executeCharacterNavigate`, `orchestrateCharacterNavigate`); membership fan-in owns leave/arrive world copy
 - **`executeAction/index.ts`**: Legacy action execution system (under review for removal)
 
 ## Related Documentation

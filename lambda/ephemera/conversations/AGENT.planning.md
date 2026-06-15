@@ -18,7 +18,7 @@ This is **not** a commitment to a full `mtw.ephemera.conversations` DataSource o
 - **Request/response is insufficient** when LLM or multi-step work introduces latency: the UI needs early feedback ("Generating...") and later completion tied to the **same user intent**.
 - **`RequestId`** (WebSocket) correlates a single `ReturnValue`; orchestration events today carry `characterId`, `targets`, `messageGroupId`, etc., but not a **unified operation id** shared across the bus.
 - A **registry** centralizes "how to deliver" for a given run so **orchestration**, **perception**, and **api** boundaries stay decoupled.
-- **Cross-domain coordination** (e.g. `moveCharacter` and `perception` today; later **`mtw.ephemera.characterLocations`** vs **`mtw.ephemera.perception`**) needs an **explicit** handoff: "this fragment was produced **for** this coordinated moment" — not only **implicit** updates to `internalCache` (e.g. `RoomCharacterList`) that downstream code must assume were written by a prior step.
+- **Cross-domain coordination** (e.g. positions navigate orchestration and `perception` today; later **`mtw.ephemera.characterLocations`** vs **`mtw.ephemera.perception`**) needs an **explicit** handoff: "this fragment was produced **for** this coordinated moment" — not only **implicit** updates to `internalCache` (e.g. `RoomCharacterList`) that downstream code must assume were written by a prior step.
 - **Fragment storage** avoids **brittle** alternatives: **fat** stream events that mix domain state with messaging, or **messageBus**-only staging (fragments as bus messages + priority ordering) that recreates the same assembly problem **implicitly** and is harder to reason about.
 
 ## Scope (v1)
@@ -30,7 +30,7 @@ This is **not** a commitment to a full `mtw.ephemera.conversations` DataSource o
 
 ### Intermediate fragments (why here, not only on the bus)
 
-- **Explicit contract**: e.g. `characterLocations` processing stores "post-move presence" (or whatever slice perception needs) on the conversation; **`perception`** reads it by `conversationId` instead of assuming **`moveCharacter`** ran first and warmed **unspecified** cache keys.
+- **Explicit contract**: e.g. `characterLocations` processing stores "post-move presence" (or whatever slice perception needs) on the conversation; **`perception`** reads it by `conversationId` instead of assuming positions navigate ran first and warmed **unspecified** cache keys.
 - **Scheduling flexibility**: producers can run in an order that minimizes **avoidable latency** once fragments are **named** and **required** for assembly (subject to real dependencies: some steps still **must** wait for domain writes).
 - **Multi-DataSource future**: inlining everything in one `receiveEvents` **does not** scale once **multiple** domains each have their own DS and `api.ephemera` surfaces; **fragments + assembler** keeps cross-domain orchestration **one** place without **fat** outbound stream events.
 
@@ -74,7 +74,7 @@ Several different mechanisms show up next to each other in orchestration types (
 |------|----------------|--------|
 | **Direct / authoring (e.g. Preview)** | A **specific** user gets progress + result on **their** connection | WebSocket **`RequestId`** on `ReturnValue`; **`CharacterId`** from the request. Not the same as "everyone in the room." |
 | **Room-scoped broadcast** | Whoever is **in the room now** should receive stream chunks while present | Resolve **targets** from **presence** at send time (e.g. `RoomCharacterList`). Practical v1: recipients are **current** occupants; **do not** require a cumulative list of everyone who ever saw an earlier chunk unless we explicitly add that product requirement later. |
-| **Ordered sub-orchestration (e.g. move)** | A **single** logical update that must interleave with related messages (leave / arrive / perception) | **`messageGroupId`** via `internalCache.OrchestrateMessages` (`before` / `after` / `next`); see `moveCharacter/index.ts`. This is **timeline ordering**, not "who is the audience." |
+| **Ordered sub-orchestration (e.g. move)** | A **single** logical update that must interleave with related messages (leave / arrive / perception) | **`messageGroupId`** via `internalCache.OrchestrateMessages` (`before` / `after` / `next`); see [`orchestrateNavigate.ts`](../dataSource/positions/navigate/orchestrateNavigate.ts). This is **timeline ordering**, not "who is the audience." |
 
 **Implication:** the serializable payload for `internalCache.Conversations` should be a **small core** (e.g. `conversationId`, maybe channel discriminant) plus **path-specific** fields or **variants**, rather than a universal superset of every field `RenderTargetContext` might ever carry.
 
@@ -217,7 +217,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 - `lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
 - `lambda/ephemera/dataSource/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
 - `lambda/ephemera/perception/index.ts` - `sendRoomGeneratingHeader` (placeholder "Generating..." path).
-- `lambda/ephemera/moveCharacter/index.ts` - `messageGroupId` / `OrchestrateMessages.before` and `.after` for leave vs arrive ordering.
+- `lambda/ephemera/dataSource/positions/navigate/orchestrateNavigate.ts` - `messageGroupId` / `OrchestrateMessages` for navigate presentation ordering.
 - `lambda/ephemera/internalCache/index.ts` - `clear()` and cache composition.
 - `lambda/ephemera/AGENT.event.md` - WebSocket and internal bus overview.
 - `charcoal-client/src/slices/lifeLine/AGENT.md` - `socketDispatchPromise` vs proposed `socketDispatchConversation` (multi-stage preview).

@@ -21,7 +21,7 @@ import {
     isCharacterHomePublishedPayload,
     isCharacterNavigatePublishedPayload,
 } from '../actions/publishedEvents'
-import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/sendPublishedEvents'
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import type { CharacterMovedPublishedPayload } from '../positions/publishedEvents'
 import {
     EPHEMERA_POSITIONS_DATA_SOURCE_KEY,

@@ -14,7 +14,7 @@ jest.mock('./membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
-jest.mock('../../moveCharacter/executeCharacterNavigate', () => ({
+jest.mock('./navigate/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
 
@@ -22,7 +22,7 @@ import messageBus from '../../messageBus'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
-import { executeCharacterNavigate } from '../../moveCharacter/executeCharacterNavigate'
+import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 
 import './index'
 
@@ -152,6 +152,30 @@ describe('positions receive paths (integration)', () => {
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: 'ROOM#Market',
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
+            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Character Home', () => {
+        it('routes mtw.ephemera.actions home through executeCharacterNavigate', async () => {
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Character Home', {
+                type: 'Character Home',
+                characterId: CHARACTER_ID,
+                fromRoomId: ROOM_A,
+                toRoomId: 'ROOM#VORTEX',
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeCharacterNavigateMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    targetRoomId: 'ROOM#VORTEX',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })

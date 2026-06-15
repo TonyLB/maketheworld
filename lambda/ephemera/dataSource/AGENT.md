@@ -65,7 +65,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 
 **Cross-cutting (not a DataSource):** [`connectionsCharacterRegistered/`](connectionsCharacterRegistered/) --- shared EventBridge guards and [`handleCharacterRegisteredOrientation`](connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) for `mtw.connections` / `Character Registered` session orientation (subscribed by render + affordance orchestration).
 
-**Navigation note:** Parse-based character navigation and UI exit clicks emit **`Character Navigate`** from **`mtw.ephemera.actions`** (via **`Parse Requested`** or **`Action Assessed`**); execution is owned by **`mtw.ephemera.positions`**. Legacy home still uses imperative **`MoveCharacter`**. Occupancy drift repair and connect use the positions membership API. Aggregate position projection from connections presence is owned by **`mtw.ephemera.positions`**.
+**Navigation note:** Parse-based character navigation and UI exit clicks emit **`Character Navigate`** from **`mtw.ephemera.actions`** (via **`Parse Requested`** or **`Action Assessed`** **`Navigation`**); home emits **`Character Home`** (via **`Parse Requested`** / **`Action Assessed`** **`Home`**). Execution is owned by **`mtw.ephemera.positions`**. Occupancy drift repair and connect use the positions membership API. Aggregate position projection from connections presence is owned by **`mtw.ephemera.positions`**.
 
 ---
 

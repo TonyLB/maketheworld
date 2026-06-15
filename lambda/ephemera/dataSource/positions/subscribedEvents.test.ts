@@ -2,6 +2,7 @@ import {
     isEphemeraPositionsSubscribedEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
+    isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
 } from './subscribedEvents'
 
@@ -94,7 +95,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(true)
     })
 
-    it('rejects unrelated event type on mtw.ephemera.actions', () => {
+    it('accepts mtw.ephemera.actions Character Home envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
@@ -102,11 +103,32 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
                 timestamp: Date.now(),
                 type: 'Character Home',
             },
+            getContent: () => Promise.resolve({
+                type: 'Character Home',
+                characterId: 'CHARACTER#alpha',
+                fromRoomId: 'ROOM#from',
+                toRoomId: 'ROOM#home',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('rejects unrelated event type on mtw.ephemera.actions', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Acme Order',
+            },
             getContent: () => Promise.resolve({}),
         }
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {

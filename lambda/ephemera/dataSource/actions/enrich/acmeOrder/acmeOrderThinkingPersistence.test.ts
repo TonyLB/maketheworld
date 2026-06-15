@@ -8,9 +8,9 @@ import type { StreamingEventMessage } from '../../../../messageBus/baseClasses'
 import * as persistModule from '../../../thinking/results/persistThinkingResult'
 import { ephemeraThinkingResultsDataSource } from '../../../thinking/results/index'
 
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../../publishedEvents'
 import {
     ACME_ORDER_ENRICH_SEGMENT,
-    EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
     acmeOrderEnrichErrorCodeForFailureKind,
     bootstrapAcmeOrderThinkingAtRunStart,
     buildAcmeOrderEnrichFailureVerbose,
