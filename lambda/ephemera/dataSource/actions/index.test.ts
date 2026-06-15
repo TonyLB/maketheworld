@@ -8,6 +8,7 @@ import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
@@ -34,6 +35,9 @@ jest.mock('../../messageBus')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
+jest.mock('./resolveHomeTargetForCharacter', () => ({
+    resolveHomeTargetForCharacter: jest.fn(),
+}))
 jest.mock('./parseCommand', () => ({
     ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
     parseCommand: jest.fn(),
@@ -54,6 +58,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
+const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
 
@@ -71,6 +76,7 @@ describe('ephemeraActionsDataSource', () => {
             toRoomIds: [],
             exits: [],
         })
+        mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -384,6 +390,82 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    describe('ParseCommandHomeResult', () => {
+        const from = 'ROOM#from' as EphemeraRoomId
+        const home = 'ROOM#home' as EphemeraRoomId
+
+        it('emits Character Home streamEvent for bare home command', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'Home', confidence: 1 })
+            mockedResolveHomeTargetForCharacter.mockResolvedValue({
+                type: 'Resolved',
+                fromRoomId: from,
+                toRoomId: home,
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'home',
+                        requestId: 'req-home',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Home' },
+                update: {
+                    type: 'Character Home',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: from,
+                    toRoomId: home,
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MoveCharacter',
+            }))
+        })
+
+        it('publishes WorldOOCMessage when already at home', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'Home', confidence: 1 })
+            mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'AlreadyHome' })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'home',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are already home.'],
+            })
+        })
+    })
+
     describe('Action Assessed Navigation', () => {
         const dest = 'ROOM#dest' as EphemeraRoomId
         const from = 'ROOM#from' as EphemeraRoomId
@@ -486,6 +568,62 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
                 type: 'MoveCharacter',
             }))
+        })
+    })
+
+    describe('Action Assessed Home', () => {
+        const from = 'ROOM#from' as EphemeraRoomId
+        const home = 'ROOM#home' as EphemeraRoomId
+
+        it('streams Character Home without CommandTranscriptMessage or parseCommand', async () => {
+            mockedResolveHomeTargetForCharacter.mockResolvedValue({
+                type: 'Resolved',
+                fromRoomId: from,
+                toRoomId: home,
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'Home' as const,
+                            confidence: 1,
+                        },
+                        source: 'uiHome' as const,
+                        requestId: 'req-ui-home',
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedParseCommand).not.toHaveBeenCalled()
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Home' },
+                update: {
+                    type: 'Character Home',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: from,
+                    toRoomId: home,
+                },
+            })
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-ui-home',
+                    message: 'action_assessed_handled',
+                },
+            })
         })
     })
 

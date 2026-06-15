@@ -5,6 +5,8 @@ import { areCoyoteObjectTropeFieldsValid } from '@tonylb/mtw-interfaces/ts/coyot
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
  */
+export const EPHEMERA_ACTIONS_DATA_SOURCE_KEY = 'mtw.ephemera.actions' as const
+
 export type ActionsStubPublishedPayload = {
     type: 'ActionsStub';
 }

@@ -1,6 +1,6 @@
 import { invokeBedrockParseCommand } from '../../../generateExample/invokeBedrockParseCommand'
 import type { ParseCommandAcmeOrderIntentResult, ParseCommandDeps, ParseCommandInput, ParseCommandResult } from '../baseClasses'
-import { isParseCommandNavigationIntentResult } from './baseClasses'
+import { isParseCommandHomeIntentResult, isParseCommandNavigationIntentResult } from './baseClasses'
 import { buildIntentClassificationPrompt } from './buildIntentClassificationPrompt'
 import { deterministicIntentChecks } from './deterministicChecks'
 import { navigationIntentErrorMessages, resolveExitLabelToTargetId } from './exitResolution'
@@ -27,6 +27,12 @@ export async function discriminateIntent(
     }
 
     const discriminatedIntent = interpretIntentClassificationBody(invokeResult.body)
+    if (isParseCommandHomeIntentResult(discriminatedIntent)) {
+        return {
+            type: 'Home',
+            confidence: discriminatedIntent.confidence,
+        }
+    }
     if (!isParseCommandNavigationIntentResult(discriminatedIntent)) {
         return discriminatedIntent
     }

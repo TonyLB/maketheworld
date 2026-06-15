@@ -112,4 +112,18 @@ describe('discriminateIntent', () => {
 
         expect(result).toEqual({ type: 'Error', errorMessage: navigationIntentErrorMessages.ambiguousMatch })
     })
+
+    it('resolves HomeIntent into Home terminal result', async () => {
+        const result = await discriminateIntent(
+            { command: 'go home' },
+            {
+                invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({
+                    success: true,
+                    body: '{"type":"HomeIntent","confidence":0.91}',
+                }),
+            }
+        )
+
+        expect(result).toEqual({ type: 'Home', confidence: 0.91 })
+    })
 })

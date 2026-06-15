@@ -17,6 +17,7 @@ import type {
 import { bedrockPromptForVerbose } from '../../../../llm/bedrockPromptForVerbose'
 import type { StreamingEventMessage, MessageBus } from '../../../../messageBus/baseClasses'
 import type { ParseCommandAcmeOrderResult, ParseCommandErrorResult } from '../../baseClasses'
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../../publishedEvents'
 import {
     sendPutThinkingJobCreate,
     sendPutThinkingJobError,
@@ -25,9 +26,6 @@ import {
 
 /** Matches `ACME_ORDER_COYOTE_MAX_OBJECTS` in enrich `index.ts` (not imported to avoid enrich ↔ persistence cycle). */
 const ACME_ORDER_PLACEMENT_CAP = 20
-
-/** Publisher key for Actions `Thinking Result` bus envelopes (consumer: mtw.ephemera.thinking.results). */
-export const EPHEMERA_ACTIONS_DATA_SOURCE_KEY = 'mtw.ephemera.actions' as const
 
 export const ACME_ORDER_ENRICH_SEGMENT = 'acmeOrderEnrich' as const
 

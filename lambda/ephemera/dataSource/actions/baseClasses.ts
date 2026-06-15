@@ -57,6 +57,12 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
+/** Return to the character's configured home room (`Meta::Character.HomeId`). */
+export type ParseCommandHomeResult = {
+    type: 'Home'
+    confidence: ParseCommandConfidence
+}
+
 /** Alias of **`AcmeCatalogRejectionReason`** for parse / courier apology copy. */
 export type ParseCommandAcmeOrderErrorType = AcmeCatalogRejectionReason
 
@@ -172,6 +178,15 @@ export type ParseCommandNavigationIntentResult = {
 }
 
 /**
+ * Intent discrimination only: model-classified return-home intent before server-side HomeId resolution.
+ * Final parse result uses `Home` after resolution.
+ */
+export type ParseCommandHomeIntentResult = {
+    type: 'HomeIntent'
+    confidence: ParseCommandConfidence
+}
+
+/**
  * Intent discrimination only: player intent is an Acme order with **raw** product spans from the classifier.
  * Catalog validation, tropes, and **`stableKey`** are produced by Acme order enrich into {@link ParseCommandAcmeOrderResult}.
  * `parseCommand` runs enrich next; enrich may return {@link ParseCommandErrorResult} (for example when Coyote placement count exceeds the cap).
@@ -190,6 +205,7 @@ export type ParseCommandAcmeOrderIntentResult = {
 export type IntentClassificationResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationIntentResult
+    | ParseCommandHomeIntentResult
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
@@ -202,6 +218,7 @@ export type IntentClassificationResult =
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationResult
+    | ParseCommandHomeResult
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandHelpResult
@@ -253,6 +270,15 @@ export function isParseCommandNavigationResult(
         return false
     }
     return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
+}
+
+export function isParseCommandHomeResult(
+    result: ParseCommandResult
+): result is ParseCommandHomeResult {
+    if (result.type !== 'Home') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAcmeOrderResult(

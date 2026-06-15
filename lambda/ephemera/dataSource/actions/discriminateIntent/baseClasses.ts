@@ -2,6 +2,7 @@ import type {
     IntentClassificationResult,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandConfidence,
+    ParseCommandHomeIntentResult,
     ParseCommandNavigationIntentResult,
     ParseCommandResult,
 } from '../baseClasses'
@@ -40,6 +41,15 @@ export function isParseCommandNavigationIntentResult(
         return false
     }
     if (result.exitCandidate.trim().length === 0) {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandHomeIntentResult(
+    result: IntentClassificationResult | ParseCommandResult
+): result is ParseCommandHomeIntentResult {
+    if (result.type !== 'HomeIntent') {
         return false
     }
     return isParseConfidence(result.confidence)

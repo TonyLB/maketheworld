@@ -6,7 +6,7 @@
  * `Meta::Room.positionGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * (`Character Navigate`, `Character Home`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -22,8 +22,10 @@ import {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload } from '../actions/publishedEvents'
 import {
+    isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
@@ -64,6 +66,19 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
             if (isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope)) {
                 const content = await envelope.getContent() as CharacterNavigatePublishedPayload
                 if (!content || typeof content !== 'object') {
+                    return
+                }
+                await executeCharacterNavigate({
+                    characterId: content.characterId,
+                    targetRoomId: content.toRoomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsCharacterHomeEnvelope(envelope)) {
+                const content = await envelope.getContent() as CharacterHomePublishedPayload
+                if (!content || !isCharacterHomePublishedPayload(content)) {
                     return
                 }
                 await executeCharacterNavigate({

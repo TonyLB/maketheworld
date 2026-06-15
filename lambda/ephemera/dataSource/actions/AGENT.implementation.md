@@ -53,12 +53,19 @@ If the affordance introduces a new display protocol (for example, a specialized 
 
 ### Action Assessed (server-trusted outcomes)
 
-When adding a new assessed outcome type (beyond v1 **`Navigation`**):
+When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**):
 
 1. Extend **`ActionAssessedCommand.assessed`** union and **`isActionAssessedCommand`** in [`../localApiEvents.ts`](../localApiEvents.ts).
 2. Add **`sendActionAssessed`** callers only from trusted server ingress (never raw websocket payloads).
 3. Branch in [`index.ts`](index.ts) **`handleActionAssessed`** / shared **`processAssessedParseResult`** tail --- skip **`CommandTranscriptMessage`**.
-4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation).
+4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation, **`Character Home`** for home).
+
+### `Home` steady-state
+
+1. Deterministic bare **`home`** and Bedrock **`HomeIntent`** resolve to terminal **`Home`** in [`parseCommand.ts`](parseCommand.ts) / [`discriminateIntent/index.ts`](discriminateIntent/index.ts).
+2. [`resolveHomeTargetForCharacter.ts`](resolveHomeTargetForCharacter.ts) maps **`Home`** to `fromRoomId` (play membership) and `toRoomId` (`CharacterMeta.HomeId`).
+3. [`index.ts`](index.ts) **`streamEvent`** **`Character Home`**; positions subscribes and calls **`executeCharacterNavigate`**.
+4. Trusted UI/API home uses **`sendActionAssessed`** with **`Home`** and `source: 'uiHome'` ([`executeAction`](../../parse/executeAction.ts) `case 'home'`).
 
 ---
 

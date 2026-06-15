@@ -92,6 +92,15 @@ Positions **must** subscribe to:
 | Event | Handler |
 | --- | --- |
 | `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
+| `Character Home` | [`index.ts`](index.ts) `receiveEvents` -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) |
+
+### `Character Home` (positions-owned)
+
+- **Ingress:** typed **`home`** / **`HomeIntent`** via actions **`Parse Requested`**, trusted home via actions **`Action Assessed`** **`Home`** (`source: 'uiHome'`).
+- **Must** trust actions-resolved `toRoomId` (`CharacterMeta.HomeId`) at apply --- no exit topology re-check in positions.
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
+- **Must not** rely on imperative `MoveCharacter` from actions for home.
+- Leave/arrive world copy for home is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
 ### `Character Connected` (positions-owned)
 

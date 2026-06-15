@@ -11,9 +11,11 @@ import {
     type StreamingEventHeader,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../../actions/publishedEvents'
+
 export const EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY = 'mtw.ephemera.coyoteGame' as const
 
-export const EPHEMERA_ACTIONS_DATA_SOURCE_KEY = 'mtw.ephemera.actions' as const
+export { EPHEMERA_ACTIONS_DATA_SOURCE_KEY }
 
 type ThinkingResultFromCoyoteIngressHeader = StreamingEventHeader & {
     dataSourceKey: typeof EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY

@@ -10,8 +10,8 @@ import {
     type EphemeraCharacterId,
     type EphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ParseCommandNavigationResult, ParseCommandResult } from './actions/baseClasses'
-import { isParseCommandNavigationResult } from './actions/baseClasses'
+import type { ParseCommandHomeResult, ParseCommandNavigationResult, ParseCommandResult } from './actions/baseClasses'
+import { isParseCommandHomeResult, isParseCommandNavigationResult } from './actions/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -73,11 +73,13 @@ export type ParseRequestedCommand = {
     requestId?: string;
 }
 
-/** v1: Navigation-only assessed outcomes. Expand union when adding LookRoom, Home, etc. */
+export type ActionAssessedOutcome = ParseCommandNavigationResult | ParseCommandHomeResult
+
+/** Server-trusted pre-assessed outcomes (UI exit click, UI home, etc.). */
 export type ActionAssessedCommand = {
     characterId: EphemeraCharacterId;
-    assessed: ParseCommandNavigationResult;
-    source?: 'uiExit';
+    assessed: ActionAssessedOutcome;
+    source?: 'uiExit' | 'uiHome';
     requestId?: string;
 }
 
@@ -148,10 +150,11 @@ export const isActionAssessedCommand = (value: unknown): value is ActionAssessed
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
         return false
     }
-    if (!isParseCommandNavigationResult(v.assessed as ParseCommandResult)) {
+    const assessed = v.assessed as ParseCommandResult
+    if (!isParseCommandNavigationResult(assessed) && !isParseCommandHomeResult(assessed)) {
         return false
     }
-    if (v.source !== undefined && v.source !== 'uiExit') {
+    if (v.source !== undefined && v.source !== 'uiExit' && v.source !== 'uiHome') {
         return false
     }
     if (v.requestId !== undefined && typeof v.requestId !== 'string') {

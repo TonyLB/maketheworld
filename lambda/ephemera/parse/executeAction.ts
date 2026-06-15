@@ -4,7 +4,6 @@ import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
 import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter'
-import { sendCharacterHome } from '../dataSource/actions/sendPublishedEvents'
 import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 const narrateOOCOrSpeech = async (
@@ -67,24 +66,16 @@ export const executeAction = async (messageBus: Pick<MessageBus, 'publish'>, req
                 source: 'uiExit',
             })
             break
-        case 'home': {
-            const { RoomId, HomeId } = await internalCache.CharacterMeta.get(request.payload.CharacterId) || {}
-            // Bridge: intent stream for fan-in until home uses actions DataSource `streamEvent`.
-            if (HomeId && RoomId) {
-                sendCharacterHome(messageBus, request.payload.CharacterId, {
-                    type: 'Character Home',
-                    characterId: request.payload.CharacterId,
-                    fromRoomId: RoomId,
-                    toRoomId: HomeId,
-                })
-            }
-            messageBus.publish({
-                type: 'MoveCharacter',
+        case 'home':
+            sendActionAssessed(messageBus, request.payload.CharacterId, {
                 characterId: request.payload.CharacterId,
-                roomId: HomeId,
+                assessed: {
+                    type: 'Home',
+                    confidence: 1,
+                },
+                source: 'uiHome',
             })
             break
-        }
         default:
             break        
     }

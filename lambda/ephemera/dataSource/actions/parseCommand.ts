@@ -38,7 +38,7 @@ async function parseCommandCore(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**: all without Bedrock.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**: all without Bedrock.
  * Otherwise runs intent discrimination, then runs Acme order enrich only when intent is **`AcmeOrderIntent`**. Intent outcomes **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without Acme enrich.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */

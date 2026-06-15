@@ -136,6 +136,12 @@ describe('deterministicIntentChecks', () => {
         expect(deterministicIntentChecks({ command: 'help me' })).toBeNull()
     })
 
+    it('returns Home only for bare home', () => {
+        expect(deterministicIntentChecks({ command: 'home' })).toEqual({ type: 'Home', confidence: 1 })
+        expect(deterministicIntentChecks({ command: '  HOME  ' })).toEqual({ type: 'Home', confidence: 1 })
+        expect(deterministicIntentChecks({ command: 'go home' })).toBeNull()
+    })
+
     it('returns deterministic Navigation for exact and go-prefixed exit names', () => {
         expect(deterministicIntentChecks({
             command: 'north',

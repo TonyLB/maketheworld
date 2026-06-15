@@ -21,6 +21,7 @@ import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCo
 import messageBus from '../../messageBus'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
     type ParseCommandResult,
@@ -30,6 +31,7 @@ import {
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandHelpResult,
+    isParseCommandHomeResult,
     isParseCommandLookRoomResult,
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
@@ -251,6 +253,37 @@ const publishStreamEventsForIntent = async (
                     fromRoomId,
                     toRoomId: parseResult.targetId,
                     ...(parseResult.exitName !== undefined ? { exitName: parseResult.exitName } : {}),
+                },
+            })
+        }
+    }
+    else if (isParseCommandHomeResult(parseResult)) {
+        const resolution = await resolveHomeTargetForCharacter(characterId)
+        if (resolution.type === 'NoExitContext') {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot go anywhere.'],
+            })
+        }
+        else if (resolution.type === 'AlreadyHome') {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are already home.'],
+            })
+        }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Character Home' },
+                update: {
+                    type: 'Character Home',
+                    characterId,
+                    fromRoomId: resolution.fromRoomId,
+                    toRoomId: resolution.toRoomId,
                 },
             })
         }
