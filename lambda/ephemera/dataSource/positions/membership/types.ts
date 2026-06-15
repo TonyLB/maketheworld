@@ -1,5 +1,6 @@
-import type { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 
 export type RoomStackItem = {
     asset: string;
@@ -11,14 +12,6 @@ export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */
     targetRoomId: EphemeraRoomId | null;
-}
-
-export type ActiveCharacterRosterEntry = {
-    EphemeraId: EphemeraCharacterId;
-    DisplayName?: string;
-    fileURL?: string;
-    Color?: LegalCharacterColor;
-    SessionIds?: string[];
 }
 
 export type MembershipDiff = {
@@ -46,7 +39,7 @@ export type MembershipApplySuccessResult = {
     /** Set when changed; Model A / slice 1b fact anchor (F1-4). */
     beatAnchorTime?: number;
     /** Room roster snapshots after apply; derived via getRoomCharacterList after graph memo seed. */
-    roomRosterSnapshots?: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>;
+    roomRosterSnapshots?: Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>;
 } & MembershipDiff
 
 export type MembershipApplyErrorResult = {

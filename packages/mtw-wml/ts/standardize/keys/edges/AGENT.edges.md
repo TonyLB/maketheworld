@@ -111,7 +111,7 @@ All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoin
 | --- | --- |
 | **Asset blueprint** | **Never stored.** Room-local **`<Exit to=`** is forbidden on asset **`StandardForm`** (constructor throw + **`validate()`**). |
 | **ephemeraWire wire** | **`StandardRoom.exits`** may carry legacy **`ExitFacetList`** on composed forms (affordance publish, nav). |
-| **Runtime projection** | Live navigable exits are synthesized from merged **Area** **`positionGraph.edges`**, not from per-asset room blueprint rows. |
+| **Runtime projection** | Live navigable exits are synthesized from merged **Area** **`positionGraph.edges`**, not from per-asset room blueprint rows. Play **room membership** (who is in which room) is a separate manipulation-truth graph owned by [`mtw.ephemera.positions`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority). |
 
 ## Room wire projection
 

@@ -1,13 +1,8 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
-    projectRoomGraphFromActiveCharacters,
     projectRoomGraphFromStoredPositionGraph,
-    projectRoomRosterFromGraph,
-    projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
-    projectMembershipContainersFromRoomEndpoint,
-    projectRoomGraphFromRosterEntries,
     extractCharacterIdsFromPlayPositionGraph,
 } from './project'
 import { createPositionsCacheHandler } from './factory'
@@ -19,54 +14,11 @@ const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('positions project', () => {
-    it('projectRoomGraphFromActiveCharacters maps roster metadata', () => {
-        const graph = projectRoomGraphFromActiveCharacters([
-            {
-                EphemeraId: characterId,
-                DisplayName: 'Alpha',
-                SessionIds: ['sess-1'],
-            },
-        ])
-
-        expect(graph.nodes).toHaveLength(1)
-        expect(graph.characterRosterMeta?.[characterId]).toEqual({
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        })
-        expect(projectRoomRosterFromGraph(graph)).toEqual([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }])
-    })
-
-    it('projectCharacterGraphFromRoomEndpoint encodes room endpoint', () => {
-        const graph = projectCharacterGraphFromRoomEndpoint(characterId, roomId)
-        expect(graph.roomEndpoint).toBe(roomId)
-        expect(graph.nodes).toHaveLength(1)
-    })
-
     it('projectCharacterInventoryGraphStub returns empty forward graph', () => {
         expect(projectCharacterInventoryGraphStub()).toEqual({
             nodes: [],
             edges: [],
         })
-    })
-
-    it('projectMembershipContainersFromRoomEndpoint maps endpoint to array', () => {
-        expect(projectMembershipContainersFromRoomEndpoint(null)).toEqual([])
-        expect(projectMembershipContainersFromRoomEndpoint(roomId)).toEqual([roomId])
-    })
-
-    it('projectRoomGraphFromRosterEntries round-trips roster entries', () => {
-        const roster = [{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }]
-        const graph = projectRoomGraphFromRosterEntries(roster)
-        expect(projectRoomRosterFromGraph(graph)).toEqual(roster)
     })
 
     it('extractCharacterIdsFromPlayPositionGraph walks character nodes', () => {
@@ -76,39 +28,29 @@ describe('positions project', () => {
         })).toEqual([characterId])
     })
 
-    it('projectRoomGraphFromStoredPositionGraph maps stored nodes and merges roster meta', () => {
-        const graph = projectRoomGraphFromStoredPositionGraph(
-            {
-                nodes: [{ tag: 'Character', universalKey: characterId }],
-            },
-            [{
-                EphemeraId: characterId,
-                DisplayName: 'Alpha',
-                SessionIds: ['sess-1'],
-            }]
-        )
-        expect(graph.nodes).toEqual([{
-            tag: 'Character',
-            universalKey: characterId,
-        }])
-        expect(projectRoomRosterFromGraph(graph)).toEqual([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }])
-    })
-
-    it('projectRoomGraphFromStoredPositionGraph omits roster meta when activeCharacters absent', () => {
+    it('projectRoomGraphFromStoredPositionGraph maps stored nodes to topology only', () => {
         const graph = projectRoomGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
-        expect(graph.characterRosterMeta).toBeUndefined()
-        expect(projectRoomRosterFromGraph(graph)).toEqual([])
+        expect(graph).toEqual({
+            nodes: [{
+                tag: 'Character',
+                universalKey: characterId,
+            }],
+            edges: [],
+        })
+    })
+
+    it('projectRoomGraphFromStoredPositionGraph returns empty graph for absent nodes', () => {
+        expect(projectRoomGraphFromStoredPositionGraph({ nodes: [], edges: [] })).toEqual({
+            nodes: [],
+            edges: [],
+        })
     })
 })
 
 describe('PositionsCacheHandler', () => {
-    it('loads room graph topology from stored positionGraph without activeCharacters merge', async () => {
+    it('loads room graph topology from stored positionGraph', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
                 if (ProjectionFields?.includes('positionGraph')) {
@@ -124,12 +66,10 @@ describe('PositionsCacheHandler', () => {
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getPositionGraph(roomId)
-        const roster = await handler.getRoomRoster(roomId)
 
         expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
-        expect(roster).toEqual([])
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -157,7 +97,6 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getPositionGraph(characterId)
 
         expect(graph).toEqual(projectCharacterInventoryGraphStub())
-        expect(graph.roomEndpoint).toBeUndefined()
         expect(db.getItem).not.toHaveBeenCalled()
     })
 
@@ -192,18 +131,16 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectRoomGraphFromRosterEntries([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }])
+        const graph = projectRoomGraphFromStoredPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        })
 
         handler.set({ componentId: roomId, graph })
         await expect(handler.getPositionGraph(roomId)).resolves.toEqual(graph)
         expect(db.getItem).not.toHaveBeenCalled()
 
         handler.invalidate(roomId)
-        await expect(handler.getRoomRoster(roomId)).resolves.toEqual([])
+        await handler.getPositionGraph(roomId)
         expect(getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 ProjectionFields: ['positionGraph'],

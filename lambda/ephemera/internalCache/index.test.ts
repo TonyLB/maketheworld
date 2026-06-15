@@ -51,7 +51,7 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
-    it('getRoomCharacterList derives roster from Positions.getRoomRoster on each call', async () => {
+    it('getRoomCharacterList derives roster from Positions.getPositionGraph on each call', async () => {
         const expectedOutput = [
             {
                 EphemeraId: 'CHARACTER#123' as const,
@@ -66,16 +66,50 @@ describe('InternalCache', () => {
                 SessionIds: [],
             },
         ]
-        const getRoomRosterSpy = jest.spyOn(internalCache.Positions, 'getRoomRoster')
-            .mockResolvedValue(expectedOutput)
+        const getPositionGraphSpy = jest.spyOn(internalCache.Positions, 'getPositionGraph')
+            .mockResolvedValue({
+                nodes: [
+                    { tag: 'Character', universalKey: 'CHARACTER#123' },
+                    { tag: 'Character', universalKey: 'CHARACTER#456' },
+                ],
+                edges: [],
+            })
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockImplementation(async (characterId) => {
+            if (characterId === 'CHARACTER#123') {
+                return {
+                    EphemeraId: 'CHARACTER#123',
+                    Name: 'Tess',
+                    RoomId: 'ROOM#1234',
+                    RoomStack: [],
+                    HomeId: 'ROOM#Home',
+                    assets: [],
+                    Color: 'green',
+                }
+            }
+            return {
+                EphemeraId: 'CHARACTER#456',
+                Name: 'Marco',
+                RoomId: 'ROOM#1234',
+                RoomStack: [],
+                HomeId: 'ROOM#Home',
+                assets: [],
+                Color: 'purple',
+            }
+        })
+        jest.spyOn(internalCache.CharacterSessions, 'get').mockImplementation(async (characterId) => {
+            if (characterId === 'CHARACTER#123') {
+                return ['sess-1']
+            }
+            return []
+        })
 
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getRoomRosterSpy).toHaveBeenCalledTimes(1)
-        expect(getRoomRosterSpy).toHaveBeenCalledWith('ROOM#1234')
+        expect(getPositionGraphSpy).toHaveBeenCalledTimes(1)
+        expect(getPositionGraphSpy).toHaveBeenCalledWith('ROOM#1234')
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getRoomRosterSpy).toHaveBeenCalledTimes(2)
+        expect(getPositionGraphSpy).toHaveBeenCalledTimes(2)
 
-        getRoomRosterSpy.mockRestore()
+        getPositionGraphSpy.mockRestore()
     })
 
     it('flush includes GenerationContext handler', async () => {

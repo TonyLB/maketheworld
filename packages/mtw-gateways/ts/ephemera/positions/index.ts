@@ -1,9 +1,8 @@
-export { membershipContainersCacheKey, positionGraphCacheKey, roomRosterCacheKey } from './keys'
+export { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
 
 export type {
     MembershipContainersCacheSetParams,
     PlayPositionGraph,
-    PlayPositionRoomRosterEntry,
     PositionsCacheSetParams,
 } from './types'
 
@@ -28,14 +27,9 @@ export type {
 } from './adjacency'
 
 export {
-    projectRoomGraphFromActiveCharacters,
     projectRoomGraphFromStoredPositionGraph,
-    projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
-    projectMembershipContainersFromRoomEndpoint,
     extractCharacterIdsFromPlayPositionGraph,
-    projectRoomRosterFromGraph,
-    projectRoomGraphFromRosterEntries,
 } from './project'
 
 export {

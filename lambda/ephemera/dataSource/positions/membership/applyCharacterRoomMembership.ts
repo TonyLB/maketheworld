@@ -9,7 +9,8 @@ import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import { buildCharacterMovedFact } from './buildCharacterMovedFact'
 import { streamMembershipFact } from './streamMembershipFact'
-import type { ActiveCharacterRosterEntry, MembershipApplyArgs, MembershipApplyResult } from './types'
+import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
+import type { MembershipApplyArgs, MembershipApplyResult } from './types'
 import {
     updatePositionGraphs,
     type UpdatePositionGraphsDependencies,
@@ -37,21 +38,11 @@ const seedPositionsGraphMemos = (
 
 const buildRoomRosterSnapshots = async (
     affectedRooms: EphemeraRoomId[]
-): Promise<Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>> => {
-    const roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> = {}
-
-    for (const roomId of affectedRooms) {
-        const roster = await getRoomCharacterList(roomId)
-        roomRosterSnapshots[roomId] = roster.map((entry) => ({
-            EphemeraId: entry.EphemeraId,
-            DisplayName: entry.DisplayName,
-            SessionIds: entry.SessionIds,
-            ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
-            ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
-        }))
-    }
-
-    return roomRosterSnapshots
+): Promise<Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>> => {
+    const entries = await Promise.all(
+        affectedRooms.map(async (roomId) => [roomId, await getRoomCharacterList(roomId)] as const)
+    )
+    return Object.fromEntries(entries) as Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>
 }
 
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>

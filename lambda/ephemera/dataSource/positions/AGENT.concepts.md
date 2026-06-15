@@ -11,6 +11,7 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | Term | Meaning |
 | --- | --- |
 | **Position graph** | A `{ nodes, edges }` structure: heterogeneous **nodes** (references to things in space) and uuid-keyed **edges** (typed relationships between endpoints). Same pattern as Area `positionGraph` in WML; may exist at multiple **scales**. |
+| **Graph role** | Which question a graph instance answers and **who may mutate it** --- see [Graph roles](#graph-roles-shared-shape-different-authority). Same shape, different authority boundary. |
 | **Scale** | Which component **hosts** the graph: Area (macro), Room (in-room), Character/container (inventory), etc. |
 | **Authored graph** | Blueprint / asset truth merged at participation order (WML `StandardArea.positionGraph`, future `StandardRoom.positionGraph`). |
 | **Play graph** | Ephemera runtime mutations: who is in which room **now**, object placement in play, etc. |
@@ -20,6 +21,32 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index** (**S2-6**). Roster display hydrates at read time (**S2-6-H**). |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
+
+---
+
+## Graph roles (shared shape, different authority)
+
+The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth **shape**, not a single scope-of-authority boundary. Instances differ by **which question they answer** and **who writes them**.
+
+| Graph role | Question | Authoritative writer | Steady-state example |
+| --- | --- | --- | --- |
+| **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `positionGraph` (Exit edges, macro layout) |
+| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.positionGraph` + adjacency index |
+| **Materialized presentation** | What does this **consumer** see at this perspective? | Consumer-specific materialization (e.g. affordanceCache) | `Affordance::` row `topology.exits` |
+| **Ephemeral presentation** | What is the **wire-ready** view at read time? | Ephemera compose (cross-cache) | Hydrated roster in `AffordanceRoomDeliverable` |
+
+**Invariant:** membership truth does not define exits; exit truth does not imply roster membership. Consumers that need several views compose **separate projections** --- see [Three play-time questions](#three-play-time-questions) and [`internalCache/AGENT.md`](../../internalCache/AGENT.md) (exit vs membership presentation pipelines).
+
+### Type boundary (storage vs gateway read envelope)
+
+| Type | Layer | Carries |
+| --- | --- | --- |
+| **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character **identity** nodes only (`CHARACTER#...`); no roster display fields |
+| **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored `EphemeraPlayPositionGraph` nodes/edges to WML graph shape; no roster display or reverse-membership fields |
+
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
+
+**Cross-links:** gateway handler scope --- [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
 
 ---
 
@@ -37,7 +64,7 @@ A character should appear in **at most one** room graph at steady state; duplica
 
 ### Three play-time questions
 
-Area **topology**, **room membership**, and the **eviction ladder** answer different questions:
+Area **topology**, **room membership**, and the **eviction ladder** answer different questions (instances of [graph roles](#graph-roles-shared-shape-different-authority)):
 
 | Question | Domain | Play expression (today) |
 | --- | --- | --- |
