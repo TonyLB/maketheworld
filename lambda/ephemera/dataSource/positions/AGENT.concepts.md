@@ -17,7 +17,7 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**; transitional **`RoomId`** / **`activeCharacters`** dual-write (**S2-2**). |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index** (**S2-6**). Roster display hydrates at read time (**S2-6-H**). |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
 
@@ -31,7 +31,7 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 
 - Each room hosts **`Meta::Room.positionGraph`** --- character **nodes** (slice 2 v1; no in-room edges yet).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
-- **Transitional dual-write:** `activeCharacters` (roster display) and `Meta::Character.RoomId` stay in sync at persist until initiative close (**S2-6**). Gateway reads prefer stored graph + adjacency; bootstrap fallbacks use legacy fields when adjacency/graph absent.
+- **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row (**S2-6-H** / **S2-6**).
 
 A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**).
 
@@ -42,7 +42,7 @@ Area **topology**, **room membership**, and the **eviction ladder** answer diffe
 | Question | Domain | Play expression (today) |
 | --- | --- | --- |
 | Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
-| Which **room** is this character in; who is on the roster? | Play-time **membership** | `positionGraph` nodes, adjacency index, roster projection from `activeCharacters` |
+| Which **room** is this character in; who is on the roster? | Play-time **membership** | `positionGraph` nodes, adjacency index; roster hydrated at read time |
 | **Where can this character legally be placed** given their asset access? | **Eviction ladder** (`RoomStack`) | Trim frames to accessible assets; top surviving frame -> proposed room; membership apply when endpoint differs (connect: from nowhere; asset loss: from illegal room) |
 
 Exit topology does **not** imply roster membership. Membership does **not** define exits. The ladder is **not** roster membership --- it is **character-local evidence** for resolving a legal membership endpoint. Consumers that need several views compose **separate projections**.
@@ -72,7 +72,7 @@ When the world is built from **layered assets** (canon plus temporary or persona
 | **Connect** | Out of play --- purged from `positionGraph` / adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
 | **Asset visibility** | In play at a room that may be invalid after asset loss | Relocate to resolved room (`froms: [illegal...]` -> `to`) |
 
-**Disconnect asymmetry:** disconnect **purges** authoritative play membership (graph nodes, adjacency, `RoomId`) but **preserves** `RoomStack`. That preserved stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
+**Disconnect asymmetry:** disconnect **purges** authoritative play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That preserved stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
 
 **Navigate maintenance** (conceptual operations --- compare destination **asset chain** to the current ladder):
 

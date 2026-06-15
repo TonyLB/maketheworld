@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H shipped** (roster hydration + reader memo). **Next:** initiative **Close** (**S2-6** storage retirement + **S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H shipped** (roster hydration + reader memo). **S2-6 shipped** (legacy projection storage retirement + adjacency-only readers). **Next:** initiative **Close** (**S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -615,7 +615,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Migrate `unregistercharacter` to connections service; stream `Character Disconnected` on last-session removal
   - [X] Integration test for positions receive paths
 
-  - [ ] **Close initiative** (**S2-6-H** + **S2-6** + **S2-6-DR** --- see [Close initiative scope](#close-initiative-scope-s2-6--s2-6-dr), [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h))
+  - [ ] **Close initiative** (**S2-6-DR** --- see [Close initiative scope](#close-initiative-scope-s2-6--s2-6-dr), [Roster hydration (**S2-6-H**)](#roster-hydration-at-read-time-s2-6-h))
   - [X] **S2-6-H --- roster hydration (land first; ephemera-local):**
     - [X] **`internalCache/hydrateRoomRoster.ts`** (or equivalent): **`hydrateRoomRosterFromCharacterIds`** via **`CharacterMeta.get`** + **`CharacterSessions.get`**; field mapping matches **`updatePositionGraphs`** arrival reducer; unit tests with stubbed caches
     - [X] **`PositionsData.getRoomRoster`:** override --- **`getPositionGraph(roomId)`** (topology) + hydrate; document as **primary** steady-state roster API on [`internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)
@@ -625,8 +625,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] **S2-6-H --- reader memo:**
     - [X] **`RoomCharacterList.get`:** delegate to **`internalCache.Positions.getRoomRoster`** (remove raw Dynamo **`activeCharacters`** read); retain **`set`** for coordinator snapshots
     - [X] **`updatePositionGraphs` / coordinator:** **`roomRosterSnapshots`** from ephemera **`getRoomRoster`** --- not transact **`successCallback`** on **`activeCharacters`**
-  - [ ] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership in **`updatePositionGraphs`**; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); delete **`applyCharacterMembershipFlat`** if unused
-  - [ ] **S2-6 --- readers:** Remove gateway **`RoomId`** / **`activeCharacters`** fallbacks ([`getCharacterRoomIdFromDynamo`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts), **`projectRoomGraphFromActiveCharacters`** bootstrap except empty-graph edge); steady-state **`getMembershipContainers`** adjacency-only
+  - [X] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership in **`updatePositionGraphs`**; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); delete **`applyCharacterMembershipFlat`** if unused
+  - [X] **S2-6 --- readers:** Remove gateway **`RoomId`** / **`activeCharacters`** fallbacks ([`getCharacterRoomIdFromDynamo`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts), **`projectRoomGraphFromActiveCharacters`** bootstrap except empty-graph edge); steady-state **`getMembershipContainers`** adjacency-only
   - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) --- no direct **`activeCharacters`** optimistic rewrite; detect vs graph + adjacency + connections adjacency; repair via **`repairCharacterLegalPlacement`** / end-state **`applyCharacterRoomMembership`** when membership endpoint must change
   - [ ] **S2-6-DR --- ingress:** Subscribe **`mtw.ephemera.positions`** to **`mtw.diagnostics`** / **`Room Occupancy Drift Finding`** (or equivalent positions handler); remove handler from **`mtw.ephemera`** self-healing path
   - [ ] **S2-6-DR --- retire `CheckLocation`:** Remove messageBus **`CheckLocation`** subscriber ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts), coalescer); no positions connect-style **`CheckLocation`** publishes remain
@@ -704,4 +704,4 @@ npm --prefix lambda/diagnostics run test -- --watchAll=false roomOccupancyDriftS
 | Slice 4: legacy disconnect retirement | Done |
 | Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
 | Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
-| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** shipped; **S2-6** + **S2-6-DR** next) |
+| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** + **S2-6** shipped; **S2-6-DR** next) |

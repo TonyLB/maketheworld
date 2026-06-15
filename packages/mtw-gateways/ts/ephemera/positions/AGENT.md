@@ -13,15 +13,15 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
-## Slice 2 backing (shipped)
+## Slice 2 backing (shipped; **S2-6** storage retirement)
 
 | Operation | Question | Backing |
 | --- | --- | --- |
-| **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` topology only; bootstrap from `activeCharacters` when graph absent (until **S2-6**) |
+| **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` topology only; empty graph when absent |
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | **Stub:** empty `{ nodes: [], edges: [] }` --- no Dynamo read |
-| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index (**S2-5**); transitional fallback to `Meta::Character.RoomId` when adjacency empty (**S2-2** until **S2-6**) |
+| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only (**S2-5** / **S2-6**) |
 
-Handler API unchanged from slice 1c. Read fallbacks retire at initiative close (**S2-6**).
+Handler API unchanged from slice 1c.
 
 ## Storage schema (slice 2; types landed)
 
@@ -71,4 +71,3 @@ After membership apply in positions, call forward **`set`** / **`invalidate`** f
 | --- | --- |
 | **`AffordanceRoomDeliverable.get`** | Roster via ephemera **`internalCache.Positions.getRoomRoster`** (hydrated compose; not raw `ephemeraDB.activeCharacters`) |
 | **`getRoomExitTargetsForCharacter`** | Reverse via **`getMembershipContainers`** (not `CharacterMeta.RoomId`) |
-| **`applyCharacterMembershipFlat`** pre-read | Reverse via **`getMembershipContainers`** |

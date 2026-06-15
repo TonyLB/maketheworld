@@ -1,7 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './membershipRoomStack'
@@ -19,7 +18,6 @@ import type { RoomStackItem } from './types'
 
 export type UpdatePositionGraphsDependencies = {
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
-    getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[] | undefined>;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
@@ -64,7 +62,6 @@ export const updatePositionGraphs = async (
     deps?: UpdatePositionGraphsDependencies
 ): Promise<UpdatePositionGraphsResult> => {
     const getCharacterMeta = deps?.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
-    const getCharacterSessions = deps?.getCharacterSessions ?? ((characterId) => internalCache.CharacterSessions.get(characterId))
     const getRoomAssets = deps?.getRoomAssets ?? ((roomId) => internalCache.RoomAssets.get(roomId))
     const getCanonAssets = deps?.getCanonAssets ?? (() => internalCache.Global.get('assets'))
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
@@ -78,7 +75,6 @@ export const updatePositionGraphs = async (
     }
 
     const characterMeta = await getCharacterMeta(args.characterId)
-    const sessions = await getCharacterSessions(args.characterId)
 
     const [roomAssets = [], canonAssets = []] = diff.to
         ? await Promise.all([
@@ -92,21 +88,7 @@ export const updatePositionGraphs = async (
         await exponentialBackoffWrapper(async () => {
             const transactItems: Parameters<typeof transactWrite>[0] = []
 
-            if (diff.to === null) {
-                transactItems.push({
-                    Update: {
-                        Key: {
-                            EphemeraId: characterMeta.EphemeraId,
-                            DataCategory: 'Meta::Character',
-                        },
-                        updateKeys: ['RoomId'],
-                        updateReducer: (draft) => {
-                            delete draft.RoomId
-                        },
-                    },
-                })
-            }
-            else {
+            if (diff.to !== null) {
                 const targetRoomId = diff.to
                 const characterAssets = characterMeta.assets || []
                 transactItems.push({
@@ -115,7 +97,7 @@ export const updatePositionGraphs = async (
                             EphemeraId: characterMeta.EphemeraId,
                             DataCategory: 'Meta::Character',
                         },
-                        updateKeys: ['RoomId', 'RoomStack'],
+                        updateKeys: ['RoomStack'],
                         updateReducer: (draft) => {
                             const { destinationChain } = computeRoomStackUpdate({
                                 targetRoomId,
@@ -142,13 +124,10 @@ export const updatePositionGraphs = async (
                             EphemeraId: departureRoomId,
                             DataCategory: 'Meta::Room',
                         },
-                        updateKeys: ['positionGraph', 'activeCharacters'],
+                        updateKeys: ['positionGraph'],
                         updateReducer: (draft) => {
                             const graph = effectiveRoomPositionGraph(draft)
                             draft.positionGraph = removeCharacterFromGraph(graph, characterMeta.EphemeraId)
-                            draft.activeCharacters = (draft.activeCharacters ?? []).filter(
-                                ({ EphemeraId }) => EphemeraId !== characterMeta.EphemeraId
-                            )
                         },
                     },
                 })
@@ -167,30 +146,10 @@ export const updatePositionGraphs = async (
                             EphemeraId: diff.to,
                             DataCategory: 'Meta::Room',
                         },
-                        updateKeys: ['positionGraph', 'activeCharacters'],
+                        updateKeys: ['positionGraph'],
                         updateReducer: (draft) => {
                             const graph = effectiveRoomPositionGraph(draft)
                             draft.positionGraph = addCharacterToGraph(graph, characterMeta.EphemeraId)
-                            const findMatch = (draft.activeCharacters ?? []).find(
-                                ({ EphemeraId }) => EphemeraId === characterMeta.EphemeraId
-                            )
-                            draft.activeCharacters = [
-                                ...(draft.activeCharacters ?? []).filter(
-                                    ({ EphemeraId }) => EphemeraId !== characterMeta.EphemeraId
-                                ),
-                                {
-                                    EphemeraId: characterMeta.EphemeraId,
-                                    DisplayName: characterMeta.Name,
-                                    fileURL: characterMeta.fileURL,
-                                    Color: characterMeta.Color,
-                                    SessionIds: unique(
-                                        (findMatch as { SessionIds?: string[]; sessions?: string[] } | undefined)?.SessionIds
-                                            ?? (findMatch as { sessions?: string[] } | undefined)?.sessions
-                                            ?? [],
-                                        sessions ?? []
-                                    ),
-                                },
-                            ]
                         },
                     },
                 })

@@ -161,7 +161,6 @@ export const applyRoomStackToCharacterDraft = (
     }
 ): void => {
     const targetRoomShortId = splitType(args.targetRoomId)[1]
-    draft.RoomId = targetRoomShortId
     draft.RoomStack = applyLadderUpdateFromDestinationChain(
         draft.RoomStack as RoomStackItem[] | undefined,
         args.destinationChain,

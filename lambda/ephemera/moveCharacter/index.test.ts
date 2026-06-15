@@ -218,18 +218,19 @@ describe('moveCharacter', () => {
     it('should replace items in RoomStack when moved in same asset', async () => {
         const fromRoom = 'ROOM#TestTwo' as EphemeraRoomId
         applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
-            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
-            const flatResult = await applyCharacterMembershipFlat(args, {
-                readMembershipEndpoint: async () => fromRoom,
+            const { updatePositionGraphs } = jest.requireActual('../dataSource/positions/membership/updatePositionGraphs')
+            const graphResult = await updatePositionGraphs(args, {
+                getMembershipContainers: async () => [fromRoom],
                 transactWrite: ephemeraDBMock.transactWrite,
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
-                getCharacterSessions: internalCacheMock.CharacterSessions.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
             })
-            return flatResult.ok && flatResult.changed
-                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
-                : flatResult
+            return graphResult.ok && graphResult.diff.changed && graphResult.persisted
+                ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }
+                : graphResult.ok
+                    ? { ...graphResult.diff }
+                    : graphResult
         })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
@@ -245,8 +246,7 @@ describe('moveCharacter', () => {
             expect('Update' in firstTransact).toBe(true)
         }
         else {
-            expect(produce({ RoomId: 'ROOM#TestTwo', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
-                RoomId: 'TestThree',
+            expect(produce({ RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
                 RoomStack: [
                     { asset: 'primitives', RoomId: 'VORTEX' },
                     { asset: 'TownCenter', RoomId: 'TestThree' }
@@ -258,18 +258,19 @@ describe('moveCharacter', () => {
     it('should add items to RoomStack when moved into a child asset', async () => {
         const fromRoom = 'ROOM#TestTwo' as EphemeraRoomId
         applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
-            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
-            const flatResult = await applyCharacterMembershipFlat(args, {
-                readMembershipEndpoint: async () => fromRoom,
+            const { updatePositionGraphs } = jest.requireActual('../dataSource/positions/membership/updatePositionGraphs')
+            const graphResult = await updatePositionGraphs(args, {
+                getMembershipContainers: async () => [fromRoom],
                 transactWrite: ephemeraDBMock.transactWrite,
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
-                getCharacterSessions: internalCacheMock.CharacterSessions.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
             })
-            return flatResult.ok && flatResult.changed
-                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
-                : flatResult
+            return graphResult.ok && graphResult.diff.changed && graphResult.persisted
+                ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }
+                : graphResult.ok
+                    ? { ...graphResult.diff }
+                    : graphResult
         })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
@@ -285,8 +286,7 @@ describe('moveCharacter', () => {
             expect('Update' in firstTransact).toBe(true)
         }
         else {
-            expect(produce({ RoomId: 'ROOM#TestTwo', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
-                RoomId: 'TestFour',
+            expect(produce({ RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }] }, firstTransact.Update.updateReducer)).toEqual({
                 RoomStack: [
                     { asset: 'primitives', RoomId: 'VORTEX' },
                     { asset: 'TownCenter', RoomId: 'TestTwo' },
@@ -299,18 +299,19 @@ describe('moveCharacter', () => {
     it('should remove items from RoomStack when moved back to a parent asset', async () => {
         const fromRoom = 'ROOM#TestFour' as EphemeraRoomId
         applyCharacterRoomMembershipMock.mockImplementation(async (args) => {
-            const { applyCharacterMembershipFlat } = jest.requireActual('../dataSource/positions/membership/applyCharacterMembershipFlat')
-            const flatResult = await applyCharacterMembershipFlat(args, {
-                readMembershipEndpoint: async () => fromRoom,
+            const { updatePositionGraphs } = jest.requireActual('../dataSource/positions/membership/updatePositionGraphs')
+            const graphResult = await updatePositionGraphs(args, {
+                getMembershipContainers: async () => [fromRoom],
                 transactWrite: ephemeraDBMock.transactWrite,
                 getCharacterMeta: internalCacheMock.CharacterMeta.get,
-                getCharacterSessions: internalCacheMock.CharacterSessions.get,
                 getRoomAssets: internalCacheMock.RoomAssets.get,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
             })
-            return flatResult.ok && flatResult.changed
-                ? { ...flatResult, beatAnchorTime: 1_700_000_000_000 }
-                : flatResult
+            return graphResult.ok && graphResult.diff.changed && graphResult.persisted
+                ? { ...graphResult.diff, beatAnchorTime: 1_700_000_000_000 }
+                : graphResult.ok
+                    ? { ...graphResult.diff }
+                    : graphResult
         })
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }],
@@ -326,8 +327,7 @@ describe('moveCharacter', () => {
             expect('Update' in firstTransact).toBe(true)
         }
         else {
-            expect(produce({ RoomId: 'ROOM#TestFour', RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }] }, firstTransact.Update.updateReducer)).toEqual({
-                RoomId: 'TestOne',
+            expect(produce({ RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }] }, firstTransact.Update.updateReducer)).toEqual({
                 RoomStack: [
                     { asset: 'primitives', RoomId: 'TestOne' }
                 ]

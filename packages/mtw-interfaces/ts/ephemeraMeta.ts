@@ -104,7 +104,7 @@ export type EphemeraPlayPositionGraphNode = {
     universalKey: EphemeraCharacterId;
 }
 
-/** Play-time membership graph stored on Meta::Room (topology only; roster display via activeCharacters during S2-2). */
+/** Play-time membership graph stored on Meta::Room (topology only; roster display hydrated at read time -- S2-6-H). */
 export type EphemeraPlayPositionGraph = {
     nodes: EphemeraPlayPositionGraphNode[];
     /** Slice 2 v1: must be absent or []. In-room edges deferred. */

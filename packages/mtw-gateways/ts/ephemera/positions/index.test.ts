@@ -133,30 +133,21 @@ describe('PositionsCacheHandler', () => {
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
-    it('falls back to activeCharacters when stored positionGraph is absent', async () => {
+    it('returns empty graph when stored positionGraph is absent', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
                 if (ProjectionFields?.includes('positionGraph')) {
                     return {}
                 }
-                return {
-                    activeCharacters: [{
-                        EphemeraId: characterId,
-                        DisplayName: 'Alpha',
-                        SessionIds: ['sess-1'],
-                    }],
-                }
+                throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
             }),
         }
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getPositionGraph(roomId)
 
-        expect(graph).toEqual(projectRoomGraphFromActiveCharacters([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }]))
+        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph({ nodes: [], edges: [] }))
+        expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
     it('returns empty inventory stub for character getPositionGraph without Dynamo', async () => {
@@ -185,32 +176,20 @@ describe('PositionsCacheHandler', () => {
         expect(db.getItem).not.toHaveBeenCalled()
     })
 
-    it('falls back to RoomId when adjacency query is empty', async () => {
+    it('returns empty membership containers when adjacency query is empty', async () => {
         const db: EphemeraPositionsReadDB = {
-            getItem: jest.fn().mockResolvedValue({ RoomId: roomId }),
-            query: jest.fn().mockResolvedValue([]),
-        }
-        const handler = createPositionsCacheHandler(db)
-
-        await expect(handler.getMembershipContainers(characterId)).resolves.toEqual([roomId])
-        expect(db.getItem).toHaveBeenCalledWith({
-            Key: { EphemeraId: characterId, DataCategory: 'Meta::Character' },
-            ProjectionFields: ['RoomId'],
-        })
-    })
-
-    it('returns empty membership containers when character is out of play', async () => {
-        const db: EphemeraPositionsReadDB = {
-            getItem: jest.fn().mockResolvedValue({}),
+            getItem: jest.fn(),
             query: jest.fn().mockResolvedValue([]),
         }
         const handler = createPositionsCacheHandler(db)
 
         await expect(handler.getMembershipContainers(characterId)).resolves.toEqual([])
+        expect(db.query).toHaveBeenCalled()
+        expect(db.getItem).not.toHaveBeenCalled()
     })
 
     it('memo set and invalidate patch in-memory graph without Dynamo write', async () => {
-        const getItem = jest.fn().mockResolvedValue({ activeCharacters: [] })
+        const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectRoomGraphFromRosterEntries([{
@@ -225,28 +204,28 @@ describe('PositionsCacheHandler', () => {
 
         handler.invalidate(roomId)
         await expect(handler.getRoomRoster(roomId)).resolves.toEqual([])
-        expect(getItem).toHaveBeenCalled()
+        expect(getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ProjectionFields: ['positionGraph'],
+            })
+        )
     })
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {
-        const getItem = jest.fn().mockResolvedValue({ RoomId: roomId })
         const query = jest.fn().mockResolvedValue([])
-        const db: EphemeraPositionsReadDB = { getItem, query }
+        const db: EphemeraPositionsReadDB = { getItem: jest.fn(), query }
         const handler = createPositionsCacheHandler(db)
 
         await handler.getMembershipContainers(characterId)
         expect(query).toHaveBeenCalledTimes(1)
-        expect(getItem).toHaveBeenCalledTimes(1)
 
         handler.setMembershipContainers({ componentId: characterId, containers: [] })
         await expect(handler.getMembershipContainers(characterId)).resolves.toEqual([])
         expect(query).toHaveBeenCalledTimes(1)
-        expect(getItem).toHaveBeenCalledTimes(1)
 
         handler.invalidateMembershipContainers(characterId)
         await handler.getMembershipContainers(characterId)
         expect(query).toHaveBeenCalledTimes(2)
-        expect(getItem).toHaveBeenCalledTimes(2)
     })
 })
 

@@ -87,4 +87,16 @@ describe('PositionsData.getRoomRoster', () => {
 
         hydrateSpy.mockRestore()
     })
+
+    it('returns empty roster when stored positionGraph is absent', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
+            if (ProjectionFields?.includes('positionGraph')) {
+                return {}
+            }
+            throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+        })
+
+        await expect(internalCache.Positions.getRoomRoster(roomId)).resolves.toEqual([])
+        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
+    })
 })
