@@ -8,15 +8,10 @@ import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dat
 import { isPerspective, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
-    isEphemeraFeatureId,
-    isEphemeraMapId,
-    isEphemeraRoomId,
-} from '@tonylb/mtw-interfaces/ts/baseClasses'
-import {
     isEphemeraCacheDynamoItem,
     type EphemeraCacheDynamoItem,
 } from '../renderCache/baseClasses'
-import type { MessageBus, RenderComponentId, StreamingEventMessage } from '../../messageBus/baseClasses'
+import { isRenderComponentId, type MessageBus, type RenderComponentId, type StreamingEventMessage } from '../../messageBus/baseClasses'
 
 export const RENDER_ORCHESTRATION_DATA_SOURCE_KEY = 'mtw.ephemera.renderOrchestration' as const
 
@@ -85,10 +80,6 @@ export type RenderOrchestrationPublishedPayload =
     | RenderOrchestrationRenderGeneratedPayload
     | RenderOrchestrationOrchestrationErrorPayload
     | RenderOrchestrationGenerationDeferredPayload
-
-const isRenderComponentId = (value: unknown): value is RenderComponentId => (
-    typeof value === 'string' && (isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraMapId(value))
-)
 
 const isEphemeraCacheIdString = (value: unknown): value is EphemeraCacheId => (
     typeof value === 'string' && value.startsWith('CACHE#')

@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Not started. **Next step:** Phase A slice 1 --- perspective helper + type hygiene (all FKR decisions locked; see below).
+**Status:** Phase A slice 1 (type hygiene) done. **Next step:** Phase A slice 2 --- perspective helper (`prepareFeatureKnowledgeRenderForCharacter`).
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -123,7 +123,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | --- | --- |
 | Task plan created | Done |
 | Open decisions FKR-1..5 (all decided) | Done |
-| Phase A: type hygiene (`RenderComponentId`, orchestration guards) | |
+| Phase A: type hygiene (`RenderComponentId`, orchestration guards) | Done |
 | Phase A: perspective helper(s) | |
 | Phase A: F/K intake branch in **`requestIntake`** | |
 | Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | |
@@ -144,10 +144,10 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] **Type hygiene**
-  - [ ] Add **`EphemeraKnowledgeId`** to **`RenderComponentId`** in [`messageBus/baseClasses.ts`](../../../../lambda/ephemera/messageBus/baseClasses.ts).
-  - [ ] Extend orchestration published-event / ingress guards to accept **`KNOWLEDGE#`** (today: Room / Feature / Map in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts)).
-  - [ ] Rename **`RenderResolveInputSuccess.roomId`** -> **`componentId`** (or add alias + migrate call sites) in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) and dependents.
+- [X] **Type hygiene**
+  - [X] Add **`EphemeraKnowledgeId`** to **`RenderComponentId`** in [`messageBus/baseClasses.ts`](../../../../lambda/ephemera/messageBus/baseClasses.ts).
+  - [X] Extend orchestration published-event / ingress guards to accept **`KNOWLEDGE#`** (today: Room / Feature / Map in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts)).
+  - [X] Rename **`RenderResolveInputSuccess.roomId`** -> **`componentId`** (or add alias + migrate call sites) in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) and dependents.
 - [ ] **Perspective helper** --- new module under **`dataSource/renderOrchestration/`** or **`dataSource/actions/actionHandlers/`** (same *delivery wiring shape* as [`prepareFullRoomDescriptionRenderForCharacter`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts), **different perspective inputs** --- see [Perspective model](#perspective-model-feature--knowledge---decided)):
   - [ ] **`prepareFeatureKnowledgeRenderForCharacter(characterId, componentId)`** returns `{ componentId, characterId, perspective, perspectiveKey, threadRegisterCommand, renderCommand }`.
   - [ ] Load character-visible asset ids; load **ComponentVertical** hops for **`componentId`**; compute intersected **`mergeParticipationOrder`**; **`computePerspectiveKey`**.

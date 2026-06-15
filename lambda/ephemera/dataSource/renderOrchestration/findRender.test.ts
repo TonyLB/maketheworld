@@ -25,7 +25,7 @@ describe('dataSource/renderOrchestration/findRender', () => {
 
     const baseResolve: RenderResolveInputSuccess = {
         type: 'success',
-        roomId,
+        componentId: roomId,
         perspective,
         markState,
         markProvenance: 'meta',

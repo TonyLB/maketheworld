@@ -269,7 +269,21 @@ export type ExecuteActionMessage = {
     action: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage;
 }
 
-export type RenderComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraMapId
+export type RenderComponentId =
+    | EphemeraRoomId
+    | EphemeraFeatureId
+    | EphemeraKnowledgeId
+    | EphemeraMapId
+
+export const isRenderComponentId = (value: unknown): value is RenderComponentId => (
+    typeof value === 'string'
+    && (
+        isEphemeraRoomId(value)
+        || isEphemeraFeatureId(value)
+        || isEphemeraKnowledgeId(value)
+        || isEphemeraMapId(value)
+    )
+)
 
 type RenderTargetContext = {
     characterId?: EphemeraCharacterId;

@@ -13,18 +13,18 @@ import type {
 export type RenderResolveMarkProvenance = 'meta'
 
 /**
- * Successful normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
+ * Successful normalized input to the shared "resolve render from cache / maybe generate" choke-point.
  *
- * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + `Meta::Room`; the orchestration
+ * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + host meta; the orchestration
  * shell chains `findRender` then delivery. `pointerHint` is
- * `Meta::Room.currentCacheByPerspective[perspectiveKey]` when present.
+ * `Meta::Room.currentCacheByPerspective[perspectiveKey]` when present (room hosts).
  *
  * This type is intentionally not identical to bus messages (`RenderRequested`):
  * correlation, targets, and delivery stay outside until an output boundary exists.
  */
 export type RenderResolveInputSuccess = {
     type: 'success';
-    roomId: EphemeraRoomId;
+    componentId: EphemeraRoomId;
     perspective: Perspective;
     /** Marks used for pointer validation, `getExactMatch`, and generation. */
     markState: EphemeraCacheMarkState;

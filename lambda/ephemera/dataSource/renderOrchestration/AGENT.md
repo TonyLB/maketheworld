@@ -114,7 +114,7 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 ## Key concepts
 
 - **Perspective**: asset stack and `computePerspectiveKey` for cache matching.
-- **Rooms first (v2)**: event shapes use **`componentId`** so the same lifecycle can extend beyond rooms later.
+- **Rooms first (v2)**: bus and orchestration event shapes use **`componentId`**. **`RenderComponentId`** (`messageBus/baseClasses.ts`) is `ROOM#` | `FEATURE#` | `KNOWLEDGE#` | `MAP#`; shared guard **`isRenderComponentId`** is the canonical runtime check. Intake resolve input (**`RenderResolveInputSuccess`**) also uses **`componentId`** (still typed as **`EphemeraRoomId`** until Feature/Knowledge intake lands).
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); **`mtw-interfaces`** not required for this internal handoff (see [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)).
 
 ## Design intent

@@ -45,12 +45,12 @@ export const findRender = async (
     deps: FindRenderDependencies
 ): Promise<void> => {
     const perspectiveKey = deps.computePerspectiveKey(resolve.perspective.assetStack)
-    const routing = buildOrchestrationRouting(resolve.roomId, resolve.perspective, deps.computePerspectiveKey)
+    const routing = buildOrchestrationRouting(resolve.componentId, resolve.perspective, deps.computePerspectiveKey)
     const pointerId = resolve.pointerHint
 
     if (pointerId !== undefined) {
-        const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
-        const catalog = await getCatalogRow(resolve.roomId, perspectiveKey)
+        const cacheRecord = await deps.getCacheRecordById(resolve.componentId, pointerId)
+        const catalog = await getCatalogRow(resolve.componentId, perspectiveKey)
 
         const isValid = !!(
             cacheRecord
@@ -70,7 +70,7 @@ export const findRender = async (
         }
 
         try {
-            await deps.clearPerspectivePointer(resolve.roomId, perspectiveKey)
+            await deps.clearPerspectivePointer(resolve.componentId, perspectiveKey)
         }
         catch {
             // best-effort pointer clearing; continue to slow-path handoff
@@ -78,7 +78,7 @@ export const findRender = async (
     }
 
     const exactMatch = await deps.getExactMatch({
-        componentId: resolve.roomId,
+        componentId: resolve.componentId,
         proposedMarkState: resolve.markState,
         perspective: resolve.perspective,
     })
@@ -103,7 +103,7 @@ export const findRender = async (
 
     await deps.generateRoomPreview(
         {
-            roomId: resolve.roomId,
+            roomId: resolve.componentId,
             markState: resolve.markState,
             assetStack: resolve.perspective.assetStack,
         },

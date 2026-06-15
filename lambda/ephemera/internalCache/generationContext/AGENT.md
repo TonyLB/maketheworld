@@ -43,7 +43,7 @@ provenance metadata. Add fields explicitly as generation inputs, not as copies o
   **owns** passive slow-path context resolution: parses optional ingress `generationContextWml` when
   present and valid; otherwise loads this cache via `GenerationContext.get(roomId, assetStack)` and
   builds a `StandardForm` for the LLM step. Intake (`requestIntake.ts`) does **not** thread
-  `generationContextWml` into `RenderResolveInputSuccess`; `findRender` does not pass it into
+  `generationContextWml` into `RenderResolveInputSuccess` (field **`componentId`**); `findRender` does not pass it into
   `generateRoomPreview`.
 - [`../../generateExample/buildRoomDescriptionPrompt.ts`](../../generateExample/buildRoomDescriptionPrompt.ts):
   prompt builder that consumes the `StandardForm` passed from `generateRoomPreview`

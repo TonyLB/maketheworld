@@ -92,7 +92,7 @@ export const intakeRenderRequested = async (
 
     const input: RenderResolveInputSuccess = {
         type: 'success',
-        roomId,
+        componentId: roomId,
         perspective,
         markState,
         markProvenance: 'meta',

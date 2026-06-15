@@ -16,6 +16,8 @@ import {
 import {
     passThroughFixtureMinimalCacheId,
     passThroughFixtureMinimalDynamoItem,
+    passThroughFixturePerspective,
+    passThroughFixturePerspectiveKey,
     passThroughFixtureRoomId,
     passThroughFixtureRouting,
 } from '../passThroughContractFixtures'
@@ -119,6 +121,29 @@ describe('publishedEvents guards', () => {
     it('rejects aggregate for non-object', () => {
         expect(isRenderOrchestrationPublishedPayload(null)).toBe(false)
         expect(isRenderOrchestrationPublishedPayload(1)).toBe(false)
+    })
+
+    it('accepts Exact Match Found with KNOWLEDGE# componentId routing', () => {
+        const p = {
+            type: 'Exact Match Found' as const,
+            componentId: 'KNOWLEDGE#TestOne',
+            perspective: passThroughFixturePerspective,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            cacheId: minimalCacheId,
+        }
+        expect(isRenderOrchestrationExactMatchFoundPayload(p)).toBe(true)
+        expect(isRenderOrchestrationPublishedPayload(p)).toBe(true)
+    })
+
+    it('rejects outbound when componentId is not a render host id', () => {
+        const p = {
+            type: 'Exact Match Found' as const,
+            componentId: 'CHARACTER#not-a-host',
+            perspective: passThroughFixturePerspective,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            cacheId: minimalCacheId,
+        }
+        expect(isRenderOrchestrationExactMatchFoundPayload(p)).toBe(false)
     })
 })
 

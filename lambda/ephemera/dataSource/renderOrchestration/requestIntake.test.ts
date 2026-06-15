@@ -92,7 +92,7 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         })
         expect(r.type).toBe('success')
         if (r.type === 'success') {
-            expect(r.roomId).toBe('ROOM#one')
+            expect(r.componentId).toBe('ROOM#one')
             expect(r.markProvenance).toBe('meta')
             expect(r.pointerHint).toBe('CACHE#valid')
         }

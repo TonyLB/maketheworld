@@ -35,6 +35,30 @@ describe('dataSource/renderOrchestration events guards', () => {
         })).toBe(false)
     })
 
+    it('accepts RenderRequested with FEATURE# componentId', () => {
+        expect(isRenderRequested({
+            type: 'RenderRequested',
+            ...base,
+            componentId: 'FEATURE#feat',
+        })).toBe(true)
+    })
+
+    it('accepts RenderRequested with KNOWLEDGE# componentId', () => {
+        expect(isRenderRequested({
+            type: 'RenderRequested',
+            ...base,
+            componentId: 'KNOWLEDGE#lore',
+        })).toBe(true)
+    })
+
+    it('rejects RenderRequested with non-render componentId', () => {
+        expect(isRenderRequested({
+            type: 'RenderRequested',
+            ...base,
+            componentId: 'CHARACTER#char',
+        })).toBe(false)
+    })
+
     it('isRenderOrchestrationRequestMessage matches RenderRequested only', () => {
         expect(isRenderOrchestrationRequestMessage({
             type: 'RenderRequested',

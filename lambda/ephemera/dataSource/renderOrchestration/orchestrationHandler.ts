@@ -139,14 +139,14 @@ export const orchestrateRenderRequest = async (
 
     const pkAfterIntake = orchDeps.computePerspectiveKey(intake.perspective.assetStack)
     console.log('[mtw.ephemera.renderOrchestration] Render Requested intake ok', {
-        roomId: intake.roomId,
+        componentId: intake.componentId,
         perspectiveKey: pkAfterIntake,
         perspectiveAssetStack: intake.perspective.assetStack,
         hasPointerHint: intake.pointerHint !== undefined,
     })
 
     await orchDeps.ensureAuthoredCatalog({
-        componentId: intake.roomId,
+        componentId: intake.componentId,
         perspective: intake.perspective,
     })
 
