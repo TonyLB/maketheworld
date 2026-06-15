@@ -6,7 +6,7 @@ jest.mock('./staleSessionSweep', () => ({
     staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
 jest.mock('./roomOccupancyDriftSweep', () => ({
-    roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] }))
+    roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[] }))
 }))
 jest.mock('./playerMisalignmentSweep', () => ({
     playerMisalignmentSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
@@ -35,7 +35,7 @@ describe('diagnostics handler', () => {
         jest.mocked(staleSessionSweep).mockReset()
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(roomOccupancyDriftSweep).mockReset()
-        jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[], checkLocationCandidates: [] as string[] })
+        jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[] })
         jest.mocked(playerMisalignmentSweep).mockReset()
         jest.mocked(playerMisalignmentSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(componentVerticalMisalignmentSweep).mockReset()
@@ -114,7 +114,7 @@ describe('diagnostics handler', () => {
             diagnosticRunId: 'dr-3',
             nowMs: 67890
         })
-        expect(result).toEqual({ emittedCount: 0, roomIds: [], checkLocationCandidates: [] })
+        expect(result).toEqual({ emittedCount: 0, roomIds: [] })
     })
 
     it('invokes playerMisalignmentSweep for direct PlayerMisalignmentSweep type', async () => {

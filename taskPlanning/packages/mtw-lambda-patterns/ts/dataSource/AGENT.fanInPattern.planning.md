@@ -323,6 +323,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [ ] Confirm membership emission + slim render registry shipped or deferred with recorded decision
   - [X] Positions **S2-6-H** roster hydration shipped (ephemera-local compose + **`RoomCharacterList`** reader memo; no fan-in changes --- affordance / **`publishMessage`** roster paths use hydrated **`getRoomRoster`**)
   - [X] Positions **S2-6** storage retirement shipped (graph + adjacency only persist; adjacency-only gateway readers; no fan-in code delta)
+  - [X] Positions **S2-6-DR diagnostics sweep** shipped (graph-forward classification in [`roomOccupancyDriftSweep`](../../../../../lambda/diagnostics/roomOccupancyDriftSweep/); no fan-in delta)
   - [ ] Delete this planning file
 
 ---
@@ -375,4 +376,4 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + **`updatePositionGraphs`** persist + gateway backing; **F1-8** steady-state emit shipped) |
 | Phase 2: retire characterMove ordering / pre-bake | Done |
 | Phase 3+: PerceptionThreads targeting-only | Done |
-| Initiative close | In progress (positions **S2-6-H** + **S2-6** shipped; fan-in docs merge pending) |
+| Initiative close | In progress (positions **S2-6-H** + **S2-6** + **S2-6-DR sweep** shipped; fan-in docs merge pending) |

@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H shipped** (roster hydration + reader memo). **S2-6 shipped** (legacy projection storage retirement + adjacency-only readers). **Next:** initiative **Close** (**S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H shipped** (roster hydration + reader memo). **S2-6 shipped** (legacy projection storage retirement + adjacency-only readers). **S2-6-DR diagnostics sweep shipped.** **Next:** **S2-6-DR** drift repair handler + ingress. See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -671,12 +671,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
     - [X] **`updatePositionGraphs` / coordinator:** **`roomRosterSnapshots`** from ephemera **`getRoomRoster`** --- not transact **`successCallback`** on **`activeCharacters`**
   - [X] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership in **`updatePositionGraphs`**; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); delete **`applyCharacterMembershipFlat`** if unused
   - [X] **S2-6 --- readers:** Remove gateway **`RoomId`** / **`activeCharacters`** fallbacks ([`getCharacterRoomIdFromDynamo`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts), **`projectRoomGraphFromActiveCharacters`** bootstrap except empty-graph edge); steady-state **`getMembershipContainers`** adjacency-only
-  - [ ] **S2-6-DR --- diagnostics sweep:** Update [`roomOccupancyDriftSweep`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) classification per [graph-forward scan](#occupancy-drift-repair-model-s2-6-dr) (sweep stays read-only in diagnostics)
-    - [ ] Load room **`positionGraph`** nodes per **`Meta::Room`** row (not **`activeCharacters`**)
-    - [ ] Build connections session adjacency map (reuse existing sweep pattern)
-    - [ ] **`roomHasOccupancyDrift`**: for each graph node in room, flag drift when (no sessions) OR (sessions and adjacency missing this **`roomId`**)
-    - [ ] Remove **`RoomId`** / **`activeCharacters`** fingerprint classification; remove **`needsCheckLocation`** / **`checkLocationCandidates`** from sweep return (retired with **`CheckLocation`**)
-    - [ ] Unit tests: ghost on graph (no sessions); live on graph + missing adjacency; clean room (no drift); document that stale adjacency-without-graph-node does **not** emit (explicit gap)
+  - [X] **S2-6-DR --- diagnostics sweep:** Update [`roomOccupancyDriftSweep`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) classification per [graph-forward scan](#occupancy-drift-repair-model-s2-6-dr) (sweep stays read-only in diagnostics)
+    - [X] Load room **`positionGraph`** nodes per **`Meta::Room`** row (not **`activeCharacters`**)
+    - [X] Build connections session adjacency map (reuse existing sweep pattern)
+    - [X] **`roomHasOccupancyDrift`**: for each graph node in room, flag drift when (no sessions) OR (sessions and adjacency missing this **`roomId`**)
+    - [X] Remove **`RoomId`** / **`activeCharacters`** fingerprint classification; remove **`needsCheckLocation`** / **`checkLocationCandidates`** from sweep return (retired with **`CheckLocation`**)
+    - [X] Unit tests: ghost on graph (no sessions); live on graph + missing adjacency; clean room (no drift); document that stale adjacency-without-graph-node does **not** emit (explicit gap)
   - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) with positions **`membership/`** handler per [repair algorithm](#occupancy-drift-repair-model-s2-6-dr)
     - [ ] New handler (e.g. **`repairRoomOccupancyDrift`**) under **`positions/membership/`**: given **`roomId`**, enumerate graph character nodes; per character apply session gate + repair branch
     - [ ] **Ghost (no sessions):** **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** --- full membership purge via **`updatePositionGraphs`**
@@ -761,4 +761,4 @@ npm --prefix lambda/diagnostics run test -- --watchAll=false roomOccupancyDriftS
 | Slice 4: legacy disconnect retirement | Done |
 | Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
 | Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
-| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** + **S2-6** shipped; **S2-6-DR** next) |
+| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** + **S2-6** + **S2-6-DR sweep** shipped; **S2-6-DR** repair + ingress next) |

@@ -1,28 +1,29 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { queryMembershipContainersFromDynamo } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { connectionDB, ephemeraDB, META_SESSION_PK, sessionIdFromMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
 import type { DBHandlerItem } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses'
-import { authoritativeRoomByCharacter, listOccupancyEntries, normalizeRoomId, roomHasOccupancyDrift } from './classification'
+import {
+    listGraphCharacterIds,
+    normalizeRoomId,
+    roomHasOccupancyDrift,
+} from './classification'
 
 type MetaSessionRow = {
     ConnectionId: string
     DataCategory: string
 }
 
-type CharacterMetaRow = {
-    EphemeraId: string
-    DataCategory: string
-    RoomId?: string
-}
-
 type RoomMetaRow = {
     EphemeraId: string
     DataCategory: string
-    activeCharacters?: unknown[]
+    positionGraph?: EphemeraPlayPositionGraph
 }
 
 const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {
@@ -83,14 +84,14 @@ const adjacencyCharactersForSession = async (sessionId: string): Promise<string[
 }
 
 /**
- * Read-only diagnostics sweep for room occupancy drift.
- * Canonical occupancy is SessionIds on room activeCharacters; authoritative source is
- * session-character adjacency plus Meta::Character.RoomId.
+ * Read-only diagnostics sweep for room occupancy drift (graph-forward, S2-6-DR).
+ * Compares Meta::Room.positionGraph character nodes against connections session adjacency
+ * and membership adjacency reverse index. Does not detect stale adjacency without a graph node.
  */
 export const roomOccupancyDriftSweep = async (params?: {
     diagnosticRunId?: string
     nowMs?: number
-}): Promise<{ emittedCount: number; roomIds: string[]; checkLocationCandidates: string[] }> => {
+}): Promise<{ emittedCount: number; roomIds: string[] }> => {
     const tablePrefix = process.env.TABLE_PREFIX
     if (!tablePrefix) {
         throw new Error('roomOccupancyDriftSweep requires TABLE_PREFIX')
@@ -104,15 +105,11 @@ export const roomOccupancyDriftSweep = async (params?: {
     const diagnosticRunId = params?.diagnosticRunId ?? uuidv4()
     const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 
-    const [metaSessionRows, characterMetaRows, roomMetaRows] = await Promise.all([
+    const [metaSessionRows, roomMetaRows] = await Promise.all([
         queryAllMetaSessionRows(),
-        queryAllEphemeraRowsByDataCategory<CharacterMetaRow>({
-            dataCategory: 'Meta::Character',
-            projectionFields: ['EphemeraId', 'DataCategory', 'RoomId']
-        }),
         queryAllEphemeraRowsByDataCategory<RoomMetaRow>({
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'DataCategory', 'activeCharacters']
+            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph']
         })
     ])
 
@@ -131,25 +128,35 @@ export const roomOccupancyDriftSweep = async (params?: {
         }
     }))
 
-    const roomByCharacter = authoritativeRoomByCharacter(characterMetaRows)
+    const graphCharacterIds = new Set<EphemeraCharacterId>()
+    for (const room of roomMetaRows) {
+        for (const characterId of listGraphCharacterIds(room.positionGraph)) {
+            if (isEphemeraCharacterId(characterId)) {
+                graphCharacterIds.add(characterId)
+            }
+        }
+    }
+
+    const membershipContainersByCharacter = new Map<string, string[]>()
+    await Promise.all([...graphCharacterIds].map(async (characterId) => {
+        const containers = await queryMembershipContainersFromDynamo(ephemeraDB, characterId)
+        membershipContainersByCharacter.set(characterId, containers)
+    }))
+
     const driftRoomIds = new Set<string>()
-    const checkLocationCandidates = new Set<string>()
 
     for (const room of roomMetaRows) {
         const roomId = normalizeRoomId(room.EphemeraId)
         if (!roomId) {
             continue
         }
-        const occupancyEntries = listOccupancyEntries(room.activeCharacters)
-        const { drift, needsCheckLocation } = roomHasOccupancyDrift({
+        const characterIdsOnGraph = listGraphCharacterIds(room.positionGraph)
+        const drift = roomHasOccupancyDrift({
             roomId,
-            occupancyEntries,
+            graphCharacterIds: characterIdsOnGraph,
             adjacencySessionsByCharacter,
-            roomByCharacter
+            membershipContainersByCharacter,
         })
-        if (needsCheckLocation) {
-            checkLocationCandidates.add(roomId)
-        }
         if (drift) {
             driftRoomIds.add(roomId)
         }
@@ -195,9 +202,7 @@ export const roomOccupancyDriftSweep = async (params?: {
     return {
         emittedCount,
         roomIds,
-        checkLocationCandidates: [...checkLocationCandidates].sort()
     }
 }
 
-export { roomHasOccupancyDrift, normalizeRoomId, listOccupancyEntries } from './classification'
-
+export { roomHasOccupancyDrift, normalizeRoomId, listGraphCharacterIds } from './classification'
