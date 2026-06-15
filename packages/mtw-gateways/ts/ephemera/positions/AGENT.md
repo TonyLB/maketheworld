@@ -22,7 +22,7 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 | **Is** | Dynamo read + invocation memo for stored membership **topology** and **adjacency**; structural projection to `StandardPositionGraphData` |
 | **Is not** | Roster display authority, affordance wire compose, or exit topology (`ComponentTopology` / `AffordanceCache`) |
 
-Production roster: ephemera **`PositionsData.getRoomRoster`** ([`lambda/ephemera/internalCache/positions.ts`](../../../../lambda/ephemera/internalCache/positions.ts)) --- topology from **`getPositionGraph`**, display fields from [`hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts).
+Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)) --- topology from **`internalCache.Positions.getPositionGraph`**, display fields from **`CharacterMeta`** + **`CharacterSessions`**.
 
 ## Slice 2 backing (shipped; **S2-6** storage retirement)
 
@@ -47,7 +47,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 
 **Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
-**Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Roster compose is ephemera-only: **`PositionsData.getRoomRoster`** (scheduled for retirement in favor of **`getRoomCharacterList`**) hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
+**Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Roster compose is ephemera-only: **`getRoomCharacterList`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
 
 **Read helper:** **`getRoomPositionGraphFromDynamo`** in [`fetch.ts`](fetch.ts).
 
@@ -81,5 +81,5 @@ After membership apply in positions, call forward **`set`** / **`invalidate`** f
 
 | Consumer | Read path |
 | --- | --- |
-| **`AffordanceRoomDeliverable.get`** | Roster via ephemera **`internalCache.Positions.getRoomRoster`** (hydrated compose; not raw `ephemeraDB.activeCharacters`) |
+| **`AffordanceRoomDeliverable.get`** | Roster via ephemera **`getRoomCharacterList`** (hydrated compose; not raw `ephemeraDB.activeCharacters`) |
 | **`getRoomExitTargetsForCharacter`** | Reverse via **`getMembershipContainers`** (not `CharacterMeta.RoomId`) |

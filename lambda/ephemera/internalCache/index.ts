@@ -28,6 +28,10 @@ import {
     ThinkingResultReadCache,
     ThinkingScheduleReadCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking';
+import {
+    createPositionsCacheHandler,
+    type PositionsCacheHandler,
+} from '@tonylb/mtw-gateways/ts/ephemera/positions';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
@@ -50,7 +54,6 @@ import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import { AffordanceCacheData } from './affordanceCache';
-import { PositionsData } from './positions';
 import { getRoomCharacterList } from './hydrateRoomRoster';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
@@ -82,7 +85,7 @@ export class InternalCache {
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
     AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
-    Positions: PositionsData = new PositionsData()
+    Positions: PositionsCacheHandler = createPositionsCacheHandler(ephemeraDB)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
@@ -161,7 +164,6 @@ export class InternalCache {
         this.AffordanceRoomDeliverable = new AffordanceRoomDeliverableData(
             this.ComponentAggregate,
             this.AffordanceCache,
-            this.Positions,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)

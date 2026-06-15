@@ -20,7 +20,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | DataSource index |
 | [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | **`Positions`** read handler, affordance compose |
-| [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | Lambda wrapper for positions gateway (topology read) |
+| [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`createPositionsCacheHandler(ephemeraDB)`** (topology + adjacency read) |
 | [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts) | Roster **presentation** compose --- see [graph roles](AGENT.concepts.md#graph-roles-shared-shape-different-authority) |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose (roster via **`Positions`**, exits via affordance cache) |
 | [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md) | Hydrated `Affordance::` rows, `topology.exits` |

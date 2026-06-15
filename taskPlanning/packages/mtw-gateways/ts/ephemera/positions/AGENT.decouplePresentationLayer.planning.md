@@ -1,6 +1,6 @@
 # Positions gateway: decouple presentation from topology
 
-**Status:** PR2 complete (Phase 2). Next step: Phase 3 (roster DTO consolidation + remove `PositionsData.getRoomRoster`; D1, D2). All implementation decisions (D1--D3) locked.
+**Status:** PR3 complete (Phase 3). Next step: Phase 4 (durable doc + contract alignment). D3 locked; D1 and D2 shipped in PR3.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -38,7 +38,7 @@ Command authority: **`packages/mtw-gateways`** uses Jest (`npm test` in package 
 
 ```bash
 cd packages/mtw-gateways && npm test -- ts/ephemera/positions
-cd lambda/ephemera && npm test -- internalCache/positions.test.ts internalCache/hydrateRoomRoster.test.ts dataSource/positions/membership
+cd lambda/ephemera && npm test -- internalCache/hydrateRoomRoster.test.ts internalCache/affordanceRoomDeliverable.test.ts dataSource/positions/membership
 ```
 
 ## Target end state
@@ -65,11 +65,9 @@ Keep until a dedicated ticket; not part of this plan's deletion list:
 
 | ID | Decision | Rationale |
 | --- | --- | --- |
-| D1 | **One canonical ephemera roster type (Option A).** Consolidate `PlayPositionRoomRosterEntry`, `RoomCharacterListItem`, and `ActiveCharacterRosterEntry` into **`RoomCharacterListItem`** ([`baseClasses.ts`](../../../../../../lambda/ephemera/internalCache/baseClasses.ts)). | `DisplayName` and `SessionIds` have clear empty values (`''`, `[]`); no need for parallel wire vs apply shapes with optional fields. |
-| D2 | **Dedicated roster compose helper (Option B).** Remove `getRoomRoster` from `PositionsData` / `PositionsCacheHandler`. Steady-state API: **`getRoomCharacterList`** in [`hydrateRoomRoster.ts`](../../../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts) --- reads topology via `internalCache.Positions.getPositionGraph`, hydrates display fields. | Keeps `Positions` / `mtw.ephemera.positions` focused on play manipulation truth; roster is ephemeral presentation compose. |
 | D3 | **Doc-only guard (no CI).** Record must-not rules in durable docs; run full-repo grep from **Verification** at PR2/PR3 close and initiative completion. No standing CI check --- migration is short-lived. | Avoids CI churn for a brief transitional state; grep at cleanup is sufficient. |
 
-When decisions ship, record in `AGENT.implementation.md` / `AGENT.contract.md` and remove rows here.
+D1 and D2 shipped in PR3; recorded in durable docs during Phase 4.
 
 ## Open decisions (implementation --- plan only)
 
@@ -82,7 +80,7 @@ None.
 | 0 | Deprecation markers (D3: doc obligation only) | Complete |
 | 1 | Remove `roomEndpoint` and reverse-encoding helpers | Complete |
 | 2 | Topology-only `PlayPositionGraph`; drop package `getRoomRoster` | Complete |
-| 3 | Roster DTO consolidation + remove `PositionsData.getRoomRoster` (D1, D2) | Not started |
+| 3 | Roster DTO consolidation + remove `PositionsData.getRoomRoster` (D1, D2) | Complete |
 | 4 | Durable doc + contract alignment | Not started |
 
 ## Recommended order
@@ -111,13 +109,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 
 ### PR3 --- Phase 3 (roster DTO consolidation + compose seam; D1, D2)
 
-- [ ] Implement D1: **`RoomCharacterListItem`** as the only hydrated roster entry type (see **Decided** above)
-- [ ] Implement D2: move compose into [`hydrateRoomRoster.ts`](../../../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts) --- **`getRoomCharacterList`** calls `internalCache.Positions.getPositionGraph` + `extractCharacterIdsFromPlayPositionGraph` + `hydrateRoomRosterFromCharacterIds`; remove `PositionsData.getRoomRoster` override and delete [`positions.test.ts`](../../../../../../lambda/ephemera/internalCache/positions.test.ts) `getRoomRoster` tests (cover via `hydrateRoomRoster.test.ts`)
-- [ ] Update `affordanceRoomDeliverable` to call `getRoomCharacterList` (not `Positions.getRoomRoster`)
-- [ ] Update `buildRoomRosterSnapshots` / membership apply tests (already use `getRoomCharacterList`)
-- [ ] Replace `ActiveCharacterRosterEntry` with `RoomCharacterListItem` on `MembershipApplyResult.roomRosterSnapshots`; delete `playPositionRosterEntryToRoomCharacterListItem`
-- [ ] Remove `PlayPositionRoomRosterEntry` from gateway exports ([`types.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/types.ts), [`index.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/index.ts))
-- [ ] Run ephemera `hydrateRoomRoster.test.ts`, `affordanceRoomDeliverable.test.ts`, membership apply tests; run cleanup grep (see **Verification**); update this plan checkboxes
+- [X] Implement D1: **`RoomCharacterListItem`** as the only hydrated roster entry type (see **Decided** above)
+- [X] Implement D2: move compose into [`hydrateRoomRoster.ts`](../../../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts) --- **`getRoomCharacterList`** calls `internalCache.Positions.getPositionGraph` + `extractCharacterIdsFromPlayPositionGraph` + `hydrateRoomRosterFromCharacterIds`; remove `PositionsData.getRoomRoster` override and delete [`positions.test.ts`](../../../../../../lambda/ephemera/internalCache/positions.test.ts) `getRoomRoster` tests (cover via `hydrateRoomRoster.test.ts`)
+- [X] Update `affordanceRoomDeliverable` to call `getRoomCharacterList` (not `Positions.getRoomRoster`)
+- [X] Update `buildRoomRosterSnapshots` / membership apply tests (already use `getRoomCharacterList`)
+- [X] Replace `ActiveCharacterRosterEntry` with `RoomCharacterListItem` on `MembershipApplyResult.roomRosterSnapshots`; delete `playPositionRosterEntryToRoomCharacterListItem`
+- [X] Remove `PlayPositionRoomRosterEntry` from gateway exports ([`types.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/types.ts), [`index.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/index.ts))
+- [X] Run ephemera `hydrateRoomRoster.test.ts`, `affordanceRoomDeliverable.test.ts`, membership apply tests; run cleanup grep (see **Verification**); update this plan checkboxes
 
 ### PR4 --- Phase 4 (durable docs)
 
@@ -136,7 +134,7 @@ After each PR:
 cd packages/mtw-gateways && npm test -- ts/ephemera/positions
 
 # Ephemera consumers
-cd lambda/ephemera && npm test -- internalCache/positions.test.ts internalCache/hydrateRoomRoster.test.ts internalCache/affordanceRoomDeliverable.test.ts dataSource/positions/membership
+cd lambda/ephemera && npm test -- internalCache/hydrateRoomRoster.test.ts internalCache/affordanceRoomDeliverable.test.ts dataSource/positions/membership
 ```
 
 ### Cleanup grep (D3 --- manual, at PR2/PR3/PR4 close)

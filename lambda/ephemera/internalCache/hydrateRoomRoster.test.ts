@@ -1,7 +1,12 @@
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
+
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from './index'
 import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
+
+const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 const CHARACTER_A = 'CHARACTER#Alpha' as EphemeraCharacterId
 const CHARACTER_B = 'CHARACTER#Beta' as EphemeraCharacterId
@@ -126,28 +131,89 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
 describe('getRoomCharacterList', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        jest.resetAllMocks()
         internalCache.clear()
     })
 
-    it('maps getRoomCharacterList from PlayPositionRoomRosterEntry shape', async () => {
-        jest.spyOn(internalCache.Positions, 'getRoomRoster').mockResolvedValue([
-            {
-                EphemeraId: CHARACTER_A,
-                DisplayName: 'Alpha',
-                SessionIds: ['sess-a'],
-                Color: 'blue',
-                fileURL: 'https://example.com/alpha.png',
-            },
-        ])
+    it('hydrates roster from stored positionGraph without activeCharacters Dynamo read', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
+            if (ProjectionFields?.includes('positionGraph')) {
+                return {
+                    positionGraph: {
+                        nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
+                    },
+                }
+            }
+            throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+        })
+
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
+            EphemeraId: CHARACTER_A,
+            Name: 'Alpha',
+            RoomId: TOWN_SQUARE,
+            RoomStack: [],
+            HomeId: 'ROOM#Home',
+            assets: [],
+            Color: 'blue',
+            fileURL: 'https://example.com/alpha.png',
+        })
+        jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
 
         await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([
             {
                 EphemeraId: CHARACTER_A,
                 DisplayName: 'Alpha',
-                SessionIds: ['sess-a'],
+                SessionIds: ['sess-1'],
                 Color: 'blue',
                 fileURL: 'https://example.com/alpha.png',
             },
         ])
+
+        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ProjectionFields: ['positionGraph'],
+            })
+        )
+    })
+
+    it('uses memo-patched graph without Dynamo read', async () => {
+        internalCache.Positions.set({
+            componentId: TOWN_SQUARE,
+            graph: {
+                nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
+                edges: [],
+            },
+        })
+
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
+            EphemeraId: CHARACTER_A,
+            Name: 'Alpha',
+            RoomId: TOWN_SQUARE,
+            RoomStack: [],
+            HomeId: 'ROOM#Home',
+            assets: [],
+        })
+        jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
+
+        await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([{
+            EphemeraId: CHARACTER_A,
+            DisplayName: 'Alpha',
+            SessionIds: ['sess-1'],
+        }])
+
+        expect(ephemeraMock.getItem).not.toHaveBeenCalled()
+    })
+
+    it('returns empty roster when stored positionGraph is absent', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
+            if (ProjectionFields?.includes('positionGraph')) {
+                return {}
+            }
+            throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+        })
+
+        await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([])
+        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
     })
 })

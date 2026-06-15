@@ -3,7 +3,6 @@ export { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
 export type {
     MembershipContainersCacheSetParams,
     PlayPositionGraph,
-    PlayPositionRoomRosterEntry,
     PositionsCacheSetParams,
 } from './types'
 
