@@ -147,6 +147,7 @@ describe('updatePositionGraphs', () => {
         expect(items[0].Update.priorFetch).toBeUndefined()
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
         expect(items[1].Update.updateKeys).toEqual(['positionGraph', 'activeCharacters'])
+        expect(items[1].Update.successCallback).toBeUndefined()
         expect(items[1].Update.priorFetch).toBeUndefined()
         expect(items[2].Delete).toEqual({
             EphemeraId: CHARACTER_ID,
@@ -186,24 +187,6 @@ describe('updatePositionGraphs', () => {
 
     it('disconnect removes graph membership, adjacency, and RoomId without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
-        transactWrite.mockImplementation(async (items) => {
-            items.forEach((item: {
-                Update?: {
-                    Key: { EphemeraId: string };
-                    successCallback?: (output: unknown) => void;
-                    updateReducer: (draft: unknown) => void;
-                };
-            }) => {
-                if (!item.Update) {
-                    return
-                }
-                const draft: Record<string, unknown> = item.Update.Key.EphemeraId === ROOM_A
-                    ? { activeCharacters: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }] }
-                    : { RoomId: 'VORTEX' }
-                item.Update.updateReducer(draft)
-                item.Update.successCallback?.(draft)
-            })
-        })
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: null },
@@ -225,6 +208,7 @@ describe('updatePositionGraphs', () => {
         expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
         expect(items[0].Update.priorFetch).toBeUndefined()
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
+        expect(items[1].Update.successCallback).toBeUndefined()
         expect(items[2].Delete.DataCategory).toBe(buildPositionAdjacencyDataCategory(ROOM_A))
     })
 

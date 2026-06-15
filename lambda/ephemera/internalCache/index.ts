@@ -86,7 +86,7 @@ export class InternalCache {
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
-    RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
+    RoomCharacterList!: CacheRoomCharacterListsData
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
     AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
     RoomAssets: CacheRoomAssetsData = new CacheRoomAssetsData()
@@ -137,6 +137,9 @@ export class InternalCache {
             },
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
+        this.RoomCharacterList = new CacheRoomCharacterListsData(
+            (roomId) => this.Positions.getRoomRoster(roomId)
+        )
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
         this.Graph = this._graphCache.Graph
         this.GraphNodes = this._graphCache.Nodes

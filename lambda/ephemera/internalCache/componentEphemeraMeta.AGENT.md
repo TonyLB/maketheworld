@@ -21,7 +21,7 @@ Invalidation does **not** flush writes; there is no `flush()` (no write-behind).
 
 Any code path that **writes** `Meta::Room` in ephemeraDB must call `internalCache.ComponentEphemeraMeta.invalidate(roomId)` after success.
 
-`RoomCharacterList` is a separate derived cache over `activeCharacters`. When a writer updates `activeCharacters` and already calls `RoomCharacterList.set` with fresh data, invalidating `RoomCharacterList` is unnecessary. When a writer only changes other fields (e.g. `state.marks`, `currentCacheByPerspective`), invalidate only `ComponentEphemeraMeta`.
+`RoomCharacterList` is a separate per-invocation memo over hydrated roster entries from **`internalCache.Positions.getRoomRoster`**. The membership coordinator calls **`RoomCharacterList.set`** with post-apply snapshots after **`getRoomRoster`** on each affected room. When a writer only changes other fields (e.g. `state.marks`, `currentCacheByPerspective`), invalidate only `ComponentEphemeraMeta`.
 
 ## Related
 

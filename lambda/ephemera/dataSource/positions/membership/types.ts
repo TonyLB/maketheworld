@@ -31,7 +31,6 @@ export type MembershipGraphPersistSuccess = {
     ok: true;
     persisted: true;
     diff: MembershipDiff;
-    roomRosterSnapshots?: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>;
 }
 
 export type UpdatePositionGraphsResult =

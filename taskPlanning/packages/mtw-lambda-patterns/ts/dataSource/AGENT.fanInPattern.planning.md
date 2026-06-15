@@ -321,7 +321,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
 - [ ] **Close initiative**
   - [ ] Merge lasting **fan-in** pattern docs into package `AGENT*.md`
   - [ ] Confirm membership emission + slim render registry shipped or deferred with recorded decision
-  - [ ] Positions **S2-6-H** roster hydration shipped (ephemera-local compose; no fan-in changes --- affordance roster decoupled from membership emission)
+  - [X] Positions **S2-6-H** roster hydration shipped (ephemera-local compose + **`RoomCharacterList`** reader memo; no fan-in changes --- affordance / **`publishMessage`** roster paths use hydrated **`getRoomRoster`**)
   - [ ] Delete this planning file
 
 ---
@@ -374,4 +374,4 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Positions slice 2 storage schema (`positionGraph` + adjacency **S2-5**) | Done (types + **`updatePositionGraphs`** persist + gateway backing; **F1-8** steady-state emit shipped) |
 | Phase 2: retire characterMove ordering / pre-bake | Done |
 | Phase 3+: PerceptionThreads targeting-only | Done |
-| Initiative close | In progress (positions **S2-6-H** roster hydration shipped; fan-in docs merge pending) |
+| Initiative close | In progress (positions **S2-6-H** shipped; fan-in docs merge pending) |

@@ -1,6 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../../../internalCache'
@@ -12,7 +11,6 @@ import {
     removeCharacterFromGraph,
 } from './positionGraphMerge'
 import type {
-    ActiveCharacterRosterEntry,
     MembershipApplyArgs,
     MembershipDiff,
     UpdatePositionGraphsResult,
@@ -58,9 +56,6 @@ export const computeMembershipDiff = (
     }
 }
 
-const snapshotRoster = (meta: Partial<EphemeraMetaRoom> | undefined): ActiveCharacterRosterEntry[] =>
-    ((meta?.activeCharacters ?? []) as ActiveCharacterRosterEntry[])
-
 const normalizeCurrentRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>
     stack ?? []
 
@@ -84,7 +79,6 @@ export const updatePositionGraphs = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
     const sessions = await getCharacterSessions(args.characterId)
-    const roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> = {}
 
     const [roomAssets = [], canonAssets = []] = diff.to
         ? await Promise.all([
@@ -156,9 +150,6 @@ export const updatePositionGraphs = async (
                                 ({ EphemeraId }) => EphemeraId !== characterMeta.EphemeraId
                             )
                         },
-                        successCallback: (output) => {
-                            roomRosterSnapshots[departureRoomId] = snapshotRoster(output as EphemeraMetaRoom)
-                        },
                     },
                 })
                 transactItems.push({
@@ -201,9 +192,6 @@ export const updatePositionGraphs = async (
                                 },
                             ]
                         },
-                        successCallback: (output) => {
-                            roomRosterSnapshots[diff.to!] = snapshotRoster(output as EphemeraMetaRoom)
-                        },
                     },
                 })
                 transactItems.push({
@@ -230,7 +218,6 @@ export const updatePositionGraphs = async (
             ok: true,
             persisted: true,
             diff,
-            roomRosterSnapshots,
         }
     }
     catch (error) {

@@ -121,6 +121,8 @@ Positions **must** subscribe to:
 ## Read surface (S1-5, S1-15 slice 2)
 
 - Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions.getRoomRoster`**, not raw `ephemeraDB` `activeCharacters` in the compose path.
+- **`RoomCharacterList.get`** **must** delegate to **`internalCache.Positions.getRoomRoster`** (hydrated); **must not** read stored **`activeCharacters`** from Dynamo on the steady path.
+- After membership apply when **`changed`**, the coordinator **must** build roster snapshots via **`getRoomRoster`** per affected room for **`Positions.set`** and **`RoomCharacterList.set`** memo; **must not** use transact **`successCallback`** on **`activeCharacters`** for snapshot capture.
 - **Roster display** **must** hydrate at read time from **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`) via [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts); membership topology from stored **`positionGraph`** nodes only (**S2-6-H**).
 - **Character `getPositionGraph`** is a forward **inventory stub** (empty graph today) --- **must not** be used for room-membership / reverse reads.
 - **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts)) **must** use **`internalCache.Positions.getMembershipContainers`**, not raw `Meta::Character.RoomId`, `CharacterMeta.RoomId`, or `getPositionGraph(characterId).roomEndpoint`.

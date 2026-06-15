@@ -1,31 +1,33 @@
-import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { PlayPositionRoomRosterEntry } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomCharacterListItem } from './baseClasses'
 
+export const playPositionRosterEntryToRoomCharacterListItem = (
+    entry: PlayPositionRoomRosterEntry
+): RoomCharacterListItem => ({
+    EphemeraId: entry.EphemeraId,
+    DisplayName: entry.DisplayName,
+    SessionIds: entry.SessionIds,
+    ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
+    ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
+})
+
 export class CacheRoomCharacterListsData {
-    CharacterListByRoom: Record<EphemeraRoomId, RoomCharacterListItem[]> = {};
+    CharacterListByRoom: Record<EphemeraRoomId, RoomCharacterListItem[]> = {}
+    _getRoomRoster: (roomId: EphemeraRoomId) => Promise<PlayPositionRoomRosterEntry[]>
+
+    constructor(getRoomRoster: (roomId: EphemeraRoomId) => Promise<PlayPositionRoomRosterEntry[]>) {
+        this._getRoomRoster = getRoomRoster
+    }
+
     clear() {
         this.CharacterListByRoom = {}
     }
 
     async get(roomId: EphemeraRoomId): Promise<RoomCharacterListItem[]> {
         if (!this.CharacterListByRoom[roomId]) {
-            const { activeCharacters = [] } = (await ephemeraDB.getItem<Pick<EphemeraMetaRoom, 'activeCharacters'>>({
-                    Key: {
-                        EphemeraId: roomId,
-                        DataCategory: 'Meta::Room'
-                    },
-                    ProjectionFields: ['activeCharacters']
-                })) || { activeCharacters: [] }
-            this.CharacterListByRoom[roomId] = activeCharacters.map((c) => {
-                const { Name, sessions, ...rest } = c as any
-                return {
-                    ...rest,
-                    DisplayName: (c as any).DisplayName ?? Name ?? '',
-                    SessionIds: (c as any).SessionIds ?? sessions ?? []
-                } as RoomCharacterListItem
-            })
+            const roster = await this._getRoomRoster(roomId)
+            this.CharacterListByRoom[roomId] = roster.map(playPositionRosterEntryToRoomCharacterListItem)
         }
         return this.CharacterListByRoom[roomId] || []
     }

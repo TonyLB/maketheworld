@@ -240,7 +240,7 @@ if (!object) {
 ### **Session-Based Handlers**
 - **`SessionConnections`**: Caches connection data
 - **`PlayerSessions`**: Caches player session data from `Meta::Session` rows (no `Global / Sessions` dependency)
-- **`RoomCharacterLists`**: Caches room character lists
+- **`RoomCharacterLists`** ([`roomCharacterLists.ts`](roomCharacterLists.ts)): Per-invocation memo of room roster entries. **`get`** delegates to injected **`Positions.getRoomRoster`** (hydrated topology + **`CharacterMeta`** / **`CharacterSessions`**); **`set`** / **`invalidate`** for coordinator snapshots after membership apply (**S2-6-H**). Wired from [`index.ts`](index.ts) constructor.
 
 ### **Global Handlers**
 - **`Global`**: Caches global system data

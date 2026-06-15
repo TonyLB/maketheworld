@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H ephemera-local roster hydration shipped.** **Next:** initiative **Close** (**S2-6-H** reader memo, then **S2-6** storage retirement + **S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **S2-6-H shipped** (roster hydration + reader memo). **Next:** initiative **Close** (**S2-6** storage retirement + **S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -622,9 +622,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
     - [X] **`mtw-gateways` `PositionsCacheHandler`:** slim forward load to stored **`positionGraph`** only; remove **`getRoomActiveCharactersFromDynamo`** merge on steady path (keep fetch/project exports for package tests / bootstrap shims until S2-6 readers land)
     - [X] Ephemera tests: stored **`positionGraph`** without **`activeCharacters`** yields full **`internalCache.Positions.getRoomRoster`** (parity with pre-Close affordance roster)
     - [X] Affordance compose smoke: **`AffordanceRoomDeliverable`** tests pass with hydrated roster only
-  - [ ] **S2-6-H --- reader memo:**
-    - [ ] **`RoomCharacterList.get`:** delegate to **`internalCache.Positions.getRoomRoster`** (remove raw Dynamo **`activeCharacters`** read); retain **`set`** for coordinator snapshots
-    - [ ] **`updatePositionGraphs` / coordinator:** **`roomRosterSnapshots`** from ephemera **`getRoomRoster`** --- not transact **`successCallback`** on **`activeCharacters`**
+  - [X] **S2-6-H --- reader memo:**
+    - [X] **`RoomCharacterList.get`:** delegate to **`internalCache.Positions.getRoomRoster`** (remove raw Dynamo **`activeCharacters`** read); retain **`set`** for coordinator snapshots
+    - [X] **`updatePositionGraphs` / coordinator:** **`roomRosterSnapshots`** from ephemera **`getRoomRoster`** --- not transact **`successCallback`** on **`activeCharacters`**
   - [ ] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership in **`updatePositionGraphs`**; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); delete **`applyCharacterMembershipFlat`** if unused
   - [ ] **S2-6 --- readers:** Remove gateway **`RoomId`** / **`activeCharacters`** fallbacks ([`getCharacterRoomIdFromDynamo`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts), **`projectRoomGraphFromActiveCharacters`** bootstrap except empty-graph edge); steady-state **`getMembershipContainers`** adjacency-only
   - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) --- no direct **`activeCharacters`** optimistic rewrite; detect vs graph + adjacency + connections adjacency; repair via **`repairCharacterLegalPlacement`** / end-state **`applyCharacterRoomMembership`** when membership endpoint must change
@@ -704,4 +704,4 @@ npm --prefix lambda/diagnostics run test -- --watchAll=false roomOccupancyDriftS
 | Slice 4: legacy disconnect retirement | Done |
 | Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
 | Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
-| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** ephemera-local shipped) |
+| Initiative close (**S2-6-H** hydrate + **S2-6** storage + **S2-6-DR** drift repair) | In progress (**S2-6-H** shipped; **S2-6** + **S2-6-DR** next) |

@@ -128,6 +128,7 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
 | `internalCache.Positions.set` / `invalidate` | Room forward position graph memo (S1-5) |
+| `internalCache.RoomCharacterList.set` | Per-room roster memo from coordinator post-apply **`getRoomRoster`** (**S2-6-H**) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents` or `ephemeraPositionsDataSource` on legacy bus paths) | `Character Moved` when `changed` |
@@ -143,7 +144,7 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 | [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency + RoomId fallback) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`Positions.getRoomRoster`** |
-| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Legacy roster read (other callers; migrate at initiative close) |
+| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Per-invocation roster memo; **`get`** delegates to **`Positions.getRoomRoster`**; coordinator **`set`** after apply (**S2-6-H**) |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
 | [`../perception/membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) | Fan-in fact leg consumer for **`Character Moved`** |
 
