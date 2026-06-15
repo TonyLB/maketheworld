@@ -2,6 +2,7 @@ import {
     isEphemeraPositionsSubscribedEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
+    isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
 } from './subscribedEvents'
 
 describe('mtw.ephemera.positions subscribedEvents', () => {
@@ -106,5 +107,40 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Room Occupancy Drift Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Room Occupancy Drift Finding' as const,
+                roomId: 'ROOM#alpha' as const,
+                diagnosticRunId: 'diag-1',
+                timestamp: '2026-05-06T10:00:00.000Z',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('rejects unrelated event type on mtw.diagnostics', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Ephemera RenderCache Finding',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope(envelope as any)).toBe(false)
     })
 })

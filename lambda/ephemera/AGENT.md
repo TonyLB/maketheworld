@@ -60,23 +60,13 @@ The Ephemera Lambda integrates with other system components through:
 - **EventBridge Events**: Receives assets update events for blueprint reconciliation and diagnostics findings for self-healing intake
 - **Client Applications**: Maintains persistent WebSocket connections for real-time interaction
 
-#### **Diagnostics self-healing intake**
+#### **Diagnostics occupancy drift (S2-6-DR)**
 
-Ephemera subscribes to `mtw.diagnostics` finding events through the DataSource envelope lane in `app.ts` (`eventDeserializers`), then routes supported finding types via `dataSource/subscribedEvents.ts`.
-
-Current supported occupancy-healing finding:
-
-- **`Room Occupancy Drift Finding`** (`mtw.diagnostics`): handled by `dataSource/selfHealing/roomOccupancyDriftFinding.ts`.
-  - Scope is strictly `ephemera`-table reconciliation (D6 ownership boundary).
-  - Rebuilds `Meta::Room.activeCharacters` from authoritative character room membership + live sessions.
-  - Keeps replay idempotency (no-op when room occupancy already matches canonical shape).
-  - Enforces post-repair contract: `RoomCharacterList` refresh, `ComponentEphemeraMeta` + `AffordanceRoomDeliverable` invalidation, and `RoomUpdate` signaling.
-  - Queues `CheckLocation` for occupancy entries lacking authoritative room assignment.
-  - Bus delivery: **`publish`** + boundary **`flushAndSettle`** (no producer-side drain).
+Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-only sweep: [`lambda/diagnostics/roomOccupancyDriftSweep/`](../../diagnostics/roomOccupancyDriftSweep/)). Downstream repair is owned by **`mtw.ephemera.positions`** via [`repairRoomOccupancyDrift`](dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward scan, sessions gate, adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
 
 #### **`mtw.ephemera.positions` (positions in play)**
 
-Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative slice 0), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map). Active task plan: [`taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md).
+Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative rules), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map).
 
 Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` bridges to `moveCharacter`; `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
 

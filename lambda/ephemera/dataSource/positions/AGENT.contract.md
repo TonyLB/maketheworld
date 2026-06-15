@@ -2,7 +2,7 @@
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**), with transitional dual-write to **`activeCharacters`** / **`RoomId`** (**S2-2** until initiative close **S2-6**). **`Character Moved`** is graph-diff descriptive emission (**F1-8** / **S2-4**). Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
+Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**) only (**S2-6** shipped). **`Character Moved`** is graph-diff descriptive emission (**F1-8** / **S2-4**). Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
 
 ---
 
@@ -30,7 +30,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 - **Must** use pure end-state apply on **`targetRoomId`** only.
 - **Must** derive **`MembershipDiff.froms`** from observed prior containers removed (may be **`length > 1`** on drift repair).
-- **Must** maintain **`positionGraph`** + adjacency in the same **`transactWrite`** bundle; **must** transitional dual-write **`activeCharacters`** / **`RoomId`** (**S2-2**).
+- **Must** maintain **`positionGraph`** + adjacency in the same **`transactWrite`** bundle (**S2-6** --- no legacy **`activeCharacters`** / **`RoomId`** membership projection writes).
 - On conflict between graph and adjacency, **`positionGraph` wins** (diagnostics repair from graph).
 
 ### Membership-changed bundle (S1-11)
@@ -55,7 +55,7 @@ Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). 
 - **Must not** expose eviction ladder edits on **`MembershipApplyArgs`** --- public apply remains `{ characterId, targetRoomId | null }` only (**S1-9**). Ladder shape is internal to persist / resolution helpers.
 - **Legal placement resolution:** trim `RoomStack` to accessible assets; surviving top frame is the proposed `targetRoomId`. **Connect** --- place from nowhere (`froms: []`). **Asset visibility loss** --- relocate from an illegal occupancy when top frame differs from current membership.
 - On successful **navigate** membership persist, **`updatePositionGraphs`** **must** update `Meta::Character.RoomStack` in the same character-row transact (ladder maintenance bundled with membership apply).
-- On **disconnect**, **`updatePositionGraphs`** **must** purge play membership (`positionGraph`, adjacency, `RoomId`) and **must preserve** `RoomStack` (connect resolves legal placement from the retained stack).
+- On **disconnect**, **`updatePositionGraphs`** **must** purge play membership (`positionGraph`, adjacency) and **must preserve** `RoomStack` (connect resolves legal placement from the retained stack).
 - **Must not** emit **`Character Moved`** or run the membership-changed bundle when **only** the eviction ladder changes and the room membership endpoint is unchanged (**S1-9**).
 - When asset loss **trim** changes the membership endpoint for an **in-play** character, relocation **must** go through [`repairCharacterLegalPlacement`](membership/repairCharacterLegalPlacement.ts) -> [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts). **Out-of-play** characters (**`getMembershipContainers`** empty): trim **`RoomStack` only** --- **must not** re-insert into play.
 
@@ -116,16 +116,37 @@ Positions **must** subscribe to:
 - **Must not** rely on imperative `MoveCharacter` from actions for parse-based or UI-exit navigation.
 - Leave/arrive world copy for navigate is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
 
+### `mtw.diagnostics` --- occupancy drift repair (S2-6-DR)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Room Occupancy Drift Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`repairRoomOccupancyDrift`](membership/repairRoomOccupancyDrift.ts) |
+
+**Repair model (graph-forward):**
+
+- Enumerate character nodes on the room **`positionGraph`**; **must not** use **`Meta::Character.RoomId`** or **`Meta::Room.activeCharacters`** as authority.
+- **Sessions gate:** no live sessions -> **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** (full graph purge; S1-11 when `changed`).
+- **In-play, adjacency lag:** graph correct but **`getMembershipContainers`** omits this room -> [`syncMembershipAdjacencyToRoom`](membership/syncMembershipAdjacency.ts) only (**must not** run S1-11 bundle).
+- **Idempotency:** at-least-once finding delivery **must** be safe (no-op when already repaired).
+- **Explicit gap:** stale adjacency without a graph node is out of scope for this room-forward scan.
+
+Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/).
+
 ---
 
 ## Read surface (S1-5, S1-15 slice 2)
 
-- Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions`** (`getRoomRoster` / room `getPositionGraph`), not raw `ephemeraDB` `activeCharacters` in the compose path.
+- Steady-state roster reads for **affordance compose** **must** use **`internalCache.Positions.getRoomRoster`**, not raw `ephemeraDB` `activeCharacters` in the compose path.
+- **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) **must** derive on each call from **`internalCache.Positions.getRoomRoster`** (hydrated); **must not** read stored **`activeCharacters`** from Dynamo on the steady path.
+- After membership apply when **`changed`**, **`updatePositionGraphs`** **must** return **`postApplyRoomGraphs`**; the coordinator **must** seed **`Positions.set`** from that output (topology only via **`projectRoomGraphFromStoredPositionGraph`**); **`roomRosterSnapshots`** on the apply result **must** come from **`getRoomCharacterList`** after graph memo seed; **must not** use transact **`successCallback`** on **`activeCharacters`** for snapshot capture.
+- **Roster display** **must** hydrate at read time from **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`) via [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts); membership topology from stored **`positionGraph`** nodes only (**S2-6-H**).
 - **Character `getPositionGraph`** is a forward **inventory stub** (empty graph today) --- **must not** be used for room-membership / reverse reads.
 - **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts)) **must** use **`internalCache.Positions.getMembershipContainers`**, not raw `Meta::Character.RoomId`, `CharacterMeta.RoomId`, or `getPositionGraph(characterId).roomEndpoint`.
-- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** (bootstrap from **`activeCharacters`** when graph absent); roster display merges transitional **`activeCharacters`** (**S2-2**).
-- **Reverse membership** **must** read adjacency rows; **may** fall back to **`RoomId`** when adjacency empty (transitional bootstrap until **S2-6**).
-- **Authoritative writer** for play position state remains the membership persistence API; gateway memo runs from the coordinator when `changed`: forward **`set`** / **`invalidate`** for all rooms in **`froms`** + **`to`**; **`setMembershipContainers`** for the character.
+- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** topology only; when graph absent, return empty topology (**S2-6**); **must not** merge stored **`activeCharacters`** on gateway forward load for roster display.
+- **Reverse membership** **must** read adjacency rows only (**S2-6**); empty adjacency means out of play (`[]`).
+- **Authoritative writer** for play position state remains the membership persistence API; gateway memo runs from the coordinator when `changed`: forward **`Positions.set`** from **`postApplyRoomGraphs`** for all rooms in **`froms`** + **`to`**; **`setMembershipContainers`** for the character.
 
 ---
 
@@ -133,8 +154,8 @@ Positions **must** subscribe to:
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
 - **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
-- **Must not** write play membership fields outside [`membership/`](membership/) except documented diagnostics:
-  - [`../selfHealing/roomOccupancyDriftFinding.ts`](../selfHealing/roomOccupancyDriftFinding.ts) (diagnostics self-healing rebuild)
+- **Must not** write play membership fields outside [`membership/`](membership/).
+- **Must not** publish **`CheckLocation`** (retired at Close **S2-6-DR**).
 
 ### Disconnect ingress (slice 4)
 

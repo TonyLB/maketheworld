@@ -191,7 +191,59 @@ for (const envelope of events) {
 - Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.
 - `onClear` is independent: fan-in drops partials; coalescers reset enqueue buffers --- both run on `messageBus.clear()` at ingress.
 
-**First consumer (ephemera):** membership presentation emission on [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- cluster spec in [`membershipPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts); **`FanInClusterStore`** wiring shipped on [`index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts) (deferral tag **`fanIn-mtw.ephemera.perception`**, sequential **`receiveEvents`** loop; **`afterSettled`** no-ops when no open partials); **`publishMembershipPresentation`** shipped. **Separate concern:** async render delivery uses **`internalCache.PerceptionThreads`** (render targeting registry, not `FanInClusterStore`) --- see [`dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads). Task plan: [`taskPlanning/.../AGENT.fanInPattern.planning.md`](../../../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md).
+#### When to use fan-in vs a targeting registry
+
+Two concerns are often conflated in perception-heavy flows. Keep them separate:
+
+| Concern | Question | Typical owner | Use fan-in? |
+| --- | --- | --- | --- |
+| **Beat orchestration** | Where do related lines sit in the **narrative transcript**? | Caller + explicit **`createdTime`** / **`OrchestrateMessages`** offsets | **No** --- async render completion does not gate beat position |
+| **Emission correlation** | **Which** world lines to emit and **what copy**? | **`FanInCluster`** on intent + fact legs | **Yes** |
+
+**Fan-in** correlates multi-leg ingress to decide **emission policy** (shape + copy), then publishes derived side effects (for example leave/arrive **`WorldMessage`** rows). It does **not** gate header render lifecycle or beat timestamps.
+
+**Targeting registry** (ephemera: **`internalCache.PerceptionThreads`**) captures **who** gets async render delivery and correlates **`Render Pertains`** / orchestration lifecycle to **`(componentId, perspectiveKey)`** buckets. That is audience targeting + render lifecycle correlation --- not the two-leg AND processor. Default plan: keep render lifecycles in perception orchestration keyed off slim registration rows; do **not** migrate each thread kind into generic fan-in specs unless a later spike shows real reuse.
+
+Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) (fictional **`CreatedTime`**, delivery looseness vs correlation), [`dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads).
+
+#### Reference consumer: membership presentation emission (shipped)
+
+**DataSource:** [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md).
+
+| Piece | Location |
+| --- | --- |
+| Cluster spec | [`membershipPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) |
+| Leg adapters | [`membershipPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts) |
+| Store wiring | [`index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts) --- deferral tag **`fanIn-mtw.ephemera.perception`** |
+| Publish | [`publishMembershipPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishMembershipPresentation.ts) |
+
+**Legs:**
+
+| Leg | Source | Role |
+| --- | --- | --- |
+| **Intent** | **`mtw.ephemera.actions`** (`Character Navigate`, `Character Home`), **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected`) | Why the transition happened; optional **`exitName`** on navigate for exit-aware copy |
+| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply | Authoritative endpoints: **`froms[]`**, **`to`**, **`beatAnchorTime`** |
+
+**Correlation:** **`clusterIdentity()`** is fact-authoritative (`characterId` + canonical sorted **`froms`** + **`to`**). Intent **`fromRoomId`** is non-authoritative; correlate when **`intent.fromRoomId in fact.froms`**. Plural **`froms`** may yield multi-leave emission (exit-aware only for the entry matching correlated intent).
+
+**Render-blind emission (intentional):** membership fan-in correlates only intent + fact. It publishes leave/arrive **without** waiting on mover header render success, failure, or deferral. Header placeholders stay on the **`PerceptionThreads`** / orchestrate path --- decoupled from membership emission.
+
+**Fact producer contract:** [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#character-moved-fact-f1-8-steady-state) --- descriptive graph-diff emit at persistence apply; positions does not own emission copy policy.
+
+#### Shipped vs deferred (membership fan-in initiative)
+
+| Topic | Status |
+| --- | --- |
+| Framework (`FanInCluster` + store + deferral) | **Shipped** |
+| Membership emission (navigate, home, connect, disconnect) | **Shipped** |
+| Plural **`froms`** / multi-leave consumer | **Shipped** |
+| Phase 2: retire `characterMove` pre-baked leave/arrive | **Shipped** |
+| Phase 3: slim **`PerceptionThreads`** (targeting-only) | **Shipped** |
+| Optional render-outcome legs on fan-in (render-aware leave/arrive policy) | **Deferred** until product asks |
+| **`requestId`** on `characterMove` render kick | **Deferred** --- `registrationId` sufficient while orchestrate correlates on routing identity only |
+| Positions-stream **`Object Moved`** affordance consumer | **Deferred** --- see positions contract F3-2 |
+| Admin teleport intent leg | **Deferred** --- fact-only deferral yields generic copy |
+| Legacy home via imperative `MoveCharacter` | **Deferred** --- future actions migration |
 
 ### **Header/Content Envelope Model**
 

@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph, EphemeraRoomActiveCharacter } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
@@ -40,8 +41,8 @@ export const projectRoomGraphFromActiveCharacters = (
 }
 
 /**
- * Slice 2 forward read: stored topology from Meta::Room.positionGraph plus transitional
- * roster display metadata from activeCharacters when present (S2-2 until S2-6).
+ * Slice 2 forward read: stored topology from Meta::Room.positionGraph.
+ * Roster display metadata is hydrated at read time in ephemera internalCache (S2-6-H).
  */
 export const projectRoomGraphFromStoredPositionGraph = (
     stored: EphemeraPlayPositionGraph,
@@ -82,6 +83,25 @@ export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
 export const projectMembershipContainersFromRoomEndpoint = (
     roomEndpoint: EphemeraRoomId | null
 ): EphemeraRoomId[] => (roomEndpoint ? [roomEndpoint] : [])
+
+export const extractCharacterIdsFromPlayPositionGraph = (
+    graph: PlayPositionGraph
+): EphemeraCharacterId[] => {
+    const nodes = graph.nodes ?? []
+    const characterIds: EphemeraCharacterId[] = []
+    for (const node of nodes) {
+        if (typeof node === 'string') {
+            if (isEphemeraCharacterId(node)) {
+                characterIds.push(node)
+            }
+            continue
+        }
+        if (node.tag === 'Character' && node.universalKey && isEphemeraCharacterId(node.universalKey)) {
+            characterIds.push(node.universalKey)
+        }
+    }
+    return characterIds
+}
 
 export const projectRoomRosterFromGraph = (graph: PlayPositionGraph): PlayPositionRoomRosterEntry[] => {
     const meta = graph.characterRosterMeta ?? {}

@@ -5,6 +5,7 @@ jest.mock('../../publishMessage', () => ({
 }))
 
 import internalCache from '../../internalCache'
+import * as hydrateRoomRoster from '../../internalCache/hydrateRoomRoster'
 import messageBus from '../../messageBus'
 import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
 import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'
@@ -56,7 +57,7 @@ describe('handleAffordancesPertain', () => {
     it('publishes affordance PerceptionMessage to CHARACTER# when sessionOrientationAffordances thread registered', async () => {
         const publishSpy = jest.spyOn(messageBus, 'publish')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
-        const rosterSpy = jest.spyOn(internalCache.RoomCharacterList, 'get')
+        const rosterSpy = jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList')
         const stackMergeSpy = jest.spyOn(internalCache.AffordanceRoomDeliverable, 'get')
             .mockResolvedValue({ schema: {} } as any)
 
@@ -108,7 +109,7 @@ describe('handleAffordancesPertain', () => {
     it('publishes affordance PerceptionMessage for perspective-matched occupants only', async () => {
         const publishSpy = jest.spyOn(messageBus, 'publish')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#Match', DisplayName: 'Match', Color: 'blue', SessionIds: [] },
             { EphemeraId: 'CHARACTER#Other', DisplayName: 'Other', Color: 'purple', SessionIds: [] },
         ])
@@ -152,7 +153,7 @@ describe('handleAffordancesPertain', () => {
 
     it('does not publish when no occupants match perspective key', async () => {
         const publishSpy = jest.spyOn(messageBus, 'publish')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
         ])
         jest.spyOn(roomHeaderBroadcastModule, 'getCharacterRoomPerspectiveKey')
@@ -173,7 +174,7 @@ describe('handleAffordancesPertain', () => {
 
     it('does not publish when room has no occupants', async () => {
         const publishSpy = jest.spyOn(messageBus, 'publish')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([])
 
         await handleAffordancesPertain(makePayload(), messageBus)
 
@@ -189,7 +190,7 @@ describe('handleAffordancesPertain', () => {
     it('uses distinct messageId per matching occupant', async () => {
         const publishSpy = jest.spyOn(messageBus, 'publish')
         jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<AffordanceHeader />')
-        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+        jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList').mockResolvedValue([
             { EphemeraId: 'CHARACTER#One', DisplayName: 'One', Color: 'blue', SessionIds: [] },
             { EphemeraId: 'CHARACTER#Two', DisplayName: 'Two', Color: 'purple', SessionIds: [] },
         ])

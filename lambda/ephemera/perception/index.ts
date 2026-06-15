@@ -1,5 +1,6 @@
 import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import { internalCache } from "../internalCache"
+import { getRoomCharacterList } from "../internalCache/hydrateRoomRoster"
 import {
     EphemeraCharacterId,
     EphemeraRoomId,
@@ -56,7 +57,7 @@ export const perceptionMessage = async ({
         else if (isPerceptionRoomMessage(payload)) {
             if (isEphemeraRoomId(payload.ephemeraId)) {
                 const internalCache = getCache()
-                const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
+                const characterList = payload.characterId ? [payload.characterId] : (await getRoomCharacterList(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
                 const cacheRecords = await internalCache.RenderCache.get(payload.ephemeraId)
                 const wmlContent = payload.header
                     ? roomHeaderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)

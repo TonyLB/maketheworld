@@ -8,7 +8,9 @@ import { apiClient } from '../apiClient'
 import { TargetResolver, ResolvableTarget } from '@tonylb/mtw-sessions/ts/targetResolver'
 import { CacheCharacterSessionsData } from '../internalCache/characterSessions'
 import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache'
-import CacheRoomCharacterListsData from '../internalCache/roomCharacterLists'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RoomCharacterListItem } from '../internalCache/baseClasses'
+import { getRoomCharacterList } from '../internalCache/hydrateRoomRoster'
 import { batchMessages, normalizeConnectionId } from './batchMessages'
 import { publishMessageCoalescer } from './coalescer'
 
@@ -26,11 +28,15 @@ const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime
 
 class PublishMessageTargetResolver extends TargetResolver {
     private CharacterSessions: CacheCharacterSessionsData
-    private RoomCharacterList: CacheRoomCharacterListsData
-    constructor(internalCache: { CharacterSessions: CacheCharacterSessionsData, SessionConnections: CacheSessionConnectionsData, RoomCharacterList: CacheRoomCharacterListsData }) {
+    private getRoomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
+    constructor(internalCache: {
+        CharacterSessions: CacheCharacterSessionsData
+        SessionConnections: CacheSessionConnectionsData
+        getRoomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
+    }) {
         super(internalCache)
         this.CharacterSessions = internalCache.CharacterSessions
-        this.RoomCharacterList = internalCache.RoomCharacterList
+        this.getRoomCharacterList = internalCache.getRoomCharacterList
     }
 
     /**
@@ -75,13 +81,13 @@ class PublishMessageTargetResolver extends TargetResolver {
         const [roomCharacters, roomExclusionCharacters] = await Promise.all([
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomTargets.map((roomTarget) => (this.RoomCharacterList.get(roomTarget)))
+                    roomTargets.map((roomTarget) => (this.getRoomCharacterList(roomTarget)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ EphemeraId }) => (EphemeraId)).flat(1)
             })(),
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomExclusions.map((roomExclusion) => (this.RoomCharacterList.get(roomExclusion)))
+                    roomExclusions.map((roomExclusion) => (this.getRoomCharacterList(roomExclusion)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ EphemeraId }) => (EphemeraId)).flat(1).map((ephemeraId) => (`!${ephemeraId}` as const))
             })()
@@ -99,13 +105,13 @@ class PublishMessageTargetResolver extends TargetResolver {
         const [charactersFromRooms, characterExclusionsFromRooms] = await Promise.all([
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomTargets.map((roomTarget) => (this.RoomCharacterList.get(roomTarget)))
+                    roomTargets.map((roomTarget) => (this.getRoomCharacterList(roomTarget)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ EphemeraId }) => (EphemeraId))
             })(),
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomExclusions.map((roomExclusion) => (this.RoomCharacterList.get(roomExclusion)))
+                    roomExclusions.map((roomExclusion) => (this.getRoomCharacterList(roomExclusion)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ EphemeraId }) => (EphemeraId))
             })()
@@ -126,13 +132,13 @@ class PublishMessageTargetResolver extends TargetResolver {
         const [roomSessions, roomExclusionSessions, characterSessions, characterExclusionSessions] = await Promise.all([
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomTargets.map((roomTarget) => (this.RoomCharacterList.get(roomTarget)))
+                    roomTargets.map((roomTarget) => (this.getRoomCharacterList(roomTarget)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ SessionIds }) => (SessionIds.map((sessionId) => (`SESSION#${sessionId}` as const)))).flat(1)
             })(),
             (async () => {
                 const nestedReturns = await Promise.all(
-                    roomExclusions.map((roomExclusion) => (this.RoomCharacterList.get(roomExclusion)))
+                    roomExclusions.map((roomExclusion) => (this.getRoomCharacterList(roomExclusion)))
                 )
                 return nestedReturns.map((nestedReturn) => (nestedReturn ?? [])).flat(1).map(({ SessionIds }) => (SessionIds)).flat(1).map((sessionId) => (`!SESSION#${sessionId}` as const))
             })(),
@@ -179,7 +185,11 @@ const flushImmediateMessages = async (messagesByConnectionId: Record<string, any
 
 export const publishMessage = async ({ payloads }: { payloads: PublishMessage[], messageBus?: MessageBus }): Promise<void> => {
     const baseTime = getCurrentTimestamp()
-    const mapper = new PublishMessageTargetResolver(internalCache)
+    const mapper = new PublishMessageTargetResolver({
+        CharacterSessions: internalCache.CharacterSessions,
+        SessionConnections: internalCache.SessionConnections,
+        getRoomCharacterList,
+    })
 
     let dbPromises: Promise<void>[] = []
     let messagesByConnectionId: Record<string, any[]> = {}

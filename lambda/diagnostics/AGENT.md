@@ -46,7 +46,7 @@
 
 ## Room Occupancy Drift sweep (ephemera consistency diagnostics)
 
-**Purpose:** Read-only sweep over room occupancy snapshots (`Meta::Room.activeCharacters[].SessionIds`) compared against authoritative membership (`connections` session/character adjacency + `Meta::Character.RoomId`). Emits descriptive findings only; no repairs.
+**Purpose:** Read-only, graph-forward sweep over `Meta::Room.positionGraph` character nodes compared against connections session/character adjacency and membership adjacency reverse index (`POSITION#${roomId}` rows). Emits descriptive findings only; no repairs.
 
 **Entrypoints:**
 
@@ -55,9 +55,9 @@
 
 **Finding contract:** `mtw.diagnostics` / `Room Occupancy Drift Finding` with payload `{ roomId }`, optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
 
-**Evaluation:** The sweep compares sorted occupancy fingerprints per room (`characterId + SessionIds`) against authoritative adjacency-derived occupancy constrained by `Meta::Character.RoomId`. Rooms with mixed-valid/mixed-invalid entries still emit one finding. Cases where occupancy contains characters lacking a usable authoritative room are marked as `checkLocation` delegation candidates for downstream repair handling (still report-only in diagnostics).
+**Evaluation:** For each `Meta::Room` row, enumerate character nodes from stored `positionGraph`. Per character on the graph, flag drift when (a) no live sessions (ghost on graph), or (b) sessions present but membership adjacency does not include this `roomId` (adjacency lag). Does **not** use `Meta::Room.activeCharacters` or `Meta::Character.RoomId`. **Explicit gap:** stale adjacency pointing at a room when the character is absent from that room's `positionGraph` is not detected (room-forward scan only). Implementation: [`roomOccupancyDriftSweep/`](roomOccupancyDriftSweep/).
 
-**Downstream handling:** Ephemera consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` and performs idempotent `ephemera`-table-only reconciliation for the targeted room (`lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts`), including room cache refresh and `RoomUpdate` signaling.
+**Downstream handling:** Ephemera **`mtw.ephemera.positions`** consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` via [`repairRoomOccupancyDrift`](../../lambda/ephemera/dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward repair; sessions gate; adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 

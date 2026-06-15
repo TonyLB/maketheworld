@@ -11,7 +11,6 @@ All ingress and handler outbounds use **`messageBus.publish`**. Lambda exit drai
 | Handler | Fix axis | Notes |
 | --- | --- | --- |
 | [`publishMessage`](../publishMessage/index.ts) | **Selective delivery** | `deliveryMode` on [`PublishMessageBase`](./baseClasses.ts): `immediate` (default) wire in handler; `deferred` -> [`publishMessage/coalescer.ts`](../publishMessage/coalescer.ts) + `afterSettled` (**character move only** at producers). Generating/terminal: immediate + explicit `createdTime`. |
-| [`checkLocation`](../checkLocation/index.ts) | **Producer coalesce** | [`checkLocation/coalescer.ts`](../checkLocation/coalescer.ts) `tryClaim` + `registerDeferral` `onClear`; delegates repair to [`positions/membership/repairCharacterLegalPlacement.ts`](../dataSource/positions/membership/repairCharacterLegalPlacement.ts) |
 | [`returnValue/collector`](../returnValue/collector.ts) | **Contract** | [`createBoundaryResponseCollector`](../../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) at priority **16** collects `ReturnValue` and bus `Error` from **`publish`**; [`extractReturnValue`](../returnValue/index.ts) reads collector only; `onClear` on ingress `messageBus.clear()`. WebSocket app errors use **`ReturnValue` body `messageType: 'Error'`** (200 response); boundary infrastructure failures use bus **`Error`** (non-200). In-game command feedback uses **`PublishMessage`**, not the collector. |
 | [`mapSubscription`](../mapSubscription/index.ts) | **Contract** | One `ReturnValue` per handler invocation (ingress 1:1 per API op) |
 

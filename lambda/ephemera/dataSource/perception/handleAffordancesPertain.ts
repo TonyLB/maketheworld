@@ -3,6 +3,7 @@
  */
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../internalCache'
+import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { AffordancesPertainPayload } from '../affordanceCache/publishedEvents'
 import { isSessionOrientationAffordancesPerceptionThread } from '../../internalCache/perceptionThreads'
@@ -16,7 +17,7 @@ export async function resolveAffordanceTargetsForPerspective(
     roomId: EphemeraRoomId,
     perspectiveKey: string
 ): Promise<EphemeraCharacterId[]> {
-    const occupants = await internalCache.RoomCharacterList.get(roomId)
+    const occupants = await getRoomCharacterList(roomId)
     if (!occupants.length) {
         return []
     }

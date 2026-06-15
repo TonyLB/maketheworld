@@ -34,7 +34,6 @@ import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { selectDefaultSituationCacheRecord } from '../dataSource/renderCache/selectDefaultSituationCacheRecord';
-import { CacheRoomCharacterListsData } from './roomCharacterLists';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
@@ -102,7 +101,7 @@ export class ComponentRenderData {
     
     constructor(
         componentData: ComponentDataCache,
-        roomCharacterList: CacheRoomCharacterListsData,
+        roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
         renderCache: RenderCacheData
@@ -110,7 +109,7 @@ export class ComponentRenderData {
         this._renderCache = renderCache
         // _evaluateCode removed - Variable/Computed evaluation no longer needed
         this._componentData = (EphemeraId, assetList) => (componentData.getAcrossAssets(EphemeraId, assetList))
-        this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
+        this._roomCharacterList = roomCharacterList
         this._getAssets = async () => (await globalCache.get('assets') || [])
         this._characterMeta = (characterId) => (characterMeta.get(characterId))
         this._Cache = new DeferredCache<StandardForm>({

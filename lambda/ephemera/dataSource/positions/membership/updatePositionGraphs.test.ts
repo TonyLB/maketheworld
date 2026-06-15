@@ -15,7 +15,10 @@ jest.mock('../../../internalCache', () => ({
         CharacterSessions: { get: jest.fn() },
         RoomAssets: { get: jest.fn() },
         Global: { get: jest.fn() },
-        Positions: { getMembershipContainers: jest.fn() },
+        Positions: {
+            getMembershipContainers: jest.fn(),
+            getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+        },
         ComponentEphemeraMeta: { get: jest.fn() },
     },
 }))
@@ -119,8 +122,17 @@ describe('updatePositionGraphs', () => {
         expect(transactWrite).not.toHaveBeenCalled()
     })
 
-    it('cross-room navigate transacts graph, adjacency, and legacy fields without priorFetch', async () => {
+    it('cross-room navigate transacts graph, adjacency, and RoomStack without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
+        const getRoomPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
+            if (roomId === ROOM_A) {
+                return {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                }
+            }
+            return { nodes: [], edges: [] }
+        })
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
@@ -128,9 +140,9 @@ describe('updatePositionGraphs', () => {
                 getMembershipContainers,
                 transactWrite,
                 getCharacterMeta: async () => characterMeta,
-                getCharacterSessions: async () => ['abcdef'],
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getRoomPositionGraph,
             }
         )
 
@@ -138,6 +150,13 @@ describe('updatePositionGraphs', () => {
             ok: true,
             persisted: true,
             diff: { froms: [ROOM_A], to: ROOM_B, changed: true },
+            postApplyRoomGraphs: {
+                [ROOM_A]: { nodes: [], edges: [] },
+                [ROOM_B]: {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                },
+            },
         }))
         expect(transactWrite).toHaveBeenCalledTimes(1)
 
@@ -146,7 +165,8 @@ describe('updatePositionGraphs', () => {
         expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
         expect(items[0].Update.priorFetch).toBeUndefined()
         expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
-        expect(items[1].Update.updateKeys).toEqual(['positionGraph', 'activeCharacters'])
+        expect(items[1].Update.updateKeys).toEqual(['positionGraph'])
+        expect(items[1].Update.successCallback).toBeUndefined()
         expect(items[1].Update.priorFetch).toBeUndefined()
         expect(items[2].Delete).toEqual({
             EphemeraId: CHARACTER_ID,
@@ -161,22 +181,22 @@ describe('updatePositionGraphs', () => {
 
         const departureDraft = produce(
             {
-                activeCharacters: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }],
+                positionGraph: {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                },
             },
             items[1].Update.updateReducer
-        ) as { activeCharacters: unknown[]; positionGraph?: { nodes: unknown[]; edges: unknown[] } }
-        expect(departureDraft.activeCharacters).toEqual([])
+        ) as { positionGraph?: { nodes: unknown[]; edges: unknown[] } }
         expect(departureDraft.positionGraph).toEqual({ nodes: [], edges: [] })
 
         const characterDraft = produce(
             {
-                RoomId: 'VORTEX',
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             },
             items[0].Update.updateReducer
-        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        ) as { RoomStack: { asset: string; RoomId: string }[] }
         expect(characterDraft).toEqual({
-            RoomId: 'TestTwo',
             RoomStack: [
                 { asset: 'primitives', RoomId: 'VORTEX' },
                 { asset: 'TownCenter', RoomId: 'TestTwo' },
@@ -184,26 +204,8 @@ describe('updatePositionGraphs', () => {
         })
     })
 
-    it('disconnect removes graph membership, adjacency, and RoomId without priorFetch', async () => {
+    it('disconnect removes graph membership and adjacency without character-row transact', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
-        transactWrite.mockImplementation(async (items) => {
-            items.forEach((item: {
-                Update?: {
-                    Key: { EphemeraId: string };
-                    successCallback?: (output: unknown) => void;
-                    updateReducer: (draft: unknown) => void;
-                };
-            }) => {
-                if (!item.Update) {
-                    return
-                }
-                const draft: Record<string, unknown> = item.Update.Key.EphemeraId === ROOM_A
-                    ? { activeCharacters: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test' }] }
-                    : { RoomId: 'VORTEX' }
-                item.Update.updateReducer(draft)
-                item.Update.successCallback?.(draft)
-            })
-        })
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: null },
@@ -221,11 +223,11 @@ describe('updatePositionGraphs', () => {
         }))
 
         const items = transactWrite.mock.calls[0][0]
-        expect(items).toHaveLength(3)
-        expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
+        expect(items).toHaveLength(2)
+        expect(items[0].Update.Key.EphemeraId).toBe(ROOM_A)
         expect(items[0].Update.priorFetch).toBeUndefined()
-        expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
-        expect(items[2].Delete.DataCategory).toBe(buildPositionAdjacencyDataCategory(ROOM_A))
+        expect(items[0].Update.successCallback).toBeUndefined()
+        expect(items[1].Delete.DataCategory).toBe(buildPositionAdjacencyDataCategory(ROOM_A))
     })
 
     it('drift scrub [A,C] -> B removes from both prior hosts', async () => {
@@ -237,7 +239,6 @@ describe('updatePositionGraphs', () => {
                 getMembershipContainers,
                 transactWrite,
                 getCharacterMeta: async () => characterMeta,
-                getCharacterSessions: async () => [],
                 getRoomAssets: async () => [],
                 getCanonAssets: async () => ['primitives'],
             }
@@ -283,7 +284,6 @@ describe('updatePositionGraphs', () => {
                     ...characterMeta,
                     RoomStack: cacheStack,
                 }),
-                getCharacterSessions: async () => [],
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
             }
@@ -294,13 +294,11 @@ describe('updatePositionGraphs', () => {
 
         const characterDraft = produce(
             {
-                RoomId: 'VORTEX',
                 RoomStack: dynamoStack,
             },
             items[0].Update.updateReducer
-        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        ) as { RoomStack: { asset: string; RoomId: string }[] }
         expect(characterDraft).toEqual({
-            RoomId: 'TestTwo',
             RoomStack: [
                 { asset: 'primitives', RoomId: 'VORTEX' },
                 { asset: 'TownCenter', RoomId: 'TestTwo' },
@@ -338,7 +336,6 @@ describe('updatePositionGraphs', () => {
                 getMembershipContainers,
                 transactWrite,
                 getCharacterMeta: async () => characterMeta,
-                getCharacterSessions: async () => [],
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
             }
@@ -350,16 +347,14 @@ describe('updatePositionGraphs', () => {
 
         const secondAttemptDraft = produce(
             {
-                RoomId: 'VORTEX',
                 RoomStack: [
                     { asset: 'primitives', RoomId: 'VORTEX' },
                     { asset: 'TownCenter', RoomId: 'TownSquare' },
                 ],
             },
             transactWrite.mock.calls[1][0][0].Update.updateReducer
-        ) as { RoomId: string; RoomStack: { asset: string; RoomId: string }[] }
+        ) as { RoomStack: { asset: string; RoomId: string }[] }
         expect(secondAttemptDraft).toEqual({
-            RoomId: 'TestTwo',
             RoomStack: [
                 { asset: 'primitives', RoomId: 'VORTEX' },
                 { asset: 'TownCenter', RoomId: 'TestTwo' },

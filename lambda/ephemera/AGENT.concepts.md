@@ -24,4 +24,4 @@ This file indexes **cross-cutting mental models** for player-visible delivery an
 | [`charcoal-client/src/slices/messages/AGENT.md`](../../charcoal-client/src/slices/messages/AGENT.md) | Client ingest, `presentation` transcript, `getMessagesByRoom` |
 | [`packages/mtw-interfaces/ts/messages.ts`](../../packages/mtw-interfaces/ts/messages.ts) | Wire `MessageAddressing` (`MessageId`, `CreatedTime`, `Target`) |
 
-**Fan-in framework:** [`taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md`](../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md) --- read **narrative transcript** concepts before tightening cluster output shapes.
+**Fan-in framework:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation) --- read **narrative transcript** concepts before tightening cluster output shapes.

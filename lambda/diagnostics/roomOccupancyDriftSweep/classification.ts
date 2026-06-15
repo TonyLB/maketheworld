@@ -1,13 +1,9 @@
-type RoomOccupant = {
-    EphemeraId?: string
-    SessionIds?: string[]
-    sessions?: string[]
-}
-
-type CharacterMeta = {
-    EphemeraId: string
-    RoomId?: string
-}
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import {
+    extractCharacterIdsFromPlayPositionGraph,
+    projectRoomGraphFromStoredPositionGraph,
+} from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 const asTrimmedString = (value: unknown): string | undefined => {
     if (typeof value !== 'string') {
@@ -25,92 +21,56 @@ export const normalizeRoomId = (value: unknown): string | undefined => {
     return roomId.startsWith('ROOM#') ? roomId : `ROOM#${roomId}`
 }
 
-const normalizeSessionIds = (candidate: RoomOccupant): string[] => {
-    const source = candidate.SessionIds ?? candidate.sessions ?? []
-    if (!Array.isArray(source)) {
+export const listGraphCharacterIds = (positionGraph: unknown): string[] => {
+    if (!isEphemeraPlayPositionGraph(positionGraph)) {
         return []
     }
-    return [...new Set(source.map(asTrimmedString).filter((value): value is string => Boolean(value)))].sort()
-}
-
-export const listOccupancyEntries = (activeCharacters: unknown): { characterId: string; sessionIds: string[] }[] => {
-    if (!Array.isArray(activeCharacters)) {
-        return []
-    }
-    return activeCharacters
-        .map((entry) => {
-            if (!entry || typeof entry !== 'object') {
-                return null
-            }
-            const characterId = asTrimmedString((entry as RoomOccupant).EphemeraId)
-            if (!characterId) {
-                return null
-            }
-            return {
-                characterId,
-                sessionIds: normalizeSessionIds(entry as RoomOccupant)
-            }
-        })
-        .filter((entry): entry is { characterId: string; sessionIds: string[] } => Boolean(entry))
-}
-
-export const authoritativeRoomByCharacter = (rows: CharacterMeta[]): Map<string, string> =>
-    new Map(
-        rows
-            .map(({ EphemeraId, RoomId }) => {
-                const characterId = asTrimmedString(EphemeraId)
-                const normalizedRoomId = normalizeRoomId(RoomId)
-                if (!characterId || !normalizedRoomId) {
-                    return null
-                }
-                return [characterId, normalizedRoomId] as const
-            })
-            .filter((entry): entry is readonly [string, string] => Boolean(entry))
+    return extractCharacterIdsFromPlayPositionGraph(
+        projectRoomGraphFromStoredPositionGraph(positionGraph)
     )
+}
 
-const fingerprintEntries = (entries: { characterId: string; sessionIds: string[] }[]): string[] =>
-    entries
-        .map(({ characterId, sessionIds }) => `${characterId}:${sessionIds.join(',')}`)
-        .sort()
-
+/**
+ * Graph-forward occupancy drift for one room.
+ * Per character node on the room positionGraph:
+ * - drift when no live sessions (ghost on graph), or
+ * - drift when in-play but membership adjacency does not list this roomId.
+ *
+ * Stale adjacency without a graph node is not visible to this room-forward scan (explicit gap).
+ */
 export const roomHasOccupancyDrift = (args: {
     roomId: string
-    occupancyEntries: { characterId: string; sessionIds: string[] }[]
+    graphCharacterIds: string[]
     adjacencySessionsByCharacter: Map<string, Set<string>>
-    roomByCharacter: Map<string, string>
-}): { drift: boolean; needsCheckLocation: boolean } => {
-    const { roomId, occupancyEntries, adjacencySessionsByCharacter, roomByCharacter } = args
-    let needsCheckLocation = false
+    membershipContainersByCharacter: Map<string, string[]>
+}): boolean => {
+    const {
+        roomId,
+        graphCharacterIds,
+        adjacencySessionsByCharacter,
+        membershipContainersByCharacter,
+    } = args
+    const normalizedRoomId = normalizeRoomId(roomId)
+    if (!normalizedRoomId) {
+        return false
+    }
 
-    const expectedEntries = [...adjacencySessionsByCharacter.entries()]
-        .map(([characterId, sessions]) => {
-            const authoritativeRoom = roomByCharacter.get(characterId)
-            if (!authoritativeRoom) {
-                needsCheckLocation = true
-                return null
-            }
-            if (authoritativeRoom !== roomId) {
-                return null
-            }
-            return {
-                characterId,
-                sessionIds: [...sessions].sort()
-            }
-        })
-        .filter((entry): entry is { characterId: string; sessionIds: string[] } => Boolean(entry))
-
-    for (const { characterId } of occupancyEntries) {
-        const authoritativeRoom = roomByCharacter.get(characterId)
-        if (!authoritativeRoom) {
-            needsCheckLocation = true
+    for (const characterId of graphCharacterIds) {
+        if (!isEphemeraCharacterId(characterId)) {
+            continue
+        }
+        const sessions = adjacencySessionsByCharacter.get(characterId)
+        const hasSessions = Boolean(sessions && sessions.size > 0)
+        if (!hasSessions) {
+            return true
+        }
+        const containers = membershipContainersByCharacter.get(characterId) ?? []
+        const normalizedContainers = containers
+            .map((containerId) => normalizeRoomId(containerId))
+            .filter((containerId): containerId is string => Boolean(containerId))
+        if (!normalizedContainers.includes(normalizedRoomId)) {
+            return true
         }
     }
-
-    const actualFingerprint = fingerprintEntries(occupancyEntries)
-    const expectedFingerprint = fingerprintEntries(expectedEntries)
-    return {
-        drift: actualFingerprint.join('|') !== expectedFingerprint.join('|'),
-        needsCheckLocation
-    }
+    return false
 }
-

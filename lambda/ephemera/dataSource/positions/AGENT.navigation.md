@@ -32,7 +32,8 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge (connect / legacy API) |
 | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
-| [`../../checkLocation/index.ts`](../../checkLocation/index.ts) | **`CheckLocation` messageBus adapter** --- expands player/room/asset payloads; delegates to [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) |
+| [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** (**S2-6-DR**) |
+| [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |
 | [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) | Room **render** asset stack (not eviction ladder --- see [`AGENT.concepts.md`](AGENT.concepts.md)) |
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |
 
@@ -43,7 +44,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | Doc / path | Role |
 | --- | --- |
 | [`packages/mtw-gateways/AGENT.md`](../../../../packages/mtw-gateways/AGENT.md) | Handler factory norms |
-| [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Play position graph read surface (slice 1 flat projection) |
+| [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Play position graph read surface (topology + adjacency) |
 | [`packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/AGENT.md) | Exits projection on `Affordance::` rows |
 
 ## Connections
@@ -52,11 +53,3 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | --- | --- |
 | [`lambda/connections/AGENT.md`](../../../connections/AGENT.md) | Session adjacency authority |
 | [`packages/mtw-interfaces/ts/eventBridge/connections/characters`](../../../../packages/mtw-interfaces/ts/eventBridge/connections/characters/index.ts) | `Character Connected` / `Disconnected` payloads |
-
----
-
-## Task planning
-
-| Doc | Role |
-| --- | --- |
-| [`taskPlanning/.../AGENT.positionsDataSource.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.positionsDataSource.planning.md) | Active initiative checklist |

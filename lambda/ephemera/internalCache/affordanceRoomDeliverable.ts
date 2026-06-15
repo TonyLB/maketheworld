@@ -13,6 +13,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import type { RoomCharacterListItem } from './baseClasses'
+import { playPositionRosterEntryToRoomCharacterListItem } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
@@ -86,13 +87,9 @@ export class AffordanceRoomDeliverableData {
             this._positions.getRoomRoster(roomId),
             this._getMetaRoom(roomId),
         ])
-        const roomCharacterList: RoomCharacterListItem[] = rosterEntries.map((entry) => ({
-            EphemeraId: entry.EphemeraId,
-            DisplayName: entry.DisplayName,
-            SessionIds: entry.SessionIds,
-            ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
-            ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
-        }))
+        const roomCharacterList: RoomCharacterListItem[] = rosterEntries.map(
+            playPositionRosterEntryToRoomCharacterListItem
+        )
 
         if (affordanceRow === undefined) {
             throw new Error(

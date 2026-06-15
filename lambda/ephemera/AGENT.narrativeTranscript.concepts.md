@@ -56,7 +56,7 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 | **Websocket packet order** | Client and server both sort by **`CreatedTime`** before display. |
 | **Same lambda invocation** | Rows may publish from different handlers or invocations if transcript times are assigned coherently. |
 | **Single batched publish** | Deferred coalescing ([`publishMessage/coalescer.ts`](publishMessage/coalescer.ts)) batches at settle for convenience --- not a client contract. |
-| **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`AGENT.fanInPattern.planning.md`](../../taskPlanning/packages/mtw-lambda-patterns/ts/dataSource/AGENT.fanInPattern.planning.md)). |
+| **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)). |
 | **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes sharing an **`OrchestrateMessages`** tree (or explicit times). |
 
 **Example:** Room header at transcript time **X**, leave at **X - 1 ms**, arrive at **X + 1 ms** --- even if leave arrives on the wire a second after the header, the user sees leave, then header context, then arrive.

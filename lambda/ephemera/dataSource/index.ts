@@ -10,10 +10,8 @@ import {
     isEphemeraComponentEnvelope,
     isEphemeraCanonUpdatedEnvelope,
     isEphemeraZoneUpdatedEnvelope,
-    isDiagnosticsRoomOccupancyDriftFindingEnvelope,
 } from './subscribedEvents'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
-import { handleRoomOccupancyDriftFinding } from './selfHealing/roomOccupancyDriftFinding'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
@@ -47,15 +45,6 @@ const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: 
     }
 }
 
-const processRoomOccupancyDriftFinding = async (
-    evt: Extract<EphemeraIncomingEvent, { header: { type: 'Room Occupancy Drift Finding' } }>
-): Promise<void> => {
-    const content = await evt.getContent()
-    if (!content) return
-    await handleRoomOccupancyDriftFinding({ roomId: content.roomId, messageBus })
-}
-
-// SubscribedContent includes mtw.assets updates and selected diagnostics findings.
 export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdate, EphemeraSubscribedContent>({
     dataSourceKey: 'mtw.ephemera',
     replayable: false,
@@ -73,10 +62,6 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
             }
             if (isEphemeraZoneUpdatedEnvelope(evt)) {
                 await processZoneUpdated(evt)
-                return
-            }
-            if (isDiagnosticsRoomOccupancyDriftFindingEnvelope(evt)) {
-                await processRoomOccupancyDriftFinding(evt)
                 return
             }
         }))

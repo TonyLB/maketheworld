@@ -1,7 +1,9 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { projectRoomGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { projectRoomGraphFromRosterEntries } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
+import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
@@ -20,30 +22,36 @@ export type ApplyCharacterRoomMembershipDependencies = {
     getSessionId?: () => Promise<string | undefined>;
 }
 
-const memoRoomRosterCaches = (
-    roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> | undefined,
-    affectedRooms: EphemeraRoomId[]
+const seedPositionsGraphMemos = (
+    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
 ): void => {
-    affectedRooms.forEach((roomId) => {
+    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPlayPositionGraph][]) {
         internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
-        internalCache.Positions.invalidate(roomId)
-        const roster = roomRosterSnapshots?.[roomId]
-        if (roster) {
-            internalCache.Positions.set({
-                componentId: roomId,
-                graph: projectRoomGraphFromRosterEntries(
-                    roster.map((entry) => ({
-                        EphemeraId: entry.EphemeraId,
-                        DisplayName: entry.DisplayName ?? '',
-                        SessionIds: entry.SessionIds ?? [],
-                        ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
-                        ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
-                    }))
-                ),
-            })
-        }
-    })
+        internalCache.Positions.set({
+            componentId: roomId,
+            graph: projectRoomGraphFromStoredPositionGraph(storedGraph),
+        })
+    }
+}
+
+const buildRoomRosterSnapshots = async (
+    affectedRooms: EphemeraRoomId[]
+): Promise<Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>>> => {
+    const roomRosterSnapshots: Partial<Record<EphemeraRoomId, ActiveCharacterRosterEntry[]>> = {}
+
+    for (const roomId of affectedRooms) {
+        const roster = await getRoomCharacterList(roomId)
+        roomRosterSnapshots[roomId] = roster.map((entry) => ({
+            EphemeraId: entry.EphemeraId,
+            DisplayName: entry.DisplayName,
+            SessionIds: entry.SessionIds,
+            ...(entry.Color !== undefined ? { Color: entry.Color } : {}),
+            ...(entry.fileURL !== undefined ? { fileURL: entry.fileURL } : {}),
+        }))
+    }
+
+    return roomRosterSnapshots
 }
 
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
@@ -86,7 +94,8 @@ export const applyCharacterRoomMembership = async (
     }
 
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
-    memoRoomRosterCaches(result.roomRosterSnapshots, affectedRooms)
+    seedPositionsGraphMemos(result.postApplyRoomGraphs)
+    const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)
     internalCache.Positions.setMembershipContainers({
         componentId: args.characterId,
         containers: diff.to ? [diff.to] : [],
@@ -115,6 +124,6 @@ export const applyCharacterRoomMembership = async (
         ok: true,
         ...diff,
         beatAnchorTime,
-        roomRosterSnapshots: result.roomRosterSnapshots,
+        roomRosterSnapshots,
     }
 }

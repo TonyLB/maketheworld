@@ -123,7 +123,6 @@ The following functions could benefit from this same dependency injection patter
 #### **Character Management Functions**
 - **`executeAction`**: Uses `internalCache` for character and room lookups
 - **`moveCharacter`**: Uses `internalCache` for room and character validation
-- **`checkLocation`**: Uses `internalCache` for location-based queries
 - **`registerCharacter`**: Uses `internalCache` for character registration
 - **`guestCharacter`**: Uses `internalCache` for guest character handling
 

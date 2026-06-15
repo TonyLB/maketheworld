@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { createPositionsCacheHandler } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import { getRoomExitTargetsForCharacter } from '../../actions/roomExitTargetsForCharacter'
@@ -43,8 +44,11 @@ describe('membership containers shared memo (slice 1c)', () => {
     })
 
     it('reuses reverse memo within invocation when parse and apply both read containers', async () => {
-        const querySpy = jest.fn().mockResolvedValue([])
-        const getItemSpy = jest.fn().mockResolvedValue({ RoomId: ROOM_ID })
+        const querySpy = jest.fn().mockResolvedValue([{
+            EphemeraId: CHARACTER_ID,
+            DataCategory: buildPositionAdjacencyDataCategory(ROOM_ID),
+        }])
+        const getItemSpy = jest.fn()
         internalCache.Positions = createPositionsCacheHandler({
             getItem: getItemSpy,
             query: querySpy,
@@ -68,10 +72,6 @@ describe('membership containers shared memo (slice 1c)', () => {
         )
 
         expect(querySpy).toHaveBeenCalledTimes(1)
-        expect(getItemSpy).toHaveBeenCalledTimes(1)
-        expect(getItemSpy).toHaveBeenCalledWith({
-            Key: { EphemeraId: CHARACTER_ID, DataCategory: 'Meta::Character' },
-            ProjectionFields: ['RoomId'],
-        })
+        expect(getItemSpy).not.toHaveBeenCalled()
     })
 })

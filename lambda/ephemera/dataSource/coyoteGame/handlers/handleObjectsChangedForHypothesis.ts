@@ -7,6 +7,7 @@ import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isObjectsChangedPayload } from '../../objects/events'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import internalCache from '../../../internalCache'
+import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import type { CoyoteGamePublishedPayload } from '../publishedEvents'
 import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
 import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
@@ -47,7 +48,7 @@ export async function handleObjectsChangedForHypothesis(
         return
     }
 
-    const occupants = await internalCache.RoomCharacterList.get(payload.componentId)
+    const occupants = await getRoomCharacterList(payload.componentId)
     /** Characters with at least one session are treated as active for delivery. */
     const active = (occupants ?? []).filter((o) => o.SessionIds.length > 0)
     if (active.length === 0) {

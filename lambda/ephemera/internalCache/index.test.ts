@@ -2,6 +2,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
+import { getRoomCharacterList } from './hydrateRoomRoster'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -50,52 +51,31 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
-    it('should fetch an async lookup only once', async () => {
-        const testActiveCharacters = [
-            {
-                EphemeraId: 'CHARACTER#123',
-                ConnectionIds: ['Test1'],
-                Color: 'green',
-                Name: 'Tess'
-            },
-            {
-                EphemeraId: 'CHARACTER#456',
-                ConnectionIds: ['Test2'],
-                Color: 'purple',
-                Name: 'Marco'
-            }
-        ]
+    it('getRoomCharacterList derives roster from Positions.getRoomRoster on each call', async () => {
         const expectedOutput = [
             {
-                EphemeraId: 'CHARACTER#123',
-                ConnectionIds: ['Test1'],
-                Color: 'green',
+                EphemeraId: 'CHARACTER#123' as const,
+                Color: 'green' as const,
                 DisplayName: 'Tess',
-                SessionIds: []
+                SessionIds: ['sess-1'],
             },
             {
-                EphemeraId: 'CHARACTER#456',
-                ConnectionIds: ['Test2'],
-                Color: 'purple',
+                EphemeraId: 'CHARACTER#456' as const,
+                Color: 'purple' as const,
                 DisplayName: 'Marco',
-                SessionIds: []
-            }
-        ]
-        ephemeraMock.getItem.mockResolvedValue({
-            activeCharacters: testActiveCharacters
-        })
-        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
-        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItem).toHaveBeenCalledWith({
-            Key: {
-                DataCategory: 'Meta::Room',
-                EphemeraId: 'ROOM#1234'
+                SessionIds: [],
             },
-            ProjectionFields: ['activeCharacters']
-        })
-        expect(await internalCache.RoomCharacterList.get('ROOM#1234')).toEqual(expectedOutput)
-        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
-        
+        ]
+        const getRoomRosterSpy = jest.spyOn(internalCache.Positions, 'getRoomRoster')
+            .mockResolvedValue(expectedOutput)
+
+        expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
+        expect(getRoomRosterSpy).toHaveBeenCalledTimes(1)
+        expect(getRoomRosterSpy).toHaveBeenCalledWith('ROOM#1234')
+        expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
+        expect(getRoomRosterSpy).toHaveBeenCalledTimes(2)
+
+        getRoomRosterSpy.mockRestore()
     })
 
     it('flush includes GenerationContext handler', async () => {

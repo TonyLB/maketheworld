@@ -3,7 +3,7 @@ import {
 } from './subscribedEvents'
 
 describe('ephemera subscribedEvents', () => {
-    it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {
+    it('does not subscribe to mtw.diagnostics Room Occupancy Drift Finding (positions-owned S2-6-DR)', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.diagnostics',
@@ -19,7 +19,7 @@ describe('ephemera subscribedEvents', () => {
             }),
         }
 
-        expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(false)
     })
 
     it('rejects non-matching diagnostics event types', () => {

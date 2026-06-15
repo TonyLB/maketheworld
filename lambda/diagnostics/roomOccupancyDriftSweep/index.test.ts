@@ -1,5 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge'
+import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     connectionDB: {
@@ -15,6 +16,15 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
 
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { roomOccupancyDriftSweep } from './index'
+
+const roomAlpha = 'ROOM#alpha' as const
+const characterOne = 'CHARACTER#one' as const
+const characterGhost = 'CHARACTER#ghost' as const
+
+const graphNode = (universalKey: string) => ({
+    tag: 'Character' as const,
+    universalKey,
+})
 
 describe('roomOccupancyDriftSweep', () => {
     const ebSend = jest.spyOn(EventBridgeClient.prototype, 'send') as jest.Mock
@@ -34,74 +44,111 @@ describe('roomOccupancyDriftSweep', () => {
         process.env.AWS_REGION = 'us-east-1'
     })
 
-    it('emits one finding for a room with mixed valid and invalid occupancy entries', async () => {
-        connectionQueryMock
-            .mockImplementationOnce(async () => ({
-                items: [
-                    { DataCategory: 'SESSION#sess-1' },
-                    { DataCategory: 'SESSION#sess-2' }
-                ]
-            }))
-            .mockImplementationOnce(async () => ([{ DataCategory: 'CHARACTER#one' }]))
-            .mockImplementationOnce(async () => ([{ DataCategory: 'CHARACTER#two' }]))
+    it('emits one finding when a room has a ghost on graph (no sessions)', async () => {
         ephemeraQueryMock
             .mockImplementationOnce(async () => ({
-                items: [
-                    { EphemeraId: 'CHARACTER#one', RoomId: 'alpha' },
-                    { EphemeraId: 'CHARACTER#two', RoomId: '' }
-                ]
+                items: [{
+                    EphemeraId: roomAlpha,
+                    positionGraph: { nodes: [graphNode(characterGhost)] },
+                }],
             }))
-            .mockImplementationOnce(async () => ({
-                items: [
-                    {
-                        EphemeraId: 'ROOM#alpha',
-                        activeCharacters: [
-                            { EphemeraId: 'CHARACTER#one', SessionIds: ['sess-1'] },
-                            { EphemeraId: 'CHARACTER#two', SessionIds: ['sess-2'] }
-                        ]
-                    }
-                ]
-            }))
+            .mockImplementation(async (props: any) => {
+                if (props?.Key?.EphemeraId === characterGhost) {
+                    return []
+                }
+                return []
+            })
         ebSend.mockResolvedValue({ FailedEntryCount: 0 } as never)
 
         const result = await roomOccupancyDriftSweep({
-            diagnosticRunId: 'run-room-1',
-            nowMs: 500
+            diagnosticRunId: 'run-ghost',
+            nowMs: 500,
         })
 
         expect(result.emittedCount).toBe(1)
-        expect(result.roomIds).toEqual(['ROOM#alpha'])
-        expect(result.checkLocationCandidates).toEqual(['ROOM#alpha'])
+        expect(result.roomIds).toEqual([roomAlpha])
         expect(ebSend).toHaveBeenCalledTimes(1)
     })
 
-    it('does not emit when occupancy matches adjacency and authoritative room assignment', async () => {
+    it('emits one finding when a live graph character is missing adjacency for the room', async () => {
         connectionQueryMock
             .mockImplementationOnce(async () => ({
-                items: [{ DataCategory: 'SESSION#sess-1' }]
+                items: [{ DataCategory: 'SESSION#sess-1' }],
             }))
-            .mockImplementationOnce(async () => ([{ DataCategory: 'CHARACTER#one' }]))
+            .mockImplementationOnce(async () => ([{ DataCategory: characterOne }]))
         ephemeraQueryMock
             .mockImplementationOnce(async () => ({
-                items: [{ EphemeraId: 'CHARACTER#one', RoomId: 'ROOM#alpha' }]
-            }))
-            .mockImplementationOnce(async () => ({
                 items: [{
-                    EphemeraId: 'ROOM#alpha',
-                    activeCharacters: [
-                        { EphemeraId: 'CHARACTER#one', SessionIds: ['sess-1'] }
-                    ]
-                }]
+                    EphemeraId: roomAlpha,
+                    positionGraph: { nodes: [graphNode(characterOne)] },
+                }],
             }))
+            .mockImplementation(async (props: any) => {
+                if (props?.Key?.EphemeraId === characterOne) {
+                    return []
+                }
+                return []
+            })
+        ebSend.mockResolvedValue({ FailedEntryCount: 0 } as never)
 
         const result = await roomOccupancyDriftSweep({
-            diagnosticRunId: 'run-room-2',
-            nowMs: 1000
+            diagnosticRunId: 'run-adjacency-lag',
+            nowMs: 600,
+        })
+
+        expect(result.emittedCount).toBe(1)
+        expect(result.roomIds).toEqual([roomAlpha])
+        expect(ebSend).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not emit when graph, sessions, and membership adjacency align', async () => {
+        connectionQueryMock
+            .mockImplementationOnce(async () => ({
+                items: [{ DataCategory: 'SESSION#sess-1' }],
+            }))
+            .mockImplementationOnce(async () => ([{ DataCategory: characterOne }]))
+        ephemeraQueryMock
+            .mockImplementationOnce(async () => ({
+                items: [{
+                    EphemeraId: roomAlpha,
+                    positionGraph: { nodes: [graphNode(characterOne)] },
+                }],
+            }))
+            .mockImplementation(async (props: any) => {
+                if (props?.Key?.EphemeraId === characterOne) {
+                    return [{
+                        DataCategory: buildPositionAdjacencyDataCategory(roomAlpha),
+                    }]
+                }
+                return []
+            })
+
+        const result = await roomOccupancyDriftSweep({
+            diagnosticRunId: 'run-clean',
+            nowMs: 1000,
         })
 
         expect(result.emittedCount).toBe(0)
         expect(result.roomIds).toEqual([])
         expect(ebSend).not.toHaveBeenCalled()
     })
-})
 
+    it('explicit gap: empty graph does not emit even when orphan adjacency could exist elsewhere', async () => {
+        ephemeraQueryMock.mockImplementationOnce(async () => ({
+            items: [{
+                EphemeraId: roomAlpha,
+                positionGraph: { nodes: [] },
+            }],
+        }))
+
+        const result = await roomOccupancyDriftSweep({
+            diagnosticRunId: 'run-explicit-gap',
+            nowMs: 1100,
+        })
+
+        expect(result.emittedCount).toBe(0)
+        expect(result.roomIds).toEqual([])
+        expect(ebSend).not.toHaveBeenCalled()
+        expect(ephemeraQueryMock).toHaveBeenCalledTimes(1)
+    })
+})

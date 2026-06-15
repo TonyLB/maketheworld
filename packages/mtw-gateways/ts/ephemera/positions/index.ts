@@ -33,6 +33,7 @@ export {
     projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
     projectMembershipContainersFromRoomEndpoint,
+    extractCharacterIdsFromPlayPositionGraph,
     projectRoomRosterFromGraph,
     projectRoomGraphFromRosterEntries,
 } from './project'

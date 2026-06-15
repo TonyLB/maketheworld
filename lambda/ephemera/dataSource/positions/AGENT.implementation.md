@@ -25,26 +25,28 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) | Trim ladder to accessible assets; persist trim-only when shape changes |
 | [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect: resolve legal `targetRoomId` from trimmed ladder |
 | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
-| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency + S2-2 dual-write) |
+| [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate (**S2-6-DR**) |
+| [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
+| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency only; **S2-6**) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
 | [`membership/streamMembershipFact.ts`](membership/streamMembershipFact.ts) | `Character Moved` `streamEvent` at persistence apply |
-| [`membership/applyCharacterMembershipFlat.ts`](membership/applyCharacterMembershipFlat.ts) | Legacy flat-field persist (retained for unit tests; not called by coordinator) |
 
 ### Tests
 
 | File | Covers |
 | --- | --- |
-| [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate) |
+| [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate + diagnostics drift finding) |
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + orchestrate; disconnect routes through coordinator |
-| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate) |
+| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / drift finding) |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
+| [`membership/repairRoomOccupancyDrift.test.ts`](membership/repairRoomOccupancyDrift.test.ts) | Occupancy drift repair (ghost purge, adjacency sync, idempotency) |
+| [`membership/syncMembershipAdjacency.test.ts`](membership/syncMembershipAdjacency.test.ts) | Adjacency-only sync transact + memo |
 | [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
 | [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
-| [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Legacy flat persist (reference) |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
 | [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects; multi-from) |
 | [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Graph-diff fact builder (including multi-from) |
@@ -79,10 +81,10 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 | --- | --- |
 | **Storage** | `Meta::Character.RoomStack` --- array of `{ asset, RoomId }` ([`membership/types.ts`](membership/types.ts) `RoomStackItem`) |
 | **Legal placement: connect (from nowhere)** | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) -> [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) |
-| **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) when in play |
-| **`CheckLocation` ingress adapter** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- payload expansion, coalescer; delegates repair to [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) |
+| **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) when in play (future asset-visibility ingress; **`CheckLocation` bus retired S2-6-DR**) |
+| **Occupancy drift repair** | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) --- consumes **`Room Occupancy Drift Finding`**; ghost disconnect via coordinator; adjacency-only via [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) |
 | **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) when `targetRoomId` non-null |
-| **Disconnect: purge membership, retain ladder** | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) --- removes graph/adjacency/`RoomId`; does **not** update `RoomStack` |
+| **Disconnect: purge membership, retain ladder** | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) --- removes graph/adjacency; does **not** update `RoomStack` |
 | **Default root frame** | [`../../internalCache/characterMeta.ts`](../../internalCache/characterMeta.ts) --- `[{ asset: 'primitives', RoomId: 'VORTEX' }]` when absent |
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).
@@ -95,7 +97,7 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 
 - **No explicit `priorFetch` on Update items.** `transactWrite` batch-fetches each row before running reducers; each retry rebuilds transact items so reducers see fresh Dynamo state.
 - Ladder maintenance runs in the character-row reducer: `computeRoomStackUpdate` reads `draft.RoomStack` (the fetched prior ladder), not `CharacterMeta` cache.
-- `CharacterMeta` remains valid for presentation fields (`Name`, `Color`, `assets`, sessions merge) until **S2-6** retires `RoomId` denorm.
+- `CharacterMeta` remains valid for presentation fields (`Name`, `Color`, `assets`); `invalidate` after apply --- not transact lock snapshots.
 
 ### Tests (eviction ladder)
 
@@ -106,8 +108,6 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 | [`../../moveCharacter/index.test.ts`](../../moveCharacter/index.test.ts) | Same-asset replace, child push, parent truncate on navigate |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility trim, relocate, trim-only, forceMove, out-of-play trim-only |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
-| [`../../checkLocation/index.test.ts`](../../checkLocation/index.test.ts) | Adapter: payload expansion, coalescer dedup, delegation to repair |
-| [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Ladder shape on flat persist reference path |
 
 ---
 
@@ -123,11 +123,11 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 
 | System | Use |
 | --- | --- |
-| `ephemeraDB.transactWrite` | `Meta::Room.positionGraph` + `activeCharacters`; adjacency rows; `Meta::Character` `RoomId` / `RoomStack` |
-| `internalCache.CharacterMeta` | Presentation fields for roster merge; `invalidate` after apply --- not transact lock snapshots |
+| `ephemeraDB.transactWrite` | `Meta::Room.positionGraph`; adjacency rows; `Meta::Character` `RoomStack` on navigate |
+| `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` / `invalidate` | Room forward position graph memo (S1-5) |
+| `internalCache.Positions.set` | Room forward position graph memo from **`postApplyRoomGraphs`** (**S2-6-H**) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents` or `ephemeraPositionsDataSource` on legacy bus paths) | `Character Moved` when `changed` |
@@ -138,11 +138,11 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 
 | System | Role |
 | --- | --- |
-| [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | **`Positions`** gateway handler on `internalCache` |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph` (stored graph + roster meta); `getMembershipContainers` (adjacency + RoomId fallback) |
+| [`../../internalCache/positions.ts`](../../internalCache/positions.ts) | **`Positions`** gateway handler on `internalCache`; **`getRoomRoster`** override hydrates roster |
+| [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts) | **`hydrateRoomRosterFromCharacterIds`**, **`getRoomCharacterList`** --- derive-on-call roster assembler (**S2-6-H**) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency only) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`Positions.getRoomRoster`** |
-| [`../../internalCache/roomCharacterLists.ts`](../../internalCache/roomCharacterLists.ts) | Legacy roster read (other callers; migrate at initiative close) |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
 | [`../perception/membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) | Fan-in fact leg consumer for **`Character Moved`** |
 
@@ -157,8 +157,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
   dataSource/positions/ \
   dataSource/perception/ \
   dataSource/actions/index.test.ts \
-  moveCharacter/index.test.ts \
-  checkLocation/index.test.ts
+  moveCharacter/index.test.ts
 
 npm --prefix packages/mtw-gateways run test -- --watchAll=false ts/ephemera/positions/
 ```

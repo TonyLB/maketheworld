@@ -18,6 +18,7 @@ import type {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 export type EphemeraPositionsConnectionsCharactersHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections.characters'; type: 'Character Connected' | 'Character Disconnected' }
@@ -25,13 +26,18 @@ export type EphemeraPositionsConnectionsCharactersHeader =
 export type EphemeraPositionsActionsCharacterNavigateHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Navigate' }
 
+export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Room Occupancy Drift Finding' }
+
 export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsConnectionsCharactersHeader
     | EphemeraPositionsActionsCharacterNavigateHeader
+    | EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
 
 export type EphemeraPositionsSubscribedContent =
     | ConnectionsCharactersEventUpdate
     | CharacterNavigatePublishedPayload
+    | DiagnosticsRoomOccupancyDriftFindingEvent
 
 export type EphemeraPositionsConnectionsCharactersEnvelope =
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.connections.characters'; type: 'Character Connected' }; getContent: () => Promise<ConnectionsCharactersConnectedEvent> }
@@ -41,6 +47,17 @@ export type EphemeraPositionsActionsCharacterNavigateEnvelope = {
     header: EphemeraPositionsActionsCharacterNavigateHeader;
     getContent: () => Promise<CharacterNavigatePublishedPayload>;
 }
+
+export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = {
+    header: EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader;
+    getContent: () => Promise<DiagnosticsRoomOccupancyDriftFindingEvent>;
+}
+
+const isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader: HeaderGuard<EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader> = (
+    header
+): header is EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader => (
+    header.dataSourceKey === 'mtw.diagnostics' && header.type === 'Room Occupancy Drift Finding'
+)
 
 const isEphemeraPositionsActionsCharacterNavigateHeader: HeaderGuard<EphemeraPositionsActionsCharacterNavigateHeader> = (
     header
@@ -62,6 +79,7 @@ export const isEphemeraPositionsSubscribedHeader: HeaderGuard<EphemeraPositionsS
 ): header is EphemeraPositionsSubscribedHeader =>
     isEphemeraPositionsConnectionsCharactersHeader(header)
     || isEphemeraPositionsActionsCharacterNavigateHeader(header)
+    || isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader(header)
 
 export const isEphemeraPositionsConnectionsCharactersEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsCharactersEventUpdate,
@@ -72,6 +90,11 @@ export const isEphemeraPositionsActionsCharacterNavigateEnvelope = makeStreaming
     CharacterNavigatePublishedPayload,
     EphemeraPositionsActionsCharacterNavigateHeader
 >(isEphemeraPositionsActionsCharacterNavigateHeader)
+
+export const isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    DiagnosticsRoomOccupancyDriftFindingEvent,
+    EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
+>(isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader)
 
 export const isEphemeraPositionsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraPositionsSubscribedContent,

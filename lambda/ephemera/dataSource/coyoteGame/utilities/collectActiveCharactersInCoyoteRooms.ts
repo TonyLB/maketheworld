@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import internalCache from '../../../internalCache'
+import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 
 /**
  * All characters with at least one session in any Coyote Game demo room, de-duplicated by EphemeraId.
@@ -11,7 +12,7 @@ export async function collectActiveCharactersInCoyoteRooms(): Promise<EphemeraCh
     const out: EphemeraCharacterId[] = []
     for (const k of keys) {
         const roomId = RoomKey(k) as EphemeraRoomId
-        const occupants = await internalCache.RoomCharacterList.get(roomId)
+        const occupants = await getRoomCharacterList(roomId)
         for (const o of occupants ?? []) {
             if (o.SessionIds.length === 0) {
                 continue

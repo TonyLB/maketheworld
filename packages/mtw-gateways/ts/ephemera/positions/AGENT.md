@@ -13,15 +13,15 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
-## Slice 2 backing (shipped)
+## Slice 2 backing (shipped; **S2-6** storage retirement)
 
 | Operation | Question | Backing |
 | --- | --- | --- |
-| **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` + transitional `activeCharacters` roster meta; bootstrap from `activeCharacters` when graph absent |
+| **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` topology only; empty graph when absent |
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | **Stub:** empty `{ nodes: [], edges: [] }` --- no Dynamo read |
-| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index (**S2-5**); transitional fallback to `Meta::Character.RoomId` when adjacency empty (**S2-2** until **S2-6**) |
+| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only (**S2-5** / **S2-6**) |
 
-Handler API unchanged from slice 1c. Read fallbacks retire at initiative close (**S2-6**).
+Handler API unchanged from slice 1c.
 
 ## Storage schema (slice 2; types landed)
 
@@ -36,7 +36,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 
 **Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
-**Topology only:** roster display fields (`DisplayName`, `SessionIds`, ...) stay on **`activeCharacters`** during transitional dual-write (**S2-2** until **S2-6**). Gateway compose: **`projectRoomGraphFromStoredPositionGraph(stored, activeCharacters?)`** merges stored nodes + legacy roster meta for **`getRoomRoster`**.
+**Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Ephemera **`PositionsData.getRoomRoster`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). Package **`getRoomRoster`** remains for tests; production roster is ephemera-local compose.
 
 **Read helper:** **`getRoomPositionGraphFromDynamo`** in [`fetch.ts`](fetch.ts).
 
@@ -57,7 +57,7 @@ One row per host container. Multi-container drift (character in rooms A and C) y
 
 - **`getPositionGraph(componentId)`** --- Room forward roster graph; Character forward **inventory stub** (empty graph today).
 - **`getMembershipContainers(componentId)`** --- reverse membership (**array**; always `EphemeraRoomId[]`).
-- **`getRoomRoster(roomId)`** --- roster projection for affordance compose.
+- **`getRoomRoster(roomId)`** --- roster projection on package handler (topology-only graphs return empty; production uses ephemera **`PositionsData`** override).
 - **Forward memo:** **`set`** / **`invalidate`** on room position graphs (`positionGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 
@@ -69,6 +69,5 @@ After membership apply in positions, call forward **`set`** / **`invalidate`** f
 
 | Consumer | Read path |
 | --- | --- |
-| **`AffordanceRoomDeliverable.get`** | Roster via **`getRoomRoster`** (not raw `ephemeraDB.activeCharacters`) |
+| **`AffordanceRoomDeliverable.get`** | Roster via ephemera **`internalCache.Positions.getRoomRoster`** (hydrated compose; not raw `ephemeraDB.activeCharacters`) |
 | **`getRoomExitTargetsForCharacter`** | Reverse via **`getMembershipContainers`** (not `CharacterMeta.RoomId`) |
-| **`applyCharacterMembershipFlat`** pre-read | Reverse via **`getMembershipContainers`** |
