@@ -21,6 +21,7 @@ import '../dataSource/perception'
 import publishMessage from '../publishMessage'
 
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
+import { featureRenderChannelWmlForFeatureId } from '../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord'
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
 
@@ -184,6 +185,64 @@ describe('Perception message', () => {
                         expect.objectContaining({
                             wmlContent: expectedWml,
                             metaData: expect.objectContaining({ displayMode: 'full' }),
+                        }),
+                    ],
+                })
+            )
+        })
+    })
+
+    describe('PerceptionComponentMessage Feature', () => {
+        const featureId = 'FEATURE#FOUNTAIN' as const
+
+        const sampleCacheRow: EphemeraCacheDynamoItem = {
+            EphemeraId: featureId,
+            DataCategory: 'CACHE#x0',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['Fountain'],
+                description: ['A bubbling fountain.'],
+            },
+            provenance: { type: 'authored' },
+            perspectiveId: 'pid',
+            perspectiveMatcher: { assetStack: [] } as any,
+            situationId: 'SITUATION#DEFAULT',
+        }
+
+        it('builds wml from RenderCache DEFAULT row (no ComponentRender get)', async () => {
+            const renderCacheGet = jest.fn().mockResolvedValue([sampleCacheRow])
+            const mockInternalCache = {
+                RenderCache: { get: renderCacheGet },
+                ComponentRender: { get: jest.fn() },
+            } as any
+
+            await perceptionMessage({
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: featureId,
+                    },
+                ],
+                messageBus,
+                internalCacheOverride: mockInternalCache,
+            })
+            await messageBus.flushAndSettle()
+
+            expect(mockInternalCache.ComponentRender.get).not.toHaveBeenCalled()
+            expect(renderCacheGet).toHaveBeenCalledWith(featureId)
+            const expectedWml = featureRenderChannelWmlForFeatureId(featureId, [sampleCacheRow])
+            expect(publishMessageMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    payloads: [
+                        expect.objectContaining({
+                            type: 'PublishMessage',
+                            targets: ['CHARACTER#TESS'],
+                            displayProtocol: 'PerceptionMessage',
+                            wmlContent: expectedWml,
+                            metaData: {
+                                componentUUID: featureId,
+                            },
                         }),
                     ],
                 })

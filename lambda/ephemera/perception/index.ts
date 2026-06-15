@@ -12,6 +12,10 @@ import { sendCharacterPerceptionRequested } from "../dataSource/perception/subsc
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import getCurrentTimestamp from "../internalUtils/dateUtil"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
+import {
+    featureRenderChannelWmlForFeatureId,
+    knowledgeRenderChannelWmlForKnowledgeId,
+} from "../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord"
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
 
 /**
@@ -90,12 +94,13 @@ export const perceptionMessage = async ({
             else {
                 const internalCache = getCache()
                 if (isEphemeraFeatureId(ephemeraId) && isEphemeraCharacterId(characterId)) {
-                    const featureDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                    const cacheRecords = await internalCache.RenderCache.get(ephemeraId)
+                    const wmlContent = featureRenderChannelWmlForFeatureId(ephemeraId, cacheRecords)
                     messageBus.publish({
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
-                        wmlContent: schemaToWML([featureDescribe.schema]),
+                        wmlContent,
                         metaData: {
                             componentUUID: ephemeraId
                         },
@@ -110,12 +115,13 @@ export const perceptionMessage = async ({
                     // message DB), the directResponse argument is passed True.
                     //
                     const targets = (isEphemeraCharacterId(characterId) && !payload.directResponse) ? [characterId] : [`SESSION#${await internalCache.Global.get('SessionId')}` as const]
-                    const knowledgeDescribe = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                    const cacheRecords = await internalCache.RenderCache.get(ephemeraId)
+                    const wmlContent = knowledgeRenderChannelWmlForKnowledgeId(ephemeraId, cacheRecords)
                     messageBus.publish({
                         type: 'PublishMessage',
                         targets,
                         displayProtocol: 'PerceptionMessage',
-                        wmlContent: schemaToWML([knowledgeDescribe.schema]),
+                        wmlContent,
                         metaData: {
                             componentUUID: ephemeraId
                         },
