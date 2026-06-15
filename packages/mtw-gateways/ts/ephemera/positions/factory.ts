@@ -93,6 +93,9 @@ export class PositionsCacheHandler {
         return this._MembershipContainersStore[key]
     }
 
+    /**
+     * @deprecated Prefer ephemera `getRoomCharacterList`; removed in a follow-up slice (D2).
+     */
     async getRoomRoster(roomId: EphemeraRoomId): Promise<PlayPositionRoomRosterEntry[]> {
         const graph = await this.getPositionGraph(roomId)
         return projectRoomRosterFromGraph(graph)

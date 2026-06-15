@@ -4,9 +4,7 @@ import {
     projectRoomGraphFromActiveCharacters,
     projectRoomGraphFromStoredPositionGraph,
     projectRoomRosterFromGraph,
-    projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
-    projectMembershipContainersFromRoomEndpoint,
     projectRoomGraphFromRosterEntries,
     extractCharacterIdsFromPlayPositionGraph,
 } from './project'
@@ -41,22 +39,11 @@ describe('positions project', () => {
         }])
     })
 
-    it('projectCharacterGraphFromRoomEndpoint encodes room endpoint', () => {
-        const graph = projectCharacterGraphFromRoomEndpoint(characterId, roomId)
-        expect(graph.roomEndpoint).toBe(roomId)
-        expect(graph.nodes).toHaveLength(1)
-    })
-
     it('projectCharacterInventoryGraphStub returns empty forward graph', () => {
         expect(projectCharacterInventoryGraphStub()).toEqual({
             nodes: [],
             edges: [],
         })
-    })
-
-    it('projectMembershipContainersFromRoomEndpoint maps endpoint to array', () => {
-        expect(projectMembershipContainersFromRoomEndpoint(null)).toEqual([])
-        expect(projectMembershipContainersFromRoomEndpoint(roomId)).toEqual([roomId])
     })
 
     it('projectRoomGraphFromRosterEntries round-trips roster entries', () => {
@@ -157,7 +144,6 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getPositionGraph(characterId)
 
         expect(graph).toEqual(projectCharacterInventoryGraphStub())
-        expect(graph.roomEndpoint).toBeUndefined()
         expect(db.getItem).not.toHaveBeenCalled()
     })
 

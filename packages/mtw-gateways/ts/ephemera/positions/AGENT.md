@@ -9,7 +9,7 @@ Play position graph read handler for ephemera. **Authoritative writer:** [`lambd
 | Surface | Use |
 | --- | --- |
 | **Primary** | **`createPositionsCacheHandler(ephemeraDB)`** / **`PositionsCacheHandler`** --- register on Ephemera **`internalCache.Positions`**. |
-| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomPositionGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectRoomGraphFromActiveCharacters`**, **`projectRoomGraphFromStoredPositionGraph`**, **`projectCharacterGraphFromRoomEndpoint`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
+| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomPositionGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectRoomGraphFromActiveCharacters`**, **`projectRoomGraphFromStoredPositionGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
@@ -63,6 +63,8 @@ One row per host container. Multi-container drift (character in rooms A and C) y
 **Types + key builders:** [`ephemeraPositionAdjacency.ts`](../../../../mtw-interfaces/ts/ephemeraPositionAdjacency.ts).
 
 **Query helper:** **`queryMembershipContainersFromDynamo`** in [`adjacency.ts`](adjacency.ts) --- `begins_with(DataCategory, 'POSITION#')` on character PK; parse SK to `EphemeraRoomId[]`.
+
+Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoint` on `PlayPositionGraph`; legacy endpoint encoding removed).
 
 ## Handler API ([`factory.ts`](factory.ts))
 

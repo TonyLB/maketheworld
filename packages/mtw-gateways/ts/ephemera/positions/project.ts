@@ -23,6 +23,7 @@ const characterNodeReference = (characterId: EphemeraCharacterId): StandardRefer
 
 /**
  * Projects flat `activeCharacters` into a play position graph (bootstrap read fallback).
+ * @deprecated Prefer `projectRoomGraphFromStoredPositionGraph` topology-only; hydrate roster at read time.
  */
 export const projectRoomGraphFromActiveCharacters = (
     activeCharacters: EphemeraRoomActiveCharacter[]
@@ -46,6 +47,7 @@ export const projectRoomGraphFromActiveCharacters = (
  */
 export const projectRoomGraphFromStoredPositionGraph = (
     stored: EphemeraPlayPositionGraph,
+    /** @deprecated Hydrate roster at read time instead of merging `activeCharacters` on load. */
     activeCharacters?: EphemeraRoomActiveCharacter[]
 ): PlayPositionGraph => {
     const characterRosterMeta: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>> = {}
@@ -65,24 +67,11 @@ export const projectRoomGraphFromStoredPositionGraph = (
     }
 }
 
-export const projectCharacterGraphFromRoomEndpoint = (
-    characterId: EphemeraCharacterId,
-    roomEndpoint: EphemeraRoomId | null
-): PlayPositionGraph => ({
-    nodes: [characterNodeReference(characterId)],
-    edges: [],
-    roomEndpoint,
-})
-
 /** Forward-looking stub for future character inventory (container-scale play graph). */
 export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
     nodes: [],
     edges: [],
 })
-
-export const projectMembershipContainersFromRoomEndpoint = (
-    roomEndpoint: EphemeraRoomId | null
-): EphemeraRoomId[] => (roomEndpoint ? [roomEndpoint] : [])
 
 export const extractCharacterIdsFromPlayPositionGraph = (
     graph: PlayPositionGraph
@@ -103,6 +92,9 @@ export const extractCharacterIdsFromPlayPositionGraph = (
     return characterIds
 }
 
+/**
+ * @deprecated Prefer ephemera `getRoomCharacterList` / `hydrateRoomRosterFromCharacterIds`.
+ */
 export const projectRoomRosterFromGraph = (graph: PlayPositionGraph): PlayPositionRoomRosterEntry[] => {
     const meta = graph.characterRosterMeta ?? {}
     const nodes = graph.nodes ?? []
@@ -125,6 +117,9 @@ export const projectRoomRosterFromGraph = (graph: PlayPositionGraph): PlayPositi
     return roster
 }
 
+/**
+ * @deprecated Seed topology via `projectRoomGraphFromStoredPositionGraph` only; hydrate roster at read time.
+ */
 export const projectRoomGraphFromRosterEntries = (
     roster: PlayPositionRoomRosterEntry[]
 ): PlayPositionGraph => {

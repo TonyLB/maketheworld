@@ -1,4 +1,4 @@
-export { membershipContainersCacheKey, positionGraphCacheKey, roomRosterCacheKey } from './keys'
+export { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
 
 export type {
     MembershipContainersCacheSetParams,
@@ -30,9 +30,7 @@ export type {
 export {
     projectRoomGraphFromActiveCharacters,
     projectRoomGraphFromStoredPositionGraph,
-    projectCharacterGraphFromRoomEndpoint,
     projectCharacterInventoryGraphStub,
-    projectMembershipContainersFromRoomEndpoint,
     extractCharacterIdsFromPlayPositionGraph,
     projectRoomRosterFromGraph,
     projectRoomGraphFromRosterEntries,

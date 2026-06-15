@@ -17,10 +17,11 @@ export type PlayPositionRoomRosterEntry = {
  * Mental model: lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority
  */
 export type PlayPositionGraph = StandardPositionGraphData & {
-    /** Presentation/memo only: roster display keyed by character id. Not stored on room `positionGraph` (S2-6-H). */
+    /**
+     * Presentation/memo only: roster display keyed by character id. Not stored on room `positionGraph` (S2-6-H).
+     * @deprecated Roster compose moves to ephemera `getRoomCharacterList`; removed in a follow-up slice.
+     */
     characterRosterMeta?: Partial<Record<EphemeraCharacterId, PlayPositionRoomRosterEntry>>;
-    /** Memo/convenience: character room endpoint. Reverse reads use `getMembershipContainers`. */
-    roomEndpoint?: EphemeraRoomId | null;
 }
 
 export type PositionsCacheSetParams = {

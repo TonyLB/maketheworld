@@ -1,6 +1,6 @@
 # Positions gateway: decouple presentation from topology
 
-**Status:** Not started. Next step: Phase 0 (deprecation markers), then Phase 1 (`roomEndpoint` removal). All implementation decisions (D1--D3) locked.
+**Status:** PR1 complete (Phase 0 + Phase 1). Next step: Phase 2 (topology-only `PlayPositionGraph`; drop package `getRoomRoster`). All implementation decisions (D1--D3) locked.
 
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -79,8 +79,8 @@ None.
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| 0 | Deprecation markers (D3: doc obligation only) | Not started |
-| 1 | Remove `roomEndpoint` and reverse-encoding helpers | Not started |
+| 0 | Deprecation markers (D3: doc obligation only) | Complete |
+| 1 | Remove `roomEndpoint` and reverse-encoding helpers | Complete |
 | 2 | Topology-only `PlayPositionGraph`; drop package `getRoomRoster` | Not started |
 | 3 | Roster DTO consolidation + remove `PositionsData.getRoomRoster` (D1, D2) | Not started |
 | 4 | Durable doc + contract alignment | Not started |
@@ -91,12 +91,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 
 ### PR1 --- Phase 0 + Phase 1 (low risk)
 
-- [ ] Phase 0: add `@deprecated` JSDoc on `characterRosterMeta`, `roomEndpoint`, legacy `project*` helpers, package `getRoomRoster`, and `PositionsData.getRoomRoster`
-- [ ] Phase 1: remove `roomEndpoint` from `PlayPositionGraph`
-- [ ] Phase 1: delete `projectCharacterGraphFromRoomEndpoint`, `projectMembershipContainersFromRoomEndpoint`
-- [ ] Phase 1: delete `roomRosterCacheKey` (exported, unused)
-- [ ] Phase 1: update [`packages/mtw-gateways/ts/ephemera/positions/index.test.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/index.test.ts) (remove endpoint tests)
-- [ ] Phase 1: run gateway positions tests; update this plan checkboxes
+- [X] Phase 0: add `@deprecated` JSDoc on `characterRosterMeta`, `roomEndpoint`, legacy `project*` helpers, package `getRoomRoster`, and `PositionsData.getRoomRoster`
+- [X] Phase 1: remove `roomEndpoint` from `PlayPositionGraph`
+- [X] Phase 1: delete `projectCharacterGraphFromRoomEndpoint`, `projectMembershipContainersFromRoomEndpoint`
+- [X] Phase 1: delete `roomRosterCacheKey` (exported, unused)
+- [X] Phase 1: update [`packages/mtw-gateways/ts/ephemera/positions/index.test.ts`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/index.test.ts) (remove endpoint tests)
+- [X] Phase 1: run gateway positions tests; update this plan checkboxes
 
 ### PR2 --- Phase 2 (topology-only gateway)
 
