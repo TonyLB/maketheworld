@@ -22,7 +22,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character nodes, seed from roster) |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) | Pure trim + normalize helpers --- legal placement resolution (connect, asset visibility) |
-| [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect: trim ladder, persist trim-only when needed, return legal `targetRoomId` |
+| [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) | Trim ladder to accessible assets; persist trim-only when shape changes |
+| [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect: resolve legal `targetRoomId` from trimmed ladder |
+| [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
 | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency + S2-2 dual-write) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
@@ -39,6 +41,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate) |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
+| [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
 | [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
 | [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
 | [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Legacy flat persist (reference) |
@@ -75,8 +78,9 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 | Concern | Location |
 | --- | --- |
 | **Storage** | `Meta::Character.RoomStack` --- array of `{ asset, RoomId }` ([`membership/types.ts`](membership/types.ts) `RoomStackItem`) |
-| **Legal placement: connect (from nowhere)** | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) --- trim, optional trim-only persist, top frame -> `targetRoomId`; then [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) |
-| **Legal placement: asset visibility (from illegal room)** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- shared trim helper; if surviving top room `!==` membership endpoint, publish `MoveCharacter` (target: route through membership apply) |
+| **Legal placement: connect (from nowhere)** | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) -> [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) |
+| **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`executeCharacterNavigate`](../../moveCharacter/executeCharacterNavigate.ts) when in play |
+| **`CheckLocation` ingress adapter** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- payload expansion, coalescer; delegates repair to [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) |
 | **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) when `targetRoomId` non-null |
 | **Disconnect: purge membership, retain ladder** | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) --- removes graph/adjacency/`RoomId`; does **not** update `RoomStack` |
 | **Default root frame** | [`../../internalCache/characterMeta.ts`](../../internalCache/characterMeta.ts) --- `[{ asset: 'primitives', RoomId: 'VORTEX' }]` when absent |
@@ -100,7 +104,9 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend, rewrite-tail, fork, circus-style overlay trim |
 | [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | `RoomStack` shape on graph persist transact |
 | [`../../moveCharacter/index.test.ts`](../../moveCharacter/index.test.ts) | Same-asset replace, child push, parent truncate on navigate |
-| [`../../checkLocation/index.test.ts`](../../checkLocation/index.test.ts) | Trim inaccessible frames; relocate to first valid history room; trim-only no move |
+| [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility trim, relocate, trim-only, forceMove, out-of-play trim-only |
+| [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
+| [`../../checkLocation/index.test.ts`](../../checkLocation/index.test.ts) | Adapter: payload expansion, coalescer dedup, delegation to repair |
 | [`membership/applyCharacterMembershipFlat.test.ts`](membership/applyCharacterMembershipFlat.test.ts) | Ladder shape on flat persist reference path |
 
 ---

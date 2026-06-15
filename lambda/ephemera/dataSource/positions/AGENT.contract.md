@@ -57,7 +57,7 @@ Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). 
 - On successful **navigate** membership persist, **`updatePositionGraphs`** **must** update `Meta::Character.RoomStack` in the same character-row transact (ladder maintenance bundled with membership apply).
 - On **disconnect**, **`updatePositionGraphs`** **must** purge play membership (`positionGraph`, adjacency, `RoomId`) and **must preserve** `RoomStack` (connect resolves legal placement from the retained stack).
 - **Must not** emit **`Character Moved`** or run the membership-changed bundle when **only** the eviction ladder changes and the room membership endpoint is unchanged (**S1-9**).
-- When asset loss **trim** changes the membership endpoint, relocation **must** go through membership apply (today: [`checkLocation`](../../checkLocation/index.ts) filters the ladder then publishes `MoveCharacter`).
+- When asset loss **trim** changes the membership endpoint for an **in-play** character, relocation **must** go through [`repairCharacterLegalPlacement`](membership/repairCharacterLegalPlacement.ts) -> [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts). **Out-of-play** characters (**`getMembershipContainers`** empty): trim **`RoomStack` only** --- **must not** re-insert into play.
 
 ### `Character Moved` fact (F1-8 steady state)
 

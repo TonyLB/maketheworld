@@ -32,7 +32,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../../moveCharacter/index.ts`](../../moveCharacter/index.ts) | `MoveCharacter` bus bridge (connect / legacy API) |
 | [`../../moveCharacter/orchestrateNavigate.ts`](../../moveCharacter/orchestrateNavigate.ts) | Post-persist navigate presentation (S1-13) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
-| [`../../checkLocation/index.ts`](../../checkLocation/index.ts) | Legal placement on asset visibility loss (trim ladder; relocate when endpoint invalid) |
+| [`../../checkLocation/index.ts`](../../checkLocation/index.ts) | **`CheckLocation` messageBus adapter** --- expands player/room/asset payloads; delegates to [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) |
 | [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) | Room **render** asset stack (not eviction ladder --- see [`AGENT.concepts.md`](AGENT.concepts.md)) |
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |
 
