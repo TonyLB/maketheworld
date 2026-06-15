@@ -42,11 +42,11 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 | Type | Layer | Carries |
 | --- | --- | --- |
 | **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character **identity** nodes only (`CHARACTER#...`); no roster display fields |
-| **`PlayPositionGraph`** | Gateway read envelope (`StandardPositionGraphData` + optional enrichments) | Topology normalized to WML graph shape; optional **`characterRosterMeta`** / **`roomEndpoint`** are **presentation or invocation-memo** fields --- not Dynamo authority |
+| **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored `EphemeraPlayPositionGraph` nodes/edges to WML graph shape; no roster display or reverse-membership fields |
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Coordinator memo may patch **`PlayPositionGraph`** with hydrated roster for same-invocation cache coherence --- that is compose, not persist.
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
 
-**Cross-links:** authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
+**Cross-links:** gateway handler scope --- [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
 
 ---
 

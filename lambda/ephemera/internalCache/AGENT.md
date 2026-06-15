@@ -39,6 +39,8 @@ Play **membership** on the affordances channel is **not** stored as display fiel
 
 **Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) uses **`getMembershipContainers`** for the character room endpoint only --- not hydrated roster.
 
+Normative read rules and D3 must-not guard: [`dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#read-surface-s1-5-s1-15-slice-2).
+
 ### Per-invocation process state (not only deferred loads)
 
 Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.
