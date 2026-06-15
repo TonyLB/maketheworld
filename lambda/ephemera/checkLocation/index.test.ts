@@ -1,394 +1,130 @@
-import { produce } from 'immer'
-
-jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
-import {
-    ephemeraDB
-} from '@tonylb/mtw-utilities/ts/dynamoDB/index'
-
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
+jest.mock('../dataSource/positions/membership/repairCharacterLegalPlacement', () => ({
+    repairCharacterLegalPlacement: jest.fn().mockResolvedValue({ trimmed: false, relocated: false }),
+}))
+
+jest.mock('../dataSource/positions', () => ({
+    __esModule: true,
+    default: {
+        streamEvent: jest.fn().mockResolvedValue(undefined),
+    },
+}))
+
 import { MessageBus } from '../messageBus/baseClasses'
-import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
-import { RoomStackItem } from '../moveCharacter'
 import checkLocation from '.'
 import { checkLocationCoalescer } from './coalescer'
+import { repairCharacterLegalPlacement } from '../dataSource/positions/membership/repairCharacterLegalPlacement'
 import { Graph } from '@tonylb/mtw-utilities/ts/graphStorage/utils/graph'
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
-const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-
-const wrapMocks = (fromRoomStack: RoomStackItem[], assets: string[]): void => {
-    const characterMetaMock = {
-        EphemeraId: 'CHARACTER#Test' as const,
-        RoomId: RoomKey(fromRoomStack.slice(-1)[0]?.RoomId || ''),
-        RoomStack: fromRoomStack,
-        Name: 'Test',
-        HomeId: 'ROOM#VORTEX' as const,
-        assets,
-        Pronouns: 'they/them'
-    }
-    internalCacheMock.CharacterMeta.get.mockResolvedValue(characterMetaMock)
-    ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ Key, updateReducer, successCallback }) => {
-        const returnValue = produce(characterMetaMock, updateReducer)
-        successCallback?.(returnValue, characterMetaMock)
-        return returnValue
-    })
-}
+const repairCharacterLegalPlacementMock = repairCharacterLegalPlacement as jest.MockedFunction<
+    typeof repairCharacterLegalPlacement
+>
 
 describe('checkLocation', () => {
     const messageBusMock = {
         send: jest.fn(),
         publish: jest.fn(),
     } as unknown as jest.Mocked<MessageBus>
+
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.restoreAllMocks()
         checkLocationCoalescer.reset()
-        internalCacheMock.Global.get.mockResolvedValue(['primitives', 'TownCenter'])
+        repairCharacterLegalPlacementMock.mockResolvedValue({ trimmed: false, relocated: false })
     })
 
-    it('should no-op when room is still valid', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftOne', 'draftTwo']
-        )
-        await checkLocation({
-            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test' }],
-            messageBus: messageBusMock
-        })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(0)
-    })
-
-    it('should return character to first available history room', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            []
-        )
-        await checkLocation({
-            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test' }],
-            messageBus: messageBusMock
-        })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function),
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
-            characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#TownSquare',
-        })
-    })
-
-    it('should update RoomStack without moving when room remains valid', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftTwo']
-        )
-        await checkLocation({
-            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test' }],
-            messageBus: messageBusMock
-        })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function),
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                    { asset: 'draftTwo', RoomId: 'Oubliette' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledTimes(0)
-    })
-
-    it('should move on forceMove even when stack remains valid', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftOne', 'draftTwo']
-        )
+    it('delegates player payloads to repairCharacterLegalPlacement', async () => {
         await checkLocation({
             payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test', forceMove: true }],
-            messageBus: messageBusMock
+            messageBus: messageBusMock,
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function),
-            succeedAll: true
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                    { asset: 'draftOne', RoomId: 'Laboratory' },
-                    { asset: 'draftTwo', RoomId: 'Oubliette' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
+
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledWith(expect.objectContaining({
             characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#Oubliette',
-        })
+            forceMove: true,
+            messageBus: messageBusMock,
+            streamEvent: expect.any(Function),
+        }))
     })
 
-    it('should publish MoveCharacter on forceMove even when message copy fields are present on payload', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftOne', 'draftTwo']
-        )
+    it('expands room payloads to characters in the room', async () => {
+        internalCacheMock.RoomCharacterList.get.mockResolvedValue([
+            { EphemeraId: 'CHARACTER#Alpha', DisplayName: 'Alpha', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#Beta', DisplayName: 'Beta', SessionIds: [] },
+        ])
+
         await checkLocation({
-            payloads: [{ type: 'CheckLocation', characterId: 'CHARACTER#Test', forceMove: true, leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
-            messageBus: messageBusMock
+            payloads: [{ type: 'CheckLocation', roomId: 'ROOM#Oubliette' }],
+            messageBus: messageBusMock,
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function),
-            succeedAll: true
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                    { asset: 'draftOne', RoomId: 'Laboratory' },
-                    { asset: 'draftTwo', RoomId: 'Oubliette' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
-            characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#Oubliette',
-        })
+
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledTimes(2)
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledWith(expect.objectContaining({
+            characterId: 'CHARACTER#Alpha',
+        }))
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledWith(expect.objectContaining({
+            characterId: 'CHARACTER#Beta',
+        }))
     })
 
-    it('should update characters in room when roomId passed', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftOne']
-        )
-        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', DisplayName: 'Test', SessionIds: [] }])
-        await checkLocation({
-            payloads: [{ type: 'CheckLocation', roomId: 'ROOM#Oubliette', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
-            messageBus: messageBusMock
+    it('expands asset payloads to characters in descendant rooms', async () => {
+        internalCacheMock.RoomCharacterList.get.mockImplementation(async (roomId: string) => {
+            if (roomId === 'ROOM#Laboratory') {
+                return [{ EphemeraId: 'CHARACTER#Alpha', DisplayName: 'Alpha', SessionIds: [] }]
+            }
+            return [{ EphemeraId: 'CHARACTER#Beta', DisplayName: 'Beta', SessionIds: [] }]
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function)
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                    { asset: 'draftOne', RoomId: 'Laboratory' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
-            characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#Laboratory',
-        })
-    })
-
-    it('should update characters in asset when assetId passed', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            ['draftOne']
-        )
-        internalCacheMock.RoomCharacterList.get.mockResolvedValue([{ EphemeraId: 'CHARACTER#Test', DisplayName: 'Test', SessionIds: [] }])
         const assetGraph = new Graph<string, { key: string }, { context?: string }>(
             {
-                'ASSET#primitives': { key: 'ASSET#primitives' },
-                'ASSET#TownCenter': { key: 'ASSET#TownCenter' },
-                'ASSET#draftOne': { key: 'ASSET#draftOne' },
                 'ASSET#draftTwo': { key: 'ASSET#draftTwo' },
-                'ROOM#VORTEX': { key: 'ROOM#VORTEX' },
-                'ROOM#TownSquare': { key: 'ROOM#TownSquare' },
                 'ROOM#Laboratory': { key: 'ROOM#Laboratory' },
                 'ROOM#Oubliette': { key: 'ROOM#Oubliette' },
             },
             [
-                { from: 'ASSET#primitives', to: 'ROOM#VORTEX', context: 'primitives' },
-                { from: 'ASSET#TownCenter', to: 'ROOM#TownSquare', context: 'TownCenter' },
-                { from: 'ASSET#draftOne', to: 'ROOM#Laboratory', context: 'draftOne' },
+                { from: 'ASSET#draftTwo', to: 'ROOM#Laboratory', context: 'draftTwo' },
                 { from: 'ASSET#draftTwo', to: 'ROOM#Oubliette', context: 'draftTwo' },
             ],
             {},
             true
         )
         internalCacheMock.Graph.get.mockResolvedValue(assetGraph)
+
         await checkLocation({
-            payloads: [{ type: 'CheckLocation', assetId: 'ASSET#draftTwo', leaveMessage: ' has vanished.', arriveMessage: ' has appeared.' }],
-            messageBus: messageBusMock
+            payloads: [{ type: 'CheckLocation', assetId: 'ASSET#draftTwo' }],
+            messageBus: messageBusMock,
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: 'CHARACTER#Test', DataCategory: 'Meta::Character' },
-            updateKeys: ['RoomId', 'RoomStack'],
-            updateReducer: expect.any(Function),
-            successCallback: expect.any(Function)
-        })
-        expect(produce(
-                {
-                    RoomStack: [
-                        { asset: 'primitives', RoomId: 'VORTEX' },
-                        { asset: 'TownCenter', RoomId: 'TownSquare' },
-                        { asset: 'draftOne', RoomId: 'Laboratory' },
-                        { asset: 'draftTwo', RoomId: 'Oubliette' }
-                    ]
-                },
-                ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer
-            )).toEqual({
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                    { asset: 'draftOne', RoomId: 'Laboratory' }
-                ]
-            })
-        expect(messageBusMock.publish).toHaveBeenCalledWith({
-            type: 'MoveCharacter',
-            characterId: 'CHARACTER#Test',
-            roomId: 'ROOM#Laboratory',
-        })
+
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledTimes(2)
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledWith(expect.objectContaining({
+            characterId: 'CHARACTER#Alpha',
+        }))
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledWith(expect.objectContaining({
+            characterId: 'CHARACTER#Beta',
+        }))
     })
 
-    it('should repair each character only once when duplicate payloads are batched', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            []
-        )
+    it('repairs each character only once when duplicate payloads are batched', async () => {
         await checkLocation({
             payloads: [
                 { type: 'CheckLocation', characterId: 'CHARACTER#Test' },
                 { type: 'CheckLocation', characterId: 'CHARACTER#Test' },
             ],
-            messageBus: messageBusMock
+            messageBus: messageBusMock,
         })
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(messageBusMock.publish).toHaveBeenCalledTimes(1)
+
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledTimes(1)
     })
 
-    it('should repair each character only once when concurrent handler invocations overlap', async () => {
-        wrapMocks(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-                { asset: 'draftOne', RoomId: 'Laboratory' },
-                { asset: 'draftTwo', RoomId: 'Oubliette' }
-            ],
-            []
-        )
+    it('repairs each character only once when concurrent handler invocations overlap', async () => {
         const payload = { type: 'CheckLocation' as const, characterId: 'CHARACTER#Test' as const }
         await Promise.all([
             checkLocation({ payloads: [payload], messageBus: messageBusMock }),
             checkLocation({ payloads: [payload], messageBus: messageBusMock }),
         ])
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(messageBusMock.publish).toHaveBeenCalledTimes(1)
+
+        expect(repairCharacterLegalPlacementMock).toHaveBeenCalledTimes(1)
     })
 })

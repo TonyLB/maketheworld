@@ -7,7 +7,7 @@ export const normalizeRoomStack = (stack: RoomStackItem[] | undefined): RoomStac
 
 /**
  * Filter eviction-ladder frames to assets the character can still access.
- * Pure helper shared by connect resolution and checkLocation trim.
+ * Shared legal-placement primitive: connect (from nowhere) and asset visibility (from illegal room).
  */
 export const trimRoomStackToAccessibleAssets = (
     stack: RoomStackItem[] | undefined,

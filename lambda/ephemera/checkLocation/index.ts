@@ -5,24 +5,20 @@ import {
     isCheckLocationRoom,
     CheckLocationPlayerMessage,
     isCheckLocationAsset,
-} from "../messageBus/baseClasses"
-import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
-import internalCache from "../internalCache"
-import { RoomKey } from "@tonylb/mtw-utilities/ts/types"
-import type { RoomStackItem } from "../dataSource/positions/membership/types"
-import {
-    normalizeRoomStack,
-    trimRoomStackToAccessibleAssets,
-} from "../dataSource/positions/membership/trimEvictionLadder"
-import { isEphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { checkLocationCoalescer } from "./coalescer"
+} from '../messageBus/baseClasses'
+import internalCache from '../internalCache'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { PositionsPublishedPayload } from '../dataSource/positions/publishedEvents'
+import { repairCharacterLegalPlacement } from '../dataSource/positions/membership/repairCharacterLegalPlacement'
+import { checkLocationCoalescer } from './coalescer'
 
-//
-// checkLocation message handler tests whether the RoomStack (and RoomId) currently assigned to the character still
-// matches against the canon and personal assets that they have access to.  Any items in the RoomStack that are
-// no longer accessible are filtered out. If the top of the RoomStack is no longer the same room as the RoomId
-// then a moveCharacter action is queued in order to relocate the character somewhere legal
-//
+const getPositionsStreamEvent = (): StreamEventFunction<PositionsPublishedPayload> => {
+    const { default: ephemeraPositionsDataSource } = require('../dataSource/positions') as {
+        default: { streamEvent: StreamEventFunction<PositionsPublishedPayload> };
+    }
+    return ephemeraPositionsDataSource.streamEvent.bind(ephemeraPositionsDataSource)
+}
 
 const expandCheckLocationPayload = async (payload: CheckLocationMessage): Promise<CheckLocationPlayerMessage[]> => {
     if (isCheckLocationPlayer(payload)) {
@@ -61,7 +57,7 @@ const expandCheckLocationPayload = async (payload: CheckLocationMessage): Promis
     return []
 }
 
-const repairCharacterLocation = async (
+const repairPlayerLocation = async (
     payload: CheckLocationPlayerMessage,
     messageBus: MessageBus
 ): Promise<void> => {
@@ -69,55 +65,18 @@ const repairCharacterLocation = async (
         return
     }
 
-    const [characterMeta, canonAssets = []] = await Promise.all([
-        internalCache.CharacterMeta.get(payload.characterId),
-        internalCache.Global.get('assets')
-    ])
-
-    const accessibleAssets = [...canonAssets, ...characterMeta.assets]
-    if (!payload.forceMove && characterMeta.RoomStack.every(({ asset }) => (accessibleAssets.includes(asset)))) {
-        return
-    }
-
-    await ephemeraDB.optimisticUpdate({
-        Key: {
-            EphemeraId: characterMeta.EphemeraId,
-            DataCategory: 'Meta::Character'
-        },
-        updateKeys: ['RoomId', 'RoomStack'],
-        updateReducer: (draft) => {
-            draft.RoomStack = trimRoomStackToAccessibleAssets(
-                normalizeRoomStack(draft.RoomStack as RoomStackItem[] | undefined),
-                accessibleAssets
-            )
-        },
-        successCallback: ({ RoomStack, RoomId }) => {
-            const { forceMove, forceRender } = payload
-            internalCache.CharacterMeta.set({ ...characterMeta, RoomStack })
-            const stackRoomId = (RoomStack as RoomStackItem[]).slice(-1)[0]?.RoomId
-
-            if (forceMove || (stackRoomId && (RoomKey(stackRoomId) !== RoomId))) {
-                messageBus.publish({
-                    type: 'MoveCharacter',
-                    characterId: payload.characterId,
-                    roomId: RoomKey(stackRoomId),
-                })
-            }
-            else if (forceRender) {
-                messageBus.publish({
-                    type: 'Perception',
-                    characterId: characterMeta.EphemeraId,
-                    ephemeraId: RoomKey(stackRoomId)
-                })
-            }
-        },
-        succeedAll: payload.forceMove
+    await repairCharacterLegalPlacement({
+        characterId: payload.characterId,
+        forceMove: payload.forceMove,
+        forceRender: payload.forceRender,
+        messageBus,
+        streamEvent: getPositionsStreamEvent(),
     })
 }
 
 export const checkLocation = async ({ payloads, messageBus }: { payloads: CheckLocationMessage[], messageBus: MessageBus }): Promise<void> => {
     const playerPayloads = (await Promise.all(payloads.map(expandCheckLocationPayload))).flat()
-    await Promise.all(playerPayloads.map((payload) => repairCharacterLocation(payload, messageBus)))
+    await Promise.all(playerPayloads.map((payload) => repairPlayerLocation(payload, messageBus)))
 }
 
 export default checkLocation

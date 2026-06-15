@@ -1,6 +1,6 @@
 # Positions DataSource Planning (`mtw.ephemera.positions`)
 
-**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **Next:** initiative **Close** (**S2-6**). See [Migration strategy](#migration-strategy-routing-first).
+**Status:** In progress. **Slice 0 shipped.** **Slice 1a shipped** (membership API, navigate ingress, S1-5 read surface, disconnect refactor, `moveCharacter` split, Model A anchor). **Slice 1b shipped** (`Character Moved` emit + fan-in publish for navigate + disconnect). **Slice 1c shipped** (gateway forward/reverse reads, **S1-15**). **S2-4 / S2-7 decided** (end-state graph apply, plural **`froms`**). **Slice 1d shipped** (`froms[]` fact contract + fan-in consumer **F2-2**). **Slice 2 shipped** (`updatePositionGraphs`, graph-diff emit, gateway backing swap). **Slice 3 shipped** (connect unify + **S3-EL-1** eviction-ladder algorithm). **Slice 4 shipped** (legacy disconnect retirement). **Next:** initiative **Close** (**S2-6** storage retirement + **S2-6-DR** drift repair). See [Migration strategy](#migration-strategy-routing-first).
 
 ## Purpose
 
@@ -171,7 +171,25 @@ One PR (do not split). **Prerequisite:** slice **1d** (**`froms[]`** contract + 
 
 **Out of initiative close (may remain):** **Eviction ladder** (`Meta::Character.RoomStack` --- see [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped)); **`RoomCharacterList`** cache if retained as pure memo over gateway reads (not Dynamo authority). Distinct from slice **5+** in-room/container **position graphs**.
 
-**Initiative close gate:** grep / contract --- no play membership persist or steady-state read of **`activeCharacters`** / **`RoomId`** as authority outside documented diagnostics migration shims (then remove shims).
+**Initiative close gate:** grep / contract --- no play membership persist or steady-state read of **`activeCharacters`** / **`RoomId`** as authority; no ad-hoc diagnostics membership writes (see **S2-6-DR**).
+
+### Close initiative scope (**S2-6** + **S2-6-DR**)
+
+**Close** is two companion tracks. **S2-6** retires legacy projection **storage**; **S2-6-DR** retires the last ad-hoc membership **repair** path that still rewrites those projections. Do not centralize occupancy drift repair into positions before **S2-6** --- today's downstream handler ([`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts)) is coupled to **`activeCharacters`** / **`RoomId`** semantics, not the membership API. Moving the EventBridge subscription from **`mtw.ephemera`** to **`mtw.ephemera.positions`** alone would not fix that; **S2-6-DR** replaces the repair model.
+
+| Track | ID | What changes |
+| --- | --- | --- |
+| **Storage retirement** | **S2-6** | Stop persisting / authority reads of **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**); grep gate |
+| **Drift repair centralization** | **S2-6-DR** | Replace diagnostics downstream repair: no direct **`activeCharacters`** optimistic rewrite; detect drift vs **`positionGraph` + adjacency** + connections session adjacency (via **`internalCache.Positions`**); repair through **`repairCharacterLegalPlacement`** / end-state membership apply; consume **`Room Occupancy Drift Finding`** on positions (or equivalent direct call); retire **`CheckLocation`** messageBus adapter ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts)); remove contract exception in [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) |
+
+**Eviction ladder processing** is already positions-owned (**slice 3**): connect via **`resolveConnectTargetRoom`**, asset visibility via **`repairCharacterLegalPlacement`**. **S2-6-DR** completes ingress alignment for occupancy drift --- same direct-repair posture as connect, not a revived **`CheckLocation`** bridge.
+
+**Diagnostics boundary (unchanged owner, updated contract):**
+
+- **Sweep** ([`lambda/diagnostics/roomOccupancyDriftSweep/`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/)): stays read-only finding emitter; re-evaluate drift classification when **`RoomId`** / stored **`activeCharacters`** are no longer authority (compare against graph + adjacency + connections adjacency).
+- **Downstream repair**: moves from **`mtw.ephemera`** self-healing + **`CheckLocation`** bus hop to positions-owned handler on **`Room Occupancy Drift Finding`** (or thin wrapper calling **`membership/`** repair).
+
+**Out of Close (unless explicitly scoped later):** asset visibility ingress on canon/zone change (orphaned **`CanonAdd`** / **`CanonRemove`** bus publishes today --- no subscriber); **S3-EL-2** (`RoomStack` rename).
 
 ### Module layout (**S1-4**)
 
@@ -219,7 +237,7 @@ type MembershipApplyResult = {
 
 **Internal slice 2:** coordinator translates **`MembershipApplyArgs`** into an **`updatePositionGraphs`** immer draft (parent room ids + character node moves). **`updatePositionGraphs`** is **not** the ingress API; it is the swappable persist engine behind **`applyCharacterRoomMembership`**.
 
-**Eviction ladder (`RoomStack`):** not part of **`MembershipApplyArgs`** (**S1-9**). Mental model: [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped). **`updatePositionGraphs`** maintains the ladder on navigate (same character transact as membership). Trim on asset loss: [`checkLocation`](../../../../../../lambda/ephemera/checkLocation/index.ts) + connect [`resolveConnectTargetRoom`](../../../../../../lambda/ephemera/dataSource/positions/membership/resolveConnectTargetRoom.ts). Navigate algorithm: **S3-EL-1** shipped. **`RoomStack` rename (**S3-EL-2**):** out of scope for this plan.
+**Eviction ladder (`RoomStack`):** not part of **`MembershipApplyArgs`** (**S1-9**). Mental model: [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#eviction-ladder-shipped). **`updatePositionGraphs`** maintains the ladder on navigate (same character transact as membership). Trim on asset visibility loss: [`repairCharacterLegalPlacement`](../../../../../../lambda/ephemera/dataSource/positions/membership/repairCharacterLegalPlacement.ts) (today via [`checkLocation`](../../../../../../lambda/ephemera/checkLocation/index.ts) adapter --- retire at Close **S2-6-DR**); connect [`resolveConnectTargetRoom`](../../../../../../lambda/ephemera/dataSource/positions/membership/resolveConnectTargetRoom.ts). Navigate algorithm: **S3-EL-1** shipped. **`RoomStack` rename (**S3-EL-2**):** out of scope for this plan.
 
 **No-op gate (**S1-8**):** **`streamMembershipFact`** runs only when membership endpoints changed after apply. Slice 1: **`from !== to`** on singular pre-read + target. Slice 2 (**S2-4**): prior container set `!==` `{ targetRoomId }` (equivalently **`MembershipDiff.changed`**). Same gate, different persist backend.
 
@@ -322,7 +340,7 @@ Slice **1a** extracts from [`moveCharacter`](../../../../../../lambda/ephemera/m
 | --- | --- | --- |
 | **`Meta::Room.activeCharacters`** departure removal + arrival add/update | **`applyCharacterMembershipFlat`** | Slice **2:** **`positionGraph`** + adjacency (**S2-5**); **transitional** projection sync (**S2-2**) until **S2-6** retires stored field |
 | **`Meta::Character` `RoomId`** (reverse denorm) | **`applyCharacterMembershipFlat`** | Slice **2:** adjacency (**S2-5**); **transitional** `RoomId` sync until **S2-6** |
-| **`Meta::Character` eviction ladder (`RoomStack`)** | **`membershipRoomStack`** via **`updatePositionGraphs`** | Navigate maintenance; trim via **`checkLocation`** (may move under positions --- slice **3+**) |
+| **`Meta::Character` eviction ladder (`RoomStack`)** | **`membershipRoomStack`** via **`updatePositionGraphs`**; trim/repair via **`repairCharacterLegalPlacement`** / **`resolveConnectTargetRoom`** | Navigate maintenance (**S3-EL-1**); occupancy drift repair deferred to Close (**S2-6-DR** --- retires **`CheckLocation`** ingress) |
 | Pre-read **`from`** / apply **`to`** / **`changed`** gate | **Coordinator** | Slice **2:** from **`MembershipDiff`** |
 | Cache memo: **`RoomCharacterList`**, **`ComponentEphemeraMeta`**, **`AffordanceRoomDeliverable`**, positions read handler (**S1-5**) | **Coordinator** when **`changed`** (**S1-11**) | Same bundle as fact emit; not on same-room / no-op applies |
 | **`RoomUpdate`** (affordance refresh path) | **Coordinator** when **`changed`** (**S1-11**) | Affected endpoint room(s): non-null **`from`** and/or **`to`** |
@@ -383,7 +401,8 @@ When **`!changed`**: skip the **entire** bundle --- no fact, no **`RoomUpdate`**
 | **S2-4** | **Expected departure for graph apply** | **Decided:** Option A --- pure **end-state** apply. Pre-read **full** **`getMembershipContainers`**; remove from **every** prior container `!== targetRoomId`; **`MembershipApplyArgs`** unchanged (**S1-7**). Do **not** consume stream **`fromRoomId`** for persist. See [Graph apply: end-state model (**S2-4**)](#graph-apply-end-state-model-s2-4). |
 | **S2-7** | **`Character Moved` plural `froms`** | **Decided:** **slice 1d** --- contract + fan-in **F2-2** (singleton arrays from current persist). **Slice 2** --- **`MembershipDiff`** may emit multi-from; side-effect bundle for all **`froms`**. See [Fact contract cutover sequencing (**S2-7**)](#fact-contract-cutover-sequencing-s2-7). |
 | **S2-5** | **Reverse membership persistence backing** | **Decided:** **adjacency index** (**`COMPONENT#X`** x **`POSITION#COMPONENT#Y`**) backs **`getMembershipContainers`**; **`positionGraph`** primary on conflict. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
-| **S2-6** | **Legacy projection storage retirement** | **Decided:** by **initiative close**, remove stored **`activeCharacters`** / **`RoomId`** membership authority; graph + adjacency only. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
+| **S2-6** | **Legacy projection storage retirement** | **Decided:** by **initiative close**, remove stored **`activeCharacters`** / **`RoomId`** membership authority; graph + adjacency only. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). Companion **S2-6-DR** retires diagnostics drift repair + **`CheckLocation`** ingress. |
+| **S2-6-DR** | **Occupancy drift repair centralization** | **Decided:** at **Close**, replace ad-hoc **`activeCharacters`** self-healing with positions **`membership/`** repair; retire **`CheckLocation`** bus. See [Close initiative scope (**S2-6** + **S2-6-DR**)](#close-initiative-scope-s2-6--s2-6-dr). |
 
 When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) and remove from **Open decisions** below.
 
@@ -399,7 +418,7 @@ When remaining rows ship, graduate rules to [`AGENT.contract.md`](../../../../..
 | **Storage swap** | **2** | `Meta::Room.positionGraph`, **`updatePositionGraphs`**, **adjacency reverse index** (**S2-5**), graph-diff **`Character Moved`** (multi-from when drift); gateway backing swap (**S1-15**); **transitional** dual-write to legacy projections (**S2-2**) | Orchestration and ingress paths from slice 1 / 1c / **1d** |
 | **Unify ingress** | **3** | Connect path through same API (retire `CheckLocation` bridge) | Graph + adjacency persist |
 | **Legacy ingress cleanup** | **4** | `disconnectMessage`, `Disconnect Character` ingress | --- |
-| **Projection retirement** | **Close** | Remove stored **`activeCharacters`** / **`RoomId`** membership authority (**S2-6**); readers on gateway only; diagnostics reconcile from **`positionGraph`** | --- |
+| **Projection retirement + drift repair** | **Close** | **S2-6:** remove stored **`activeCharacters`** / **`RoomId`** membership authority; readers on gateway only. **S2-6-DR:** replace diagnostics downstream repair + retire **`CheckLocation`** bus; positions-owned drift handler via membership API | --- |
 
 **Out of scope for this plan:** **S3-EL-2** (`RoomStack` rename) and **slice 5+** richer graphs (in-room edges, object placement, container graphs). Target mental models remain in [`AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md); implement under a follow-on plan if needed.
 
@@ -419,7 +438,7 @@ Thin routing (`subscribe -> publish MoveCharacter` to legacy handler) **does not
 | **2** | **`Meta::Room` play `positionGraph`** + **adjacency reverse index** + **`updatePositionGraphs`** (end-state apply **S2-4**); graph-diff emit (**`froms.length > 1`** when drift); transitional projection dual-write (**S2-2**); gateway backing swap | Contract; concepts Target -> Shipped for room play graph (character nodes) |
 | **3** | Unify **connect** through membership API (retire `CheckLocation` bridge) | Contract + implementation |
 | **4** | Retire `disconnectMessage` / legacy `Disconnect Character` | Contract; slim parent event docs |
-| **Close** | **S2-6:** retire legacy membership projection **storage** (`activeCharacters`, `RoomId` authority); verification matrix; delete this plan | Contract + implementation + concepts graduation |
+| **Close** | **S2-6** storage retirement + **S2-6-DR** drift repair centralization; verification matrix; delete this plan | Contract + implementation + concepts graduation |
 
 ## Open decisions (implementation --- plan only)
 
@@ -460,6 +479,7 @@ _All slice 3 open decisions shipped or out of scope. **S3-EL-2** (`RoomStack` re
 | S2-7 | **`Character Moved` plural `froms`** | 1d / 2 | **Decided:** **slice 1d** --- **`froms[]`** contract + **F2-2** consumer (singleton emit from flat persist). **Slice 2** --- **`MembershipDiff`** multi-from + **S1-11** bundle for all **`froms`**. See [Fact contract cutover sequencing (**S2-7**)](#fact-contract-cutover-sequencing-s2-7). |
 | S2-5 | **Reverse membership persistence backing** | 2 | **Decided:** **adjacency index** on ephemera Dynamo (**`COMPONENT#X`** partition, **`POSITION#COMPONENT#Y`** sort keys or equivalent) maintained in **`updatePositionGraphs`** transact bundle; backs **`getMembershipContainers`**. Denorm **`RoomId`** is **not** steady-state reverse authority (transitional dual-write only per **S2-2**). **`positionGraph`** wins on conflict/diagnostics. See [Steady-state storage authority](#steady-state-storage-authority-s2-5-s2-6). |
 | S2-6 | **Legacy projection storage retirement at initiative close** | Close | **Decided:** remove stored **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** as play membership authority; **`positionGraph` + adjacency** only. Migrate all steady-state readers to **`internalCache.Positions`**; grep gate at close. Optional perf-only memo caches OK; not Dynamo truth. |
+| S2-6-DR | **Occupancy drift repair centralization at Close** | Close | **Decided:** companion to **S2-6** --- replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) ad-hoc **`activeCharacters`** rewrite with positions-owned repair via **`repairCharacterLegalPlacement`** / membership apply; consume **`Room Occupancy Drift Finding`** on positions; retire **`CheckLocation`** messageBus adapter; update diagnostics sweep evaluation for graph + adjacency authority. See [Close initiative scope (**S2-6** + **S2-6-DR**)](#close-initiative-scope-s2-6--s2-6-dr). Asset visibility on canon/zone change out of scope unless explicitly added. |
 
 For a long option comparison on any row, add a root [**temporary analysis**](../../../../../../AGENT.md#temporary-working-documents) doc and link it from the table (do not bloat concepts).
 
@@ -540,10 +560,16 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Migrate `unregistercharacter` to connections service; stream `Character Disconnected` on last-session removal
   - [X] Integration test for positions receive paths
 
-- [ ] **Close initiative**
-  - [ ] **S2-6:** Remove legacy membership projection **storage** --- stop persisting / authority reads of **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership; **`positionGraph` + adjacency** only (**Steady-state storage authority**)
-  - [ ] Grep: no steady-state **`activeCharacters`** / **`RoomId`** membership writes outside diagnostics; readers use **`internalCache.Positions`** only
-  - [ ] Run verification matrix
+- [ ] **Close initiative** (**S2-6** + **S2-6-DR** --- see [Close initiative scope](#close-initiative-scope-s2-6--s2-6-dr))
+  - [ ] **S2-6 --- storage retirement:** Remove legacy membership projection **storage** --- stop persisting / authority reads of **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** for play membership; **`positionGraph` + adjacency** only; remove transitional dual-write (**S2-2**)
+  - [ ] **S2-6 --- readers:** Migrate steady-state roster / reverse membership reads to **`internalCache.Positions`** only (no **`RoomId`** / stored **`activeCharacters`** authority fallbacks except deleted migration shims)
+  - [ ] **S2-6-DR --- drift repair:** Replace [`roomOccupancyDriftFinding`](../../../../../../lambda/ephemera/dataSource/selfHealing/roomOccupancyDriftFinding.ts) --- no direct **`activeCharacters`** optimistic rewrite; detect vs graph + adjacency + connections adjacency; repair via **`repairCharacterLegalPlacement`** / end-state **`applyCharacterRoomMembership`** when membership endpoint must change
+  - [ ] **S2-6-DR --- ingress:** Subscribe **`mtw.ephemera.positions`** to **`mtw.diagnostics`** / **`Room Occupancy Drift Finding`** (or equivalent positions handler); remove handler from **`mtw.ephemera`** self-healing path
+  - [ ] **S2-6-DR --- retire `CheckLocation`:** Remove messageBus **`CheckLocation`** subscriber ([`checkLocation/`](../../../../../../lambda/ephemera/checkLocation/index.ts), coalescer); no positions connect-style **`CheckLocation`** publishes remain
+  - [ ] **S2-6-DR --- diagnostics sweep:** Update [`roomOccupancyDriftSweep`](../../../../../../lambda/diagnostics/roomOccupancyDriftSweep/) classification for graph + adjacency authority (sweep stays read-only in diagnostics)
+  - [ ] Grep: no steady-state **`activeCharacters`** / **`RoomId`** membership writes; no ad-hoc diagnostics membership exception
+  - [ ] Graduate contract + implementation (**S2-6**, **S2-6-DR**); remove self-healing exception row from [`AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)
+  - [ ] Run verification matrix (Close gates below)
   - [ ] Slim bridge notes in [`actions/AGENT.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.md)
   - [ ] Delete this planning file
 
@@ -576,6 +602,8 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 **Initiative close gate (**S2-6**):** no Dynamo authority on **`activeCharacters`** / **`RoomId`** for play membership; **`getMembershipContainers`** reads adjacency only; forward roster from **`positionGraph`**; conflict repair prefers graph.
 
+**Initiative close gate (**S2-6-DR**):** **`Room Occupancy Drift Finding`** downstream repair runs through positions **`membership/`** (no **`activeCharacters`** patch); no **`CheckLocation`** messageBus type in steady state; diagnostics sweep findings align with graph + adjacency authority.
+
 ---
 
 ## Progress
@@ -596,4 +624,4 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 | Slice 4: legacy disconnect retirement | Done |
 | Fan-in Phase 2: retire `characterMove` pre-bake (cross-initiative) | Done |
 | Fan-in Phase 3+: PerceptionThreads targeting-only (cross-initiative) | Done |
-| Initiative close (**S2-6** legacy projection retirement) | Not started |
+| Initiative close (**S2-6** storage + **S2-6-DR** drift repair) | Not started |
