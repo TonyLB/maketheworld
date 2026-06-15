@@ -107,14 +107,13 @@ export class PositionsCacheHandler {
     private async loadRoomPositionGraphFromDynamo(
         roomId: EphemeraRoomId
     ): Promise<PlayPositionGraph> {
-        const [stored, activeCharacters] = await Promise.all([
-            getRoomPositionGraphFromDynamo(this.db, roomId),
-            getRoomActiveCharactersFromDynamo(this.db, roomId),
-        ])
+        const stored = await getRoomPositionGraphFromDynamo(this.db, roomId)
         if (stored) {
-            return projectRoomGraphFromStoredPositionGraph(stored, activeCharacters)
+            return projectRoomGraphFromStoredPositionGraph(stored)
         }
-        return projectRoomGraphFromActiveCharacters(activeCharacters)
+        return projectRoomGraphFromActiveCharacters(
+            await getRoomActiveCharactersFromDynamo(this.db, roomId)
+        )
     }
 
     private async loadMembershipContainersFromDynamo(

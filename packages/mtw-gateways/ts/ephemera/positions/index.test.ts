@@ -8,6 +8,7 @@ import {
     projectCharacterInventoryGraphStub,
     projectMembershipContainersFromRoomEndpoint,
     projectRoomGraphFromRosterEntries,
+    extractCharacterIdsFromPlayPositionGraph,
 } from './project'
 import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
@@ -68,6 +69,13 @@ describe('positions project', () => {
         expect(projectRoomRosterFromGraph(graph)).toEqual(roster)
     })
 
+    it('extractCharacterIdsFromPlayPositionGraph walks character nodes', () => {
+        expect(extractCharacterIdsFromPlayPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+            edges: [],
+        })).toEqual([characterId])
+    })
+
     it('projectRoomGraphFromStoredPositionGraph maps stored nodes and merges roster meta', () => {
         const graph = projectRoomGraphFromStoredPositionGraph(
             {
@@ -100,7 +108,7 @@ describe('positions project', () => {
 })
 
 describe('PositionsCacheHandler', () => {
-    it('loads room graph from stored positionGraph with roster meta merge', async () => {
+    it('loads room graph topology from stored positionGraph without activeCharacters merge', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
                 if (ProjectionFields?.includes('positionGraph')) {
@@ -110,13 +118,7 @@ describe('PositionsCacheHandler', () => {
                         },
                     }
                 }
-                return {
-                    activeCharacters: [{
-                        EphemeraId: characterId,
-                        DisplayName: 'Alpha',
-                        SessionIds: ['sess-1'],
-                    }],
-                }
+                throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
             }),
         }
         const handler = createPositionsCacheHandler(db)
@@ -124,19 +126,11 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getPositionGraph(roomId)
         const roster = await handler.getRoomRoster(roomId)
 
-        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph(
-            { nodes: [{ tag: 'Character', universalKey: characterId }] },
-            [{
-                EphemeraId: characterId,
-                DisplayName: 'Alpha',
-                SessionIds: ['sess-1'],
-            }]
-        ))
-        expect(roster).toEqual([{
-            EphemeraId: characterId,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }])
+        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(roster).toEqual([])
+        expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
     it('falls back to activeCharacters when stored positionGraph is absent', async () => {
