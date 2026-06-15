@@ -20,9 +20,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
 | [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character nodes, seed from roster) |
-| [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Eviction ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
-| [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) | Pure trim helpers shared with connect resolution and `checkLocation` |
-| [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect target resolution: trim ladder, persist trim-only, return `targetRoomId` |
+| [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
+| [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) | Pure trim + normalize helpers --- legal placement resolution (connect, asset visibility) |
+| [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) | Connect: trim ladder, persist trim-only when needed, return legal `targetRoomId` |
 | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Graph persist engine** (S2-4 end-state apply, adjacency + S2-2 dual-write) |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
@@ -70,14 +70,15 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ## Eviction ladder (`RoomStack` storage)
 
-Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Contract: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
+Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- character-local state for **legal placement** under asset access. Contract: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 | Concern | Location |
 | --- | --- |
 | **Storage** | `Meta::Character.RoomStack` --- array of `{ asset, RoomId }` ([`membership/types.ts`](membership/types.ts) `RoomStackItem`) |
-| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) |
-| **Trim + connect target resolution** | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) |
-| **Trim + relocate on asset loss** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- uses shared trim helper; if surviving top room `!==` `RoomId`, publish `MoveCharacter` |
+| **Legal placement: connect (from nowhere)** | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) --- trim, optional trim-only persist, top frame -> `targetRoomId`; then [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) |
+| **Legal placement: asset visibility (from illegal room)** | [`../../checkLocation/index.ts`](../../checkLocation/index.ts) --- shared trim helper; if surviving top room `!==` membership endpoint, publish `MoveCharacter` (target: route through membership apply) |
+| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) when `targetRoomId` non-null |
+| **Disconnect: purge membership, retain ladder** | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) --- removes graph/adjacency/`RoomId`; does **not** update `RoomStack` |
 | **Default root frame** | [`../../internalCache/characterMeta.ts`](../../internalCache/characterMeta.ts) --- `[{ asset: 'primitives', RoomId: 'VORTEX' }]` when absent |
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).

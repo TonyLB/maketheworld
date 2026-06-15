@@ -25,7 +25,7 @@ export type ResolveConnectTargetRoomResult = {
 
 /**
  * Trim the eviction ladder to accessible assets, persist trim-only when the stack
- * shape changes, and resolve the in-play room from the surviving top frame.
+ * shape changes, and resolve legal in-play placement (top surviving frame) for connect.
  */
 export const resolveConnectTargetRoom = async (
     characterId: EphemeraCharacterId,

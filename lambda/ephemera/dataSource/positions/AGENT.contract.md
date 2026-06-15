@@ -52,8 +52,10 @@ When **`changed`** is false: **must** skip the entire bundle (no fact stream, no
 
 Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Code map: [`AGENT.implementation.md` --- Eviction ladder](AGENT.implementation.md#eviction-ladder-roomstack-storage).
 
-- **Must not** expose eviction ladder edits on **`MembershipApplyArgs`** --- public apply remains `{ characterId, targetRoomId | null }` only (**S1-9**).
-- On successful navigate/disconnect membership persist, **`updatePositionGraphs`** **must** update `Meta::Character.RoomStack` in the same character-row transact when the membership endpoint changes (ladder maintenance bundled with membership apply).
+- **Must not** expose eviction ladder edits on **`MembershipApplyArgs`** --- public apply remains `{ characterId, targetRoomId | null }` only (**S1-9**). Ladder shape is internal to persist / resolution helpers.
+- **Legal placement resolution:** trim `RoomStack` to accessible assets; surviving top frame is the proposed `targetRoomId`. **Connect** --- place from nowhere (`froms: []`). **Asset visibility loss** --- relocate from an illegal occupancy when top frame differs from current membership.
+- On successful **navigate** membership persist, **`updatePositionGraphs`** **must** update `Meta::Character.RoomStack` in the same character-row transact (ladder maintenance bundled with membership apply).
+- On **disconnect**, **`updatePositionGraphs`** **must** purge play membership (`positionGraph`, adjacency, `RoomId`) and **must preserve** `RoomStack` (connect resolves legal placement from the retained stack).
 - **Must not** emit **`Character Moved`** or run the membership-changed bundle when **only** the eviction ladder changes and the room membership endpoint is unchanged (**S1-9**).
 - When asset loss **trim** changes the membership endpoint, relocation **must** go through membership apply (today: [`checkLocation`](../../checkLocation/index.ts) filters the ladder then publishes `MoveCharacter`).
 
@@ -93,7 +95,7 @@ Positions **must** subscribe to:
 
 ### `Character Connected` (positions-owned)
 
-- **Must** resolve `targetRoomId` via [`resolveConnectTargetRoom`](membership/resolveConnectTargetRoom.ts) (trim eviction ladder to accessible assets, then top surviving frame).
+- **Must** resolve `targetRoomId` via [`resolveConnectTargetRoom`](membership/resolveConnectTargetRoom.ts) --- legal placement from nowhere: trim ladder to accessible assets, then top surviving frame (default VORTEX when stack normalizes empty).
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
 - **Must not** publish `CheckLocation` or perform inline membership Dynamo writes outside [`membership/`](membership/).
 - **Idempotency:** duplicate connect when already in target room (`changed: false`) **must** be a no-op (no bundle, no orchestration).
@@ -101,7 +103,7 @@ Positions **must** subscribe to:
 
 ### `Character Disconnected` (positions-owned)
 
-- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })`.
+- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })` --- purges play membership; **must not** clear `RoomStack` (connect re-resolves legal placement from retained ladder).
 - **Must not** perform inline membership writes outside [`membership/`](membership/).
 - **Idempotency:** duplicate disconnect when already out of play (`changed: false`) **must** be a no-op (no bundle).
 - World-line copy for disconnect is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); no imperative `PublishMessage` in the handler.
