@@ -1,4 +1,14 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type {
+    EphemeraCharacterId,
+    EphemeraFeatureId,
+    EphemeraKnowledgeId,
+    EphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { areCoyoteObjectTropeFieldsValid } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
@@ -33,12 +43,15 @@ export type AwaitRoadRunnerPublishedPayload = {
     confidence: number;
 }
 
-/** Event-driven look: render orchestration registers `roomDescription` and runs the passive render pipeline. */
+/** Event-driven look: render orchestration registers perception thread and runs passive render. */
 export type LookCommandRequestedPublishedPayload = {
     type: 'Look Command Requested';
     characterId: EphemeraCharacterId;
-    roomId: EphemeraRoomId;
+    /** Room, Feature, or Knowledge host for this look. */
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId;
     confidence: number;
+    /** When true on Knowledge looks, fan-in targets SESSION#... */
+    directResponse?: boolean;
 }
 
 /** One catalog line on the bus; aligns with EphemeraMetaRoomObject minus uuid. */
@@ -138,7 +151,17 @@ export const isLookCommandRequestedPublishedPayload = (
     if (typeof v.characterId !== 'string') {
         return false
     }
-    if (typeof v.roomId !== 'string') {
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (
+        !isEphemeraRoomId(v.componentId)
+        && !isEphemeraFeatureId(v.componentId)
+        && !isEphemeraKnowledgeId(v.componentId)
+    ) {
+        return false
+    }
+    if (v.directResponse !== undefined && typeof v.directResponse !== 'boolean') {
         return false
     }
     if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {

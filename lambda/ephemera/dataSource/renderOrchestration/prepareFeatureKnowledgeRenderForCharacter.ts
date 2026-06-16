@@ -63,6 +63,10 @@ export function intersectParticipationOrderWithCharacterVisibility(
     return participationOrder.filter((assetId) => visible.has(AssetKey(assetId) as AssetUUID))
 }
 
+export type PrepareFeatureKnowledgeRenderOptions = {
+    directResponse?: boolean;
+}
+
 /**
  * Resolve Feature/Knowledge perspective and commands for correlated description thread + passive render.
  * Perspective = character-visible assets intersected with component vertical participation order.
@@ -71,6 +75,7 @@ export async function prepareFeatureKnowledgeRenderForCharacter(
     characterId: EphemeraCharacterId,
     componentId: FeatureKnowledgeComponentId,
     deps: PrepareFeatureKnowledgeRenderDeps = defaultDeps(),
+    options: PrepareFeatureKnowledgeRenderOptions = {},
 ): Promise<PreparedFeatureKnowledgeRender> {
     const [characterVisibleAssets, hops] = await Promise.all([
         loadCharacterVisibleAssetIds(characterId, deps),
@@ -89,6 +94,7 @@ export async function prepareFeatureKnowledgeRenderForCharacter(
             componentId,
             perspectiveKey,
             characterId,
+            ...(options.directResponse ? { directResponse: true } : {}),
         }
         : {
             threadKind: 'featureDescription',

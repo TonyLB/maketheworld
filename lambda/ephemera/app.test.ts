@@ -3,10 +3,18 @@ jest.mock('./fetchEphemera', () => ({
     fetchEphemeraForCharacter: jest.fn(),
     fetchPlayerEphemera: jest.fn(),
 }))
+jest.mock('./dataSource/apiEphemera', () => {
+    const actual = jest.requireActual('./dataSource/apiEphemera') as object
+    return {
+        ...actual,
+        sendActionAssessed: jest.fn(),
+    }
+})
 import { handler } from './app'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { fetchEphemeraForCharacter } from './fetchEphemera'
+import { sendActionAssessed } from './dataSource/apiEphemera'
 import { collectReturnValues, collectErrors, resetReturnValueCollector } from './returnValue/collector'
 
 // Mock dependencies
@@ -14,6 +22,7 @@ jest.mock('./messageBus')
 jest.mock('./internalCache')
 
 const mockFetchEphemeraForCharacter = fetchEphemeraForCharacter as jest.MockedFunction<typeof fetchEphemeraForCharacter>
+const mockSendActionAssessed = sendActionAssessed as jest.MockedFunction<typeof sendActionAssessed>
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 let mockThinkingResultsGet: jest.Mock
@@ -230,7 +239,7 @@ describe('app handler', () => {
             expect(JSON.parse(response!.body)).toEqual(ephemeraSnapshot)
         })
 
-        it('routes link to Perception publish for feature targets', async () => {
+        it('routes feature link to sendActionAssessed LookComponent', async () => {
             await handler(
                 {
                     requestContext: { connectionId: 'test-connection' },
@@ -243,11 +252,52 @@ describe('app handler', () => {
                 {}
             )
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'Perception',
-                characterId: 'CHARACTER#abc',
-                ephemeraId: 'FEATURE#door',
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#abc',
+                {
+                    characterId: 'CHARACTER#abc',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'FEATURE#door',
+                        confidence: 1,
+                    },
+                    source: 'link',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
+        })
+
+        it('routes knowledge link to sendActionAssessed LookComponent with directResponse', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'link',
+                        CharacterId: 'CHARACTER#abc',
+                        to: 'KNOWLEDGE#lore',
+                        directResponse: true,
+                    }),
+                },
+                {}
+            )
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#abc',
+                {
+                    characterId: 'CHARACTER#abc',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'KNOWLEDGE#lore',
+                        confidence: 1,
+                        directResponse: true,
+                    },
+                    source: 'link',
+                }
+            )
         })
 
         it('routes mapSubscribe to SubscribeToMaps publish', async () => {

@@ -89,6 +89,23 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
         expect(prepared.perspective.assetStack).toEqual(['ASSET#Canon'])
     })
 
+    it('includes directResponse on knowledgeDescription registration when requested', async () => {
+        const prepared = await prepareFeatureKnowledgeRenderForCharacter(
+            'CHARACTER#Test',
+            'KNOWLEDGE#Know',
+            baseDeps(),
+            { directResponse: true },
+        )
+
+        expect(prepared.threadRegisterCommand).toEqual({
+            threadKind: 'knowledgeDescription',
+            componentId: 'KNOWLEDGE#Know',
+            perspectiveKey: prepared.perspectiveKey,
+            characterId: 'CHARACTER#Test',
+            directResponse: true,
+        })
+    })
+
     it('excludes character-owned assets not in the vertical', async () => {
         const prepared = await prepareFeatureKnowledgeRenderForCharacter(
             'CHARACTER#Test',

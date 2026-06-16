@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase B slice 2 complete (`orchestrate.ts` fan-in for F/K). **Next step:** Phase B slice 3 --- ingress kicks (link API, feature **`look`**).
+**Status:** Phase B slice 3 complete (ingress kicks via **Action Assessed** + **`Look Command Requested`**). **Next step:** Phase B slice 4 --- retire imperative F/K paths in **`perceptionMessage`**.
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -90,8 +90,9 @@ Feature and Knowledge both ship in Phase B; re-enable **`KNOWLEDGE_PERCEPTION_EN
 ## Target end state (this initiative only)
 
 ```text
-Link / look (F or K)
-  -> prepareFeatureKnowledgeRenderForCharacter(characterId, componentId)
+Trusted UI look / link (F or K)
+  -> executeAction or app.ts: sendActionAssessed { LookComponent, source: uiLook | link }
+  -> mtw.ephemera.actions: kickCorrelatedComponentDescription (prepareFeatureKnowledgeRenderForCharacter)
   -> sendPerceptionThreadRegistered (featureDescription | knowledgeDescription)
   -> sendRenderRequested { componentId, perspective, characterId, allowGeneration: false }
   -> orchestrateRenderRequest
@@ -101,6 +102,9 @@ Link / look (F or K)
   -> renderCache: Render Pertains (or orchestration: Generating / Error on slow hydrate)
   -> perception orchestrate: Generating / Error / terminal PublishMessage (one target)
   -> imperative perceptionMessage F/K branches removed or gated off
+
+Trusted UI look (room) and typed look/l: Action Assessed LookComponent (room) or Parse Requested LookRoom
+  -> Look Command Requested -> renderOrchestration (roomDescription thread + orchestrateRenderRequest)
 ```
 
 Delivery WML continues to use **`featureRenderChannelWmlForFeatureId`** / **`knowledgeRenderChannelWmlForKnowledgeId`** (**`SITUATION#DEFAULT`** only, D9).
@@ -130,7 +134,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Phase A: orchestration + cache integration tests for F/K host | Done |
 | Phase B: **`PerceptionThreads`** kinds + register commands | Done |
 | Phase B: **`orchestrate.ts`** fan-in for F/K | Done |
-| Phase B: ingress kicks (link API, feature **`look`**) | |
+| Phase B: ingress kicks (Action Assessed trusted UI **`look`**, link API) | Done |
 | Phase B: remove / gate imperative F/K paths in **`perceptionMessage`** | |
 | Durable doc touch-up (perception + renderOrchestration delivery tables) | |
 
@@ -170,9 +174,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 
 ## Phase B --- PerceptionThreads + delivery wiring
 
-**Goal:** Link API and feature **`look`** use the **correlated** pipeline (register thread, kick render, deliver on **`Render Pertains`**). Remove the broken sync-read path from steady-state ingress.
+**Goal:** Link API and trusted UI **`look`** use the **correlated** pipeline (register thread, kick render, deliver on **`Render Pertains`**). Remove the broken sync-read path from steady-state ingress.
 
-**Reference shape:** Room **`look`** --- [`requestFullRoomDescriptionForCharacter`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts) + [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) **`roomDescription`** handling.
+**Reference shape:** Trusted UI component looks (room + Feature/Knowledge) route through **`Action Assessed`** -> **`mtw.ephemera.actions`** (same thin-ingress pattern as UI **`move`** / **`home`**). Parsed bare **`look` / `l`** remains **`Parse Requested`** -> **`LookRoom`** -> **`Look Command Requested`** (character's current room, not a trusted **`EphemeraId`**). Room assessed **`look`** converges on existing **`Look Command Requested`** / renderOrchestration handling; Feature/Knowledge assessed **`look`** uses [`prepareFeatureKnowledgeRenderForCharacter`](../../../../lambda/ephemera/dataSource/renderOrchestration/prepareFeatureKnowledgeRenderForCharacter.ts) + shared kick helper in actions. Delivery fan-in: [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) **`featureDescription`** / **`knowledgeDescription`** / **`roomDescription`**.
 
 F/K threads are **simpler** than room description: single viewer, no multi-target fallback, no header vs full split. **Generating / Error** correlation follows **`roomDescription`** (FKR-5).
 
@@ -193,16 +197,19 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] **`metaData`:** **`componentUUID`**, no **`roomChannel`** (not room multi-channel).
   - [X] Terminal dedupe: same **`componentId + perspectiveKey`** terminal skip as room threads.
   - [X] Tests in [`orchestrate.featureKnowledgeStreams.test.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.featureKnowledgeStreams.test.ts).
-- [ ] **Ingress kicks**
-  - [ ] **`app.ts`** link API: replace direct **`Perception`** publish for **Feature and Knowledge** with **`sendPerceptionThreadRegistered`** + **`sendRenderRequested`** using Phase A helper.
-  - [ ] **`parse/executeAction.ts`** feature **`look`**: same pattern (room **`look`** already uses room path; non-room **`look`** today goes to imperative **`Perception`**).
-  - [ ] Optional thin wrapper **`requestFeatureKnowledgeDescriptionForCharacter`** (mirror **`requestFullRoomDescriptionForCharacter`**) exported for tests and ingress.
-  - [ ] Update [`executeAction.test.ts`](../../../../lambda/ephemera/parse/executeAction.test.ts), link-path tests as they exist.
+- [X] **Ingress kicks** (trusted UI **`look`** + link API via **Action Assessed**; handling in **`mtw.ephemera.actions`**)
+  - [X] **Contract:** extend **`ActionAssessedOutcome`** in [`localApiEvents.ts`](../../../../lambda/ephemera/dataSource/localApiEvents.ts) with **`LookComponent`** (`componentId`, optional **`directResponse`** for Knowledge); extend **`isActionAssessedCommand`** and **`source`** (e.g. **`uiLook`**). [`parse/executeAction.ts`](../../../../lambda/ephemera/parse/executeAction.ts) **`case 'look'`** emits **`sendActionAssessed`** only --- no direct render/perception kicks (align with **`move`** / **`home`**); remove direct call to [`requestFullRoomDescriptionForCharacter`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts) from **`executeAction`**.
+  - [X] **Actions handler:** in [`actions/index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts) **`processAssessedParseResult`** / **`publishStreamEventsForIntent`**, branch **`LookComponent`**:
+    - [X] **Room (`ROOM#`):** stream **`Look Command Requested`** (reuse existing payload + [`handleLookCommandRequestedForRenderOrchestration`](../../../../lambda/ephemera/dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts)) so typed **`LookRoom`** and assessed UI room **`look`** share one renderOrchestration path.
+    - [X] **Feature / Knowledge:** same **`Look Command Requested`** stream; render orchestration handler branches F/K via [`prepareFeatureKnowledgeRenderForCharacter`](../../../../lambda/ephemera/dataSource/renderOrchestration/prepareFeatureKnowledgeRenderForCharacter.ts) (in-DS register + orchestrate; not a bus kick from actions).
+  - [X] **Generalized `Look Command Requested` payload** (`componentId` + optional **`directResponse`**); render orchestration owns correlated kicks for room + F/K (deviation from original "kick helper in actions" draft).
+  - [X] **`app.ts`** link API: **`sendActionAssessed`** **`LookComponent`** (`source: link`) for Feature/Knowledge --- same actions path as UI **`look`**.
+  - [X] **Tests:** [`executeAction.test.ts`](../../../../lambda/ephemera/parse/executeAction.test.ts) (look -> assessed only); [`actions/index.test.ts`](../../../../lambda/ephemera/dataSource/actions/index.test.ts) (assessed **`LookComponent`** room + F/K); link-path tests in [`app.test.ts`](../../../../lambda/ephemera/app.test.ts).
 - [ ] **Retire imperative steady-state path**
   - [ ] Gate or remove Feature / Knowledge branches in [`perception/index.ts`](../../../../lambda/ephemera/perception/index.ts) (keep until ingress migrated; then delete or assert-unreachable).
   - [ ] **Re-enable Knowledge:** set **`KNOWLEDGE_PERCEPTION_ENABLED = true`** (or remove flag) once correlated ingress is wired (FKR-4).
   - [ ] Update [`perception/index.test.ts`](../../../../lambda/ephemera/perception/index.test.ts).
-- [ ] **Delivery table docs** --- update [`perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) correlated vs imperative rows for Feature / Knowledge.
+- [ ] **Delivery table docs** --- update [`perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) correlated vs imperative rows for Feature / Knowledge; note trusted UI **`look`** vs typed **`LookRoom`** in [`actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md).
 - [ ] **Phase B verification** (see **Verification** below) and update **Progress** / checkboxes.
 
 ---
@@ -227,6 +234,7 @@ npx jest dataSource/renderCache/authoredCatalogHydrateExactMatch.test.ts --runIn
 # Phase B --- perception + ingress
 npx jest dataSource/perception/ --runInBand
 npx jest internalCache/perceptionThreads.test.ts --runInBand
+npx jest dataSource/actions/index.test.ts --runInBand
 npx jest perception/index.test.ts --runInBand
 npx jest parse/executeAction.test.ts --runInBand
 ```
@@ -239,7 +247,7 @@ npx jest parse/executeAction.test.ts --runInBand
 
 **Grep spot-checks after Phase B:**
 
-- Link API / feature **`look`** use **`sendRenderRequested`** + **`sendPerceptionThreadRegistered`**
+- Trusted UI **`look`** (room + Feature/Knowledge) and link API use **`sendActionAssessed`** **`LookComponent`** or shared kick helper in **`mtw.ephemera.actions`** (not imperative **`Perception`** / direct **`executeAction`** render kicks)
 - **`orchestrate.ts`** handles **`featureDescription`** / **`knowledgeDescription`**
 - Steady-state Feature delivery does **not** rely on sync-only **`RenderCache.get`** in **`perceptionMessage`**
 

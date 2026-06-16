@@ -33,6 +33,7 @@ import {
     isParseCommandHelpResult,
     isParseCommandHomeResult,
     isParseCommandLookRoomResult,
+    isParseCommandLookComponentResult,
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
     isParseCommandPromptInjectionAttemptResult,
@@ -305,11 +306,24 @@ const publishStreamEventsForIntent = async (
                 update: {
                     type: 'Look Command Requested',
                     characterId,
-                    roomId: fromRoomId,
+                    componentId: fromRoomId,
                     confidence: parseResult.confidence,
                 },
             })
         }
+    }
+    else if (isParseCommandLookComponentResult(parseResult)) {
+        await streamEvent({
+            streamKey: characterId,
+            header: { type: 'Look Command Requested' },
+            update: {
+                type: 'Look Command Requested',
+                characterId,
+                componentId: parseResult.componentId,
+                confidence: parseResult.confidence,
+                ...(parseResult.directResponse ? { directResponse: true } : {}),
+            },
+        })
     }
     else if (isParseCommandAcmeOrderResult(parseResult)) {
         const orders = buildPublishedAcmeOrdersWithStableKeys(parseResult.orders, coyoteOccupiedStableKeys)

@@ -5,8 +5,14 @@ import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
+import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
 
 export const prepareLookOrchestrationPerspective = async (
     characterId: EphemeraCharacterId,
@@ -27,30 +33,52 @@ export const prepareLookOrchestrationPerspective = async (
 }
 
 /**
- * Event-driven look: register `roomDescription` directly on `PerceptionThreads`, then run passive orchestration.
+ * Event-driven look: register perception thread directly on `PerceptionThreads`, then run passive orchestration.
+ * Dispatches by `componentId` kind (room vs feature/knowledge).
  */
 export async function handleLookCommandRequestedForRenderOrchestration(
     payload: LookCommandRequestedPublishedPayload,
     streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>,
 ): Promise<void> {
-    const { roomId, characterId } = payload
-    const { perspective, perspectiveKey } = await prepareLookOrchestrationPerspective(
-        characterId,
-        roomId,
-    )
-    internalCache.PerceptionThreads.register({
-        threadKind: 'roomDescription',
-        componentId: roomId,
-        perspectiveKey,
-        characterId,
-    })
-    await orchestrateRenderRequest({
-        payload: {
-            type: 'RenderRequested',
-            componentId: roomId,
-            perspective,
+    const { componentId, characterId } = payload
+
+    if (isEphemeraRoomId(componentId)) {
+        const { perspective, perspectiveKey } = await prepareLookOrchestrationPerspective(
             characterId,
-        },
-        streamEvent,
-    })
+            componentId,
+        )
+        internalCache.PerceptionThreads.register({
+            threadKind: 'roomDescription',
+            componentId,
+            perspectiveKey,
+            characterId,
+        })
+        await orchestrateRenderRequest({
+            payload: {
+                type: 'RenderRequested',
+                componentId,
+                perspective,
+                characterId,
+            },
+            streamEvent,
+        })
+        return
+    }
+
+    if (isEphemeraFeatureId(componentId) || isEphemeraKnowledgeId(componentId)) {
+        const prepared = await prepareFeatureKnowledgeRenderForCharacter(
+            characterId,
+            componentId,
+            undefined,
+            { directResponse: payload.directResponse },
+        )
+        internalCache.PerceptionThreads.register(prepared.threadRegisterCommand)
+        await orchestrateRenderRequest({
+            payload: {
+                type: 'RenderRequested',
+                ...prepared.renderCommand,
+            },
+            streamEvent,
+        })
+    }
 }

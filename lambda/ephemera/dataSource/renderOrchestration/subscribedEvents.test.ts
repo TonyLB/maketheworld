@@ -102,7 +102,7 @@ describe('renderOrchestration subscribedEvents', () => {
             getContent: () => Promise.resolve({
                 type: 'Look Command Requested',
                 characterId: 'CHARACTER#c',
-                roomId: 'ROOM#r',
+                componentId: 'ROOM#r',
                 confidence: 1,
             }),
         }

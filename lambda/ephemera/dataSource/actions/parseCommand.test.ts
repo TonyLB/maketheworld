@@ -19,6 +19,7 @@ import {
     isParseCommandErrorResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
+    isParseCommandLookComponentResult,
     isParseCommandNavigationResult,
     isParseCommandHomeResult,
     isParseCommandPromptInjectionAttemptResult,
@@ -423,6 +424,41 @@ describe('parseCommand type guards', () => {
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 0.4 })).toBe(true)
         expect(isParseCommandLookRoomResult({ type: 'LookRoom' } as any)).toBe(false)
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1.5 })).toBe(false)
+    })
+
+    it('isParseCommandLookComponentResult requires valid componentId and confidence', () => {
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'ROOM#1' as EphemeraRoomId,
+            confidence: 1,
+        })).toBe(true)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'FEATURE#1' as const,
+            confidence: 0.5,
+        })).toBe(true)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'KNOWLEDGE#1' as const,
+            confidence: 1,
+            directResponse: true,
+        })).toBe(true)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'CHARACTER#1',
+            confidence: 1,
+        } as any)).toBe(false)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'ROOM#1' as EphemeraRoomId,
+            confidence: 1.5,
+        })).toBe(false)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'KNOWLEDGE#1' as const,
+            confidence: 1,
+            directResponse: 'yes' as unknown as boolean,
+        })).toBe(false)
     })
 
     it('isParseCommandHelpResult requires confidence in [0, 1]', () => {
