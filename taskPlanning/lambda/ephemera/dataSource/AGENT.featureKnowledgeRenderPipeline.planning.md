@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase A complete (slice 4: `findRender` generalization + F/K integration). **Next step:** Phase B slice 2 --- **`orchestrate.ts`** fan-in for F/K.
+**Status:** Phase B slice 2 complete (`orchestrate.ts` fan-in for F/K). **Next step:** Phase B slice 3 --- ingress kicks (link API, feature **`look`**).
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -129,7 +129,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | Done |
 | Phase A: orchestration + cache integration tests for F/K host | Done |
 | Phase B: **`PerceptionThreads`** kinds + register commands | Done |
-| Phase B: **`orchestrate.ts`** fan-in for F/K | |
+| Phase B: **`orchestrate.ts`** fan-in for F/K | Done |
 | Phase B: ingress kicks (link API, feature **`look`**) | |
 | Phase B: remove / gate imperative F/K paths in **`perceptionMessage`** | |
 | Durable doc touch-up (perception + renderOrchestration delivery tables) | |
@@ -185,14 +185,14 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Fields: **`componentId`** (**`FEATURE#`** / **`KNOWLEDGE#`**), **`perspectiveKey`**, **`characterId`**, optional **`messageGroupId`**, optional **`directResponse`** / session targeting for knowledge.
   - [X] Guards, patch keys, **`register`** / **`update`** branches (mirror **`roomDescription`** simplicity).
   - [X] Unit tests in [`perceptionThreads.test.ts`](../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts).
-- [ ] **Fan-in** --- [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) (mirror **`roomDescription`** Generating / Error / terminal --- [Delivery correlation UX](#delivery-correlation-ux-decided)):
-  - [ ] Match **`(componentId, perspectiveKey)`** buckets for new thread kinds on **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**.
-  - [ ] **Generating / Error placeholders** for Feature and Knowledge (new placeholder WML helpers or reuse minimal component-shaped placeholders; align **`messageId`** / **`createdTime`** overwrite with room description).
-  - [ ] Terminal **`PublishMessage`**: build WML via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../../../../lambda/ephemera/dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) from **`cacheRecord.renderedContent`** (not partition **`get`**).
-  - [ ] Targets: **`[characterId]`**; knowledge **`directResponse`** -> **`SESSION#...`** when applicable ([`perception/index.ts`](../../../../lambda/ephemera/perception/index.ts) today).
-  - [ ] **`metaData`:** **`componentUUID`**, no **`roomChannel`** (not room multi-channel).
-  - [ ] Terminal dedupe: same **`componentId + perspectiveKey`** terminal skip as room threads.
-  - [ ] Tests in [`orchestrate.test.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.test.ts) (or new focused file).
+- [X] **Fan-in** --- [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) (mirror **`roomDescription`** Generating / Error / terminal --- [Delivery correlation UX](#delivery-correlation-ux-decided)):
+  - [X] Match **`(componentId, perspectiveKey)`** buckets for new thread kinds on **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**.
+  - [X] **Generating / Error placeholders** for Feature and Knowledge (new placeholder WML helpers or reuse minimal component-shaped placeholders; align **`messageId`** / **`createdTime`** overwrite with room description).
+  - [X] Terminal **`PublishMessage`**: build WML via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../../../../lambda/ephemera/dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) from **`cacheRecord.renderedContent`** (not partition **`get`**).
+  - [X] Targets: **`[characterId]`**; knowledge **`directResponse`** -> **`SESSION#...`** when applicable ([`perception/index.ts`](../../../../lambda/ephemera/perception/index.ts) today).
+  - [X] **`metaData`:** **`componentUUID`**, no **`roomChannel`** (not room multi-channel).
+  - [X] Terminal dedupe: same **`componentId + perspectiveKey`** terminal skip as room threads.
+  - [X] Tests in [`orchestrate.featureKnowledgeStreams.test.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.featureKnowledgeStreams.test.ts).
 - [ ] **Ingress kicks**
   - [ ] **`app.ts`** link API: replace direct **`Perception`** publish for **Feature and Knowledge** with **`sendPerceptionThreadRegistered`** + **`sendRenderRequested`** using Phase A helper.
   - [ ] **`parse/executeAction.ts`** feature **`look`**: same pattern (room **`look`** already uses room path; non-room **`look`** today goes to imperative **`Perception`**).
