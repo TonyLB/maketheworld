@@ -49,10 +49,8 @@ describe('orchestrateCharacterNavigate', () => {
             targets: ['CHARACTER#Test'],
             messageGroupId: 'UUID#MessageGroup',
         }))
-        expect(messageBus.publish).toHaveBeenCalledWith(expect.objectContaining({
+        expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
             type: 'MapUpdate',
-            previousRoomId: 'ROOM#VORTEX',
-            roomId: 'ROOM#TestTwo',
         }))
     })
 })

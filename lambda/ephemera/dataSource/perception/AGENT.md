@@ -170,7 +170,7 @@ Policy for the imperative handler in [`perception/index.ts`](../../perception/in
 | Policy | Detail |
 | --- | --- |
 | **Message components** | **Message** component delivery was **removed** from **`perceptionMessage`**; that UX is intended to be **rebuilt** on the DataSource-oriented model rather than preserved in the imperative path. |
-| **Knowledge and Map** | **Knowledge:** correlated delivery is **shipped** via **`featureDescription`** / **`knowledgeDescription`** fan-in; imperative F/K branches **removed** from **`perceptionMessage`**. **Map:** branch **disabled** via **`MAP_PERCEPTION_ENABLED`**; not migrated in v1; callers may still enqueue **`Perception`** for maps until follow-on wiring. |
+| **Knowledge and Map** | **Knowledge:** correlated delivery is **shipped** via **`featureDescription`** / **`knowledgeDescription`** fan-in; imperative F/K branches **removed** from **`perceptionMessage`**. **Map:** server runtime **retired**; imperative **`Perception`** for **`MAP#`** is a no-op (see [`../maps/AGENT.md`](../maps/AGENT.md)). |
 
 ### Routing identity
 

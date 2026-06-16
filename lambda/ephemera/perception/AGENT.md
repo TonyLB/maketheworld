@@ -20,7 +20,7 @@ The perception system serves as the **message routing and display engine** that:
 
 **Which flows use fan-in versus imperative [`perceptionMessage`](./index.ts)** is the steady-state **[Delivery paths (correlated vs imperative)](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)** section in that doc. Start there when debugging or extending routing.
 
-This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **Bus delivery:** imperative outbounds and the ReturnValue tail use **`messageBus.publish`** (P4 COMP-KICK + PERCEPTION); character component requests publish **`Character Perception Requested`** ingress to the DataSource. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1). **Follow-on design:** [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **Bus delivery:** imperative outbounds and the ReturnValue tail use **`messageBus.publish`** (P4 COMP-KICK + PERCEPTION); character component requests publish **`Character Perception Requested`** ingress to the DataSource. **v1 handler policy** (removed Message path; Knowledge branch **gated off**; Map **retired**): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1). **Follow-on design:** [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
 
 ## Perception Event Triggers
 
@@ -50,13 +50,13 @@ The perception system can be triggered by several different categories of events
 
 #### **Character Movement Events**
 - **Source**: `mtw.ephemera.positions` navigate/home execution and `Character Moved` stream facts
-- **Trigger Pattern**: Character moves rooms -> membership persist -> `orchestrateCharacterNavigate` registers perception threads -> header updates -> map updates
+- **Trigger Pattern**: Character moves rooms -> membership persist -> `orchestrateCharacterNavigate` registers perception threads -> header updates
 - **Perception Flow** (when the mover has a **non-empty** arrival-room **`perspectiveKey`**):
   1. [`executeCharacterNavigate`](../dataSource/positions/navigate/executeCharacterNavigate.ts) persists via positions, then [`orchestrateCharacterNavigate`](../dataSource/positions/navigate/orchestrateNavigate.ts) registers a targeting-only **`characterMove`** perception thread and kicks passive **`Render Requested`** for the new room.
   2. Header **Generating** / terminal **`PublishMessage`** for the mover (**`targets`**) is delivered by render correlation in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), analogous to **`roomHeaderBroadcast`**.
   3. Leave/Arrive narrative **`WorldMessage`** rows are published by **membership presentation fan-in** on intent + **`Character Moved`** fact correlation ([`../dataSource/perception/publishMembershipPresentation.ts`](../dataSource/perception/publishMembershipPresentation.ts)) --- not gated on header render lifecycle.
   4. Affordance refresh ("who is here?") is a **separate** **`RoomUpdate`** kick from membership apply (not **`characterMove`** lifecycle).
-  5. **`MapUpdate`** still updates the character's map view.
+  5. Server **map runtime** is retired; no move-time **`MapUpdate`** (see [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md)).
 - **Fallback**: empty filtered perspective or same-room updates may still use imperative **`Perception`** / **`perceptionMessage`** where the code path requires it.
 - **Special Behavior**: Room headers use in-place updates rather than timeline entries
 
@@ -192,7 +192,7 @@ Displays component descriptions. **Character** is the only component type still 
 - **Feature / Knowledge**: No imperative delivery; **`Perception`** payloads with **`FEATURE#`** / **`KNOWLEDGE#`** are no-ops in **`perceptionMessage`**. Steady-state ingress uses **`Action Assessed`** **`LookComponent`** -> correlated fan-in.
 
 ### **PerceptionMapMessage**
-Displays map information to characters:
+**Retired** on server runtime. Imperative **`Perception`** with **`MAP#`** is a no-op in **`perceptionMessage`**. See [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md).
 
 ```typescript
 {
@@ -204,10 +204,7 @@ Displays map information to characters:
 }
 ```
 
-**Behavior:**
-- **Character Required**: Maps always require a specific character
-- **Room Filtering**: `mustIncludeRoomId` ensures map contains specific room
-- **Map Updates**: Sends EphemeraUpdate messages for map display
+**Behavior (historical):** wire shape preserved for future redesign; no **`EphemeraUpdate`** map fanout today.
 
 ## Integration Points
 
@@ -215,7 +212,7 @@ Displays map information to characters:
 The perception system heavily leverages the internalCache for efficient data access:
 
 - **ComponentData**: Retrieves blueprint component bodies across assets ([`../internalCache/componentData.AGENT.md`](../internalCache/componentData.AGENT.md))
-- **ComponentRender**: Generates rendered descriptions for **Room** (structural + cache prose for non-perception uses), **Map**, and **Message**; **room** **`PerceptionMessage`** on the render channel and **Feature / Knowledge** **`PerceptionComponentMessage`** use **RenderCache** + perception WML helpers, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**). Command parse exit context uses **`AffordanceCache`**, not **`ComponentRender`**.
+- **ComponentRender**: Room and Message only; **`MAP#`** throws **`MAP_SERVER_RENDER_RETIRED`** ([`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md)). **room** **`PerceptionMessage`** on the render channel and **Feature / Knowledge** **`PerceptionComponentMessage`** use **RenderCache** + perception WML helpers, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**). Command parse exit context uses **`AffordanceCache`**, not **`ComponentRender`**.
 - **RenderCache**: Request-scoped room cache rows for imperative room perception WML (see **`roomRenderChannelWmlForRoomId`**)
 - **CharacterMeta**: Gets character information and asset access
 - **RoomCharacterList**: Finds characters in specific rooms

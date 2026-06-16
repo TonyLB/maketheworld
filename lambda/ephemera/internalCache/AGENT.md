@@ -244,7 +244,8 @@ if (!object) {
 ### **Character-Based Handlers**
 - **`CharacterMeta`**: Caches character metadata and state
 - **`CharacterSessions`**: Caches character session data
-- **`CharacterPossibleMaps`**: Caches character map access
+- **`GenerationContext`**: Generation-oriented room shortName cache ([`generationContext/AGENT.md`](generationContext/AGENT.md))
+- **Server map runtime (stub):** [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md) --- subscribe returns empty snapshots; map render retired
 
 ### **Asset-Based Handlers**
 - **`AssetMeta`**: Caches asset metadata

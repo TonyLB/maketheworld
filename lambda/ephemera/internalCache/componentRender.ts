@@ -11,7 +11,7 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { RenderCacheData } from './renderCache'
 
-import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
+import { RoomDescribeData, MapDescribeData } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
 import { unique } from '@tonylb/mtw-utilities/ts/lists';
 
@@ -31,17 +31,15 @@ import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room';
-import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
 import { SituationRoomFacetPayload, type SituationRoomFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { situationRoomRenderPayloadFromCacheRenderedContent } from '../dataSource/renderCache/renderedContentToSituationRoomPayload'
+import { assertMapServerRenderRetired } from '../dataSource/maps/stub'
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -142,7 +140,7 @@ export class ComponentRenderData {
 
     async _getPromiseFactory(
             CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-            EphemeraId: EphemeraRoomId | EphemeraMessageId | EphemeraMapId,
+            EphemeraId: EphemeraRoomId | EphemeraMessageId,
             getOptions?: ComponentRenderGetOptions
         ): Promise<StandardForm> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
@@ -221,77 +219,13 @@ export class ComponentRenderData {
                 { tag: 'Message', universalKey: `MESSAGE#${EphemeraId}`, rooms: [], description: { data: { tag: 'Description' }, children: description.toJSON() as GenericTree<SchemaOutputTag> } },
             ])
         }
-        if (isEphemeraMapId(EphemeraId)) {
-            const assets = allAssets
-                .filter((assetId) => (Boolean(appearancesByAsset[assetId])))
-            const assetData = allAssets
-                .map((assetId) => {
-                    const entry = appearancesByAsset[assetId]
-                    return entry ? [entry.component] : []
-                })
-                .flat(1) as StandardMap[]
-            const merged = assetData.reduce<StandardMap | undefined>((previous, current) => (previous ? previous.merge(current) as StandardMap | undefined : current), undefined)
-            //
-            // Figure out how to properly map room keys to EphemeraId during extraction phases above
-            //
-            const roomMetaPromise = Promise.all((merged?.positions.items ?? []).map(async (facet) => {
-                const ephemeraId = facet.reference.universalKey as EphemeraRoomId
-                const metaByAsset = await this._componentData(ephemeraId, unique(globalAssets || [], characterAssets) as AssetUUID[])
-                const roomMeta = allAssets
-                    .map((assetId) => {
-                        const entry = metaByAsset[assetId]
-                        return entry ? [entry.component] : []
-                    })
-                    .flat(1) as StandardRoom[]
-                const mergedRoom = roomMeta.reduce<StandardRoom | undefined>((previous, current) => (previous ? previous.merge(current) as StandardRoom | undefined : current), undefined)
-                return {
-                    roomId: ephemeraId,
-                    shortName: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
-                    exits: (mergedRoom?.exits.items ?? [])
-                        .filter((exitFacet) => (Boolean(
-                            merged &&
-                            merged.positions.items.find((facet) => (facet.reference.standardKey.equals(exitFacet.reference.standardKey)))
-                        )))
-                        .map((exitFacet) => ({ 
-                            description: (typeof exitFacet.payload.toJSON() === 'string' ? exitFacet.payload.toJSON() : '') as string, 
-                            to: exitFacet.reference.standardKey.toJSON() as EphemeraRoomId 
-                        })),
-                    x: facet.payload.plain?.x,
-                    y: facet.payload.plain?.y
-                }
-            }))
-            const [rooms, fileURLs, rest] = await Promise.all([
-                roomMetaPromise,
-                [],
-                { shortName: merged?.shortName?._payload?.plain?.toJSON?.() },
-            ])
-            const mapRow: StandardMapData = {
-                tag: 'Map',
-                universalKey: EphemeraId,
-                images: [],
-                positions: merged?.positions?.toJSON() ?? [],
-                ...rest
-            }
-            return new StandardForm([
-                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                mapRow,
-                ...rooms.map((room): StandardRoomData => ({
-                    tag: 'Room',
-                    universalKey: room.roomId,
-                    ...(room.exits.length ? { 
-                        exits: room.exits.map(exit => ({
-                            reference: { tag: 'Room', ...(typeof exit.to === 'string' ? { universalKey: exit.to } : { key: exit.to }) },
-                            payload: exit.description || undefined
-                        }))
-                    } : {}),
-                    shortName: room.shortName
-                }))
-            ], { standardizeMode: 'ephemeraWire' })
-        }
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }
 
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
+        if (isEphemeraMapId(EphemeraId)) {
+            assertMapServerRenderRetired(EphemeraId)
+        }
         const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -315,7 +249,7 @@ export class ComponentRenderData {
                     }
                 })
             }
-            if (isEphemeraMessageId(EphemeraId) || isEphemeraMapId(EphemeraId)) {
+            if (isEphemeraMessageId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],

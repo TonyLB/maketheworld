@@ -61,6 +61,8 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.thinking.results`** | [`thinking/results/`](thinking/results/) | Subscribe-only: internal **`Thinking Result`** published by **`mtw.ephemera.coyoteGame`**; persists **`JOB#`** adjacency + **`TASK#`/`Meta::Result`** --- [`thinking/AGENT.md`](thinking/AGENT.md) |
 | **`mtw.ephemera.thinking.scheduling`** | [`thinking/scheduling/`](thinking/scheduling/) | **`api.ephemera`** schedule/job commands; **`Job Completed`** replayable egress on streamKey **`global`** --- [`thinking/AGENT.md`](thinking/AGENT.md) |
 
+**Runtime stub (not a DataSource):** [`maps/`](maps/) --- server map delivery retired pending redesign; subscribe returns empty snapshots --- [`maps/AGENT.md`](maps/AGENT.md).
+
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 
 **Cross-cutting (not a DataSource):** [`connectionsCharacterRegistered/`](connectionsCharacterRegistered/) --- shared EventBridge guards and [`handleCharacterRegisteredOrientation`](connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) for `mtw.connections` / `Character Registered` session orientation (subscribed by render + affordance orchestration).

@@ -16,7 +16,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     ])
 
     // PR8 stub window: character-target map fanout is intentionally disabled.
-    // Character-targeted map updates therefore resolve to no sessions here.
+    // See dataSource/maps/AGENT.md. Character-targeted map updates resolve to no sessions here.
     const mapFanoutSessionsByCharacterId: Record<EphemeraCharacterId, PublishTargetSession[]> = {}
 
     const sortTargetsIntoSessions = async (targets: EphemeraPublishTarget[]): Promise<{ sessionId: PublishTargetSession, characters: EphemeraCharacterId[] }[]> => {

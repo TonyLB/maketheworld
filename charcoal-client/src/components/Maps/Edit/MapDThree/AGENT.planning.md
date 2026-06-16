@@ -16,8 +16,8 @@
 - **Basic layering**: Handle merge between inherited and local data
 
 #### Data Flow
-- **Backend**: `ComponentRender.get()` produces flat structure with positions and exits
-- **Frontend**: `cacheToTree()` transforms to simple tree, `extractRoomsHelper` handles inheritance
+- **Backend (runtime):** server map delivery retired; subscribe returns empty snapshots ([`lambda/ephemera/dataSource/maps/AGENT.md`](../../../../../../lambda/ephemera/dataSource/maps/AGENT.md))
+- **Frontend (authoring):** `cacheToTree()` transforms to simple tree, `extractRoomsHelper` handles inheritance
 - **Redux**: `personalAssets` maintains `inherited`, `base`, and `edit` layers
 
 #### Target Architecture

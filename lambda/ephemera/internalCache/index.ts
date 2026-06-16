@@ -52,7 +52,6 @@ import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
 import ComponentRenderData from './componentRender';
 import AffordanceRoomDeliverableData from './affordanceRoomDeliverable';
-import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
@@ -113,7 +112,6 @@ export class InternalCache {
     ComponentRender: ComponentRenderData;
     AffordanceRoomDeliverable: AffordanceRoomDeliverableData;
     GenerationContext: GenerationContextData;
-    CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
     constructor() {
         this.CoyoteGame = new CacheCoyoteGameData({
@@ -167,7 +165,6 @@ export class InternalCache {
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
-        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
     }
 
     clear() {
@@ -197,7 +194,6 @@ export class InternalCache {
         this.ComponentRender.clear()
         this.AffordanceRoomDeliverable.clear()
         this.GenerationContext.clear()
-        this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
         this.AffordanceCache.clear()

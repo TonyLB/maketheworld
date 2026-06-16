@@ -7,19 +7,12 @@ import {
     isEphemeraCharacterId,
     isEphemeraRoomId,
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import getCurrentTimestamp from "../internalUtils/dateUtil"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
-
-/**
- * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
- * Temporarily off pending perception DataSource migration; restore this path when Map display moves there.
- */
-export const MAP_PERCEPTION_ENABLED = false
 
 export const perceptionMessage = async ({ 
     payloads, 
@@ -83,26 +76,9 @@ export const perceptionMessage = async ({
                 })
             }
         }
-        else {
-            const { characterId = 'ANONYMOUS' } = payload
-            if (MAP_PERCEPTION_ENABLED && isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
-                // Map perception gated by MAP_PERCEPTION_ENABLED (see file-level JSDoc).
-                const internalCache = getCache()
-                const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
-                if ((!payload.mustIncludeRoomId) || mapDescribe.byUniversalId[payload.mustIncludeRoomId]) {
-                    messageBus.publish({
-                        type: `EphemeraUpdate`,
-                        updates: [{
-                            type: 'MapUpdate',
-                            active: true,
-                            targets: [characterId],
-                            connectionTargets: [characterId],
-                            description: schemaToWML([mapDescribe.schema]),
-                            MapId: payload.ephemeraId
-                        }]
-                    })
-                }
-            }
+        else if (isPerceptionMapMessage(payload)) {
+            // Server map runtime retired; see dataSource/maps/AGENT.md.
+            return
         }
     }))
 

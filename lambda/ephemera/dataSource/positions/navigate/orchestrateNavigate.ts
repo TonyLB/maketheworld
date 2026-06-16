@@ -19,7 +19,7 @@ export type OrchestrateCharacterNavigateArgs = {
 
 /**
  * Post-persist navigate presentation (S1-13): PerceptionThreads header targeting,
- * passive render kick, imperative header fallback, MapUpdate.
+ * passive render kick, imperative header fallback.
  * Does not perform membership Dynamo writes or RoomUpdate / EphemeraUpdate (coordinator owns those).
  */
 export const orchestrateCharacterNavigate = async ({
@@ -33,9 +33,6 @@ export const orchestrateCharacterNavigate = async ({
     if (!to || (froms.length === 1 && froms[0] === to)) {
         return
     }
-
-    // Temporary singular bridge: MapUpdate still takes one room; fan-in owns multi-departure leave.
-    const primaryDeparture = froms[0] ?? characterMeta.RoomId
 
     const messageGroupId = internalCache.OrchestrateMessages.newMessageGroup()
     let registeredCharacterMove = false
@@ -77,11 +74,4 @@ export const orchestrateCharacterNavigate = async ({
             messageGroupId,
         })
     }
-
-    messageBus.publish({
-        type: 'MapUpdate',
-        characterId,
-        previousRoomId: primaryDeparture,
-        roomId: to,
-    })
 }

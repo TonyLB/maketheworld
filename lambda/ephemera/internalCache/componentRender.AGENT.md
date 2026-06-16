@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, maps, and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites (e.g. Map when re-enabled). Command parse exit context uses **`AffordanceCache`** via [`../dataSource/actions/roomExitTargetsForCharacter.ts`](../dataSource/actions/roomExitTargetsForCharacter.ts), not **`ComponentRender`**.
+The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites. **`MAP#` calls throw `MAP_SERVER_RENDER_RETIRED`** (see [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md)). Command parse exit context uses **`AffordanceCache`** via [`../dataSource/actions/roomExitTargetsForCharacter.ts`](../dataSource/actions/roomExitTargetsForCharacter.ts), not **`ComponentRender`**.
 
 > **Feature / Knowledge perception** no longer uses **`ComponentRender`**. Steady-state delivery is **correlated** via **`mtw.ephemera.perception`** (`featureDescription` / `knowledgeDescription` fan-in on **`Render Pertains`**); see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) and [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped). Terminal WML is built from **`cacheRecord.renderedContent`** via [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts).
 
@@ -81,10 +81,7 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 - **Short Name**: Merges short names from multiple assets
 
 #### **Map Rendering**
-- **Position Processing**: Handles room positions and coordinates
-- **Room Integration**: Includes all rooms on the map
-- **Exit Validation**: Ensures exits connect to valid rooms
-- **Image Integration**: Processes map images and overlays
+- **Retired:** `MAP#` requests throw **`MAP_SERVER_RENDER_RETIRED`**. Server map runtime is stubbed; see [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md).
 
 #### **Message Rendering**
 - **Content Assembly**: Merges message content from multiple assets
@@ -124,7 +121,7 @@ ComponentRender discovers accessible assets through:
 
 ### **Perception System**
 - **Room / Feature / Knowledge perception**: Imperative **`perceptionMessage`** builds **`PerceptionMessage.wmlContent`** from **`RenderCache`** + perception WML helpers (not **`ComponentRender.get`**).
-- **Other ComponentRender consumers**: Map when **`MAP_PERCEPTION_ENABLED`** is restored. Command parse uses **`getRoomExitTargetsForCharacter`** (affordance topology), not **`ComponentRender`**.
+- **Map runtime**: retired on server; **`MAP#` `ComponentRender.get`** throws. Command parse uses **`getRoomExitTargetsForCharacter`** (affordance topology), not **`ComponentRender`**.
 
 ## Legacy Code Considerations
 
