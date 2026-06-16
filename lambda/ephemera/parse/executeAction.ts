@@ -4,12 +4,8 @@ import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import {
     EphemeraCharacterId,
     LegalCharacterColor,
-    isEphemeraFeatureId,
-    isEphemeraKnowledgeId,
-    isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
-import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 const narrateOOCOrSpeech = async (
     messageBus: Pick<MessageBus, 'publish'>,
@@ -37,59 +33,13 @@ const narrateOOCOrSpeech = async (
 
 export const executeAction = async (messageBus: Pick<MessageBus, 'publish'>, request: ActionAPIMessage) => {
     switch(request.actionType) {
-        case 'look': {
-            const characterId = request.payload.CharacterId
-            const ephemeraId = request.payload.EphemeraId
-            if (
-                !isEphemeraRoomId(ephemeraId)
-                && !isEphemeraFeatureId(ephemeraId)
-                && !isEphemeraKnowledgeId(ephemeraId)
-            ) {
-                break
-            }
-            sendActionAssessed(messageBus, characterId, {
-                characterId,
-                assessed: {
-                    type: 'LookComponent',
-                    componentId: ephemeraId,
-                    confidence: 1,
-                },
-                source: 'uiLook',
-            })
-            break
-        }
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
             await narrateOOCOrSpeech(messageBus, { ...request.payload, DisplayProtocol: request.actionType })
             break
-        case 'move':
-            if (!isEphemeraRoomId(request.payload.RoomId)) {
-                break
-            }
-            sendActionAssessed(messageBus, request.payload.CharacterId, {
-                characterId: request.payload.CharacterId,
-                assessed: {
-                    type: 'Navigation',
-                    targetId: request.payload.RoomId,
-                    ...(request.payload.ExitName !== undefined ? { exitName: request.payload.ExitName } : {}),
-                    confidence: 1,
-                },
-                source: 'uiExit',
-            })
-            break
-        case 'home':
-            sendActionAssessed(messageBus, request.payload.CharacterId, {
-                characterId: request.payload.CharacterId,
-                assessed: {
-                    type: 'Home',
-                    confidence: 1,
-                },
-                source: 'uiHome',
-            })
-            break
         default:
-            break        
+            break
     }
 }
 

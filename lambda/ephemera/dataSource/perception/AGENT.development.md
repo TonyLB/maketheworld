@@ -33,7 +33,7 @@ npx jest dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrche
 npx jest dataSource/renderOrchestration/prepareFeatureKnowledgeRenderForCharacter.test.ts
 npx jest dataSource/passThroughOrchestrationToCache.integration.test.ts
 npx jest dataSource/actions/index.test.ts
-npx jest parse/executeAction.test.ts
+npx jest dataSource/routeTrustedUiAction.test.ts
 npx jest app.test.ts
 ```
 

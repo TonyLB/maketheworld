@@ -38,7 +38,7 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 | Style | When | Examples |
 | --- | --- | --- |
 | **Direct `orchestrateRenderRequest`** | Producer is already inside renderOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Look command, session orientation render, state fan-out |
-| **Bus `Render Requested` kick** (`sendRenderRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `kickRoomHeaderBroadcast`, legacy `executeAction` room look (P4), integration harnesses, future `api.ephemera` ingress from outside the DS |
+| **Bus `Render Requested` kick** (`sendRenderRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `kickRoomHeaderBroadcast`, integration harnesses, future `api.ephemera` ingress from outside the DS |
 
 ### Publish migration (generation anti-deferral)
 
@@ -128,7 +128,7 @@ Authored prose delivery for **`FEATURE#`** / **`KNOWLEDGE#`** uses the same pass
 
 ```text
 Trusted UI look / link (F or K)
-  -> executeAction or app.ts: sendActionAssessed { LookComponent, source: uiLook | link }
+  -> routeTrustedUiAction or app.ts: sendActionAssessed { LookComponent, source: uiLook | link }
   -> mtw.ephemera.actions: Look Command Requested
   -> handleLookCommandRequestedForRenderOrchestration
        -> prepareFeatureKnowledgeRenderForCharacter

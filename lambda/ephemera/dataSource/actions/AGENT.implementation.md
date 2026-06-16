@@ -65,7 +65,7 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 1. Deterministic bare **`home`** and Bedrock **`HomeIntent`** resolve to terminal **`Home`** in [`parseCommand.ts`](parseCommand.ts) / [`discriminateIntent/index.ts`](discriminateIntent/index.ts).
 2. [`resolveHomeTargetForCharacter.ts`](resolveHomeTargetForCharacter.ts) maps **`Home`** to `fromRoomId` (play membership) and `toRoomId` (`CharacterMeta.HomeId`).
 3. [`index.ts`](index.ts) **`streamEvent`** **`Character Home`**; positions subscribes and calls **`executeCharacterNavigate`**.
-4. Trusted UI/API home uses **`sendActionAssessed`** with **`Home`** and `source: 'uiHome'` ([`executeAction`](../../parse/executeAction.ts) `case 'home'`).
+4. Trusted UI/API home uses **`sendActionAssessed`** with **`Home`** and `source: 'uiHome'` ([`routeTrustedUiAction`](../routeTrustedUiAction.ts)).
 
 ---
 
@@ -86,7 +86,7 @@ Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the inten
 
 This preserves perception-thread ordering before downstream render behavior (`Render Pertains` to terminal `PerceptionMessage`).
 
-Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAssessed`** with **`LookComponent`** (`source: uiLook` | `link`) --- not direct orchestration calls from `executeAction` or `app.ts`.
+Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAssessed`** with **`LookComponent`** (`source: uiLook` | `link`) via [`routeTrustedUiAction`](../routeTrustedUiAction.ts) or [`app.ts`](../../app.ts) --- not direct orchestration calls.
 
 ---
 

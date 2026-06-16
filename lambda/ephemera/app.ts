@@ -37,6 +37,7 @@ import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { sendActionAssessed, sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
+import { routeTrustedUiAction } from './dataSource/routeTrustedUiAction'
 import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
@@ -243,10 +244,12 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isActionAPIMessage(request)) {
-                messageBus.publish({
-                    type: 'ExecuteAction',
-                    action: request
-                })
+                if (!routeTrustedUiAction(messageBus, request)) {
+                    messageBus.publish({
+                        type: 'ExecuteAction',
+                        action: request
+                    })
+                }
             }
 
             if (isEphemeraApiStateChangeAPIMessage(request)) {
