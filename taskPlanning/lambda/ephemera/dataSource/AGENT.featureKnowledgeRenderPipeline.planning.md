@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase A slice 1 (type hygiene) done. **Next step:** Phase A slice 2 --- perspective helper (`prepareFeatureKnowledgeRenderForCharacter`).
+**Status:** Phase A slice 2 (perspective helper) done. **Next step:** Phase A slice 3 --- F/K intake branch in **`requestIntake`**.
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -59,7 +59,7 @@ F/K perspective is **not** derived from the viewer's current room. Room look use
 
 Knowledge (including guest / out-of-room UI) and in-room feature links both use this model. **View-as** uses the **viewing** character's asset visibility intersected with the target component vertical.
 
-**Ephemera implementation note:** [`internalCache/index.ts`](../../../../lambda/ephemera/internalCache/index.ts) currently registers a **`ComponentVerticals` empty-hops stub** for aggregate slice shape only. Phase A perspective work should **replace or bypass the stub** for F/K resolve --- e.g. register **`createImportVerticalMetaCacheHandler`** (**`queryImportVerticalMeta`** on **`assetDB`**) or a dedicated helper that loads vertical hops before computing intersection. Do **not** reuse **`filterRoomCanonStackByCharacterAssets`** / **`resolveRoomAssetStackForRoom`** on this path.
+**Ephemera implementation note:** [`internalCache/index.ts`](../../../../lambda/ephemera/internalCache/index.ts) registers **`createImportVerticalMetaCacheHandler`** as **`ComponentVerticals`** (Phase A slice 2). F/K perspective reads vertical hops through that handler before computing intersection.
 
 ## Mark state (Feature / Knowledge --- decided)
 
@@ -124,7 +124,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Task plan created | Done |
 | Open decisions FKR-1..5 (all decided) | Done |
 | Phase A: type hygiene (`RenderComponentId`, orchestration guards) | Done |
-| Phase A: perspective helper(s) | |
+| Phase A: perspective helper(s) | Done |
 | Phase A: F/K intake branch in **`requestIntake`** | |
 | Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | |
 | Phase A: orchestration + cache integration tests for F/K host | |
@@ -148,11 +148,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Add **`EphemeraKnowledgeId`** to **`RenderComponentId`** in [`messageBus/baseClasses.ts`](../../../../lambda/ephemera/messageBus/baseClasses.ts).
   - [X] Extend orchestration published-event / ingress guards to accept **`KNOWLEDGE#`** (today: Room / Feature / Map in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts)).
   - [X] Rename **`RenderResolveInputSuccess.roomId`** -> **`componentId`** (or add alias + migrate call sites) in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) and dependents.
-- [ ] **Perspective helper** --- new module under **`dataSource/renderOrchestration/`** or **`dataSource/actions/actionHandlers/`** (same *delivery wiring shape* as [`prepareFullRoomDescriptionRenderForCharacter`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts), **different perspective inputs** --- see [Perspective model](#perspective-model-feature--knowledge---decided)):
-  - [ ] **`prepareFeatureKnowledgeRenderForCharacter(characterId, componentId)`** returns `{ componentId, characterId, perspective, perspectiveKey, threadRegisterCommand, renderCommand }`.
-  - [ ] Load character-visible asset ids; load **ComponentVertical** hops for **`componentId`**; compute intersected **`mergeParticipationOrder`**; **`computePerspectiveKey`**.
-  - [ ] Wire or call real vertical reads (replace ephemera **`ComponentVerticals` stub** for this path if needed).
-  - [ ] Unit tests: mocked **`CharacterMeta`**, **`Global.get('assets')`**, vertical hops --- no **`RoomId`** / **`RoomAssets`** dependency.
+- [X] **Perspective helper** --- new module under **`dataSource/renderOrchestration/`** or **`dataSource/actions/actionHandlers/`** (same *delivery wiring shape* as [`prepareFullRoomDescriptionRenderForCharacter`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts), **different perspective inputs** --- see [Perspective model](#perspective-model-feature--knowledge---decided)):
+  - [X] **`prepareFeatureKnowledgeRenderForCharacter(characterId, componentId)`** returns `{ componentId, characterId, perspective, perspectiveKey, threadRegisterCommand, renderCommand }`.
+  - [X] Load character-visible asset ids; load **ComponentVertical** hops for **`componentId`**; compute intersected **`mergeParticipationOrder`**; **`computePerspectiveKey`**.
+  - [X] Wire or call real vertical reads (replace ephemera **`ComponentVerticals` stub** for this path if needed).
+  - [X] Unit tests: mocked **`CharacterMeta`**, **`Global.get('assets')`**, vertical hops --- no **`RoomId`** / **`RoomAssets`** dependency.
 - [ ] **Intake branch** --- [`requestIntake.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts):
   - [ ] Accept **`FEATURE#`** and **`KNOWLEDGE#`** (remove **`RENDER_REQUESTED_NOT_ROOM`** for these ids).
   - [ ] Do **not** load **`Meta::Room`** on the feature/knowledge id itself.

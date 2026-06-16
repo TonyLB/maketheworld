@@ -142,4 +142,37 @@ describe('isPerceptionThreadRegisterCommand', () => {
             })
         ).toBe(false)
     })
+
+    it('accepts featureDescription with Feature componentId and characterId', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'featureDescription',
+                componentId: 'FEATURE#f1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+            })
+        ).toBe(true)
+    })
+
+    it('accepts knowledgeDescription with Knowledge componentId and characterId', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'knowledgeDescription',
+                componentId: 'KNOWLEDGE#k1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+            })
+        ).toBe(true)
+    })
+
+    it('rejects featureDescription with Knowledge componentId', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'featureDescription',
+                componentId: 'KNOWLEDGE#k1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+            })
+        ).toBe(false)
+    })
 })

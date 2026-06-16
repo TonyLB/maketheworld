@@ -9,6 +9,8 @@ import {
     isEphemeraKnowledgeId,
     isEphemeraRoomId,
     type EphemeraCharacterId,
+    type EphemeraFeatureId,
+    type EphemeraKnowledgeId,
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
@@ -85,6 +87,26 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     createdTime?: number;
 }
 
+/** Feature link / look correlated description fan-in (requires viewer characterId). */
+export type PerceptionThreadRegisterFeatureDescriptionCommand = {
+    threadKind: 'featureDescription';
+    componentId: EphemeraFeatureId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
+/** Knowledge link / look correlated description fan-in (requires viewer characterId). */
+export type PerceptionThreadRegisterKnowledgeDescriptionCommand = {
+    threadKind: 'knowledgeDescription';
+    componentId: EphemeraKnowledgeId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
 /** Discriminated command for `Perception Thread Registered` ingress and PerceptionThreads.register. */
 export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomDescriptionCommand
@@ -92,6 +114,8 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterSessionOrientationRenderCommand
     | PerceptionThreadRegisterSessionOrientationAffordancesCommand
     | PerceptionThreadRegisterCharacterMoveCommand
+    | PerceptionThreadRegisterFeatureDescriptionCommand
+    | PerceptionThreadRegisterKnowledgeDescriptionCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
 
@@ -119,6 +143,8 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         && v.threadKind !== 'sessionOrientationRender'
         && v.threadKind !== 'sessionOrientationAffordances'
         && v.threadKind !== 'characterMove'
+        && v.threadKind !== 'featureDescription'
+        && v.threadKind !== 'knowledgeDescription'
     ) {
         return false
     }
@@ -161,6 +187,20 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             && isNonEmptyPublishTargetArray(v.targets)
             && (v.messageId === undefined || typeof v.messageId === 'string')
             && (v.createdTime === undefined || typeof v.createdTime === 'number')
+        )
+    }
+    if (v.threadKind === 'featureDescription') {
+        return (
+            isEphemeraFeatureId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
+        )
+    }
+    if (v.threadKind === 'knowledgeDescription') {
+        return (
+            isEphemeraKnowledgeId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
         )
     }
     return false

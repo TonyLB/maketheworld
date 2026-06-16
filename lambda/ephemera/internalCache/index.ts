@@ -19,7 +19,10 @@ import {
     ComponentTopologyMergedCache,
     createComponentTopologyCacheHandler,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentTopology';
-import type { ImportVerticalMetaImportProjectionLoader } from '@tonylb/mtw-gateways/ts/assets/components/verticals';
+import {
+    createImportVerticalMetaCacheHandler,
+    type ImportVerticalMetaCache,
+} from '@tonylb/mtw-gateways/ts/assets/components/verticals';
 import {
     createThinkingJobReadCacheHandler,
     createThinkingResultReadCacheHandler,
@@ -72,13 +75,6 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
     options: { getBatchSize: 50 }
 })
 
-/** Ephemera v1: vertical hops unused in merge; stub satisfies aggregate slice shape (A1). */
-const ephemeraComponentVerticalsStub: ImportVerticalMetaImportProjectionLoader = {
-    async get(universalKeys) {
-        return universalKeys.map((universalKey) => ({ universalKey, hops: [] }))
-    },
-}
-
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     CoyoteGame: CacheCoyoteGameData;
@@ -102,6 +98,7 @@ export class InternalCache {
     GraphEdges: GraphEdgeType;
     
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB);
     ComponentAggregate: ComponentAggregateMergedCache;
     ComponentExamples: ComponentExamplesMergedCache;
     ComponentTopology: ComponentTopologyMergedCache;
@@ -153,7 +150,7 @@ export class InternalCache {
         )
         this.ComponentAggregate = createComponentAggregateCacheHandler({
             ComponentData: this.ComponentData,
-            ComponentVerticals: ephemeraComponentVerticalsStub,
+            ComponentVerticals: this.ComponentVerticals,
         })
         this.ComponentExamples = createComponentExamplesCacheHandler({
             ComponentAggregate: this.ComponentAggregate,
@@ -187,6 +184,7 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentData.clear()
+        this.ComponentVerticals.clear()
         this.ComponentTopology.clear()
         this.ComponentExamples.clear()
         this.ComponentAggregate.clear()
@@ -210,6 +208,7 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentData.flush(),
+            this.ComponentVerticals.flush(),
             this.ComponentTopology.flush(),
             this.ComponentExamples.flush(),
             this.ComponentAggregate.flush(),

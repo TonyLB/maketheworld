@@ -1,4 +1,5 @@
 export { mergeAuthoritativeAcrossParticipationOrder } from './assemble'
+export { mergeParticipationOrderFromImportVerticalHops } from './participationOrder'
 export {
     ComponentAggregateMergedCache,
     createComponentAggregateCacheHandler,
