@@ -64,7 +64,7 @@ The perception system can be triggered by several different categories of events
 - **Source**: Direct character actions, commands, or link interactions
 - **Trigger Pattern**: Character interacts with component → Component perception triggered
 - **Perception Types**:
-  - **Room look (`look` at a room)**: [`parse/executeAction.ts`](../parse/executeAction.ts) registers a room thread via **`sendPerceptionThreadRegistered`** and kicks passive render via **`sendRenderRequested`**; delivery is **`PublishMessage`** from **`mtw.ephemera.perception`** fan-in ([`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts)), not imperative **`Perception`** → `perceptionMessage` for that path.
+  - **Room look (`look` at a room)**: [`routeTrustedUiAction`](../dataSource/routeTrustedUiAction.ts) and [`actions/index.ts`](../dataSource/actions/index.ts) emit **`Look Command Requested`**; render orchestration registers a room thread via **`sendPerceptionThreadRegistered`** and kicks passive render via **`sendRenderRequested`**; delivery is **`PublishMessage`** from **`mtw.ephemera.perception`** fan-in ([`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts)), not imperative **`Perception`** -> `perceptionMessage` for that path.
   - **Feature Interaction**: `PerceptionComponentMessage` for feature descriptions
   - **Knowledge Access**: `PerceptionComponentMessage` with `directResponse` for immediate knowledge delivery
   - **Character Examination**: Character description lookups
@@ -266,7 +266,7 @@ Determines which characters should receive messages:
 Creates appropriate message formats:
 - **PerceptionMessage** (publish): Room, feature, knowledge, and character examine content (with room `displayMode` metadata where applicable)
 - **EphemeraUpdate** with **MapUpdate**: For map display updates
-- **WorldMessage** is not emitted by this handler; arrival/departure lines and speech are published elsewhere (e.g. membership fan-in, `executeAction`)
+- **WorldMessage** is not emitted by this handler; arrival/departure lines are published via membership fan-in; speech via **`mtw.ephemera.narration`**
 
 ## Usage Patterns
 

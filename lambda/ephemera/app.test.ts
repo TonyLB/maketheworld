@@ -49,7 +49,7 @@ describe('app handler', () => {
     })
 
     describe('action message handling', () => {
-        it('should route action messages to messageBus.publish with ExecuteActionMessage', async () => {
+        it('should route SayMessage action messages to sendActionAssessed CharacterSpoke', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'SayMessage',
@@ -68,14 +68,27 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'CharacterSpoke',
+                        message: 'Hello world',
+                        displayProtocol: 'SayMessage',
+                        confidence: 1,
+                    },
+                    source: 'uiSpeech',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
             expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
-        it('should route move action messages to messageBus.publish with ExecuteActionMessage', async () => {
+        it('should route move action messages to sendActionAssessed Navigation', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'move',
@@ -95,13 +108,26 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'Navigation',
+                        targetId: 'ROOM#456',
+                        exitName: 'north',
+                        confidence: 1,
+                    },
+                    source: 'uiExit',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
         })
 
-        it('should route look action messages to messageBus.publish with ExecuteActionMessage', async () => {
+        it('should route look action messages to sendActionAssessed LookComponent', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'look',
@@ -120,10 +146,57 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'ROOM#456',
+                        confidence: 1,
+                    },
+                    source: 'uiLook',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
+        })
+
+        it('should route home action messages to sendActionAssessed Home', async () => {
+            const actionMessage = {
+                message: 'action',
+                actionType: 'home',
+                payload: {
+                    CharacterId: 'CHARACTER#123',
+                }
+            }
+
+            const event = {
+                requestContext: {
+                    connectionId: 'test-connection'
+                },
+                body: JSON.stringify(actionMessage)
+            }
+
+            await handler(event, {})
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'Home',
+                        confidence: 1,
+                    },
+                    source: 'uiHome',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
         })
     })
 

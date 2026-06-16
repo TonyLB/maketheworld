@@ -121,8 +121,8 @@ Character-row and room-row `Update` items inside `transactWrite` use the same `_
 
 | Concern | Location |
 | --- | --- |
-| Legacy API move | [`../../parse/executeAction.ts`](../../parse/executeAction.ts) (`Action Assessed` **`Navigation`** for UI exits) |
-| Legacy API home | [`../../parse/executeAction.ts`](../../parse/executeAction.ts) (`Action Assessed` **`Home`**, `source: 'uiHome'`) |
+| Legacy API move | [`../routeTrustedUiAction.ts`](../routeTrustedUiAction.ts) (`Action Assessed` **`Navigation`** for UI exits) |
+| Legacy API home | [`../routeTrustedUiAction.ts`](../routeTrustedUiAction.ts) (`Action Assessed` **`Home`**, `source: 'uiHome'`) |
 
 ---
 

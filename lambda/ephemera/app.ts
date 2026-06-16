@@ -37,6 +37,7 @@ import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { sendActionAssessed, sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
+import { routeTrustedUiAction } from './dataSource/routeTrustedUiAction'
 import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
@@ -48,6 +49,7 @@ import './dataSource/affordanceOrchestration'  // mtw.ephemera.affordanceOrchest
 import './dataSource/affordanceCache'  // mtw.ephemera.affordanceCache (M4; see dataSource/affordanceCache/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)
 import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
+import './dataSource/narration'  // mtw.ephemera.narration (terminal speech depiction)
 import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)
 import './dataSource/thinking/results'  // mtw.ephemera.thinking.results (Thinking Result persistence from bus)
 import './dataSource/thinking/scheduling'  // mtw.ephemera.thinking.scheduling (Put Thinking Schedule via api.ephemera)
@@ -243,10 +245,7 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isActionAPIMessage(request)) {
-                messageBus.publish({
-                    type: 'ExecuteAction',
-                    action: request
-                })
+                routeTrustedUiAction(messageBus, request, request.RequestId)
             }
 
             if (isEphemeraApiStateChangeAPIMessage(request)) {

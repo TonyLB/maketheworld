@@ -9,8 +9,7 @@ import {
     isMapSubscription,
     isMapUpdateMessage,
     isMapUnsubscribe,
-    isCharacterEventMessage,
-    isExecuteActionMessage
+    isCharacterEventMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -23,7 +22,6 @@ import roomUpdateMessage from '../roomUpdate'
 import mapSubscriptionMessage, { mapUnsubscribeMessage } from '../mapSubscription'
 import mapUpdateMessage from '../mapUpdate'
 import characterEvent from "../characterEvents"
-import { executeActionMessage } from "../parse/executeAction"
 import { registerReturnValueCollector } from '../returnValue/collector'
 
 export const messageBus = new MessageBus()
@@ -80,12 +78,6 @@ messageBus.subscribe({
     priority: 15,
     filter: isMapUpdateMessage,
     callback: mapUpdateMessage
-})
-messageBus.subscribe({
-    tag: 'ExecuteAction',
-    priority: 5,
-    filter: isExecuteActionMessage,
-    callback: executeActionMessage
 })
 
 publishMessageCoalescer.registerDeferral(messageBus)

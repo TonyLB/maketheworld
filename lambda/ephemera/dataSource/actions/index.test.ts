@@ -13,6 +13,7 @@ import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffi
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
+import internalCache from '../../internalCache'
 
 jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
     schemaToWML: jest.fn(() => '<Asset />'),
@@ -32,6 +33,7 @@ jest.mock('../renderOrchestration/subscribedEvents', () => {
     }
 })
 jest.mock('../../messageBus')
+jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
@@ -61,6 +63,8 @@ const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCh
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
+// @ts-ignore
+const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
@@ -77,6 +81,7 @@ describe('ephemeraActionsDataSource', () => {
             exits: [],
         })
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
+        internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -861,6 +866,150 @@ describe('ephemeraActionsDataSource', () => {
                     directResponse: true,
                 },
             })
+        })
+    })
+
+    describe('Action Assessed CharacterSpoke', () => {
+        const room = 'ROOM#456' as EphemeraRoomId
+
+        it('streams Character Spoke when character is in a room', async () => {
+            internalCacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#123',
+                Name: 'TestCharacter',
+                RoomId: room,
+                RoomStack: [],
+                HomeId: room,
+                assets: [],
+                Color: 'blue',
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'CharacterSpoke' as const,
+                            message: 'Hello',
+                            displayProtocol: 'SayMessage' as const,
+                            confidence: 1,
+                        },
+                        source: 'uiSpeech' as const,
+                        requestId: 'req-speech',
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedParseCommand).not.toHaveBeenCalled()
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Spoke' },
+                update: {
+                    type: 'Character Spoke',
+                    characterId: 'CHARACTER#123',
+                    message: 'Hello',
+                    displayProtocol: 'SayMessage',
+                    confidence: 1,
+                },
+            })
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-speech',
+                    message: 'action_assessed_handled',
+                },
+            })
+        })
+
+        it('noop when character has no RoomId', async () => {
+            internalCacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#123',
+                Name: 'TestCharacter',
+                RoomId: undefined as any,
+                RoomStack: [],
+                HomeId: undefined as any,
+                assets: [],
+                Color: 'blue',
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'CharacterSpoke' as const,
+                            message: 'Hello',
+                            displayProtocol: 'SayMessage' as const,
+                            confidence: 1,
+                        },
+                        source: 'uiSpeech' as const,
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ReturnValue' })
+            )
+        })
+
+        it('does not publish bare ReturnValue Success without RequestId', async () => {
+            internalCacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#123',
+                Name: 'TestCharacter',
+                RoomId: room,
+                RoomStack: [],
+                HomeId: room,
+                assets: [],
+                Color: 'blue',
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'CharacterSpoke' as const,
+                            message: 'Hello',
+                            displayProtocol: 'SayMessage' as const,
+                            confidence: 1,
+                        },
+                        source: 'uiSpeech' as const,
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ReturnValue' })
+            )
         })
     })
 

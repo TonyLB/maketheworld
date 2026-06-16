@@ -16,7 +16,14 @@ import type {
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { MessageBus } from '../../messageBus/baseClasses'
+
+const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
+    'SayMessage',
+    'NarrateMessage',
+    'OOCMessage',
+])
 
 /**
  * Injectable accessors for iterating Coyote demo rooms and **`Meta::Room`** (shared by
@@ -109,6 +116,14 @@ export type ParseCommandLookComponentResult = {
     confidence: ParseCommandConfidence
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean
+}
+
+/** Trusted UI speech (Say / Narrate / OOC). Not produced by Bedrock parse. */
+export type ParseCommandCharacterSpokeResult = {
+    type: 'CharacterSpoke'
+    message: string
+    displayProtocol: CharacterSpeechDisplayProtocol
+    confidence: ParseCommandConfidence
 }
 
 /** Coyote Game: explicit trigger for the Coyote engine test harness. */
@@ -240,6 +255,7 @@ export type ParseCommandResult =
     | ParseCommandHelpResult
     | ParseCommandLookRoomResult
     | ParseCommandLookComponentResult
+    | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandUnimplementedResult
@@ -294,6 +310,24 @@ export function isParseCommandLookComponentResult(
         return false
     }
     if (result.directResponse !== undefined && typeof result.directResponse !== 'boolean') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandCharacterSpokeResult(
+    result: ParseCommandResult
+): result is ParseCommandCharacterSpokeResult {
+    if (result.type !== 'CharacterSpoke') {
+        return false
+    }
+    if (typeof result.message !== 'string' || result.message.trim().length === 0) {
+        return false
+    }
+    if (
+        typeof result.displayProtocol !== 'string'
+        || !CHARACTER_SPEECH_DISPLAY_PROTOCOLS.has(result.displayProtocol as CharacterSpeechDisplayProtocol)
+    ) {
         return false
     }
     return isParseConfidence(result.confidence)

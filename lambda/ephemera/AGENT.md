@@ -186,7 +186,7 @@ The Variable/Computed/Action system was designed for **programming-language-base
 - **Dependency Cascade Logic**: Complex graph traversal for state updates (see `dependentMessages/dependencyCascade.ts`)
 - **State Management**: DynamoDB schemas still include Variable/Computed/Action records
 - **Event Processing**: EventBridge events still trigger Variable cascade calculations
-- **Code Execution**: Action execution logic still present in `executeAction/` module
+- **Code Execution**: Legacy action execution removed; UI speech and trusted actions route through **`routeTrustedUiAction`** -> **`Action Assessed`**
 
 #### **What's Being Removed**
 - **Programmatic Content Creation**: No longer using coded Variables for content definition
@@ -275,7 +275,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **`perception/index.ts`**: Core perception filtering and character presence detection
 - **`ephemeraUpdate/index.ts`**: Real-time state broadcasting to connected clients
 - **`dataSource/positions/navigate/`**: Character navigate/home execution and post-persist presentation (`executeCharacterNavigate`, `orchestrateCharacterNavigate`); membership fan-in owns leave/arrive world copy
-- **`executeAction/index.ts`**: Legacy action execution system (under review for removal)
+- **`routeTrustedUiAction`**: Trusted UI action ingress (look, move, home, speech) -> **`Action Assessed`**
 
 ## Related Documentation
 

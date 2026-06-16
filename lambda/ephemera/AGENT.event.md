@@ -252,7 +252,7 @@ A core responsibility of the Ephemera Lambda is reconciling real-time state with
 
 #### **Technical Implementation**
 - **`dependencyCascade.ts`**: Complex graph traversal for dependency updates
-- **`executeAction/index.ts`**: Code execution and state mutation coordination
+- **`routeTrustedUiAction` / `actions`**: Trusted UI action ingress and stream emission (replaces legacy `executeAction`)
 - **EventBridge Integration**: External event triggers for Variable/Action coordination
 
 ### **Why These Patterns Are Being Removed**
@@ -348,7 +348,7 @@ Before removal, document the current Variable/Computed/Action system patterns:
 - **Dependency Cascade Patterns**: Document the graph traversal logic in `dependencyCascade.ts`
 - **Asset Cache Dependencies**: Map how Variable/Computed/Action systems rely on Ephemera's asset caching
 - **State Management Schemas**: Catalog current DynamoDB table structures and event triggers
-- **Action Execution Workflows**: Document the code execution patterns in `executeAction/`
+- **Action Execution Workflows**: Legacy `executeAction` removed; UI speech and trusted actions use **`Action Assessed`** ingress
 
 ### **Priority 3: Perception System Clarification**
 The perception system is core to the new architecture and needs comprehensive documentation:

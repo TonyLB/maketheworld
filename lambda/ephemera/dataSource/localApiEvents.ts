@@ -11,12 +11,14 @@ import {
     type EphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
+    ParseCommandCharacterSpokeResult,
     ParseCommandHomeResult,
     ParseCommandLookComponentResult,
     ParseCommandNavigationResult,
     ParseCommandResult,
 } from './actions/baseClasses'
 import {
+    isParseCommandCharacterSpokeResult,
     isParseCommandHomeResult,
     isParseCommandLookComponentResult,
     isParseCommandNavigationResult,
@@ -86,12 +88,13 @@ export type ActionAssessedOutcome =
     | ParseCommandNavigationResult
     | ParseCommandHomeResult
     | ParseCommandLookComponentResult
+    | ParseCommandCharacterSpokeResult
 
-/** Server-trusted pre-assessed outcomes (UI exit click, UI home, UI/link look, etc.). */
+/** Server-trusted pre-assessed outcomes (UI exit click, UI home, UI/link look, UI speech, etc.). */
 export type ActionAssessedCommand = {
     characterId: EphemeraCharacterId;
     assessed: ActionAssessedOutcome;
-    source?: 'uiExit' | 'uiHome' | 'uiLook' | 'link';
+    source?: 'uiExit' | 'uiHome' | 'uiLook' | 'link' | 'uiSpeech';
     requestId?: string;
 }
 
@@ -167,6 +170,7 @@ export const isActionAssessedCommand = (value: unknown): value is ActionAssessed
         !isParseCommandNavigationResult(assessed)
         && !isParseCommandHomeResult(assessed)
         && !isParseCommandLookComponentResult(assessed)
+        && !isParseCommandCharacterSpokeResult(assessed)
     ) {
         return false
     }
@@ -176,6 +180,7 @@ export const isActionAssessedCommand = (value: unknown): value is ActionAssessed
         && v.source !== 'uiHome'
         && v.source !== 'uiLook'
         && v.source !== 'link'
+        && v.source !== 'uiSpeech'
     ) {
         return false
     }

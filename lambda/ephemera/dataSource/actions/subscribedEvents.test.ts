@@ -70,6 +70,30 @@ describe('mtw.ephemera.actions subscribedEvents', () => {
         expect(isActionsActionAssessedEnvelope(envelope as any)).toBe(true)
     })
 
+    it('accepts api.ephemera Action Assessed envelope with CharacterSpoke assessed', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'CHARACTER#123',
+                timestamp: Date.now(),
+                type: 'Action Assessed' as const,
+            },
+            getContent: () => Promise.resolve({
+                characterId: 'CHARACTER#123' as const,
+                assessed: {
+                    type: 'CharacterSpoke' as const,
+                    message: 'Hello',
+                    displayProtocol: 'SayMessage' as const,
+                    confidence: 1,
+                },
+                source: 'uiSpeech' as const,
+            }),
+        }
+
+        expect(isActionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isActionsActionAssessedEnvelope(envelope as any)).toBe(true)
+    })
+
     it('rejects unrelated dataSourceKey', () => {
         const envelope = {
             header: {

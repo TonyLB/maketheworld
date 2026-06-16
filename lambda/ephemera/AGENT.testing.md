@@ -121,7 +121,7 @@ When implementing this pattern in other functions:
 The following functions could benefit from this same dependency injection pattern:
 
 #### **Character Management Functions**
-- **`executeAction`**: Uses `internalCache` for character and room lookups
+- **`routeTrustedUiAction` / `actions`**: Uses `internalCache` for speech room precondition checks
 - **`dataSource/positions/navigate/`**: Uses `internalCache` for room and character validation during navigate execution
 - **`registerCharacter`**: Uses `internalCache` for character registration
 - **`guestCharacter`**: Uses `internalCache` for guest character handling
