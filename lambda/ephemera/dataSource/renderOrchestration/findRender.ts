@@ -1,4 +1,4 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
@@ -92,7 +92,7 @@ export const findRender = async (
         return
     }
 
-    if (resolve.allowGeneration === false) {
+    if (resolve.allowGeneration === false || !isEphemeraRoomId(resolve.componentId)) {
         await deps.publishOrchestration({
             type: 'Generation Deferred',
             ...routing,
@@ -103,7 +103,7 @@ export const findRender = async (
 
     await deps.generateRoomPreview(
         {
-            roomId: resolve.componentId as EphemeraRoomId,
+            roomId: resolve.componentId,
             markState: resolve.markState,
             assetStack: resolve.perspective.assetStack,
         },

@@ -341,6 +341,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const payload: RenderRequested = { ...basePayload, componentId }
         const getMetaRoom = jest.fn()
         const getExactMatch = jest.fn().mockResolvedValue(null)
+        const generateRoomPreview = jest.fn()
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -350,9 +351,11 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 getExactMatch,
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn(),
+                generateRoomPreview,
             }
         )
         expect(getMetaRoom).not.toHaveBeenCalled()
+        expect(generateRoomPreview).not.toHaveBeenCalled()
         expect(ensureAuthoredCatalogMock).toHaveBeenCalledWith({
             componentId,
             perspective: basePayload.perspective,
@@ -365,6 +368,49 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 proposedMarkState: { markValue: [] },
             })
         )
+    })
+
+    it.each([
+        ['FEATURE#one', 'FEATURE#one'],
+        ['KNOWLEDGE#one', 'KNOWLEDGE#one'],
+    ] as const)('emits Exact Match Found for %s on authored cache hit without Meta::Room', async (_label, componentId) => {
+        const messageBus = makeBus()
+        const payload: RenderRequested = { ...basePayload, componentId }
+        const getMetaRoom = jest.fn()
+        const authoredRow: EphemeraCacheDynamoItem = {
+            EphemeraId: componentId,
+            DataCategory: 'CACHE#authored',
+            markState: { markValue: [] },
+            renderedContent: { description: ['Authored prose.'] },
+            provenance: { type: 'authored' },
+            perspectiveId: 'PERSPECTIVE#legacy',
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] },
+        }
+        const generateRoomPreview = jest.fn()
+        await orchestrateRenderRequest(
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
+            {
+                getMetaRoom,
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(authoredRow),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+                generateRoomPreview,
+            }
+        )
+        expect(getMetaRoom).not.toHaveBeenCalled()
+        expect(generateRoomPreview).not.toHaveBeenCalled()
+        expect(ensureAuthoredCatalogMock).toHaveBeenCalledWith({
+            componentId,
+            perspective: basePayload.perspective,
+        })
+        const content = await findOrchestrationStreamingEvent(messageBus.publish)!.getContent()
+        expect(isRenderOrchestrationExactMatchFoundPayload(content)).toBe(true)
+        expect(content).toMatchObject({
+            componentId,
+            cacheId: 'CACHE#authored',
+        })
     })
 
     it('emits Orchestration Error for unsupported componentIds such as MAP#', async () => {

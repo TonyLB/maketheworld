@@ -4,7 +4,7 @@
  */
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from './renderCache/baseClasses'
-import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './renderCache/baseClasses'
+import { EPHEMERA_CACHE_PROVENANCE_AUTHORED, EPHEMERA_CACHE_PROVENANCE_GENERATED } from './renderCache/baseClasses'
 import type { AffordanceOrchestrationPublishedRouting } from './affordanceOrchestration/publishedEvents'
 import type {
     RenderOrchestrationCurrentCacheValidPayload,
@@ -17,6 +17,10 @@ import type {
 } from './renderOrchestration/publishedEvents'
 
 export const passThroughFixtureRoomId = 'ROOM#test-room' as const
+
+export const passThroughFixtureFeatureId = 'FEATURE#test-feature' as const
+
+export const passThroughFixtureKnowledgeId = 'KNOWLEDGE#test-knowledge' as const
 
 export const passThroughFixturePerspective: Perspective = { assetStack: ['ASSET#one'] }
 
@@ -51,6 +55,18 @@ export const passThroughFixtureMinimalDynamoItem: EphemeraCacheDynamoItem = {
     perspectiveId: 'perspective-id',
     perspectiveMatcher: { requiredAssetIds: ['ASSET#one'] },
 }
+
+export const passThroughFixtureAuthoredEmptyMarksDynamoItem = (
+    componentId: typeof passThroughFixtureFeatureId | typeof passThroughFixtureKnowledgeId,
+): EphemeraCacheDynamoItem => ({
+    EphemeraId: componentId,
+    DataCategory: passThroughFixtureMinimalCacheId,
+    markState: { markValue: [] },
+    renderedContent: passThroughFixtureMinimalRenderedContent,
+    provenance: { type: EPHEMERA_CACHE_PROVENANCE_AUTHORED },
+    perspectiveId: 'perspective-id',
+    perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
+})
 
 export function makePassThroughCurrentCacheValidPayload(): RenderOrchestrationCurrentCacheValidPayload {
     return {

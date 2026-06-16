@@ -196,4 +196,82 @@ describe('dataSource/renderOrchestration/findRender', () => {
             })
         )
     })
+
+    const emptyMarkState: EphemeraCacheMarkState = { markValue: [] }
+
+    it.each([
+        ['FEATURE#one', 'FEATURE#one'],
+        ['KNOWLEDGE#one', 'KNOWLEDGE#one'],
+    ] as const)('emits Generation Deferred for %s on cache miss without slow path', async (_label, componentId) => {
+        const deps = baseDeps()
+        await findRender({
+            type: 'success',
+            componentId,
+            perspective,
+            markState: emptyMarkState,
+            markProvenance: 'meta',
+            allowGeneration: false,
+        }, deps)
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Generation Deferred',
+                componentId,
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
+        )
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['FEATURE#one', 'FEATURE#one'],
+        ['KNOWLEDGE#one', 'KNOWLEDGE#one'],
+    ] as const)('emits Exact Match Found for %s on exact match hit', async (_label, componentId) => {
+        const deps = baseDeps()
+        const cacheRecord: EphemeraCacheDynamoItem = {
+            EphemeraId: componentId,
+            DataCategory: 'CACHE#authored',
+            markState: emptyMarkState,
+            renderedContent: { description: ['Feature prose.'] },
+            provenance: { type: 'authored' },
+            perspectiveId: 'PERSPECTIVE#legacy',
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] },
+        }
+        deps.getExactMatch.mockResolvedValue(cacheRecord)
+        await findRender({
+            type: 'success',
+            componentId,
+            perspective,
+            markState: emptyMarkState,
+            markProvenance: 'meta',
+            allowGeneration: false,
+        }, deps)
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Exact Match Found',
+                componentId,
+                cacheId: 'CACHE#authored',
+            })
+        )
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
+    })
+
+    it('emits Generation Deferred for non-room host when allowGeneration true', async () => {
+        const deps = baseDeps()
+        await findRender({
+            type: 'success',
+            componentId: 'FEATURE#one',
+            perspective,
+            markState: emptyMarkState,
+            markProvenance: 'meta',
+            allowGeneration: true,
+        }, deps)
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Generation Deferred',
+                componentId: 'FEATURE#one',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
+        )
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
+    })
 })

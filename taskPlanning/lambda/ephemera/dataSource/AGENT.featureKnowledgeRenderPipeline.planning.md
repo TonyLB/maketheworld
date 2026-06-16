@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase A slice 3 (F/K intake branch) done. **Next step:** Phase A slice 4 --- generalize **`findRender`** / handler types off **`roomId`-only**.
+**Status:** Phase A complete (slice 4: `findRender` generalization + F/K integration). **Next step:** Phase B slice 1 --- **`PerceptionThreads`** kinds (`featureDescription` | `knowledgeDescription`).
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -126,8 +126,8 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Phase A: type hygiene (`RenderComponentId`, orchestration guards) | Done |
 | Phase A: perspective helper(s) | Done |
 | Phase A: F/K intake branch in **`requestIntake`** | Done |
-| Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | |
-| Phase A: orchestration + cache integration tests for F/K host | |
+| Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | Done |
+| Phase A: orchestration + cache integration tests for F/K host | Done |
 | Phase B: **`PerceptionThreads`** kinds + register commands | |
 | Phase B: **`orchestrate.ts`** fan-in for F/K | |
 | Phase B: ingress kicks (link API, feature **`look`**) | |
@@ -159,12 +159,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Set **`markState: { markValue: [] }`** (FKR-3); set **`allowGeneration: false`** (always forced for F/K).
   - [X] Resolve **`pointerHint`** via catalog row only ([`resolvePerspectivePointer`](../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts) --- already host-agnostic); skip legacy **`Meta::Room.currentCacheByPerspective`** for non-room hosts.
   - [X] Update [`requestIntake.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts) and [`orchestrationHandler.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (replace "NOT_ROOM for FEATURE" expectations with success paths).
-- [ ] **`findRender` / handler wiring**
-  - [ ] Generalize dependency types (`getExactMatch`, `getCacheRecordById`, `clearPerspectivePointer`) from **`EphemeraRoomId`** to **`EphemeraCacheComponentId`** where still room-typed.
-  - [ ] Confirm slow path never runs for F/K (**`allowGeneration: false`** -> **`Generation Deferred`** on miss after hydrate; Phase B fan-in delivers Error per FKR-5).
-- [ ] **Integration test**
-  - [ ] Extend or add test chaining **`orchestrateRenderRequest`** (F/K **`componentId`**) -> **`renderCache`** subscriber -> authored **`CACHE#`** row + **`Render Pertains`** (pattern: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)).
-- [ ] **Phase A verification** (see **Verification** below) and update **Progress** / checkboxes.
+- [X] **`findRender` / handler wiring**
+  - [X] Generalize dependency types (`getExactMatch`, `getCacheRecordById`, `clearPerspectivePointer`) from **`EphemeraRoomId`** to **`EphemeraCacheComponentId`** where still room-typed.
+  - [X] Confirm slow path never runs for F/K (**`allowGeneration: false`** -> **`Generation Deferred`** on miss after hydrate; Phase B fan-in delivers Error per FKR-5).
+- [X] **Integration test**
+  - [X] Extend or add test chaining **`orchestrateRenderRequest`** (F/K **`componentId`**) -> **`renderCache`** subscriber -> authored **`CACHE#`** row + **`Render Pertains`** (pattern: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)).
+- [X] **Phase A verification** (see **Verification** below) and update **Progress** / checkboxes.
 
 ---
 
