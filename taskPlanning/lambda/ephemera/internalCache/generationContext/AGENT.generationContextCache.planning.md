@@ -2,6 +2,8 @@
 
 **Status:** In progress. MVP short-name stub is landed. Next step: lock the canonical structured shape and `(roomId, perspectiveKey)` cache keys.
 
+> **Note (2026):** `ComponentRender` has been retired. Generation context is served by `internalCache.GenerationContext`; room render prose by `RenderCache` + `roomRenderWmlFromCacheRecord`.
+
 Skim [`taskPlanning/AGENT.md`](../../../../../AGENT.md) once for durability expectations, what belongs
 in task plans vs durable package docs, and recommended-order checkbox conventions.
 

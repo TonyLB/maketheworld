@@ -39,22 +39,14 @@ describe('prepareFullRoomDescriptionRenderForCharacter', () => {
     })
 
     it('does not populate generationContextWml on default path', async () => {
-        const componentRenderGetSpy = jest.spyOn(internalCache.ComponentRender, 'get')
         const prepared = await prepareFullRoomDescriptionRenderForCharacter('CHARACTER#Test', 'ROOM#Test')
 
         expect(prepared.renderCommand.generationContextWml).toBeUndefined()
-        expect(componentRenderGetSpy).not.toHaveBeenCalled()
-
-        componentRenderGetSpy.mockRestore()
     })
 
     it('does not populate generationContextWml on repeated invocation', async () => {
-        const componentRenderGetSpy = jest.spyOn(internalCache.ComponentRender, 'get')
         const prepared = await prepareFullRoomDescriptionRenderForCharacter('CHARACTER#Test', 'ROOM#Test')
 
         expect(prepared.renderCommand.generationContextWml).toBeUndefined()
-        expect(componentRenderGetSpy).not.toHaveBeenCalled()
-
-        componentRenderGetSpy.mockRestore()
     })
 })

@@ -7,13 +7,13 @@ plus **perspective `assetStack`** (see [`index.ts`](index.ts) cache keys), witho
 canonical meaning.
 
 This cache holds **grounding inputs** (today: merged room `shortName` from asset-ordered room metadata),
-not RoomDescription delivery payloads or `ComponentRender` convenience output.
+not RoomDescription delivery payloads or legacy merged room render output.
 
 ## Why this exists
 
 `RenderRequested` may still carry optional **`generationContextWml`** for callers that assemble a WML
 subset (for example authoring flows). Passive paths often **omit** that field. Slow-path generation
-therefore must not depend on `ComponentRender` or other render-delivery shapes for context; this cache
+therefore must not depend on legacy render-delivery shapes for context; this cache
 is the structured source keyed by room and perspective stack.
 
 ## Contract (current MVP)
@@ -28,17 +28,15 @@ provenance metadata. Add fields explicitly as generation inputs, not as copies o
 
 ## Explicit non-goals
 
-- Not a clone of `ComponentRender` room output
+- Not a clone of merged room render output
 - Not a container for delivery triplets (`displayName`, `summary`, `description`) from cached renders
 - Not a generic replacement for `AffordanceRoomDeliverable` or other rendering caches
 - Not "WML-first" semantics; WML on ingress is an optional parse path, not canonical meaning
 
 ## Relationship to neighboring systems
 
-- [`../componentRender.ts`](../componentRender.ts): renderer-facing merged room view (do not use as the
-  passive default for generation context)
 - [`../affordanceRoomDeliverable.ts`](../affordanceRoomDeliverable.ts): affordance-channel room deliverable compose (perception terminal only)
-- [`../roomWireMergeHelpers.ts`](../roomWireMergeHelpers.ts): shared WML merge helpers used by **`ComponentRender`** and **`GenerationContext`**
+- [`../roomWireMergeHelpers.ts`](../roomWireMergeHelpers.ts): shared WML merge helpers used by **`GenerationContext`** and **`AffordanceRoomDeliverable`**
 - [`../../dataSource/renderOrchestration/generateRoomPreview.ts`](../../dataSource/renderOrchestration/generateRoomPreview.ts):
   **owns** passive slow-path context resolution: parses optional ingress `generationContextWml` when
   present and valid; otherwise loads this cache via `GenerationContext.get(roomId, assetStack)` and
@@ -63,4 +61,4 @@ provenance metadata. Add fields explicitly as generation inputs, not as copies o
   thus different merged short names when metadata differs by asset).
 - Passive generation succeeds when `generationContextWml` is omitted but this cache can derive a short
   name; `CONTEXT_REQUIRED` when neither ingress WML nor cache yields usable context.
-- Prompt path does not assume `ComponentRender` triplets for grounding on the passive orchestration path.
+- Prompt path does not assume render-delivery triplets for grounding on the passive orchestration path.

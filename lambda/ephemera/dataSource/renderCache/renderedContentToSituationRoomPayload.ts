@@ -20,7 +20,7 @@ function normalizeCacheDisplayName(displayName: unknown): string | undefined {
 
 /**
  * Map durable renderCache `renderedContent` to room `<Render>` facet payload (displayName / summary / description).
- * Returns undefined when the facet would be empty (same rules as ComponentRender room + cache row).
+ * Returns undefined when the facet would be empty (same rules as render-cache first-row room prose).
  */
 export function situationRoomRenderPayloadFromCacheRenderedContent(
     renderedContent: EphemeraCacheRenderedContent

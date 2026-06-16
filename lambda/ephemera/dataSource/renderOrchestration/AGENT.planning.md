@@ -47,7 +47,7 @@ The v1 direction exposed a mismatch: the pipeline is **asynchronous and multi-st
 
 **Phase B: Orchestrator handlers** --- (1) Request: read `Meta::Room`, perspective key, validate pointer in `currentCacheByPerspective`. (2) Slow-path: markState, exact-match in renderCache, emit `RenderReady` on hit. (3) Generation-start: on miss + allowed generation, emit `RenderGenerationStarted`, start async generation. (4) Generation-completion: persist cache row/pointers, emit completion then `RenderReady` (or combined).
 
-**Phase C: Perception integration** --- On `RenderGenerationStarted`: placeholder header/message (Room first). On `RenderReady`: enrich and send final; drop stale perception/`componentRender` when completion replaces placeholder (distinct from Meta::Room pointer maintenance in orchestration).
+**Phase C: Perception integration** --- On `RenderGenerationStarted`: placeholder header/message (Room first). On `RenderReady`: enrich and send final; drop stale perception when completion replaces placeholder (distinct from Meta::Room pointer maintenance in orchestration). (`ComponentRender` retired.)
 
 **Phase D: Tests** --- Lifecycle ordering: generation-start before completion; ready after cache write + `currentCacheByPerspective` update; placeholder then final header; generation failure handling.
 

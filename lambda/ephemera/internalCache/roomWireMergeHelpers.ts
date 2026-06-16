@@ -1,5 +1,5 @@
 /**
- * Shared room WML merge helpers for render-path composition (ComponentRender, GenerationContext).
+ * Shared room WML merge helpers for render-path composition (GenerationContext, AffordanceRoomDeliverable).
  * Not used for affordance terminal deliverables (see affordanceRoomDeliverable.ts).
  */
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'

@@ -19,7 +19,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | File | Role |
 | --- | --- |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared navigate execution (membership apply + orchestrate when `changed`) |
-| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (`characterMove` header, render kicks, `MapUpdate`) |
+| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (`characterMove` header, render kicks) |
 
 ### `membership/` (slice 2 graph persist + fact emit)
 
@@ -58,7 +58,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects; multi-from) |
 | [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Graph-diff fact builder (including multi-from) |
 | [`navigate/executeCharacterNavigate.test.ts`](navigate/executeCharacterNavigate.test.ts) | Apply + orchestrate routing on `changed` |
-| [`navigate/orchestrateNavigate.test.ts`](navigate/orchestrateNavigate.test.ts) | Post-persist `MapUpdate` / `characterMove` registration |
+| [`navigate/orchestrateNavigate.test.ts`](navigate/orchestrateNavigate.test.ts) | Post-persist `characterMove` registration (no `MapUpdate`) |
 
 ---
 
@@ -74,7 +74,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | Concern | Location |
 | --- | --- |
 | Shared navigate execution (persist + orchestrate) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
-| Post-persist presentation (targeting-only `characterMove` header, render kicks, `MapUpdate`) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** (singular bridge: **`froms[0]`** for `MapUpdate.previousRoomId`) |
+| Post-persist presentation (targeting-only `characterMove` header, render kicks) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
 | Leave/arrive world copy (navigate + disconnect + connect) | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in |
 

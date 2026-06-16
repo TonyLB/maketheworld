@@ -147,7 +147,6 @@ See [`../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.m
 - **[Internal Cache](lambda/ephemera/internalCache/AGENT.md)**: Caching system overview
 - **[Component Data](lambda/ephemera/internalCache/componentData.AGENT.md)**: Blueprint component bodies from assetDB (pair-addressed reads)
 - **[Component Ephemera Meta](lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md)**: EphemeraDB `Meta::Room` read-through cache (`EphemeraMetaRoom`)
-- **[Component Render](lambda/ephemera/internalCache/componentRender.AGENT.md)**: Component rendering pipeline
 - **[Examples](lambda/ephemera/internalCache/examples.AGENT.md)**: Example system and future vision
 - **[Perception](lambda/ephemera/perception/AGENT.md)**: Message routing and display engine
 

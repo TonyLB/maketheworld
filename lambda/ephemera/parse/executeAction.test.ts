@@ -60,9 +60,6 @@ describe('executeAction', () => {
         mockSendActionAssessed.mockClear()
         internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
         internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
-        internalCacheMock.ComponentRender = {
-            get: jest.fn().mockResolvedValue({ schema: {} }),
-        } as any
     })
 
     describe('look action', () => {

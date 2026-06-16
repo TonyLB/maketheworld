@@ -50,14 +50,11 @@ import { CacheBase as GraphCacheBase, GraphDBHandler } from '@tonylb/mtw-utiliti
 import withPrimitives from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/primitives';
 import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
-import ComponentRenderData from './componentRender';
 import AffordanceRoomDeliverableData from './affordanceRoomDeliverable';
-import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import { AffordanceCacheData } from './affordanceCache';
-import { getRoomCharacterList } from './hydrateRoomRoster';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
@@ -110,10 +107,8 @@ export class InternalCache {
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
     
-    ComponentRender: ComponentRenderData;
     AffordanceRoomDeliverable: AffordanceRoomDeliverableData;
     GenerationContext: GenerationContextData;
-    CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
     constructor() {
         this.CoyoteGame = new CacheCoyoteGameData({
@@ -141,13 +136,6 @@ export class InternalCache {
         this.GraphNodes = this._graphCache.Nodes
         this.GraphEdges = this._graphCache.Edges
         // AssetMap removed - was used for Variable/Computed dependency resolution
-        this.ComponentRender = new ComponentRenderData(
-            this.ComponentData,
-            getRoomCharacterList,
-            this.Global,
-            this.CharacterMeta,
-            this.RenderCache
-        )
         this.ComponentAggregate = createComponentAggregateCacheHandler({
             ComponentData: this.ComponentData,
             ComponentVerticals: this.ComponentVerticals,
@@ -167,7 +155,6 @@ export class InternalCache {
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
         }
-        this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
     }
 
     clear() {
@@ -194,10 +181,8 @@ export class InternalCache {
         this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
-        this.ComponentRender.clear()
         this.AffordanceRoomDeliverable.clear()
         this.GenerationContext.clear()
-        this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
         this.AffordanceCache.clear()
@@ -216,7 +201,6 @@ export class InternalCache {
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),
             this.AssetMetaData.flush(),
-            this.ComponentRender.flush(),
             this.AffordanceRoomDeliverable.flush(),
             this.GenerationContext.flush(),
             this.RenderCache.flush(),
