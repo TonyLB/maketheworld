@@ -17,7 +17,7 @@
 
 | Retired path | Notes |
 | --- | --- |
-| **`ComponentRender` map branch** | `MAP#` calls throw `MAP_SERVER_RENDER_RETIRED` |
+| **Server map render** | Retired; `MAP#` calls throw `MAP_SERVER_RENDER_RETIRED` |
 | **`CharacterPossibleMaps`** | Graph-based map discovery removed |
 | **Perception `MAP#` -> `EphemeraUpdate` MapUpdate** | No map fanout from imperative perception |
 | **Navigate `MapUpdate` publish** | `orchestrateCharacterNavigate` does not emit move-time map updates |
@@ -37,12 +37,12 @@
 
 ## Future redesign
 
-Reactivation requires a new server module (likely a future `mtw.ephemera.maps` DataSource), not restoring deleted `ComponentRender` merge logic or `CharacterPossibleMaps` graph descent. Expect area-topology-aligned projections and explicit perspective handling, similar to affordance cache patterns.
+Reactivation requires a new server module (likely a future `mtw.ephemera.maps` DataSource), not restoring deleted map merge logic or `CharacterPossibleMaps` graph descent. Expect area-topology-aligned projections and explicit perspective handling, similar to affordance cache patterns.
 
 ## Related
 
 | Doc | Role |
 | --- | --- |
 | [`../AGENT.md`](../AGENT.md) | DataSource index |
-| [`../../internalCache/componentRender.AGENT.md`](../../internalCache/componentRender.AGENT.md) | Room/Message render only |
+| [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) | Retired handlers (room render, maps) |
 | [`../../dataSource/positions/AGENT.implementation.md`](../positions/AGENT.implementation.md) | Navigate presentation (no MapUpdate) |

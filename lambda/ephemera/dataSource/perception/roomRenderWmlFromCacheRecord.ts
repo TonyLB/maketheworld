@@ -15,7 +15,7 @@ const EMPTY_ROOM_HEADER_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
 }
 
 /**
- * Render-channel WML for imperative `PerceptionRoomMessage`, aligned with `ComponentRender` + `RenderCache` first-row choice.
+ * Render-channel WML for imperative `PerceptionRoomMessage`, aligned with `RenderCache` first-row choice.
  * Uses the first `cacheRecords[0]` when non-empty; otherwise the same empty `renderedContent` as a cache miss.
  */
 export function roomRenderChannelWmlForRoomId(

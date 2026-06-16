@@ -149,8 +149,7 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
         expect(prepared.perspectiveKey).toEqual(computePerspectiveKey([]))
     })
 
-    it('does not populate generationContextWml or call ComponentRender.get', async () => {
-        const componentRenderGetSpy = jest.spyOn(internalCache.ComponentRender, 'get')
+    it('does not populate generationContextWml', async () => {
         const prepared = await prepareFeatureKnowledgeRenderForCharacter(
             'CHARACTER#Test',
             'FEATURE#Feat',
@@ -158,7 +157,5 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
         )
 
         expect(prepared.renderCommand.generationContextWml).toBeUndefined()
-        expect(componentRenderGetSpy).not.toHaveBeenCalled()
-        componentRenderGetSpy.mockRestore()
     })
 })

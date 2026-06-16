@@ -158,7 +158,7 @@ Displays room descriptions to characters:
 **Behavior:**
 - **Character Targeting**: Sends to specific character or all characters in room
 - **Description Types**: Full room description or header-only based on `header` flag (`displayMode` on the **`PublishMessage`**)
-- **Render body (room)**: **`wmlContent`** is built from **`internalCache.RenderCache`** and [`roomRenderChannelWmlForRoomId`](../dataSource/perception/roomRenderWmlFromCacheRecord.ts) (cache-backed prose for **`roomChannel: 'render'`**), not **`ComponentRender.get`**
+- **Render body (room)**: **`wmlContent`** is built from **`internalCache.RenderCache`** and [`roomRenderChannelWmlForRoomId`](../dataSource/perception/roomRenderWmlFromCacheRecord.ts) (cache-backed prose for **`roomChannel: 'render'`**)
 - **Real-time Updates**: Provides immediate room information
 
 #### **Special Header Message Behavior**
@@ -212,8 +212,9 @@ Displays component descriptions. **Character** is the only component type still 
 The perception system heavily leverages the internalCache for efficient data access:
 
 - **ComponentData**: Retrieves blueprint component bodies across assets ([`../internalCache/componentData.AGENT.md`](../internalCache/componentData.AGENT.md))
-- **ComponentRender**: Room and Message only; **`MAP#`** throws **`MAP_SERVER_RENDER_RETIRED`** ([`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md)). **room** **`PerceptionMessage`** on the render channel and **Feature / Knowledge** **`PerceptionComponentMessage`** use **RenderCache** + perception WML helpers, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**). Command parse exit context uses **`AffordanceCache`**, not **`ComponentRender`**.
-- **RenderCache**: Request-scoped room cache rows for imperative room perception WML (see **`roomRenderChannelWmlForRoomId`**)
+- **RenderCache**: Room/F/K cache rows for imperative and correlated render-channel WML (see **`roomRenderChannelWmlForRoomId`**)
+- **AffordanceRoomDeliverable**: Perspective-scoped structural room WML for affordance channel ([`../internalCache/AGENT.md`](../internalCache/AGENT.md))
+- **GenerationContext**: LLM grounding (merged room shortName) for passive render generation
 - **CharacterMeta**: Gets character information and asset access
 - **RoomCharacterList**: Finds characters in specific rooms
 - **Global**: Accesses system-wide asset information

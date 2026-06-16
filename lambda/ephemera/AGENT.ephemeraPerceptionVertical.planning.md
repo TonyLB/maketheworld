@@ -19,7 +19,7 @@ This is **not** only the [`perception/`](perception/) folder. It **includes** or
 | [`conversations/`](conversations/) | Correlation (`conversationId`), composite handles, `sendMessage`, staging for multi-step UX |
 | [`perception/`](perception/) | Enrichment and delivery into the chat spine; future **fan-in** assembler role |
 | [`messageBus/`](messageBus/) | Internal typed messages vs `StreamingEvent` DataSource envelopes; graduation targets |
-| [`internalCache/`](internalCache/) | Read-through caches, `ComponentRender`, `RenderCache`, etc. |
+| [`internalCache/`](internalCache/) | Read-through caches, `RenderCache`, `AffordanceRoomDeliverable`, etc. (`ComponentRender` retired) |
 
 ## Epic goal (as discovered)
 

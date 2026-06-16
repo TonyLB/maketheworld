@@ -56,11 +56,8 @@ export const perceptionMessage = async ({ payloads, messageBus }: PerceptionPara
                 ? [payload.characterId]
                 : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => EphemeraId)
             await Promise.all(characterList.map(async (characterId) => {
-                const roomDescribe = await internalCache.ComponentRender.get(
-                    characterId,
-                    payload.ephemeraId,
-                    { header: payload.header }
-                )
+                const cacheRows = await internalCache.RenderCache.get(payload.ephemeraId)
+                const wmlContent = roomRenderChannelWmlForRoomId(payload.ephemeraId, cacheRows)
                 messageBus.send({
                     type: 'PublishMessage',
                     displayProtocol: 'PerceptionMessage',
@@ -156,7 +153,7 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 **Processing Logic:**
 1. If `characterId` specified: send to that character only
 2. If no `characterId`: get all characters in room via `RoomCharacterList.get(roomId)`
-3. For each present character: render room description using `ComponentRender.get()`
+3. For each present character: build render-channel WML from `RenderCache` via `roomRenderWmlFromCacheRecord`
 4. Send `PerceptionMessage` via message bus
 
 #### **Component Perception**
@@ -173,7 +170,7 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 **Processing Logic:**
 1. Validate character and component existence
 2. Check character permissions for component access
-3. Render component description via `ComponentRender.get(characterId, ephemeraId)`
+3. Correlated delivery via `mtw.ephemera.perception` (`Render Pertains` terminal WML from `renderCache`)
 4. Send appropriately formatted message (`FeatureDescription`, `KnowledgeDescription`, etc.)
 
 ### Movement Events *(legacy)*
@@ -228,14 +225,16 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 
 ### Presence-Dependent Caches
 
-#### **ComponentRender Cache**
-- **Population**: Only when characters request perception
-- **Invalidation**: When underlying assets change AND characters are present
-- **Scope**: Character-specific (different characters may see different content)
+#### **RenderCache and compose caches**
+- **RenderCache**: Populated by render orchestration hydrate; read for room/F/K prose WML
+- **AffordanceRoomDeliverable**: Per-invocation compose memo for affordance-channel structural WML
+- **GenerationContext**: Per-invocation shortName cache for LLM grounding
+- **Invalidation**: Gateway cache handlers clear/flush per lambda invocation; Dynamo memo patches on write paths
 
 ```typescript
-// Only cache when actually needed for character perception
-const renderResult = await internalCache.ComponentRender.get(characterId, ephemeraId)
+// Room render-channel prose (imperative and correlated paths)
+const cacheRows = await internalCache.RenderCache.get(roomId)
+const wmlContent = roomRenderChannelWmlForRoomId(roomId, cacheRows)
 ```
 
 #### **RoomCharacterList Cache**

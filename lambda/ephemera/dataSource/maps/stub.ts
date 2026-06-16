@@ -11,7 +11,7 @@ export type EmptyMapSnapshot = {
  * Steady-state contract:
  * - SubscribeToMaps ack returns empty snapshots via {@link emptyMapSnapshotForCharacter}.
  * - Move-time MapUpdate is not emitted from navigate orchestration.
- * - ComponentRender and graph-based map discovery throw {@link MAP_SERVER_RENDER_RETIRED}.
+ * - Map render and graph-based map discovery throw {@link MAP_SERVER_RENDER_RETIRED}.
  *
  * See [`AGENT.md`](./AGENT.md).
  */

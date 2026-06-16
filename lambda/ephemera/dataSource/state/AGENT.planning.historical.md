@@ -1,5 +1,7 @@
 *Status: HISTORICAL - consolidated v1-era Room-state planning; former v2 stub superseded.*
 
+> **Note (2026):** `ComponentRender` has been retired. References below are historical; steady-state room render uses `RenderCache` + perception WML helpers.
+
 ## Consolidation note (2026)
 
 This file **replaces** the former `AGENT.v1.planning.md` and the removed **stub** `AGENT.v2.planning.md`. The **message-bus orchestration** narrative that lived in the v2 stub is maintained only in [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (*Folded: state v2 orchestration plan*). **Active** `mtw.ephemera.state` and state-domain event work: [`AGENT.planning.perceptionVertical.md`](./AGENT.planning.perceptionVertical.md).

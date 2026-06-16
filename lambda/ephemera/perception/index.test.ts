@@ -117,11 +117,10 @@ describe('Perception message', () => {
             perspectiveMatcher: { assetStack: [] } as any,
         }
 
-        it('builds wml from RenderCache first row (no ComponentRender get)', async () => {
+        it('builds wml from RenderCache first row', async () => {
             const renderCacheGet = jest.fn().mockResolvedValue([sampleCacheRow])
             const mockInternalCache = {
                 RenderCache: { get: renderCacheGet },
-                ComponentRender: { get: jest.fn() },
             } as any
 
             await perceptionMessage({
@@ -138,7 +137,6 @@ describe('Perception message', () => {
             })
             await messageBus.flushAndSettle()
 
-            expect(mockInternalCache.ComponentRender.get).not.toHaveBeenCalled()
             expect(renderCacheGet).toHaveBeenCalledWith(roomId)
             const expectedWml = roomHeaderChannelWmlForRoomId(roomId, [sampleCacheRow])
             expect(publishMessageMock).toHaveBeenCalledWith(
@@ -165,7 +163,6 @@ describe('Perception message', () => {
             const renderCacheGet = jest.fn().mockResolvedValue([])
             const mockInternalCache = {
                 RenderCache: { get: renderCacheGet },
-                ComponentRender: { get: jest.fn() },
             } as any
             const expectedWml = roomRenderChannelWmlForRoomId(roomId, [])
 
