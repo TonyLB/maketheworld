@@ -197,18 +197,135 @@ describe('routeTrustedUiAction', () => {
         })
     })
 
-    describe('unhandled action types', () => {
-        it('returns false for speech actions', () => {
+    describe('speech actions', () => {
+        it('should send Action Assessed CharacterSpoke for SayMessage', () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'SayMessage',
                 payload: {
                     CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
-                    Message: 'Hello'
-                }
+                    Message: 'Hello',
+                },
             }
 
-            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(false)
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'CharacterSpoke',
+                        message: 'Hello',
+                        displayProtocol: 'SayMessage',
+                        confidence: 1,
+                    },
+                    source: 'uiSpeech',
+                }
+            )
+        })
+
+        it('should send Action Assessed CharacterSpoke for NarrateMessage', () => {
+            const request: ActionAPIMessage = {
+                message: 'action',
+                actionType: 'NarrateMessage',
+                payload: {
+                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
+                    Message: 'The character waves.',
+                },
+            }
+
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                expect.objectContaining({
+                    assessed: {
+                        type: 'CharacterSpoke',
+                        message: 'The character waves.',
+                        displayProtocol: 'NarrateMessage',
+                        confidence: 1,
+                    },
+                    source: 'uiSpeech',
+                })
+            )
+        })
+
+        it('should send Action Assessed CharacterSpoke for OOCMessage', () => {
+            const request: ActionAPIMessage = {
+                message: 'action',
+                actionType: 'OOCMessage',
+                payload: {
+                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
+                    Message: 'Out of character',
+                },
+            }
+
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                expect.objectContaining({
+                    assessed: {
+                        type: 'CharacterSpoke',
+                        message: 'Out of character',
+                        displayProtocol: 'OOCMessage',
+                        confidence: 1,
+                    },
+                    source: 'uiSpeech',
+                })
+            )
+        })
+
+        it('noop for empty speech message', () => {
+            const request: ActionAPIMessage = {
+                message: 'action',
+                actionType: 'SayMessage',
+                payload: {
+                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
+                    Message: '   ',
+                },
+            }
+
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
+            expect(mockSendActionAssessed).not.toHaveBeenCalled()
+        })
+
+        it('forwards requestId when provided', () => {
+            const request: ActionAPIMessage = {
+                message: 'action',
+                actionType: 'SayMessage',
+                payload: {
+                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
+                    Message: 'Hello',
+                },
+            }
+
+            expect(routeTrustedUiAction(MockMessageBus, request, 'req-speech')).toBe(true)
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                expect.objectContaining({
+                    requestId: 'req-speech',
+                    source: 'uiSpeech',
+                })
+            )
+        })
+    })
+
+    describe('unhandled action types', () => {
+        it('returns true for unknown action types without sending Action Assessed', () => {
+            const request = {
+                message: 'action',
+                actionType: 'unknownAction',
+                payload: {},
+            } as unknown as ActionAPIMessage
+
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
             expect(mockSendActionAssessed).not.toHaveBeenCalled()
         })
     })

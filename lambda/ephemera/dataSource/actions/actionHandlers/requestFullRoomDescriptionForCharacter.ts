@@ -59,7 +59,7 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
 
 /**
  * Register a `roomDescription` perception thread and request a render for the full (non-header) room view,
- * matching the legacy `executeAction` `look` path when `EphemeraId` is a room.
+ * matching the trusted UI `look` path when `EphemeraId` is a room.
  */
 export async function requestFullRoomDescriptionForCharacter(
     bus: MessageBusLike,

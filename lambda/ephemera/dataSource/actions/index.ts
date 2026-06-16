@@ -19,6 +19,7 @@ import {
 } from './subscribedEvents'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import messageBus from '../../messageBus'
+import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
@@ -27,6 +28,7 @@ import {
     type ParseCommandResult,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandCharacterSpokeResult,
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
@@ -322,6 +324,23 @@ const publishStreamEventsForIntent = async (
                 componentId: parseResult.componentId,
                 confidence: parseResult.confidence,
                 ...(parseResult.directResponse ? { directResponse: true } : {}),
+            },
+        })
+    }
+    else if (isParseCommandCharacterSpokeResult(parseResult)) {
+        const { RoomId } = await internalCache.CharacterMeta.get(characterId) || {}
+        if (!RoomId) {
+            return
+        }
+        await streamEvent({
+            streamKey: characterId,
+            header: { type: 'Character Spoke' },
+            update: {
+                type: 'Character Spoke',
+                characterId,
+                message: parseResult.message,
+                displayProtocol: parseResult.displayProtocol,
+                confidence: parseResult.confidence,
             },
         })
     }

@@ -8,7 +8,7 @@ export const handleCharacterSpoke = async (
     messageBus: Pick<MessageBus, 'publish'>,
     payload: CharacterSpokePublishedPayload,
 ): Promise<void> => {
-    const { characterId, message, displayProtocol, requestId } = payload
+    const { characterId, message, displayProtocol } = payload
     const { RoomId, Name, Color = defaultColorFromCharacterId(characterId) } = await internalCache.CharacterMeta.get(characterId) || {}
     if (!RoomId) {
         return
@@ -22,14 +22,4 @@ export const handleCharacterSpoke = async (
         name: Name || '',
         color: (Color || 'grey') as LegalCharacterColor,
     })
-    if (requestId) {
-        messageBus.publish({
-            type: 'ReturnValue',
-            body: {
-                messageType: 'Success',
-                RequestId: requestId,
-                message: 'character_spoke_handled',
-            },
-        })
-    }
 }

@@ -87,8 +87,6 @@ export type CharacterSpokePublishedPayload = {
     displayProtocol: CharacterSpeechDisplayProtocol;
     /** Parse confidence when emitted from typed commands; omit for trusted UI. */
     confidence?: number;
-    /** When set, narration emits correlated ReturnValue Success. */
-    requestId?: string;
 }
 
 export const isCharacterSpokePublishedPayload = (
@@ -117,9 +115,6 @@ export const isCharacterSpokePublishedPayload = (
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
             return false
         }
-    }
-    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
-        return false
     }
     return true
 }

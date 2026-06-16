@@ -133,27 +133,4 @@ describe('handleCharacterSpoke', () => {
 
         expect(MockMessageBus.publish).not.toHaveBeenCalled()
     })
-
-    it('publishes correlated ReturnValue when requestId is set', async () => {
-        internalCacheMock.CharacterMeta.get.mockResolvedValue({
-            EphemeraId: 'CHARACTER#123',
-            Name: 'TestCharacter',
-            RoomId: 'ROOM#456' as EphemeraRoomId,
-            RoomStack: [],
-            HomeId: 'ROOM#HOME',
-            assets: [],
-            Color: 'blue',
-        })
-
-        await handleCharacterSpoke(MockMessageBus, basePayload({ requestId: 'req-1' }))
-
-        expect(MockMessageBus.publish).toHaveBeenCalledWith({
-            type: 'ReturnValue',
-            body: {
-                messageType: 'Success',
-                RequestId: 'req-1',
-                message: 'character_spoke_handled',
-            },
-        })
-    })
 })

@@ -49,7 +49,7 @@ describe('app handler', () => {
     })
 
     describe('action message handling', () => {
-        it('should route action messages to messageBus.publish with ExecuteActionMessage', async () => {
+        it('should route SayMessage action messages to sendActionAssessed CharacterSpoke', async () => {
             const actionMessage = {
                 message: 'action',
                 actionType: 'SayMessage',
@@ -68,10 +68,23 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'CharacterSpoke',
+                        message: 'Hello world',
+                        displayProtocol: 'SayMessage',
+                        confidence: 1,
+                    },
+                    source: 'uiSpeech',
+                }
+            )
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
             expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
         })
 
@@ -109,10 +122,9 @@ describe('app handler', () => {
                     source: 'uiExit',
                 }
             )
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
         })
 
         it('should route look action messages to sendActionAssessed LookComponent', async () => {
@@ -147,10 +159,9 @@ describe('app handler', () => {
                     source: 'uiLook',
                 }
             )
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
         })
 
         it('should route home action messages to sendActionAssessed Home', async () => {
@@ -183,10 +194,9 @@ describe('app handler', () => {
                     source: 'uiHome',
                 }
             )
-            expect(mockMessageBus.publish).not.toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: actionMessage
-            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'ExecuteAction' })
+            )
         })
     })
 

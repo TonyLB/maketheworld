@@ -245,12 +245,7 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isActionAPIMessage(request)) {
-                if (!routeTrustedUiAction(messageBus, request)) {
-                    messageBus.publish({
-                        type: 'ExecuteAction',
-                        action: request
-                    })
-                }
+                routeTrustedUiAction(messageBus, request, request.RequestId)
             }
 
             if (isEphemeraApiStateChangeAPIMessage(request)) {

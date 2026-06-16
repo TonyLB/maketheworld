@@ -58,7 +58,14 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 1. Extend **`ActionAssessedCommand.assessed`** union and **`isActionAssessedCommand`** in [`../localApiEvents.ts`](../localApiEvents.ts).
 2. Add **`sendActionAssessed`** callers only from trusted server ingress (never raw websocket payloads).
 3. Branch in [`index.ts`](index.ts) **`handleActionAssessed`** / shared **`processAssessedParseResult`** tail --- skip **`CommandTranscriptMessage`**.
-4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation, **`Character Home`** for home).
+4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation, **`Character Home`** for home, **`Character Spoke`** for speech).
+
+### `CharacterSpoke` steady-state
+
+1. Trusted UI **`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`** ingress via [`routeTrustedUiAction`](../routeTrustedUiAction.ts) -> **`sendActionAssessed`** with **`CharacterSpoke`** and `source: 'uiSpeech'`.
+2. [`index.ts`](index.ts) checks **`CharacterMeta.RoomId`**; if absent, silent noop (legacy parity).
+3. Else **`streamEvent`** **`Character Spoke`**; [`mtw.ephemera.narration`](../narration/AGENT.md) publishes room **`PublishMessage`**.
+4. **`ReturnValue`** only when **`requestId`** is present on **`Action Assessed`** (no bare **`Success`** without **`RequestId`**).
 
 ### `Home` steady-state
 

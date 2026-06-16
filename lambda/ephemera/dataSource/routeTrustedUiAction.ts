@@ -7,13 +7,42 @@ import {
 import type { MessageBus } from '../messageBus/baseClasses'
 import { sendActionAssessed } from './apiEphemera'
 
+type SpeechActionType = 'SayMessage' | 'NarrateMessage' | 'OOCMessage'
+
+const isSpeechActionType = (actionType: string): actionType is SpeechActionType => (
+    actionType === 'SayMessage' || actionType === 'NarrateMessage' || actionType === 'OOCMessage'
+)
+
+const routeSpeechAction = (
+    bus: Pick<MessageBus, 'publish'>,
+    request: ActionAPIMessage & { actionType: SpeechActionType },
+    requestId?: string,
+): boolean => {
+    const message = request.payload.Message
+    if (typeof message !== 'string' || message.trim().length === 0) {
+        return true
+    }
+    sendActionAssessed(bus, request.payload.CharacterId, {
+        characterId: request.payload.CharacterId,
+        assessed: {
+            type: 'CharacterSpoke',
+            message,
+            displayProtocol: request.actionType,
+            confidence: 1,
+        },
+        source: 'uiSpeech',
+        ...(requestId ? { requestId } : {}),
+    })
+    return true
+}
+
 /**
- * Trusted UI `action` ingress for look, move, and home.
- * Returns true when handled; false so app.ts can fall through to ExecuteAction (speech).
+ * Trusted UI `action` ingress for look, move, home, and speech.
  */
 export function routeTrustedUiAction(
     bus: Pick<MessageBus, 'publish'>,
     request: ActionAPIMessage,
+    requestId?: string,
 ): boolean {
     switch (request.actionType) {
         case 'look': {
@@ -64,6 +93,9 @@ export function routeTrustedUiAction(
             })
             return true
         default:
-            return false
+            if (isSpeechActionType(request.actionType)) {
+                return routeSpeechAction(bus, request as ActionAPIMessage & { actionType: SpeechActionType }, requestId)
+            }
+            return true
     }
 }
