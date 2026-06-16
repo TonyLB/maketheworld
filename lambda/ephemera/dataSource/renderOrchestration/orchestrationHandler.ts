@@ -8,12 +8,11 @@
  * stay co-located with planning docs (`AGENT.planning.md`, etc.) in this directory.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { RenderRequested } from '../../messageBus/baseClasses'
-import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import { isEphemeraCacheDynamoItem, type EphemeraCacheComponentId, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/utils/markState'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { getIntakeOrchestrationErrorIfAny } from './intakeErrors'
@@ -32,13 +31,13 @@ import { ensureAuthoredCatalog } from '../renderCache/ensureAuthoredCatalog'
 import internalCache from '../../internalCache'
 
 export type OrchestrationHandlerDependencies = {
-    getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
+    getCacheRecordById?: (componentId: EphemeraCacheComponentId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
     getExactMatch?: (input: {
-        componentId: EphemeraRoomId;
+        componentId: EphemeraCacheComponentId;
         proposedMarkState: EphemeraCacheMarkState;
         perspective: Perspective;
     }) => Promise<EphemeraCacheDynamoItem | null>;
-    clearPerspectivePointer?: (roomId: EphemeraRoomId, perspectiveKey: string) => Promise<void>;
+    clearPerspectivePointer?: (componentId: EphemeraCacheComponentId, perspectiveKey: string) => Promise<void>;
     computePerspectiveKey?: typeof defaultComputePerspectiveKey;
     markStatesEqual?: typeof markStatesEqual;
     /** Override for tests; default is {@link generateRoomPreview}. */
@@ -63,18 +62,18 @@ type OrchestrationHandlerDepsResolved = {
 };
 
 export const defaultGetCacheRecordById = async (
-    roomId: EphemeraRoomId,
+    componentId: EphemeraCacheComponentId,
     cacheId: EphemeraCacheId
 ): Promise<EphemeraCacheDynamoItem | undefined> => {
     const item = await ephemeraDB.getItem({
-        Key: { EphemeraId: roomId, DataCategory: cacheId },
+        Key: { EphemeraId: componentId, DataCategory: cacheId },
         getAllFields: true
     })
     return isEphemeraCacheDynamoItem(item) ? item : undefined
 }
 
-export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, perspectiveKey: string): Promise<void> => {
-    await clearCatalogPerspectivePointer(roomId, perspectiveKey)
+export const defaultClearPerspectivePointer = async (componentId: EphemeraCacheComponentId, perspectiveKey: string): Promise<void> => {
+    await clearCatalogPerspectivePointer(componentId, perspectiveKey)
 }
 
 /**
@@ -139,14 +138,14 @@ export const orchestrateRenderRequest = async (
 
     const pkAfterIntake = orchDeps.computePerspectiveKey(intake.perspective.assetStack)
     console.log('[mtw.ephemera.renderOrchestration] Render Requested intake ok', {
-        roomId: intake.roomId,
+        componentId: intake.componentId,
         perspectiveKey: pkAfterIntake,
         perspectiveAssetStack: intake.perspective.assetStack,
         hasPointerHint: intake.pointerHint !== undefined,
     })
 
     await orchDeps.ensureAuthoredCatalog({
-        componentId: intake.roomId,
+        componentId: intake.componentId,
         perspective: intake.perspective,
     })
 

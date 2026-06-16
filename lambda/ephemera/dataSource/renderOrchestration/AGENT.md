@@ -29,8 +29,8 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 
 ## What passive orchestration does today
 
-1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room full-look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) + [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`), and to **`mtw.connections` `Character Registered`** (session orientation render channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationRender`** then runs orchestration directly; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
-2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`ensureAuthoredCatalog`** (catalog create + hydrate when stale), then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Look** and **session orientation render** register the perception thread via **`internalCache.PerceptionThreads.register`** in the handler, then **`await orchestrateRenderRequest({ payload, streamEvent })`** in the same `receiveEvents` invocation (same pattern as [Passive state fan-out](#passive-state-fan-out-s--a-union-p)); no bus **`Render Requested`** self-subscribe.
+1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room + Feature/Knowledge look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) branches on `componentId`; [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`), and to **`mtw.connections` `Character Registered`** (session orientation render channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationRender`** then runs orchestration directly; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
+2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts` --- branches on room vs Feature/Knowledge host), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`ensureAuthoredCatalog`** (catalog create + hydrate when stale), then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Look** and **session orientation render** register the perception thread via **`internalCache.PerceptionThreads.register`** in the handler, then **`await orchestrateRenderRequest({ payload, streamEvent })`** in the same `receiveEvents` invocation (same pattern as [Passive state fan-out](#passive-state-fan-out-s--a-union-p)); no bus **`Render Requested`** self-subscribe.
 3. Publishes **six outbound** payload types on **`mtw.ephemera.renderOrchestration`** (union in [`publishedEvents.ts`](publishedEvents.ts)): **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**. Outbounds use **`outboundBusDelivery: 'publish'`** on the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers (no producer-side scoped flush).
 
 ### Ingress styles
@@ -86,7 +86,7 @@ After fast-path checks (pointer, exact match, policy gates), concurrent callers 
 | `intakeErrors.ts` (intake failure before `findRender`) | **`Orchestration Error`** |
 | `findRender.ts` pointer branch valid | **`Current Cache Valid`** |
 | `findRender.ts` exact match | **`Exact Match Found`** |
-| `findRender.ts` miss, `allowGeneration === false` | **`Generation Deferred`** |
+| `findRender.ts` miss, `allowGeneration === false` or non-room host | **`Generation Deferred`** |
 | `generateRoomPreview.ts` bad / missing context | **`Orchestration Error`** (`CONTEXT_REQUIRED`, etc.) |
 | `generateRoomPreview.ts` LLM / generation failure | **`Orchestration Error`** |
 | `generateRoomPreview.ts` slow path (leader) | **`Generation Started`**, then **`Render Generated`** or **`Orchestration Error`** |
@@ -105,7 +105,7 @@ Order used for the pass-through slice (keeps contract tests and implementation a
 
 ## Tests and verification
 
-**Primary tests:** [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts). **Cross-layer:** [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + renderCache subscriber); [`characterRegisteredOrientation.integration.test.ts`](../characterRegisteredOrientation.integration.test.ts) (`Character Registered` ingress -> render channel -> `CHARACTER#` terminal).
+**Primary tests:** [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts). **Cross-layer:** [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + renderCache subscriber; room and **`FEATURE#`** / **`KNOWLEDGE#`** exact-match hit paths); [`characterRegisteredOrientation.integration.test.ts`](../characterRegisteredOrientation.integration.test.ts) (`Character Registered` ingress -> render channel -> `CHARACTER#` terminal).
 
 **Hygiene (grep):** Under `dataSource/renderOrchestration/`, passive generation success must not call `publishPutCacheRecord` / `sendPutCacheRecord` / `defaultPublishPutCacheRecord` from `generateRoomPreview.ts`. Passive orchestration paths should not use `getRoomStateRenderHandle`, `sendMessage`, or `materializeRoomStateRender` for outcomes (see `orchestrationHandler.ts`, `findRender.ts`, `generateRoomPreview.ts`, `intakeErrors.ts`).
 
@@ -114,8 +114,61 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 ## Key concepts
 
 - **Perspective**: asset stack and `computePerspectiveKey` for cache matching.
-- **Rooms first (v2)**: event shapes use **`componentId`** so the same lifecycle can extend beyond rooms later.
+- **Feature / Knowledge perspective** (Phase A slice 2): [`prepareFeatureKnowledgeRenderForCharacter.ts`](prepareFeatureKnowledgeRenderForCharacter.ts) computes **`perspective.assetStack`** as the intersection of (1) character-visible assets (`Global.get('assets')` union **`CharacterMeta.assets`**) and (2) component import-vertical participation order from **`internalCache.ComponentVerticals`** (via **`mergeParticipationOrderFromImportVerticalHops`** in `@tonylb/mtw-gateways`). Returns **`threadRegisterCommand`** (`featureDescription` | `knowledgeDescription`) and **`renderCommand`** with **`allowGeneration: false`**. Does **not** use room asset stack or **`CharacterMeta.RoomId`**. Ingress wiring (link API, feature **`look`**, trusted UI **`look`**) is **shipped** via **`Look Command Requested`** subscription and [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts).
+- **Feature / Knowledge intake** (Phase A slice 3): [`requestIntake.ts`](requestIntake.ts) accepts **`FEATURE#`** / **`KNOWLEDGE#`** without loading **`Meta::Room`**. Sets **`markState: { markValue: [] }`**, forces **`allowGeneration: false`**, and resolves **`pointerHint`** via catalog-only **`resolvePerspectivePointer(hostId, perspectiveKey)`** (no legacy Meta fallback). Unsupported hosts (e.g. **`MAP#`**) still return **`RENDER_REQUESTED_NOT_ROOM`**.
+- **Feature / Knowledge resolve** (Phase A slice 4): [`findRender.ts`](findRender.ts) cache deps use **`componentId: EphemeraCacheComponentId`** throughout. On cache miss, F/K always emit **`Generation Deferred`** (intake forces **`allowGeneration: false`**; **`findRender`** also requires **`isEphemeraRoomId`** before **`generateRoomPreview`**). Cross-layer F/K hit path: [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+- **Rooms first (v2)**: bus and orchestration event shapes use **`componentId`**. **`RenderComponentId`** (`messageBus/baseClasses.ts`) is `ROOM#` | `FEATURE#` | `KNOWLEDGE#` | `MAP#`; shared guard **`isRenderComponentId`** is the canonical runtime check. Intake resolve input (**`RenderResolveInputSuccess`**) and **`findRender`** / handler cache deps use **`componentId: EphemeraCacheComponentId`** (room | feature | knowledge). Slow-path **`generateRoomPreview`** remains room-only.
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); **`mtw-interfaces`** not required for this internal handoff (see [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)).
+
+## Feature / Knowledge render pipeline (shipped)
+
+Authored prose delivery for **`FEATURE#`** / **`KNOWLEDGE#`** uses the same passive orchestration stack as rooms (intake -> **`ensureAuthoredCatalog`** -> **`findRender`**) with **authored-only** policy (**`allowGeneration: false`**; cache miss -> **`Generation Deferred`**, no **`generateRoomPreview`**).
+
+### End-to-end flow
+
+```text
+Trusted UI look / link (F or K)
+  -> executeAction or app.ts: sendActionAssessed { LookComponent, source: uiLook | link }
+  -> mtw.ephemera.actions: Look Command Requested
+  -> handleLookCommandRequestedForRenderOrchestration
+       -> prepareFeatureKnowledgeRenderForCharacter
+       -> PerceptionThreads.register (featureDescription | knowledgeDescription)
+       -> orchestrateRenderRequest
+  -> renderCache: Render Pertains (or orchestration: Generating / Error on slow hydrate)
+  -> perception orchestrate: Generating / Error / terminal PublishMessage (one target)
+```
+
+Trusted UI room **`look`** and typed **`look` / `l`** use **`LookRoom`** or assessed room **`LookComponent`** -> same **`Look Command Requested`** handler with **`roomDescription`** threads (see [`../perception/AGENT.md`](../perception/AGENT.md#delivery-paths-correlated-vs-imperative)).
+
+### Perspective (normative)
+
+F/K perspective is **not** derived from the viewer's current room. Room look uses room asset stack + canon filter because the host is a **Room**. Feature and Knowledge hosts use **ComponentVertical** import hops ([`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../../lambda/assets/dataSource/components/verticals/AGENT.md)).
+
+1. **Character-visible assets:** `Global.get('assets')` union **`CharacterMeta.assets`**.
+2. **Component participation set:** assets that define the **`FEATURE#`** / **`KNOWLEDGE#`** per **ComponentVertical** (import vertical for the universal identity).
+3. **`perspective.assetStack`:** **intersection** of (1) and (2), total order from vertical / gateway participation-order rules --- **not** from **`RoomAssets`** or **`CharacterMeta.RoomId`**.
+
+Knowledge (guest / out-of-room UI) and in-room feature links both use this model. **View-as** uses the **viewing** character's asset visibility intersected with the target component vertical. Implementation: [`prepareFeatureKnowledgeRenderForCharacter.ts`](prepareFeatureKnowledgeRenderForCharacter.ts) via **`internalCache.ComponentVerticals`**.
+
+### Mark state and cache selection
+
+F/K intake sets **`markState: { markValue: [] }`** (v1). Hydrate and terminal WML target D9 **`SITUATION#DEFAULT`** only ([`selectDefaultSituationCacheRecord`](../renderCache/selectDefaultSituationCacheRecord.ts)); do **not** inherit **`Meta::Room.state.marks`** from the viewer's current room.
+
+### Product constraints (vs room broadcast)
+
+Feature and Knowledge renders are **character-scoped call-and-response** (link API, feature **`look`**), not room fan-outs:
+
+- **One** **`Render Requested`** per UI action with **`characterId`** (Knowledge **`directResponse`** is still one logical request; delivery target may be **`SESSION#...`**).
+- **One** computed **`perspective`** per kick --- no **`groupCharacterRowsByPerspective`**, no state fan-out **`S = A union P`**, no fallback "all occupants with this perspectiveKey".
+- Perception threads use **`targets: [characterId]`** (or session for knowledge direct-response) without room occupancy resolution.
+
+Do **not** copy room header broadcast or state-change machinery for F/K.
+
+### Out of scope (v1)
+
+- LLM slow-path generation for Feature / Knowledge
+- State-change fan-out, passive refresh, or current-room coupling for F/K perspective
+- **`Meta::Feature`** / **`Meta::Knowledge`**
 
 ## Design intent
 

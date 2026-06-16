@@ -76,15 +76,17 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)) labels parser-manipulation tone.
 `parseCommand` skips Acme order enrich like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
 
-### `LookRoom` as reference pattern
+### `LookRoom` / `LookComponent` as reference pattern
 
-`LookRoom` is the preferred cross-DataSource pattern for affordances that need render/perception ordering:
+`LookRoom` (parsed bare `look` / `l`) and `LookComponent` (trusted UI/link with explicit `componentId`) are the preferred cross-DataSource pattern for affordances that need render/perception ordering:
 
-1. actions publishes `Look Command Requested`
+1. actions publishes `Look Command Requested` (`componentId` is the character's current room for `LookRoom`, or the trusted EphemeraId for `LookComponent`; optional `directResponse` for Knowledge links)
 2. `mtw.ephemera.renderOrchestration` subscribes
-3. orchestration registers `roomDescription` perception thread, flushes the same run-scoped lane, then sends default-lane `Render Requested`
+3. [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) registers the appropriate perception thread (`roomDescription`, `featureDescription`, or `knowledgeDescription`), then runs `orchestrateRenderRequest` in the same `receiveEvents` invocation
 
 This preserves perception-thread ordering before downstream render behavior (`Render Pertains` to terminal `PerceptionMessage`).
+
+Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAssessed`** with **`LookComponent`** (`source: uiLook` | `link`) --- not direct orchestration calls from `executeAction` or `app.ts`.
 
 ---
 

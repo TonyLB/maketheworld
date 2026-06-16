@@ -2,7 +2,9 @@
 
 ## Overview
 
-The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, features, knowledge, maps, and messages. It combines component metadata, examples, and character context to generate rich descriptions that can be displayed to users.
+The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, maps, and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites (e.g. **`parse/index.ts`** room command context, Map when re-enabled).
+
+> **Feature / Knowledge perception** no longer uses **`ComponentRender`**. Steady-state delivery is **correlated** via **`mtw.ephemera.perception`** (`featureDescription` / `knowledgeDescription` fan-in on **`Render Pertains`**); see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) and [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped). Terminal WML is built from **`cacheRecord.renderedContent`** via [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts).
 
 > **Note**: This handler follows the standard `internalCache` patterns documented in [`AGENT.md`](./AGENT.md). See that file for common patterns like DeferredCache usage, dual storage, and core methods.
 
@@ -20,7 +22,7 @@ ComponentRender serves as the **rendering pipeline** that transforms raw compone
 
 ComponentRender uses a compound cache key: `{CharacterId}::{EphemeraId}::{header}`
 - **`CharacterId`**: The character requesting the render (or 'ANONYMOUS')
-- **`EphemeraId`**: The component being rendered (Room, Feature, Knowledge, Map, Message ID)
+- **`EphemeraId`**: The component being rendered (Room, Map, Message ID)
 - **`header`**: Boolean flag for header-only rendering (optional)
 
 ## Data Structure
@@ -32,7 +34,7 @@ of the referenced data (particularly Examples) with the Component that needs tho
     tag: 'Asset',
     universalKey: 'ASSET#render',
     components: [
-        // Rendered component (Room, Feature, Knowledge, Map, Message)
+        // Rendered component (Room, Map, Message)
         // Associated examples (if available)
         // Supporting data (exits, positions, etc.)
     ]
@@ -78,16 +80,6 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 - **Prose for perception**: **`renderCache`** (Dynamo) **`renderedContent`** only, converted to **`SituationRoomFacetPayloadType`** via **`situationRoomRenderPayloadFromCacheRenderedContent`**. When there is no cache record (or the payload is empty after mapping), Room output has **no** `<Render>` for prose. The room path does **not** call **`ExamplesData`** for prose and does **not** synthesize separate Example / Situation wire children for that prose.
 - **Short Name**: Merges short names from multiple assets
 
-#### **Feature Rendering**
-
-- **Metadata Assembly**: Combines feature data from all accessible assets
-- **Prose for perception**: **`renderCache`** only (same as Room). **`selectDefaultSituationCacheRecord`** picks **`SITUATION#DEFAULT`** row; maps to **`SituationRoomFacetPayloadType`** via **`situationRoomRenderPayloadFromCacheRenderedContent`**; sets parent **`render`** on wire form (**`<Render>`**). Does **not** call **`ExamplesData`**; no synthetic **`EXAMPLE#rendered`** child.
-
-#### **Knowledge Rendering**
-
-- **Metadata Assembly**: Combines knowledge data from all accessible assets
-- **Prose for perception**: Same as Feature (**`renderCache`** + **`render`**; DEFAULT-only for v1 per **D9**).
-
 #### **Map Rendering**
 - **Position Processing**: Handles room positions and coordinates
 - **Room Integration**: Includes all rooms on the map
@@ -106,9 +98,9 @@ ComponentRender discovers accessible assets through:
 - **Asset Filtering**: Only includes assets where component appears
 
 ### **Example Integration (rooms vs other types)**
-- **Rooms / Features / Knowledge**: **`renderCache`** only for display prose in **`ComponentRender`** (see **`_resolveRenderPayloadFromDefaultCache`** for F/K; Room branch uses first cache row today).
-- **`ExamplesData`**: Removed (Phase 4). Room, Feature, and Knowledge display prose use **`renderCache`** only.
-- **Maps**: Out of F/K initiative scope.
+- **Rooms (ComponentRender)**: **`renderCache`** only for display prose in the Room branch (uses first cache row today).
+- **Feature / Knowledge (perception)**: Correlated delivery via **`mtw.ephemera.perception`** fan-in on **`Render Pertains`**; terminal WML from **`cacheRecord.renderedContent`** via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts), not **`ComponentRender`**.
+- **`ExamplesData`**: Removed (Phase 4).
 
 ## Integration Points
 
@@ -118,10 +110,8 @@ ComponentRender discovers accessible assets through:
 - See [`componentData.AGENT.md`](./componentData.AGENT.md) for details
 
 ### **Examples System**
-- Calls `examples.get()` to retrieve example descriptions for **Feature** / **Knowledge** (and similar paths), not for **Room** prose assembly.
-- **Rooms** do not use **`examples.get()`** in **`ComponentRenderData`** for display prose.
-- Future: Will implement state-based example selection
-- See [`examples.AGENT.md`](./examples.AGENT.md) for details
+- **`ComponentRenderData`** does not call **`examples.get()`** for Room display prose.
+- Feature / Knowledge display prose is assembled in **`mtw.ephemera.perception`** correlated fan-in from orchestration/cache **`Render Pertains`** (see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#correlated-feature--knowledge-description-policy) and [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts)).
 
 ### **Character System**
 - Integrates with `characterMeta` for character-specific assets
@@ -133,10 +123,8 @@ ComponentRender discovers accessible assets through:
 - Enables dynamic room descriptions based on occupancy
 
 ### **Perception System**
-- **Primary Consumer**: The perception system is the main consumer of ComponentRender output
-- **Message Generation**: Perception serializes rendered **`StandardForm`** (including **`Room.render`** as **`<Render>`**) into **`PerceptionMessage.wmlContent`** for the client, which parses with **`ephemeraWire`** (see charcoal **`messages`** / **`perceptionCache`** AGENT docs)
-- **Real-time Updates**: Provides immediate feedback through the message bus
-- See [`../perception/AGENT.md`](../perception/AGENT.md) for details on how rendered components are used
+- **Room / Feature / Knowledge perception**: Imperative **`perceptionMessage`** builds **`PerceptionMessage.wmlContent`** from **`RenderCache`** + perception WML helpers (not **`ComponentRender.get`**).
+- **Other ComponentRender consumers**: e.g. **`parse/index.ts`** (room exits/characters for command parsing), Map when **`MAP_PERCEPTION_ENABLED`** is restored.
 
 ## Legacy Code Considerations
 

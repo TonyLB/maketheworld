@@ -295,12 +295,24 @@ describe('isLookCommandRequestedPublishedPayload', () => {
     const minimal = {
         type: 'Look Command Requested' as const,
         characterId: 'CHAR#test',
-        roomId: 'ROOM#test',
+        componentId: 'ROOM#test',
         confidence: 1,
     }
 
     it('accepts a valid payload', () => {
         expect(isLookCommandRequestedPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts feature and knowledge componentId with optional directResponse', () => {
+        expect(isLookCommandRequestedPublishedPayload({
+            ...minimal,
+            componentId: 'FEATURE#door',
+        })).toBe(true)
+        expect(isLookCommandRequestedPublishedPayload({
+            ...minimal,
+            componentId: 'KNOWLEDGE#lore',
+            directResponse: true,
+        })).toBe(true)
     })
 
     it('rejects wrong or missing type', () => {
@@ -310,13 +322,23 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload(rest)).toBe(false)
     })
 
-    it('rejects non-string characterId or roomId', () => {
+    it('rejects non-string characterId or componentId', () => {
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, characterId: 1 } as unknown)).toBe(
             false,
         )
-        expect(isLookCommandRequestedPublishedPayload({ ...minimal, roomId: null } as unknown)).toBe(
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: null } as unknown)).toBe(
             false,
         )
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: 'CHARACTER#x' })).toBe(
+            false,
+        )
+    })
+
+    it('rejects invalid directResponse', () => {
+        expect(isLookCommandRequestedPublishedPayload({
+            ...minimal,
+            directResponse: 'yes' as unknown as boolean,
+        })).toBe(false)
     })
 
     it('rejects non-finite confidence', () => {

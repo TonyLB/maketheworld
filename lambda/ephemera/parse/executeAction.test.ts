@@ -66,16 +66,7 @@ describe('executeAction', () => {
     })
 
     describe('look action', () => {
-        it('should register room perception thread and send render request for room look', async () => {
-            internalCacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#123',
-                Name: 'TestCharacter',
-                RoomId: 'ROOM#456' as EphemeraRoomId,
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                HomeId: 'ROOM#HOME' as EphemeraRoomId,
-                assets: ['ASSET#one'],
-            })
-
+        it('should send Action Assessed LookComponent for room look', async () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'look',
@@ -87,32 +78,27 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(mockSendPerceptionThreadRegistered).toHaveBeenCalledWith(
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
                 MockMessageBus,
-                'ROOM#456',
-                expect.objectContaining({
-                    threadKind: 'roomDescription',
-                    componentId: 'ROOM#456',
+                'CHARACTER#123',
+                {
                     characterId: 'CHARACTER#123',
-                })
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'ROOM#456',
+                        confidence: 1,
+                    },
+                    source: 'uiLook',
+                }
             )
-            expect(mockSendRenderRequested).toHaveBeenCalledWith(
-                MockMessageBus,
-                'ROOM#456',
-                expect.objectContaining({
-                    componentId: 'ROOM#456',
-                    characterId: 'CHARACTER#123',
-                    perspective: expect.objectContaining({ assetStack: [] }),
-                })
-            )
-            const renderCommand = mockSendRenderRequested.mock.calls[0][2] as Record<string, unknown>
-            expect(renderCommand.generationContextWml).toBeUndefined()
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
             expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({ type: 'Perception' })
             )
         })
 
-        it('should handle look action with feature ID', async () => {
+        it('should send Action Assessed LookComponent for feature look', async () => {
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'look',
@@ -124,11 +110,22 @@ describe('executeAction', () => {
 
             await executeAction(MockMessageBus, request)
 
-            expect(MockMessageBus.publish).toHaveBeenCalledWith({
-                type: 'Perception',
-                characterId: 'CHARACTER#123',
-                ephemeraId: 'FEATURE#789'
-            })
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'FEATURE#789',
+                        confidence: 1,
+                    },
+                    source: 'uiLook',
+                }
+            )
+            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
         })
     })
 

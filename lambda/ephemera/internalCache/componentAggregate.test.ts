@@ -8,11 +8,16 @@ import internalCache from './index'
 
 const assetDBMock = jest.mocked(assetDB)
 
+const mockEmptyComponentDataReads = (): void => {
+    assetDBMock.getItems.mockResolvedValue([] as any)
+    assetDBMock.query.mockResolvedValue([] as any)
+}
+
 describe('InternalCache ComponentAggregate registration', () => {
     beforeEach(() => {
         internalCache.clear()
         jest.clearAllMocks()
-        assetDBMock.getItems.mockResolvedValue([] as any)
+        mockEmptyComponentDataReads()
     })
 
     it('exposes ComponentAggregate wired to ComponentData participation reads', async () => {
@@ -50,7 +55,7 @@ describe('InternalCache ComponentExamples registration', () => {
     beforeEach(() => {
         internalCache.clear()
         jest.clearAllMocks()
-        assetDBMock.getItems.mockResolvedValue([] as any)
+        mockEmptyComponentDataReads()
     })
 
     it('exposes ComponentExamples wired to ComponentAggregate', async () => {
@@ -84,7 +89,7 @@ describe('InternalCache ComponentTopology registration', () => {
     beforeEach(() => {
         internalCache.clear()
         jest.clearAllMocks()
-        assetDBMock.getItems.mockResolvedValue([] as any)
+        mockEmptyComponentDataReads()
     })
 
     it('exposes ComponentTopology wired to ComponentAggregate', async () => {

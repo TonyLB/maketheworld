@@ -1,4 +1,11 @@
-import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    EphemeraFeatureId,
+    EphemeraKnowledgeId,
+    EphemeraRoomId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     AcmeCatalogRejectionReason,
@@ -93,6 +100,15 @@ export type ParseCommandHelpResult = {
 export type ParseCommandLookRoomResult = {
     type: 'LookRoom'
     confidence: ParseCommandConfidence
+}
+
+/** Trusted component look (UI click, link API) with explicit EphemeraId. Not produced by Bedrock parse. */
+export type ParseCommandLookComponentResult = {
+    type: 'LookComponent'
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
+    confidence: ParseCommandConfidence
+    /** When true on Knowledge looks, fan-in targets SESSION#... */
+    directResponse?: boolean
 }
 
 /** Coyote Game: explicit trigger for the Coyote engine test harness. */
@@ -223,6 +239,7 @@ export type ParseCommandResult =
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandHelpResult
     | ParseCommandLookRoomResult
+    | ParseCommandLookComponentResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandUnimplementedResult
@@ -258,6 +275,25 @@ export function isParseCommandLookRoomResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandLookRoomResult {
     if (result.type !== 'LookRoom') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandLookComponentResult(
+    result: ParseCommandResult
+): result is ParseCommandLookComponentResult {
+    if (result.type !== 'LookComponent') {
+        return false
+    }
+    if (
+        !isEphemeraRoomId(result.componentId)
+        && !isEphemeraFeatureId(result.componentId)
+        && !isEphemeraKnowledgeId(result.componentId)
+    ) {
+        return false
+    }
+    if (result.directResponse !== undefined && typeof result.directResponse !== 'boolean') {
         return false
     }
     return isParseConfidence(result.confidence)

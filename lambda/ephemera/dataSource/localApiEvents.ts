@@ -10,8 +10,17 @@ import {
     type EphemeraCharacterId,
     type EphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ParseCommandHomeResult, ParseCommandNavigationResult, ParseCommandResult } from './actions/baseClasses'
-import { isParseCommandHomeResult, isParseCommandNavigationResult } from './actions/baseClasses'
+import type {
+    ParseCommandHomeResult,
+    ParseCommandLookComponentResult,
+    ParseCommandNavigationResult,
+    ParseCommandResult,
+} from './actions/baseClasses'
+import {
+    isParseCommandHomeResult,
+    isParseCommandLookComponentResult,
+    isParseCommandNavigationResult,
+} from './actions/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -73,13 +82,16 @@ export type ParseRequestedCommand = {
     requestId?: string;
 }
 
-export type ActionAssessedOutcome = ParseCommandNavigationResult | ParseCommandHomeResult
+export type ActionAssessedOutcome =
+    | ParseCommandNavigationResult
+    | ParseCommandHomeResult
+    | ParseCommandLookComponentResult
 
-/** Server-trusted pre-assessed outcomes (UI exit click, UI home, etc.). */
+/** Server-trusted pre-assessed outcomes (UI exit click, UI home, UI/link look, etc.). */
 export type ActionAssessedCommand = {
     characterId: EphemeraCharacterId;
     assessed: ActionAssessedOutcome;
-    source?: 'uiExit' | 'uiHome';
+    source?: 'uiExit' | 'uiHome' | 'uiLook' | 'link';
     requestId?: string;
 }
 
@@ -151,10 +163,20 @@ export const isActionAssessedCommand = (value: unknown): value is ActionAssessed
         return false
     }
     const assessed = v.assessed as ParseCommandResult
-    if (!isParseCommandNavigationResult(assessed) && !isParseCommandHomeResult(assessed)) {
+    if (
+        !isParseCommandNavigationResult(assessed)
+        && !isParseCommandHomeResult(assessed)
+        && !isParseCommandLookComponentResult(assessed)
+    ) {
         return false
     }
-    if (v.source !== undefined && v.source !== 'uiExit' && v.source !== 'uiHome') {
+    if (
+        v.source !== undefined
+        && v.source !== 'uiExit'
+        && v.source !== 'uiHome'
+        && v.source !== 'uiLook'
+        && v.source !== 'link'
+    ) {
         return false
     }
     if (v.requestId !== undefined && typeof v.requestId !== 'string') {

@@ -17,14 +17,10 @@ import { unique } from '@tonylb/mtw-utilities/ts/lists';
 
 import {
     EphemeraCharacterId,
-    EphemeraFeatureId,
-    EphemeraKnowledgeId,
     EphemeraMapId,
     EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId,
-    isEphemeraFeatureId,
-    isEphemeraKnowledgeId,
     isEphemeraMapId,
     isEphemeraMessageId,
     isEphemeraRoomId,
@@ -33,7 +29,6 @@ import { RoomCharacterListItem } from './baseClasses';
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/ts/types';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
-import { selectDefaultSituationCacheRecord } from '../dataSource/renderCache/selectDefaultSituationCacheRecord';
 import { AssetUUID, ComponentUUID, SchemaOutputTag } from '@tonylb/mtw-base/ts/schema';
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
@@ -43,9 +38,7 @@ import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room';
-import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/knowledge';
 import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
-import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
 import { SituationRoomFacetPayload, type SituationRoomFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { situationRoomRenderPayloadFromCacheRenderedContent } from '../dataSource/renderCache/renderedContentToSituationRoomPayload'
@@ -66,7 +59,7 @@ export type EphemeraComponentCacheKeyOptions = {
 
 export function generateEphemeraComponentCacheKey(
     CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-    EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId,
+    EphemeraId: EphemeraRoomId | EphemeraMapId | EphemeraMessageId,
     options?: EphemeraComponentCacheKeyOptions
 ): string {
     return `${CharacterId}::${EphemeraId}::${options && 'header' in options && options.header ? 'true' : 'false'}`
@@ -117,18 +110,6 @@ export class ComponentRenderData {
                 this._setStore(key, description)
             },
             defaultValue: (cacheKey) => {
-                if (isEphemeraFeatureId(cacheKey)) {
-                    return new StandardForm([
-                        { tag: 'Asset', universalKey: 'ASSET#render' },
-                        { tag: 'Feature', universalKey: `FEATURE#${cacheKey}` }
-                    ])
-                }
-                if (isEphemeraKnowledgeId(cacheKey)) {
-                    return new StandardForm([
-                        { tag: 'Asset', universalKey: 'ASSET#render' },
-                        { tag: 'Knowledge', universalKey: `KNOWLEDGE#${cacheKey}` }
-                    ])
-                }
                 if (isEphemeraRoomId(cacheKey)) {
                     return new StandardForm([
                         { tag: 'Asset', universalKey: 'ASSET#render' },
@@ -159,27 +140,9 @@ export class ComponentRenderData {
         this._Store[key] = value
     }
 
-    async _resolveRenderPayloadFromDefaultCache(
-        EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId
-    ): Promise<SituationRoomFacetPayloadType | undefined> {
-        const cacheRecords = await this._renderCache.get(EphemeraId)
-        const record = selectDefaultSituationCacheRecord(cacheRecords)
-        let renderPayload = record
-            ? situationRoomRenderPayloadFromCacheRenderedContent(record.renderedContent)
-            : undefined
-
-        if (renderPayload) {
-            const payloadModel = new SituationRoomFacetPayload(renderPayload)
-            if (SituationRoomFacetPayload.isEmpty(payloadModel)) {
-                renderPayload = undefined
-            }
-        }
-        return renderPayload
-    }
-
     async _getPromiseFactory(
             CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-            EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMessageId | EphemeraMapId,
+            EphemeraId: EphemeraRoomId | EphemeraMessageId | EphemeraMapId,
             getOptions?: ComponentRenderGetOptions
         ): Promise<StandardForm> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
@@ -241,30 +204,6 @@ export class ComponentRenderData {
             ];
 
             return new StandardForm(formComponents, { standardizeMode: 'ephemeraWire' })
-        }
-        if (isEphemeraFeatureId(EphemeraId)) {
-            const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
-            const featureRow: StandardFeatureData = {
-                tag: 'Feature',
-                universalKey: EphemeraId,
-                ...(renderPayload ? { render: renderPayload } : {}),
-            }
-            return new StandardForm([
-                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                featureRow,
-            ], { standardizeMode: 'ephemeraWire' })
-        }
-        if (isEphemeraKnowledgeId(EphemeraId)) {
-            const renderPayload = await this._resolveRenderPayloadFromDefaultCache(EphemeraId)
-            const knowledgeRow: StandardKnowledgeData = {
-                tag: 'Knowledge',
-                universalKey: EphemeraId,
-                ...(renderPayload ? { render: renderPayload } : {}),
-            }
-            return new StandardForm([
-                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-                knowledgeRow,
-            ], { standardizeMode: 'ephemeraWire' })
         }
         if (isEphemeraMessageId(EphemeraId)) {
             const assets = allAssets
@@ -352,7 +291,7 @@ export class ComponentRenderData {
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }
 
-    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
         const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -376,7 +315,7 @@ export class ComponentRenderData {
                     }
                 })
             }
-            if (isEphemeraFeatureId(EphemeraId) || isEphemeraKnowledgeId(EphemeraId) || isEphemeraMessageId(EphemeraId) || isEphemeraMapId(EphemeraId)) {
+            if (isEphemeraMessageId(EphemeraId) || isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId, options)),
                     requiredKeys: [cacheKey],
@@ -397,7 +336,7 @@ export class ComponentRenderData {
         return this._Store[cacheKey]
     }
 
-    invalidate(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId) {
+    invalidate(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId) {
         const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         if (cacheKey in this._Store) {
             delete this._Store[cacheKey]
@@ -407,7 +346,7 @@ export class ComponentRenderData {
         }
     }
 
-    set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, value: StandardForm) {
+    set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId, value: StandardForm) {
         const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         this._Cache.set(Infinity, cacheKey, value)
         this._Store[cacheKey] = value

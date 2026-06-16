@@ -678,7 +678,7 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Look Command Requested',
                     characterId: 'CHARACTER#123',
-                    roomId: currentRoom,
+                    componentId: currentRoom,
                     confidence: 1,
                 },
             })
@@ -726,12 +726,141 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Look Command Requested',
                     characterId: 'CHARACTER#123',
-                    roomId: currentRoom,
+                    componentId: currentRoom,
                     confidence: 0.91,
                 },
             })
             expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
             expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Action Assessed LookComponent', () => {
+        it('streams Look Command Requested for room component without parseCommand', async () => {
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'LookComponent' as const,
+                            componentId: 'ROOM#explicit' as const,
+                            confidence: 1,
+                        },
+                        source: 'uiLook' as const,
+                        requestId: 'req-ui-look-room',
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedParseCommand).not.toHaveBeenCalled()
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    componentId: 'ROOM#explicit',
+                    confidence: 1,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-ui-look-room',
+                    message: 'action_assessed_handled',
+                },
+            })
+        })
+
+        it('streams Look Command Requested for feature component', async () => {
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'LookComponent' as const,
+                            componentId: 'FEATURE#door' as const,
+                            confidence: 1,
+                        },
+                        source: 'link' as const,
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    componentId: 'FEATURE#door',
+                    confidence: 1,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        })
+
+        it('streams Look Command Requested for knowledge with directResponse', async () => {
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'LookComponent' as const,
+                            componentId: 'KNOWLEDGE#lore' as const,
+                            confidence: 1,
+                            directResponse: true,
+                        },
+                        source: 'link' as const,
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    componentId: 'KNOWLEDGE#lore',
+                    confidence: 1,
+                    directResponse: true,
+                },
+            })
         })
     })
 

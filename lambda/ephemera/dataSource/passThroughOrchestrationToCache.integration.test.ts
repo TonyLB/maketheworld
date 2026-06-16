@@ -39,6 +39,9 @@ import { RENDER_CACHE_DATA_SOURCE_KEY } from './renderCache/baseClasses'
 import type { RenderRequested } from '../messageBus/baseClasses'
 import {
     makePassThroughRenderGeneratedPayload,
+    passThroughFixtureAuthoredEmptyMarksDynamoItem,
+    passThroughFixtureFeatureId,
+    passThroughFixtureKnowledgeId,
     passThroughFixtureMinimalCacheId,
     passThroughFixtureMinimalDynamoItem,
     passThroughFixturePerspective,
@@ -273,6 +276,63 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             cacheId: passThroughFixtureMinimalCacheId,
+        })
+    })
+
+    it.each([
+        ['FEATURE#', passThroughFixtureFeatureId],
+        ['KNOWLEDGE#', passThroughFixtureKnowledgeId],
+    ] as const)('Exact Match Found for %s host leads to Render Pertains on renderCache (authored CACHE# row)', async (_label, componentId) => {
+        const fixtureCacheRow = passThroughFixtureAuthoredEmptyMarksDynamoItem(componentId)
+        const received: unknown[] = []
+        messageBus.subscribe({
+            tag: `integration-render-pertains-emf-${componentId}`,
+            priority: 20,
+            filter: (m: any) =>
+                m.type === 'StreamingEvent'
+                && m.dataSourceKey === RENDER_CACHE_DATA_SOURCE_KEY
+                && m.header?.type === 'Render Pertains',
+            callback: async ({ payloads }) => {
+                for (const p of payloads) {
+                    received.push(await p.getContent())
+                }
+            },
+        })
+
+        jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([fixtureCacheRow])
+
+        const payload: RenderRequested = {
+            type: 'RenderRequested',
+            componentId,
+            perspective: passThroughFixturePerspective,
+            allowGeneration: false,
+        }
+
+        const getMetaRoom = jest.fn()
+        await orchestrateRenderRequest(
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
+            {
+                getMetaRoom,
+                computePerspectiveKey: jest.fn().mockReturnValue(passThroughFixturePerspectiveKey),
+                getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(fixtureCacheRow),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+            }
+        )
+        await messageBus.flushAndSettle()
+
+        expect(getMetaRoom).not.toHaveBeenCalled()
+        expect(mockedPutCacheRecord).not.toHaveBeenCalled()
+        expect(received).toHaveLength(1)
+        expect(received[0]).toMatchObject({
+            componentId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            cacheId: passThroughFixtureMinimalCacheId,
+        })
+        expect((received[0] as { cacheRecord?: { provenance?: { type?: string } } }).cacheRecord).toMatchObject({
+            provenance: { type: 'authored' },
+            markState: { markValue: [] },
         })
     })
 })

@@ -36,7 +36,7 @@ import { ConnectionsCharactersEventSerializer } from '@tonylb/mtw-interfaces/ts/
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
-import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
+import { sendActionAssessed, sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
 import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
@@ -212,21 +212,25 @@ export const handler = async (event: any, context: any) => {
                 const CharacterId = request.CharacterId
                 if (CharacterId && isEphemeraCharacterId(CharacterId)) {
 
-                    if (isEphemeraFeatureId(request.to) || isEphemeraCharacterId(request.to)) {
+                    if (isEphemeraCharacterId(request.to)) {
                         messageBus.publish({
                             type: 'Perception',
                             characterId: CharacterId,
                             ephemeraId: request.to
                         })
                     }
-                }
-                if (isEphemeraKnowledgeId(request.to)) {
-                    messageBus.publish({
-                        type: 'Perception',
-                        characterId: CharacterId,
-                        ephemeraId: request.to,
-                        directResponse: request.directResponse
-                    })
+                    else if (isEphemeraFeatureId(request.to) || isEphemeraKnowledgeId(request.to)) {
+                        sendActionAssessed(messageBus, CharacterId, {
+                            characterId: CharacterId,
+                            assessed: {
+                                type: 'LookComponent',
+                                componentId: request.to,
+                                confidence: 1,
+                                ...(request.directResponse ? { directResponse: true } : {}),
+                            },
+                            source: 'link',
+                        })
+                    }
                 }
             }
 

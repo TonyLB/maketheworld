@@ -1,36 +1,36 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
+    EphemeraCacheComponentId,
     EphemeraCacheDynamoItem,
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
 } from '../renderCache/baseClasses'
 
 /**
- * Where {@link RenderResolveInputSuccess.markState} came from (`Meta::Room` for passive render).
+ * Where {@link RenderResolveInputSuccess.markState} came from (intake-normalized; room hosts may read `Meta::Room`).
  */
 export type RenderResolveMarkProvenance = 'meta'
 
 /**
- * Successful normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
+ * Successful normalized input to the shared "resolve render from cache / maybe generate" choke-point.
  *
- * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + `Meta::Room`; the orchestration
- * shell chains `findRender` then delivery. `pointerHint` is
- * `Meta::Room.currentCacheByPerspective[perspectiveKey]` when present.
+ * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + host meta; the orchestration
+ * shell chains `findRender` then delivery. Room hosts: `pointerHint` from catalog row or legacy
+ * `Meta::Room.currentCacheByPerspective`. Feature/Knowledge hosts: empty marks, catalog-only pointer (no Meta).
  *
  * This type is intentionally not identical to bus messages (`RenderRequested`):
  * correlation, targets, and delivery stay outside until an output boundary exists.
  */
 export type RenderResolveInputSuccess = {
     type: 'success';
-    roomId: EphemeraRoomId;
+    componentId: EphemeraCacheComponentId;
     perspective: Perspective;
     /** Marks used for pointer validation, `getExactMatch`, and generation. */
     markState: EphemeraCacheMarkState;
     markProvenance: RenderResolveMarkProvenance;
     /**
-     * Optional cache row id hinted by Meta::Room pointer map for this perspective.
+     * Optional cache row id hinted by catalog `currentCacheId` or (room only) Meta pointer map.
      * Omit or undefined to skip pointer fast-path and go straight to exact-match (after any adapter rules).
      */
     pointerHint?: EphemeraCacheId;

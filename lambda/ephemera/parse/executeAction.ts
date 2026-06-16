@@ -1,9 +1,14 @@
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    EphemeraCharacterId,
+    LegalCharacterColor,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus, PublishMessage } from '../messageBus/baseClasses'
-import { requestFullRoomDescriptionForCharacter } from '../dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter'
 import { sendActionAssessed } from '../dataSource/apiEphemera'
 
 const narrateOOCOrSpeech = async (
@@ -35,14 +40,21 @@ export const executeAction = async (messageBus: Pick<MessageBus, 'publish'>, req
         case 'look': {
             const characterId = request.payload.CharacterId
             const ephemeraId = request.payload.EphemeraId
-            if (isEphemeraRoomId(ephemeraId)) {
-                await requestFullRoomDescriptionForCharacter(messageBus, characterId, ephemeraId)
+            if (
+                !isEphemeraRoomId(ephemeraId)
+                && !isEphemeraFeatureId(ephemeraId)
+                && !isEphemeraKnowledgeId(ephemeraId)
+            ) {
                 break
             }
-            messageBus.publish({
-                type: 'Perception',
+            sendActionAssessed(messageBus, characterId, {
                 characterId,
-                ephemeraId,
+                assessed: {
+                    type: 'LookComponent',
+                    componentId: ephemeraId,
+                    confidence: 1,
+                },
+                source: 'uiLook',
             })
             break
         }

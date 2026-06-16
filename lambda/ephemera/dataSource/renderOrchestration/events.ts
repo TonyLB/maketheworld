@@ -1,5 +1,5 @@
 import { Perspective, isPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import { EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraCharacterId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type {
@@ -13,8 +13,9 @@ import type {
     RenderOrchestrationMessage,
     RenderOrchestrationRequestMessage,
     RenderReady,
-    RenderRequested
+    RenderRequested,
 } from '../../messageBus/baseClasses'
+import { isRenderComponentId } from '../../messageBus/baseClasses'
 import { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 
 type RenderTargetContext = {
@@ -89,10 +90,6 @@ export const toRenderReady = (
     cacheId,
     cacheRecord,
 })
-
-const isRenderComponentId = (value: unknown): value is RenderComponentId => (
-    typeof value === 'string' && (isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraMapId(value))
-)
 
 const hasValidTargetContext = (value: Record<string, unknown>): boolean => {
     if (

@@ -191,6 +191,37 @@ describe('Perception message', () => {
         })
     })
 
+    describe('PerceptionComponentMessage Feature and Knowledge (retired imperative path)', () => {
+        it('does not publish for Feature or Knowledge Perception payloads', async () => {
+            const renderCacheGet = jest.fn()
+            const mockInternalCache = {
+                RenderCache: { get: renderCacheGet },
+            } as any
+
+            await perceptionMessage({
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: 'FEATURE#FOUNTAIN',
+                    },
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: 'KNOWLEDGE#SECRET',
+                        directResponse: true,
+                    },
+                ],
+                messageBus,
+                internalCacheOverride: mockInternalCache,
+            })
+            await messageBus.flushAndSettle()
+
+            expect(renderCacheGet).not.toHaveBeenCalled()
+            expect(publishMessageMock).not.toHaveBeenCalled()
+        })
+    })
+
     describe('sendRoomGeneratingHeader', () => {
         const messageBusMock = { publish: jest.fn() } as any
 

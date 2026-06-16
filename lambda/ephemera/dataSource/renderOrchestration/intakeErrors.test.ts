@@ -4,7 +4,7 @@ describe('dataSource/renderOrchestration/getIntakeOrchestrationErrorIfAny', () =
     it('returns null on success intake', () => {
         const err = getIntakeOrchestrationErrorIfAny({
             type: 'success',
-            roomId: 'ROOM#one',
+            componentId: 'ROOM#one',
             perspective: { assetStack: [] },
             markState: { markValue: [] },
             markProvenance: 'meta',

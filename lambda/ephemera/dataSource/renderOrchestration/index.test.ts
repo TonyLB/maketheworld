@@ -57,7 +57,7 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
                 getContent: () => Promise.resolve({
                     type: 'Look Command Requested',
                     characterId: 'CHARACTER#c',
-                    roomId: 'ROOM#r',
+                    componentId: 'ROOM#r',
                     confidence: 0.9,
                 }),
             },
@@ -75,7 +75,7 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
             expect.objectContaining({
                 type: 'Look Command Requested',
                 characterId: 'CHARACTER#c',
-                roomId: 'ROOM#r',
+                componentId: 'ROOM#r',
             }),
             streamEvent,
         )
