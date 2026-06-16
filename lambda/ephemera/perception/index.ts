@@ -4,7 +4,8 @@ import { getRoomCharacterList } from "../internalCache/hydrateRoomRoster"
 import {
     EphemeraCharacterId,
     EphemeraRoomId,
-    isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
+    isEphemeraCharacterId,
+    isEphemeraRoomId,
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
@@ -12,10 +13,6 @@ import { sendCharacterPerceptionRequested } from "../dataSource/perception/subsc
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import getCurrentTimestamp from "../internalUtils/dateUtil"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
-import {
-    featureRenderChannelWmlForFeatureId,
-    knowledgeRenderChannelWmlForKnowledgeId,
-} from "../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord"
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
 
 /**
@@ -23,12 +20,6 @@ import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "..
  * Temporarily off pending perception DataSource migration; restore this path when Map display moves there.
  */
 export const MAP_PERCEPTION_ENABLED = false
-
-/**
- * When false, Perception requests whose ephemeraId is a Knowledge id do not emit the Knowledge PublishMessage.
- * Temporarily off pending perception DataSource migration; restore this path when Knowledge display moves there.
- */
-export const KNOWLEDGE_PERCEPTION_ENABLED = false
 
 export const perceptionMessage = async ({ 
     payloads, 
@@ -90,44 +81,6 @@ export const perceptionMessage = async ({
                     ephemeraId,
                     messageGroupId: payload.messageGroupId,
                 })
-            }
-            else {
-                const internalCache = getCache()
-                if (isEphemeraFeatureId(ephemeraId) && isEphemeraCharacterId(characterId)) {
-                    const cacheRecords = await internalCache.RenderCache.get(ephemeraId)
-                    const wmlContent = featureRenderChannelWmlForFeatureId(ephemeraId, cacheRecords)
-                    messageBus.publish({
-                        type: 'PublishMessage',
-                        targets: [characterId],
-                        displayProtocol: 'PerceptionMessage',
-                        wmlContent,
-                        metaData: {
-                            componentUUID: ephemeraId
-                        },
-                        messageGroupId: payload.messageGroupId
-                    })
-                }
-                if (KNOWLEDGE_PERCEPTION_ENABLED && isEphemeraKnowledgeId(ephemeraId)) {
-                    // Knowledge perception gated by KNOWLEDGE_PERCEPTION_ENABLED (see file-level JSDoc).
-                    //
-                    // Knowledge perception can be passed a CharacterID to view *as*, even if that character is not in play.
-                    // When the response should be piped directly back to the calling session (rather than added to the
-                    // message DB), the directResponse argument is passed True.
-                    //
-                    const targets = (isEphemeraCharacterId(characterId) && !payload.directResponse) ? [characterId] : [`SESSION#${await internalCache.Global.get('SessionId')}` as const]
-                    const cacheRecords = await internalCache.RenderCache.get(ephemeraId)
-                    const wmlContent = knowledgeRenderChannelWmlForKnowledgeId(ephemeraId, cacheRecords)
-                    messageBus.publish({
-                        type: 'PublishMessage',
-                        targets,
-                        displayProtocol: 'PerceptionMessage',
-                        wmlContent,
-                        metaData: {
-                            componentUUID: ephemeraId
-                        },
-                        messageGroupId: payload.messageGroupId
-                    })
-                }
             }
         }
         else {

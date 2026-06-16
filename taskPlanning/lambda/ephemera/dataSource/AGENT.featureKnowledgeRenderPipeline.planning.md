@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase B slice 3 complete (ingress kicks via **Action Assessed** + **`Look Command Requested`**). **Next step:** Phase B slice 4 --- retire imperative F/K paths in **`perceptionMessage`**.
+**Status:** Phase B complete (correlated F/K ingress + fan-in + imperative retire). Initiative ready to archive after final review; durable behavior recorded in package **`AGENT.md`** files.
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -21,14 +21,14 @@ This plan covers **two phases** sufficient to replicate current (pre-migration) 
 
 When this initiative ships, move lasting behavior notes into package **`AGENT.md`** files and delete or archive this plan.
 
-## Problem (current gap)
+## Problem (resolved)
 
-| Layer | Room (working) | Feature / Knowledge (broken) |
+| Layer | Room | Feature / Knowledge |
 | --- | --- | --- |
-| Ingress kick | **`sendRenderRequested`** + thread registration | Link API / feature **`look`** -> imperative **`Perception`** only |
-| Orchestration | **`intakeRenderRequested`** -> **`ensureAuthoredCatalog`** -> **`findRender`** | Intake accepted for F/K (slice 3); ingress kick + delivery still broken until Phase B |
-| Cache populate | Hydrate + exact match on resolve | Never runs |
-| Delivery | Correlated fan-in (**`roomDescription`**) or aligned imperative read | Sync **`RenderCache.get`** -> often empty -> [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../../../../lambda/ephemera/dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) prose-free |
+| Ingress kick | **`sendRenderRequested`** + thread registration | **`sendActionAssessed`** **`LookComponent`** or **`Look Command Requested`** -> render orchestration |
+| Orchestration | **`intakeRenderRequested`** -> **`ensureAuthoredCatalog`** -> **`findRender`** | Same pipeline; F/K intake with **`markState: { markValue: [] }`**, **`allowGeneration: false`** |
+| Cache populate | Hydrate + exact match on resolve | Same; authored catalog hydrate on kick |
+| Delivery | Correlated fan-in (**`roomDescription`**) or aligned imperative read | Correlated fan-in (**`featureDescription`** / **`knowledgeDescription`**) via [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) |
 
 **Already general (reuse, do not re-build):**
 
@@ -135,8 +135,8 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Phase B: **`PerceptionThreads`** kinds + register commands | Done |
 | Phase B: **`orchestrate.ts`** fan-in for F/K | Done |
 | Phase B: ingress kicks (Action Assessed trusted UI **`look`**, link API) | Done |
-| Phase B: remove / gate imperative F/K paths in **`perceptionMessage`** | |
-| Durable doc touch-up (perception + renderOrchestration delivery tables) | |
+| Phase B: remove / gate imperative F/K paths in **`perceptionMessage`** | Done |
+| Durable doc touch-up (perception + renderOrchestration delivery tables) | Done |
 
 ---
 
@@ -205,12 +205,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] **Generalized `Look Command Requested` payload** (`componentId` + optional **`directResponse`**); render orchestration owns correlated kicks for room + F/K (deviation from original "kick helper in actions" draft).
   - [X] **`app.ts`** link API: **`sendActionAssessed`** **`LookComponent`** (`source: link`) for Feature/Knowledge --- same actions path as UI **`look`**.
   - [X] **Tests:** [`executeAction.test.ts`](../../../../lambda/ephemera/parse/executeAction.test.ts) (look -> assessed only); [`actions/index.test.ts`](../../../../lambda/ephemera/dataSource/actions/index.test.ts) (assessed **`LookComponent`** room + F/K); link-path tests in [`app.test.ts`](../../../../lambda/ephemera/app.test.ts).
-- [ ] **Retire imperative steady-state path**
-  - [ ] Gate or remove Feature / Knowledge branches in [`perception/index.ts`](../../../../lambda/ephemera/perception/index.ts) (keep until ingress migrated; then delete or assert-unreachable).
-  - [ ] **Re-enable Knowledge:** set **`KNOWLEDGE_PERCEPTION_ENABLED = true`** (or remove flag) once correlated ingress is wired (FKR-4).
-  - [ ] Update [`perception/index.test.ts`](../../../../lambda/ephemera/perception/index.test.ts).
-- [ ] **Delivery table docs** --- update [`perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) correlated vs imperative rows for Feature / Knowledge; note trusted UI **`look`** vs typed **`LookRoom`** in [`actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md).
-- [ ] **Phase B verification** (see **Verification** below) and update **Progress** / checkboxes.
+- [X] **Retire imperative steady-state path**
+  - [X] Gate or remove Feature / Knowledge branches in [`perception/index.ts`](../../../../lambda/ephemera/perception/index.ts) (keep until ingress migrated; then delete or assert-unreachable).
+  - [X] **Re-enable Knowledge:** set **`KNOWLEDGE_PERCEPTION_ENABLED = true`** (or remove flag) once correlated ingress is wired (FKR-4). **Shipped:** flag and imperative branches **removed**; correlated pipeline is steady state.
+  - [X] Update [`perception/index.test.ts`](../../../../lambda/ephemera/perception/index.test.ts).
+- [X] **Delivery table docs** --- update [`perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) correlated vs imperative rows for Feature / Knowledge; note trusted UI **`look`** vs typed **`LookRoom`** in [`actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md).
+- [X] **Phase B verification** (see **Verification** below) and update **Progress** / checkboxes.
 
 ---
 

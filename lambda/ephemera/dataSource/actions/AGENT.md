@@ -6,6 +6,15 @@
 
 **Outbound (look):** **`LookRoom`** (parsed bare `look` / `l`, current room) and **`LookComponent`** (trusted UI/link with explicit `componentId`) both **`streamEvent`** **`Look Command Requested`** (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes and orchestrates room + Feature/Knowledge looks via [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
 
+### Look ingress
+
+| Outcome | Ingress | `componentId` | Notes |
+| --- | --- | --- | --- |
+| **`LookRoom`** | **`Parse Requested`** (bare `look` / `l`, Bedrock paraphrase) | Character's **current room** (`fromRoomId`) | No trusted **`EphemeraId`** from client |
+| **`LookComponent`** | **`Action Assessed`** (`source: uiLook` \| `link`) from [`executeAction`](../../parse/executeAction.ts) or [`app.ts`](../../app.ts) | Trusted **`ROOM#` / `FEATURE#` / `KNOWLEDGE#`** | Optional **`directResponse`** for Knowledge |
+
+Both converge on **`Look Command Requested`**; renderOrchestration branches room vs Feature/Knowledge in [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts).
+
 **Bus delivery:** Imperative **`PublishMessage`** and correlated **`ReturnValue`** use **`messageBus.publish`**; quiescence at lambda boundary only (no producer-side drain). Legacy [`executeAction`](../../parse/executeAction.ts) uses the same **`publish`** path.
 
 ## Role

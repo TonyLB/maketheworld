@@ -159,7 +159,6 @@ Displays room descriptions to characters:
 - **Character Targeting**: Sends to specific character or all characters in room
 - **Description Types**: Full room description or header-only based on `header` flag (`displayMode` on the **`PublishMessage`**)
 - **Render body (room)**: **`wmlContent`** is built from **`internalCache.RenderCache`** and [`roomRenderChannelWmlForRoomId`](../dataSource/perception/roomRenderWmlFromCacheRecord.ts) (cache-backed prose for **`roomChannel: 'render'`**), not **`ComponentRender.get`**
-- **Render body (Feature / Knowledge)**: **`wmlContent`** is built from **`internalCache.RenderCache`** and [`featureRenderChannelWmlForFeatureId`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) / [`knowledgeRenderChannelWmlForKnowledgeId`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) (**`SITUATION#DEFAULT`** row only), not **`ComponentRender.get`**
 - **Real-time Updates**: Provides immediate room information
 
 #### **Special Header Message Behavior**
@@ -176,21 +175,21 @@ This special behavior enables the narrative timeline system where players see th
 For complete details on how room header messages organize the message timeline, see [`../../../charcoal-client/src/components/Message/AGENT.md`](../../../charcoal-client/src/components/Message/AGENT.md) - Message Panel UI Architecture
 
 ### **PerceptionComponentMessage**
-Displays component descriptions (features, knowledge, characters):
+Displays component descriptions. **Character** is the only component type still handled imperatively in this handler; Feature and Knowledge delivery uses the correlated path in [`dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative).
 
 ```typescript
 {
     type: 'Perception',
     characterId?: EphemeraCharacterId,
     ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId,
-    directResponse?: boolean,           // For knowledge: direct to session
+    directResponse?: boolean,           // For knowledge: direct to session (legacy bus shape; steady-state uses correlated ingress)
     messageGroupId?: MessageGroupId
 }
 ```
 
 **Behavior:**
-- **Component-Specific**: Different handling for features, knowledge, and characters
-- **Character Descriptions**: Direct database lookup for character metadata
+- **Character Descriptions**: Routes to **`sendCharacterPerceptionRequested`** (DataSource ingress) for direct database lookup and **`PublishMessage`**
+- **Feature / Knowledge**: No imperative delivery; **`Perception`** payloads with **`FEATURE#`** / **`KNOWLEDGE#`** are no-ops in **`perceptionMessage`**. Steady-state ingress uses **`Action Assessed`** **`LookComponent`** -> correlated fan-in.
 
 ### **PerceptionMapMessage**
 Displays map information to characters:
