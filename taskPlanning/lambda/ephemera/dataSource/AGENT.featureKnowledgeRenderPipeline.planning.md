@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase A slice 2 (perspective helper) done. **Next step:** Phase A slice 3 --- F/K intake branch in **`requestIntake`**.
+**Status:** Phase A slice 3 (F/K intake branch) done. **Next step:** Phase A slice 4 --- generalize **`findRender`** / handler types off **`roomId`-only**.
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -26,7 +26,7 @@ When this initiative ships, move lasting behavior notes into package **`AGENT.md
 | Layer | Room (working) | Feature / Knowledge (broken) |
 | --- | --- | --- |
 | Ingress kick | **`sendRenderRequested`** + thread registration | Link API / feature **`look`** -> imperative **`Perception`** only |
-| Orchestration | **`intakeRenderRequested`** -> **`ensureAuthoredCatalog`** -> **`findRender`** | Intake **rejects** non-room ids (`RENDER_REQUESTED_NOT_ROOM`) |
+| Orchestration | **`intakeRenderRequested`** -> **`ensureAuthoredCatalog`** -> **`findRender`** | Intake accepted for F/K (slice 3); ingress kick + delivery still broken until Phase B |
 | Cache populate | Hydrate + exact match on resolve | Never runs |
 | Delivery | Correlated fan-in (**`roomDescription`**) or aligned imperative read | Sync **`RenderCache.get`** -> often empty -> [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../../../../lambda/ephemera/dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts) prose-free |
 
@@ -125,7 +125,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Open decisions FKR-1..5 (all decided) | Done |
 | Phase A: type hygiene (`RenderComponentId`, orchestration guards) | Done |
 | Phase A: perspective helper(s) | Done |
-| Phase A: F/K intake branch in **`requestIntake`** | |
+| Phase A: F/K intake branch in **`requestIntake`** | Done |
 | Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | |
 | Phase A: orchestration + cache integration tests for F/K host | |
 | Phase B: **`PerceptionThreads`** kinds + register commands | |
@@ -153,12 +153,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Load character-visible asset ids; load **ComponentVertical** hops for **`componentId`**; compute intersected **`mergeParticipationOrder`**; **`computePerspectiveKey`**.
   - [X] Wire or call real vertical reads (replace ephemera **`ComponentVerticals` stub** for this path if needed).
   - [X] Unit tests: mocked **`CharacterMeta`**, **`Global.get('assets')`**, vertical hops --- no **`RoomId`** / **`RoomAssets`** dependency.
-- [ ] **Intake branch** --- [`requestIntake.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts):
-  - [ ] Accept **`FEATURE#`** and **`KNOWLEDGE#`** (remove **`RENDER_REQUESTED_NOT_ROOM`** for these ids).
-  - [ ] Do **not** load **`Meta::Room`** on the feature/knowledge id itself.
-  - [ ] Set **`markState: { markValue: [] }`** (FKR-3); set **`allowGeneration: false`** (override ingress unless explicitly passed).
-  - [ ] Resolve **`pointerHint`** via catalog row only ([`resolvePerspectivePointer`](../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts) --- already host-agnostic); skip legacy **`Meta::Room.currentCacheByPerspective`** for non-room hosts.
-  - [ ] Update [`requestIntake.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts) and [`orchestrationHandler.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (replace "NOT_ROOM for FEATURE" expectations with success paths).
+- [X] **Intake branch** --- [`requestIntake.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts):
+  - [X] Accept **`FEATURE#`** and **`KNOWLEDGE#`** (remove **`RENDER_REQUESTED_NOT_ROOM`** for these ids).
+  - [X] Do **not** load **`Meta::Room`** on the feature/knowledge id itself.
+  - [X] Set **`markState: { markValue: [] }`** (FKR-3); set **`allowGeneration: false`** (always forced for F/K).
+  - [X] Resolve **`pointerHint`** via catalog row only ([`resolvePerspectivePointer`](../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts) --- already host-agnostic); skip legacy **`Meta::Room.currentCacheByPerspective`** for non-room hosts.
+  - [X] Update [`requestIntake.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts) and [`orchestrationHandler.test.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (replace "NOT_ROOM for FEATURE" expectations with success paths).
 - [ ] **`findRender` / handler wiring**
   - [ ] Generalize dependency types (`getExactMatch`, `getCacheRecordById`, `clearPerspectivePointer`) from **`EphemeraRoomId`** to **`EphemeraCacheComponentId`** where still room-typed.
   - [ ] Confirm slow path never runs for F/K (**`allowGeneration: false`** -> **`Generation Deferred`** on miss after hydrate; Phase B fan-in delivers Error per FKR-5).

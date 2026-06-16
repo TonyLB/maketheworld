@@ -333,9 +333,43 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         expect((content as { cacheId?: string }).cacheId).toBe('CACHE#valid')
     })
 
-    it('bypasses room fast-path for non-room componentIds', async () => {
+    it.each([
+        ['FEATURE#one', 'FEATURE#one'],
+        ['KNOWLEDGE#one', 'KNOWLEDGE#one'],
+    ] as const)('intake succeeds for %s without loading Meta::Room and defers on cache miss', async (_label, componentId) => {
         const messageBus = makeBus()
-        const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#one' }
+        const payload: RenderRequested = { ...basePayload, componentId }
+        const getMetaRoom = jest.fn()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
+        await orchestrateRenderRequest(
+            { payload, streamEvent: streamEventFromMessageBus(messageBus) },
+            {
+                getMetaRoom,
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch,
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+            }
+        )
+        expect(getMetaRoom).not.toHaveBeenCalled()
+        expect(ensureAuthoredCatalogMock).toHaveBeenCalledWith({
+            componentId,
+            perspective: basePayload.perspective,
+        })
+        const content = await findOrchestrationStreamingEvent(messageBus.publish)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
+        expect(getExactMatch).toHaveBeenCalledWith(
+            expect.objectContaining({
+                componentId,
+                proposedMarkState: { markValue: [] },
+            })
+        )
+    })
+
+    it('emits Orchestration Error for unsupported componentIds such as MAP#', async () => {
+        const messageBus = makeBus()
+        const payload: RenderRequested = { ...basePayload, componentId: 'MAP#one' }
         const getMetaRoom = jest.fn()
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },

@@ -15,8 +15,54 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         currentCacheByPerspective: { 'PERSPECTIVE#v1#abc': 'CACHE#valid' as const },
     }
 
-    it('returns not_room for non-room componentId', async () => {
-        const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#x' }
+    const resolvePointerFromMeta = jest.fn(async (_roomId, perspectiveKey, metaRoom) =>
+        metaRoom?.currentCacheByPerspective?.[perspectiveKey] as 'CACHE#valid' | undefined
+    )
+
+    const fkDeps = {
+        getMetaRoom: jest.fn(),
+        computeDefaultMarksForRoom: jest.fn(),
+        computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+        resolvePerspectivePointer: jest.fn().mockResolvedValue('CACHE#from-catalog'),
+    }
+
+    it.each([
+        ['FEATURE#x', 'FEATURE#x'],
+        ['KNOWLEDGE#x', 'KNOWLEDGE#x'],
+    ] as const)('returns success for %s without loading Meta::Room', async (_label, componentId) => {
+        const payload: RenderRequested = { ...basePayload, componentId }
+        const r = await intakeRenderRequested(payload, fkDeps)
+        expect(r.type).toBe('success')
+        if (r.type === 'success') {
+            expect(r.componentId).toBe(componentId)
+            expect(r.markState).toEqual({ markValue: [] })
+            expect(r.allowGeneration).toBe(false)
+            expect(r.pointerHint).toBe('CACHE#from-catalog')
+        }
+        expect(fkDeps.getMetaRoom).not.toHaveBeenCalled()
+        expect(fkDeps.computeDefaultMarksForRoom).not.toHaveBeenCalled()
+        expect(fkDeps.resolvePerspectivePointer).toHaveBeenCalledWith(
+            componentId,
+            'PERSPECTIVE#v1#abc',
+            undefined,
+        )
+    })
+
+    it('forces allowGeneration false for F/K even when ingress passes true', async () => {
+        const payload: RenderRequested = {
+            ...basePayload,
+            componentId: 'FEATURE#x',
+            allowGeneration: true,
+        }
+        const r = await intakeRenderRequested(payload, fkDeps)
+        expect(r.type).toBe('success')
+        if (r.type === 'success') {
+            expect(r.allowGeneration).toBe(false)
+        }
+    })
+
+    it('returns not_room for unsupported componentId', async () => {
+        const payload: RenderRequested = { ...basePayload, componentId: 'MAP#x' }
         const r = await intakeRenderRequested(payload)
         expect(r).toEqual({
             type: 'error',
@@ -24,10 +70,6 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
             errorMessage: expect.stringContaining('componentId must be a room id'),
         })
     })
-
-    const resolvePointerFromMeta = jest.fn(async (_roomId, perspectiveKey, metaRoom) =>
-        metaRoom?.currentCacheByPerspective?.[perspectiveKey] as 'CACHE#valid' | undefined
-    )
 
     it('uses empty markState and disables generation when Meta has no marks and room has no lens defaults', async () => {
         const r = await intakeRenderRequested(basePayload, {

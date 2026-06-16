@@ -1,7 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { isAuthoritativeCacheRow } from '../renderCache/catalogGuards'
 import { getCatalogRow } from '../renderCache/catalogRow'
 import type { generateRoomPreview } from './generateRoomPreview'
@@ -18,12 +18,12 @@ import {
  */
 export type FindRenderDependencies = {
     getExactMatch: (input: {
-        componentId: EphemeraRoomId;
+        componentId: EphemeraCacheComponentId;
         proposedMarkState: EphemeraCacheMarkState;
         perspective: Perspective;
     }) => Promise<EphemeraCacheDynamoItem | null>;
-    getCacheRecordById: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
-    clearPerspectivePointer: (roomId: EphemeraRoomId, perspectiveKey: string) => Promise<void>;
+    getCacheRecordById: (componentId: EphemeraCacheComponentId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
+    clearPerspectivePointer: (componentId: EphemeraCacheComponentId, perspectiveKey: string) => Promise<void>;
     computePerspectiveKey: typeof computePerspectiveKey;
     markStatesEqual: (a: EphemeraCacheMarkState, b: EphemeraCacheMarkState) => boolean;
     perspectiveMatches: typeof perspectiveMatches;
@@ -103,7 +103,7 @@ export const findRender = async (
 
     await deps.generateRoomPreview(
         {
-            roomId: resolve.componentId,
+            roomId: resolve.componentId as EphemeraRoomId,
             markState: resolve.markState,
             assetStack: resolve.perspective.assetStack,
         },

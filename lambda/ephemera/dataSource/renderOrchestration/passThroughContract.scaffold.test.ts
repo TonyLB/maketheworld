@@ -227,7 +227,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
 
     it('intake / resolve failure emits Orchestration Error on mtw.ephemera.renderOrchestration', async () => {
         const messageBus = makeBus()
-        const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#one' }
+        const payload: RenderRequested = { ...basePayload, componentId: 'MAP#one' }
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
