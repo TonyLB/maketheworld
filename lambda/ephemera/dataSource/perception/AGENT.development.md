@@ -26,6 +26,15 @@ npx jest internalCache/perceptionThreads.test.ts
 
 # Imperative handler bridge (Character path, legacy `perceptionMessage`)
 npx jest perception/index.test.ts
+
+# Feature / Knowledge correlated pipeline (orchestration + perception + ingress)
+npx jest dataSource/perception/orchestrate.featureKnowledgeStreams.test.ts
+npx jest dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts
+npx jest dataSource/renderOrchestration/prepareFeatureKnowledgeRenderForCharacter.test.ts
+npx jest dataSource/passThroughOrchestrationToCache.integration.test.ts
+npx jest dataSource/actions/index.test.ts
+npx jest parse/executeAction.test.ts
+npx jest app.test.ts
 ```
 
 ## First pass vs follow-on design (why this section exists)

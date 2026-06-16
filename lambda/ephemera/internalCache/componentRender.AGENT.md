@@ -4,7 +4,7 @@
 
 The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, maps, and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites (e.g. **`parse/index.ts`** room command context, Map when re-enabled).
 
-> **Feature / Knowledge perception** no longer uses **`ComponentRender`**. Imperative **`PerceptionComponentMessage`** for F/K builds WML from **`internalCache.RenderCache`** via [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts).
+> **Feature / Knowledge perception** no longer uses **`ComponentRender`**. Steady-state delivery is **correlated** via **`mtw.ephemera.perception`** (`featureDescription` / `knowledgeDescription` fan-in on **`Render Pertains`**); see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) and [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped). Terminal WML is built from **`cacheRecord.renderedContent`** via [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts).
 
 > **Note**: This handler follows the standard `internalCache` patterns documented in [`AGENT.md`](./AGENT.md). See that file for common patterns like DeferredCache usage, dual storage, and core methods.
 
@@ -99,7 +99,7 @@ ComponentRender discovers accessible assets through:
 
 ### **Example Integration (rooms vs other types)**
 - **Rooms (ComponentRender)**: **`renderCache`** only for display prose in the Room branch (uses first cache row today).
-- **Feature / Knowledge (perception)**: Delivered via **`RenderCache`** + [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts), not **`ComponentRender`**.
+- **Feature / Knowledge (perception)**: Correlated delivery via **`mtw.ephemera.perception`** fan-in on **`Render Pertains`**; terminal WML from **`cacheRecord.renderedContent`** via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts), not **`ComponentRender`**.
 - **`ExamplesData`**: Removed (Phase 4).
 
 ## Integration Points
@@ -111,7 +111,7 @@ ComponentRender discovers accessible assets through:
 
 ### **Examples System**
 - **`ComponentRenderData`** does not call **`examples.get()`** for Room display prose.
-- Feature / Knowledge display prose is assembled in perception from **`renderCache`** (see [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts)).
+- Feature / Knowledge display prose is assembled in **`mtw.ephemera.perception`** correlated fan-in from orchestration/cache **`Render Pertains`** (see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#correlated-feature--knowledge-description-policy) and [`featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts)).
 
 ### **Character System**
 - Integrates with `characterMeta` for character-specific assets

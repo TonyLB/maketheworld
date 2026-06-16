@@ -189,6 +189,16 @@ Policy for the imperative handler in [`perception/index.ts`](../../perception/in
 - **Placeholder copy:** **Generating** / **Error** **`PublishMessage`** for room description use the **same shape** as terminal full room: **`displayProtocol`**, **`metaData`**, **`displayMode: 'full'`**, and related fields, with **dirt-simple** body text; copy is **throwaway** until product polish.
 - **No-slow path UX:** On cache **hit** paths (**`Current Cache Valid`** / **`Exact Match Found`** leading to **`Render Pertains`** without **`Generation Started`**), the user does **not** see a **Generating** placeholder---only the **terminal** description **`PublishMessage`**.
 
+### Correlated Feature / Knowledge description (policy)
+
+F/K threads (**`featureDescription`**, **`knowledgeDescription`**) are **simpler** than room description: single viewer, no multi-target fallback, no header vs full split.
+
+- **Ingress:** Trusted UI **`look`** (`source: uiLook`) and link API (`source: link`) for **`FEATURE#`** / **`KNOWLEDGE#`** use **`Action Assessed`** **`LookComponent`** -> **`Look Command Requested`** -> [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts). See [`../actions/AGENT.md`](../actions/AGENT.md#look-ingress).
+- **Generating / Error / terminal:** Fan-in in [`orchestrate.ts`](orchestrate.ts) mirrors **`roomDescription`**: **`Generation Started`** -> Generating placeholder **`PublishMessage`** (same **`messageId`** overwrite where applicable); **`Orchestration Error`** / **`Generation Deferred`** -> Error placeholder; **`Render Pertains`** -> terminal WML from **`cacheRecord.renderedContent`** via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](featureKnowledgeRenderWmlFromCacheRecord.ts).
+- **Targeting:** **`[characterId]`** by default; Knowledge **`directResponse`** -> **`SESSION#...`** on terminal delivery when applicable.
+- **`metaData`:** **`componentUUID`** only (no **`roomChannel`**).
+- **Imperative retire:** **`perceptionMessage`** does **not** deliver Feature or Knowledge; legacy **`Perception`** payloads with F/K ids are no-ops. Perspective, mark state, and orchestration policy: [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped).
+
 ### Generating traffic and quiescence
 
 **`Generation Started`** publishes concurrent with LLM work; boundary **`flushAndSettle`** quiesces the invocation (publish/settle steady state). See [`lambda/ephemera/messageBus/AGENT.md`](../../messageBus/AGENT.md) and [`messageBus/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md).
@@ -241,6 +251,8 @@ Run from repository root unless noted.
 | **Ephemera package (default)** | `cd lambda/ephemera && npm test` | After changes under `lambda/ephemera/`; full suite before merge when touching shared behavior |
 | **Imperative perception** | `cd lambda/ephemera && npx jest perception/index.test.ts` | Iterating on [`perception/index.ts`](../../perception/index.ts) |
 | **This DataSource** | `cd lambda/ephemera && npx jest dataSource/perception/` | Perception DataSource and unit tests |
+| **Feature / Knowledge fan-in** | `cd lambda/ephemera && npx jest dataSource/perception/orchestrate.featureKnowledgeStreams.test.ts` | F/K correlated delivery (Generating, terminal, Error) |
+| **F/K ingress + orchestration** | `cd lambda/ephemera && npx jest dataSource/actions/index.test.ts dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.test.ts parse/executeAction.test.ts app.test.ts` | Action Assessed / Look Command Requested / link API |
 | **Session orientation (cross-layer)** | `cd lambda/ephemera && npx jest dataSource/characterRegisteredOrientation.integration.test.ts` | `sessionOrientationRender` + `sessionOrientationAffordances` terminal fan-in from `Character Registered` through orchestration and cache |
 | **Patterns package** | `cd packages/mtw-lambda-patterns && npm test` | After changing `InternalMessageBus` or DataSource base in `mtw-lambda-patterns` |
 

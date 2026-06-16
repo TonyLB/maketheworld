@@ -120,6 +120,56 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 - **Rooms first (v2)**: bus and orchestration event shapes use **`componentId`**. **`RenderComponentId`** (`messageBus/baseClasses.ts`) is `ROOM#` | `FEATURE#` | `KNOWLEDGE#` | `MAP#`; shared guard **`isRenderComponentId`** is the canonical runtime check. Intake resolve input (**`RenderResolveInputSuccess`**) and **`findRender`** / handler cache deps use **`componentId: EphemeraCacheComponentId`** (room | feature | knowledge). Slow-path **`generateRoomPreview`** remains room-only.
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); **`mtw-interfaces`** not required for this internal handoff (see [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)).
 
+## Feature / Knowledge render pipeline (shipped)
+
+Authored prose delivery for **`FEATURE#`** / **`KNOWLEDGE#`** uses the same passive orchestration stack as rooms (intake -> **`ensureAuthoredCatalog`** -> **`findRender`**) with **authored-only** policy (**`allowGeneration: false`**; cache miss -> **`Generation Deferred`**, no **`generateRoomPreview`**).
+
+### End-to-end flow
+
+```text
+Trusted UI look / link (F or K)
+  -> executeAction or app.ts: sendActionAssessed { LookComponent, source: uiLook | link }
+  -> mtw.ephemera.actions: Look Command Requested
+  -> handleLookCommandRequestedForRenderOrchestration
+       -> prepareFeatureKnowledgeRenderForCharacter
+       -> PerceptionThreads.register (featureDescription | knowledgeDescription)
+       -> orchestrateRenderRequest
+  -> renderCache: Render Pertains (or orchestration: Generating / Error on slow hydrate)
+  -> perception orchestrate: Generating / Error / terminal PublishMessage (one target)
+```
+
+Trusted UI room **`look`** and typed **`look` / `l`** use **`LookRoom`** or assessed room **`LookComponent`** -> same **`Look Command Requested`** handler with **`roomDescription`** threads (see [`../perception/AGENT.md`](../perception/AGENT.md#delivery-paths-correlated-vs-imperative)).
+
+### Perspective (normative)
+
+F/K perspective is **not** derived from the viewer's current room. Room look uses room asset stack + canon filter because the host is a **Room**. Feature and Knowledge hosts use **ComponentVertical** import hops ([`lambda/assets/dataSource/components/verticals/AGENT.md`](../../../../lambda/assets/dataSource/components/verticals/AGENT.md)).
+
+1. **Character-visible assets:** `Global.get('assets')` union **`CharacterMeta.assets`**.
+2. **Component participation set:** assets that define the **`FEATURE#`** / **`KNOWLEDGE#`** per **ComponentVertical** (import vertical for the universal identity).
+3. **`perspective.assetStack`:** **intersection** of (1) and (2), total order from vertical / gateway participation-order rules --- **not** from **`RoomAssets`** or **`CharacterMeta.RoomId`**.
+
+Knowledge (guest / out-of-room UI) and in-room feature links both use this model. **View-as** uses the **viewing** character's asset visibility intersected with the target component vertical. Implementation: [`prepareFeatureKnowledgeRenderForCharacter.ts`](prepareFeatureKnowledgeRenderForCharacter.ts) via **`internalCache.ComponentVerticals`**.
+
+### Mark state and cache selection
+
+F/K intake sets **`markState: { markValue: [] }`** (v1). Hydrate and terminal WML target D9 **`SITUATION#DEFAULT`** only ([`selectDefaultSituationCacheRecord`](../renderCache/selectDefaultSituationCacheRecord.ts)); do **not** inherit **`Meta::Room.state.marks`** from the viewer's current room.
+
+### Product constraints (vs room broadcast)
+
+Feature and Knowledge renders are **character-scoped call-and-response** (link API, feature **`look`**), not room fan-outs:
+
+- **One** **`Render Requested`** per UI action with **`characterId`** (Knowledge **`directResponse`** is still one logical request; delivery target may be **`SESSION#...`**).
+- **One** computed **`perspective`** per kick --- no **`groupCharacterRowsByPerspective`**, no state fan-out **`S = A union P`**, no fallback "all occupants with this perspectiveKey".
+- Perception threads use **`targets: [characterId]`** (or session for knowledge direct-response) without room occupancy resolution.
+
+Do **not** copy room header broadcast or state-change machinery for F/K.
+
+### Out of scope (v1)
+
+- LLM slow-path generation for Feature / Knowledge
+- State-change fan-out, passive refresh, or current-room coupling for F/K perspective
+- **`Meta::Feature`** / **`Meta::Knowledge`**
+
 ## Design intent
 
 - Keep **multi-step orchestration** out of `state` and **durable readiness** ownership in **`renderCache`** (DataSource), not duplicated on the orchestration stream as the final subscriber contract.
