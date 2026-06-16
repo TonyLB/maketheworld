@@ -1,11 +1,15 @@
 import PerceptionThreadsData, {
     isCharacterMovePerceptionThread,
+    isFeatureDescriptionPerceptionThread,
+    isKnowledgeDescriptionPerceptionThread,
     isPerceptionThread,
     isRoomDescriptionPerceptionThread,
     isRoomHeaderBroadcastPerceptionThread,
     isSessionOrientationAffordancesPerceptionThread,
     isSessionOrientationRenderPerceptionThread,
     mergePerceptionThreadPatch,
+    type FeatureDescriptionPerceptionThread,
+    type KnowledgeDescriptionPerceptionThread,
     type RoomDescriptionPerceptionThread,
     type RoomHeaderBroadcastPerceptionThread,
     type SessionOrientationRenderPerceptionThread,
@@ -66,6 +70,26 @@ const makeCharacterMoveRegistration = (
     ...overrides,
 })
 
+const makeFeatureRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'featureDescription' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'featureDescription' }> => ({
+    threadKind: 'featureDescription',
+    componentId: 'FEATURE#test',
+    perspectiveKey: 'pk-one',
+    characterId: 'CHARACTER#viewer',
+    ...overrides,
+})
+
+const makeKnowledgeRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'knowledgeDescription' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'knowledgeDescription' }> => ({
+    threadKind: 'knowledgeDescription',
+    componentId: 'KNOWLEDGE#test',
+    perspectiveKey: 'pk-one',
+    characterId: 'CHARACTER#viewer',
+    ...overrides,
+})
+
 const roomDescriptionInitial = (): RoomDescriptionPerceptionThread => ({
     kind: 'roomDescription',
     status: 'Initial',
@@ -73,6 +97,16 @@ const roomDescriptionInitial = (): RoomDescriptionPerceptionThread => ({
 
 const roomHeaderBroadcastInitial = (): RoomHeaderBroadcastPerceptionThread => ({
     kind: 'roomHeaderBroadcast',
+    status: 'Initial',
+})
+
+const featureDescriptionInitial = (): FeatureDescriptionPerceptionThread => ({
+    kind: 'featureDescription',
+    status: 'Initial',
+})
+
+const knowledgeDescriptionInitial = (): KnowledgeDescriptionPerceptionThread => ({
+    kind: 'knowledgeDescription',
     status: 'Initial',
 })
 
@@ -342,6 +376,219 @@ describe('PerceptionThreadsData', () => {
     })
 })
 
+describe('PerceptionThreadsData featureDescription', () => {
+    let cache: PerceptionThreadsData
+
+    beforeEach(() => {
+        cache = new PerceptionThreadsData()
+    })
+
+    it('register and list round-trip', () => {
+        cache.register(makeFeatureRegistration())
+        const listed = cache.list('FEATURE#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'featureDescription', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('featureDescription')
+        expect(listed[0].registrationId).toMatch(/^[\da-f-]{36}$/i)
+    })
+
+    it('update shallow-merges when registrationId matches', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'featureDescription', status: 'Generating', messageId: 'MESSAGE#f1' }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('FEATURE#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'featureDescription',
+            status: 'Generating',
+            messageId: 'MESSAGE#f1',
+        })
+    })
+
+    it('update stores createdTime on render-correlated thread kinds', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'featureDescription', status: 'Generating', messageId: 'MESSAGE#f1', createdTime: 1000000000000 }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('FEATURE#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'featureDescription',
+            status: 'Generating',
+            messageId: 'MESSAGE#f1',
+            createdTime: 1000000000000,
+        })
+    })
+
+    it('update returns false when registrationId mismatches', () => {
+        cache.register(makeFeatureRegistration())
+        const ok = cache.update(
+            { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId: 'wrong' },
+            { threadKind: 'featureDescription', status: 'Terminal' }
+        )
+        expect(ok).toBe(false)
+        expect((cache.list('FEATURE#test', 'pk-one')[0].thread as { status: string }).status).toBe('Initial')
+    })
+
+    it('update throws on featureDescription patch with unknown key', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'featureDescription', mesageId: 'MESSAGE#typo' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch threadKind does not match featureDescription row', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'knowledgeDescription', status: 'Generating' }
+            )
+        ).toThrow('knowledgeDescription patch requires knowledgeDescription thread')
+    })
+
+    it('update throws on featureDescription patch with invalid status', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'featureDescription', status: 'bogus' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws on featureDescription patch with non-string messageId', () => {
+        cache.register(makeFeatureRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'featureDescription', messageId: 123 } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+})
+
+describe('PerceptionThreadsData knowledgeDescription', () => {
+    let cache: PerceptionThreadsData
+
+    beforeEach(() => {
+        cache = new PerceptionThreadsData()
+    })
+
+    it('register and list round-trip', () => {
+        cache.register(makeKnowledgeRegistration())
+        const listed = cache.list('KNOWLEDGE#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'knowledgeDescription', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('knowledgeDescription')
+        expect(listed[0].registrationId).toMatch(/^[\da-f-]{36}$/i)
+    })
+
+    it('register stores directResponse on registration', () => {
+        cache.register(makeKnowledgeRegistration({ directResponse: true }))
+        const listed = cache.list('KNOWLEDGE#test', 'pk-one')
+        expect(listed[0].registration).toMatchObject({
+            threadKind: 'knowledgeDescription',
+            directResponse: true,
+        })
+    })
+
+    it('update shallow-merges when registrationId matches', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'knowledgeDescription', status: 'Generating', messageId: 'MESSAGE#k1' }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('KNOWLEDGE#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'knowledgeDescription',
+            status: 'Generating',
+            messageId: 'MESSAGE#k1',
+        })
+    })
+
+    it('update stores createdTime on render-correlated thread kinds', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'knowledgeDescription', status: 'Generating', messageId: 'MESSAGE#k1', createdTime: 1000000000000 }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('KNOWLEDGE#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'knowledgeDescription',
+            status: 'Generating',
+            messageId: 'MESSAGE#k1',
+            createdTime: 1000000000000,
+        })
+    })
+
+    it('update returns false when registrationId mismatches', () => {
+        cache.register(makeKnowledgeRegistration())
+        const ok = cache.update(
+            { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId: 'wrong' },
+            { threadKind: 'knowledgeDescription', status: 'Terminal' }
+        )
+        expect(ok).toBe(false)
+        expect((cache.list('KNOWLEDGE#test', 'pk-one')[0].thread as { status: string }).status).toBe('Initial')
+    })
+
+    it('update throws on knowledgeDescription patch with unknown key', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'knowledgeDescription', mesageId: 'MESSAGE#typo' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch threadKind does not match knowledgeDescription row', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'featureDescription', status: 'Generating' }
+            )
+        ).toThrow('featureDescription patch requires featureDescription thread')
+    })
+
+    it('update throws on knowledgeDescription patch with invalid status', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'knowledgeDescription', status: 'bogus' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws on knowledgeDescription patch with non-string messageId', () => {
+        cache.register(makeKnowledgeRegistration())
+        const { registrationId } = cache.list('KNOWLEDGE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'KNOWLEDGE#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'knowledgeDescription', messageId: 123 } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+})
+
 describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
     it('merges status and messageId', () => {
         const base = roomHeaderBroadcastInitial()
@@ -415,6 +662,32 @@ describe('isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
     it('rejects roomDescription with invalid status', () => {
         expect(isRoomDescriptionPerceptionThread({
             kind: 'roomDescription',
+            status: 'Unknown',
+        })).toBe(false)
+    })
+
+    it('accepts featureDescription shape', () => {
+        const t = featureDescriptionInitial()
+        expect(isFeatureDescriptionPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('rejects featureDescription with invalid status', () => {
+        expect(isFeatureDescriptionPerceptionThread({
+            kind: 'featureDescription',
+            status: 'Unknown',
+        })).toBe(false)
+    })
+
+    it('accepts knowledgeDescription shape', () => {
+        const t = knowledgeDescriptionInitial()
+        expect(isKnowledgeDescriptionPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('rejects knowledgeDescription with invalid status', () => {
+        expect(isKnowledgeDescriptionPerceptionThread({
+            kind: 'knowledgeDescription',
             status: 'Unknown',
         })).toBe(false)
     })

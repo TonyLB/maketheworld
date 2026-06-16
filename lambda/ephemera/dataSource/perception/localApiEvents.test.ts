@@ -165,6 +165,30 @@ describe('isPerceptionThreadRegisterCommand', () => {
         ).toBe(true)
     })
 
+    it('accepts knowledgeDescription with directResponse true', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'knowledgeDescription',
+                componentId: 'KNOWLEDGE#k1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                directResponse: true,
+            })
+        ).toBe(true)
+    })
+
+    it('rejects knowledgeDescription with non-boolean directResponse', () => {
+        expect(
+            isPerceptionThreadRegisterCommand({
+                threadKind: 'knowledgeDescription',
+                componentId: 'KNOWLEDGE#k1',
+                perspectiveKey: 'pk',
+                characterId: 'CHARACTER#a',
+                directResponse: 'yes',
+            })
+        ).toBe(false)
+    })
+
     it('rejects featureDescription with Knowledge componentId', () => {
         expect(
             isPerceptionThreadRegisterCommand({

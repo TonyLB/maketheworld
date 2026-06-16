@@ -1,6 +1,6 @@
 # Feature / Knowledge render pipeline (orchestration + perception delivery)
 
-**Status:** Phase A complete (slice 4: `findRender` generalization + F/K integration). **Next step:** Phase B slice 1 --- **`PerceptionThreads`** kinds (`featureDescription` | `knowledgeDescription`).
+**Status:** Phase A complete (slice 4: `findRender` generalization + F/K integration). **Next step:** Phase B slice 2 --- **`orchestrate.ts`** fan-in for F/K.
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -128,7 +128,7 @@ All FKR rows are **decided** for this initiative. Remove this section when choic
 | Phase A: F/K intake branch in **`requestIntake`** | Done |
 | Phase A: generalize **`findRender`** / resolve types off **`roomId`-only** | Done |
 | Phase A: orchestration + cache integration tests for F/K host | Done |
-| Phase B: **`PerceptionThreads`** kinds + register commands | |
+| Phase B: **`PerceptionThreads`** kinds + register commands | Done |
 | Phase B: **`orchestrate.ts`** fan-in for F/K | |
 | Phase B: ingress kicks (link API, feature **`look`**) | |
 | Phase B: remove / gate imperative F/K paths in **`perceptionMessage`** | |
@@ -180,11 +180,11 @@ F/K threads are **simpler** than room description: single viewer, no multi-targe
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] **`PerceptionThreads` model** --- [`perceptionThreads.ts`](../../../../lambda/ephemera/internalCache/perceptionThreads.ts), [`localApiEvents.ts`](../../../../lambda/ephemera/dataSource/perception/localApiEvents.ts):
-  - [ ] Add **`threadKind: 'featureDescription'`** and **`threadKind: 'knowledgeDescription'`** register commands.
-  - [ ] Fields: **`componentId`** (**`FEATURE#`** / **`KNOWLEDGE#`**), **`perspectiveKey`**, **`characterId`**, optional **`messageGroupId`**, optional **`directResponse`** / session targeting for knowledge.
-  - [ ] Guards, patch keys, **`register`** / **`update`** branches (mirror **`roomDescription`** simplicity).
-  - [ ] Unit tests in [`perceptionThreads.test.ts`](../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts).
+- [X] **`PerceptionThreads` model** --- [`perceptionThreads.ts`](../../../../lambda/ephemera/internalCache/perceptionThreads.ts), [`localApiEvents.ts`](../../../../lambda/ephemera/dataSource/perception/localApiEvents.ts):
+  - [X] Add **`threadKind: 'featureDescription'`** and **`threadKind: 'knowledgeDescription'`** register commands.
+  - [X] Fields: **`componentId`** (**`FEATURE#`** / **`KNOWLEDGE#`**), **`perspectiveKey`**, **`characterId`**, optional **`messageGroupId`**, optional **`directResponse`** / session targeting for knowledge.
+  - [X] Guards, patch keys, **`register`** / **`update`** branches (mirror **`roomDescription`** simplicity).
+  - [X] Unit tests in [`perceptionThreads.test.ts`](../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts).
 - [ ] **Fan-in** --- [`orchestrate.ts`](../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) (mirror **`roomDescription`** Generating / Error / terminal --- [Delivery correlation UX](#delivery-correlation-ux-decided)):
   - [ ] Match **`(componentId, perspectiveKey)`** buckets for new thread kinds on **`Render Pertains`**, **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**.
   - [ ] **Generating / Error placeholders** for Feature and Knowledge (new placeholder WML helpers or reuse minimal component-shaped placeholders; align **`messageId`** / **`createdTime`** overwrite with room description).

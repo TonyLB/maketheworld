@@ -104,6 +104,8 @@ export type PerceptionThreadRegisterKnowledgeDescriptionCommand = {
     perspectiveKey: string;
     characterId: EphemeraCharacterId;
     messageGroupId?: MessageGroupId;
+    /** When true, fan-in delivers to SESSION#... instead of characterId (guest / direct-response UI). */
+    directResponse?: boolean;
     registrationId?: string;
 }
 
@@ -201,6 +203,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             isEphemeraKnowledgeId(v.componentId)
             && typeof v.characterId === 'string'
             && isEphemeraCharacterId(v.characterId)
+            && (v.directResponse === undefined || typeof v.directResponse === 'boolean')
         )
     }
     return false
