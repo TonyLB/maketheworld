@@ -109,6 +109,7 @@ Channels are **semantically independent** on the wire; the client merges them fo
 | **`OrchestrateMessages` offsets** | [`publishMessage/index.ts`](publishMessage/index.ts) | Relative beat ordering within an invocation |
 | **Explicit `createdTime` on bus payload** | Perception orchestration, some render threads | Generating/terminal overwrite timing |
 | **`deliveryMode: 'deferred'`** | Move cluster, some perception legs | Hold until settle; still sorted by **`CreatedTime`** on flush |
+| **Character-voice room broadcast** | [`dataSource/narration/handleCharacterSpoke.ts`](dataSource/narration/handleCharacterSpoke.ts) | Terminal **`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`** (no fan-in) |
 | **Client `presentation` overload** | [`charcoal-client/src/slices/messages/index.ts`](../../charcoal-client/src/slices/messages/index.ts) | Stable position for revised bodies |
 
 ---

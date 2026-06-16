@@ -49,6 +49,7 @@ import './dataSource/affordanceOrchestration'  // mtw.ephemera.affordanceOrchest
 import './dataSource/affordanceCache'  // mtw.ephemera.affordanceCache (M4; see dataSource/affordanceCache/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)
 import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
+import './dataSource/narration'  // mtw.ephemera.narration (terminal speech depiction)
 import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)
 import './dataSource/thinking/results'  // mtw.ephemera.thinking.results (Thinking Result persistence from bus)
 import './dataSource/thinking/scheduling'  // mtw.ephemera.thinking.scheduling (Put Thinking Schedule via api.ephemera)

@@ -5,6 +5,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraRoomId,
@@ -68,6 +69,59 @@ export type AcmeOrderPublishedPayload = {
     characterId: EphemeraCharacterId;
     orders: AcmeOrderPublishedOrder[];
     confidence: number;
+}
+
+export type CharacterSpeechDisplayProtocol = 'SayMessage' | 'NarrateMessage' | 'OOCMessage'
+
+const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
+    'SayMessage',
+    'NarrateMessage',
+    'OOCMessage',
+])
+
+/** Terminal character-voice depiction; consumed by mtw.ephemera.narration. */
+export type CharacterSpokePublishedPayload = {
+    type: 'Character Spoke';
+    characterId: EphemeraCharacterId;
+    message: string;
+    displayProtocol: CharacterSpeechDisplayProtocol;
+    /** Parse confidence when emitted from typed commands; omit for trusted UI. */
+    confidence?: number;
+    /** When set, narration emits correlated ReturnValue Success. */
+    requestId?: string;
+}
+
+export const isCharacterSpokePublishedPayload = (
+    value: unknown
+): value is CharacterSpokePublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Character Spoke') {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (typeof v.message !== 'string' || v.message.trim().length === 0) {
+        return false
+    }
+    if (
+        typeof v.displayProtocol !== 'string'
+        || !CHARACTER_SPEECH_DISPLAY_PROTOCOLS.has(v.displayProtocol as CharacterSpeechDisplayProtocol)
+    ) {
+        return false
+    }
+    if (v.confidence !== undefined) {
+        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
+        return false
+    }
+    return true
 }
 
 export const isAwaitRoadRunnerPublishedPayload = (
@@ -213,6 +267,7 @@ export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
+    | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload
     | LookCommandRequestedPublishedPayload

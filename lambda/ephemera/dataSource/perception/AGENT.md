@@ -12,7 +12,7 @@
 
 **Development notes:** Steady-state **delivery map**: [Delivery paths (correlated vs imperative)](#delivery-paths-correlated-vs-imperative). Imperative [`perceptionMessage`](../../perception/index.ts) also uses **`messageBus.publish`** (ReturnValue tail included). **Follow-on design** (particularizing registration): [`AGENT.development.md`](AGENT.development.md) (test commands there too).
 
-**Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource.
+**Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource. Character-voice speech (**`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`**) is **not** perception fan-in; see [`../narration/AGENT.md`](../narration/AGENT.md).
 
 ## Multi-channel room UI (render vs affordances)
 
