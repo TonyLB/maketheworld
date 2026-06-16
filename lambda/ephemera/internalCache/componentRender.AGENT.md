@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, maps, and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites (e.g. **`parse/index.ts`** room command context, Map when re-enabled).
+The `ComponentRenderData` class is a cache handler that manages **rendered component descriptions** for rooms, maps, and messages. It combines component metadata and character context to generate rich descriptions for non-perception call sites (e.g. Map when re-enabled). Command parse exit context uses **`AffordanceCache`** via [`../dataSource/actions/roomExitTargetsForCharacter.ts`](../dataSource/actions/roomExitTargetsForCharacter.ts), not **`ComponentRender`**.
 
 > **Feature / Knowledge perception** no longer uses **`ComponentRender`**. Steady-state delivery is **correlated** via **`mtw.ephemera.perception`** (`featureDescription` / `knowledgeDescription` fan-in on **`Render Pertains`**); see [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative) and [`../dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped). Terminal WML is built from **`cacheRecord.renderedContent`** via [`../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts`](../dataSource/perception/featureKnowledgeRenderWmlFromCacheRecord.ts).
 
@@ -124,7 +124,7 @@ ComponentRender discovers accessible assets through:
 
 ### **Perception System**
 - **Room / Feature / Knowledge perception**: Imperative **`perceptionMessage`** builds **`PerceptionMessage.wmlContent`** from **`RenderCache`** + perception WML helpers (not **`ComponentRender.get`**).
-- **Other ComponentRender consumers**: e.g. **`parse/index.ts`** (room exits/characters for command parsing), Map when **`MAP_PERCEPTION_ENABLED`** is restored.
+- **Other ComponentRender consumers**: Map when **`MAP_PERCEPTION_ENABLED`** is restored. Command parse uses **`getRoomExitTargetsForCharacter`** (affordance topology), not **`ComponentRender`**.
 
 ## Legacy Code Considerations
 

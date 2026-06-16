@@ -215,7 +215,7 @@ Displays map information to characters:
 The perception system heavily leverages the internalCache for efficient data access:
 
 - **ComponentData**: Retrieves blueprint component bodies across assets ([`../internalCache/componentData.AGENT.md`](../internalCache/componentData.AGENT.md))
-- **ComponentRender**: Generates rendered descriptions for **Room** (structural + cache prose for non-perception uses such as **`parse/index.ts`** command context), **Map**, and **Message**; **room** **`PerceptionMessage`** on the render channel and **Feature / Knowledge** **`PerceptionComponentMessage`** use **RenderCache** + perception WML helpers, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**)
+- **ComponentRender**: Generates rendered descriptions for **Room** (structural + cache prose for non-perception uses), **Map**, and **Message**; **room** **`PerceptionMessage`** on the render channel and **Feature / Knowledge** **`PerceptionComponentMessage`** use **RenderCache** + perception WML helpers, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**). Command parse exit context uses **`AffordanceCache`**, not **`ComponentRender`**.
 - **RenderCache**: Request-scoped room cache rows for imperative room perception WML (see **`roomRenderChannelWmlForRoomId`**)
 - **CharacterMeta**: Gets character information and asset access
 - **RoomCharacterList**: Finds characters in specific rooms
