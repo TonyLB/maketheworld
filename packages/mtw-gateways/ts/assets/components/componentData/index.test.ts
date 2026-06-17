@@ -92,6 +92,21 @@ describe('component data gateway', () => {
             expect(pair.component.universalKey).toBe('FEATURE#TestOne')
         })
 
+        it('standardComponentPairFromAssetDbGetItemsRow accepts ephemeraDB EphemeraId PK row', () => {
+            const row = {
+                DataCategory: 'ASSET#IMPROVISATION',
+                EphemeraId: 'ROOM#TestOne',
+                tag: 'Room' as const,
+                key: 'TestOne',
+                shortName: 'Test room',
+                exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+                examples: [{ key: 'base', tag: 'Example' as const }],
+            }
+            const pair = standardComponentPairFromAssetDbGetItemsRow('ROOM#TestOne', row as any)
+            expect(pair.assetId).toBe('ASSET#IMPROVISATION')
+            expect(pair.component.universalKey).toBe('ROOM#TestOne')
+        })
+
         it('strips referencedBy before StandardComponent construction', () => {
             const row = {
                 DataCategory: 'ASSET#Layer',

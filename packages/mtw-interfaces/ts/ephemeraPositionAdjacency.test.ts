@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from './baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
 import {
     buildPositionAdjacencyDataCategory,
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
@@ -8,6 +8,7 @@ import {
 } from './ephemeraPositionAdjacency'
 
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const objectId = 'OBJECT#helmet' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 
 describe('ephemeraPositionAdjacency key helpers', () => {
@@ -28,14 +29,21 @@ describe('ephemeraPositionAdjacency key helpers', () => {
 })
 
 describe('isEphemeraPositionAdjacencyRow', () => {
-    it('accepts valid adjacency row', () => {
+    it('accepts valid character adjacency row', () => {
         expect(isEphemeraPositionAdjacencyRow({
             EphemeraId: characterId,
             DataCategory: buildPositionAdjacencyDataCategory(roomId),
         })).toBe(true)
     })
 
-    it('rejects row with invalid character id', () => {
+    it('accepts valid object adjacency row', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: objectId,
+            DataCategory: buildPositionAdjacencyDataCategory(roomId),
+        })).toBe(true)
+    })
+
+    it('rejects row with invalid contained id', () => {
         expect(isEphemeraPositionAdjacencyRow({
             EphemeraId: 'ROOM#Wrong',
             DataCategory: buildPositionAdjacencyDataCategory(roomId),

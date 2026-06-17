@@ -1,8 +1,18 @@
-import { isEphemeraCharacterId, isEphemeraRoomId, type EphemeraCharacterId, type EphemeraRoomId } from './baseClasses'
+import {
+    isEphemeraCharacterId,
+    isEphemeraObjectId,
+    isEphemeraRoomId,
+    type EphemeraCharacterId,
+    type EphemeraObjectId,
+    type EphemeraRoomId,
+} from './baseClasses'
 
 //
 // Reverse membership adjacency index on ephemera Dynamo (positions slice 2 / S2-5).
-// PK = contained component; SK = POSITION#${hostEphemeraId}.
+// PK = contained component (CHARACTER# or OBJECT#); SK = POSITION#${hostEphemeraId}.
+//
+// I5: one row per host room; multi-room drift yields multiple rows under the same object PK;
+// stored room positionGraph wins; adjacency kept in sync at persist (S2-5).
 //
 
 export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const
@@ -10,8 +20,10 @@ export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const
 export type EphemeraPositionAdjacencyDataCategory =
     `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraRoomId}`
 
+export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId
+
 export type EphemeraPositionAdjacencyRow = {
-    EphemeraId: EphemeraCharacterId;
+    EphemeraId: EphemeraPositionAdjacencyContainedId;
     DataCategory: EphemeraPositionAdjacencyDataCategory;
 }
 
@@ -55,7 +67,10 @@ export const isEphemeraPositionAdjacencyRow = (item: unknown): item is EphemeraP
         return false
     }
     const row = item as EphemeraPositionAdjacencyRow
-    if (typeof row.EphemeraId !== 'string' || !isEphemeraCharacterId(row.EphemeraId)) {
+    if (typeof row.EphemeraId !== 'string') {
+        return false
+    }
+    if (!isEphemeraCharacterId(row.EphemeraId) && !isEphemeraObjectId(row.EphemeraId)) {
         return false
     }
     if (typeof row.DataCategory !== 'string') {

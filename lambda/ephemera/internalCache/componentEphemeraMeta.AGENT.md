@@ -4,7 +4,7 @@
 
 `ComponentEphemeraMetaData` is a read-through cache for **ephemeraDB** rows that hold component-scoped **current-state** metadata, distinct from [`ComponentData`](./componentData.AGENT.md) (assetDB blueprint / WML `StandardComponent` data).
 
-**v1 scope:** `Meta::Room` only. Values use the shared type [`EphemeraMetaRoom`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (`DataCategory: 'Meta::Room'`).
+**v1 scope:** `Meta::Room` only. Values use the shared type [`EphemeraMetaRoom`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (`DataCategory: 'Meta::Room'`). The **`objects`** field on room meta is **legacy** (flat list); removed in Phase 6 after clean cutover to pair + **`Meta::Object`** + graph. **`Meta::Object`** reads will use a sibling cache handler (Phase 2).
 
 **Future:** Additional `Meta::*` kinds (Feature, Map, etc.) may add branches or a discriminated union on `ComponentEphemeraMetaItem`; extend Dynamo types in `mtw-interfaces` first, then this cache.
 

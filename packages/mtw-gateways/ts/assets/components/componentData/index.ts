@@ -16,7 +16,12 @@ export { metaDataCategoryForEphemeraId } from './metaCategory'
 export { tagFromEphemeraWrappedId, defaultStoredEntryForCacheKey } from './defaults'
 export type { ComponentAssetMetaAssetDB } from './fetch'
 export { fetchComponentsForAssets } from './fetch'
-export type { AuthoritativeComponentData, AssetDbGetItemsComponentRow } from './dynamoStandardComponents'
+export type {
+    AuthoritativeComponentData,
+    AssetDbGetItemsComponentRow,
+    ComponentPairPersistedFields,
+    EphemeraDbGetItemsComponentRow,
+} from './dynamoStandardComponents'
 export {
     authoritativeComponentDataFromUniversalPartitionRows,
     componentRowsFromAuthoritativeComponentData,

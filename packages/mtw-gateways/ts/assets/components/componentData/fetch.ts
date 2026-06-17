@@ -7,25 +7,38 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 
 import type { PersistedReferencedByEntry } from './referencedBy'
 
-/**
- * One `getItems` row for `(EphemeraId, DataCategory = asset id)`; same row shape as `ComponentAssetMetaAssetDB.getItems`.
- */
-export type AssetDbGetItemsComponentRow = Omit<StandardComponentData, 'universalKey' | 'tag'> & {
+/** Merge-body fields on a component pair Dynamo row (universalKey/tag supplied at read time). */
+export type ComponentPairPersistedFields<
+    T extends Record<string, unknown> = Omit<StandardComponentData, 'universalKey' | 'tag'>
+> = T & {
     DataCategory?: AssetUUID
-    AssetId: ComponentUUID
     referencedBy?: PersistedReferencedByEntry[]
+}
+
+/** assetDB PK convention for pair-addressed component rows. */
+export type AssetDbGetItemsComponentRow = ComponentPairPersistedFields & {
+    AssetId: ComponentUUID
+}
+
+/** ephemeraDB PK convention (same logical key, different attribute name). */
+export type EphemeraDbGetItemsComponentRow = ComponentPairPersistedFields & {
+    EphemeraId: ComponentUUID
 }
 
 /**
  * Maps a keyed Dynamo row from `getItems` into `{ assetId, component }` (pair-addressed path).
+ * Accepts assetDB (`AssetId` PK) or ephemeraDB (`EphemeraId` PK) row shapes.
  */
 export function standardComponentPairFromAssetDbGetItemsRow(
     EphemeraId: ComponentUUID,
-    value: AssetDbGetItemsComponentRow
+    value: AssetDbGetItemsComponentRow | EphemeraDbGetItemsComponentRow
 ): { assetId: AssetUUID; component: StandardComponent; referencedBy?: PersistedReferencedByEntry[] } {
-    const { DataCategory, AssetId: _assetId, referencedBy, ...rest } = value
+    const { DataCategory, referencedBy, ...pkAndFields } = value
+    const componentFields = 'AssetId' in pkAndFields
+        ? (({ AssetId: _assetId, ...rest }) => rest)(pkAndFields)
+        : (({ EphemeraId: _ephemeraId, ...rest }) => rest)(pkAndFields)
     const assetId = DataCategory as AssetUUID
-    const componentData = { universalKey: EphemeraId, tag: componentTagFromUniversalKey(EphemeraId), ...rest }
+    const componentData = { universalKey: EphemeraId, tag: componentTagFromUniversalKey(EphemeraId), ...componentFields }
     if (!isStandardComponentData(componentData)) {
         throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
     }

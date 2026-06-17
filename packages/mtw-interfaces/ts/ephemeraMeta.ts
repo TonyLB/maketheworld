@@ -98,11 +98,62 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
     return true
 }
 
-/** Slice 2 v1: Character membership nodes only; edges empty until slice 5+. Play identity is universalKey only (no asset-local key). */
-export type EphemeraPlayPositionGraphNode = {
-    tag: 'Character';
-    universalKey: EphemeraCharacterId;
+//
+// First-class improvisational objects (Phase 0 sketch; persistence Phase 2+)
+//
+// ADR (I1 / I2): three-way split mirrors Character --- merge body on component pair row,
+// play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
+//
+// - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
+//   v1 writes use ASSET#IMPROVISATION as DataCategory; type does not hard-code that layer.
+// - shortName lives only on the pair row (future StandardObject JSON); never on Meta::Object.
+// - stableKey / trope fields live only on EphemeraMetaObject.
+// - Spawn/clear coordinators write or delete both rows in one transact (Phase 2/4).
+//
+// Pair merge-body shape: ComponentPairPersistedFields / EphemeraDbGetItemsComponentRow in
+// @tonylb/mtw-gateways/ts/assets/components/componentData/fetch.ts (not duplicated here).
+//
+
+/** ephemeraDB play meta for OBJECT#; does not participate in asset-stack merge (I2). */
+export type EphemeraMetaObject = {
+    EphemeraId: EphemeraObjectId;
+    DataCategory: 'Meta::Object';
+    /** Coyote-wide machine correlation key (`a-z` / `0-9` / `-`). */
+    stableKey: string;
+    tropeAffinities?: CoyoteTropeAffinity[];
+    tropeAffinitiesFailed?: boolean;
 }
+
+export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObject => {
+    if (typeof entry !== 'object' || entry === null) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    if (typeof o.EphemeraId !== 'string' || !isEphemeraObjectId(o.EphemeraId) || o.DataCategory !== 'Meta::Object') {
+        return false
+    }
+    if (!areCoyoteObjectTropeFieldsValid(o)) {
+        return false
+    }
+    if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
+        return false
+    }
+    if ('shortName' in o || 'uuid' in o) {
+        return false
+    }
+    return true
+}
+
+/** Slice 2 v1 shipped Character nodes; Object nodes typed for Phase 4 (not yet written). */
+export type EphemeraPlayPositionGraphNode =
+    | {
+        tag: 'Character';
+        universalKey: EphemeraCharacterId;
+    }
+    | {
+        tag: 'Object';
+        universalKey: EphemeraObjectId;
+    }
 
 /** Play-time membership graph stored on Meta::Room (topology only; roster display hydrated at read time -- S2-6-H). */
 export type EphemeraPlayPositionGraph = {
@@ -116,16 +167,16 @@ export const isEphemeraPlayPositionGraphNode = (value: unknown): value is Epheme
         return false
     }
     const entry = value as EphemeraPlayPositionGraphNode
-    if (entry.tag !== 'Character') {
-        return false
-    }
-    if (!isEphemeraCharacterId(entry.universalKey)) {
-        return false
-    }
     if ('key' in entry) {
         return false
     }
-    return true
+    if (entry.tag === 'Character') {
+        return isEphemeraCharacterId(entry.universalKey)
+    }
+    if (entry.tag === 'Object') {
+        return isEphemeraObjectId(entry.universalKey)
+    }
+    return false
 }
 
 export const isEphemeraPlayPositionGraph = (value: unknown): value is EphemeraPlayPositionGraph => {
@@ -158,7 +209,7 @@ export type EphemeraMetaRoom = {
     activeCharacters?: EphemeraRoomActiveCharacter[];
 
     //
-    // Play-time membership graph (slice 2+ authority). Slice 2 v1: character nodes only.
+    // Play-time membership graph (slice 2+ authority). Character nodes shipped; Object nodes Phase 4+.
     //
     positionGraph?: EphemeraPlayPositionGraph;
 

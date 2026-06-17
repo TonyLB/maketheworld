@@ -1,4 +1,4 @@
-import { isEphemeraRoomId } from './baseClasses'
+import { isEphemeraRoomId, IMPROVISATION_ASSET_ID, isImprovisationAssetId } from './baseClasses'
 
 describe('EphemeraId functions', () => {
     it('should correctly flag a key', () => {
@@ -12,5 +12,12 @@ describe('EphemeraId functions', () => {
     })
     it('should throw an exception on nested key', () => {
         expect(() => (isEphemeraRoomId('ROOM#ROOM#TestABC'))).toThrowError()
+    })
+})
+
+describe('improvisation asset id', () => {
+    it('recognizes IMPROVISATION_ASSET_ID', () => {
+        expect(isImprovisationAssetId(IMPROVISATION_ASSET_ID)).toBe(true)
+        expect(isImprovisationAssetId('ASSET#Base')).toBe(false)
     })
 })

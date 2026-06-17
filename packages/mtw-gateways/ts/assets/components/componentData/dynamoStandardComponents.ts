@@ -7,7 +7,7 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 
 import type { PersistedReferencedByEntry } from './referencedBy'
 
-export type { AssetDbGetItemsComponentRow } from './fetch'
+export type { AssetDbGetItemsComponentRow, ComponentPairPersistedFields, EphemeraDbGetItemsComponentRow } from './fetch'
 export { standardComponentPairFromAssetDbGetItemsRow } from './fetch'
 
 /**

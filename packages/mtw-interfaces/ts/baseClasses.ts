@@ -1,3 +1,5 @@
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+
 //
 // Centralized zone type definitions
 //
@@ -6,6 +8,18 @@ export type Zone = 'Canon' | 'Library' | 'Personal' | 'Draft' | 'Archive'
 export const isZone = (value: string): value is Zone => {
     return ['Canon', 'Library', 'Personal', 'Draft', 'Archive'].includes(value)
 }
+
+//
+// Improvisation participation layer (I3). Logical AssetUUID for merge order; rows live in ephemeraDB.
+// Not a Zone enum member (Zone maps to assetDB residence).
+//
+export const IMPROVISATION_ASSET_ID = 'ASSET#IMPROVISATION' as const satisfies AssetUUID
+
+export const isImprovisationAssetId = (value: string): value is typeof IMPROVISATION_ASSET_ID =>
+    value === IMPROVISATION_ASSET_ID
+
+/** Display label for diagnostics / participation-order UI when improvisation layer is present. */
+export const IMPROVISATION_ZONE_LABEL = 'Improvisation' as const
 
 export class EphemeraError extends Error {
     constructor(message: string) {
