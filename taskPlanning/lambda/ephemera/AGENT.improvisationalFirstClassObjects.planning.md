@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 2 complete. **Next:** Phase 3 composite `ComponentData` (+ improvisation). **Locked:** **I1**--**I6**.
+**Status:** Phase 3 complete. **Next:** Phase 4 `positionGraph` placement (nodes only). **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -188,7 +188,7 @@ Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room
 | 0 | Lock decisions I1--I6; anchor inventory; compatibility story | Complete |
 | 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Complete |
 | 2 | ephemeraDB improvisation persistence + cache handler | Complete |
-| 3 | Composite `ComponentData` (+ improvisation) for aggregate | Not started |
+| 3 | Composite `ComponentData` (+ improvisation) for aggregate | Complete |
 | 4 | `positionGraph` `OBJECT` nodes + placement apply | Not started |
 | 5 | Coyote/objects lane migration off `Meta::Room.objects` | Not started |
 | 6 | Legacy room-list code removal | Not started |
@@ -218,10 +218,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Add **`mtw-gateways`** ephemera improvisation read module (pair fetch for `(OBJECT#, ASSET#IMPROVISATION)`); document ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
   - [X] Invalidation contract: object spawn/move/destroy invalidates improvisation pair cache, **`Meta::Object`** memo, affected room **`AffordanceRoomDeliverable`**, room **`ComponentEphemeraMeta`** / positions memo as needed.
 
-- [ ] **Phase 3 --- composite `ComponentData` (+ improvisation)**
-  - [ ] Implement **`createEphemeraComponentDataCacheHandler`** (name TBD) in [`lambda/ephemera/internalCache/`](../../lambda/ephemera/internalCache/) (e.g. **`componentDataComposite.ts`**): delegate non-improvisation asset ids to existing **`ComponentDataCache`** (assetDB); delegate **`ASSET#IMPROVISATION`** to **`ImprovisationComponentData`**. Ephemera-local wiring only --- **not** **`mtw-gateways`** (assets/diagnostics keep assetDB-only handlers).
-  - [ ] Register composite as ephemera **`InternalCache.ComponentData`** for aggregate / **`GenerationContext`** consumers; keep **`ImprovisationComponentData`** registered for persist memo **`set`** / **`invalidate`**. Verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
-  - [ ] Add **`appendImprovisationToPerspective(assetStack)`** helper (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
+- [X] **Phase 3 --- composite `ComponentData` (+ improvisation)**
+  - [X] Implement **`createEphemeraComponentDataCompositeCacheHandler`** in [`lambda/ephemera/internalCache/componentDataComposite.ts`](../../lambda/ephemera/internalCache/componentDataComposite.ts): delegate non-improvisation asset ids to existing **`ComponentDataCache`** (assetDB); delegate **`ASSET#IMPROVISATION`** to **`ImprovisationComponentData`**. Ephemera-local wiring only --- **not** **`mtw-gateways`** (assets/diagnostics keep assetDB-only handlers).
+  - [X] Register composite as ephemera **`InternalCache.ComponentData`** for aggregate / **`GenerationContext`** consumers; keep **`ImprovisationComponentData`** registered for persist memo **`set`** / **`invalidate`**. Verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
+  - [X] Add **`appendImprovisationToPerspective(assetStack, objectIdsInScope)`** helper in [`packages/mtw-interfaces/ts/perspective.ts`](../../packages/mtw-interfaces/ts/perspective.ts) (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
 
 - [ ] **Phase 4 --- `positionGraph` placement (nodes only)**
   - [ ] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).

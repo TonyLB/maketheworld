@@ -5,8 +5,10 @@ import {
     isPerspective,
     isPerspectiveMatcher,
     canonicalizePerspectiveAssetStack,
-    computePerspectiveKey
+    computePerspectiveKey,
+    appendImprovisationToPerspective,
 } from './perspective'
+import { IMPROVISATION_ASSET_ID } from './baseClasses'
 
 const A = 'ASSET#a' as const
 const B = 'ASSET#b' as const
@@ -176,5 +178,41 @@ describe('computePerspectiveKey', () => {
 
     it('includes v1 prefix', () => {
         expect(computePerspectiveKey([A])).toContain('PERSPECTIVE#v1#')
+    })
+})
+
+describe('appendImprovisationToPerspective', () => {
+    const objectId = 'OBJECT#anvil' as const
+
+    it('returns stack unchanged when no objects in scope', () => {
+        const stack = [A, B, C]
+        const result = appendImprovisationToPerspective(stack, [])
+        expect(result).toEqual(stack)
+        expect(computePerspectiveKey(result)).toBe(computePerspectiveKey(stack))
+    })
+
+    it('does not mutate the input stack', () => {
+        const stack = [A, B]
+        appendImprovisationToPerspective(stack, [objectId])
+        expect(stack).toEqual([A, B])
+    })
+
+    it('appends IMPROVISATION_ASSET_ID last when objects are in scope', () => {
+        const stack = [A, B]
+        const result = appendImprovisationToPerspective(stack, [objectId])
+        expect(result).toEqual([A, B, IMPROVISATION_ASSET_ID])
+        expect(computePerspectiveKey(result)).not.toBe(computePerspectiveKey(stack))
+    })
+
+    it('is idempotent when improvisation is already last', () => {
+        const stack = [A, B, IMPROVISATION_ASSET_ID]
+        const result = appendImprovisationToPerspective(stack, [objectId])
+        expect(result).toEqual([A, B, IMPROVISATION_ASSET_ID])
+    })
+
+    it('moves improvisation to the end when it appears earlier in the stack', () => {
+        const stack = [A, IMPROVISATION_ASSET_ID, B]
+        const result = appendImprovisationToPerspective(stack, [objectId])
+        expect(result).toEqual([A, B, IMPROVISATION_ASSET_ID])
     })
 })

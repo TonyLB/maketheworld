@@ -2,7 +2,7 @@ import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import type { ComponentDataCache } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
+import type { ComponentDataParticipationLoader } from '@tonylb/mtw-gateways/ts/assets/components/componentData'
 import { mergeRoomShortNameLiteral } from '../roomWireMergeHelpers'
 
 export type GenerationContextRoomShortName = {
@@ -19,9 +19,9 @@ type GenerationContextStoreRecord = GenerationContextRoomShortName | undefined
 export class GenerationContextData {
     _Cache: DeferredCache<GenerationContextStoreRecord>;
     _Store: Record<string, GenerationContextStoreRecord> = {}
-    _componentData: ComponentDataCache;
+    _componentData: ComponentDataParticipationLoader;
 
-    constructor(componentData: ComponentDataCache) {
+    constructor(componentData: ComponentDataParticipationLoader) {
         this._componentData = componentData
         this._Cache = new DeferredCache<GenerationContextStoreRecord>({
             callback: (key, value) => { this._setStore(key, value) },

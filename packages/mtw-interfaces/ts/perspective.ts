@@ -10,6 +10,7 @@
  */
 
 import { AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { EphemeraObjectId, IMPROVISATION_ASSET_ID } from './baseClasses'
 
 export type Perspective = {
     assetStack: AssetUUID[]
@@ -52,6 +53,21 @@ export const computePerspectiveKey = (
     }
     const hex = (hash >>> 0).toString(16)
     return `${PERSPECTIVE_KEY_PREFIX}${version}#${hex}`
+}
+
+/**
+ * Append ASSET#IMPROVISATION as the last participation layer when improvisational objects exist in scope (I3).
+ * Returns a new array; does not mutate the input stack.
+ */
+export const appendImprovisationToPerspective = (
+    assetStack: AssetUUID[],
+    objectIdsInScope: readonly EphemeraObjectId[]
+): AssetUUID[] => {
+    if (objectIdsInScope.length === 0) {
+        return assetStack
+    }
+    const withoutImprovisation = assetStack.filter((assetId) => assetId !== IMPROVISATION_ASSET_ID)
+    return [...withoutImprovisation, IMPROVISATION_ASSET_ID]
 }
 
 /**

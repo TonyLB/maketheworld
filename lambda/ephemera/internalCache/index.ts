@@ -39,6 +39,10 @@ import {
     createImprovisationComponentDataCacheHandler,
     type ImprovisationComponentDataCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/improvisation';
+import {
+    createEphemeraComponentDataCompositeCacheHandler,
+    type EphemeraComponentDataCompositeCache,
+} from './componentDataComposite';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import ObjectEphemeraMetaData from './objectEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
@@ -99,7 +103,12 @@ export class InternalCache {
     GraphNodes: GraphNodeType;
     GraphEdges: GraphEdgeType;
     
-    ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    private _assetComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    ImprovisationComponentData: ImprovisationComponentDataCache = createImprovisationComponentDataCacheHandler(ephemeraDB);
+    ComponentData: EphemeraComponentDataCompositeCache = createEphemeraComponentDataCompositeCacheHandler({
+        assetComponentData: this._assetComponentData,
+        improvisationComponentData: this.ImprovisationComponentData,
+    });
     ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB);
     ComponentAggregate: ComponentAggregateMergedCache;
     ComponentExamples: ComponentExamplesMergedCache;
@@ -109,7 +118,6 @@ export class InternalCache {
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     ObjectEphemeraMeta: ObjectEphemeraMetaData = new ObjectEphemeraMetaData();
-    ImprovisationComponentData: ImprovisationComponentDataCache = createImprovisationComponentDataCacheHandler(ephemeraDB);
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
