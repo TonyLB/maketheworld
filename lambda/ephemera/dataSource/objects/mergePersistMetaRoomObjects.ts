@@ -4,6 +4,9 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 
 /**
+ * @deprecated Superseded by improvisation + positionGraph coordinators (Phase 5). Do not call from handlers.
+ * Removed in Phase 6.
+ *
  * Merge runtime objects on Meta::Room:
  * 1. Remove every entry whose uuid is in `remove`.
  * 2. For each entry in `add` (in order), strip existing rows with the same uuid, then append.

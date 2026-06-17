@@ -1,12 +1,10 @@
-*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; room-only **`Meta::Room.objects`**; affordance refresh enqueued via **`mtw.ephemera.affordanceOrchestration`** on **`Objects Changed`**; terminal **`PublishMessage`** via **`Affordances Pertain`** -> [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts).*
+*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; first-class improvisation rows + **`positionGraph`** placement (Phase 5); outbound **`Objects Changed`** is object-id existence (**I4**); placement-driven affordance refresh via **`mtw.ephemera.positions`** **`Object Moved`** -> **`mtw.ephemera.affordanceOrchestration`**; terminal **`PublishMessage`** via **`Affordances Pertain`** -> [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts).*
 
 ## Overview
 
-This package owns **runtime object lists** for rooms: stored on ephemera **`Meta::Room`** as **`objects?: EphemeraMetaRoomObject[]`** (optional; missing treated as empty when patching). Each row is **`uuid`** + **`shortName`** + **`stableKey`** (Coyote machine-correlation slug; distinct from human-facing **`shortName`**; uniqueness for Acme-created keys is Coyote-wide --- see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**), with optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object membership, **not** named as a sub-feature of a room aggregate, even though v1 stores the field on **`Meta::Room`**. Long term, object lists may attach to **other** ephemera kinds; v1 does **not** encode "objects are only a room concern" in the **`dataSourceKey`**.
+This package owns **runtime improvisational objects** for play: dual ephemeraDB rows per **`OBJECT#`** (component pair under **`ASSET#IMPROVISATION`** + **`Meta::Object`** play meta) and **`positionGraph`** **`Object`** nodes for room placement. Human-facing labels come from the improvisation pair; Coyote correlation uses **`stableKey`** on **`Meta::Object`** (see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**). Optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich live on **`Meta::Object`** ([`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object existence and ingress, **not** nested under a room aggregate.
 
-**Co-location on `Meta::Room`** is an **implementation** choice (atomicity, read efficiency, cache keying); domain boundaries and invalidation are documented here and in [`AGENT.multiChannel.contract.md`](../../AGENT.multiChannel.contract.md).
-
-**Migration (in progress):** first-class improvisational objects move to component pair rows + **`Meta::Object`** + **`positionGraph`** placement (see [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md)). Clean cutover: no dual-write to **`Meta::Room.objects`** (legacy lists cleared). **Phase 2 shipped** improvisation persistence modules below; Coyote handlers still use legacy **`Meta::Room.objects`** until Phase 5.
+**Phase 5 steady state:** writers **must not** touch **`Meta::Room.objects`**. Legacy [`mergePersistMetaRoomObjects.ts`](mergePersistMetaRoomObjects.ts) remains for Phase 6 deletion only. Planning: [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md).
 
 ## Improvisation storage (Phase 2)
 
@@ -17,9 +15,11 @@ Dual ephemeraDB rows per **`OBJECT#`** (see **I1** / **I2** in planning doc):
 | Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** |
 | Play meta | `(OBJECT#, Meta::Object)` | same coordinators (`stableKey`, trope fields only) |
 
-**Coyote bulk clear (existence only):** **`persistClearCoyoteGameImprovisationObjects`** enumerates **`OBJECT#`** ids from stored **`positionGraph`** on Coyote **`gameRooms`** ([`collectObjectIdsFromRoomPositionGraphs.ts`](collectObjectIdsFromRoomPositionGraphs.ts)); does **not** scan global **`Meta::Object`** index. Graph node removal uses **`applyObjectRoomMembership`** / clear coordinators in Phase 5+.
+**Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** graphs, removes graph placement, then **`persistClearCoyoteGameImprovisationObjects`** deletes pair + **`Meta::Object`** rows.
 
-**Spawn + place (Phase 4):** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Coyote Acme wiring is Phase 5.
+**Spawn + place (Phase 4--5):** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Acme and API ingress call this via [`applyObjectsChange.ts`](applyObjectsChange.ts) / [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts).
+
+**Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> spawn+place per row; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** for outbound **`Objects Changed`**.
 
 **Cache invalidation:** [`invalidateImprovisationObjectCaches.ts`](invalidateImprovisationObjectCaches.ts) --- **`ImprovisationComponentData`**, **`ObjectEphemeraMeta`**, **`ComponentEphemeraMeta`**, **`Positions`**, optional **`AffordanceRoomDeliverable`** per affected room.
 
@@ -30,9 +30,9 @@ Dual ephemeraDB rows per **`OBJECT#`** (see **I1** / **I2** in planning doc):
 | Header `type` | Where | Role |
 | --- | --- | --- |
 | **`Objects Change`** | **`api.ephemera`** ingress (internal) | Imperative command; parallels **`State Change`**. Payload: **`componentId`** (room, v1) and **`{ add, remove }`**. |
-| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; parallels **`State Changed`**. Typed payload: **`priorObjects`** / **`newObjects`** ([`events.ts`](events.ts)). |
+| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
 
-Future headers on this DataSource (if any) stay **object-domain** specific; **presence / characters** remain outside unless product merges those semantics.
+Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** apply coordinators, not duplicated from objects handlers.
 
 ## Ingress and API
 
@@ -40,13 +40,13 @@ Future headers on this DataSource (if any) stay **object-domain** specific; **pr
 
 **Correlation:** **No** **`requestId`** / **`ReturnValue`** on ingress (internal-only; unlike **`State Change`**). **Authorization:** none for v1; only **internal** callers.
 
-**Merge semantics:** **Remove** --- drop every stored row whose **`uuid`** is in **`remove`**. **Add** --- for each entry in order, strip existing rows with the same **`uuid`**, then append (upsert + move-to-end; last duplicate **`uuid`** in **`add`** wins). **No** max list length in v1.
+**Merge semantics (ingress v1):** **`remove`** --- delete improvisation rows after graph removal. **`add`** --- spawn+place per **`EphemeraMetaRoomObject`** row (caller supplies **`uuid`** as **`OBJECT#`** id, **`shortName`**, **`stableKey`**, optional trope fields).
 
-**Persist:** [`mergePersistMetaRoomObjects.ts`](mergePersistMetaRoomObjects.ts) --- **`mergeMetaRoomObjects`**, **`ephemeraDB.optimisticUpdate`** with **`updateKeys: ['objects']`**, then **`internalCache.ComponentEphemeraMeta.invalidate(roomId)`**. Non-room **`componentId`**: reject / no-op (room-only v1).
+**Persist:** [`applyObjectsChange.ts`](applyObjectsChange.ts) coordinates spawn, graph apply, and delete modules. **Do not** call [`mergePersistMetaRoomObjects.ts`](mergePersistMetaRoomObjects.ts) (deprecated; Phase 6 removal).
 
-**Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamEvent`** on **`mtw.ephemera.objects`** with **`Objects Changed`**.
+**Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamObjectsChangedFact`** on **`mtw.ephemera.objects`** when any ids created/destroyed.
 
-**Coyote Acme orders (enriched catalog lines):** When **`mtw.ephemera.actions`** publishes **`Acme Order`** ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)), [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) merges **`orders`** into the character's current room **`Meta::Room.objects`**, passing through **`stableKey`** (Coyote correlation key after deterministic finalize upstream), **`shortName`**, and trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** per published line (same semantic fields as **`EphemeraMetaRoomObject`** other than **`uuid`**, assigned at merge time). General **`Objects Change`** **`add`** remains **`EphemeraMetaRoomObject[]`**; each entry must include a non-empty **`stableKey`**; callers may omit optional trope fields.
+**Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) calls **`spawnAndPlaceImprovisationObject`** per enriched catalog line (mint **`OBJECT#`**, filter tropes by delivery room), then one **`Objects Changed`** with **`createdIds`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
 
 **Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`outboundBusDelivery: 'publish'`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**). Outbounds use **`publish`** via the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 
@@ -61,7 +61,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 
 ## Player-visible delivery (affordances)
 
-**`mtw.ephemera.affordanceOrchestration`** subscribes to **`Objects Changed`** and fans out to **`orchestrateAffordanceRequest`** (reason: **`objects`**) via [`fanOutAffordanceRefreshForRoom.ts`](../affordanceOrchestration/fanOutAffordanceRefreshForRoom.ts). Terminal affordance **`PublishMessage`** per character follows **`Affordances Pertain`** ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts); see [`../perception/AGENT.md`](../perception/AGENT.md) **Server publish sites (multi-channel)**.
+**`mtw.ephemera.affordanceOrchestration`** subscribes to **`mtw.ephemera.positions`** **`Object Moved`** and fans out **`orchestrateAffordanceRequest`** to all rooms in **`froms`** and non-null **`to`** via [`fanOutAffordanceRefreshForRoom.ts`](../affordanceOrchestration/fanOutAffordanceRefreshForRoom.ts). Terminal affordance **`PublishMessage`** per character follows **`Affordances Pertain`** ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts); see [`../perception/AGENT.md`](../perception/AGENT.md) **Server publish sites (multi-channel)**.
 
 ## Ephemera wire WML (producers)
 
@@ -77,8 +77,8 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | Topic | Decision |
 | --- | --- |
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
-| **v1 storage** | **`objects`** on **`Meta::Room`** only; room **`componentId`** only until a follow-on extends kind. |
-| **Field shape** | **`objects`:** **`EphemeraMetaRoomObject[]`** --- required **`uuid`**, **`shortName`**, **`stableKey`** ([**`EphemeraMetaRoomObject`**](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)); optional **`tropeAffinities`** (1-3 rows, six tropes incl. Scene Dressing, validated via **`areCoyoteObjectTropeFieldsValid`**) and optional **`tropeAffinitiesFailed`** when trope scoring is unavailable for that row. **`Objects Change`** ingress and **`Objects Changed`** outbound use the same trope-field guards as Acme bus orders. |
+| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** unused (Phase 6 type cleanup). |
+| **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
 | **Outbound header** | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
@@ -109,5 +109,5 @@ npm run test -- --watchAll=false
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Perception delivery; **Server publish sites (multi-channel)** |
 | [`../state/AGENT.md`](../state/AGENT.md) | Symmetry: **`mtw.ephemera.state`** |
 | [`../../internalCache/componentEphemeraMeta.AGENT.md`](../../internalCache/componentEphemeraMeta.AGENT.md) | **`Meta::Room`** cache; invalidation after writes |
-| [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Coyote hypothesis / plan-outcome prompts consume **`Meta::Room.objects`** via staged-object snapshot (trope-first text in **`## Current staged objects by room`**) |
+| [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Coyote hypothesis / plan-outcome prompts read graph + **`Meta::Object`** via **`CoyoteStagedObject`** snapshot |
 | [`../actions/`](../actions/) ([**`AGENT.md`**](../actions/AGENT.md), `parseCommand.ts`, `publishedEvents.ts`, `enrich/acmeOrder/interpretAndFinalize.ts`, [`index.ts`](../actions/index.ts)) | Normative **`stableKey`** contract (**`actions/AGENT.md`**); two-step Acme parse (**intent** + **enrich**); Coyote-wide occupancy (**`collectCoyoteOccupiedStableKeys`**) + deterministic finalize (**`finalizeStableKeysDeterministic`**) before **`Acme Order`**; **`AcmeOrderPublishedPayload.orders`**, confidence combine rule |

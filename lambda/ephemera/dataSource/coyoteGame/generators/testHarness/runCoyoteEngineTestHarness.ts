@@ -8,6 +8,7 @@ import {
     type CoyoteEngineTestFixture,
 } from './coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
+import { coyoteSnapshotDepsFromRoomObjects } from '../pipelines/hypothesis/coyoteSnapshotTestHelpers'
 import type { InvokeBedrockHypothesisResult } from '../pipelines/hypothesis/invokeBedrockHypothesis'
 import {
     generateHypothesisWithStageResults,
@@ -441,8 +442,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
         const startMs = now()
         try {
             const baseDeps = {
-                getGameRooms: async () => [],
-                getRoomMeta: async () => undefined,
+                ...coyoteSnapshotDepsFromRoomObjects(async () => [], {}),
                 roomObjectsByRoomOverride: normalizeFixtureRoomObjects(fixture),
                 messageBus: deps.messageBus,
             }

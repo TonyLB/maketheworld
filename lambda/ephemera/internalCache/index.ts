@@ -1,4 +1,5 @@
 
+import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 import CacheCharacterMetaData from './characterMeta';
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
@@ -129,18 +130,18 @@ export class InternalCache {
         this.CoyoteGame = new CacheCoyoteGameData({
             generateIntent: () => {
                 const { generateHypothesis } = require('../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis') as typeof import('../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis')
+                const { createDefaultCoyoteRoomObjectSnapshotDeps } = require('../dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot') as typeof import('../dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot')
                 return generateHypothesis({
-                    getGameRooms: () => this.CoyoteGame.get('gameRooms'),
-                    getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+                    ...createDefaultCoyoteRoomObjectSnapshotDeps(),
                     messageBus: getMessageBus(),
                 })
             },
             // Outcome reuses the same `CoyoteGame.get('intent')` record (intent, walkthrough, phasePlan) as hypothesis; no second intent fetch.
             generateOutcome: () => {
                 const { generatePlanOutcome } = require('../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome') as typeof import('../dataSource/coyoteGame/generators/pipelines/outcome/generatePlanOutcome')
+                const { createDefaultCoyoteRoomObjectSnapshotDeps } = require('../dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot') as typeof import('../dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot')
                 return generatePlanOutcome({
-                    getGameRooms: () => this.CoyoteGame.get('gameRooms'),
-                    getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+                    ...createDefaultCoyoteRoomObjectSnapshotDeps(),
                     getIntentRecord: () => this.CoyoteGame.get('intent'),
                 })
             },
@@ -164,7 +165,11 @@ export class InternalCache {
         this.AffordanceRoomDeliverable = new AffordanceRoomDeliverableData(
             this.ComponentAggregate,
             this.AffordanceCache,
-            (roomId) => this.ComponentEphemeraMeta.get(roomId)
+            (roomId) => this.ComponentEphemeraMeta.get(roomId),
+            {
+                getPositionGraph: (roomId) => this.Positions.getPositionGraph(roomId),
+                getImprovisationObject: (objectId) => this.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
+            }
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)
         this._invalidateAssetCallback = (EphemeraId) => {

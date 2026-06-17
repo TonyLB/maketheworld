@@ -1,16 +1,16 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyoteGame'
 import { buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
-import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import {
+    loadCoyoteRoomObjectsByRoom,
+    type CoyoteRoomObjectSnapshotDeps,
+    type CoyoteRoomObjectsByRoom,
+} from '../../../utilities/coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from '../hypothesis/invokeBedrockHypothesis'
 
 const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']
 
-export type GeneratePlanOutcomeDeps = {
-    getGameRooms: () => Promise<string[]>
-    getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+export type GeneratePlanOutcomeDeps = CoyoteRoomObjectSnapshotDeps & {
     /** Full durable hypothesis row from `CoyoteGame.get('intent')`. */
     getIntentRecord: () => Promise<CoyoteGameIntentRecord>
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom

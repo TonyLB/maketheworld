@@ -6,7 +6,7 @@ This package handles Coyote gameplay synthesis after object updates and explicit
 
 ## Subscribes to
 
-- `mtw.ephemera.objects` `Objects Changed` ([`../objects/events.ts`](../objects/events.ts))
+- `mtw.ephemera.positions` `Object Moved` ([`../positions/publishedEvents.ts`](../positions/publishedEvents.ts)) --- hypothesis trigger when object placed in a Coyote demo room
 - `mtw.ephemera.actions` `Await RoadRunner` ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts))
 
 ## Layout and key files
@@ -28,14 +28,16 @@ Pipeline-local docs:
 - Hypothesis: [`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md)
 - Outcome: [`generators/pipelines/outcome/AGENT.md`](generators/pipelines/outcome/AGENT.md)
 
-## Objects Changed (hypothesis path)
+## Object Moved (hypothesis path)
 
-[`handlers/handleObjectsChangedForHypothesis.ts`](handlers/handleObjectsChangedForHypothesis.ts):
+[`handlers/handleObjectMovedForHypothesis.ts`](handlers/handleObjectMovedForHypothesis.ts):
 
-1. Accepts only object-add events in Coyote demo rooms.
+1. Accepts only placement into a Coyote demo room (`to !== null`).
 2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` immediately (concurrent with remainder work).
 3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events via **`outboundBusDelivery: 'publish'`**.
 4. **`publish`es** final hypothesis render tree and stream event payload.
+
+Staged-object reads use **`positionGraph`** + **`Meta::Object`** + improvisation pair via [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (`CoyoteStagedObject`).
 
 Hypothesis generation chain:
 

@@ -1,12 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     isCausalCoyoteTrope,
     type CoyoteTropeAffinity,
     type CoyoteTropeAptness,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-
-import type { CoyoteRoomObjectsByRoom } from '../../../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom, CoyoteStagedObject } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared'
 
 /**
@@ -15,15 +13,15 @@ import { seamRoomLabelFromEphemeraRoomId } from '../coyoteHypothesisPromptShared
  */
 function sortedRoomEntries(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): [EphemeraRoomId, EphemeraMetaRoomObject[]][] {
-    return (Object.entries(roomObjectsByRoom) as [EphemeraRoomId, EphemeraMetaRoomObject[]][]).sort(
+): [EphemeraRoomId, CoyoteStagedObject[]][] {
+    return (Object.entries(roomObjectsByRoom) as [EphemeraRoomId, CoyoteStagedObject[]][]).sort(
         ([a], [b]) => (a as string).localeCompare(b as string)
     )
 }
 
-function objectRowForSnapshot(o: EphemeraMetaRoomObject, roomLabel: string): Record<string, unknown> {
+function objectRowForSnapshot(o: CoyoteStagedObject, roomLabel: string): Record<string, unknown> {
     return {
-        uuid: o.uuid,
+        uuid: o.objectId,
         shortName: o.shortName,
         stableKey: o.stableKey,
         room: roomLabel,
@@ -32,7 +30,7 @@ function objectRowForSnapshot(o: EphemeraMetaRoomObject, roomLabel: string): Rec
     }
 }
 
-function isAffinityEligibleForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+function isAffinityEligibleForDecisionFocus(o: CoyoteStagedObject): boolean {
     if (o.tropeAffinitiesFailed === true) {
         return false
     }
@@ -65,7 +63,7 @@ function hasNonPoorSceneDressingAffinity(rows: CoyoteTropeAffinity[]): boolean {
 }
 
 /** Scene Dressing only (no non-Poor causal fits): strong archetype expander signal. */
-function isSceneDressingOnlyExpander(o: EphemeraMetaRoomObject): boolean {
+function isSceneDressingOnlyExpander(o: CoyoteStagedObject): boolean {
     if (!isAffinityEligibleForDecisionFocus(o)) {
         return false
     }
@@ -73,7 +71,7 @@ function isSceneDressingOnlyExpander(o: EphemeraMetaRoomObject): boolean {
     return hasNonPoorSceneDressingAffinity(rows) && !hasNonPoorCausalAffinity(rows)
 }
 
-function isExpanderForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+function isExpanderForDecisionFocus(o: CoyoteStagedObject): boolean {
     if (!isAffinityEligibleForDecisionFocus(o)) {
         return false
     }
@@ -88,7 +86,7 @@ function isExpanderForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
     return rows.some((r) => rowHasNonPoorAffordances(r))
 }
 
-function isAnchorForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
+function isAnchorForDecisionFocus(o: CoyoteStagedObject): boolean {
     if (!isAffinityEligibleForDecisionFocus(o)) {
         return false
     }
@@ -112,7 +110,7 @@ function isAnchorForDecisionFocus(o: EphemeraMetaRoomObject): boolean {
  * `decisionFocus` hints. No canonical `roomId` in the fence; `room` is the seam label only.
  */
 export function serializeStagedObjectsAffinityForwardJson(roomObjectsByRoom: CoyoteRoomObjectsByRoom): string {
-    const flat: Array<{ roomId: EphemeraRoomId; o: EphemeraMetaRoomObject }> = []
+    const flat: Array<{ roomId: EphemeraRoomId; o: CoyoteStagedObject }> = []
     for (const [roomId, objects] of sortedRoomEntries(roomObjectsByRoom)) {
         for (const o of objects) {
             flat.push({ roomId, o })

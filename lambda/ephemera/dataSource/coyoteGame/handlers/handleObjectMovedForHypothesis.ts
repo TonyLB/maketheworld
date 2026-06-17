@@ -4,7 +4,8 @@ import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isObjectsChangedPayload } from '../../objects/events'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isObjectMovedPublishedPayload } from '../../positions/publishedEvents'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import internalCache from '../../../internalCache'
 import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
@@ -27,28 +28,28 @@ const userFacingWalkthrough = (walkthrough: string | undefined): string | undefi
 }
 
 /**
- * When objects are added in a Coyote demo room, emit hypothesis stream events and
+ * When an object is placed in a Coyote demo room, emit hypothesis stream events and
  * WorldMessage placeholder + terminal rows (shared messageId) for connected occupants.
  */
-export async function handleObjectsChangedForHypothesis(
+export async function handleObjectMovedForHypothesis(
     raw: unknown,
     deps: {
         streamEvent: StreamEventFunction<CoyoteGamePublishedPayload, StreamingEventHeader>;
         messageBus: Pick<MessageBus, 'publish'>;
     }
 ): Promise<void> {
-    if (!isObjectsChangedPayload(raw)) {
+    if (!isObjectMovedPublishedPayload(raw)) {
         return
     }
     const payload = raw
-    if (payload.add.length === 0) {
+    if (payload.to === null || !isEphemeraRoomId(payload.to)) {
         return
     }
-    if (!(await isCoyoteGameRoom(payload.componentId))) {
+    if (!(await isCoyoteGameRoom(payload.to))) {
         return
     }
 
-    const occupants = await getRoomCharacterList(payload.componentId)
+    const occupants = await getRoomCharacterList(payload.to)
     /** Characters with at least one session are treated as active for delivery. */
     const active = (occupants ?? []).filter((o) => o.SessionIds.length > 0)
     if (active.length === 0) {
@@ -62,9 +63,9 @@ export async function handleObjectsChangedForHypothesis(
 
     const targets = active.map((o) => o.EphemeraId)
 
-    hypothesisDebugLog('objects changed hypothesis trigger', {
-        componentId: payload.componentId,
-        addCount: payload.add.length,
+    hypothesisDebugLog('object moved hypothesis trigger', {
+        roomId: payload.to,
+        objectId: payload.objectId,
         activeTargetsCount: targets.length,
         hypothesisId,
     })
@@ -79,7 +80,7 @@ export async function handleObjectsChangedForHypothesis(
     })
 
     await deps.streamEvent({
-        streamKey: payload.componentId,
+        streamKey: payload.to,
         header: { type: 'Hypothesis Generation Started' },
         update: {
             type: 'Hypothesis Generation Started',
@@ -90,14 +91,12 @@ export async function handleObjectsChangedForHypothesis(
 
     await internalCache.CoyoteGame.invalidate('intent')
     const intentRecord = await internalCache.CoyoteGame.get('intent')
-    // NOTE: intentRecord.walkthrough maps hop-2 internal prose (## Cartoon play-by-play).
-    // We filter those headings from terminal publish for now; semantic realignment is deferred.
     const walkthrough = userFacingWalkthrough(intentRecord.walkthrough)
     const renderTree: RenderTree =
         walkthrough !== undefined
             ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
             : [intentRecord.intent]
-    hypothesisDebugLog('objects changed hypothesis final intent', {
+    hypothesisDebugLog('object moved hypothesis final intent', {
         hypothesisId,
         intent: intentRecord.intent,
         hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
@@ -109,7 +108,7 @@ export async function handleObjectsChangedForHypothesis(
     const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 
     await deps.streamEvent({
-        streamKey: payload.componentId,
+        streamKey: payload.to,
         header: { type: 'Hypothesis Generation Result' },
         update: {
             type: 'Hypothesis Generation Result',

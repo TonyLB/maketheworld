@@ -1,7 +1,7 @@
 /**
  * mtw.ephemera.objects DataSource (v1).
  *
- * Bus-only, non-replayable. Subscribes to api.ephemera **Objects Change**; persists room object lists on `Meta::Room`.
+ * Bus-only, non-replayable. Subscribes to api.ephemera **Objects Change**; persists improvisation + graph placement.
  */
 import EphemeraDataSource from '../abstract'
 import { isObjectsSubscribedEnvelope } from './subscribedEvents'

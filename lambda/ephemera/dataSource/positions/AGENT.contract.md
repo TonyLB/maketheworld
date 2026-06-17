@@ -68,7 +68,7 @@ When **`MembershipDiff.changed`** is true and persist succeeds, the coordinator 
 
 When **`changed`** is false: **must** skip the entire bundle (no fact stream, no cache, no `RoomUpdate`, no `EphemeraUpdate`). This includes eviction-ladder-only updates where room membership endpoint is unchanged (**S1-9**).
 
-**Post-move presentation split (F3-2):** step 4 **`RoomUpdate`** (affordance refresh for all occupants in **`froms`** / **`to`**) is **separate** from mover-only arrival header render (**`characterMove`** PerceptionThread in navigate orchestration). Positions **must not** conflate affordance refresh with header render on the membership API. **Deferred:** positions-stream consumer for generalized **`Object Moved`** affordance refresh (Phase 5).
+**Post-move presentation split (F3-2):** step 4 **`RoomUpdate`** (affordance refresh for all occupants in **`froms`** / **`to`**) is **separate** from mover-only arrival header render (**`characterMove`** PerceptionThread in navigate orchestration). Positions **must not** conflate affordance refresh with header render on the membership API. **`Object Moved`** affordance refresh consumer: **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts)).
 
 ### Eviction ladder (`RoomStack` storage)
 
@@ -105,7 +105,7 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 - **Must** stream only when **`MembershipDiff.changed`** after successful object graph persist.
 - Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- same graph-diff semantics as **`Character Moved`**.
 - **Must not** populate presentation fields on the fact.
-- **Deferred:** positions-stream consumer for generalized **`Object Moved`** affordance refresh (Phase 5).
+- Fan-in consumer for affordance refresh: **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts)).
 
 ### Object placement drift repair
 

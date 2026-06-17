@@ -10,7 +10,7 @@ import { COYOTE_STRICT_FAIL_FAST_ENABLED } from '../../../../utilities/coyoteRun
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#VORTEX': [
         {
-            uuid: 'OBJECT#x' as `OBJECT#${string}`,
+            objectId: 'OBJECT#x' as `OBJECT#${string}`,
             shortName: 'anvil',
             stableKey: 'anvil-0',
         },
@@ -595,17 +595,17 @@ describe('parseCandidateOutput', () => {
         const map: CoyoteRoomObjectsByRoom = {
             'ROOM#STRAIGHTAWAY': [
                 {
-                    uuid: 'OBJECT#rs' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#rs' as `OBJECT#${string}`,
                     shortName: 'rocket skates',
                     stableKey: 'rocket-skates-0',
                 },
                 {
-                    uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#h' as `OBJECT#${string}`,
                     shortName: 'helmet',
                     stableKey: 'helmet-0',
                 },
                 {
-                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#g' as `OBJECT#${string}`,
                     shortName: 'goggles',
                     stableKey: 'goggles-0',
                 },

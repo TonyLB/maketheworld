@@ -1,5 +1,4 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta';
 import type { ThinkingSegment } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking';
 
 import type { CoyoteGameIntentRecord } from '../../../../../internalCache/coyoteGame';
@@ -30,7 +29,7 @@ import {
 import type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from './coyoteHarnessInjectTypes';
 import { parsePlanSelectOutput, type PlanSelectOutput } from './planSelect/parsePlanSelectOutput';
 import { buildNarrativeBeatValidationContext } from './narrativeBeats/narrativeBeatValidationContext';
-import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectSnapshotDeps, type CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot';
 import {
     invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
@@ -61,9 +60,7 @@ import {
  * Hop-2 narrative-beats JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
  */
 
-export type GenerateHypothesisDeps = {
-    getGameRooms: () => Promise<string[]>;
-    getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
+export type GenerateHypothesisDeps = CoyoteRoomObjectSnapshotDeps & {
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom;
     messageBus?: Pick<MessageBus, 'publish'>;
 };

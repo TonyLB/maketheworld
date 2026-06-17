@@ -3,34 +3,40 @@
  * See **Scope and non-goals** / **Where enforcement runs** in [`../AGENT.md`](../AGENT.md)
  * (**Acme catalog lines and `stableKey`**).
  */
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import type { CollectCoyoteOccupiedStableKeysDeps } from '../baseClasses'
 
-/** Union of non-empty **`stableKey`** values from **`Meta::Room.objects`** across Coyote game rooms. */
+/** Union of non-empty **`stableKey`** values from graph-placed objects across Coyote game rooms. */
 export async function collectCoyoteOccupiedStableKeys(
     deps?: Partial<CollectCoyoteOccupiedStableKeysDeps>
 ): Promise<ReadonlySet<string>> {
     const getGameRooms = deps?.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
-    const getRoomMeta = deps?.getRoomMeta
-        ?? ((roomId: EphemeraRoomId) => internalCache.ComponentEphemeraMeta.get(roomId))
+    const getObjectIdsInRoom = deps?.getObjectIdsInRoom
+        ?? (async (roomId: EphemeraRoomId) => extractObjectIdsFromPlayPositionGraph(
+            await internalCache.Positions.getPositionGraph(roomId)
+        ))
+    const getObjectMeta = deps?.getObjectMeta
+        ?? ((objectId: EphemeraObjectId) => internalCache.ObjectEphemeraMeta.get(objectId))
 
     const roomKeys = await getGameRooms()
     const roomIds = roomKeys.map((roomKey): EphemeraRoomId => `ROOM#${roomKey}`)
     const occupied = new Set<string>()
 
     await Promise.all(roomIds.map(async (roomId) => {
-        const meta = await getRoomMeta(roomId)
-        for (const obj of meta?.objects ?? []) {
-            const raw = obj.stableKey
+        const objectIds = await getObjectIdsInRoom(roomId)
+        await Promise.all(objectIds.map(async (objectId) => {
+            const meta = await getObjectMeta(objectId)
+            const raw = meta?.stableKey
             if (typeof raw !== 'string') {
-                continue
+                return
             }
             const trimmed = raw.trim()
             if (trimmed.length > 0) {
                 occupied.add(trimmed)
             }
-        }
+        }))
     }))
 
     return occupied

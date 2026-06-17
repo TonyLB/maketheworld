@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteStagedObject } from './coyoteRoomObjectSnapshot'
 import {
     formatCoyoteObjectAffinitySuffix,
     formatCoyoteStagedObjectsByRoom,
@@ -9,8 +9,8 @@ const room = (id: string): EphemeraRoomId => id as EphemeraRoomId
 
 describe('formatCoyoteObjectAffinitySuffix', () => {
     it('returns empty for object without trope metadata', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Anvil',
             stableKey: 'anvil',
         }
@@ -18,8 +18,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('returns failure note when tropeAffinitiesFailed', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Box',
             stableKey: 'box',
             tropeAffinitiesFailed: true,
@@ -28,8 +28,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('formats trope affinities when present', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Magnet',
             stableKey: 'magnet',
             tropeAffinities: [{
@@ -44,8 +44,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('formats Scene Dressing trope affinities', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#h' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#h' as `OBJECT#${string}`,
             shortName: 'helmet',
             stableKey: 'helmet',
             tropeAffinities: [{
@@ -60,8 +60,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('formats mixed Scene Dressing and causal tropes on one object', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#s' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#s' as `OBJECT#${string}`,
             shortName: 'rocket skates',
             stableKey: 'rocket-skates',
             tropeAffinities: [
@@ -75,8 +75,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('ignores optional trope environmentAffordances in formatted suffix text', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Magnet',
             stableKey: 'magnet',
             tropeAffinities: [
@@ -102,8 +102,8 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
     })
 
     it('includes trope failure marker', () => {
-        const o: EphemeraMetaRoomObject = {
-            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+        const o: CoyoteStagedObject = {
+            objectId: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Box',
             stableKey: 'box',
             tropeAffinitiesFailed: true,
@@ -126,7 +126,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
 
     it('lists legacy object with stableKey line', () => {
         const out = formatCoyoteStagedObjectsByRoom({
-            [room('ROOM#VORTEX')]: [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
+            [room('ROOM#VORTEX')]: [{ objectId: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
         })
         expect(out).toBe('CLIFFBASE:\n  anvil — stableKey: anvil')
     })
@@ -135,7 +135,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [
                 {
-                    uuid: 'OBJECT#x' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#x' as `OBJECT#${string}`,
                     shortName: 'paint',
                     stableKey: 'paint',
                     tropeAffinitiesFailed: true,
@@ -149,7 +149,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [
                 {
-                    uuid: 'OBJECT#x' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#x' as `OBJECT#${string}`,
                     shortName: 'magnet',
                     stableKey: 'magnet',
                     tropeAffinities: [{
@@ -169,7 +169,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [
                 {
-                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#g' as `OBJECT#${string}`,
                     shortName: 'goggles',
                     stableKey: 'goggles',
                     tropeAffinities: [{
@@ -187,8 +187,8 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
 
     it('sorts rooms by id', () => {
         const out = formatCoyoteStagedObjectsByRoom({
-            [room('ROOM#Z')]: [{ uuid: 'OBJECT#z' as `OBJECT#${string}`, shortName: 'z', stableKey: 'z' }],
-            [room('ROOM#A')]: [{ uuid: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'a', stableKey: 'a' }],
+            [room('ROOM#Z')]: [{ objectId: 'OBJECT#z' as `OBJECT#${string}`, shortName: 'z', stableKey: 'z' }],
+            [room('ROOM#A')]: [{ objectId: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'a', stableKey: 'a' }],
         })
         expect(out.indexOf('A:')).toBeLessThan(out.indexOf('Z:'))
     })

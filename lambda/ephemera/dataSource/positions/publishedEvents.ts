@@ -1,6 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { StreamingEventHeader, HeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { makeStreamingEnvelopeGuardFromHeaderGuard, type StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
@@ -102,6 +103,28 @@ export const isPositionsPublishedPayload = (
     value: unknown
 ): value is PositionsPublishedPayload =>
     isCharacterMovedPublishedPayload(value) || isObjectMovedPublishedPayload(value)
+
+export type EphemeraPositionsObjectMovedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Moved' }
+
+const isEphemeraPositionsObjectMovedHeader: HeaderGuard<EphemeraPositionsObjectMovedHeader> = (
+    h
+): h is EphemeraPositionsObjectMovedHeader => (
+    h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Moved'
+)
+
+export const isEphemeraPositionsObjectMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectMovedPublishedPayload,
+    EphemeraPositionsObjectMovedHeader
+>(isEphemeraPositionsObjectMovedHeader)
+
+export const isEphemeraPositionsOutboundEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<PositionsPublishedPayload> => (
+    isEphemeraPositionsObjectMovedEnvelope(envelope)
+    || (envelope.header.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY
+        && envelope.header.type === 'Character Moved')
+)
 
 type PublishBus = Pick<MessageBus, 'publish'>
 

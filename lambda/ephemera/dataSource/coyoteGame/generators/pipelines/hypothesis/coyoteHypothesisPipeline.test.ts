@@ -25,6 +25,7 @@ import { EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY } from './hypothesisThinkingPersis
 
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../testHarness/coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from '../../../utilities/coyoteRoomObjectSnapshot'
+import { coyoteSnapshotDepsFromRoomObjects } from './coyoteSnapshotTestHelpers'
 import {
     invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
@@ -37,6 +38,33 @@ import {
     validateCoyoteHypothesisHarnessOptions,
 } from './coyoteHypothesisPipeline'
 import { NARRATIVE_BEAT_NO_GIMMICK_HANDOFF_LINE } from './narrativeBeats/buildNarrativeBeatPrompt'
+
+const DEFAULT_PIPELINE_ROOM_OBJECTS = {
+    'ROOM#VORTEX': [
+        {
+            objectId: 'OBJECT#anvil' as `OBJECT#${string}`,
+            shortName: 'anvil',
+            stableKey: 'anvil',
+            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
+        },
+        {
+            objectId: 'OBJECT#birdseed' as `OBJECT#${string}`,
+            shortName: 'birdseed',
+            stableKey: 'birdseed-0',
+            tropeAffinities: [
+                {
+                    trope: 'Bait',
+                    aptness: 'High',
+                    narrowing: 'lane lure',
+                    environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
+                },
+            ],
+        },
+    ],
+    'ROOM#STRAIGHTAWAY': [],
+} satisfies Partial<Record<`ROOM#${string}`, CoyoteRoomObjectsByRoom[`ROOM#${string}`]>>
+
+const emptySnapshotDeps = () => coyoteSnapshotDepsFromRoomObjects(async () => [], {})
 
 const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
     typeof invokeBedrockHypothesisStageOne
@@ -327,11 +355,7 @@ describe('validateCoyoteHypothesisHarnessOptions', () => {
 
 describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>().mockResolvedValue(['VORTEX'])
-    const getRoomMeta = jest.fn().mockResolvedValue({
-        EphemeraId: 'ROOM#VORTEX',
-        DataCategory: 'Meta::Room',
-        objects: [],
-    })
+    const snapshotDeps = coyoteSnapshotDepsFromRoomObjects(getGameRooms, {})
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -343,7 +367,7 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
 
     it('bootstraps three segments on full production run', async () => {
         const bus = mockMessageBus()
-        await runCoyoteHypothesisPipeline({ getGameRooms, getRoomMeta, messageBus: bus })
+        await runCoyoteHypothesisPipeline({ ...snapshotDeps, messageBus: bus })
         expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
         expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(3)
         expect(sendPutThinkingSchedule).toHaveBeenCalledTimes(3)
@@ -354,7 +378,7 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
     it('bootstraps one segment for runUntil candidates', async () => {
         const bus = mockMessageBus()
         await runCoyoteHypothesisPipeline(
-            { getGameRooms, getRoomMeta, messageBus: bus },
+            { ...snapshotDeps, messageBus: bus },
             { testOnly: 'candidates', harnessRunKind: 'runUntil' }
         )
         expect(sendPutThinkingJobCreate.mock.calls[0][2].workItemIds).toHaveLength(1)
@@ -373,8 +397,7 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
         const bus = mockMessageBus()
         await runCoyoteHypothesisPipeline(
             {
-                getGameRooms: async () => [],
-                getRoomMeta: async () => undefined,
+                ...emptySnapshotDeps(),
                 messageBus: bus,
             },
             {
@@ -393,51 +416,15 @@ describe('runCoyoteHypothesisPipeline thinking bootstrap', () => {
 
 describe('runCoyoteHypothesisPipeline harness modes', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>()
-    const getRoomMeta = jest.fn()
 
     const pipelineDeps = () => ({
-        getGameRooms,
-        getRoomMeta,
+        ...coyoteSnapshotDepsFromRoomObjects(getGameRooms, DEFAULT_PIPELINE_ROOM_OBJECTS),
         messageBus: mockMessageBus(),
     })
 
     beforeEach(() => {
         jest.clearAllMocks()
         getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
-        getRoomMeta.mockImplementation(async (roomId: string) => {
-            if (roomId === 'ROOM#VORTEX') {
-                return {
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room',
-                    objects: [
-                        {
-                            uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
-                            shortName: 'anvil',
-                            stableKey: 'anvil',
-                            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
-                        },
-                        {
-                            uuid: 'OBJECT#birdseed' as `OBJECT#${string}`,
-                            shortName: 'birdseed',
-                            stableKey: 'birdseed-0',
-                            tropeAffinities: [
-                                {
-                                    trope: 'Bait',
-                                    aptness: 'High',
-                                    narrowing: 'lane lure',
-                                    environmentAffordances: [{ object: 'long-fall', roles: ['Finishing Move'] }],
-                                },
-                            ],
-                        },
-                    ],
-                }
-            }
-            return {
-                EphemeraId: roomId,
-                DataCategory: 'Meta::Room',
-                objects: [],
-            }
-        })
         stageOneMock.mockResolvedValue({
             success: true,
             body: stageOneSeamBody,
@@ -537,8 +524,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
 
         await runCoyoteHypothesisPipeline(
             {
-                getGameRooms: async () => [],
-                getRoomMeta: async () => undefined,
+                ...emptySnapshotDeps(),
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
                 messageBus: bus,
             },
@@ -638,8 +624,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         await expect(
             runCoyoteHypothesisPipeline(
                 {
-                    getGameRooms: async () => [],
-                    getRoomMeta: async () => undefined,
+                    ...emptySnapshotDeps(),
                     roomObjectsByRoomOverride: inject.roomObjectsByRoom,
                     messageBus: bus,
                 },
@@ -736,8 +721,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
 
         const result = await runCoyoteHypothesisPipeline(
             {
-                getGameRooms: async () => [],
-                getRoomMeta: async () => undefined,
+                ...emptySnapshotDeps(),
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
                 messageBus: mockMessageBus(),
             },
@@ -766,8 +750,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
 
         const result = await runCoyoteHypothesisPipeline(
             {
-                getGameRooms: async () => [],
-                getRoomMeta: async () => undefined,
+                ...emptySnapshotDeps(),
                 roomObjectsByRoomOverride: inject.roomObjectsByRoom,
                 messageBus: mockMessageBus(),
             },

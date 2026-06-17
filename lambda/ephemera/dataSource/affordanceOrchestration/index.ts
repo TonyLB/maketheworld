@@ -4,7 +4,7 @@
  * Canonical home for affordance-channel orchestration (Area topology exits, M4).
  * See ./AGENT.md for semantics and constraints.
  *
- * Ingress: api.ephemera Affordances Requested; mtw.ephemera.objects Objects Changed (fan-out);
+ * Ingress: api.ephemera Affordances Requested; mtw.ephemera.positions Object Moved (fan-out);
  * mtw.assets.componentTopology TopologyInvalidated (fan-out, reason: topology).
  * Outbounds: five-type stream on this DataSource via streamEvent (v1-active: Slice Ready, Orchestration Error).
  * replayable: false.
@@ -19,6 +19,7 @@ import {
     isAffordanceOrchestrationIngressEnvelope,
     isAffordanceOrchestrationSubscribedEnvelope,
     isAffordancesRequestedIngressEnvelope,
+    isEphemeraPositionsObjectMovedIngressEnvelope,
     type AffordanceOrchestrationIngressEvent,
     type AffordanceOrchestrationSubscribedContent,
 } from './subscribedEvents'
@@ -27,7 +28,8 @@ import { handleTopologyInvalidated } from '../affordanceCache/handleTopologyInva
 import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
 import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
-import { isEphemeraObjectsObjectsChangedEnvelope, isObjectsChangedPayload } from '../objects/events'
+import { roomsAffectedByObjectMoved } from './roomsAffectedByObjectMoved'
+import { isObjectMovedPublishedPayload } from '../positions/publishedEvents'
 import type { AffordanceOrchestrationPublishedPayload } from './publishedEvents'
 import messageBus from '../../messageBus'
 
@@ -77,16 +79,19 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
                 }
                 return
             }
-            if (isEphemeraObjectsObjectsChangedEnvelope(event)) {
+            if (isEphemeraPositionsObjectMovedIngressEnvelope(event)) {
                 const raw = await event.getContent()
-                if (!isObjectsChangedPayload(raw)) {
+                if (!isObjectMovedPublishedPayload(raw)) {
                     return
                 }
-                await fanOutAffordanceRefreshForRoom({
-                    roomId: raw.componentId,
-                    reason: 'objects',
-                    streamEvent,
-                })
+                const affectedRooms = roomsAffectedByObjectMoved(raw)
+                for (const roomId of affectedRooms) {
+                    await fanOutAffordanceRefreshForRoom({
+                        roomId,
+                        reason: 'objects',
+                        streamEvent,
+                    })
+                }
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {

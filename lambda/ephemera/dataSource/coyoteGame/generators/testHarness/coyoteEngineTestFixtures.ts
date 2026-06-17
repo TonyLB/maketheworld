@@ -1,5 +1,4 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { combineCandidateOutput } from '../pipelines/hypothesis/candidates/combineCandidateOutput'
@@ -10,7 +9,7 @@ import type {
 import type { PlanSelectOutputWithWinner } from '../pipelines/hypothesis/narrativeBeats/buildNarrativeBeatPrompt'
 import type { PlanSelectOutput } from '../pipelines/hypothesis/planSelect/parsePlanSelectOutput'
 import { parseCandidateOutput } from '../pipelines/hypothesis/candidates/parseCandidateOutput'
-import type { CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
+import type { CoyoteStagedObject, CoyoteRoomObjectsByRoom } from '../../utilities/coyoteRoomObjectSnapshot'
 
 export type { CoyoteHarnessNarrativeBeatsInject, CoyoteHarnessPlanSelectInject } from '../pipelines/hypothesis/coyoteHarnessInjectTypes'
 
@@ -35,7 +34,7 @@ export type CoyoteHarnessStartAtInjectResult = CoyoteHarnessStartAtInjectSuccess
 export type CoyoteEngineTestFixture = {
     id: string
     label?: string
-    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, CoyoteStagedObject[]>>
     hypothesisLine?: string
     planSelectInject?: CoyoteHarnessPlanSelectInject
     narrativeBeatsInject?: CoyoteHarnessNarrativeBeatsInject
@@ -46,7 +45,7 @@ export type CoyoteEngineTestFixture = {
  * (same behavior as **`normalizeFixtureRoomObjects`** in the harness runner).
  */
 export function normalizeCoyoteHarnessRoomObjects(
-    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, CoyoteStagedObject[]>>
 ): CoyoteRoomObjectsByRoom {
     return Object.fromEntries(
         COYOTE_HARNESS_ROOM_IDS.map((roomId) => [roomId, roomObjectsByRoom[roomId] ?? []])
@@ -62,9 +61,9 @@ export type HarnessRoomObjectSpec = {
 export function harnessRoomObjectsSpec(
     roomSlug: string,
     specs: HarnessRoomObjectSpec[]
-): EphemeraMetaRoomObject[] {
+): CoyoteStagedObject[] {
     return specs.map((spec, index) => ({
-        uuid: `OBJECT#harness-${roomSlug}-${index}` as `OBJECT#${string}`,
+        objectId: `OBJECT#harness-${roomSlug}-${index}` as `OBJECT#${string}`,
         shortName: spec.shortName,
         stableKey: `${defaultStableKeyProposal(spec.shortName)}-${index}`,
         ...(spec.tropeAffinities?.length ? { tropeAffinities: spec.tropeAffinities } : {}),
@@ -73,7 +72,7 @@ export function harnessRoomObjectsSpec(
 }
 
 /** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot; no trope affinity hints). */
-export function harnessRoomObjects(roomSlug: string, shortNames: string[]): EphemeraMetaRoomObject[] {
+export function harnessRoomObjects(roomSlug: string, shortNames: string[]): CoyoteStagedObject[] {
     return harnessRoomObjectsSpec(roomSlug, shortNames.map((shortName) => ({ shortName })))
 }
 
@@ -217,7 +216,7 @@ const FIXTURE_01_NARRATIVE_BEATS_INJECT: CoyoteHarnessNarrativeBeatsInject = {
 
 function buildPlanSelectInjectFromGoldenSeam(args: {
     fixtureId: string
-    roomObjectsByRoom: Partial<Record<EphemeraRoomId, EphemeraMetaRoomObject[]>>
+    roomObjectsByRoom: Partial<Record<EphemeraRoomId, CoyoteStagedObject[]>>
     stageOneSeamBody: string
 }): CoyoteHarnessPlanSelectInject {
     const roomObjectsByRoom = normalizeCoyoteHarnessRoomObjects(args.roomObjectsByRoom)

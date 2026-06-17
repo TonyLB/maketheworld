@@ -16,6 +16,7 @@ jest.mock('../../../../apiEphemera', () => ({
 
 import { generateHypothesis, generateHypothesisWithStageResults } from './generateHypothesis'
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { coyoteSnapshotDepsFromRoomObjects } from './coyoteSnapshotTestHelpers'
 import {
     invokeBedrockHypothesisNarrativeBeat,
     invokeBedrockHypothesisPlanSelection,
@@ -130,11 +131,13 @@ const narrativeBeatMock = invokeBedrockHypothesisNarrativeBeat as jest.MockedFun
 
 describe('generateHypothesis', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>()
-    const getRoomMeta = jest.fn()
+    const getObjectIdsInRoom = jest.fn()
+    const getStagedObject = jest.fn()
 
     const hypothesisDeps = (extra: Record<string, unknown> = {}) => ({
         getGameRooms,
-        getRoomMeta,
+        getObjectIdsInRoom,
+        getStagedObject,
         messageBus: {
             publish: jest.fn(),
         },
@@ -144,33 +147,25 @@ describe('generateHypothesis', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
-        getRoomMeta.mockImplementation(async (roomId: string) => {
-            if (roomId === 'ROOM#VORTEX') {
-                return {
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room',
-                    objects: [
-                        {
-                            uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
-                            shortName: 'anvil',
-                            stableKey: 'anvil',
-                            tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
-                        },
-                        {
-                            uuid: 'OBJECT#birdseed' as `OBJECT#${string}`,
-                            shortName: 'birdseed',
-                            stableKey: 'birdseed-0',
-                            tropeAffinities: [{ trope: 'Bait', aptness: 'High', narrowing: 'lane lure' }],
-                        },
-                    ],
-                }
-            }
-            return {
-                EphemeraId: roomId,
-                DataCategory: 'Meta::Room',
-                objects: [],
-            }
+        const snapshotDeps = coyoteSnapshotDepsFromRoomObjects(getGameRooms, {
+            'ROOM#VORTEX': [
+                {
+                    objectId: 'OBJECT#anvil' as `OBJECT#${string}`,
+                    shortName: 'anvil',
+                    stableKey: 'anvil',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'drop zone' }],
+                },
+                {
+                    objectId: 'OBJECT#birdseed' as `OBJECT#${string}`,
+                    shortName: 'birdseed',
+                    stableKey: 'birdseed-0',
+                    tropeAffinities: [{ trope: 'Bait', aptness: 'High', narrowing: 'lane lure' }],
+                },
+            ],
+            'ROOM#STRAIGHTAWAY': [],
         })
+        getObjectIdsInRoom.mockImplementation(snapshotDeps.getObjectIdsInRoom)
+        getStagedObject.mockImplementation(snapshotDeps.getStagedObject)
         stageOneMock.mockResolvedValue({
             success: true,
             body: stageOneSeamBody,
@@ -258,9 +253,9 @@ describe('generateHypothesis', () => {
         await generateHypothesis(hypothesisDeps())
 
         expect(getGameRooms).toHaveBeenCalledTimes(1)
-        expect(getRoomMeta).toHaveBeenCalledTimes(2)
-        expect(getRoomMeta).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX')
-        expect(getRoomMeta).toHaveBeenNthCalledWith(2, 'ROOM#STRAIGHTAWAY')
+        expect(getObjectIdsInRoom).toHaveBeenCalledTimes(2)
+        expect(getObjectIdsInRoom).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX')
+        expect(getObjectIdsInRoom).toHaveBeenNthCalledWith(2, 'ROOM#STRAIGHTAWAY')
     })
 
     it('uses room object override without consulting room meta deps', async () => {
@@ -346,7 +341,7 @@ describe('generateHypothesis', () => {
         )
 
         expect(getGameRooms).not.toHaveBeenCalled()
-        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(getObjectIdsInRoom).not.toHaveBeenCalled()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
         expect(narrativeBeatMock).toHaveBeenCalledTimes(1)

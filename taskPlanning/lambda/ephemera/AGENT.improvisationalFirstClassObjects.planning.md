@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 4 complete. **Next:** Phase 5 Coyote/objects lane migration off `Meta::Room.objects`. **Locked:** **I1**--**I6**.
+**Status:** Phase 5 complete. **Next:** Phase 6 legacy room-list code removal. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -229,13 +229,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Add **`Object Moved`** graph-diff fact on **`mtw.ephemera.positions`** at apply (mirror **`buildCharacterMovedFact`** / **`streamMembershipFact`**); diagnostics posture for duplicate placement drift.
   - [X] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row.
 
-- [ ] **Phase 5 --- migrate `mtw.ephemera.objects` + Coyote**
-  - [ ] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation pair + **`Meta::Object`** (stableKey / tropes), apply graph placement (+ adjacency), emit object-id **`Objects Changed`** (**I4**); placement **`Object Moved`** comes from positions apply.
-  - [ ] Refactor **`handleApiObjectsChangeCommand`** / **`mergePersistMetaRoomObjects`** to target improvisation + graph (or thin wrapper calling new modules).
-  - [ ] Migrate affordance fan-in from **`Objects Changed`** to **`Object Moved`** for placement-driven room refresh (Coyote / **`fanOutAffordanceRefreshForRoom`** path).
-  - [ ] Update **`loadCoyoteRoomObjectsByRoom`** / **`formatCoyoteStagedObjectsByRoom`** to read **`Meta::Object`** + graph placement (not **`Meta::Room.objects`**); pair row supplies **`shortName`** where needed.
-  - [ ] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** to scan **`Meta::Object`** **`stableKey`** (not room-embedded list).
-  - [ ] Refactor **`AffordanceRoomDeliverable`**: read object ids from graph + **`shortName`** from aggregate/improvisation; populate **`StandardRoom.objects[]`** for room-nested wire emit (**I6**).
+- [X] **Phase 5 --- migrate `mtw.ephemera.objects` + Coyote**
+  - [X] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation pair + **`Meta::Object`** (stableKey / tropes), apply graph placement (+ adjacency), emit object-id **`Objects Changed`** (**I4**); placement **`Object Moved`** comes from positions apply.
+  - [X] Refactor **`handleApiObjectsChangeCommand`** / **`applyObjectsChange`** to target improvisation + graph (supersedes **`mergePersistMetaRoomObjects`**).
+  - [X] Migrate affordance fan-in from **`Objects Changed`** to **`Object Moved`** for placement-driven room refresh (Coyote / **`fanOutAffordanceRefreshForRoom`** path).
+  - [X] Update **`loadCoyoteRoomObjectsByRoom`** / **`formatCoyoteStagedObjectsByRoom`** to read **`Meta::Object`** + graph placement (not **`Meta::Room.objects`**); pair row supplies **`shortName`** where needed.
+  - [X] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** to scan graph + **`Meta::Object`** **`stableKey`** (not room-embedded list).
+  - [X] Refactor **`AffordanceRoomDeliverable`**: read object ids from graph + **`shortName`** from aggregate/improvisation; populate **`StandardRoom.objects[]`** for room-nested wire emit (**I6**).
 
 - [ ] **Phase 6 --- legacy room-list code removal**
   - [ ] Delete **`mergePersistMetaRoomObjects`** and room-list write paths superseded in Phase 5.

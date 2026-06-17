@@ -4,6 +4,7 @@ jest.mock('../hypothesis/invokeBedrockHypothesis', () => ({
 }))
 
 import { harnessRoomObjects } from '../../testHarness/coyoteEngineTestFixtures'
+import { coyoteSnapshotDepsFromRoomObjects } from '../hypothesis/coyoteSnapshotTestHelpers'
 import { generatePlanOutcome } from './generatePlanOutcome'
 import { invokeBedrockHypothesis } from '../hypothesis/invokeBedrockHypothesis'
 
@@ -11,26 +12,18 @@ const invokeBedrockHypothesisMock = invokeBedrockHypothesis as jest.MockedFuncti
 
 describe('generatePlanOutcome', () => {
     const getGameRooms = jest.fn<Promise<string[]>, []>()
-    const getRoomMeta = jest.fn()
     const getIntentRecord = jest.fn()
+
+    const defaultRoomObjects = {
+        'ROOM#VORTEX': [{ objectId: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
+        'ROOM#STRAIGHTAWAY': [],
+    }
+
+    const snapshotDeps = () => coyoteSnapshotDepsFromRoomObjects(getGameRooms, defaultRoomObjects)
 
     beforeEach(() => {
         jest.clearAllMocks()
         getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
-        getRoomMeta.mockImplementation(async (roomId: string) => {
-            if (roomId === 'ROOM#VORTEX') {
-                return {
-                    EphemeraId: roomId,
-                    DataCategory: 'Meta::Room',
-                    objects: [{ uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
-                }
-            }
-            return {
-                EphemeraId: roomId,
-                DataCategory: 'Meta::Room',
-                objects: [],
-            }
-        })
         getIntentRecord.mockResolvedValue({
             intent: 'Hypothesis: It looks like you are trying to drop the anvil.',
         })
@@ -42,18 +35,17 @@ describe('generatePlanOutcome', () => {
 
     it('returns RenderTree from model output when Bedrock succeeds', async () => {
         await expect(
-            generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })
+            generatePlanOutcome({ ...snapshotDeps(), getIntentRecord })
         ).resolves.toEqual([
             'Outcome: The anvil drops on your own foot while the Road Runner speeds past, unbothered.',
         ])
     })
 
     it('loads staged objects, hypothesis, and passes prompt to Bedrock', async () => {
-        await generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })
+        await generatePlanOutcome({ ...snapshotDeps(), getIntentRecord })
 
         expect(getGameRooms).toHaveBeenCalledTimes(1)
         expect(getIntentRecord).toHaveBeenCalledTimes(1)
-        expect(getRoomMeta).toHaveBeenCalledTimes(2)
         expect(invokeBedrockHypothesisMock).toHaveBeenCalledTimes(1)
         const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
             invariantPrefix: string
@@ -71,7 +63,7 @@ describe('generatePlanOutcome', () => {
             intent: 'Hypothesis: It looks like you are trying to drop the anvil.',
             gimmick: 'trap funnel',
         })
-        await generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })
+        await generatePlanOutcome({ ...snapshotDeps(), getIntentRecord })
         const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
@@ -83,8 +75,7 @@ describe('generatePlanOutcome', () => {
 
     it('uses both overrides without consulting room meta or getIntentRecord deps', async () => {
         await generatePlanOutcome({
-            getGameRooms,
-            getRoomMeta,
+            ...snapshotDeps(),
             getIntentRecord,
             roomObjectsByRoomOverride: {
                 'ROOM#VORTEX': harnessRoomObjects('vortex', ['catapult']),
@@ -94,7 +85,6 @@ describe('generatePlanOutcome', () => {
         })
 
         expect(getGameRooms).not.toHaveBeenCalled()
-        expect(getRoomMeta).not.toHaveBeenCalled()
         expect(getIntentRecord).not.toHaveBeenCalled()
         const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
             invariantPrefix: string
@@ -110,8 +100,7 @@ describe('generatePlanOutcome', () => {
 
     it('does not call getIntentRecord when intentRecordOverride supplies walkthrough and narrativeBeatsStructured', async () => {
         await generatePlanOutcome({
-            getGameRooms,
-            getRoomMeta,
+            ...snapshotDeps(),
             getIntentRecord,
             roomObjectsByRoomOverride: {
                 'ROOM#VORTEX': harnessRoomObjects('vortex', ['catapult']),
@@ -134,7 +123,6 @@ describe('generatePlanOutcome', () => {
         })
 
         expect(getGameRooms).not.toHaveBeenCalled()
-        expect(getRoomMeta).not.toHaveBeenCalled()
         expect(getIntentRecord).not.toHaveBeenCalled()
         const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
             invariantPrefix: string
@@ -152,8 +140,7 @@ describe('generatePlanOutcome', () => {
 
     it('still calls getIntentRecord when only room object override is provided', async () => {
         await generatePlanOutcome({
-            getGameRooms,
-            getRoomMeta,
+            ...snapshotDeps(),
             getIntentRecord,
             roomObjectsByRoomOverride: {
                 'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole']),
@@ -161,32 +148,28 @@ describe('generatePlanOutcome', () => {
         })
 
         expect(getGameRooms).not.toHaveBeenCalled()
-        expect(getRoomMeta).not.toHaveBeenCalled()
         expect(getIntentRecord).toHaveBeenCalledTimes(1)
     })
 
-    it('still loads room meta when only hypothesis override is provided', async () => {
+    it('still loads room objects when only hypothesis override is provided', async () => {
         await generatePlanOutcome({
-            getGameRooms,
-            getRoomMeta,
+            ...snapshotDeps(),
             getIntentRecord,
             hypothesisLineOverride: 'Hypothesis: It looks like you are trying to launch a boulder.',
         })
 
         expect(getGameRooms).toHaveBeenCalledTimes(1)
-        expect(getRoomMeta).toHaveBeenCalledTimes(2)
         expect(getIntentRecord).not.toHaveBeenCalled()
     })
 
     it('renders narrative-beats/walkthrough context without relying on legacy role labels', async () => {
         await generatePlanOutcome({
-            getGameRooms,
-            getRoomMeta,
+            ...snapshotDeps(),
             getIntentRecord,
             roomObjectsByRoomOverride: {
                 'ROOM#VORTEX': [
                     {
-                        uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                        objectId: 'OBJECT#anvil' as `OBJECT#${string}`,
                         shortName: 'anvil',
                         stableKey: 'anvil',
                         tropeAffinities: [
@@ -232,7 +215,7 @@ describe('generatePlanOutcome', () => {
             errorMessage: 'Throttled',
         })
 
-        await expect(generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })).resolves.toEqual([
+        await expect(generatePlanOutcome({ ...snapshotDeps(), getIntentRecord })).resolves.toEqual([
             'Outcome: Stubbed',
         ])
     })
@@ -243,7 +226,7 @@ describe('generatePlanOutcome', () => {
             body: 'The trap fails.',
         })
 
-        await expect(generatePlanOutcome({ getGameRooms, getRoomMeta, getIntentRecord })).resolves.toEqual([
+        await expect(generatePlanOutcome({ ...snapshotDeps(), getIntentRecord })).resolves.toEqual([
             'Outcome: Stubbed',
         ])
     })

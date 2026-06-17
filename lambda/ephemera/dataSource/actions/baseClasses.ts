@@ -1,12 +1,13 @@
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
+    EphemeraObjectId,
     EphemeraRoomId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     AcmeCatalogRejectionReason,
     AcmeOrderEnrichModelLine,
@@ -26,12 +27,13 @@ const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProt
 ])
 
 /**
- * Injectable accessors for iterating Coyote demo rooms and **`Meta::Room`** (shared by
+ * Injectable accessors for iterating Coyote demo rooms and graph-placed objects (shared by
  * **`collectCoyoteOccupiedStableKeys`**, **`countCoyotePlacedObjectsAcrossRooms`**, and **`ParseCommandDeps`**).
  */
 export type CollectCoyoteOccupiedStableKeysDeps = {
     getGameRooms: () => Promise<string[]>
-    getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+    getObjectIdsInRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraObjectId[]>
+    getObjectMeta?: (objectId: EphemeraObjectId) => Promise<EphemeraMetaObject | undefined>
 }
 
 /**

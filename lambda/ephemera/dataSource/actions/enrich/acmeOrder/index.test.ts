@@ -1,16 +1,9 @@
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE, enrichAcmeOrder } from './index'
-
-const emptyCoyoteRoomMeta = (roomKey: string): EphemeraMetaRoom => ({
-    EphemeraId: `ROOM#${roomKey}` as `ROOM#${string}`,
-    DataCategory: 'Meta::Room',
-    objects: [],
-})
 
 const underCapCountDeps = {
     getGameRooms: async () => ['U'],
-    getRoomMeta: async (roomId: `ROOM#${string}`) =>
-        (roomId === 'ROOM#U' ? emptyCoyoteRoomMeta('U') : undefined),
+    getObjectIdsInRoom: async () => [] as EphemeraObjectId[],
 }
 
 describe('enrichAcmeOrder', () => {
@@ -97,11 +90,7 @@ Check catalog.
             success: true,
             body: '{}',
         })
-        const objects = Array.from({ length: 21 }, (_, i) => ({
-            uuid: `OBJECT#${i}` as `OBJECT#${string}`,
-            shortName: 'x',
-            stableKey: 'k',
-        }))
+        const objects = Array.from({ length: 21 }, (_, i) => `OBJECT#${i}` as EphemeraObjectId)
         const output = await enrichAcmeOrder(
             { command: 'order rope' },
             0.8,
@@ -109,13 +98,7 @@ Check catalog.
                 invokeBedrockAcmeOrderEnrichImpl,
                 countCoyotePlacedObjectsAcrossRoomsDeps: {
                     getGameRooms: async () => ['Over'],
-                    getRoomMeta: async (roomId) =>
-                        (roomId === 'ROOM#Over'
-                            ? {
-                                ...emptyCoyoteRoomMeta('Over'),
-                                objects,
-                            }
-                            : undefined),
+                    getObjectIdsInRoom: async (roomId) => (roomId === 'ROOM#Over' ? objects : []),
                 },
             }
         )
@@ -141,11 +124,7 @@ Check catalog.
                 confidence: 1,
             }),
         })
-        const objects = Array.from({ length: 20 }, (_, i) => ({
-            uuid: `OBJECT#${i}` as `OBJECT#${string}`,
-            shortName: 'x',
-            stableKey: 'k',
-        }))
+        const objects = Array.from({ length: 20 }, (_, i) => `OBJECT#${i}` as EphemeraObjectId)
         const output = await enrichAcmeOrder(
             { command: 'order rope' },
             0.5,
@@ -153,13 +132,7 @@ Check catalog.
                 invokeBedrockAcmeOrderEnrichImpl,
                 countCoyotePlacedObjectsAcrossRoomsDeps: {
                     getGameRooms: async () => ['Edge'],
-                    getRoomMeta: async (roomId) =>
-                        (roomId === 'ROOM#Edge'
-                            ? {
-                                ...emptyCoyoteRoomMeta('Edge'),
-                                objects,
-                            }
-                            : undefined),
+                    getObjectIdsInRoom: async (roomId) => (roomId === 'ROOM#Edge' ? objects : []),
                 },
             }
         )

@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteStagedObject } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import type {
     AffordanceProvidedRef,
     CoyoteTrope,
@@ -92,8 +92,8 @@ const TROPE_ORDER: CoyoteTrope[] = CANONICAL_TROPE_ORDER
 
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-): Map<string, EphemeraMetaRoomObject> {
-    const map = new Map<string, EphemeraMetaRoomObject>()
+): Map<string, CoyoteStagedObject> {
+    const map = new Map<string, CoyoteStagedObject>()
     for (const objects of Object.values(roomObjectsByRoom)) {
         for (const o of objects) {
             map.set(o.stableKey.trim(), o)
@@ -272,7 +272,7 @@ export function renderCombinedCandidateOutputForNarrativeBeat(
  * Returns undefined when there is nothing to emit (omit empty arrays in JSON).
  */
 export function collectAffordancesProvidedFromRoomObject(
-    o: EphemeraMetaRoomObject
+    o: CoyoteStagedObject
 ): AffordanceProvidedRef[] | undefined {
     const rows = o.tropeAffinities
     if (!rows?.length) {
@@ -293,7 +293,7 @@ export function collectAffordancesProvidedFromRoomObject(
  * Returns undefined when there is nothing to emit (omit empty arrays in JSON).
  */
 export function collectEnvironmentAffordancesFromRoomObject(
-    o: EphemeraMetaRoomObject
+    o: CoyoteStagedObject
 ): EnvironmentAffordanceRef[] | undefined {
     const rows = o.tropeAffinities
     if (!rows?.length) {
@@ -311,13 +311,13 @@ export function collectEnvironmentAffordancesFromRoomObject(
 
 function findRoomIdForObject(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom,
-    target: EphemeraMetaRoomObject
+    target: CoyoteStagedObject
 ): EphemeraRoomId | undefined {
     for (const [roomId, objects] of Object.entries(roomObjectsByRoom) as [
         EphemeraRoomId,
-        EphemeraMetaRoomObject[],
+        CoyoteStagedObject[],
     ][]) {
-        if (objects.some((o) => o.uuid === target.uuid)) {
+        if (objects.some((o) => o.objectId === target.objectId)) {
             return roomId
         }
     }
@@ -326,7 +326,7 @@ function findRoomIdForObject(
 
 function enrichMemberForPlanSelectJson(
     mem: CombinedMemberPair,
-    byStableKey: Map<string, EphemeraMetaRoomObject>,
+    byStableKey: Map<string, CoyoteStagedObject>,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): PlanSelectCombinedMember {
     const sk = mem.identifier.trim()
@@ -348,7 +348,7 @@ function enrichMemberForPlanSelectJson(
 
 function enrichOutlierForPlanSelectJson(
     out: CombinedOutlierIdentity,
-    byStableKey: Map<string, EphemeraMetaRoomObject>,
+    byStableKey: Map<string, CoyoteStagedObject>,
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): PlanSelectCombinedOutlier {
     const sk = out.identifier.trim()
