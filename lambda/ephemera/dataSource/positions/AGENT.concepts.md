@@ -72,6 +72,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 - **Spawn + place:** [`spawnAndPlaceImprovisationObject`](../objects/spawnAndPlaceImprovisationObject.ts) atomically writes pair + meta + graph + adjacency.
 - **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
 - Relational in-room edges (`On`, `In`, ...) remain deferred (slice 5+).
+- Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
 
 ### Three play-time questions
 
@@ -142,18 +143,12 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Room scale (shipped v1):** each room hosts a play graph with **character nodes**. **Object nodes** shipped Phase 4 (nodes only). In-room edges land in slice **5+**.
-
 **Container scale (future):** a Character (or held Object) hosts a graph for inventory and nested placement ("glass on tray on table", "broom against wall").
 
 ### Authored vs play graphs
 
 - **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
-- **Play mutations** (connect, navigate, pick up, place) update **play graphs** (or interim flat fields until graphs land); **projections** feed perception, affordance WML, nav, and LLM context.
-
-### Objects and `mtw.ephemera.objects`
-
-**Placement (shipped Phase 4):** positions owns **`Object`** nodes on room graphs + adjacency; objects lane owns existence rows. Coyote handlers still read legacy **`Meta::Room.objects`** until Phase 5. See [`../objects/AGENT.md`](../objects/AGENT.md).
+- **Play mutations** (connect, navigate, pick up, place) update **play graphs**; **projections** feed perception, affordance WML, nav, and LLM context.
 
 ### Map Position facets (x/y)
 

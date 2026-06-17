@@ -1,8 +1,8 @@
-# Positions --- contracts (slice 2)
+# Positions --- contracts (slice 2 + Phase 4 object nodes)
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**) only (**S2-6** shipped). **`Character Moved`** is graph-diff descriptive emission (**F1-8** / **S2-4**). Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
+Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**) only (**S2-6** shipped). **`Character Moved`** and **`Object Moved`** are graph-diff descriptive emissions (**F1-8** / **S2-4** / **I4**). Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
 
 ---
 
@@ -22,7 +22,8 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 **Positions must own (play manipulation truth):**
 
 - Membership persist (`Meta::Room.positionGraph`, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
-- **`Character Moved`** descriptive fact stream from graph-diff at persistence apply.
+- **`Object`** nodes on room **`positionGraph`** + **`OBJECT#`** adjacency rows (**I5**); objects lane owns existence rows (improvisation pair + **`Meta::Object`**) only.
+- **`Character Moved`** and **`Object Moved`** descriptive fact streams from graph-diff at persistence apply.
 - Gateway topology read backing for stored membership graph and adjacency (see [Read surface](#read-surface-s1-5-s1-15-slice-2)).
 
 **Positions must not own (presentation truth):**
@@ -98,6 +99,7 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 
 - **Args:** `{ objectId, targetRoomId: EphemeraRoomId | null }` --- `null` = removed from all rooms.
 - **Graph persist engine:** [`updateObjectPositionGraphs`](membership/updateObjectPositionGraphs.ts) --- end-state apply mirroring character **`updatePositionGraphs`** (no `RoomStack`, no `CharacterInPlay`).
+- **Must** persist **`positionGraph`** + adjacency in the same transact; on conflict **`positionGraph` wins** (mirror S2-4 character rule).
 - **Spawn + place bundle:** [`spawnAndPlaceImprovisationObject`](../objects/spawnAndPlaceImprovisationObject.ts) --- single transact: improvisation pair + **`Meta::Object`** + graph node + adjacency (**I1** / **I5**).
 
 ### `Object Moved` fact (I4)
@@ -106,6 +108,17 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 - Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- same graph-diff semantics as **`Character Moved`**.
 - **Must not** populate presentation fields on the fact.
 - Fan-in consumer for affordance refresh: **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts)).
+
+### Object membership-changed bundle
+
+When object **`MembershipDiff.changed`** after successful graph persist, the coordinator **must**:
+
+1. Stream **`Object Moved`** (when fact non-null).
+2. Seed **`Positions.set`** from **`postApplyRoomGraphs`** and **`ComponentEphemeraMeta.invalidate`** / **`AffordanceRoomDeliverable.invalidate`** for each room in **`froms`** + non-null **`to`**.
+3. **`setMembershipContainers(objectId)`** from apply diff.
+4. Publish **`RoomUpdate`** per affected room.
+
+**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts).
 
 ### Object placement drift repair
 
@@ -196,7 +209,9 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 - **Roster display** **must** hydrate at read time from **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`) via [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts); membership topology from stored **`positionGraph`** nodes only (**S2-6-H**).
 - **Character `getPositionGraph`** is a forward **inventory stub** (empty graph today) --- **must not** be used for room-membership / reverse reads.
 - **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts)) **must** use **`internalCache.Positions.getMembershipContainers`** (adjacency index only), not raw `Meta::Character.RoomId` or `CharacterMeta.RoomId`.
-- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** topology only; when graph absent, return empty topology (**S2-6**); **must not** merge stored **`activeCharacters`** on gateway forward load for roster display.
+- **Reverse object placement reads** **must** use **`internalCache.Positions.getMembershipContainers(objectId)`** (adjacency only); empty adjacency means out of play (`[]`).
+- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** topology only; when graph absent, return empty topology (**S2-6**); **must not** merge stored **`activeCharacters`** on gateway forward load for roster display. Forward graph **must** include **`Object`** nodes when present.
+- **Affordance compose** **must** derive in-room object ids via **`extractObjectIdsFromPlayPositionGraph`** on the stored room graph ([`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts)); **`shortName`** from improvisation merge, not room meta.
 - **Reverse membership** **must** read adjacency rows only (**S2-6**); empty adjacency means out of play (`[]`).
 - **Authoritative writer** for play position state remains the membership persistence API; gateway memo runs from the coordinator when `changed`: forward **`Positions.set`** from **`postApplyRoomGraphs`** for all rooms in **`froms`** + **`to`**; **`setMembershipContainers`** for the character or object. Gateway module scope: [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md).
 
@@ -209,7 +224,7 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 ## Explicit non-ownership
 
 - **Must not** implement `projectRoomExits`, `ensureAffordanceTopology`, or exit validation (owned by topology + [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts)).
-- **Must not** mutate `Meta::Room.objects` (owned by [`../objects/`](../objects/)).
+- **Must not** mutate legacy `Meta::Room.objects` (field removed from room meta Phase 6; objects lane writes improvisation pair + **`Meta::Object`** + graph only --- see [`../objects/`](../objects/)).
 - **Must not** write play membership fields outside [`membership/`](membership/).
 - **Must not** publish **`CheckLocation`** (retired at Close **S2-6-DR**).
 
@@ -222,4 +237,4 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 
 ## Consumer expectations
 
-Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).
+Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. After a **successful** object membership apply with `changed: true`, downstream **may** assume affordance memo reflects updated **`StandardRoom.objects`** for affected rooms. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).

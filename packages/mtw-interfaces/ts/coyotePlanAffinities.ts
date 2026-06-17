@@ -1,5 +1,5 @@
 //
-// Coyote demo: plan-role affinities on staged objects (Acme enrich output + Meta::Room.objects).
+// Coyote demo: plan-role affinities on staged objects (Acme enrich output + Meta::Object).
 // Vocabulary includes structural roles, generative roles (`prep`, `creation`), and
 // flat modification-intent tags (`influence-road-runner`, `alter-road-runner`,
 // `coyote-equipment`, `coyote-enhancement`, `setting-addition`, `connect-props`,
@@ -328,7 +328,7 @@ function isFiniteUnitConfidence(n: unknown): boolean {
 
 /**
  * Normalized **`stableKey`** reserved for Coyote phase-plan **virtual grounding** (human-facing label **`SETTING`**).
- * Acme deterministic finalization must not assign this key to staged **`Meta::Room.objects`**; use **`acme-setting`** (or suffixed variants) instead.
+ * Acme deterministic finalization must not assign this key to staged objects; use **`acme-setting`** (or suffixed variants) instead.
  *
  * @see task planning **Decided: reserved stable key SETTING (virtual grounding)** under **`lambda/ephemera/dataSource/coyoteGame/`**.
  */

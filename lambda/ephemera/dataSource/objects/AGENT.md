@@ -4,7 +4,7 @@
 
 This package owns **runtime improvisational objects** for play: dual ephemeraDB rows per **`OBJECT#`** (component pair under **`ASSET#IMPROVISATION`** + **`Meta::Object`** play meta) and **`positionGraph`** **`Object`** nodes for room placement. Human-facing labels come from the improvisation pair; Coyote correlation uses **`stableKey`** on **`Meta::Object`** (see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**). Optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich live on **`Meta::Object`** ([`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object existence and ingress, **not** nested under a room aggregate.
 
-**Phase 5 steady state:** writers **must not** touch **`Meta::Room.objects`**. Legacy [`mergePersistMetaRoomObjects.ts`](mergePersistMetaRoomObjects.ts) remains for Phase 6 deletion only. Planning: [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md).
+**Steady state:** writers **must not** touch **`Meta::Room.objects`** (removed from room meta in Phase 6). Planning: [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md).
 
 ## Improvisation storage (Phase 2)
 
@@ -42,7 +42,7 @@ Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** a
 
 **Merge semantics (ingress v1):** **`remove`** --- delete improvisation rows after graph removal. **`add`** --- spawn+place per **`EphemeraMetaRoomObject`** row (caller supplies **`uuid`** as **`OBJECT#`** id, **`shortName`**, **`stableKey`**, optional trope fields).
 
-**Persist:** [`applyObjectsChange.ts`](applyObjectsChange.ts) coordinates spawn, graph apply, and delete modules. **Do not** call [`mergePersistMetaRoomObjects.ts`](mergePersistMetaRoomObjects.ts) (deprecated; Phase 6 removal).
+**Persist:** [`applyObjectsChange.ts`](applyObjectsChange.ts) coordinates spawn, graph apply, and delete modules.
 
 **Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamObjectsChangedFact`** on **`mtw.ephemera.objects`** when any ids created/destroyed.
 
@@ -77,7 +77,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | Topic | Decision |
 | --- | --- |
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
-| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** unused (Phase 6 type cleanup). |
+| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type (Phase 6). |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
@@ -96,7 +96,7 @@ npm run test -- --watchAll=false
 
 **Regression checks:**
 
-- Tests under **`lambda/ephemera/dataSource/objects/`** and **`mergePersistMetaRoomObjects` / `handleApiObjectsChange`** pass.
+- Tests under **`lambda/ephemera/dataSource/objects/`** and **`handleApiObjectsChange`** pass.
 - **`mtw.ephemera.objects`** appears in **[`app.ts`](../../app.ts)** side-effect imports and as the DataSource **`dataSourceKey`** in [`index.ts`](index.ts).
 - **[`app.ts`](../../app.ts):** **`./dataSource/objects`** import **above** **`./dataSource/state`**.
 

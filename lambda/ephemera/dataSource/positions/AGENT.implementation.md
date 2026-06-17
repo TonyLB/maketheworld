@@ -1,6 +1,6 @@
 # Positions --- implementation map
 
-This file records **where behavior lives** for `mtw.ephemera.positions` through slice **3**. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
+This file records **where behavior lives** for `mtw.ephemera.positions` through slice **4** (object membership). Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
 
 ---
 

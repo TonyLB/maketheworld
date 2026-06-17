@@ -65,7 +65,8 @@ export type EphemeraRoomActiveCharacter = {
     sessions?: string[];
 }
 
-/** Runtime object row on Meta::Room; uuid is OBJECT#... (ephemera wire / WML StandardRoom.objects). */
+/** Objects Change ingress add-row / affordance wire compose shape (not persisted on Meta::Room).
+ *  At persist: shortName -> improvisation pair; stableKey + trope fields -> Meta::Object. */
 export type EphemeraMetaRoomObject = {
     uuid: EphemeraObjectId;
     shortName: string;
@@ -220,11 +221,6 @@ export type EphemeraMetaRoom = {
     /** Legacy fast-pointer map; canonical pointer is `currentCacheId` on `Cache::${perspectiveKey}` catalog rows (M2 migration). */
     currentCacheByPerspective?: EphemeraRoomCurrentCacheByPerspective;
     currentCacheId?: EphemeraCacheId;
-
-    //
-    // v1 runtime objects (mtw.ephemera.objects on this Meta::Room row).
-    //
-    objects?: EphemeraMetaRoomObject[];
 }
 
 export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
@@ -296,13 +292,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
         }
     }
     if ('objects' in value) {
-        const objects = value.objects
-        if (!Array.isArray(objects)) {
-            return false
-        }
-        if (!objects.every((entry: unknown) => isEphemeraMetaRoomObject(entry))) {
-            return false
-        }
+        return false
     }
     if ('positionGraph' in value && !isEphemeraPlayPositionGraph(value.positionGraph)) {
         return false

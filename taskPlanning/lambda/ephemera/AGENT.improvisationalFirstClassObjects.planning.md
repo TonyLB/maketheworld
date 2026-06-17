@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 5 complete. **Next:** Phase 6 legacy room-list code removal. **Locked:** **I1**--**I6**.
+**Status:** Phase 6 complete. **Next:** Phase 7 durable docs + cleanup. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -150,8 +150,8 @@ Classification for migration off the flat room list. Tests under **`dataSource/o
 
 | Classification | File | Role |
 | --- | --- | --- |
-| **Migrate Phase 5** | [`mergePersistMetaRoomObjects.ts`](../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) | Dynamo write: `optimisticUpdate` on `objects` |
-| **Migrate Phase 5** | [`handleApiObjectsChange.ts`](../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) | API / Acme / clear handlers |
+| **Removed Phase 6** | [`mergePersistMetaRoomObjects.ts`](../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) | Deleted --- Dynamo write on `objects` superseded by improvisation + graph |
+| **Migrated Phase 5** | [`handleApiObjectsChange.ts`](../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) | API / Acme / clear handlers |
 | **Migrate Phase 5** | [`objects/index.ts`](../../lambda/ephemera/dataSource/objects/index.ts) | DataSource wiring |
 | **Migrate Phase 5** | [`affordanceRoomDeliverable.ts`](../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) | Projects `meta.objects` into `StandardRoom.objects` |
 | **Migrate Phase 5** | [`coyoteRoomObjectSnapshot.ts`](../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) | Coyote staged-object loaders |
@@ -160,8 +160,7 @@ Classification for migration off the flat room list. Tests under **`dataSource/o
 | **Migrate Phase 5** | Coyote hypothesis/outcome/candidate pipeline | `loadCoyoteRoomObjectsByRoom`, `formatCoyoteStagedObjectsByRoom`, `EphemeraMetaRoomObject` prompts |
 | **Migrate Phase 5** | [`objects/events.ts`](../../lambda/ephemera/dataSource/objects/events.ts), [`localApiEvents.ts`](../../lambda/ephemera/dataSource/localApiEvents.ts) | Bus ingress/outbound room-list shape |
 | **Migrate Phase 5** | [`affordanceOrchestration/index.ts`](../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) | Subscribes `Objects Changed` for affordance refresh |
-| **Remove Phase 6** | [`ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | `EphemeraMetaRoomObject` on `Meta::Room` (types/guards) |
-| **Remove Phase 6** | [`mergePersistMetaRoomObjects.ts`](../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) | Entire module after cutover |
+| **Removed Phase 6** | [`ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | `objects` removed from `EphemeraMetaRoom`; `EphemeraMetaRoomObject` retained as ingress add-row type only |
 | **Wire unchanged (compose Phase 5)** | [`room.ts`](../../packages/mtw-wml/ts/standardize/components/room.ts), [`roomHeaderPhaseC.ts`](../../charcoal-client/src/slices/messages/roomHeaderPhaseC.ts) | `StandardRoom.objects` wire/UI shape (**I6**) |
 | **Types extend (Phase 0 shipped)** | [`ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts), [`baseClasses.ts`](../../packages/mtw-interfaces/ts/baseClasses.ts), [`fetch.ts`](../../packages/mtw-gateways/ts/assets/components/componentData/fetch.ts) | `EphemeraMetaObject`, adjacency `OBJECT#` PK, `IMPROVISATION_ASSET_ID`, `ComponentPairPersistedFields` |
 
@@ -190,8 +189,8 @@ Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room
 | 2 | ephemeraDB improvisation persistence + cache handler | Complete |
 | 3 | Composite `ComponentData` (+ improvisation) for aggregate | Complete |
 | 4 | `positionGraph` `OBJECT` nodes + placement apply | Complete |
-| 5 | Coyote/objects lane migration off `Meta::Room.objects` | Not started |
-| 6 | Legacy room-list code removal | Not started |
+| 5 | Coyote/objects lane migration off `Meta::Room.objects` | Complete |
+| 6 | Legacy room-list code removal | Complete |
 | 7 | Durable docs + delete this plan | Not started |
 
 ## Recommended order
@@ -237,11 +236,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** to scan graph + **`Meta::Object`** **`stableKey`** (not room-embedded list).
   - [X] Refactor **`AffordanceRoomDeliverable`**: read object ids from graph + **`shortName`** from aggregate/improvisation; populate **`StandardRoom.objects[]`** for room-nested wire emit (**I6**).
 
-- [ ] **Phase 6 --- legacy room-list code removal**
-  - [ ] Delete **`mergePersistMetaRoomObjects`** and room-list write paths superseded in Phase 5.
-  - [ ] Deprecate **`EphemeraMetaRoomObject`** on room meta; update **`isEphemeraMetaRoom`** validation.
-  - [ ] Client affordance merge: verify **Contents:** line unchanged with new compose pipeline (**I6**); no charcoal-client work expected unless wire shape changes later.
-  - [ ] Graduate **Target mental model** bullets in [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) to **Shipped** where implemented; add **`AGENT.contract.md`** obligations for object graph nodes.
+- [X] **Phase 6 --- legacy room-list code removal**
+  - [X] Delete **`mergePersistMetaRoomObjects`** and room-list write paths superseded in Phase 5.
+  - [X] Deprecate **`EphemeraMetaRoomObject`** on room meta; update **`isEphemeraMetaRoom`** validation.
+  - [X] Client affordance merge: verify **Contents:** line unchanged with new compose pipeline (**I6**); no charcoal-client work expected unless wire shape changes later.
+  - [X] Graduate **Target mental model** bullets in [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) to **Shipped** where implemented; add **`AGENT.contract.md`** obligations for object graph nodes.
 
 - [ ] **Phase 7 --- durable docs and cleanup**
   - [ ] Update [`objects/AGENT.md`](../../lambda/ephemera/dataSource/objects/AGENT.md), [`internalCache/AGENT.md`](../../lambda/ephemera/internalCache/AGENT.md), [`packages/mtw-wml` component docs](../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md).
@@ -261,6 +260,15 @@ Run from repo root paths below after each phase that touches the area.
 | Gateways (Phase 2--3) | `cd packages/mtw-gateways && npm test` |
 | WML (Phase 1) | `cd packages/mtw-wml && npm test` |
 | Interfaces (Phase 0--2) | `cd packages/mtw-interfaces && npm test` |
+
+**Phase 6 verification (2026-06-17):** all passed.
+
+| Area | Command | Result |
+| --- | --- | --- |
+| Ephemera objects + positions + affordance | `cd lambda/ephemera && npm run test -- --watchAll=false dataSource/objects/ internalCache/affordanceRoomDeliverable.test.ts dataSource/positions/` | 29 suites, 147 tests pass |
+| Interfaces guards | `cd packages/mtw-interfaces && npm test -- ephemeraMeta` | 24 tests pass |
+| Client Contents line (**I6**) | `cd charcoal-client && npm run test -- run src/slices/messages/roomHeaderPhaseC.test.ts` | 7 tests pass |
+| Dead-code grep | `rg 'mergePersistMetaRoomObjects|updateKeys: \['\''objects'\''\]'` | zero hits (planning doc references only) |
 
 **Integration smoke (manual / future harness):** Acme order in Coyote demo room -> **`Object Moved`** on delivery room -> affordance-channel WML updates -> hypothesis pipeline sees staged object line (from **`Meta::Object`**) -> **`Await RoadRunner`** clears improvisation pair rows, **`Meta::Object`** rows, graph nodes, and adjacency.
 

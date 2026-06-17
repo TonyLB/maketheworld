@@ -232,4 +232,16 @@ describe('isEphemeraMetaRoom positionGraph', () => {
             },
         })).toBe(false)
     })
+
+    it('rejects Meta::Room with legacy objects field', () => {
+        expect(isEphemeraMetaRoom({
+            EphemeraId: 'ROOM#Test',
+            DataCategory: 'Meta::Room',
+            objects: [{
+                uuid: 'OBJECT#helmet',
+                shortName: 'helmet',
+                stableKey: 'helmet',
+            }],
+        })).toBe(false)
+    })
 })
