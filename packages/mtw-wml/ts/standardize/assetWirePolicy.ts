@@ -1,6 +1,7 @@
 import StandardFeature from './components/feature'
 import StandardKnowledge from './components/knowledge'
 import StandardRoom from './components/room'
+import StandardObject from './components/object'
 import type { StandardComponent } from './components/baseClasses'
 
 export const validateAssetWirePolicyForComponent = (component: StandardComponent): void => {
@@ -26,6 +27,10 @@ export const validateAssetWirePolicyForComponent = (component: StandardComponent
         if (component.render !== undefined) {
             throw new Error('Knowledge render is not allowed in asset mode')
         }
+        return
+    }
+    if (component instanceof StandardObject) {
+        throw new Error('Object components are not allowed in asset mode')
     }
 }
 

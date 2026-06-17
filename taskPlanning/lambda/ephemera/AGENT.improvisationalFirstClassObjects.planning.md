@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 0 complete. **Next:** Phase 1 `StandardObject` stub. **Locked:** **I1**--**I6**.
+**Status:** Phase 1 complete. **Next:** Phase 2 ephemeraDB improvisation storage. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -73,7 +73,7 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 | Play graph (characters only v1) | [`positions/membership/positionGraphMerge.ts`](../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts), [`positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md) |
 | Placement fact pattern (`Character Moved`) | [`positions/publishedEvents.ts`](../../lambda/ephemera/dataSource/positions/publishedEvents.ts), [`membership/buildCharacterMovedFact.ts`](../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts) |
 | Coyote staged object text | [`coyoteRoomObjectSnapshot.ts`](../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) |
-| WML Object (not StandardComponent today) | [`packages/mtw-wml/ts/standardize/components/room.ts`](../../packages/mtw-wml/ts/standardize/components/room.ts), [`components/AGENT.implementation.md`](../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) |
+| WML (not StandardComponent today) | [`packages/mtw-wml/ts/standardize/components/object.ts`](../../packages/mtw-wml/ts/standardize/components/object.ts), [`room.ts`](../../packages/mtw-wml/ts/standardize/components/room.ts), [`components/AGENT.implementation.md`](../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) |
 | Positions target model (objects in graph) | [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) (**Target mental model**) |
 
 ## Getting started
@@ -186,7 +186,7 @@ Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room
 | Phase | Summary | Status |
 | --- | --- | --- |
 | 0 | Lock decisions I1--I6; anchor inventory; compatibility story | Complete |
-| 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Not started |
+| 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Complete |
 | 2 | ephemeraDB improvisation persistence + cache handler | Not started |
 | 3 | Composite `ComponentData` (+ improvisation) for aggregate | Not started |
 | 4 | `positionGraph` `OBJECT` nodes + placement apply | Not started |
@@ -206,11 +206,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Define **`ASSET#IMPROVISATION`** constant and synthetic zone label (no `Meta::Asset` row in assetDB required for v1).
   - [X] Define **clean cutover** strategy (empty DB; no dual-write / dual-read) --- see [**Migration cutover (Phase 0)**](#migration-cutover-phase-0).
 
-- [ ] **Phase 1 --- `StandardObject` stub (`mtw-wml` + interfaces)**
-  - [ ] Add **`Object`** to **`SchemaComponent`** / **`ComponentUUID`** / **`defaultComponentFromTag`** / **`standardComponentFactory`** (minimal fields: **`shortName`** only --- Coyote fields are **`Meta::Object`**, not **`StandardObject`** JSON).
-  - [ ] **`StandardObject`** class stub: `fromJSON`, `toJSON`, `schema`, `merge` (likely replace-or-additive for improvisation-only instances).
-  - [ ] **`ephemeraWire`:** **`StandardObject`** for merge/storage; affordance emit stays **room-nested** **`<Object>`** under **`<Room>`** only (**I6**); keep asset **`validate()`** rejecting non-empty authored object inventories until product opens blueprint authoring.
-  - [ ] Tests: round-trip stub object; asset mode rejection unchanged; aggregate default stub for `OBJECT#` id ([`assemble.ts`](../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts) parity).
+- [X] **Phase 1 --- `StandardObject` stub (`mtw-wml` + interfaces)**
+  - [X] Add **`Object`** to **`SchemaComponent`** / **`ComponentUUID`** / **`defaultComponentFromTag`** / **`standardComponentFactory`** (minimal fields: **`shortName`** only --- Coyote fields are **`Meta::Object`**, not **`StandardObject`** JSON).
+  - [X] **`StandardObject`** class stub: `fromJSON`, `toJSON`, `schema`, `merge` (likely replace-or-additive for improvisation-only instances).
+  - [X] **`ephemeraWire`:** **`StandardObject`** for merge/storage; affordance emit stays **room-nested** **`<Object>`** under **`<Room>`** only (**I6**); keep asset **`validate()`** rejecting non-empty authored object inventories until product opens blueprint authoring.
+  - [X] Tests: round-trip stub object; asset mode rejection unchanged; aggregate default stub for `OBJECT#` id ([`assemble.ts`](../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts) parity).
 
 - [ ] **Phase 2 --- ephemeraDB improvisation storage**
   - [ ] Implement persist helpers: create / update / delete **both** `(OBJECT#, ASSET#IMPROVISATION)` and `(OBJECT#, Meta::Object)` in one coordinator (spawn, clear-all for Coyote **`Await RoadRunner`**).

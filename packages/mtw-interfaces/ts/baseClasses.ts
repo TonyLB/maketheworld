@@ -78,7 +78,7 @@ export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION'
 // EphemeraId is the allowlist of id tags the ephemera/messaging layer treats as first-class
 // (cache keys, message targets, aggregate universal keys, etc.). It is aligned with current
 // SchemaComponent-backed ComponentUUID tags where they overlap, but maintained by hand:
-// e.g. OBJECT# (room object facets in ephemera meta) is included here but not ComponentUUID;
+// e.g. OBJECT# is aligned with ComponentUUID after StandardObject stub (Phase 1);
 // MARK / LENS / GUIDANCE are ComponentUUID-only until ephemera adopts them.
 // EXAMPLE# was removed: Example is no longer a schema component (authored slices use SITUATION#).
 // Legacy EXAMPLE# strings may still appear in stored WML or PerceptionMessage metadata types.

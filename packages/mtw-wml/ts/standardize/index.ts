@@ -34,6 +34,7 @@ import StandardMoment from "./components/moment"
 import StandardArea from "./components/area"
 import StandardGuidance from "./components/guidance"
 import StandardSituation from "./components/situation"
+import StandardObject from "./components/object"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
@@ -54,6 +55,7 @@ const COMPONENT_ORDER: string[] = [
     'Character',
     'Image',
     'Room',
+    'Object',
     'Feature',
     'Knowledge',
     'Map',
@@ -78,6 +80,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardRoom) ||
         (value instanceof StandardGuidance) ||
         (value instanceof StandardSituation) ||
+        (value instanceof StandardObject) ||
         (value instanceof StandardMark) ||
         (value instanceof StandardLens)
 }

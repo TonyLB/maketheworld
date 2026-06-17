@@ -111,9 +111,12 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 
 [`HasDisplayName`](./abstract.ts) and [`hasDisplayName`](../index.ts) apply to **displayName only** — not a general shortName guard.
 
-### Ephemera `Object` exception (Room `objects[].shortName`)
+### **StandardObject** (stub)
 
-**`<Object uuid=(...)><ShortName>...</ShortName></Object>`** under **Room** is a **parallel ephemera wire shape**, not `StandardComponent` shortName. The **`Object`** consumer is always registered on **`StandardRoom`**; asset **`StandardForm.validate()`** rejects non-empty **`objects`**. **`Object`** is not a `StandardComponent`. See **StandardRoom** above and [`../AGENT.md`](../AGENT.md) (**Ephemera-only tag: Object**).
+- **Purpose**: Improvisational first-class object merge body (**`shortName`** only on pair JSON; Coyote **`stableKey`** / tropes on **`Meta::Object`**, not here)
+- **Content Properties**: `shortName` (`StandardLiteral`)
+- **Wire**: Room-nested **`<Object>`** under **`<Room>`** feeds **`StandardRoom.objects[]`** for affordance emit (**I6**); top-level **`<Object>`** under **`<Asset>`** in **ephemeraWire** is **`StandardObject`** for merge/storage. Asset mode rejects both room **`objects[]`** and top-level **`StandardObject`**.
+- **Tests**: [`object.test.ts`](./object.test.ts), [`object.ephemeraWire.integration.test.ts`](./object.ephemeraWire.integration.test.ts)
 
 ## Component Types
 
@@ -136,7 +139,7 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 - **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationProseFacetList`**; optional ephemera **`render`** (`SituationProseFacetPayload`-shaped JSON)
 - **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** facets and optional ephemera **`render`**.
 - **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
-- **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is always registered; asset **`StandardForm.validate()`** rejects non-empty **`objects`**. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
+- **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from room-nested **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children (affordance wire; see **`StandardObject`** for top-level ephemeraWire merge). **`uuid`** values are canonical **`OBJECT#...`** in memory. Asset **`StandardForm.validate()`** rejects non-empty **`objects`**. See **`standardize/AGENT.md`** (**Object dual wire contexts**).
 - **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`**. Unconsumed **`<Example>`** (tag removed) fails parse. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 - **Room-local exits (M6 shipped):** Legacy **`<Exit to=(...)>`** under **Room** is **forbidden in asset authoring**. **`new StandardForm(wml, { standardizeMode: 'asset' })`** throws when room-local exit WML is present; **`validate()`** also rejects non-empty **`exits`**. Area topology exits using **area exit endpoint tags** mis-placed under **Room** are consumed but silently dropped when **`StandardExitFacet`** cannot resolve **`to=`**.
 - **ephemeraWire exit source:** At play time, navigable **`StandardRoom.exits`** on affordance/nav wire forms come from **Area** topology projection (**`projectRoomExits`** via gateways **`componentTopology`**), not from room blueprint rows. See [`../keys/edges/AGENT.edges.md`](../keys/edges/AGENT.edges.md).

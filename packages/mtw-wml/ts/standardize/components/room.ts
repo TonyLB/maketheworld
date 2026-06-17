@@ -137,7 +137,11 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                             if (!textValue) {
                                 throw new Error('Object ShortName must contain non-empty text after trim')
                             }
-                            return { uuid: enforceTypedKey('OBJECT')(objectNode.data.uuid), shortName: textValue }
+                            const objectUuid = objectNode.data.uuid
+                            if (!objectUuid) {
+                                throw new Error('Object tag must have a non-empty uuid')
+                            }
+                            return { uuid: enforceTypedKey('OBJECT')(objectUuid), shortName: textValue }
                         })
                     },
                 }),
@@ -222,7 +226,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
         const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
-            data: { tag: 'Object', uuid: o.uuid },
+            data: { tag: 'Object', uuid: o.uuid as ComponentUUID },
             children: [
                 {
                     data: { tag: 'ShortName' },
@@ -287,7 +291,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         }, [])
         
         const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
-            data: { tag: 'Object', uuid: o.uuid },
+            data: { tag: 'Object', uuid: o.uuid as ComponentUUID },
             children: [
                 {
                     data: { tag: 'ShortName' },

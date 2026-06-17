@@ -27,8 +27,10 @@ export type SchemaKeyTag = {
 
 export type SchemaObjectTag = {
     tag: 'Object';
-    uuid: string;
-}
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
 
 export type SchemaRenderTag = {
     tag: 'Render';
@@ -157,7 +159,8 @@ export const isSchemaKey = (schema: any): schema is SchemaKeyTag => (
 
 export const isSchemaObject = (schema: any): schema is SchemaObjectTag => (
     checkTypes({
-        required: { tag: CheckTypes.STRING, uuid: CheckTypes.STRING },
+        required: { tag: CheckTypes.STRING },
+        optional: { uuid: CheckTypes.STRING, key: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { tag: 'Object' }
     })(schema)
 )

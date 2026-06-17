@@ -16,7 +16,7 @@ export const projectRoomGraphFromStoredPositionGraph = (
         if (node.tag === 'Character') {
             return [{ tag: 'Character', universalKey: node.universalKey }]
         }
-        // Object nodes typed in Phase 0; projection deferred until OBJECT# is ComponentUUID (Phase 4+).
+        // Object nodes typed in Phase 0; graph projection deferred until positions Phase 4 apply.
         return []
     })
     return {

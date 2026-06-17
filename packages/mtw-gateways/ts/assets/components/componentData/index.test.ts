@@ -175,6 +175,13 @@ describe('component data gateway', () => {
             expect(entry.component.universalKey).toBe('ROOM#TestOne')
         })
 
+        it('returns a default StandardObject for OBJECT# improvisation cache key', () => {
+            const entry = defaultStoredEntryForCacheKey('ASSET#IMPROVISATION::OBJECT#skates')
+            expect(entry.assetId).toBe('ASSET#IMPROVISATION')
+            expect(entry.component.universalKey).toBe('OBJECT#skates')
+            expect(entry.component.tag).toBe('Object')
+        })
+
         it('throws when format is invalid', () => {
             expect(() => defaultStoredEntryForCacheKey('no-delimiter')).toThrow(/Invalid cache key format/)
         })

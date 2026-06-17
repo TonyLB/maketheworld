@@ -121,13 +121,13 @@ export const isImportableTag = (tag: string): boolean => (
     ['Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens', 'Area'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag
+export type SchemaWithKey = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area'].includes(value.tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object'].includes(value.tag)
 )
-export type SchemaComponent = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag
+export type SchemaComponent = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag
 export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (
-    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area'].includes(tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object'].includes(tag)
 )
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
