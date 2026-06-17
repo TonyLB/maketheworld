@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 1 complete. **Next:** Phase 2 ephemeraDB improvisation storage. **Locked:** **I1**--**I6**.
+**Status:** Phase 3 complete. **Next:** Phase 4 `positionGraph` placement (nodes only). **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -36,7 +36,7 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 1. **`ASSET#IMPROVISATION` is logical, not proof of assetDB residence.** Participation-order merge treats it like any other layer; rows live in **ephemeraDB**.
 2. **Split body vs play meta vs placement.** Merge body (**`shortName`**, future WML fields) on **`(OBJECT#, ASSET#IMPROVISATION)`**; Coyote **`stableKey`** / trope fields on **`Meta::Object`**; **where** the object is on **`positionGraph`** + **`POSITION#ROOM#...`** adjacency (**I5**). Same three-way split as character blueprint pair vs **`Meta::Character`** vs graph membership ([`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md)).
 3. **Ephemera owns writes.** **`mtw.ephemera.objects`** and **`mtw.ephemera.positions`** (or a coordinated transaction) persist improvisation rows and graph updates. **Do not** route through **`cacheAsset`** or assets-table S3 sync.
-4. **Read parallelism via composite gateway.** Extend **`ComponentDataParticipationLoader`**: canon/personal layers from **assetDB** (existing handler); **`ASSET#IMPROVISATION`** layer from **ephemeraDB** improvisation reader. **`authoritativeFromParticipationOrder`** unchanged.
+4. **Read parallelism via ephemera composite `ComponentData`.** Extend **`ComponentDataParticipationLoader`** on ephemera **`internalCache`**: canon/personal layers from **assetDB** (existing **`ComponentDataCache`**); **`ASSET#IMPROVISATION`** layer from **ephemeraDB** improvisation reader. **`authoritativeFromParticipationOrder`** unchanged. **Not** a new **`mtw-gateways`** surface --- assets/diagnostics keep assetDB-only **`ComponentData`**.
 5. **Coyote-first consumer.** First vertical slice: Acme order delivery, hypothesis staged-object snapshots, affordance WML compose. General **`Objects Change`** ingress migrates on the same persistence path.
 6. **Precedent:** Coyote **authored** overlay asset ([`AGENT.CoyoteGame.implementation.md`](../../AGENT.CoyoteGame.implementation.md)) uses assetDB merge shape; **improvisation** uses the same merge *algebra* with different *provenance* and *table*.
 
@@ -46,8 +46,8 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 
 - **`mtw-interfaces`:** **`EphemeraMetaObject`** (`Meta::Object` play meta: **`stableKey`**, trope fields); extend **`ephemeraPositionAdjacency`** for **`OBJECT#`** PK; `EphemeraPlayPositionGraph` node union extension for **`Object`**; improvisation constants (`ASSET#IMPROVISATION`); type guards.
 - **`mtw-wml`:** Stub **`StandardObject`** / **`StandardObjectData`** (**`shortName`** only for v1 --- no Coyote fields on merge JSON); promote **`OBJECT#`** in **`ComponentUUID`** / schema; **`ephemeraWire`** ingest/emit; asset mode continues to reject authored objects until a later product decision.
-- **`mtw-gateways`:** Improvisation component read handler; **`createCompositeComponentDataCacheHandler`** (name TBD) wiring asset + ephemera readers; gateway ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
-- **`lambda/ephemera`:** Persistence modules, **`internalCache`** registration, **`mtw.ephemera.objects`** handler refactor, perspective append helper, **`AffordanceRoomDeliverable`** migration, Coyote snapshot loaders, tests.
+- **`mtw-gateways`:** Improvisation component read handler (`createImprovisationComponentDataCacheHandler`); gateway ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md). **No** composite **`ComponentData`** router here.
+- **`lambda/ephemera`:** Persistence modules, **`internalCache`** registration (including Phase 3 **ephemera-only** composite **`ComponentData`** router over assetDB + improvisation readers), **`mtw.ephemera.objects`** handler refactor, perspective append helper, **`AffordanceRoomDeliverable`** migration, Coyote snapshot loaders, tests.
 - **`lambda/ephemera/dataSource/positions`:** Room graph **`OBJECT`** node apply (slice 5+ v1: nodes only, no in-room edges).
 - **Clean cutover** off **`Meta::Room.objects`** (empty legacy data; no dual-write / dual-read window --- see [**Migration cutover (Phase 0)**](#migration-cutover-phase-0)).
 
@@ -187,8 +187,8 @@ Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room
 | --- | --- | --- |
 | 0 | Lock decisions I1--I6; anchor inventory; compatibility story | Complete |
 | 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Complete |
-| 2 | ephemeraDB improvisation persistence + cache handler | Not started |
-| 3 | Composite `ComponentData` (+ improvisation) for aggregate | Not started |
+| 2 | ephemeraDB improvisation persistence + cache handler | Complete |
+| 3 | Composite `ComponentData` (+ improvisation) for aggregate | Complete |
 | 4 | `positionGraph` `OBJECT` nodes + placement apply | Not started |
 | 5 | Coyote/objects lane migration off `Meta::Room.objects` | Not started |
 | 6 | Legacy room-list code removal | Not started |
@@ -212,16 +212,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] **`ephemeraWire`:** **`StandardObject`** for merge/storage; affordance emit stays **room-nested** **`<Object>`** under **`<Room>`** only (**I6**); keep asset **`validate()`** rejecting non-empty authored object inventories until product opens blueprint authoring.
   - [X] Tests: round-trip stub object; asset mode rejection unchanged; aggregate default stub for `OBJECT#` id ([`assemble.ts`](../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts) parity).
 
-- [ ] **Phase 2 --- ephemeraDB improvisation storage**
-  - [ ] Implement persist helpers: create / update / delete **both** `(OBJECT#, ASSET#IMPROVISATION)` and `(OBJECT#, Meta::Object)` in one coordinator (spawn, clear-all for Coyote **`Await RoadRunner`**).
-  - [ ] Add **`internalCache.ImprovisationComponentData`** (name TBD) for pair reads; extend **`ComponentEphemeraMeta`** (or sibling **`ObjectMeta`**) for **`Meta::Object`** --- register on [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
-  - [ ] Add **`mtw-gateways`** ephemera improvisation read module (pair fetch for `(OBJECT#, ASSET#IMPROVISATION)`); document ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
-  - [ ] Invalidation contract: object spawn/move/destroy invalidates improvisation pair cache, **`Meta::Object`** memo, affected room **`AffordanceRoomDeliverable`**, room **`ComponentEphemeraMeta`** / positions memo as needed.
+- [X] **Phase 2 --- ephemeraDB improvisation storage**
+  - [X] Implement persist helpers: create / update / delete **both** `(OBJECT#, ASSET#IMPROVISATION)` and `(OBJECT#, Meta::Object)` in one coordinator (spawn; Coyote-scoped clear via **`gameRooms`** + **`positionGraph`** **`Object`** nodes for **`Await RoadRunner`** --- not global table scan).
+  - [X] Add **`internalCache.ImprovisationComponentData`** for pair reads; sibling **`ObjectEphemeraMeta`** for **`Meta::Object`** --- register on [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
+  - [X] Add **`mtw-gateways`** ephemera improvisation read module (pair fetch for `(OBJECT#, ASSET#IMPROVISATION)`); document ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
+  - [X] Invalidation contract: object spawn/move/destroy invalidates improvisation pair cache, **`Meta::Object`** memo, affected room **`AffordanceRoomDeliverable`**, room **`ComponentEphemeraMeta`** / positions memo as needed.
 
-- [ ] **Phase 3 --- composite `ComponentData` (+ improvisation)**
-  - [ ] Implement **`createCompositeComponentDataCacheHandler`**: delegate non-improvisation asset ids to existing **`ComponentDataCache`** (assetDB); delegate **`ASSET#IMPROVISATION`** to ephemera improvisation reader.
-  - [ ] Wire ephemera **`InternalCache.ComponentData`** (or aggregate slice) to composite handler; verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
-  - [ ] Add **`appendImprovisationToPerspective(assetStack)`** helper (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
+- [X] **Phase 3 --- composite `ComponentData` (+ improvisation)**
+  - [X] Implement **`createEphemeraComponentDataCompositeCacheHandler`** in [`lambda/ephemera/internalCache/componentDataComposite.ts`](../../lambda/ephemera/internalCache/componentDataComposite.ts): delegate non-improvisation asset ids to existing **`ComponentDataCache`** (assetDB); delegate **`ASSET#IMPROVISATION`** to **`ImprovisationComponentData`**. Ephemera-local wiring only --- **not** **`mtw-gateways`** (assets/diagnostics keep assetDB-only handlers).
+  - [X] Register composite as ephemera **`InternalCache.ComponentData`** for aggregate / **`GenerationContext`** consumers; keep **`ImprovisationComponentData`** registered for persist memo **`set`** / **`invalidate`**. Verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
+  - [X] Add **`appendImprovisationToPerspective(assetStack, objectIdsInScope)`** helper in [`packages/mtw-interfaces/ts/perspective.ts`](../../packages/mtw-interfaces/ts/perspective.ts) (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
 
 - [ ] **Phase 4 --- `positionGraph` placement (nodes only)**
   - [ ] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).

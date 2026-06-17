@@ -35,7 +35,16 @@ import {
     createPositionsCacheHandler,
     type PositionsCacheHandler,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions';
+import {
+    createImprovisationComponentDataCacheHandler,
+    type ImprovisationComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/ephemera/improvisation';
+import {
+    createEphemeraComponentDataCompositeCacheHandler,
+    type EphemeraComponentDataCompositeCache,
+} from './componentDataComposite';
 import ComponentEphemeraMetaData from './componentEphemeraMeta';
+import ObjectEphemeraMetaData from './objectEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
@@ -94,7 +103,12 @@ export class InternalCache {
     GraphNodes: GraphNodeType;
     GraphEdges: GraphEdgeType;
     
-    ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    private _assetComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
+    ImprovisationComponentData: ImprovisationComponentDataCache = createImprovisationComponentDataCacheHandler(ephemeraDB);
+    ComponentData: EphemeraComponentDataCompositeCache = createEphemeraComponentDataCompositeCacheHandler({
+        assetComponentData: this._assetComponentData,
+        improvisationComponentData: this.ImprovisationComponentData,
+    });
     ComponentVerticals: ImportVerticalMetaCache = createImportVerticalMetaCacheHandler(assetDB);
     ComponentAggregate: ComponentAggregateMergedCache;
     ComponentExamples: ComponentExamplesMergedCache;
@@ -103,6 +117,7 @@ export class InternalCache {
     ThinkingSchedules: ThinkingScheduleReadCache = createThinkingScheduleReadCacheHandler(ephemeraDB);
     ThinkingJobs: ThinkingJobReadCache = createThinkingJobReadCacheHandler(ephemeraDB);
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
+    ObjectEphemeraMeta: ObjectEphemeraMetaData = new ObjectEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
@@ -179,6 +194,8 @@ export class InternalCache {
         this.ThinkingSchedules.clear()
         this.ThinkingJobs.clear()
         this.ComponentEphemeraMeta.clear()
+        this.ObjectEphemeraMeta.clear()
+        this.ImprovisationComponentData.clear()
         this.AssetMetaData.clear()
 
         this.AffordanceRoomDeliverable.clear()
@@ -193,6 +210,7 @@ export class InternalCache {
         await Promise.all([
             this._graphCache.flush(),
             this.ComponentData.flush(),
+            this.ImprovisationComponentData.flush(),
             this.ComponentVerticals.flush(),
             this.ComponentTopology.flush(),
             this.ComponentExamples.flush(),

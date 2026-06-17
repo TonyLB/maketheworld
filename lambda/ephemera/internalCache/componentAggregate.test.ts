@@ -1,12 +1,15 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
-import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
+import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { componentTopologyPerspectiveCacheKey } from '@tonylb/mtw-gateways/ts/assets/components/componentTopology'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import internalCache from './index'
 
 const assetDBMock = jest.mocked(assetDB)
+const ephemeraDBMock = jest.mocked(ephemeraDB)
 
 const mockEmptyComponentDataReads = (): void => {
     assetDBMock.getItems.mockResolvedValue([] as any)
@@ -48,6 +51,51 @@ describe('InternalCache ComponentAggregate registration', () => {
         internalCache.clear()
         await internalCache.ComponentAggregate.get([perspective])
         expect(assetDBMock.getItems.mock.calls.length).toBeGreaterThan(getItemsAfterFirst)
+    })
+
+    it('merges OBJECT# with improvisation layer last via composite ComponentData', async () => {
+        const objectU = 'OBJECT#skates' as const
+        const assetA = 'ASSET#wireCanon' as const
+        assetDBMock.getItems.mockResolvedValue([])
+        ephemeraDBMock.getItems.mockResolvedValue([{
+            EphemeraId: objectU,
+            DataCategory: IMPROVISATION_ASSET_ID,
+            tag: 'Object',
+            shortName: 'roller skates',
+        }])
+
+        const perspective = aggregatePerspectiveExplicit({
+            universalKey: objectU,
+            mergeParticipationOrder: [assetA, IMPROVISATION_ASSET_ID],
+        })
+        const [result] = await internalCache.ComponentAggregate.get([perspective])
+
+        expect(result.merged).toBeInstanceOf(StandardObject)
+        expect((result.merged as StandardObject).shortName?._payload?.plain?.toJSON()).toBe('roller skates')
+        expect(assetDBMock.getItems).toHaveBeenCalled()
+        expect(ephemeraDBMock.getItems).toHaveBeenCalled()
+    })
+
+    it('uses improvisation memo without ephemeraDB re-query on aggregate read', async () => {
+        const objectU = 'OBJECT#memoSkates' as const
+        const assetA = 'ASSET#wireMemo' as const
+        assetDBMock.getItems.mockResolvedValue([])
+        ephemeraDBMock.getItems.mockResolvedValue([])
+
+        internalCache.ImprovisationComponentData.set(objectU, IMPROVISATION_ASSET_ID, new StandardObject({
+            tag: 'Object',
+            universalKey: objectU,
+            shortName: 'memo roller skates',
+        }))
+
+        const perspective = aggregatePerspectiveExplicit({
+            universalKey: objectU,
+            mergeParticipationOrder: [assetA, IMPROVISATION_ASSET_ID],
+        })
+        const [result] = await internalCache.ComponentAggregate.get([perspective])
+
+        expect((result.merged as StandardObject).shortName?._payload?.plain?.toJSON()).toBe('memo roller skates')
+        expect(ephemeraDBMock.getItems).not.toHaveBeenCalled()
     })
 })
 

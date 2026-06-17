@@ -2,9 +2,18 @@
 
 ## Overview
 
-**`internalCache.ComponentData`** is the tier-1 cache handler for **blueprint component bodies** in the **`assetDB`** DynamoDB table. It is an instance of **`ComponentDataCache`** from **`@tonylb/mtw-gateways/ts/assets/components/componentData`** (`createComponentDataCacheHandler(assetDB)`). It provides cross-asset component lookup at explicit **`(universalKey, assetId)`** pairs and integrates with the WML **`StandardComponent`** system.
+**`internalCache.ComponentData`** is the tier-1 cache handler for **component merge bodies** used in participation-order reads. On ephemera it is an **`EphemeraComponentDataCompositeCache`** ([`componentDataComposite.ts`](./componentDataComposite.ts)) that routes by **`assetId`**:
 
-**Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md):** that handler reads **ephemeraDB** runtime state (`Meta::Room`, etc.). **`ComponentData`** reads **authored blueprint layers** in **assetDB** only.
+| `assetId` | Backend | Table |
+| --- | --- | --- |
+| Blueprint / canon layers | **`_assetComponentData`** (`createComponentDataCacheHandler(assetDB)`) | **assetDB** |
+| **`ASSET#IMPROVISATION`** | **`ImprovisationComponentData`** (shared instance) | **ephemeraDB** |
+
+**Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md):** that handler reads **ephemeraDB** runtime state (`Meta::Room`, etc.). **`ComponentData`** reads **merge bodies** at **`(universalKey, assetId)`** pairs.
+
+**Memo split:** persist coordinators patch **`ImprovisationComponentData`** directly after Dynamo writes --- not **`ComponentData.set`** for improvisation rows. The composite shares the same **`ImprovisationComponentData`** instance so memo patches are visible to aggregate reads without a second query.
+
+**Assets/diagnostics:** keep assetDB-only **`createComponentDataCacheHandler`** --- no **`mtw-gateways`** composite surface.
 
 **Shared read helpers:** Cache key format, DynamoDB `getItems` batching, row normalization, and default synthesis for pair misses live in the gateway module (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). This file documents ephemera's **`internalCache`** registration and typical call patterns.
 
@@ -20,6 +29,7 @@ Ephemera hot paths call **`getAcrossAssets`** with a **caller-supplied asset sta
 const results = await internalCache.ComponentData.getAcrossAssets('ROOM#mainHall-uuid', [
     'ASSET#marketSquare-uuid',
     'ASSET#downtown-uuid',
+    'ASSET#IMPROVISATION', // when appended via appendImprovisationToPerspective (I3)
 ])
 // Returns: Record<AssetUUID, StandardComponent>
 ```
@@ -36,19 +46,19 @@ Pair entries use: **`{assetId}::{universalKey}`** (`componentPairCacheKey` in th
 
 ### **`get(universalKey, assetId)`**
 
-Single pair read.
+Single pair read; routed by **`assetId`**.
 
 ### **`getAcrossAssets(universalKey, assetList)`**
 
-Batch pair read for merge/render paths; batches uncached pairs per universal key.
+Batch pair read for merge/render paths; splits improvisation ids before delegating.
 
 ### **`invalidate(universalKey, assetId)`**, **`set`**, **`clear`**, **`flush`**
 
-Same lifecycle contract as other tier-1 gateway handlers on **`InternalCache`**.
+Same lifecycle contract as other tier-1 gateway handlers on **`InternalCache`**. Improvisation pairs route to **`ImprovisationComponentData`**; blueprint pairs route to **`_assetComponentData`**.
 
 ## DynamoDB Integration
 
-Rows live in **assetDB**:
+Blueprint rows live in **assetDB**:
 
 ```typescript
 {
@@ -58,22 +68,26 @@ Rows live in **assetDB**:
 }
 ```
 
-**Participation order / asset stack:** resolve via [`RoomAssets`](./assetRooms.ts) or explicit caller lists --- not via unbounded partition scan on this handler.
+Improvisation rows live in **ephemeraDB** (`EphemeraId` + `DataCategory: ASSET#IMPROVISATION`). See [`packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md`](../../../packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md).
+
+**Participation order / asset stack:** resolve via [`RoomAssets`](./assetRooms.ts), **`appendImprovisationToPerspective`** ([`packages/mtw-interfaces/ts/perspective.ts`](../../../packages/mtw-interfaces/ts/perspective.ts)), or explicit caller lists --- not via unbounded partition scan on this handler.
 
 ## Integration Points
 
-- **`AffordanceRoomDeliverable`**, **`GenerationContext`**: inject **`getAcrossAssets`** at construction.
+- **`AffordanceRoomDeliverable`**, **`GenerationContext`**: inject **`getAcrossAssets`** at construction (via composite **`ComponentData`**).
 - **`computeDefaultMarksForRoom`**: reads room/lens bodies across the asset stack.
-- **Future `ComponentAggregate` slice (A1, shipped):** registered on [`index.ts`](./index.ts) with **`{ ComponentData: internalCache.ComponentData, ComponentVerticals: empty-hops stub }`**; **`ComponentExamples`** composes **`ComponentAggregate`**. See [`componentAggregate.test.ts`](./componentAggregate.test.ts).
+- **`ComponentAggregate` slice (A1, shipped):** registered on [`index.ts`](./index.ts) with **`{ ComponentData: internalCache.ComponentData, ComponentVerticals: empty-hops stub }`**; **`ComponentExamples`** composes **`ComponentAggregate`**. See [`componentAggregate.test.ts`](./componentAggregate.test.ts).
 
 ## Navigation Tips
 
-1. **Gateway module:** [`packages/mtw-gateways/ts/assets/components/componentData`](../../../packages/mtw-gateways/ts/assets/components/componentData/index.ts)
-2. **Contrast with ephemera state:** [`componentEphemeraMeta.AGENT.md`](./componentEphemeraMeta.AGENT.md)
-3. **Tests:** [`componentData.test.ts`](./componentData.test.ts)
+1. **Composite router:** [`componentDataComposite.ts`](./componentDataComposite.ts)
+2. **Gateway module (assetDB path):** [`packages/mtw-gateways/ts/assets/components/componentData`](../../../packages/mtw-gateways/ts/assets/components/componentData/index.ts)
+3. **Improvisation pair handler:** [`packages/mtw-gateways/ts/ephemera/improvisation`](../../../packages/mtw-gateways/ts/ephemera/improvisation/)
+4. **Contrast with ephemera state:** [`componentEphemeraMeta.AGENT.md`](./componentEphemeraMeta.AGENT.md)
+5. **Tests:** [`componentData.test.ts`](./componentData.test.ts), [`componentDataComposite.test.ts`](./componentDataComposite.test.ts)
 
 ## Development Notes
 
 - **Validation:** Validate **`assetId`** and universal component id before reads.
-- **Batching:** Multiple pair requests for the same universal key share one **`getItems`** batch where possible.
+- **Batching:** Multiple pair requests for the same universal key share one **`getItems`** batch where possible (per delegate).
 - **Do not** use partition **`Query`** on the universal id from Ephemera hot paths; maintenance-only exhaustive scan is a separate gateway subpath (assets/diagnostics whitelist).

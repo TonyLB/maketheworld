@@ -6,7 +6,22 @@ This package owns **runtime object lists** for rooms: stored on ephemera **`Meta
 
 **Co-location on `Meta::Room`** is an **implementation** choice (atomicity, read efficiency, cache keying); domain boundaries and invalidation are documented here and in [`AGENT.multiChannel.contract.md`](../../AGENT.multiChannel.contract.md).
 
-**Migration (in progress):** first-class improvisational objects will move to component pair rows + **`Meta::Object`** + **`positionGraph`** placement (see [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md)). Clean cutover: no dual-write to **`Meta::Room.objects`** (legacy lists cleared).
+**Migration (in progress):** first-class improvisational objects move to component pair rows + **`Meta::Object`** + **`positionGraph`** placement (see [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md)). Clean cutover: no dual-write to **`Meta::Room.objects`** (legacy lists cleared). **Phase 2 shipped** improvisation persistence modules below; Coyote handlers still use legacy **`Meta::Room.objects`** until Phase 5.
+
+## Improvisation storage (Phase 2)
+
+Dual ephemeraDB rows per **`OBJECT#`** (see **I1** / **I2** in planning doc):
+
+| Row | Key | Module |
+| --- | --- | --- |
+| Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** |
+| Play meta | `(OBJECT#, Meta::Object)` | same coordinators (`stableKey`, trope fields only) |
+
+**Coyote bulk clear (existence only):** **`persistClearCoyoteGameImprovisationObjects`** enumerates **`OBJECT#`** ids from stored **`positionGraph`** on Coyote **`gameRooms`** ([`collectObjectIdsFromRoomPositionGraphs.ts`](collectObjectIdsFromRoomPositionGraphs.ts)); does **not** scan global **`Meta::Object`** index. Graph node removal is Phase 4; **`Await RoadRunner`** wiring is Phase 5.
+
+**Cache invalidation:** [`invalidateImprovisationObjectCaches.ts`](invalidateImprovisationObjectCaches.ts) --- **`ImprovisationComponentData`**, **`ObjectEphemeraMeta`**, optional **`AffordanceRoomDeliverable`** per affected room. **`ComponentEphemeraMeta`** / **`Positions`** when room meta or graph also changes (Phase 4+).
+
+**Reads:** **`internalCache.ImprovisationComponentData`** ([`packages/mtw-gateways/ts/ephemera/improvisation/`](../../../../packages/mtw-gateways/ts/ephemera/improvisation/)); **`internalCache.ObjectEphemeraMeta`** ([`objectEphemeraMeta.AGENT.md`](../../internalCache/objectEphemeraMeta.AGENT.md)). **`ComponentAggregate`** and **`GenerationContext`** read improvisation merge bodies via composite **`internalCache.ComponentData`** when **`ASSET#IMPROVISATION`** is in the participation stack (Phase 3). Room perspectives append that layer with **`appendImprovisationToPerspective`** ([`packages/mtw-interfaces/ts/perspective.ts`](../../../../packages/mtw-interfaces/ts/perspective.ts)) when objects are in scope (Phase 5 wiring).
 
 ## Bus events
 
