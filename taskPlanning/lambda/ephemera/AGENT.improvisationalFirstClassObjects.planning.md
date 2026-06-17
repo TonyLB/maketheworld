@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Not started. **Next:** Phase 0 --- lock storage row shape, perspective append rules, and `StandardObject` minimal fields before implementation.
+**Status:** Phase 0 in progress. **Next:** interfaces sketch + remaining Phase 0 inventory. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -20,21 +20,21 @@ This file is disposable after the initiative completes. Steady-state architectur
 
 | Concern | Today (v1 shipped) | Target |
 | --- | --- | --- |
-| **Existence** | Rows on **`Meta::Room.objects`** (`EphemeraMetaRoomObject[]`) | **`StandardObject`** body stored under improvisational layer; **`Meta::Object`** on ephemera for play extensions as needed |
-| **Storage table** | ephemeraDB (embedded on room meta) | ephemeraDB **`(OBJECT#, Meta::Object)`** or pair-shaped rows compatible with component fetch; **not** assetDB |
-| **Merge participation** | N/A (not `StandardComponent`) | Append **`ASSET#IMPROVISATION`** last in **`perspective.assetStack`** when improvisation layer is active |
-| **Placement** | Implicit (parent room list) | **`Meta::Room.positionGraph`** **`OBJECT`** nodes (+ future edges); positions lane owns graph mutations |
-| **WML wire** | Nested **`<Object>`** under **`<Room>`** (ephemeraWire only) | Top-level **`StandardObject`** in affordance/render **`StandardForm`**; room-nested wire during transition if needed |
-| **Coyote** | Acme -> **`handleAcmeOrderAddObjects`** -> room list | Acme -> create **`OBJECT#`** + improvisation row + graph node in delivery room |
+| **Existence** | Rows on **`Meta::Room.objects`** (`EphemeraMetaRoomObject[]`) | **Two rows per `OBJECT#`:** merge body on **`(OBJECT#, ASSET#IMPROVISATION)`**; Coyote play meta on **`(OBJECT#, Meta::Object)`** |
+| **Storage table** | ephemeraDB (embedded on room meta) | ephemeraDB pair row + **`Meta::Object`** meta row per object; **not** assetDB |
+| **Merge participation** | N/A (not `StandardComponent`) | Always append **`ASSET#IMPROVISATION`** last in **`perspective.assetStack`** when any improvisational objects exist in scope (**I3**) |
+| **Placement** | Implicit (parent room list) | **`Meta::Room.positionGraph`** **`OBJECT`** nodes + **`POSITION#ROOM#...`** adjacency (**I5**); positions lane owns graph mutations and **`Object Moved`** facts (**I4**) |
+| **WML wire** | Nested **`<Object>`** under **`<Room>`** (ephemeraWire only) | **Normative affordance shape** (**I6**): room-nested **`<Object>`** --- affordances are **of the room**; nesting expresses in-room placement; **`StandardObject`** is merge/storage only, projected to **`StandardRoom.objects[]`** at compose |
+| **Coyote** | Acme -> **`handleAcmeOrderAddObjects`** -> room list | Acme -> create **`OBJECT#`** + improvisation pair row + **`Meta::Object`** (stableKey / tropes) + graph node in delivery room |
 
-**Non-goals for early phases:** asset blueprint authoring of objects; relational edges (`On`, `In`, inventory containers); client UI for object editing; global object catalog outside Coyote demo scope unless needed for tests.
+**Non-goals for early phases:** asset blueprint authoring of objects; relational edges (`On`, `In`, inventory containers); client UI for object editing; global object catalog outside Coyote demo scope unless needed for tests; **top-level `<Object>` siblings under `<Asset>` on affordance wire** (**I6** --- rejected by design, not a deferred migration).
 
 ## Architecture decisions (working --- lock in Phase 0)
 
-These reflect design discussion; unresolved forks live in [**Open decisions**](#open-decisions-implementation---plan-only).
+These reflect design discussion; unresolved forks live in [**Open decisions**](#open-decisions-implementation---plan-only). Locked **I1**--**I6** are in [**Decided (Phase 0)**](#decided-phase-0).
 
 1. **`ASSET#IMPROVISATION` is logical, not proof of assetDB residence.** Participation-order merge treats it like any other layer; rows live in **ephemeraDB**.
-2. **Split existence vs placement.** Component body (+ Coyote **`stableKey`** / trope fields) vs **where** the object is (**`positionGraph`**). Same pattern as character roster display vs graph nodes ([`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md)).
+2. **Split body vs play meta vs placement.** Merge body (**`shortName`**, future WML fields) on **`(OBJECT#, ASSET#IMPROVISATION)`**; Coyote **`stableKey`** / trope fields on **`Meta::Object`**; **where** the object is on **`positionGraph`** + **`POSITION#ROOM#...`** adjacency (**I5**). Same three-way split as character blueprint pair vs **`Meta::Character`** vs graph membership ([`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md)).
 3. **Ephemera owns writes.** **`mtw.ephemera.objects`** and **`mtw.ephemera.positions`** (or a coordinated transaction) persist improvisation rows and graph updates. **Do not** route through **`cacheAsset`** or assets-table S3 sync.
 4. **Read parallelism via composite gateway.** Extend **`ComponentDataParticipationLoader`**: canon/personal layers from **assetDB** (existing handler); **`ASSET#IMPROVISATION`** layer from **ephemeraDB** improvisation reader. **`authoritativeFromParticipationOrder`** unchanged.
 5. **Coyote-first consumer.** First vertical slice: Acme order delivery, hypothesis staged-object snapshots, affordance WML compose. General **`Objects Change`** ingress migrates on the same persistence path.
@@ -44,8 +44,8 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 
 ### In scope
 
-- **`mtw-interfaces`:** `Meta::Object` type(s), `EphemeraPlayPositionGraph` node union extension for **`Object`**, improvisation constants (`ASSET#IMPROVISATION`), type guards.
-- **`mtw-wml`:** Stub **`StandardObject`** / **`StandardObjectData`**; promote **`OBJECT#`** in **`ComponentUUID`** / schema; **`ephemeraWire`** ingest/emit; asset mode continues to reject authored objects until a later product decision.
+- **`mtw-interfaces`:** **`EphemeraMetaObject`** (`Meta::Object` play meta: **`stableKey`**, trope fields); extend **`ephemeraPositionAdjacency`** for **`OBJECT#`** PK; `EphemeraPlayPositionGraph` node union extension for **`Object`**; improvisation constants (`ASSET#IMPROVISATION`); type guards.
+- **`mtw-wml`:** Stub **`StandardObject`** / **`StandardObjectData`** (**`shortName`** only for v1 --- no Coyote fields on merge JSON); promote **`OBJECT#`** in **`ComponentUUID`** / schema; **`ephemeraWire`** ingest/emit; asset mode continues to reject authored objects until a later product decision.
 - **`mtw-gateways`:** Improvisation component read handler; **`createCompositeComponentDataCacheHandler`** (name TBD) wiring asset + ephemera readers; gateway ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
 - **`lambda/ephemera`:** Persistence modules, **`internalCache`** registration, **`mtw.ephemera.objects`** handler refactor, perspective append helper, **`AffordanceRoomDeliverable`** migration, Coyote snapshot loaders, tests.
 - **`lambda/ephemera/dataSource/positions`:** Room graph **`OBJECT`** node apply (slice 5+ v1: nodes only, no in-room edges).
@@ -57,7 +57,7 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 - Character inventory graphs and **container-scale** `positionGraph`.
 - Relational edges (box on table).
 - **`renderOrchestration`** subscription to object changes (not required for Coyote affordance slice; see [`objects/AGENT.md`](../../lambda/ephemera/dataSource/objects/AGENT.md) follow-ups).
-- EventBridge replay contract for **`mtw.ephemera.objects`** outbound events.
+- EventBridge replay contract for **`mtw.ephemera.objects`** or **`Object Moved`** outbound events.
 
 ## Current anchor points
 
@@ -71,6 +71,7 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 | Perspective assembly | [`fanOutStateChangedToPassiveRenders.ts`](../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts), [`kickRoomHeaderBroadcast.ts`](../../lambda/ephemera/dataSource/perception/kickRoomHeaderBroadcast.ts) |
 | Affordance room WML compose | [`affordanceRoomDeliverable.ts`](../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) |
 | Play graph (characters only v1) | [`positions/membership/positionGraphMerge.ts`](../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts), [`positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md) |
+| Placement fact pattern (`Character Moved`) | [`positions/publishedEvents.ts`](../../lambda/ephemera/dataSource/positions/publishedEvents.ts), [`membership/buildCharacterMovedFact.ts`](../../lambda/ephemera/dataSource/positions/membership/buildCharacterMovedFact.ts) |
 | Coyote staged object text | [`coyoteRoomObjectSnapshot.ts`](../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) |
 | WML Object (not StandardComponent today) | [`packages/mtw-wml/ts/standardize/components/room.ts`](../../packages/mtw-wml/ts/standardize/components/room.ts), [`components/AGENT.implementation.md`](../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) |
 | Positions target model (objects in graph) | [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) (**Target mental model**) |
@@ -82,30 +83,74 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 3. Read positions graph roles and the **objects vs flat list** target note: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) (Target mental model + **Objects and `mtw.ephemera.objects`**).
 4. Read component read split: [`lambda/ephemera/internalCache/componentData.AGENT.md`](../../lambda/ephemera/internalCache/componentData.AGENT.md) vs [`componentEphemeraMeta.AGENT.md`](../../lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md).
 5. Read gateway ownership norms: [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md) (**Component data**, **aggregate**, ephemera positions pattern as analogy for ephemera-owned rows + gateway reader).
-6. Trace one Acme delivery: [`actions/index.ts`](../../lambda/ephemera/dataSource/actions/index.ts) -> **`handleAcmeOrderAddObjects`** -> **`Objects Changed`** -> affordance fan-out.
+6. Trace one Acme delivery: [`actions/index.ts`](../../lambda/ephemera/dataSource/actions/index.ts) -> **`handleAcmeOrderAddObjects`** -> (today) **`Objects Changed`** -> affordance fan-out; target: positions **`Object Moved`** on graph apply (**I4**).
 7. **Testing authority:** [`lambda/ephemera/AGENT.testing.md`](../../lambda/ephemera/AGENT.testing.md). Run from **`lambda/ephemera/`**:
    - Baseline: `npm run test -- --watchAll=false dataSource/objects/handleApiObjectsChange.test.ts`
    - Gateway (when touched): `cd packages/mtw-gateways && npm test`
    - WML (when touched): `cd packages/mtw-wml && npm test`
 
+## Decided (Phase 0)
+
+Record here until implementation ships into **`AGENT.contract.md`** / **`AGENT.implementation.md`**; then remove this section per [`taskPlanning/AGENT.md`](../../AGENT.md).
+
+### I1 --- Dual ephemera rows per `OBJECT#`
+
+**Both** row shapes; distinct roles (not either/or):
+
+| Row | Key | Role |
+| --- | --- | --- |
+| **Improvisation pair** | `(EphemeraId: OBJECT#, DataCategory: ASSET#IMPROVISATION)` | **`StandardObject`** merge body --- mechanical reuse of **`standardComponentPairFromAssetDbGetItemsRow`** via ephemeraDB improvisation reader |
+| **Play meta** | `(EphemeraId: OBJECT#, DataCategory: Meta::Object)` | Ephemera-only extensions that **do not** participate in asset-stack merge (see **I2**) |
+
+**Invariants:** one pair row and one **`Meta::Object`** row per spawned object; spawn/clear coordinators write both in the same transact when both apply; never duplicate **`shortName`** on **`Meta::Object`**.
+
+### I2 --- Coyote fields on `Meta::Object`
+
+**`stableKey`**, **`tropeAffinities`**, and **`tropeAffinitiesFailed`** live on **`EphemeraMetaObject`** (`Meta::Object`), **not** on **`StandardObject`** / improvisation pair JSON. Hypothesis loaders, occupancy keyed by **`stableKey`**, and Coyote snapshot formatters read **`Meta::Object`** (or a dedicated cache handler), not aggregate merge output.
+
+**Wire / affordance:** player-visible **`shortName`** comes from improvisation pair / **`ComponentAggregate`**; Coyote machine fields stay server-side on **`Meta::Object`**.
+
+### I3 --- Always append improvisation layer
+
+When **any** improvisational objects exist in the render/merge **scope** (room perspective, object-id aggregate read, etc.), **always** append **`ASSET#IMPROVISATION`** as the **last** entry in **`perspective.assetStack`** / participation order. No Coyote-room-only or session-scoped improvisation asset id for v1.
+
+**Rationale:** perspective keys and aggregate reads stay uniform; empty improvisation layers are not appended (no objects in scope -> skip append).
+
+### I4 --- Bus events: object-id facts vs placement facts
+
+**`mtw.ephemera.objects` (existence lane):** evolve outbound contract to **object-id / graph-diff** semantics --- which **`OBJECT#`** ids were created or destroyed --- not room-scoped **`priorObjects`** / **`newObjects`** snapshots. **`Objects Change`** ingress follows the same id-oriented shape during migration off **`Meta::Room.objects`**.
+
+**`mtw.ephemera.positions` (placement lane):** object arrival / relocation in a room is a **positions** fact, mirroring **`Character Moved`** --- target header **`Object Moved`** on **`mtw.ephemera.positions`** with graph-diff **`froms[]`** / **`to`** (room ids), emitted at membership apply when an **`OBJECT`** node is placed or removed. Coyote affordance refresh and similar placement-driven fan-in should subscribe to **`Object Moved`**, not **`Objects Changed`**, once shipped (see deferred note in [`positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md)).
+
+**Dual-write window:** may still emit legacy **`Objects Changed`** room-list shape briefly for subscribers not yet migrated; sunset with Phase 6.
+
+### I5 --- Object adjacency reverse index
+
+Mirror character **`POSITION#ROOM#...`** adjacency: **`EphemeraId: OBJECT#...`**, **`DataCategory: POSITION#ROOM#...`**. One row per host room; multi-room drift yields multiple rows under the same object PK. Extend [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) and positions gateway **`getMembershipContainers`** (or object-scoped sibling) accordingly. **Conflict policy:** stored room **`positionGraph`** wins; adjacency kept in sync at persist (same as characters, **S2-5**).
+
+### I6 --- Affordance wire: room-nested `<Object>` by design
+
+Affordance-channel WML is **room-scoped**: we send **affordances of a room** (exits, roster refs, in-room contents). Objects belong **under** **`<Room>`** in ephemeraWire because nesting is the wire expression of **in-room placement** --- aligned with **`positionGraph`** membership and unlike **Character**, where top-level siblings carry display fields the room row only references.
+
+**Normative affordance / Coyote wire:**
+
+- Emit **room-nested** **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children of the affordance **`<Room>`** (not top-level **`<Asset>`** siblings).
+- **`StandardObject`** remains the **server merge / persistence protocol** (improvisation pair, **`ComponentAggregate`**). **`AffordanceRoomDeliverable`** projects graph-placed ids + merged **`shortName`** into **`StandardRoom.objects[]`** before schema emit --- the compose pipeline changes; the wire vocabulary does not.
+- **Client:** no charcoal-client work expected; [`formatRoomContentsLine`](../../charcoal-client/src/slices/messages/roomHeaderPhaseC.ts) already reads **`StandardRoom.objects`**.
+
+**Rejected (not deferred):** top-level **`Object`** components alongside **`<Room>`** under **`<Asset>`** on affordance **`StandardForm`** / WML. That shape treats objects like authored asset inventory; it does not express room placement and would fork affordance merge semantics without improving the **Contents:** line. **`StandardObject`** first-class status does **not** imply top-level affordance wire.
+
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions we are making in order to implement the next slice(s). When a decision ships, record it in durable **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and **`AGENT.concepts.md`** only for graduated vocabulary) and remove the row here.
 
-| ID | Decision | Blocks | Status |
-| --- | --- | --- | --- |
-| **I1** | **Ephemera row shape:** `Meta::Object` single row per `OBJECT#` vs mirror asset pair shape `(EphemeraId: OBJECT#, DataCategory: ASSET#IMPROVISATION)` in ephemeraDB for mechanical reuse of `standardComponentPairFromAssetDbGetItemsRow` | Phase 2 gateway reader | Open |
-| **I2** | **Coyote-only fields:** store `stableKey`, `tropeAffinities`, `tropeAffinitiesFailed` on `StandardObject` JSON, on `Meta::Object` extensions, or split (body vs play meta) | Phase 2 types, hypothesis loaders | Open |
-| **I3** | **Perspective append policy:** always append `ASSET#IMPROVISATION` when any objects exist in scope vs Coyote-demo rooms only vs session-scoped improvisation asset id | Phase 4 orchestration | Open |
-| **I4** | **`Objects Changed` payload:** evolve to object-id / graph-diff semantics vs keep room-scoped `priorObjects`/`newObjects` during dual-write | Phase 5 bus contract | Open |
-| **I5** | **Object adjacency index:** reverse lookup row(s) for `OBJECT#` -> host room (mirror character `POSITION#ROOM#`) vs derive only from room graph scans | Phase 4 positions, drift repair | Open |
-| **I6** | **Affordance WML during transition:** top-level `StandardObject` components vs continue room-nested `<Object>` children until client merge updates | Phase 5 perception | Open |
+_All Phase 0 implementation forks (**I1**--**I6**) are locked; see [**Decided (Phase 0)**](#decided-phase-0). Re-open here only if implementation discovers a blocker._
 
 ## Progress
 
 | Phase | Summary | Status |
 | --- | --- | --- |
-| 0 | Lock decisions I1--I6; anchor inventory; compatibility story | Not started |
+| 0 | Lock decisions I1--I6; anchor inventory; compatibility story | In progress (**I1**--**I6** locked; inventory/sketch remain) |
 | 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Not started |
 | 2 | ephemeraDB improvisation persistence + cache handler | Not started |
 | 3 | Composite `ComponentData` (+ improvisation) for aggregate | Not started |
@@ -119,46 +164,48 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
 - [ ] **Phase 0 --- contracts and inventory**
-  - [ ] Resolve **I1** (row shape) and **I2** (Coyote field placement); document in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) sketch or ADR comment block pending implementation.
-  - [ ] Resolve **I3** (perspective append) and **I5** (adjacency index); align with [`positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md) slice boundaries.
+  - [X] Resolve **I1** (dual row: improvisation pair + **`Meta::Object`**) and **I2** (Coyote fields on **`Meta::Object`** only).
+  - [X] Resolve **I3** (always append **`ASSET#IMPROVISATION`** when objects in scope), **I4** (object-id bus on **`mtw.ephemera.objects`**; **`Object Moved`** on **`mtw.ephemera.positions`** for placement), **I5** (object **`POSITION#ROOM#...`** adjacency), and **I6** (room-nested affordance wire by design; project **`StandardObject`** to **`StandardRoom.objects`** at compose).
+  - [ ] Sketch **`EphemeraMetaObject`**, object adjacency PK extension, and dual-row invariants in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) / [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) (ADR comment block pending implementation).
   - [ ] List all **`Meta::Room.objects`** read/write sites (grep + table in this file or linked temp analysis); classify: migrate in Phase 5 vs tolerate dual-read through Phase 6.
   - [ ] Define **`ASSET#IMPROVISATION`** constant and synthetic zone label (no `Meta::Asset` row in assetDB required for v1).
   - [ ] Define dual-write / dual-read window: which paths write both room list and improvisation rows until sunset.
 
 - [ ] **Phase 1 --- `StandardObject` stub (`mtw-wml` + interfaces)**
-  - [ ] Add **`Object`** to **`SchemaComponent`** / **`ComponentUUID`** / **`defaultComponentFromTag`** / **`standardComponentFactory`** (minimal fields: **`shortName`**; optional Coyote extensions per **I2**).
+  - [ ] Add **`Object`** to **`SchemaComponent`** / **`ComponentUUID`** / **`defaultComponentFromTag`** / **`standardComponentFactory`** (minimal fields: **`shortName`** only --- Coyote fields are **`Meta::Object`**, not **`StandardObject`** JSON).
   - [ ] **`StandardObject`** class stub: `fromJSON`, `toJSON`, `schema`, `merge` (likely replace-or-additive for improvisation-only instances).
-  - [ ] **`ephemeraWire`:** allow top-level **`<Object uuid=(...)>`** in `StandardForm`; keep asset **`validate()`** rejecting non-empty authored object inventories until product opens blueprint authoring.
+  - [ ] **`ephemeraWire`:** **`StandardObject`** for merge/storage; affordance emit stays **room-nested** **`<Object>`** under **`<Room>`** only (**I6**); keep asset **`validate()`** rejecting non-empty authored object inventories until product opens blueprint authoring.
   - [ ] Tests: round-trip stub object; asset mode rejection unchanged; aggregate default stub for `OBJECT#` id ([`assemble.ts`](../../packages/mtw-gateways/ts/assets/components/aggregate/assemble.ts) parity).
 
 - [ ] **Phase 2 --- ephemeraDB improvisation storage**
-  - [ ] Implement persist helpers: create / update / delete improvisation object rows (spawn, clear-all for Coyote **`Await RoadRunner`**).
-  - [ ] Add **`internalCache.ImprovisationComponentData`** (name TBD) or extend **`ComponentEphemeraMeta`** with object kind --- register on [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
+  - [ ] Implement persist helpers: create / update / delete **both** `(OBJECT#, ASSET#IMPROVISATION)` and `(OBJECT#, Meta::Object)` in one coordinator (spawn, clear-all for Coyote **`Await RoadRunner`**).
+  - [ ] Add **`internalCache.ImprovisationComponentData`** (name TBD) for pair reads; extend **`ComponentEphemeraMeta`** (or sibling **`ObjectMeta`**) for **`Meta::Object`** --- register on [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
   - [ ] Add **`mtw-gateways`** ephemera improvisation read module (pair fetch for `(OBJECT#, ASSET#IMPROVISATION)`); document ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
-  - [ ] Invalidation contract: object spawn/move/destroy invalidates improvisation cache, affected room **`AffordanceRoomDeliverable`**, **`ComponentEphemeraMeta`** / positions memo as needed.
+  - [ ] Invalidation contract: object spawn/move/destroy invalidates improvisation pair cache, **`Meta::Object`** memo, affected room **`AffordanceRoomDeliverable`**, room **`ComponentEphemeraMeta`** / positions memo as needed.
 
 - [ ] **Phase 3 --- composite `ComponentData` (+ improvisation)**
   - [ ] Implement **`createCompositeComponentDataCacheHandler`**: delegate non-improvisation asset ids to existing **`ComponentDataCache`** (assetDB); delegate **`ASSET#IMPROVISATION`** to ephemera improvisation reader.
   - [ ] Wire ephemera **`InternalCache.ComponentData`** (or aggregate slice) to composite handler; verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
-  - [ ] Add **`appendImprovisationToPerspective(assetStack)`** helper (respect **I3**); unit tests for perspective key stability when improvisation layer present vs absent.
+  - [ ] Add **`appendImprovisationToPerspective(assetStack)`** helper (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
 
 - [ ] **Phase 4 --- `positionGraph` placement (nodes only)**
   - [ ] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).
-  - [ ] Positions API: **place object in room** / **remove object from room** graph (pure end-state apply pattern aligned with [`updatePositionGraphs`](../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts)).
-  - [ ] Implement **I5** (adjacency index or scan policy) and diagnostics posture for duplicate placement drift.
-  - [ ] Coordinate transact bundle: improvisation row create + graph node add (+ optional dual-write to **`Meta::Room.objects`** during transition).
+  - [ ] Positions API: **place object in room** / **remove object from room** graph + **`POSITION#ROOM#...`** adjacency (**I5**); pure end-state apply aligned with [`updatePositionGraphs`](../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts).
+  - [ ] Add **`Object Moved`** graph-diff fact on **`mtw.ephemera.positions`** at apply (mirror **`buildCharacterMovedFact`** / **`streamMembershipFact`**); diagnostics posture for duplicate placement drift.
+  - [ ] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row (+ optional dual-write to **`Meta::Room.objects`** during transition).
 
 - [ ] **Phase 5 --- migrate `mtw.ephemera.objects` + Coyote**
-  - [ ] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation row, apply graph placement, emit **`Objects Changed`** (shape per **I4**).
+  - [ ] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation pair + **`Meta::Object`** (stableKey / tropes), apply graph placement (+ adjacency), emit object-id **`Objects Changed`** (**I4**); placement **`Object Moved`** comes from positions apply.
   - [ ] Refactor **`handleApiObjectsChangeCommand`** / **`mergePersistMetaRoomObjects`** to target improvisation + graph (or thin wrapper calling new modules).
-  - [ ] Update **`loadCoyoteRoomObjectsByRoom`** / **`formatCoyoteStagedObjectsByRoom`** to read from improvisation index + graph (not **`Meta::Room.objects`**).
-  - [ ] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** for new storage.
-  - [ ] Refactor **`AffordanceRoomDeliverable`**: build objects from composite aggregate or improvisation query + graph projection (**I6**).
+  - [ ] Migrate affordance fan-in from **`Objects Changed`** to **`Object Moved`** for placement-driven room refresh (Coyote / **`fanOutAffordanceRefreshForRoom`** path).
+  - [ ] Update **`loadCoyoteRoomObjectsByRoom`** / **`formatCoyoteStagedObjectsByRoom`** to read **`Meta::Object`** + graph placement (not **`Meta::Room.objects`**); pair row supplies **`shortName`** where needed.
+  - [ ] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** to scan **`Meta::Object`** **`stableKey`** (not room-embedded list).
+  - [ ] Refactor **`AffordanceRoomDeliverable`**: read object ids from graph + **`shortName`** from aggregate/improvisation; populate **`StandardRoom.objects[]`** for room-nested wire emit (**I6**).
 
 - [ ] **Phase 6 --- consumer migration and sunset**
   - [ ] Remove dual-write to **`Meta::Room.objects`** when affordance, hypothesis, and tests no longer depend on room list.
   - [ ] Deprecate **`EphemeraMetaRoomObject`** on room meta (or keep empty with guard); update **`isEphemeraMetaRoom`** validation.
-  - [ ] Client affordance merge: verify **Contents:** line still works if wire shape changes (**I6**); coordinate with charcoal-client only if server wire changes.
+  - [ ] Client affordance merge: verify **Contents:** line unchanged with new compose pipeline (**I6**); no charcoal-client work expected unless wire shape changes later.
   - [ ] Graduate **Target mental model** bullets in [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) to **Shipped** where implemented; add **`AGENT.contract.md`** obligations for object graph nodes.
 
 - [ ] **Phase 7 --- durable docs and cleanup**
@@ -180,14 +227,15 @@ Run from repo root paths below after each phase that touches the area.
 | WML (Phase 1) | `cd packages/mtw-wml && npm test` |
 | Interfaces (Phase 0--2) | `cd packages/mtw-interfaces && npm test` |
 
-**Integration smoke (manual / future harness):** Acme order in Coyote demo room -> object appears in affordance-channel WML -> hypothesis pipeline sees staged object line -> **`Await RoadRunner`** clears improvisation rows and graph nodes.
+**Integration smoke (manual / future harness):** Acme order in Coyote demo room -> **`Object Moved`** on delivery room -> affordance-channel WML updates -> hypothesis pipeline sees staged object line (from **`Meta::Object`**) -> **`Await RoadRunner`** clears improvisation pair rows, **`Meta::Object`** rows, graph nodes, and adjacency.
 
 ## Risks and mitigations
 
 | Risk | Mitigation |
 | --- | --- |
-| Perspective / cache key churn when improvisation appended | Append only when layer non-empty; document **`computePerspectiveKey`** impact; invalidate render/affordance caches on object bus events (existing **`Objects Changed`** fan-out). |
+| Perspective / cache key churn when improvisation appended | **I3:** append only when objects exist in scope; document **`computePerspectiveKey`** impact; invalidate render/affordance caches on **`Object Moved`** (placement) and object-id **`Objects Changed`** (existence). |
 | Dual-write drift between room list and graph | Short transition only; tests assert parity; single coordinator function for spawn/clear. |
+| Drift between improvisation pair and **`Meta::Object`** | Same coordinator transact for spawn/clear; tests assert both rows exist or both absent per **`OBJECT#`**. |
 | `cacheAsset` or assets diagnostics touching improvisation | ephemeraDB-only storage; no `Meta::Asset` in assetDB for improvisation in v1. |
 | Aggregate merge with stub canon layers + real improvisation layer | Golden test: `OBJECT#` with participation order `[canon..., ASSET#IMPROVISATION]` yields improvisation `shortName`. |
 | Positions contract slice creep (edges, inventory) | Phase 4 explicitly **nodes only**; edges stay in positions **Target** until a follow-on plan. |
@@ -200,6 +248,7 @@ Move lasting material into:
 - [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (normative graph node rules)
 - [`lambda/ephemera/dataSource/objects/AGENT.md`](../../lambda/ephemera/dataSource/objects/AGENT.md) (steady-state objects lane)
 - [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md) (improvisation read gateway ownership)
+- [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (**`EphemeraMetaObject`**, dual-row types)
 - [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardObject**)
 
 Then delete this file per [`taskPlanning/AGENT.md`](../../AGENT.md).
