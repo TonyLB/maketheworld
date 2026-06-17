@@ -4,7 +4,9 @@
 
 **`internalCache.ComponentData`** is the tier-1 cache handler for **blueprint component bodies** in the **`assetDB`** DynamoDB table. It is an instance of **`ComponentDataCache`** from **`@tonylb/mtw-gateways/ts/assets/components/componentData`** (`createComponentDataCacheHandler(assetDB)`). It provides cross-asset component lookup at explicit **`(universalKey, assetId)`** pairs and integrates with the WML **`StandardComponent`** system.
 
-**Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md):** that handler reads **ephemeraDB** runtime state (`Meta::Room`, etc.). **`ComponentData`** reads **authored blueprint layers** in **assetDB** only.
+**Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md):** that handler reads **ephemeraDB** runtime state (`Meta::Room`, etc.). **`ComponentData`** reads **authored blueprint layers** in **assetDB** only (today).
+
+**Phase 3 (planned):** ephemera **`internalCache.ComponentData`** becomes a **lambda-local composite router** (`componentDataComposite.ts`, name TBD): non-improvisation asset ids delegate to **`createComponentDataCacheHandler(assetDB)`**; **`ASSET#IMPROVISATION`** delegates to **`ImprovisationComponentData`**. **`ImprovisationComponentData`** stays registered separately for persist memo. Assets/diagnostics lambdas keep assetDB-only **`ComponentData`** --- no **`mtw-gateways`** composite surface.
 
 **Shared read helpers:** Cache key format, DynamoDB `getItems` batching, row normalization, and default synthesis for pair misses live in the gateway module (see [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md)). This file documents ephemera's **`internalCache`** registration and typical call patterns.
 
