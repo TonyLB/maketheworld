@@ -7,7 +7,7 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag, isSchemaAsset, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
@@ -32,7 +32,9 @@ const componentTemplates = {
     Back: {},
     Key: {},
     Object: {
-        uuid: { type: ParsePropertyTypes.Key, required: true },
+        uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        ref: { type: ParsePropertyTypes.Expression }
     },
     Render: {},
     Room: {
@@ -324,22 +326,29 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     Object: {
         initialize: ({ parseOpen, contextStack }): SchemaObjectTag => {
             const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
-            if (!hasRoomContext) {
-                throw new Error('Object tag can only be used inside a Room')
+            const hasAssetContext = contextStack.some(({ data }) => isSchemaAsset(data))
+            if (!hasRoomContext && !hasAssetContext) {
+                throw new Error('Object tag can only be used inside a Room or Asset')
             }
-            const { uuid } = validateProperties(componentTemplates.Object)(parseOpen)
+            const { uuid, key, ref } = validateProperties(componentTemplates.Object)(parseOpen)
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
             const uuidTrimmed = (uuid ?? '').trim()
             if (!uuidTrimmed) {
                 throw new Error('Object tag must have a non-empty uuid')
             }
-            return { tag: 'Object', uuid: enforceTypedKey('OBJECT')(uuidTrimmed) }
+            return {
+                tag: 'Object',
+                uuid: enforceTypedKey('OBJECT')(uuidTrimmed),
+                ...(key ? { key } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
+            }
         },
         typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
-            const uuidTrimmed = initialTag.uuid.trim()
+            const uuidTrimmed = (initialTag.uuid ?? '').trim()
             if (!uuidTrimmed) {
                 throw new Error('Object tag must have a non-empty uuid')
             }
@@ -594,7 +603,10 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         return tagRender({
             ...args,
             tag: 'Object',
-            properties: [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('OBJECT')(tag.uuid) }],
+            properties: [
+                ...(tag.uuid ? [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('OBJECT')(tag.uuid) }] : []),
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
+            ],
             node: { data: tag, children },
         })
     },

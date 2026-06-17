@@ -2,6 +2,7 @@ import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import { ParticipationBatchError } from '../componentData/participationBatch'
 import {
@@ -151,6 +152,26 @@ describe('component aggregate gateway (compute-only)', () => {
                     byAssets: [],
                 })
             ).toThrow(AggregateInputError)
+        })
+
+        it('uses default stub for OBJECT# when participation asset has no row', () => {
+            const objectU = 'OBJECT#skates' as const
+            const improvisationAsset = 'ASSET#IMPROVISATION' as const
+            const overlay = new StandardObject({
+                tag: 'Object',
+                universalKey: objectU,
+                shortName: 'roller skates',
+            })
+            const p = aggregatePerspectiveExplicit({
+                universalKey: objectU,
+                mergeParticipationOrder: [assetA, improvisationAsset],
+            })
+            const merged = mergeAuthoritativeAcrossParticipationOrder(p, {
+                ComponentId: objectU,
+                byAssets: [{ AssetId: improvisationAsset, component: overlay }],
+            })
+            expect(merged).toBeInstanceOf(StandardObject)
+            expect((merged as StandardObject).shortName?._payload?.plain?.toJSON()).toBe('roller skates')
         })
     })
 

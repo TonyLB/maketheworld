@@ -18,6 +18,7 @@ import { StandardLensData, StandardLensInputData, isStandardLensData, isStandard
 import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData, isStandardGuidanceInputData } from "./guidance"
 import { StandardSituationData, StandardSituationInputData, isStandardSituationData, isStandardSituationInputData } from "./situation"
 import { StandardAreaData, isStandardAreaData } from "./area"
+import { StandardObjectData, isStandardObjectData } from "./object"
 import {
     POSITION_GRAPH_NODE_TAGS,
     StandardPositionGraphData,
@@ -52,7 +53,8 @@ export {
     isStandardGuidanceInputData,
     isStandardSituationData,
     isStandardSituationInputData,
-    isStandardAreaData
+    isStandardAreaData,
+    isStandardObjectData
 }
 
 export type StandardComponentNonEditData =
@@ -68,7 +70,8 @@ export type StandardComponentNonEditData =
     StandardLensData |
     StandardGuidanceData |
     StandardSituationData |
-    StandardAreaData
+    StandardAreaData |
+    StandardObjectData
 
 export type StandardComponentInputNonEditData =
     StandardCharacterData |
@@ -83,7 +86,8 @@ export type StandardComponentInputNonEditData =
     StandardLensInputData |
     StandardGuidanceInputData |
     StandardSituationInputData |
-    StandardAreaData
+    StandardAreaData |
+    StandardObjectData
 
 export type StandardComponentInputData = StandardComponentInputNonEditData
 
@@ -103,7 +107,8 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardLensData(value) ||
     isStandardGuidanceData(value) ||
     isStandardSituationData(value) ||
-    isStandardAreaData(value)
+    isStandardAreaData(value) ||
+    isStandardObjectData(value)
 )
 
 export const isStandardComponentInputData = (value: any): value is StandardComponentInputData => (
@@ -119,7 +124,8 @@ export const isStandardComponentInputData = (value: any): value is StandardCompo
     isStandardLensInputData(value) ||
     isStandardGuidanceInputData(value) ||
     isStandardSituationInputData(value) ||
-    isStandardAreaData(value)
+    isStandardAreaData(value) ||
+    isStandardObjectData(value)
 )
 
 
