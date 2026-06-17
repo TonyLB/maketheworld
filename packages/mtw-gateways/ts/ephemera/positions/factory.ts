@@ -1,6 +1,7 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionsReadDB } from './fetch'
 import { getRoomPositionGraphFromDynamo } from './fetch'
@@ -68,7 +69,7 @@ export class PositionsCacheHandler {
     }
 
     async getMembershipContainers(
-        componentId: EphemeraCharacterId
+        componentId: EphemeraPositionAdjacencyContainedId
     ): Promise<EphemeraRoomId[]> {
         const key = membershipContainersCacheKey(componentId)
         if (!this._MembershipContainersCache.isCached(key)) {
@@ -77,7 +78,7 @@ export class PositionsCacheHandler {
                     const out: Record<string, EphemeraRoomId[]> = {}
                     await Promise.all(
                         keys.map(async (cacheKey) => {
-                            const id = cacheKey.replace('::membershipContainers', '') as EphemeraCharacterId
+                            const id = cacheKey.replace('::membershipContainers', '') as EphemeraPositionAdjacencyContainedId
                             out[cacheKey] = await this.loadMembershipContainersFromDynamo(id)
                         })
                     )
@@ -101,14 +102,14 @@ export class PositionsCacheHandler {
     }
 
     private async loadMembershipContainersFromDynamo(
-        characterId: EphemeraCharacterId
+        containedId: EphemeraPositionAdjacencyContainedId
     ): Promise<EphemeraRoomId[]> {
         if (!this.db.query) {
             return []
         }
         return queryMembershipContainersFromDynamo(
             { query: this.db.query.bind(this.db) },
-            characterId
+            containedId
         )
     }
 
@@ -130,7 +131,7 @@ export class PositionsCacheHandler {
         this._PositionGraphCache.invalidate(key)
     }
 
-    invalidateMembershipContainers(componentId: EphemeraCharacterId): void {
+    invalidateMembershipContainers(componentId: EphemeraPositionAdjacencyContainedId): void {
         const key = membershipContainersCacheKey(componentId)
         delete this._MembershipContainersStore[key]
         this._MembershipContainersCache.invalidate(key)

@@ -30,6 +30,7 @@ export {
     projectRoomGraphFromStoredPositionGraph,
     projectCharacterInventoryGraphStub,
     extractCharacterIdsFromPlayPositionGraph,
+    extractObjectIdsFromPlayPositionGraph,
 } from './project'
 
 export {

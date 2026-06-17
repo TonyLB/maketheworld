@@ -3,7 +3,7 @@ import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardExitEdgeData, isStandardExitEdgeEnvelope } from "../../keys/edges/dataTypes/exitEdge"
 
-export const POSITION_GRAPH_NODE_TAGS = ['Area', 'Room', 'Feature', 'Character'] as const
+export const POSITION_GRAPH_NODE_TAGS = ['Area', 'Room', 'Feature', 'Character', 'Object'] as const
 export type PositionGraphNodeTag = typeof POSITION_GRAPH_NODE_TAGS[number]
 
 export type ExitEdgeListData = StandardEditableData<StandardExitEdgeData>[]

@@ -12,6 +12,8 @@ const objectMetaSetMock = jest.fn()
 const objectMetaInvalidateMock = jest.fn()
 const objectMetaGetMock = jest.fn()
 const affordanceInvalidateMock = jest.fn()
+const componentEphemeraMetaInvalidateMock = jest.fn()
+const positionsInvalidateMock = jest.fn()
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
@@ -34,6 +36,10 @@ jest.mock('../../internalCache', () => ({
         },
         ComponentEphemeraMeta: {
             get: jest.fn(),
+            invalidate: (...args: unknown[]) => componentEphemeraMetaInvalidateMock(...args),
+        },
+        Positions: {
+            invalidate: (...args: unknown[]) => positionsInvalidateMock(...args),
         },
     },
 }))
@@ -98,7 +104,9 @@ describe('persistImprovisationObject', () => {
         ])
         expect(improvisationInvalidateMock).toHaveBeenCalledWith(objectId, 'ASSET#IMPROVISATION')
         expect(objectMetaInvalidateMock).toHaveBeenCalledWith(objectId)
+        expect(componentEphemeraMetaInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(affordanceInvalidateMock).toHaveBeenCalledWith(roomId)
+        expect(positionsInvalidateMock).toHaveBeenCalledWith(roomId)
     })
 
     it('persistUpdateImprovisationObject merges prior rows', async () => {

@@ -144,7 +144,7 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
     return true
 }
 
-/** Slice 2 v1 shipped Character nodes; Object nodes typed for Phase 4 (not yet written). */
+/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes (nodes only). */
 export type EphemeraPlayPositionGraphNode =
     | {
         tag: 'Character';
@@ -209,7 +209,7 @@ export type EphemeraMetaRoom = {
     activeCharacters?: EphemeraRoomActiveCharacter[];
 
     //
-    // Play-time membership graph (slice 2+ authority). Character nodes shipped; Object nodes Phase 4+.
+    // Play-time membership graph (slice 2+ authority). Character + Object nodes shipped (Object: nodes only).
     //
     positionGraph?: EphemeraPlayPositionGraph;
 

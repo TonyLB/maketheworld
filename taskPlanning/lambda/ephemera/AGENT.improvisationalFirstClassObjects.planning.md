@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 3 complete. **Next:** Phase 4 `positionGraph` placement (nodes only). **Locked:** **I1**--**I6**.
+**Status:** Phase 4 complete. **Next:** Phase 5 Coyote/objects lane migration off `Meta::Room.objects`. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -189,7 +189,7 @@ Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room
 | 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Complete |
 | 2 | ephemeraDB improvisation persistence + cache handler | Complete |
 | 3 | Composite `ComponentData` (+ improvisation) for aggregate | Complete |
-| 4 | `positionGraph` `OBJECT` nodes + placement apply | Not started |
+| 4 | `positionGraph` `OBJECT` nodes + placement apply | Complete |
 | 5 | Coyote/objects lane migration off `Meta::Room.objects` | Not started |
 | 6 | Legacy room-list code removal | Not started |
 | 7 | Durable docs + delete this plan | Not started |
@@ -223,11 +223,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Register composite as ephemera **`InternalCache.ComponentData`** for aggregate / **`GenerationContext`** consumers; keep **`ImprovisationComponentData`** registered for persist memo **`set`** / **`invalidate`**. Verify **`ComponentAggregate.get`** returns merged **`StandardObject`** when improvisation layer is last in participation order.
   - [X] Add **`appendImprovisationToPerspective(assetStack, objectIdsInScope)`** helper in [`packages/mtw-interfaces/ts/perspective.ts`](../../packages/mtw-interfaces/ts/perspective.ts) (**I3:** append when any objects in scope); unit tests for perspective key stability when improvisation layer present vs absent.
 
-- [ ] **Phase 4 --- `positionGraph` placement (nodes only)**
-  - [ ] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).
-  - [ ] Positions API: **place object in room** / **remove object from room** graph + **`POSITION#ROOM#...`** adjacency (**I5**); pure end-state apply aligned with [`updatePositionGraphs`](../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts).
-  - [ ] Add **`Object Moved`** graph-diff fact on **`mtw.ephemera.positions`** at apply (mirror **`buildCharacterMovedFact`** / **`streamMembershipFact`**); diagnostics posture for duplicate placement drift.
-  - [ ] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row.
+- [X] **Phase 4 --- `positionGraph` placement (nodes only)**
+  - [X] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).
+  - [X] Positions API: **place object in room** / **remove object from room** graph + **`POSITION#ROOM#...`** adjacency (**I5**); pure end-state apply aligned with [`updatePositionGraphs`](../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts).
+  - [X] Add **`Object Moved`** graph-diff fact on **`mtw.ephemera.positions`** at apply (mirror **`buildCharacterMovedFact`** / **`streamMembershipFact`**); diagnostics posture for duplicate placement drift.
+  - [X] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row.
 
 - [ ] **Phase 5 --- migrate `mtw.ephemera.objects` + Coyote**
   - [ ] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation pair + **`Meta::Object`** (stableKey / tropes), apply graph placement (+ adjacency), emit object-id **`Objects Changed`** (**I4**); placement **`Object Moved`** comes from positions apply.

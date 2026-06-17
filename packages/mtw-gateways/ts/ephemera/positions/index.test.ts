@@ -1,9 +1,10 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     projectRoomGraphFromStoredPositionGraph,
     projectCharacterInventoryGraphStub,
     extractCharacterIdsFromPlayPositionGraph,
+    extractObjectIdsFromPlayPositionGraph,
 } from './project'
 import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
@@ -12,6 +13,7 @@ import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ep
 
 const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const objectId = 'OBJECT#Skates' as EphemeraObjectId
 
 describe('positions project', () => {
     it('projectCharacterInventoryGraphStub returns empty forward graph', () => {
@@ -28,6 +30,13 @@ describe('positions project', () => {
         })).toEqual([characterId])
     })
 
+    it('extractObjectIdsFromPlayPositionGraph walks object nodes', () => {
+        expect(extractObjectIdsFromPlayPositionGraph({
+            nodes: [{ tag: 'Object', universalKey: objectId }],
+            edges: [],
+        })).toEqual([objectId])
+    })
+
     it('projectRoomGraphFromStoredPositionGraph maps stored nodes to topology only', () => {
         const graph = projectRoomGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
@@ -37,6 +46,22 @@ describe('positions project', () => {
                 tag: 'Character',
                 universalKey: characterId,
             }],
+            edges: [],
+        })
+    })
+
+    it('projectRoomGraphFromStoredPositionGraph includes Object nodes', () => {
+        const graph = projectRoomGraphFromStoredPositionGraph({
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: objectId },
+            ],
+        })
+        expect(graph).toEqual({
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: objectId },
+            ],
             edges: [],
         })
     })
@@ -98,6 +123,20 @@ describe('PositionsCacheHandler', () => {
 
         expect(graph).toEqual(projectCharacterInventoryGraphStub())
         expect(db.getItem).not.toHaveBeenCalled()
+    })
+
+    it('loads membership containers for OBJECT# from adjacency on miss', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn(),
+            query: jest.fn().mockResolvedValue([{
+                EphemeraId: objectId,
+                DataCategory: buildPositionAdjacencyDataCategory(roomId),
+            }]),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        await expect(handler.getMembershipContainers(objectId)).resolves.toEqual([roomId])
+        expect(db.query).toHaveBeenCalled()
     })
 
     it('loads membership containers from adjacency on miss', async () => {

@@ -1,5 +1,5 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
@@ -12,11 +12,13 @@ import type { PlayPositionGraph } from './types'
 export const projectRoomGraphFromStoredPositionGraph = (
     stored: EphemeraPlayPositionGraph
 ): PlayPositionGraph => {
-    const nodes: StandardReferenceData[] = stored.nodes.flatMap((node) => {
+    const nodes: StandardReferenceData[] = stored.nodes.flatMap((node): StandardReferenceData[] => {
         if (node.tag === 'Character') {
             return [{ tag: 'Character', universalKey: node.universalKey }]
         }
-        // Object nodes typed in Phase 0; graph projection deferred until positions Phase 4 apply.
+        if (node.tag === 'Object') {
+            return [{ tag: 'Object', universalKey: node.universalKey }]
+        }
         return []
     })
     return {
@@ -33,19 +35,26 @@ export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
 
 export const extractCharacterIdsFromPlayPositionGraph = (
     graph: PlayPositionGraph
-): EphemeraCharacterId[] => {
-    const nodes = graph.nodes ?? []
-    const characterIds: EphemeraCharacterId[] = []
-    for (const node of nodes) {
+): EphemeraCharacterId[] =>
+    (graph.nodes ?? []).flatMap((node): EphemeraCharacterId[] => {
         if (typeof node === 'string') {
-            if (isEphemeraCharacterId(node)) {
-                characterIds.push(node)
-            }
-            continue
+            return isEphemeraCharacterId(node) ? [node] : []
         }
         if (node.tag === 'Character' && node.universalKey && isEphemeraCharacterId(node.universalKey)) {
-            characterIds.push(node.universalKey)
+            return [node.universalKey]
         }
-    }
-    return characterIds
-}
+        return []
+    })
+
+export const extractObjectIdsFromPlayPositionGraph = (
+    graph: PlayPositionGraph
+): EphemeraObjectId[] =>
+    (graph.nodes ?? []).flatMap((node): EphemeraObjectId[] => {
+        if (typeof node === 'string') {
+            return isEphemeraObjectId(node) ? [node] : []
+        }
+        if (node.tag === 'Object' && node.universalKey && isEphemeraObjectId(node.universalKey)) {
+            return [node.universalKey]
+        }
+        return []
+    })

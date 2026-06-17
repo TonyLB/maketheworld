@@ -31,7 +31,7 @@ Navigational exits on the affordances channel are **not** read from room bluepri
 
 Play **membership** on the affordances channel is **not** stored as display fields on `Meta::Room.positionGraph`. The steady-state path (parallel to [exit presentation](#area-topology-and-affordance-exits-steady-state) above):
 
-1. **Play manipulation truth** --- **`internalCache.Positions.getPositionGraph`** / **`getMembershipContainers`** load stored **`Meta::Room.positionGraph`** character nodes and adjacency only ([`dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority)).
+1. **Play manipulation truth** --- **`internalCache.Positions.getPositionGraph`** / **`getMembershipContainers`** load stored **`Meta::Room.positionGraph`** topology (character + object nodes) and adjacency ([`dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority)). **`getMembershipContainers`** accepts **`CHARACTER#`** or **`OBJECT#`** PKs.
 2. **Roster hydration** --- **`getRoomCharacterList`** ([`hydrateRoomRoster.ts`](hydrateRoomRoster.ts)) reads topology via **`internalCache.Positions.getPositionGraph`**, then **`hydrateRoomRosterFromCharacterIds`** joins **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`).
 3. **Affordance compose** --- **`AffordanceRoomDeliverable.get(roomId, perspectiveKey)`** joins hydrated roster with exit projection (`row.topology.exits`), aggregate **`shortName`**, and room **`objects`** -> ephemeraWire **`StandardForm`** for terminal publish.
 

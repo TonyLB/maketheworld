@@ -33,6 +33,7 @@ Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/intern
 | **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` topology only; empty graph when absent |
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | **Stub:** empty `{ nodes: [], edges: [] }` --- no Dynamo read |
 | **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only (**S2-5** / **S2-6**) |
+| **`getMembershipContainers(objectId)`** | Which room hosts **contain** this object? | Adjacency index only (**I5** / Phase 4) |
 
 Handler API unchanged from slice 1c.
 
@@ -44,7 +45,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 
 | Field | Shape |
 | --- | --- |
-| **`positionGraph.nodes`** | Character membership nodes only (slice 2 v1). Each node: `{ tag: 'Character', universalKey: EphemeraCharacterId }` --- play identity only; no asset-local `key`. |
+| **`positionGraph.nodes`** | Character + Object membership nodes (slice 2 character; Phase 4 object). Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
 | **`positionGraph.edges`** | Absent or `[]` until in-room edges land (slice 5+). |
 
 **Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
@@ -57,27 +58,27 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 
 | Key | Value |
 | --- | --- |
-| **PK (`EphemeraId`)** | Contained component --- slice 2 v1: `CHARACTER#...` |
+| **PK (`EphemeraId`)** | Contained component --- `CHARACTER#...` or `OBJECT#...` |
 | **SK (`DataCategory`)** | `POSITION#${hostEphemeraId}` --- e.g. `POSITION#ROOM#cafe` |
 
 One row per host container. Multi-container drift (character in rooms A and C) yields two rows under the same PK.
 
 **Types + key builders:** [`ephemeraPositionAdjacency.ts`](../../../../mtw-interfaces/ts/ephemeraPositionAdjacency.ts).
 
-**Query helper:** **`queryMembershipContainersFromDynamo`** in [`adjacency.ts`](adjacency.ts) --- `begins_with(DataCategory, 'POSITION#')` on character PK; parse SK to `EphemeraRoomId[]`.
+**Query helper:** **`queryMembershipContainersFromDynamo`** in [`adjacency.ts`](adjacency.ts) --- `begins_with(DataCategory, 'POSITION#')` on contained component PK; parse SK to `EphemeraRoomId[]`.
 
 Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoint` on `PlayPositionGraph`; legacy endpoint encoding removed).
 
 ## Handler API ([`factory.ts`](factory.ts))
 
 - **`getPositionGraph(componentId)`** --- Room forward **topology** graph; Character forward **inventory stub** (empty graph today).
-- **`getMembershipContainers(componentId)`** --- reverse membership (**array**; always `EphemeraRoomId[]`).
+- **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array**; always `EphemeraRoomId[]`).
 - **Forward memo:** **`set`** / **`invalidate`** on room position graphs (`positionGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 
 All memo APIs patch in-memory state only; **no Dynamo write-through**.
 
-After membership apply in positions, call forward **`set`** / **`invalidate`** for affected rooms and **`setMembershipContainers`** for the character on the same **`internalCache.Positions`** instance.
+After membership apply in positions, call forward **`set`** / **`invalidate`** for affected rooms and **`setMembershipContainers`** for the character or object on the same **`internalCache.Positions`** instance.
 
 ## Consumers
 

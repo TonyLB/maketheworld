@@ -1,4 +1,5 @@
-import { isCharacterMovedPublishedPayload, sendCharacterMovedPublish, streamEventFromMessageBus } from './publishedEvents'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isCharacterMovedPublishedPayload, isObjectMovedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
 
 describe('isCharacterMovedPublishedPayload', () => {
     const minimal = {
@@ -57,6 +58,30 @@ describe('isCharacterMovedPublishedPayload', () => {
     })
 })
 
+describe('isObjectMovedPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Moved' as const,
+        objectId: 'OBJECT#skates',
+        froms: ['ROOM#a' as const],
+        to: 'ROOM#b' as const,
+        beatAnchorTime: 1_700_000_000_000,
+    }
+
+    it('accepts a valid cross-room payload', () => {
+        expect(isObjectMovedPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('rejects legacy singular from field', () => {
+        expect(isObjectMovedPublishedPayload({
+            type: 'Object Moved',
+            objectId: 'OBJECT#skates',
+            from: 'ROOM#a',
+            to: 'ROOM#b',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(false)
+    })
+})
+
 describe('streamEventFromMessageBus', () => {
     it('publishes StreamingEvent on the message bus', async () => {
         const bus = { publish: jest.fn() }
@@ -85,6 +110,32 @@ describe('streamEventFromMessageBus', () => {
             }),
         }))
     })
+
+    it('publishes Object Moved on the message bus', async () => {
+        const bus = { publish: jest.fn() }
+        const streamEvent = streamEventFromMessageBus(bus)
+        const content = {
+            type: 'Object Moved' as const,
+            objectId: 'OBJECT#skates' as const,
+            froms: [] as EphemeraRoomId[],
+            to: 'ROOM#b' as const,
+            beatAnchorTime: 1_700_000_000_000,
+        }
+
+        await streamEvent({
+            streamKey: 'OBJECT#skates',
+            header: { type: 'Object Moved' },
+            update: content,
+        })
+
+        expect(bus.publish).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'StreamingEvent',
+            streamKey: 'OBJECT#skates',
+            header: expect.objectContaining({
+                type: 'Object Moved',
+            }),
+        }))
+    })
 })
 
 describe('sendCharacterMovedPublish', () => {
@@ -102,6 +153,27 @@ describe('sendCharacterMovedPublish', () => {
             type: 'StreamingEvent',
             dataSourceKey: 'mtw.ephemera.positions',
             streamKey: 'CHARACTER#test',
+        }))
+    })
+})
+
+describe('sendObjectMovedPublish', () => {
+    it('publishes an Object Moved StreamingEvent message', () => {
+        const bus = { publish: jest.fn() }
+        sendObjectMovedPublish(bus, 'OBJECT#skates', {
+            type: 'Object Moved',
+            objectId: 'OBJECT#skates',
+            froms: [],
+            to: 'ROOM#b',
+            beatAnchorTime: 1_700_000_000_000,
+        })
+
+        expect(bus.publish).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'StreamingEvent',
+            streamKey: 'OBJECT#skates',
+            header: expect.objectContaining({
+                type: 'Object Moved',
+            }),
         }))
     })
 })
