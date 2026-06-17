@@ -1,4 +1,5 @@
 import {
+    isEphemeraMetaObject,
     isEphemeraMetaRoom,
     isEphemeraMetaRoomObject,
     isEphemeraPlayPositionGraph,
@@ -97,6 +98,51 @@ describe('isEphemeraMetaRoomObject', () => {
     })
 })
 
+describe('isEphemeraMetaObject', () => {
+    const baseMeta = {
+        EphemeraId: 'OBJECT#helmet' as const,
+        DataCategory: 'Meta::Object' as const,
+        stableKey: 'helmet',
+    }
+
+    it('accepts minimal Meta::Object row', () => {
+        expect(isEphemeraMetaObject(baseMeta)).toBe(true)
+    })
+
+    it('accepts trope fields on Meta::Object', () => {
+        expect(
+            isEphemeraMetaObject({
+                ...baseMeta,
+                tropeAffinities: [{
+                    trope: 'Scene Dressing',
+                    aptness: 'Good',
+                    narrowing: 'protective equipment',
+                }],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects shortName-only shape (pair row fields)', () => {
+        expect(
+            isEphemeraMetaObject({
+                EphemeraId: 'OBJECT#helmet',
+                DataCategory: 'Meta::Object',
+                stableKey: 'helmet',
+                shortName: 'helmet',
+            })
+        ).toBe(false)
+    })
+
+    it('rejects missing stableKey', () => {
+        expect(
+            isEphemeraMetaObject({
+                EphemeraId: 'OBJECT#helmet',
+                DataCategory: 'Meta::Object',
+            })
+        ).toBe(false)
+    })
+})
+
 describe('isEphemeraPlayPositionGraphNode', () => {
     it('accepts character node with universalKey', () => {
         expect(isEphemeraPlayPositionGraphNode({
@@ -105,7 +151,14 @@ describe('isEphemeraPlayPositionGraphNode', () => {
         })).toBe(true)
     })
 
-    it('rejects non-character tag', () => {
+    it('accepts object node with universalKey', () => {
+        expect(isEphemeraPlayPositionGraphNode({
+            tag: 'Object',
+            universalKey: 'OBJECT#helmet',
+        })).toBe(true)
+    })
+
+    it('rejects non-character non-object tag', () => {
         expect(isEphemeraPlayPositionGraphNode({
             tag: 'Room',
             universalKey: 'ROOM#Test',
@@ -139,6 +192,15 @@ describe('isEphemeraPlayPositionGraph', () => {
     it('accepts graph without edges field', () => {
         expect(isEphemeraPlayPositionGraph({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+        })).toBe(true)
+    })
+
+    it('accepts mixed character and object nodes', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
         })).toBe(true)
     })
 

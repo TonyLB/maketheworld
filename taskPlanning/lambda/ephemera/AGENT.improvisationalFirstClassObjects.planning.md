@@ -1,6 +1,6 @@
 # Improvisational first-class objects (planning)
 
-**Status:** Phase 0 in progress. **Next:** interfaces sketch + remaining Phase 0 inventory. **Locked:** **I1**--**I6**.
+**Status:** Phase 0 complete. **Next:** Phase 1 `StandardObject` stub. **Locked:** **I1**--**I6**.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md).
 
@@ -49,7 +49,7 @@ These reflect design discussion; unresolved forks live in [**Open decisions**](#
 - **`mtw-gateways`:** Improvisation component read handler; **`createCompositeComponentDataCacheHandler`** (name TBD) wiring asset + ephemera readers; gateway ownership row in [`packages/mtw-gateways/AGENT.md`](../../packages/mtw-gateways/AGENT.md).
 - **`lambda/ephemera`:** Persistence modules, **`internalCache`** registration, **`mtw.ephemera.objects`** handler refactor, perspective append helper, **`AffordanceRoomDeliverable`** migration, Coyote snapshot loaders, tests.
 - **`lambda/ephemera/dataSource/positions`:** Room graph **`OBJECT`** node apply (slice 5+ v1: nodes only, no in-room edges).
-- **Dual-read / dual-write transition** for **`Meta::Room.objects`** until consumers migrate (explicit sunset in Phase 6).
+- **Clean cutover** off **`Meta::Room.objects`** (empty legacy data; no dual-write / dual-read window --- see [**Migration cutover (Phase 0)**](#migration-cutover-phase-0)).
 
 ### Explicit deferrals
 
@@ -122,8 +122,6 @@ When **any** improvisational objects exist in the render/merge **scope** (room p
 
 **`mtw.ephemera.positions` (placement lane):** object arrival / relocation in a room is a **positions** fact, mirroring **`Character Moved`** --- target header **`Object Moved`** on **`mtw.ephemera.positions`** with graph-diff **`froms[]`** / **`to`** (room ids), emitted at membership apply when an **`OBJECT`** node is placed or removed. Coyote affordance refresh and similar placement-driven fan-in should subscribe to **`Object Moved`**, not **`Objects Changed`**, once shipped (see deferred note in [`positions/AGENT.contract.md`](../../lambda/ephemera/dataSource/positions/AGENT.contract.md)).
 
-**Dual-write window:** may still emit legacy **`Objects Changed`** room-list shape briefly for subscribers not yet migrated; sunset with Phase 6.
-
 ### I5 --- Object adjacency reverse index
 
 Mirror character **`POSITION#ROOM#...`** adjacency: **`EphemeraId: OBJECT#...`**, **`DataCategory: POSITION#ROOM#...`**. One row per host room; multi-room drift yields multiple rows under the same object PK. Extend [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) and positions gateway **`getMembershipContainers`** (or object-scoped sibling) accordingly. **Conflict policy:** stored room **`positionGraph`** wins; adjacency kept in sync at persist (same as characters, **S2-5**).
@@ -146,30 +144,67 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 _All Phase 0 implementation forks (**I1**--**I6**) are locked; see [**Decided (Phase 0)**](#decided-phase-0). Re-open here only if implementation discovers a blocker._
 
+## Meta::Room.objects site inventory (Phase 0)
+
+Classification for migration off the flat room list. Tests under **`dataSource/objects/`** cover persistence handlers; not listed individually.
+
+| Classification | File | Role |
+| --- | --- | --- |
+| **Migrate Phase 5** | [`mergePersistMetaRoomObjects.ts`](../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) | Dynamo write: `optimisticUpdate` on `objects` |
+| **Migrate Phase 5** | [`handleApiObjectsChange.ts`](../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) | API / Acme / clear handlers |
+| **Migrate Phase 5** | [`objects/index.ts`](../../lambda/ephemera/dataSource/objects/index.ts) | DataSource wiring |
+| **Migrate Phase 5** | [`affordanceRoomDeliverable.ts`](../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) | Projects `meta.objects` into `StandardRoom.objects` |
+| **Migrate Phase 5** | [`coyoteRoomObjectSnapshot.ts`](../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) | Coyote staged-object loaders |
+| **Migrate Phase 5** | [`collectCoyoteOccupiedStableKeys.ts`](../../lambda/ephemera/dataSource/actions/stableKey/collectCoyoteOccupiedStableKeys.ts) | Coyote-wide `stableKey` occupancy |
+| **Migrate Phase 5** | [`countCoyotePlacedObjectsAcrossRooms.ts`](../../lambda/ephemera/dataSource/actions/utilities/countCoyotePlacedObjectsAcrossRooms.ts) | Acme cap (20 objects) |
+| **Migrate Phase 5** | Coyote hypothesis/outcome/candidate pipeline | `loadCoyoteRoomObjectsByRoom`, `formatCoyoteStagedObjectsByRoom`, `EphemeraMetaRoomObject` prompts |
+| **Migrate Phase 5** | [`objects/events.ts`](../../lambda/ephemera/dataSource/objects/events.ts), [`localApiEvents.ts`](../../lambda/ephemera/dataSource/localApiEvents.ts) | Bus ingress/outbound room-list shape |
+| **Migrate Phase 5** | [`affordanceOrchestration/index.ts`](../../lambda/ephemera/dataSource/affordanceOrchestration/index.ts) | Subscribes `Objects Changed` for affordance refresh |
+| **Remove Phase 6** | [`ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | `EphemeraMetaRoomObject` on `Meta::Room` (types/guards) |
+| **Remove Phase 6** | [`mergePersistMetaRoomObjects.ts`](../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) | Entire module after cutover |
+| **Wire unchanged (compose Phase 5)** | [`room.ts`](../../packages/mtw-wml/ts/standardize/components/room.ts), [`roomHeaderPhaseC.ts`](../../charcoal-client/src/slices/messages/roomHeaderPhaseC.ts) | `StandardRoom.objects` wire/UI shape (**I6**) |
+| **Types extend (Phase 0 shipped)** | [`ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts), [`baseClasses.ts`](../../packages/mtw-interfaces/ts/baseClasses.ts), [`fetch.ts`](../../packages/mtw-gateways/ts/assets/components/componentData/fetch.ts) | `EphemeraMetaObject`, adjacency `OBJECT#` PK, `IMPROVISATION_ASSET_ID`, `ComponentPairPersistedFields` |
+
+## Migration cutover (Phase 0)
+
+**Preconditions (confirmed):** all `Meta::Room.objects` lists cleared in the only current database; no object spawn paths run between old-model and new-model deploys.
+
+Given empty legacy data and no mid-migration writes, **dual-write to `Meta::Room.objects` and dual-read from it are unnecessary.**
+
+| Topic | Decision |
+| --- | --- |
+| **Writers (Phase 4--5)** | Spawn/clear coordinator writes **only** pair + `Meta::Object` + graph + adjacency. **Do not** write `Meta::Room.objects`. |
+| **Readers (Phase 5)** | Switch all consumers directly to graph + `Meta::Object` + aggregate/improvisation pair. |
+| **`ComponentEphemeraMeta`** | May still fetch full `Meta::Room` row; `objects` field unused after cutover until Phase 6 type cleanup. |
+| **Bus (I4)** | Ship object-id `Objects Changed` and `Object Moved` directly; skip legacy room-list dual-emit. |
+| **Phase 6** | Dead-code removal (`mergePersistMetaRoomObjects`, `EphemeraMetaRoomObject` on room meta), not data migration. |
+
+**Caveat:** precondition is environment-specific --- verify other deployed environments are empty before cutover, or reintroduce dual-write for that environment only.
+
 ## Progress
 
 | Phase | Summary | Status |
 | --- | --- | --- |
-| 0 | Lock decisions I1--I6; anchor inventory; compatibility story | In progress (**I1**--**I6** locked; inventory/sketch remain) |
+| 0 | Lock decisions I1--I6; anchor inventory; compatibility story | Complete |
 | 1 | `StandardObject` stub + `OBJECT#` in `ComponentUUID` | Not started |
 | 2 | ephemeraDB improvisation persistence + cache handler | Not started |
 | 3 | Composite `ComponentData` (+ improvisation) for aggregate | Not started |
 | 4 | `positionGraph` `OBJECT` nodes + placement apply | Not started |
 | 5 | Coyote/objects lane migration off `Meta::Room.objects` | Not started |
-| 6 | Consumer migration + dual-write sunset | Not started |
+| 6 | Legacy room-list code removal | Not started |
 | 7 | Durable docs + delete this plan | Not started |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
-- [ ] **Phase 0 --- contracts and inventory**
+- [X] **Phase 0 --- contracts and inventory**
   - [X] Resolve **I1** (dual row: improvisation pair + **`Meta::Object`**) and **I2** (Coyote fields on **`Meta::Object`** only).
   - [X] Resolve **I3** (always append **`ASSET#IMPROVISATION`** when objects in scope), **I4** (object-id bus on **`mtw.ephemera.objects`**; **`Object Moved`** on **`mtw.ephemera.positions`** for placement), **I5** (object **`POSITION#ROOM#...`** adjacency), and **I6** (room-nested affordance wire by design; project **`StandardObject`** to **`StandardRoom.objects`** at compose).
-  - [ ] Sketch **`EphemeraMetaObject`**, object adjacency PK extension, and dual-row invariants in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) / [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) (ADR comment block pending implementation).
-  - [ ] List all **`Meta::Room.objects`** read/write sites (grep + table in this file or linked temp analysis); classify: migrate in Phase 5 vs tolerate dual-read through Phase 6.
-  - [ ] Define **`ASSET#IMPROVISATION`** constant and synthetic zone label (no `Meta::Asset` row in assetDB required for v1).
-  - [ ] Define dual-write / dual-read window: which paths write both room list and improvisation rows until sunset.
+  - [X] Sketch **`EphemeraMetaObject`**, object adjacency PK extension, and dual-row invariants in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../packages/mtw-interfaces/ts/ephemeraMeta.ts) / [`ephemeraPositionAdjacency.ts`](../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts) (ADR comment block pending implementation).
+  - [X] List all **`Meta::Room.objects`** read/write sites (grep + table in this file or linked temp analysis); classify: migrate in Phase 5 vs remove in Phase 6.
+  - [X] Define **`ASSET#IMPROVISATION`** constant and synthetic zone label (no `Meta::Asset` row in assetDB required for v1).
+  - [X] Define **clean cutover** strategy (empty DB; no dual-write / dual-read) --- see [**Migration cutover (Phase 0)**](#migration-cutover-phase-0).
 
 - [ ] **Phase 1 --- `StandardObject` stub (`mtw-wml` + interfaces)**
   - [ ] Add **`Object`** to **`SchemaComponent`** / **`ComponentUUID`** / **`defaultComponentFromTag`** / **`standardComponentFactory`** (minimal fields: **`shortName`** only --- Coyote fields are **`Meta::Object`**, not **`StandardObject`** JSON).
@@ -192,7 +227,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Extend **`EphemeraPlayPositionGraphNode`** union with **`tag: 'Object'`**, **`universalKey: EphemeraObjectId`**; relax **`edges`** guard only as needed for empty edges (slice 5+ relational edges still deferred).
   - [ ] Positions API: **place object in room** / **remove object from room** graph + **`POSITION#ROOM#...`** adjacency (**I5**); pure end-state apply aligned with [`updatePositionGraphs`](../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts).
   - [ ] Add **`Object Moved`** graph-diff fact on **`mtw.ephemera.positions`** at apply (mirror **`buildCharacterMovedFact`** / **`streamMembershipFact`**); diagnostics posture for duplicate placement drift.
-  - [ ] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row (+ optional dual-write to **`Meta::Room.objects`** during transition).
+  - [ ] Coordinate transact bundle: improvisation pair + **`Meta::Object`** create + graph node + adjacency row.
 
 - [ ] **Phase 5 --- migrate `mtw.ephemera.objects` + Coyote**
   - [ ] Refactor **`handleAcmeOrderAddObjects`**: mint `OBJECT#`, persist improvisation pair + **`Meta::Object`** (stableKey / tropes), apply graph placement (+ adjacency), emit object-id **`Objects Changed`** (**I4**); placement **`Object Moved`** comes from positions apply.
@@ -202,9 +237,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [ ] Update **`collectCoyoteOccupiedStableKeys`** / **`countCoyotePlacedObjectsAcrossRooms`** to scan **`Meta::Object`** **`stableKey`** (not room-embedded list).
   - [ ] Refactor **`AffordanceRoomDeliverable`**: read object ids from graph + **`shortName`** from aggregate/improvisation; populate **`StandardRoom.objects[]`** for room-nested wire emit (**I6**).
 
-- [ ] **Phase 6 --- consumer migration and sunset**
-  - [ ] Remove dual-write to **`Meta::Room.objects`** when affordance, hypothesis, and tests no longer depend on room list.
-  - [ ] Deprecate **`EphemeraMetaRoomObject`** on room meta (or keep empty with guard); update **`isEphemeraMetaRoom`** validation.
+- [ ] **Phase 6 --- legacy room-list code removal**
+  - [ ] Delete **`mergePersistMetaRoomObjects`** and room-list write paths superseded in Phase 5.
+  - [ ] Deprecate **`EphemeraMetaRoomObject`** on room meta; update **`isEphemeraMetaRoom`** validation.
   - [ ] Client affordance merge: verify **Contents:** line unchanged with new compose pipeline (**I6**); no charcoal-client work expected unless wire shape changes later.
   - [ ] Graduate **Target mental model** bullets in [`positions/AGENT.concepts.md`](../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) to **Shipped** where implemented; add **`AGENT.contract.md`** obligations for object graph nodes.
 
@@ -234,7 +269,6 @@ Run from repo root paths below after each phase that touches the area.
 | Risk | Mitigation |
 | --- | --- |
 | Perspective / cache key churn when improvisation appended | **I3:** append only when objects exist in scope; document **`computePerspectiveKey`** impact; invalidate render/affordance caches on **`Object Moved`** (placement) and object-id **`Objects Changed`** (existence). |
-| Dual-write drift between room list and graph | Short transition only; tests assert parity; single coordinator function for spawn/clear. |
 | Drift between improvisation pair and **`Meta::Object`** | Same coordinator transact for spawn/clear; tests assert both rows exist or both absent per **`OBJECT#`**. |
 | `cacheAsset` or assets diagnostics touching improvisation | ephemeraDB-only storage; no `Meta::Asset` in assetDB for improvisation in v1. |
 | Aggregate merge with stub canon layers + real improvisation layer | Golden test: `OBJECT#` with participation order `[canon..., ASSET#IMPROVISATION]` yields improvisation `shortName`. |

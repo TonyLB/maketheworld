@@ -142,7 +142,7 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 ### Objects and `mtw.ephemera.objects`
 
-Today `Meta::Room.objects` is a **flat list** (Coyote staging). Target: object placement is **edges in a room (or container) graph**. The objects DataSource may remain a command/event lane while **positions** owns play-time graph membership --- or responsibilities merge over time. See [`../objects/AGENT.md`](../objects/AGENT.md).
+Today `Meta::Room.objects` is a **flat list** (Coyote staging). Target: object placement is **edges in a room (or container) graph**. The objects DataSource may remain a command/event lane while **positions** owns play-time graph membership --- or responsibilities merge over time. See [`../objects/AGENT.md`](../objects/AGENT.md). Phase 0 interface sketches: **`EphemeraMetaObject`** and **`OBJECT#`** adjacency in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) / [`ephemeraPositionAdjacency.ts`](../../../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts).
 
 ### Map Position facets (x/y)
 

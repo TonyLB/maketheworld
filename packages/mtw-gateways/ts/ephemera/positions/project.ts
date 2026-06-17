@@ -12,10 +12,13 @@ import type { PlayPositionGraph } from './types'
 export const projectRoomGraphFromStoredPositionGraph = (
     stored: EphemeraPlayPositionGraph
 ): PlayPositionGraph => {
-    const nodes: StandardReferenceData[] = stored.nodes.map((node) => ({
-        tag: 'Character',
-        universalKey: node.universalKey,
-    }))
+    const nodes: StandardReferenceData[] = stored.nodes.flatMap((node) => {
+        if (node.tag === 'Character') {
+            return [{ tag: 'Character', universalKey: node.universalKey }]
+        }
+        // Object nodes typed in Phase 0; projection deferred until OBJECT# is ComponentUUID (Phase 4+).
+        return []
+    })
     return {
         nodes,
         edges: [],

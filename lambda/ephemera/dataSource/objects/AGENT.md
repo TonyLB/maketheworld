@@ -6,6 +6,8 @@ This package owns **runtime object lists** for rooms: stored on ephemera **`Meta
 
 **Co-location on `Meta::Room`** is an **implementation** choice (atomicity, read efficiency, cache keying); domain boundaries and invalidation are documented here and in [`AGENT.multiChannel.contract.md`](../../AGENT.multiChannel.contract.md).
 
+**Migration (in progress):** first-class improvisational objects will move to component pair rows + **`Meta::Object`** + **`positionGraph`** placement (see [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md)). Clean cutover: no dual-write to **`Meta::Room.objects`** (legacy lists cleared).
+
 ## Bus events
 
 | Header `type` | Where | Role |
