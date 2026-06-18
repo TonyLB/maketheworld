@@ -1,6 +1,7 @@
 import {
     isEphemeraActionsAcmeOrderEnvelope,
     isEphemeraActionsAwaitRoadRunnerEnvelope,
+    isEphemeraActionsPredictHypothesisEnvelope,
     isObjectsSubscribedEnvelope,
 } from './subscribedEvents'
 
@@ -23,6 +24,26 @@ describe('objects subscribedEvents', () => {
 
         expect(isEphemeraActionsAwaitRoadRunnerEnvelope(envelope as any)).toBe(true)
         expect(isObjectsSubscribedEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts Predict Hypothesis envelope from mtw.ephemera.actions', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#123',
+                timestamp: Date.now(),
+                type: 'Predict Hypothesis',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Predict Hypothesis',
+                    characterId: 'CHARACTER#123',
+                    confidence: 0.91,
+                }),
+        }
+
+        expect(isEphemeraActionsPredictHypothesisEnvelope(envelope as any)).toBe(true)
+        expect(isObjectsSubscribedEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts Acme Order envelope from mtw.ephemera.actions', () => {

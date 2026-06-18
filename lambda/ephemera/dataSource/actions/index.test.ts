@@ -11,6 +11,7 @@ import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 import internalCache from '../../internalCache'
@@ -50,6 +51,9 @@ jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({
 jest.mock('../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness', () => ({
     runCoyoteEngineTestHarness: jest.fn(),
 }))
+jest.mock('../coyoteGame/utilities/isCoyoteGameRoom', () => ({
+    isCoyoteGameRoom: jest.fn(),
+}))
 jest.mock('./actionHandlers/runAcmeOrderAffinitiesHarness', () => ({
     runAcmeOrderAffinitiesHarness: jest.fn(),
 }))
@@ -62,6 +66,7 @@ const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedS
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
+const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
@@ -74,6 +79,7 @@ describe('ephemeraActionsDataSource', () => {
         mockSendRenderRequested.mockClear()
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
+        mockedIsCoyoteGameRoom.mockResolvedValue(false)
         mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set<string>())
         mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
             fromRoomId: null,
@@ -1320,6 +1326,127 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['Awaiting Road Runner'],
             })
+        })
+    })
+
+    describe('ParseCommandPredictHypothesisResult', () => {
+        const coyoteRoom = 'ROOM#VORTEX' as EphemeraRoomId
+        const nonCoyoteRoom = 'ROOM#other' as EphemeraRoomId
+
+        it('publishes WorldOOCMessage when character has no current room', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'PredictHypothesis', confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: null,
+                toRoomIds: [],
+                exits: [],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'predict',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You can only predict your Coyote plan from a Coyote Game room.'],
+            })
+        })
+
+        it('publishes WorldOOCMessage when character is not in a Coyote Game room', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'PredictHypothesis', confidence: 0.91 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: nonCoyoteRoom,
+                toRoomIds: [],
+                exits: [],
+            })
+            mockedIsCoyoteGameRoom.mockResolvedValue(false)
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: "what's my plan",
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedIsCoyoteGameRoom).toHaveBeenCalledWith(nonCoyoteRoom)
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You can only predict your Coyote plan from a Coyote Game room.'],
+            })
+        })
+
+        it('publishes Predict Hypothesis streamEvent without WorldOOCMessage when in a Coyote Game room', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'PredictHypothesis', confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: coyoteRoom,
+                toRoomIds: [],
+                exits: [],
+            })
+            mockedIsCoyoteGameRoom.mockResolvedValue(true)
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'predict',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedIsCoyoteGameRoom).toHaveBeenCalledWith(coyoteRoom)
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Predict Hypothesis' },
+                update: {
+                    type: 'Predict Hypothesis',
+                    characterId: 'CHARACTER#123',
+                    confidence: 1,
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    displayProtocol: 'WorldOOCMessage',
+                })
+            )
         })
     })
 

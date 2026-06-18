@@ -80,8 +80,18 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ### `PromptInjectionAttempt` steady-state
 
-Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)) labels parser-manipulation tone.
+Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section H labels parser-manipulation tone.
 `parseCommand` skips Acme order enrich like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
+
+### `PredictHypothesis` steady-state
+
+Coyote Game hypothesis is triggered by explicit player command (`predict` or LLM-classified paraphrase), not automatic **`Object Moved`**. Affordance refresh on **`Object Moved`** still runs via [`../affordanceOrchestration/AGENT.md`](../affordanceOrchestration/AGENT.md); coyoteGame does not subscribe to **`Object Moved`**.
+
+1. **Deterministic:** bare **`predict`** only (no **`p`** alias) in [`discriminateIntent/deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts).
+2. **LLM paraphrases:** Section C2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts) (e.g. "what's my plan", "read the setup").
+3. **Parse result:** `type: 'PredictHypothesis'` with `confidence`; no Acme enrich. Stream header and published payload use **`Predict Hypothesis`** (mirror **`Await RoadRunner`** / **`AwaitRoadRunner`** naming).
+4. **Receive path:** [`index.ts`](index.ts) --- not in a Coyote demo room -> **`WorldOOCMessage`** guidance, no **`streamEvent`** and no Bedrock. In a Coyote room (including empty staging), **`streamEvent`** **`Predict Hypothesis`**. Do **not** add a parallel **`WorldOOCMessage`** on the actions path (unlike **`Await RoadRunner`**, which uses both OOC ack and outcome-channel placeholder); in-flight feedback is the coyoteGame **`CoyoteGameHypothesisMessage`** placeholder. Payload + guard: [`publishedEvents.ts`](publishedEvents.ts); envelope guard: [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts).
+5. **Downstream:** `mtw.ephemera.coyoteGame` subscribes to **`Predict Hypothesis`** and runs the hypothesis pipeline via [`handlePredictHypothesis`](../coyoteGame/handlers/handlePredictHypothesis.ts).
 
 ### `LookRoom` / `LookComponent` as reference pattern
 

@@ -2,12 +2,14 @@
 
 **Status:** Bus-only, non-replayable `EphemeraDataSource`.
 
-This package handles Coyote gameplay synthesis after object updates and explicit "Await RoadRunner" actions.
+This package handles Coyote gameplay synthesis after explicit **Predict Hypothesis** and **Await RoadRunner** actions.
 
 ## Subscribes to
 
-- `mtw.ephemera.positions` `Object Moved` ([`../positions/publishedEvents.ts`](../positions/publishedEvents.ts)) --- hypothesis trigger when object placed in a Coyote demo room
+- `mtw.ephemera.actions` `Predict Hypothesis` ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)) --- hypothesis trigger on player **`predict`** command
 - `mtw.ephemera.actions` `Await RoadRunner` ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts))
+
+Does **not** subscribe to **`mtw.ephemera.positions` `Object Moved`**; affordance refresh on object placement or move is owned by **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/AGENT.md`](../affordanceOrchestration/AGENT.md)).
 
 ## Layout and key files
 
@@ -28,14 +30,14 @@ Pipeline-local docs:
 - Hypothesis: [`generators/pipelines/hypothesis/AGENT.md`](generators/pipelines/hypothesis/AGENT.md)
 - Outcome: [`generators/pipelines/outcome/AGENT.md`](generators/pipelines/outcome/AGENT.md)
 
-## Object Moved (hypothesis path)
+## Predict Hypothesis (hypothesis path)
 
-[`handlers/handleObjectMovedForHypothesis.ts`](handlers/handleObjectMovedForHypothesis.ts):
+[`handlers/handlePredictHypothesis.ts`](handlers/handlePredictHypothesis.ts):
 
-1. Accepts only placement into a Coyote demo room (`to !== null`).
-2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` immediately (concurrent with remainder work).
-3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events via **`outboundBusDelivery: 'publish'`**.
-4. **`publish`es** final hypothesis render tree and stream event payload.
+1. Triggered by actions **`Predict Hypothesis`** after the Coyote-room guard in the actions receive path (non-Coyote rooms get OOC guidance only; no stream reaches this handler).
+2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` to the **requesting character only** (Started + Result rows; unlike **Await RoadRunner**, which targets all active characters in Coyote rooms).
+3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events keyed by **`characterId`**.
+4. **`publish`es** final hypothesis render tree to the same requester only.
 
 Staged-object reads use **`positionGraph`** + **`Meta::Object`** + improvisation pair via [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (`CoyoteStagedObject`).
 

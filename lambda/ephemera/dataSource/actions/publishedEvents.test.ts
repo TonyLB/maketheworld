@@ -3,6 +3,7 @@ import {
     isCharacterHomePublishedPayload,
     isCharacterNavigatePublishedPayload,
     isLookCommandRequestedPublishedPayload,
+    isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
 
 describe('isAcmeOrderPublishedOrder', () => {
@@ -346,5 +347,33 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, confidence: Infinity })).toBe(
             false,
         )
+    })
+})
+
+describe('isPredictHypothesisPublishedPayload', () => {
+    const minimal = {
+        type: 'Predict Hypothesis' as const,
+        characterId: 'CHARACTER#test',
+        confidence: 0.91,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isPredictHypothesisPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isPredictHypothesisPublishedPayload({ ...minimal, type: 'Await RoadRunner' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isPredictHypothesisPublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects non-string characterId', () => {
+        expect(isPredictHypothesisPublishedPayload({ ...minimal, characterId: 1 } as unknown)).toBe(false)
+        expect(isPredictHypothesisPublishedPayload({ ...minimal, characterId: null } as unknown)).toBe(false)
+    })
+
+    it('rejects non-finite confidence', () => {
+        expect(isPredictHypothesisPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isPredictHypothesisPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
     })
 })

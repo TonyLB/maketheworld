@@ -13,6 +13,7 @@ import {
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
     isParseCommandMultipleCommandsResult,
+    isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -96,7 +97,7 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
+ * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`PredictHypothesis`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
  * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`HomeIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
@@ -138,6 +139,16 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
             confidence: obj.confidence as number,
         }
         if (isParseCommandAwaitRoadrunnerResult(candidate)) {
+            return candidate
+        }
+    }
+
+    if (type === 'PredictHypothesis') {
+        const candidate: IntentClassificationResult = {
+            type: 'PredictHypothesis',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandPredictHypothesisResult(candidate)) {
             return candidate
         }
     }
@@ -252,6 +263,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

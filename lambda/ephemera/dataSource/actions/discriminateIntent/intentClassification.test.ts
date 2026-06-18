@@ -83,6 +83,7 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('PromptInjectionAttempt')
         expect(prompt).toContain('MultipleCommands')
         expect(prompt).toContain('AwaitRoadRunner')
+        expect(prompt).toContain('PredictHypothesis')
         expect(prompt).toContain('AcmeOrder')
         expect(prompt).toContain('LookRoom')
         expect(prompt).toContain('Help')
@@ -93,6 +94,7 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "PromptInjectionAttempt"')
         expect(prompt).toContain('"type": "MultipleCommands"')
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
+        expect(prompt).toContain('"type": "PredictHypothesis"')
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "LookRoom"')
         expect(prompt).toContain('"type": "Help"')
@@ -102,6 +104,10 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "Unknown"')
         expect(prompt).toContain('Available exits from current room: north, south')
         expect(prompt).toContain('Section G')
+        expect(prompt).toContain('Section C2')
+        expect(prompt).toContain("what's my plan")
+        expect(prompt).toContain('read the setup')
+        expect(prompt).toContain('guess my scheme')
         expect(prompt).toContain('order glue trap')
         expect(prompt).toContain('order explosives and bandages')
         expect(prompt).toContain('order explosives and then go north')
@@ -124,7 +130,7 @@ describe('buildIntentClassificationPrompt', () => {
 })
 
 describe('interpretIntentClassificationBody', () => {
-    it('accepts bare JSON for MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder with raw orders, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder with raw orders, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, and Unknown', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"MultipleCommands","confidence":0.67}'
         )).toEqual({ type: 'MultipleCommands', confidence: 0.67 })
@@ -134,6 +140,9 @@ describe('interpretIntentClassificationBody', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"AwaitRoadRunner","confidence":0.95}'
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
+        expect(interpretIntentClassificationBody(
+            '{"type":"PredictHypothesis","confidence":0.87}'
+        )).toEqual({ type: 'PredictHypothesis', confidence: 0.87 })
         expect(interpretIntentClassificationBody(
             '{"type":"LookRoom","confidence":0.88}'
         )).toEqual({ type: 'LookRoom', confidence: 0.88 })
@@ -241,7 +250,7 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -252,7 +261,7 @@ describe('interpretIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
