@@ -34,10 +34,10 @@ Pipeline-local docs:
 
 [`handlers/handlePredictHypothesis.ts`](handlers/handlePredictHypothesis.ts):
 
-1. Triggered by actions **`Predict Hypothesis`** (D-4 room guard applied upstream in actions).
-2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` to the **requesting character only** (D-2).
+1. Triggered by actions **`Predict Hypothesis`** after the Coyote-room guard in the actions receive path (non-Coyote rooms get OOC guidance only; no stream reaches this handler).
+2. **`publish`es** placeholder `CoyoteGameHypothesisMessage` to the **requesting character only** (Started + Result rows; unlike **Await RoadRunner**, which targets all active characters in Coyote rooms).
 3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events keyed by **`characterId`**.
-4. **`publish`es** final hypothesis render tree to the same requester.
+4. **`publish`es** final hypothesis render tree to the same requester only.
 
 Staged-object reads use **`positionGraph`** + **`Meta::Object`** + improvisation pair via [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (`CoyoteStagedObject`).
 
