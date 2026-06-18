@@ -1,6 +1,6 @@
 # Coyote Game: player-requested hypothesis (`predict`) (planning)
 
-**Status:** In progress. P2 actions stream contract shipped. Next step is Phase P3 (coyoteGame handler migration).
+**Status:** In progress. P3 coyoteGame handler migration shipped. Next step is Phase P4 (client + product docs).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -8,7 +8,7 @@ Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 Move Coyote **hypothesis generation** from an automatic reaction to **`Object Moved`** to an **explicit player affordance**, symmetric with **`Await RoadRunner`** for plan outcome.
 
-Today, [`handleObjectMovedForHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts) runs the full hypothesis pipeline whenever an object is **placed into** a Coyote demo room. With **`positionGraph`**-backed play manipulation (pick up, put down, reposition), that trigger surface will grow much faster than the semantic signal that "the plan changed meaningfully." Players should **stage freely**, then **`predict`** when they want a reading, then **`wait`** to execute.
+Today, [`handlePredictHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.ts) runs the full hypothesis pipeline when the player types **`predict`** (or an LLM-classified paraphrase) in a Coyote demo room. With **`positionGraph`**-backed play manipulation (pick up, put down, reposition), automatic hypothesis on every **`Object Moved`** would fire far more often than the semantic signal that "the plan changed meaningfully." Players **stage freely**, then **`predict`** when they want a reading, then **`wait`** to execute.
 
 This file is task-scoped and should be archived or removed when the change ships and durable guidance has been moved to package docs.
 
@@ -51,7 +51,7 @@ Treat **`Await RoadRunner`** as the end-to-end template:
 | LLM intent | **`AwaitRoadRunner`** | **`PredictHypothesis`** |
 | Parse result `type` | **`AwaitRoadRunner`** | **`PredictHypothesis`** |
 | Actions `streamEvent` header | **`Await RoadRunner`** | **`Predict Hypothesis`** |
-| CoyoteGame handler | [`handleAwaitRoadRunnerForPlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleAwaitRoadRunnerForPlanOutcome.ts) | New handler (refactor from [`handleObjectMovedForHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts)) |
+| CoyoteGame handler | [`handleAwaitRoadRunnerForPlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleAwaitRoadRunnerForPlanOutcome.ts) | [`handlePredictHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.ts) |
 | Cache + pipeline | `invalidate('outcome')` -> `get('outcome')` | `invalidate('intent')` -> `get('intent')` (unchanged) |
 | In-flight player feedback | **`WorldOOCMessage`** "Awaiting Road Runner" + **`WorldMessage`** "Outcome: Generating..." | **`CoyoteGameHypothesisMessage`** "Hypothesis: Generating..." to requester only (no extra actions OOC ack) |
 | Delivery audience | All active characters in Coyote rooms | Requesting character only |
@@ -59,7 +59,7 @@ Treat **`Await RoadRunner`** as the end-to-end template:
 ## Getting started
 
 1. Skim task-plan conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
-2. Read steady-state Coyote data flow: [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (**Object Moved** hypothesis path, **Await RoadRunner** outcome path).
+2. Read steady-state Coyote data flow: [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (**Predict Hypothesis** hypothesis path, **Await RoadRunner** outcome path).
 3. Read actions affordance checklist: [`lambda/ephemera/dataSource/actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) (**Adding a new command affordance**).
 4. Read product loop: [`AGENT.CoyoteGame.md`](../../../../../AGENT.CoyoteGame.md) (**Core Player Loop**).
 5. Read testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). Command context: Jest from **`lambda/ephemera/`** via **`npm run test`**.
@@ -74,7 +74,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | D-1 | **Stream contract naming** | P2, P3 | Decided | Actions header / published payload **`type: 'Predict Hypothesis'`**; parse JSON **`type: 'PredictHypothesis'`** (mirror **`Await RoadRunner`** / **`AwaitRoadRunner`**). |
 | D-2 | **Delivery audience** | P3 | Decided | **(b) Requesting character only** for **`CoyoteGameHypothesisMessage`** Started + Result rows. |
 | D-4 | **Guard when mispredicted** | P1, P3 | Decided | Not in a Coyote room: **`WorldOOCMessage`** guidance, **no** stream / Bedrock. In a Coyote room with empty staging: **run pipeline** (stub or low-confidence hypothesis acceptable). |
-| D-6 | **Player OOC ack from actions** | P2 | Decided | **None.** Existing coyoteGame handler already **`publish`es** **`CoyoteGameHypothesisMessage`** with **`Hypothesis: Generating...`** ([`handleObjectMovedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts)); with D-2 that is sufficient in-flight feedback. Do **not** add a parallel **`WorldOOCMessage`** on the actions path (unlike **`Await RoadRunner`**, which uses both OOC ack and outcome-channel placeholder). |
+| D-6 | **Player OOC ack from actions** | P2 | Decided | **None.** coyoteGame handler **`publish`es** **`CoyoteGameHypothesisMessage`** with **`Hypothesis: Generating...`** ([`handlePredictHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.ts)); with D-2 that is sufficient in-flight feedback. Do **not** add a parallel **`WorldOOCMessage`** on the actions path (unlike **`Await RoadRunner`**, which uses both OOC ack and outcome-channel placeholder). |
 
 ## Recommended order
 
@@ -91,7 +91,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Apply D-4 guard in parse or handler (not in Coyote room -> OOC; no stream).
   - [X] Tests: [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts).
 
-**P2 handoff:** Coyote-room **`predict`** publishes **`Predict Hypothesis`** on the actions bus; **`mtw.ephemera.coyoteGame`** does not subscribe until P3 wires the handler.
+**P2 handoff:** Coyote-room **`predict`** publishes **`Predict Hypothesis`** on the actions bus; **`mtw.ephemera.coyoteGame`** subscribes and runs the hypothesis pipeline (P3).
 
 - [X] Phase P2 - actions stream contract
   - [X] Add **`PredictHypothesisPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) per D-1.
@@ -99,12 +99,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Add envelope guard in [`objects/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/objects/subscribedEvents.ts) (or shared actions subscribe helper if extracted).
   - [X] Tests: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts), [`publishedEvents.test.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.test.ts).
 
-- [ ] Phase P3 - coyoteGame handler migration
-  - [ ] Refactor [`handleObjectMovedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts) into **`handlePredictHypothesisForHypothesis`** (or rename in place) keyed on actions payload + D-2 audience rules.
-  - [ ] Update [`coyoteGame/index.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/index.ts): remove **`Object Moved`** branch; handle **`Predict Hypothesis`** (D-1 name).
-  - [ ] Update [`coyoteGame/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/subscribedEvents.ts) ingress union + guards.
-  - [ ] Retire or repurpose [`handleObjectMovedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.test.ts) for the new trigger.
-  - [ ] Confirm **`Object Moved`** still drives affordance refresh only (no coyoteGame subscription).
+- [X] Phase P3 - coyoteGame handler migration
+  - [X] Refactor into [`handlePredictHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.ts) keyed on actions payload + D-2 audience rules.
+  - [X] Update [`coyoteGame/index.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/index.ts): remove **`Object Moved`** branch; handle **`Predict Hypothesis`** (D-1 name).
+  - [X] Update [`coyoteGame/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/subscribedEvents.ts) ingress union + guards.
+  - [X] Retire [`handleObjectMovedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.test.ts); add [`handlePredictHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.test.ts).
+  - [X] Confirm **`Object Moved`** still drives affordance refresh only (no coyoteGame subscription).
 
 - [ ] Phase P4 - client + product docs
   - [ ] Update [`CoyoteHelpMessage.tsx`](../../../../../charcoal-client/src/components/Message/CoyoteHelpMessage.tsx): insert **`predict`** step between Acme order and wait.
@@ -126,7 +126,7 @@ Baseline (before edits):
 ```bash
 npm run test -- --watchAll=false dataSource/actions/parseCommand.test.ts
 npm run test -- --watchAll=false dataSource/actions/index.test.ts
-npm run test -- --watchAll=false dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.test.ts
+npm run test -- --watchAll=false dataSource/coyoteGame/handlers/handlePredictHypothesis.test.ts
 ```
 
 After implementation:
@@ -156,7 +156,7 @@ Manual smoke (optional):
 | Open decisions locked (P0) | Done |
 | Parse affordance shipped (P1) | Done |
 | Actions stream contract shipped (P2) | Done |
-| CoyoteGame migration shipped (P3) | Not started |
+| CoyoteGame migration shipped (P3) | Done |
 | Client + product docs updated (P4) | Not started |
 | Verification green; plan archived (P5) | Not started |
 

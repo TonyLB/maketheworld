@@ -1,16 +1,15 @@
 /**
  * mtw.ephemera.coyoteGame DataSource.
  *
- * Bus-only. Subscribes to Object Moved (Coyote rooms) and mtw.ephemera.actions Await RoadRunner.
+ * Bus-only. Subscribes to mtw.ephemera.actions Predict Hypothesis and Await RoadRunner.
  */
 import EphemeraDataSource from '../abstract'
-import { isAwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
-import { isObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import { isAwaitRoadRunnerPublishedPayload, isPredictHypothesisPublishedPayload } from '../actions/publishedEvents'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
 import type { CoyoteGameSubscribedContent } from './subscribedEvents'
 import { isCoyoteGameSubscribedEnvelope } from './subscribedEvents'
 import { handleAwaitRoadRunnerForPlanOutcome } from './handlers/handleAwaitRoadRunnerForPlanOutcome'
-import { handleObjectMovedForHypothesis } from './handlers/handleObjectMovedForHypothesis'
+import { handlePredictHypothesis } from './handlers/handlePredictHypothesis'
 import messageBus from '../../messageBus'
 
 export const ephemeraCoyoteGameDataSource = new EphemeraDataSource<
@@ -28,8 +27,8 @@ export const ephemeraCoyoteGameDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             const raw = await event.getContent()
-            if (isObjectMovedPublishedPayload(raw)) {
-                await handleObjectMovedForHypothesis(raw, { streamEvent, messageBus })
+            if (isPredictHypothesisPublishedPayload(raw)) {
+                await handlePredictHypothesis(raw, { streamEvent, messageBus })
                 return
             }
             if (isAwaitRoadRunnerPublishedPayload(raw)) {

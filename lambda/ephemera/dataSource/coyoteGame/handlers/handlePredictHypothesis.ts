@@ -4,14 +4,11 @@ import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isObjectMovedPublishedPayload } from '../../positions/publishedEvents'
+import { isPredictHypothesisPublishedPayload } from '../../actions/publishedEvents'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import internalCache from '../../../internalCache'
-import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import type { CoyoteGamePublishedPayload } from '../publishedEvents'
 import { COYOTE_RENDER_LINE_BREAK } from '../utilities/coyoteRenderTree'
-import { isCoyoteGameRoom } from '../utilities/isCoyoteGameRoom'
 import { hypothesisDebugLog } from '../utilities/hypothesisDebug'
 
 /** Hop-2 internal walkthrough heading: strip from terminal publish (canonical only; Dynamo load normalizes legacy Scene analysis). */
@@ -28,45 +25,28 @@ const userFacingWalkthrough = (walkthrough: string | undefined): string | undefi
 }
 
 /**
- * When an object is placed in a Coyote demo room, emit hypothesis stream events and
- * WorldMessage placeholder + terminal rows (shared messageId) for connected occupants.
+ * On explicit Predict Hypothesis from actions, emit hypothesis stream events and
+ * CoyoteGameHypothesisMessage placeholder + terminal rows (shared messageId) to the requester only.
  */
-export async function handleObjectMovedForHypothesis(
+export async function handlePredictHypothesis(
     raw: unknown,
     deps: {
         streamEvent: StreamEventFunction<CoyoteGamePublishedPayload, StreamingEventHeader>;
         messageBus: Pick<MessageBus, 'publish'>;
     }
 ): Promise<void> {
-    if (!isObjectMovedPublishedPayload(raw)) {
+    if (!isPredictHypothesisPublishedPayload(raw)) {
         return
     }
     const payload = raw
-    if (payload.to === null || !isEphemeraRoomId(payload.to)) {
-        return
-    }
-    if (!(await isCoyoteGameRoom(payload.to))) {
-        return
-    }
-
-    const occupants = await getRoomCharacterList(payload.to)
-    /** Characters with at least one session are treated as active for delivery. */
-    const active = (occupants ?? []).filter((o) => o.SessionIds.length > 0)
-    if (active.length === 0) {
-        return
-    }
-
-    const characterId: EphemeraCharacterId = active[0].EphemeraId
+    const characterId: EphemeraCharacterId = payload.characterId
+    const targets = [characterId]
     const hypothesisId = `MESSAGE#${uuidv4()}`
     const t0 = getCurrentTimestamp()
     const stored = { hypothesisId, t0 }
 
-    const targets = active.map((o) => o.EphemeraId)
-
-    hypothesisDebugLog('object moved hypothesis trigger', {
-        roomId: payload.to,
-        objectId: payload.objectId,
-        activeTargetsCount: targets.length,
+    hypothesisDebugLog('predict hypothesis trigger', {
+        characterId,
         hypothesisId,
     })
 
@@ -80,7 +60,7 @@ export async function handleObjectMovedForHypothesis(
     })
 
     await deps.streamEvent({
-        streamKey: payload.to,
+        streamKey: characterId,
         header: { type: 'Hypothesis Generation Started' },
         update: {
             type: 'Hypothesis Generation Started',
@@ -96,7 +76,7 @@ export async function handleObjectMovedForHypothesis(
         walkthrough !== undefined
             ? [walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
             : [intentRecord.intent]
-    hypothesisDebugLog('object moved hypothesis final intent', {
+    hypothesisDebugLog('predict hypothesis final intent', {
         hypothesisId,
         intent: intentRecord.intent,
         hadStoredWalkthrough: intentRecord.walkthrough !== undefined,
@@ -108,7 +88,7 @@ export async function handleObjectMovedForHypothesis(
     const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 
     await deps.streamEvent({
-        streamKey: payload.to,
+        streamKey: characterId,
         header: { type: 'Hypothesis Generation Result' },
         update: {
             type: 'Hypothesis Generation Result',

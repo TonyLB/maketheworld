@@ -91,7 +91,7 @@ Coyote Game hypothesis is triggered by explicit player command, not automatic **
 2. **LLM paraphrases:** Section C2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts) (e.g. "what's my plan", "read the setup").
 3. **Parse result:** `type: 'PredictHypothesis'` with `confidence`; no Acme enrich.
 4. **Receive path:** [`index.ts`](index.ts) applies D-4 --- not in a Coyote demo room -> **`WorldOOCMessage`** guidance, no **`streamEvent`**. In a Coyote room, **`streamEvent`** **`Predict Hypothesis`** (no actions OOC ack per D-6). Payload + guard: [`publishedEvents.ts`](publishedEvents.ts); envelope guard: [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts).
-5. **Downstream:** `mtw.ephemera.coyoteGame` subscribes to **`Predict Hypothesis`** (P3) and runs the hypothesis pipeline.
+5. **Downstream:** `mtw.ephemera.coyoteGame` subscribes to **`Predict Hypothesis`** and runs the hypothesis pipeline via [`handlePredictHypothesis`](../coyoteGame/handlers/handlePredictHypothesis.ts).
 
 ### `LookRoom` / `LookComponent` as reference pattern
 
