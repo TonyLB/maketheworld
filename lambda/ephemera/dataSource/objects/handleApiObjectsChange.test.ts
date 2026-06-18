@@ -173,7 +173,7 @@ describe('handleAcmeOrderAddObjects', () => {
     })
 
     it('spawns each order line in character current room and streams createdIds', async () => {
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
+        const getMembershipContainers = jest.fn(async () => ['ROOM#VORTEX' as EphemeraRoomId])
         const uuidValues = ['u1', 'u2']
         const uuidFactory = jest.fn(() => uuidValues.shift() || 'fallback')
 
@@ -195,7 +195,7 @@ describe('handleAcmeOrderAddObjects', () => {
             confidence: 0.9,
         }, {
             streamEvent,
-            getCharacterMeta,
+            getMembershipContainers,
             uuidFactory,
             spawnAndPlaceImpl: spawnAndPlaceMock,
         })
@@ -222,8 +222,9 @@ describe('handleAcmeOrderAddObjects', () => {
         })
     })
 
-    it('does nothing when character room cannot be resolved as ephemera room id', async () => {
-        const getCharacterMeta = jest.fn(async () => ({}))
+    it('uses play membership containers, not legacy CharacterMeta.RoomId', async () => {
+        const getMembershipContainers = jest.fn(async () => ['ROOM#STRAIGHTAWAY' as EphemeraRoomId])
+        const uuidFactory = jest.fn(() => 'u1')
 
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
@@ -232,7 +233,30 @@ describe('handleAcmeOrderAddObjects', () => {
             confidence: 0.9,
         }, {
             streamEvent,
-            getCharacterMeta,
+            getMembershipContainers,
+            uuidFactory,
+            spawnAndPlaceImpl: spawnAndPlaceMock,
+        })
+
+        expect(getMembershipContainers).toHaveBeenCalledWith('CHARACTER#123')
+        expect(spawnAndPlaceMock).toHaveBeenCalledWith(
+            expect.objectContaining({ targetRoomId: 'ROOM#STRAIGHTAWAY' }),
+            expect.any(Object)
+        )
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({ streamKey: 'ROOM#STRAIGHTAWAY' }))
+    })
+
+    it('does nothing when character room cannot be resolved as ephemera room id', async () => {
+        const getMembershipContainers = jest.fn(async () => [])
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            getMembershipContainers,
             spawnAndPlaceImpl: spawnAndPlaceMock,
         })
 
@@ -241,7 +265,7 @@ describe('handleAcmeOrderAddObjects', () => {
     })
 
     it('filters environment affordances for ROOM#STRAIGHTAWAY', async () => {
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#STRAIGHTAWAY' }))
+        const getMembershipContainers = jest.fn(async () => ['ROOM#STRAIGHTAWAY' as EphemeraRoomId])
         const uuidFactory = jest.fn(() => 'u1')
 
         await handleAcmeOrderAddObjects({
@@ -251,7 +275,7 @@ describe('handleAcmeOrderAddObjects', () => {
             confidence: 0.7,
         }, {
             streamEvent,
-            getCharacterMeta,
+            getMembershipContainers,
             uuidFactory,
             spawnAndPlaceImpl: spawnAndPlaceMock,
         })
@@ -265,7 +289,7 @@ describe('handleAcmeOrderAddObjects', () => {
     })
 
     it('filters environment affordances for ROOM#VORTEX', async () => {
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
+        const getMembershipContainers = jest.fn(async () => ['ROOM#VORTEX' as EphemeraRoomId])
         const uuidFactory = jest.fn(() => 'u1')
 
         await handleAcmeOrderAddObjects({
@@ -275,7 +299,7 @@ describe('handleAcmeOrderAddObjects', () => {
             confidence: 0.7,
         }, {
             streamEvent,
-            getCharacterMeta,
+            getMembershipContainers,
             uuidFactory,
             spawnAndPlaceImpl: spawnAndPlaceMock,
         })

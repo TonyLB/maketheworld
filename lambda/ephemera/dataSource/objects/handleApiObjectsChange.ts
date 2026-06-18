@@ -94,15 +94,17 @@ export const handleAcmeOrderAddObjects = async (
         streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
         spawnAndPlaceImpl?: typeof spawnAndPlaceImprovisationObject;
         uuidFactory?: () => string;
-        getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<{ RoomId?: string } | undefined>;
+        getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     }
 ): Promise<void> => {
-    const getCharacterMeta = deps.getCharacterMeta ?? ((characterId: EphemeraCharacterId) => internalCache.CharacterMeta.get(characterId))
+    const getMembershipContainers = deps.getMembershipContainers
+        ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getMembershipContainers(characterId))
     const spawnAndPlace = deps.spawnAndPlaceImpl ?? spawnAndPlaceImprovisationObject
     const positionsStreamEvent = streamPositionsEventFromMessageBus(messageBus)
 
-    const roomId = (await getCharacterMeta(payload.characterId))?.RoomId
-    if (typeof roomId !== 'string' || !isEphemeraRoomId(roomId)) {
+    const containers = await getMembershipContainers(payload.characterId)
+    const roomId = containers[0]
+    if (!roomId || !isEphemeraRoomId(roomId)) {
         return
     }
     if (payload.orders.length === 0) {
