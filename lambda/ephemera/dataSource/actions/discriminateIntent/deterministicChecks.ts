@@ -22,6 +22,11 @@ function isBareHomeCommand(trimmed: string): boolean {
     return /^home$/i.test(trimmed)
 }
 
+/** After trim, case-insensitive predict as the whole line (no p alias). */
+function isBarePredictCommand(trimmed: string): boolean {
+    return /^predict$/i.test(trimmed)
+}
+
 function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
     const trimmed = input.command.trim()
     if (!trimmed) {
@@ -71,6 +76,9 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
     }
 
     const trimmedCommand = input.command.trim()
+    if (isBarePredictCommand(trimmedCommand)) {
+        return { type: 'PredictHypothesis', confidence: 1 }
+    }
     if (isBareLookCommand(trimmedCommand)) {
         return { type: 'LookRoom', confidence: 1 }
     }

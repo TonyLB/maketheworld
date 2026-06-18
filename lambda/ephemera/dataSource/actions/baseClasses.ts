@@ -99,6 +99,12 @@ export type ParseCommandAwaitRoadrunnerResult = {
     confidence: ParseCommandConfidence
 }
 
+/** Coyote Game: player-requested hypothesis generation from staged setup. */
+export type ParseCommandPredictHypothesisResult = {
+    type: 'PredictHypothesis'
+    confidence: ParseCommandConfidence
+}
+
 /** Show coyote-game help affordance content; no Acme enrich. */
 export type ParseCommandHelpResult = {
     type: 'Help'
@@ -240,6 +246,7 @@ export type IntentClassificationResult =
     | ParseCommandNavigationIntentResult
     | ParseCommandHomeIntentResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandPredictHypothesisResult
     | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
     | ParseCommandLookRoomResult
@@ -254,6 +261,7 @@ export type ParseCommandResult =
     | ParseCommandHomeResult
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandPredictHypothesisResult
     | ParseCommandHelpResult
     | ParseCommandLookRoomResult
     | ParseCommandLookComponentResult
@@ -275,6 +283,15 @@ export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandAwaitRoadrunnerResult {
     if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandPredictHypothesisResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandPredictHypothesisResult {
+    if (result.type !== 'PredictHypothesis') {
         return false
     }
     return isParseConfidence(result.confidence)

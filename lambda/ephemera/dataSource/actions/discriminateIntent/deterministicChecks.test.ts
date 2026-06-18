@@ -130,6 +130,14 @@ describe('deterministicIntentChecks', () => {
         expect(deterministicIntentChecks({ command: 'look at door' })).toBeNull()
     })
 
+    it('returns PredictHypothesis only for bare predict', () => {
+        expect(deterministicIntentChecks({ command: 'predict' })).toEqual({ type: 'PredictHypothesis', confidence: 1 })
+        expect(deterministicIntentChecks({ command: '  PREDICT  ' })).toEqual({ type: 'PredictHypothesis', confidence: 1 })
+        expect(deterministicIntentChecks({ command: 'predict my plan' })).toBeNull()
+        expect(deterministicIntentChecks({ command: 'p' })).toBeNull()
+        expect(deterministicIntentChecks({ command: 'prediction' })).toBeNull()
+    })
+
     it('returns Help only for bare help', () => {
         expect(deterministicIntentChecks({ command: 'help' })).toEqual({ type: 'Help', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  HELP  ' })).toEqual({ type: 'Help', confidence: 1 })

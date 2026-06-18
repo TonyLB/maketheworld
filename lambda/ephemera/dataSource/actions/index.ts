@@ -38,6 +38,7 @@ import {
     isParseCommandLookComponentResult,
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
+    isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -49,6 +50,7 @@ import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupi
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
@@ -382,6 +384,17 @@ const publishStreamEventsForIntent = async (
             displayProtocol: 'WorldOOCMessage',
             message: ['Awaiting Road Runner'],
         })
+    }
+    else if (isParseCommandPredictHypothesisResult(parseResult)) {
+        const { fromRoomId } = roomExitContext
+        if (!fromRoomId || !(await isCoyoteGameRoom(fromRoomId))) {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You can only predict your Coyote plan from a Coyote Game room.'],
+            })
+        }
     }
 }
 

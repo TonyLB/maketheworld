@@ -1,6 +1,6 @@
 # Coyote Game: player-requested hypothesis (`predict`) (planning)
 
-**Status:** In progress. P0 decisions locked. Next step is Phase P1 (parse affordance).
+**Status:** In progress. P1 parse affordance shipped. Next step is Phase P2 (actions stream contract).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -73,9 +73,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- | --- | --- | --- |
 | D-1 | **Stream contract naming** | P2, P3 | Decided | Actions header / published payload **`type: 'Predict Hypothesis'`**; parse JSON **`type: 'PredictHypothesis'`** (mirror **`Await RoadRunner`** / **`AwaitRoadRunner`**). |
 | D-2 | **Delivery audience** | P3 | Decided | **(b) Requesting character only** for **`CoyoteGameHypothesisMessage`** Started + Result rows. |
-| D-3 | **Deterministic alias** | P1 | Decided | **No** bare **`p`** --- **`predict`** only. |
 | D-4 | **Guard when mispredicted** | P1, P3 | Decided | Not in a Coyote room: **`WorldOOCMessage`** guidance, **no** stream / Bedrock. In a Coyote room with empty staging: **run pipeline** (stub or low-confidence hypothesis acceptable). |
-| D-5 | **LLM paraphrase examples** | P1 | Decided | Narrow **`PredictHypothesis`** section; seed examples include "what's my plan", "read the setup", "what am I trying to do", "guess my scheme"; disambiguate from **`LookRoom`**. |
 | D-6 | **Player OOC ack from actions** | P2 | Decided | **None.** Existing coyoteGame handler already **`publish`es** **`CoyoteGameHypothesisMessage`** with **`Hypothesis: Generating...`** ([`handleObjectMovedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts)); with D-2 that is sufficient in-flight feedback. Do **not** add a parallel **`WorldOOCMessage`** on the actions path (unlike **`Await RoadRunner`**, which uses both OOC ack and outcome-channel placeholder). |
 
 ## Recommended order
@@ -85,13 +83,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Phase P0 - lock open decisions
   - [X] Resolve D-1 through D-6 in the table above.
 
-- [ ] Phase P1 - parse affordance (`mtw.ephemera.actions`)
-  - [ ] Add **`PredictHypothesis`** to [`ParseCommandResult`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) and intent classification union + guards.
-  - [ ] Add deterministic **`predict`** only in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts).
-  - [ ] Add **Section** for **`PredictHypothesis`** in [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts); update precedence / disambiguation vs **`LookRoom`**, **`AwaitRoadRunner`**, **`Unimplemented`**.
-  - [ ] Wire interpreter in [`intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts).
-  - [ ] Apply D-4 guard in parse or handler (not in Coyote room -> OOC; no stream).
-  - [ ] Tests: [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts).
+- [X] Phase P1 - parse affordance (`mtw.ephemera.actions`)
+  - [X] Add **`PredictHypothesis`** to [`ParseCommandResult`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) and intent classification union + guards.
+  - [X] Add deterministic **`predict`** only in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts).
+  - [X] Add **Section** for **`PredictHypothesis`** in [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts); update precedence / disambiguation vs **`LookRoom`**, **`AwaitRoadRunner`**, **`Unimplemented`**.
+  - [X] Wire interpreter in [`intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts).
+  - [X] Apply D-4 guard in parse or handler (not in Coyote room -> OOC; no stream).
+  - [X] Tests: [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts).
+
+**P1 handoff:** Coyote-room **`PredictHypothesis`** parse succeeds but **`index.ts`** is a no-op stub until P2 adds **`Predict Hypothesis`** **`streamEvent`**.
 
 - [ ] Phase P2 - actions stream contract
   - [ ] Add **`PredictHypothesisPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) per D-1.
@@ -154,7 +154,7 @@ Manual smoke (optional):
 | --- | --- |
 | Task plan drafted | Done |
 | Open decisions locked (P0) | Done |
-| Parse affordance shipped (P1) | Not started |
+| Parse affordance shipped (P1) | Done |
 | Actions stream contract shipped (P2) | Not started |
 | CoyoteGame migration shipped (P3) | Not started |
 | Client + product docs updated (P4) | Not started |

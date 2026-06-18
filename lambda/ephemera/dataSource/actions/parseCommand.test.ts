@@ -22,6 +22,7 @@ import {
     isParseCommandLookComponentResult,
     isParseCommandNavigationResult,
     isParseCommandHomeResult,
+    isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -419,6 +420,13 @@ describe('parseCommand type guards', () => {
         expect(isParseCommandAwaitRoadrunnerResult({ type: 'AwaitRoadRunner' } as any)).toBe(false)
     })
 
+    it('isParseCommandPredictHypothesisResult requires confidence in [0, 1]', () => {
+        expect(isParseCommandPredictHypothesisResult({ type: 'PredictHypothesis', confidence: 1 })).toBe(true)
+        expect(isParseCommandPredictHypothesisResult({ type: 'PredictHypothesis', confidence: 0.4 })).toBe(true)
+        expect(isParseCommandPredictHypothesisResult({ type: 'PredictHypothesis' } as any)).toBe(false)
+        expect(isParseCommandPredictHypothesisResult({ type: 'PredictHypothesis', confidence: 1.5 })).toBe(false)
+    })
+
     it('isParseCommandLookRoomResult requires confidence in [0, 1]', () => {
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1 })).toBe(true)
         expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 0.4 })).toBe(true)
@@ -659,6 +667,21 @@ describe('parseCommand LLM path', () => {
                 { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
             )
             expect(result).toEqual({ type: 'LookRoom', confidence: 1 })
+        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns PredictHypothesis without Bedrock for bare predict (case-insensitive, trim)', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        for (const command of ['predict', 'PREDICT', '  Predict  ']) {
+            const result = await parseCommand(
+                { command },
+                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            )
+            expect(result).toEqual({ type: 'PredictHypothesis', confidence: 1 })
         }
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
@@ -950,6 +973,22 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
+    })
+
+    it('returns PredictHypothesis from intent discrimination without Acme order enrich', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"PredictHypothesis","confidence":0.91}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: "what's my plan" },
+            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'PredictHypothesis', confidence: 0.91 })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
     it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
@@ -1435,6 +1474,23 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
+            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
+            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(0)
+        })
+
+        it('does not bootstrap thinking for PredictHypothesis when messageBus is present', async () => {
+            const bus = mockMessageBus()
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"PredictHypothesis","confidence":0.88}',
+            })
+
+            const result = await parseCommand(
+                { command: 'predict' },
+                { messageBus: bus, invokeBedrockParseCommandImpl }
+            )
+
+            expect(result).toEqual({ type: 'PredictHypothesis', confidence: 1 })
             expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
             expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(0)
         })

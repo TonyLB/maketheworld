@@ -80,8 +80,18 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ### `PromptInjectionAttempt` steady-state
 
-Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section P (evaluated before sections A-D in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)) labels parser-manipulation tone.
+Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section H labels parser-manipulation tone.
 `parseCommand` skips Acme order enrich like `Unknown`, and [`index.ts`](index.ts) emits `WorldOOCMessage` only (no `streamEvent` / `publishedEvents` entry), since this is in-franchise player feedback rather than a security boundary.
+
+### `PredictHypothesis` steady-state
+
+Coyote Game hypothesis is triggered by explicit player command, not automatic **`Object Moved`** (see task plan [`taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.predictAction.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.predictAction.planning.md)).
+
+1. **Deterministic:** bare **`predict`** only (no **`p`** alias) in [`discriminateIntent/deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts).
+2. **LLM paraphrases:** Section C2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts) (e.g. "what's my plan", "read the setup").
+3. **Parse result:** `type: 'PredictHypothesis'` with `confidence`; no Acme enrich.
+4. **Receive path (P1):** [`index.ts`](index.ts) applies D-4 --- not in a Coyote demo room -> **`WorldOOCMessage`** guidance, no **`streamEvent`**. In a Coyote room, P2 adds **`Predict Hypothesis`** stream (no actions OOC ack per D-6).
+5. **Downstream:** `mtw.ephemera.coyoteGame` subscribes to **`Predict Hypothesis`** (P2/P3) and runs the hypothesis pipeline.
 
 ### `LookRoom` / `LookComponent` as reference pattern
 
