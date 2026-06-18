@@ -1,25 +1,23 @@
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { isEphemeraCharacterId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
 
-const serialize = ({
-    EphemeraId,
-    RoomId,
-    Name,
-    fileURL,
-    Color
-}: CharacterMetaItem): EphemeraClientMessageEphemeraUpdateItem => {
+const serialize = async (
+    characterMeta: CharacterMetaItem
+): Promise<EphemeraClientMessageEphemeraUpdateItem> => {
+    const RoomId = await resolveCharacterRoomId(characterMeta.EphemeraId)
     return {
         type: 'CharacterInPlay',
-        CharacterId: EphemeraId,
+        CharacterId: characterMeta.EphemeraId,
         Connected: true,
         RoomId,
-        DisplayName: Name,
-        fileURL: fileURL || '',
-        Color: Color || 'grey'
+        DisplayName: characterMeta.Name,
+        fileURL: characterMeta.fileURL || '',
+        Color: characterMeta.Color || 'grey',
     }
 }
 
@@ -32,17 +30,19 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
             },
             ProjectionFields: ['ConnectionId']
         })
-        const [Items, connectionId] = await Promise.all([
+        const characterIds = connectedCharacters
+            .map(({ ConnectionId }) => ConnectionId)
+            .filter(isEphemeraCharacterId)
+
+        const [returnItems, connectionId] = await Promise.all([
             Promise.all(
-                connectedCharacters
-                    .map(({ ConnectionId }) => (ConnectionId))
-                    .filter(isEphemeraCharacterId)
-                    .map((value) => (internalCache.CharacterMeta.get(value)))
+                characterIds.map(async (characterId: EphemeraCharacterId) => {
+                    const characterMeta = await internalCache.CharacterMeta.get(characterId)
+                    return serialize(characterMeta)
+                })
             ),
-            internalCache.Global.get("ConnectionId")
+            internalCache.Global.get('ConnectionId'),
         ])
-        const returnItems = Items
-            .map(serialize)
 
         messageBus.publish({
             type: 'EphemeraUpdate',

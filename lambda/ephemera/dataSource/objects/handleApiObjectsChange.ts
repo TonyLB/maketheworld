@@ -11,8 +11,8 @@ import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
 import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
-import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
+import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 
 /**
@@ -95,19 +95,22 @@ export const handleAcmeOrderAddObjects = async (
         spawnAndPlaceImpl?: typeof spawnAndPlaceImprovisationObject;
         uuidFactory?: () => string;
         getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
+        resolveCharacterRoomId?: typeof resolveCharacterRoomId;
     }
 ): Promise<void> => {
-    const getMembershipContainers = deps.getMembershipContainers
-        ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getMembershipContainers(characterId))
+    const resolveRoomId = deps.resolveCharacterRoomId
+        ?? ((characterId: EphemeraCharacterId) => resolveCharacterRoomId(characterId, {
+            getMembershipContainers: deps.getMembershipContainers,
+        }))
     const spawnAndPlace = deps.spawnAndPlaceImpl ?? spawnAndPlaceImprovisationObject
     const positionsStreamEvent = streamPositionsEventFromMessageBus(messageBus)
 
-    const containers = await getMembershipContainers(payload.characterId)
-    const roomId = containers[0]
-    if (!roomId || !isEphemeraRoomId(roomId)) {
+    if (payload.orders.length === 0) {
         return
     }
-    if (payload.orders.length === 0) {
+
+    const roomId = await resolveRoomId(payload.characterId)
+    if (!isEphemeraRoomId(roomId)) {
         return
     }
 

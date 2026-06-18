@@ -6,9 +6,15 @@ import internalCache from '../internalCache'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
+jest.mock('../dataSource/positions/membership/resolveCharacterRoomId', () => ({
+    resolveCharacterRoomId: jest.fn(),
+}))
+
+import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
 import { fetchPlayerEphemera } from '.'
 
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
+const resolveCharacterRoomIdMock = resolveCharacterRoomId as jest.MockedFunction<typeof resolveCharacterRoomId>
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -18,7 +24,7 @@ describe('fetchPlayerEphemera', () => {
         jest.resetAllMocks()
     })
 
-    it('should serialize fetched Character records', async () => {
+    it('serializes CharacterInPlay with resolveCharacterRoomId, not legacy meta RoomId', async () => {
         connectionDBMock.query.mockResolvedValue([{
             ConnectionId: `CHARACTER#ABC`,
             DataCategory: 'Meta::Character'
@@ -34,6 +40,7 @@ describe('fetchPlayerEphemera', () => {
             assets: [],
             Pronouns: 'they/them'
         })
+        resolveCharacterRoomIdMock.mockResolvedValue('ROOM#Bridge')
         internalCacheMock.Global.get.mockResolvedValue('XYZ')
         await fetchPlayerEphemera({
             payloads: [{
@@ -41,13 +48,14 @@ describe('fetchPlayerEphemera', () => {
             }],
             messageBus
         })
+        expect(resolveCharacterRoomIdMock).toHaveBeenCalledWith('CHARACTER#ABC')
         expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'CHARACTER#ABC',
                 Connected: true,
-                RoomId: 'ROOM#XYZ',
+                RoomId: 'ROOM#Bridge',
                 DisplayName: 'Testy',
                 fileURL: 'test.png',
                 Color: 'purple',

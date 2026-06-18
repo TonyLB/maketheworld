@@ -936,16 +936,8 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('noop when character has no RoomId', async () => {
-            internalCacheMock.CharacterMeta.get.mockResolvedValue({
-                EphemeraId: 'CHARACTER#123',
-                Name: 'TestCharacter',
-                RoomId: undefined as any,
-                RoomStack: [],
-                HomeId: undefined as any,
-                assets: [],
-                Color: 'blue',
-            })
+        it('does not gate Character Spoke on legacy CharacterMeta.RoomId', async () => {
+            // Room targeting is narration's job (resolveCharacterRoomId); this layer must not consult legacy RoomId.
             const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -971,7 +963,18 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(streamEvent).not.toHaveBeenCalled()
+            expect(internalCacheMock.CharacterMeta.get).not.toHaveBeenCalled()
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Spoke' },
+                update: {
+                    type: 'Character Spoke',
+                    characterId: 'CHARACTER#123',
+                    message: 'Hello',
+                    displayProtocol: 'SayMessage',
+                    confidence: 1,
+                },
+            })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({ type: 'ReturnValue' })
             )

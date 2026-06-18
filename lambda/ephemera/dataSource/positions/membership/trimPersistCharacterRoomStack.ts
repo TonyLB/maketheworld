@@ -1,15 +1,14 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { RoomStackItem } from './types'
 import {
     normalizeRoomStack,
-    roomStackTopRoomShortId,
     roomStacksEqual,
     trimRoomStackToAccessibleAssets,
 } from './trimEvictionLadder'
+import { resolveLegalRoomIdFromRoomStack } from './resolveCharacterRoomId'
 
 export type TrimPersistCharacterRoomStackDependencies = {
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
@@ -67,9 +66,9 @@ export const trimPersistCharacterRoomStack = async (
         })
     }
 
-    const stackRoomShortId = roomStackTopRoomShortId(trimmedRoomStack) ?? 'VORTEX'
+    const targetRoomId = resolveLegalRoomIdFromRoomStack(trimmedRoomStack, accessibleAssets)
     return {
-        targetRoomId: RoomKey(stackRoomShortId),
+        targetRoomId,
         trimmedRoomStack,
         ladderChanged,
         characterMeta: resolvedMeta,

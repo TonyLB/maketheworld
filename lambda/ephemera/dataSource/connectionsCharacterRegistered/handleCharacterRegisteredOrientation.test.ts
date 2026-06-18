@@ -33,8 +33,8 @@ const baseEvent: ConnectionsCharacterRegisteredEvent = {
 }
 
 const resolvedDeps = () => ({
+    resolveCharacterRoomId: jest.fn().mockResolvedValue(roomId),
     characterMetaGet: jest.fn().mockResolvedValue({
-        RoomId: roomId,
         assets: ['ASSET#a'],
     }),
     resolvePerspective: jest.fn().mockResolvedValue({ perspective, perspectiveKey }),
@@ -44,17 +44,10 @@ const renderStreamEvent = jest.fn().mockResolvedValue(undefined)
 const affordanceStreamEvent = jest.fn().mockResolvedValue(undefined)
 
 describe('resolveSessionOrientationContext', () => {
-    it('returns null when CharacterMeta has no RoomId', async () => {
-        const result = await resolveSessionOrientationContext(baseEvent, {
-            characterMetaGet: jest.fn().mockResolvedValue({ assets: ['ASSET#a'] }),
-            resolvePerspective: jest.fn(),
-        })
-        expect(result).toBeNull()
-    })
-
     it('returns null when perspective resolution is empty', async () => {
         const result = await resolveSessionOrientationContext(baseEvent, {
-            characterMetaGet: jest.fn().mockResolvedValue({ RoomId: roomId, assets: [] }),
+            resolveCharacterRoomId: jest.fn().mockResolvedValue(roomId),
+            characterMetaGet: jest.fn().mockResolvedValue({ assets: [] }),
             resolvePerspective: jest.fn().mockResolvedValue(null),
         })
         expect(result).toBeNull()
@@ -69,6 +62,16 @@ describe('resolveSessionOrientationContext', () => {
             perspectiveKey,
             targets: [characterId],
         })
+    })
+
+    it('uses resolveCharacterRoomId instead of legacy CharacterMeta.RoomId', async () => {
+        const resolveCharacterRoomId = jest.fn().mockResolvedValue('ROOM#Bridge' as EphemeraRoomId)
+        const result = await resolveSessionOrientationContext(baseEvent, {
+            ...resolvedDeps(),
+            resolveCharacterRoomId,
+        })
+        expect(resolveCharacterRoomId).toHaveBeenCalledWith(characterId)
+        expect(result?.roomId).toBe('ROOM#Bridge')
     })
 })
 
@@ -85,12 +88,13 @@ describe('handleCharacterRegisteredOrientation', () => {
         logSpy.mockRestore()
     })
 
-    it('no-ops when room is missing', async () => {
+    it('no-ops when perspective is missing', async () => {
         const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateRenderRequest').mockResolvedValue(undefined)
 
         await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', {
+            resolveCharacterRoomId: jest.fn().mockResolvedValue(roomId),
             characterMetaGet: jest.fn().mockResolvedValue(undefined),
-            resolvePerspective: jest.fn(),
+            resolvePerspective: jest.fn().mockResolvedValue(null),
         }, renderStreamEvent)
 
         expect(internalCacheMock.PerceptionThreads.register).not.toHaveBeenCalled()
@@ -100,7 +104,7 @@ describe('handleCharacterRegisteredOrientation', () => {
             expect.objectContaining({
                 event: 'skip',
                 channel: 'render',
-                reason: 'no_room',
+                reason: 'no_perspective',
                 characterId,
                 sessionId: 'session-1',
             })
@@ -108,12 +112,13 @@ describe('handleCharacterRegisteredOrientation', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('no-ops when perspective is missing', async () => {
+    it('no-ops when perspective is missing on affordances channel', async () => {
         const threadSpy = jest.spyOn(perceptionSubscribedEvents, 'sendPerceptionThreadRegistered').mockImplementation(() => {})
         const affordanceSpy = jest.spyOn(affordanceOrchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
 
         await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'affordances', {
-            characterMetaGet: jest.fn().mockResolvedValue({ RoomId: roomId, assets: [] }),
+            resolveCharacterRoomId: jest.fn().mockResolvedValue(roomId),
+            characterMetaGet: jest.fn().mockResolvedValue({ assets: [] }),
             resolvePerspective: jest.fn().mockResolvedValue(null),
         }, affordanceStreamEvent)
 

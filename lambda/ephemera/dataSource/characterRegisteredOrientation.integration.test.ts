@@ -63,6 +63,7 @@ import {
     type GenerateRoomPreviewOptions,
 } from './renderOrchestration/generateRoomPreview'
 import * as kickRoomHeaderBroadcastModule from './perception/kickRoomHeaderBroadcast'
+import * as resolveCharacterRoomIdModule from './positions/membership/resolveCharacterRoomId'
 import {
     makePassThroughGenerationStartedPayload,
     makePassThroughRenderGeneratedPayload,
@@ -170,8 +171,8 @@ describe('Character Registered session orientation (integration)', () => {
             perspective: passThroughFixturePerspective,
             perspectiveKey: passThroughFixturePerspectiveKey,
         })
+        jest.spyOn(resolveCharacterRoomIdModule, 'resolveCharacterRoomId').mockResolvedValue(passThroughFixtureRoomId)
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            RoomId: passThroughFixtureRoomId,
             assets: ['ASSET#one'],
         } as unknown as Awaited<ReturnType<typeof internalCache.CharacterMeta.get>>)
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(fixtureMetaRoom)

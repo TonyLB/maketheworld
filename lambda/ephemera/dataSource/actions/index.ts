@@ -330,10 +330,6 @@ const publishStreamEventsForIntent = async (
         })
     }
     else if (isParseCommandCharacterSpokeResult(parseResult)) {
-        const { RoomId } = await internalCache.CharacterMeta.get(characterId) || {}
-        if (!RoomId) {
-            return
-        }
         await streamEvent({
             streamKey: characterId,
             header: { type: 'Character Spoke' },

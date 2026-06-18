@@ -3,6 +3,7 @@ import internalCache from '../../internalCache'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CharacterSpokePublishedPayload } from '../actions/publishedEvents'
 import { handleCharacterSpoke } from './handleCharacterSpoke'
+import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
 
 jest.mock('../../messageBus', () => ({
     __esModule: true,
@@ -11,11 +12,15 @@ jest.mock('../../messageBus', () => ({
     },
 }))
 jest.mock('../../internalCache')
+jest.mock('../positions/membership/resolveCharacterRoomId', () => ({
+    resolveCharacterRoomId: jest.fn(),
+}))
 jest.mock('../../lib/characterColor', () => ({
     defaultColorFromCharacterId: jest.fn(() => 'blue'),
 }))
 
 const MockMessageBus = messageBus as jest.Mocked<typeof messageBus>
+const resolveCharacterRoomIdMock = resolveCharacterRoomId as jest.MockedFunction<typeof resolveCharacterRoomId>
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
@@ -34,13 +39,14 @@ describe('handleCharacterSpoke', () => {
         jest.clearAllMocks()
         MockMessageBus.publish.mockClear()
         internalCacheMock.CharacterMeta.get.mockClear()
+        resolveCharacterRoomIdMock.mockResolvedValue('ROOM#456' as EphemeraRoomId)
     })
 
     it('publishes SayMessage to the character room', async () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#123',
             Name: 'TestCharacter',
-            RoomId: 'ROOM#456' as EphemeraRoomId,
+            RoomId: 'ROOM#legacy' as EphemeraRoomId,
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#HOME',
             assets: ['Personal'],
@@ -49,7 +55,7 @@ describe('handleCharacterSpoke', () => {
 
         await handleCharacterSpoke(MockMessageBus, basePayload())
 
-        expect(internalCacheMock.CharacterMeta.get).toHaveBeenCalledWith('CHARACTER#123')
+        expect(resolveCharacterRoomIdMock).toHaveBeenCalledWith('CHARACTER#123')
         expect(MockMessageBus.publish).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#456'],
@@ -116,21 +122,5 @@ describe('handleCharacterSpoke', () => {
             name: 'TestCharacter',
             color: 'blue',
         })
-    })
-
-    it('does not publish when character has no RoomId', async () => {
-        internalCacheMock.CharacterMeta.get.mockResolvedValue({
-            EphemeraId: 'CHARACTER#123',
-            Name: 'TestCharacter',
-            RoomId: undefined as any,
-            RoomStack: [],
-            HomeId: undefined as any,
-            assets: [],
-            Color: 'blue',
-        })
-
-        await handleCharacterSpoke(MockMessageBus, basePayload({ message: 'Hello' }))
-
-        expect(MockMessageBus.publish).not.toHaveBeenCalled()
     })
 })
