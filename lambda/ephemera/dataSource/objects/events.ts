@@ -6,19 +6,16 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
     StreamingEventHeader,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { isEphemeraObjectId, type EphemeraObjectId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export const EPHEMERA_OBJECTS_DATA_SOURCE_KEY = 'mtw.ephemera.objects' as const
 
+/** I4 existence fact: which OBJECT# ids were created or destroyed (not room-list snapshots). */
 export type ObjectsChangedPayload = {
     type: 'Objects Changed';
-    componentId: EphemeraRoomId;
-    add: EphemeraMetaRoomObject[];
-    remove: EphemeraObjectId[];
-    priorObjects: EphemeraMetaRoomObject[];
-    newObjects: EphemeraMetaRoomObject[];
+    createdIds: EphemeraObjectId[];
+    destroyedIds: EphemeraObjectId[];
 }
 
 export const isObjectsChangedPayload = (value: unknown): value is ObjectsChangedPayload => {
@@ -26,22 +23,38 @@ export const isObjectsChangedPayload = (value: unknown): value is ObjectsChanged
         return false
     }
     const v = value as Record<string, unknown>
-    if (v.type !== 'Objects Changed' || typeof v.componentId !== 'string') {
+    if (v.type !== 'Objects Changed') {
         return false
     }
-    if (!Array.isArray(v.add) || !v.add.every((x) => isEphemeraMetaRoomObject(x))) {
+    if (!Array.isArray(v.createdIds) || !v.createdIds.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
         return false
     }
-    if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
-        return false
-    }
-    if (!Array.isArray(v.priorObjects) || !v.priorObjects.every((x) => isEphemeraMetaRoomObject(x))) {
-        return false
-    }
-    if (!Array.isArray(v.newObjects) || !v.newObjects.every((x) => isEphemeraMetaRoomObject(x))) {
+    if (!Array.isArray(v.destroyedIds) || !v.destroyedIds.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
         return false
     }
     return true
+}
+
+export const streamObjectsChangedFact = async (
+    deps: {
+        streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
+        streamKey: string;
+        createdIds: EphemeraObjectId[];
+        destroyedIds: EphemeraObjectId[];
+    }
+): Promise<void> => {
+    if (deps.createdIds.length === 0 && deps.destroyedIds.length === 0) {
+        return
+    }
+    await deps.streamEvent({
+        streamKey: deps.streamKey,
+        header: { type: 'Objects Changed' },
+        update: {
+            type: 'Objects Changed',
+            createdIds: deps.createdIds,
+            destroyedIds: deps.destroyedIds,
+        },
+    })
 }
 
 const isEphemeraObjectsObjectsChangedHeader: HeaderGuard<

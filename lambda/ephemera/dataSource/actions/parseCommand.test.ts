@@ -1010,11 +1010,7 @@ describe('parseCommand LLM path', () => {
             body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const objects = Array.from({ length: 21 }, (_, i) => ({
-            uuid: `OBJECT#cap${i}` as `OBJECT#${string}`,
-            shortName: 'o',
-            stableKey: 'sk',
-        }))
+        const objects = Array.from({ length: 21 }, (_, i) => `OBJECT#cap${i}` as `OBJECT#${string}`)
         const result = await parseCommand(
             { command: 'order rope' },
             {
@@ -1022,14 +1018,8 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockAcmeOrderEnrichImpl,
                 countCoyotePlacedObjectsAcrossRoomsDeps: {
                     getGameRooms: async () => ['CapR'],
-                    getRoomMeta: async (roomId) =>
-                        (roomId === 'ROOM#CapR'
-                            ? {
-                                EphemeraId: 'ROOM#CapR' as EphemeraRoomId,
-                                DataCategory: 'Meta::Room',
-                                objects,
-                            }
-                            : undefined),
+                    getObjectIdsInRoom: async (roomId) =>
+                        (roomId === 'ROOM#CapR' ? objects : []),
                 },
             }
         )
@@ -1056,11 +1046,7 @@ describe('parseCommand LLM path', () => {
                 confidence: 1,
             }),
         })
-        const objects = Array.from({ length: 20 }, (_, i) => ({
-            uuid: `OBJECT#edge${i}` as `OBJECT#${string}`,
-            shortName: 'o',
-            stableKey: 'sk',
-        }))
+        const objects = Array.from({ length: 20 }, (_, i) => `OBJECT#edge${i}` as `OBJECT#${string}`)
         const result = await parseCommand(
             { command: 'order rope' },
             {
@@ -1068,14 +1054,8 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockAcmeOrderEnrichImpl,
                 countCoyotePlacedObjectsAcrossRoomsDeps: {
                     getGameRooms: async () => ['CapE'],
-                    getRoomMeta: async (roomId) =>
-                        (roomId === 'ROOM#CapE'
-                            ? {
-                                EphemeraId: 'ROOM#CapE' as EphemeraRoomId,
-                                DataCategory: 'Meta::Room',
-                                objects,
-                            }
-                            : undefined),
+                    getObjectIdsInRoom: async (roomId) =>
+                        (roomId === 'ROOM#CapE' ? objects : []),
                 },
             }
         )
@@ -1305,11 +1285,7 @@ describe('parseCommand LLM path', () => {
                 body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
             })
             const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-            const objects = Array.from({ length: 21 }, (_, i) => ({
-                uuid: `OBJECT#cap${i}` as `OBJECT#${string}`,
-                shortName: 'o',
-                stableKey: 'sk',
-            }))
+            const objects = Array.from({ length: 21 }, (_, i) => `OBJECT#cap${i}` as `OBJECT#${string}`)
 
             const result = await parseCommand(
                 { command: 'order rope' },
@@ -1319,14 +1295,8 @@ describe('parseCommand LLM path', () => {
                     invokeBedrockAcmeOrderEnrichImpl,
                     countCoyotePlacedObjectsAcrossRoomsDeps: {
                         getGameRooms: async () => ['CapR'],
-                        getRoomMeta: async (roomId) =>
-                            (roomId === 'ROOM#CapR'
-                                ? {
-                                    EphemeraId: 'ROOM#CapR' as EphemeraRoomId,
-                                    DataCategory: 'Meta::Room',
-                                    objects,
-                                }
-                                : undefined),
+                        getObjectIdsInRoom: async (roomId) =>
+                            (roomId === 'ROOM#CapR' ? objects : []),
                     },
                 }
             )

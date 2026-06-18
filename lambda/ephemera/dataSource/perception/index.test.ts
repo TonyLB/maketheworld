@@ -929,11 +929,8 @@ describe('mtw.ephemera.perception DataSource', () => {
             getContent: () =>
                 Promise.resolve({
                     type: 'Objects Changed',
-                    componentId: roomId,
-                    add: [],
-                    remove: [],
-                    priorObjects: [],
-                    newObjects: [],
+                    createdIds: [],
+                    destroyedIds: [],
                 }),
         })
         await messageBus.flushAndSettle()

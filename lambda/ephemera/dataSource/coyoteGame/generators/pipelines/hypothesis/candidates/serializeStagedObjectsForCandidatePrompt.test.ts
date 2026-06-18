@@ -8,12 +8,12 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('returns deterministic stableKey ordering with full nested affordances under tropeAffinities', () => {
         const first = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#Z')]: [{
-                uuid: 'OBJECT#z' as `OBJECT#${string}`,
+                objectId: 'OBJECT#z' as `OBJECT#${string}`,
                 shortName: 'z',
                 stableKey: 'z',
             }],
             [room('ROOM#A')]: [{
-                uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                objectId: 'OBJECT#a' as `OBJECT#${string}`,
                 shortName: 'a',
                 stableKey: 'a',
                 tropeAffinities: [{
@@ -26,12 +26,12 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         })
         const second = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#Z')]: [{
-                uuid: 'OBJECT#z' as `OBJECT#${string}`,
+                objectId: 'OBJECT#z' as `OBJECT#${string}`,
                 shortName: 'z',
                 stableKey: 'z',
             }],
             [room('ROOM#A')]: [{
-                uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                objectId: 'OBJECT#a' as `OBJECT#${string}`,
                 shortName: 'a',
                 stableKey: 'a',
                 tropeAffinities: [{
@@ -65,7 +65,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         const map: CoyoteRoomObjectsByRoom = {
             [room('ROOM#VORTEX')]: [
                 {
-                    uuid: 'OBJECT#m' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#m' as `OBJECT#${string}`,
                     shortName: 'multi',
                     stableKey: 'multi-0',
                     tropeAffinities: [
@@ -74,13 +74,13 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
                     ],
                 },
                 {
-                    uuid: 'OBJECT#u' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#u' as `OBJECT#${string}`,
                     shortName: 'none',
                     stableKey: 'none-1',
                     tropeAffinities: [],
                 },
                 {
-                    uuid: 'OBJECT#f' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#f' as `OBJECT#${string}`,
                     shortName: 'fail',
                     stableKey: 'fail-2',
                     tropeAffinitiesFailed: true,
@@ -98,7 +98,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('lists anchorStableKeys for single High with optional Poor satellites and no affordances on High', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#c' as `OBJECT#${string}`,
+                objectId: 'OBJECT#c' as `OBJECT#${string}`,
                 shortName: 'catapult',
                 stableKey: 'catapult-0',
                 tropeAffinities: [
@@ -117,7 +117,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('lists expanderStableKeys when only affordances attach to a non-Poor row (single Good)', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                objectId: 'OBJECT#g' as `OBJECT#${string}`,
                 shortName: 'gizmo',
                 stableKey: 'gizmo-1',
                 tropeAffinities: [{
@@ -138,7 +138,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('places neither anchor nor expander for single Good without affordances', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#w' as `OBJECT#${string}`,
+                objectId: 'OBJECT#w' as `OBJECT#${string}`,
                 shortName: 'weak',
                 stableKey: 'weak-2',
                 tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'maybe' }],
@@ -154,7 +154,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('ignores affordances attached only to Poor rows for bucketing', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#p' as `OBJECT#${string}`,
+                objectId: 'OBJECT#p' as `OBJECT#${string}`,
                 shortName: 'poor-only',
                 stableKey: 'poor-3',
                 tropeAffinities: [{
@@ -175,7 +175,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('lists expanderStableKeys for single Good Scene Dressing only (no causal non-Poor)', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                objectId: 'OBJECT#h' as `OBJECT#${string}`,
                 shortName: 'helmet',
                 stableKey: 'helmet-0',
                 tropeAffinities: [{
@@ -196,7 +196,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#STRAIGHTAWAY')]: [
                 {
-                    uuid: 'OBJECT#rs' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#rs' as `OBJECT#${string}`,
                     shortName: 'rocket skates',
                     stableKey: 'rocket-skates-0',
                     tropeAffinities: [{
@@ -206,7 +206,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
                     }],
                 },
                 {
-                    uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#h' as `OBJECT#${string}`,
                     shortName: 'helmet',
                     stableKey: 'helmet-0',
                     tropeAffinities: [{
@@ -216,7 +216,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
                     }],
                 },
                 {
-                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#g' as `OBJECT#${string}`,
                     shortName: 'goggles',
                     stableKey: 'goggles-0',
                     tropeAffinities: [{
@@ -237,7 +237,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('lists expanderStableKeys for mixed Contraption High plus Scene Dressing Good on one prop', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#m' as `OBJECT#${string}`,
+                objectId: 'OBJECT#m' as `OBJECT#${string}`,
                 shortName: 'mixed',
                 stableKey: 'mixed-0',
                 tropeAffinities: [
@@ -256,7 +256,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
     it('places neither anchor nor expander for Scene Dressing Poor only', () => {
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#p' as `OBJECT#${string}`,
+                objectId: 'OBJECT#p' as `OBJECT#${string}`,
                 shortName: 'costume',
                 stableKey: 'costume-0',
                 tropeAffinities: [{
@@ -279,7 +279,7 @@ describe('serializeStagedObjectsAffinityForwardJson', () => {
         ]
         const json = serializeStagedObjectsAffinityForwardJson({
             [room('ROOM#VORTEX')]: [{
-                uuid: 'OBJECT#ap' as `OBJECT#${string}`,
+                objectId: 'OBJECT#ap' as `OBJECT#${string}`,
                 shortName: 'kit',
                 stableKey: 'kit',
                 tropeAffinities: [{

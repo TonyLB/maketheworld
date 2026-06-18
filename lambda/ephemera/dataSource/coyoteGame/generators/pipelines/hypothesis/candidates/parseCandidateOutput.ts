@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteStagedObject } from '../../../../utilities/coyoteRoomObjectSnapshot'
 import type {
     AffordanceProvidedRef,
     CoyoteTrope,
@@ -132,7 +132,7 @@ function extractJsonObjectString(text: string): string | null {
 }
 
 function expectedStableKeysSorted(
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): string[] {
     const keys: string[] = []
     for (const objects of Object.values(roomObjectsByRoom)) {
@@ -294,7 +294,7 @@ function parseDraftMemberFromRecord(
 
 function resolveDraftMembers(
     drafts: DraftMember[],
-    snapshotByStableKey: Map<string, EphemeraMetaRoomObject>
+    snapshotByStableKey: Map<string, CoyoteStagedObject>
 ): { ok: true; members: ParsedCandidateMember[] } | { ok: false; errorMessage: string } {
     const membersOut: ParsedCandidateMember[] = []
     for (const dm of drafts) {
@@ -334,7 +334,7 @@ function parseOutlierStableKeyOnly(
 
 function trimDraftMembersToSnapshotCounts(
     drafts: Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>>,
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): Partial<Record<CoyoteTrope, { executionDetail: string; members: DraftMember[] }>> {
     const remainingCounts = new Map<string, number>()
     for (const sk of expectedStableKeysSorted(roomObjectsByRoom)) {
@@ -373,7 +373,7 @@ function trimDraftMembersToSnapshotCounts(
 
 function parseCandidatesFromPayload(
     payload: unknown,
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): {
     ok: true
     candidates: ParsedCandidate[]
@@ -530,7 +530,7 @@ function parseCandidatesFromPayload(
             roomObjectsByRoom
         )
 
-        const snapshotByStableKey = new Map<string, EphemeraMetaRoomObject>()
+        const snapshotByStableKey = new Map<string, CoyoteStagedObject>()
         for (const objects of Object.values(roomObjectsByRoom)) {
             for (const o of objects) {
                 snapshotByStableKey.set(o.stableKey.trim(), o)
@@ -604,7 +604,7 @@ function parseCandidatesFromPayload(
  */
 export function parseCandidateOutput(
     rawBody: string,
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): ParseCandidateOutputResult {
     const jsonStr = extractJsonObjectString(rawBody)
     if (!jsonStr) {

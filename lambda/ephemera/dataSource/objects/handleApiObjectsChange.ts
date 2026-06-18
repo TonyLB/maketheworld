@@ -1,22 +1,23 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import { v4 as uuidv4 } from 'uuid'
 import type { ObjectsChangeCommand } from '../localApiEvents'
 import type { AcmeOrderPublishedPayload } from '../actions/publishedEvents'
-import type {
-    CoyoteTropeAffinity,
-    EnvironmentAffordanceObject,
-} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
+import { applyObjectsChange } from './applyObjectsChange'
+import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
 import type { ObjectsChangedPayload } from './events'
+import { streamObjectsChangedFact } from './events'
+import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
+import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
 import internalCache from '../../internalCache'
+import messageBus from '../../messageBus'
+import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 
 /**
- * Apply api.ephemera `Objects Change` to Dynamo: rooms merge `add` / `remove` into `Meta::Room.objects`.
- * Non-room component ids: no-op. No ReturnValue for v1.
+ * Apply api.ephemera `Objects Change`: spawn/place improvisation objects or remove/delete via graph.
+ * Non-room component ids: no-op.
  */
 export const handleApiObjectsChangeCommand = async (
     cmd: ObjectsChangeCommand,
@@ -28,187 +29,106 @@ export const handleApiObjectsChangeCommand = async (
         return
     }
 
-    const result = await mergePersistMetaRoomObjects({
+    const result = await applyObjectsChange({
         roomId: cmd.componentId,
         add: cmd.add,
         remove: cmd.remove,
     })
 
     if (!result.ok) {
-        console.error(`[mtw.ephemera.objects] mergePersistMetaRoomObjects failed: ${result.errorMessage}`)
+        console.error(`[mtw.ephemera.objects] applyObjectsChange failed: ${result.errorMessage}`)
         return
     }
 
     if (result.persisted) {
-        await deps.streamEvent({
+        await streamObjectsChangedFact({
+            streamEvent: deps.streamEvent,
             streamKey: cmd.componentId,
-            header: { type: 'Objects Changed' },
-            update: {
-                type: 'Objects Changed',
-                componentId: cmd.componentId,
-                add: cmd.add,
-                remove: cmd.remove,
-                priorObjects: result.priorObjects,
-                newObjects: result.newObjects,
-            },
+            createdIds: result.createdIds,
+            destroyedIds: result.destroyedIds,
         })
     }
 }
 
 /**
- * Internal helper: force-clear all room objects and publish an `Objects Changed` update.
- * Intended for server-driven clear flows where caller does not need to enumerate prior object ids.
- */
-export const clearRoomObjectsAndPublishUpdate = async (
-    roomId: EphemeraRoomId,
-    deps: {
-        streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
-    }
-): Promise<void> => {
-    const result = await clearPersistMetaRoomObjects({ roomId })
-    if (!result.ok) {
-        console.error(`[mtw.ephemera.objects] clearPersistMetaRoomObjects failed: ${result.errorMessage}`)
-        return
-    }
-    if (!result.persisted) {
-        return
-    }
-    await deps.streamEvent({
-        streamKey: roomId,
-        header: { type: 'Objects Changed' },
-        update: {
-            type: 'Objects Changed',
-            componentId: roomId,
-            add: [],
-            remove: result.priorObjects.map(({ uuid }) => uuid),
-            priorObjects: result.priorObjects,
-            newObjects: [],
-        },
-    })
-}
-
-/**
- * Coyote path: clear objects in every configured Coyote Game room.
+ * Coyote path: clear improvisation objects across all configured Coyote Game rooms.
  */
 export const handleAwaitRoadRunnerClearObjects = async (
     deps: {
         streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
         getGameRooms?: () => Promise<string[]>;
-        clearRoomObjectsAndPublishUpdateImpl?: typeof clearRoomObjectsAndPublishUpdate;
+        clearCoyoteGameImprovisationObjectsImpl?: typeof clearCoyoteGameImprovisationObjects;
     }
 ): Promise<void> => {
-    const getGameRooms = deps.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
-    const clearImpl = deps.clearRoomObjectsAndPublishUpdateImpl ?? clearRoomObjectsAndPublishUpdate
-    const gameRooms = await getGameRooms()
-    await Promise.all(gameRooms.map((roomId) => clearImpl(RoomKey(roomId) as EphemeraRoomId, { streamEvent: deps.streamEvent })))
+    const clearImpl = deps.clearCoyoteGameImprovisationObjectsImpl ?? clearCoyoteGameImprovisationObjects
+    const result = await clearImpl(
+        { getGameRooms: deps.getGameRooms },
+        { objectsStreamEvent: deps.streamEvent }
+    )
+    if (!result.ok) {
+        console.error(`[mtw.ephemera.objects] clearCoyoteGameImprovisationObjects failed: ${result.errorMessage}`)
+    }
 }
 
-/**
- * Coyote Acme delivery: persist finalized `stableKey` from `AcmeOrderPublishedOrder` onto
- * `Meta::Room.objects` with `shortName` and canonical trope fields;
- * mapping is pass-through (uniqueness enforced upstream in `mtw.ephemera.actions`).
- */
-const acmeOrderToMetaRoomObject = (
+const acmeOrderToSpawnArgs = (
     entry: AcmeOrderPublishedPayload['orders'][number],
     roomId: EphemeraRoomId,
-    uuid: `OBJECT#${string}`
+    objectId: `OBJECT#${string}`
 ) => ({
-    uuid,
+    objectId,
     shortName: entry.shortName,
     stableKey: entry.stableKey,
+    targetRoomId: roomId,
     ...(entry.tropeAffinities !== undefined
         ? { tropeAffinities: filterTropeAffinitiesByRoom(roomId)(entry.tropeAffinities) }
         : {}),
     ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
 })
 
-const ROOM_IDS_WITH_ROCK_WALL = new Set<EphemeraRoomId>(['ROOM#VORTEX', 'ROOM#CORNER'])
-const ROOM_IDS_WITH_LONG_FALL = new Set<EphemeraRoomId>(['ROOM#CLIFFTOP', 'ROOM#BRIDGE'])
-const ROOM_IDS_WITHOUT_CACTUS = new Set<EphemeraRoomId>(['ROOM#BRIDGE'])
-
-function isEnvironmentAffordanceAllowedInRoom(
-    affordanceObject: EnvironmentAffordanceObject,
-    roomId: EphemeraRoomId
-): boolean {
-    switch (affordanceObject) {
-        case 'rock-wall':
-            return ROOM_IDS_WITH_ROCK_WALL.has(roomId)
-        case 'long-fall':
-            return ROOM_IDS_WITH_LONG_FALL.has(roomId)
-        case 'cactus':
-            return !ROOM_IDS_WITHOUT_CACTUS.has(roomId)
-        case 'boulder':
-        case 'tumbleweed':
-            return true
-        default:
-            return false
-    }
-}
-
-/** Room rules filter only `environmentAffordances`; other trope fields such as `affordancesProvided` are unchanged. */
-const filterTropeAffinitiesByRoom = (
-    roomId: EphemeraRoomId
-) => (
-    tropeAffinities: CoyoteTropeAffinity[]
-): CoyoteTropeAffinity[] => (
-    tropeAffinities.map((entry) => {
-        if (entry.environmentAffordances === undefined) {
-            return entry
-        }
-        return {
-            ...entry,
-            environmentAffordances: entry.environmentAffordances
-                .filter(({ object }) => isEnvironmentAffordanceAllowedInRoom(object, roomId)),
-        }
-    })
-)
-
+/**
+ * Coyote Acme delivery: mint OBJECT#, spawn+place improvisation pair + Meta::Object + graph.
+ */
 export const handleAcmeOrderAddObjects = async (
     payload: AcmeOrderPublishedPayload,
     deps: {
         streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
-        mergePersistMetaRoomObjectsImpl?: typeof mergePersistMetaRoomObjects;
+        spawnAndPlaceImpl?: typeof spawnAndPlaceImprovisationObject;
         uuidFactory?: () => string;
         getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<{ RoomId?: string } | undefined>;
     }
 ): Promise<void> => {
     const getCharacterMeta = deps.getCharacterMeta ?? ((characterId: EphemeraCharacterId) => internalCache.CharacterMeta.get(characterId))
-    const mergePersist = deps.mergePersistMetaRoomObjectsImpl ?? mergePersistMetaRoomObjects
+    const spawnAndPlace = deps.spawnAndPlaceImpl ?? spawnAndPlaceImprovisationObject
+    const positionsStreamEvent = streamPositionsEventFromMessageBus(messageBus)
+
     const roomId = (await getCharacterMeta(payload.characterId))?.RoomId
     if (typeof roomId !== 'string' || !isEphemeraRoomId(roomId)) {
         return
     }
-    const makeUuid = deps.uuidFactory ?? uuidv4
-    const add = payload.orders.map((entry) => acmeOrderToMetaRoomObject(
-        entry,
-        roomId,
-        `OBJECT#${makeUuid()}` as `OBJECT#${string}`
-    ))
-    if (add.length === 0) {
+    if (payload.orders.length === 0) {
         return
     }
-    const result = await mergePersist({
-        roomId,
-        add,
-        remove: [],
-    })
 
-    if (!result.ok) {
-        console.error(`[mtw.ephemera.objects] mergePersistMetaRoomObjects failed: ${result.errorMessage}`)
-        return
+    const makeUuid = deps.uuidFactory ?? uuidv4
+    const createdIds: EphemeraObjectId[] = []
+
+    for (const entry of payload.orders) {
+        const objectId = `OBJECT#${makeUuid()}` as `OBJECT#${string}`
+        const spawnResult = await spawnAndPlace(
+            acmeOrderToSpawnArgs(entry, roomId, objectId),
+            { messageBus, streamEvent: positionsStreamEvent }
+        )
+        if (!spawnResult.ok) {
+            console.error(`[mtw.ephemera.objects] spawnAndPlaceImprovisationObject failed: ${spawnResult.errorMessage}`)
+            return
+        }
+        createdIds.push(spawnResult.objectId)
     }
-    if (result.persisted) {
-        await deps.streamEvent({
-            streamKey: roomId,
-            header: { type: 'Objects Changed' },
-            update: {
-                type: 'Objects Changed',
-                componentId: roomId,
-                add,
-                remove: [],
-                priorObjects: result.priorObjects,
-                newObjects: result.newObjects,
-            },
-        })
-    }
+
+    await streamObjectsChangedFact({
+        streamEvent: deps.streamEvent,
+        streamKey: roomId,
+        createdIds,
+        destroyedIds: [],
+    })
 }

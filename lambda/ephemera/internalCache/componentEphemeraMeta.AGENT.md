@@ -4,7 +4,7 @@
 
 `ComponentEphemeraMetaData` is a read-through cache for **ephemeraDB** rows that hold component-scoped **current-state** metadata, distinct from [`ComponentData`](./componentData.AGENT.md) (assetDB blueprint / WML `StandardComponent` data).
 
-**v1 scope:** `Meta::Room` only. Values use the shared type [`EphemeraMetaRoom`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (`DataCategory: 'Meta::Room'`). The **`objects`** field on room meta is **legacy** (flat list); removed in Phase 6 after clean cutover to pair + **`Meta::Object`** + graph. **`Meta::Object`** reads use sibling cache [`ObjectEphemeraMeta`](./objectEphemeraMeta.AGENT.md) (Phase 2 shipped).
+**v1 scope:** `Meta::Room` only. Values use the shared type [`EphemeraMetaRoom`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (`DataCategory: 'Meta::Room'`). Room meta no longer carries an **`objects`** flat list (Phase 6); object existence uses pair + **`Meta::Object`** + graph via [`ObjectEphemeraMeta`](./objectEphemeraMeta.AGENT.md) and [`../dataSource/objects/`](../dataSource/objects/).
 
 **Future:** Additional `Meta::*` kinds (Feature, Map, etc.) may add branches or a discriminated union on `ComponentEphemeraMetaItem`; extend Dynamo types in `mtw-interfaces` first, then this cache.
 
@@ -26,7 +26,7 @@ Room occupancy for publish/render paths uses **`getRoomCharacterList`** ([`hydra
 ## Related
 
 - State merge: [`mergePersistMetaRoomMarks.ts`](../dataSource/state/mergePersistMetaRoomMarks.ts)
-- Objects merge (`Meta::Room.objects`): [`mergePersistMetaRoomObjects.ts`](../dataSource/objects/mergePersistMetaRoomObjects.ts); DataSource **`mtw.ephemera.objects`** --- [`../dataSource/objects/AGENT.md`](../dataSource/objects/AGENT.md)
+- Objects lane (improvisation pair + **`Meta::Object`** + graph): DataSource **`mtw.ephemera.objects`** --- [`../dataSource/objects/AGENT.md`](../dataSource/objects/AGENT.md)
 - Render intake/orchestration: [`requestIntake.ts`](../dataSource/renderOrchestration/requestIntake.ts), [`orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts)
 - Movement: [`dataSource/positions/`](../dataSource/positions/) (`navigate/executeCharacterNavigate`, membership apply)
 

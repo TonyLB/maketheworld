@@ -4,15 +4,21 @@
  */
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraObjectId, EphemeraRoomId, IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
+import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
+import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -27,26 +33,34 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
     return cacheKey.startsWith(`${roomId}::`)
 }
 
+export type AffordanceRoomDeliverableObjectReads = {
+    getPositionGraph: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>
+    getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
+}
+
 /**
  * Per-invocation compose memo keyed by (roomId, perspectiveKey): builds affordance-channel
  * room header StandardForm (shortName via ComponentAggregate, exits via AffordanceCache,
- * roster/objects via ephemera meta). Called from perception on Affordances Pertain only.
+ * roster via graph, objects via positionGraph + improvisation merge). Called from perception on Affordances Pertain only.
  */
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
     _affordanceCache: AffordanceCacheData
     _getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+    _objectReads: AffordanceRoomDeliverableObjectReads
     _Cache: DeferredCache<StandardForm>
     _Store: Record<string, StandardForm> = {}
 
     constructor(
         componentAggregate: ComponentAggregateMergedCache,
         affordanceCache: AffordanceCacheData,
-        getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+        getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>,
+        objectReads: AffordanceRoomDeliverableObjectReads
     ) {
         this._componentAggregate = componentAggregate
         this._affordanceCache = affordanceCache
         this._getMetaRoom = getMetaRoom
+        this._objectReads = objectReads
         this._Cache = new DeferredCache<StandardForm>({
             callback: (key, description) => {
                 this._Store[key] = description
@@ -77,10 +91,10 @@ export class AffordanceRoomDeliverableData {
         roomId: EphemeraRoomId,
         perspectiveKey: string
     ): Promise<StandardForm> {
-        const [affordanceRow, roomCharacterList, meta] = await Promise.all([
+        const [affordanceRow, roomCharacterList, positionGraph] = await Promise.all([
             this._affordanceCache.getAffordanceRow(roomId, perspectiveKey),
             getRoomCharacterList(roomId),
-            this._getMetaRoom(roomId),
+            this._objectReads.getPositionGraph(roomId),
         ])
 
         if (affordanceRow === undefined) {
@@ -89,9 +103,15 @@ export class AffordanceRoomDeliverableData {
             )
         }
 
+        const objectIds = extractObjectIdsFromPlayPositionGraph(positionGraph)
+        const mergeParticipationOrder = appendImprovisationToPerspective(
+            affordanceRow.assetStack,
+            objectIds
+        )
+
         const perspective = aggregatePerspectiveExplicit({
             universalKey: roomId,
-            mergeParticipationOrder: affordanceRow.assetStack,
+            mergeParticipationOrder,
         })
 
         const aggregateResults = await this._componentAggregate.get([perspective])
@@ -100,6 +120,17 @@ export class AffordanceRoomDeliverableData {
         if (!(mergedRoom instanceof StandardRoom)) {
             throw new Error(`ComponentAggregate did not return StandardRoom for ${roomId}`)
         }
+
+        const objectWireRows = await Promise.all(objectIds.map(async (objectId) => {
+            const pairRow = await this._objectReads.getImprovisationObject(objectId)
+            const component = pairRow?.component
+            const shortName = component instanceof StandardObject && component.shortName
+                ? shortNameToJSON(component.shortName)
+                : undefined
+            return typeof shortName === 'string'
+                ? { uuid: objectId, shortName }
+                : undefined
+        }))
 
         const exits = affordanceRow.topology.exits
         const shortNameLiteral = mergedRoom.shortName
@@ -110,10 +141,8 @@ export class AffordanceRoomDeliverableData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
-            ...(meta?.objects?.length
-                ? {
-                    objects: meta.objects.map((o) => ({ uuid: o.uuid, shortName: o.shortName })),
-                }
+            ...(objectWireRows.some((row) => row !== undefined)
+                ? { objects: objectWireRows.filter((row): row is { uuid: typeof objectIds[number]; shortName: string } => row !== undefined) }
                 : {}),
         }
 

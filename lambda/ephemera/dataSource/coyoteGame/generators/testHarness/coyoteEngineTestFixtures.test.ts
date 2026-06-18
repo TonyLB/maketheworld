@@ -1,5 +1,5 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteStagedObject } from '../../utilities/coyoteRoomObjectSnapshot'
 import { buildPlanSelectPrompt } from '../pipelines/hypothesis/planSelect/buildPlanSelectPrompt'
 import {
     isValidMaterializedAffordanceStableKey,
@@ -35,13 +35,15 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         }
     })
 
-    it('stores room object lists as valid EphemeraMetaRoomObject rows', () => {
+    it('stores room object lists as valid CoyoteStagedObject rows', () => {
         for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
             for (const objects of Object.values(fixture.roomObjectsByRoom)) {
                 expect(Array.isArray(objects)).toBe(true)
                 for (const row of objects ?? []) {
-                    expect(isEphemeraMetaRoomObject(row)).toBe(true)
-                    expect(row.shortName.trim().length).toBeGreaterThan(0)
+                    const staged = row as CoyoteStagedObject
+                    expect(typeof staged.objectId).toBe('string')
+                    expect(staged.objectId.startsWith('OBJECT#')).toBe(true)
+                    expect(staged.shortName.trim().length).toBeGreaterThan(0)
                 }
             }
         }

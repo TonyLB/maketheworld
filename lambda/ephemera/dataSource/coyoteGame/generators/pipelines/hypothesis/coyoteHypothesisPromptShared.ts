@@ -34,7 +34,7 @@
  */
 
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { CoyoteStagedObject } from '../../../utilities/coyoteRoomObjectSnapshot'
 
 /**
  * Coyote-only seam label overrides. Keys are canonical `EphemeraRoomId`; values are the label
@@ -89,9 +89,9 @@ export function normalizeSeamRoomLabelToken(token: string): string {
 }
 
 function roomIdsWithStagedObjects(
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): EphemeraRoomId[] {
-    return (Object.entries(roomObjectsByRoom) as [EphemeraRoomId, EphemeraMetaRoomObject[]][])
+    return (Object.entries(roomObjectsByRoom) as [EphemeraRoomId, CoyoteStagedObject[]][])
         .filter(([, objects]) => objects.length > 0)
         .map(([rid]) => rid)
         .sort((a, b) => (a as string).localeCompare(b as string))
@@ -102,7 +102,7 @@ function roomIdsWithStagedObjects(
  * (dynamic region; varies with which rooms hold objects).
  */
 export function coyoteSeamRoomMappingLines(
-    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, CoyoteStagedObject[]>
 ): string[] {
     const roomIds = roomIdsWithStagedObjects(roomObjectsByRoom)
     const lines: string[] = [

@@ -68,7 +68,7 @@ describe('buildCandidatePrompt', () => {
             roomObjectsByRoom: {
                 'ROOM#STRAIGHTAWAY': [
                     {
-                        uuid: 'OBJECT#rs' as `OBJECT#${string}`,
+                        objectId: 'OBJECT#rs' as `OBJECT#${string}`,
                         shortName: 'rocket skates',
                         stableKey: 'rocket-skates-0',
                         tropeAffinities: [{
@@ -78,7 +78,7 @@ describe('buildCandidatePrompt', () => {
                         }],
                     },
                     {
-                        uuid: 'OBJECT#h' as `OBJECT#${string}`,
+                        objectId: 'OBJECT#h' as `OBJECT#${string}`,
                         shortName: 'helmet',
                         stableKey: 'helmet-0',
                         tropeAffinities: [{
@@ -88,7 +88,7 @@ describe('buildCandidatePrompt', () => {
                         }],
                     },
                     {
-                        uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                        objectId: 'OBJECT#g' as `OBJECT#${string}`,
                         shortName: 'goggles',
                         stableKey: 'goggles-0',
                         tropeAffinities: [{

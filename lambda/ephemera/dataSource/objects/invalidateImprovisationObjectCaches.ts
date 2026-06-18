@@ -34,6 +34,8 @@ export const invalidateImprovisationObjectCaches = (args: InvalidateImprovisatio
     }
 
     for (const roomId of args.affectedRoomIds ?? []) {
+        internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
+        internalCache.Positions.invalidate(roomId)
     }
 }

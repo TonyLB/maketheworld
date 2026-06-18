@@ -58,7 +58,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Scope and non-goals
 
-- **Uniqueness:** **`stableKey`** must be unique across the **union** of **`Meta::Room.objects`** staged in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Objects remain **stored per room**; collisions are forbidden **across** those rooms.
+- **Uniqueness:** **`stableKey`** must be unique across the **union** of graph-placed improvisational objects in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Occupancy is keyed by **`Meta::Object`** **`stableKey`** on **`OBJECT#`** ids placed via **`positionGraph`**; collisions are forbidden **across** those rooms.
 - **Outside scope:** No contract that **`stableKey`** stays unique outside that Coyote game-room set (other rooms or features). Persisted **[`EphemeraMetaRoomObject`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** rows require a non-empty **`stableKey`** after trim; environments with historical Dynamo rows that omit it need migration or loads may fail **`isEphemeraMetaRoomObject`** validation.
 
 ### Enforcement model
@@ -69,7 +69,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Acme order enrich: Coyote placement cap (pre-Bedrock)
 
-Before **`invokeBedrockAcmeOrderEnrich`**, **[`enrich/acmeOrder/index.ts`](./enrich/acmeOrder/index.ts)** runs **[`countCoyotePlacedObjectsAcrossRooms`](./utilities/countCoyotePlacedObjectsAcrossRooms.ts)** over the same Coyote demo room roster as **`collectCoyoteOccupiedStableKeys`** (sum of **`meta.objects.length`** per room; placement rows, not **`stableKey`** deduplication). If the total is **greater than 20**, enrich returns **`ParseCommandErrorResult`** (`type: 'Error'` with a fixed **`errorMessage`**) and **does not** call Bedrock. **`parseCommand`** may therefore yield **`Error`** immediately after **`AcmeOrderIntent`** without catalog lines. **`ParseCommandDeps.countCoyotePlacedObjectsAcrossRoomsDeps`** supplies injectable **`getGameRooms`** / **`getRoomMeta`** for tests; the deps shape is **`CollectCoyoteOccupiedStableKeysDeps`** in **[`baseClasses.ts`](./baseClasses.ts)**.
+Before **`invokeBedrockAcmeOrderEnrich`**, **[`enrich/acmeOrder/index.ts`](./enrich/acmeOrder/index.ts)** runs **[`countCoyotePlacedObjectsAcrossRooms`](./utilities/countCoyotePlacedObjectsAcrossRooms.ts)** over the same Coyote demo room roster as **`collectCoyoteOccupiedStableKeys`** (sum of graph-placed **`OBJECT#`** counts per room; placement rows, not **`stableKey`** deduplication). If the total is **greater than 20**, enrich returns **`ParseCommandErrorResult`** (`type: 'Error'` with a fixed **`errorMessage`**) and **does not** call Bedrock. **`parseCommand`** may therefore yield **`Error`** immediately after **`AcmeOrderIntent`** without catalog lines. **`ParseCommandDeps.countCoyotePlacedObjectsAcrossRoomsDeps`** supplies injectable **`getGameRooms`** / **`getObjectIdsInRoom`** for tests; the deps shape is **`CollectCoyoteOccupiedStableKeysDeps`** in **[`baseClasses.ts`](./baseClasses.ts)**.
 
 ### Types and payloads
 
@@ -100,7 +100,7 @@ When **`Parse Requested`** runs Acme enrich, **`parseCommand`** passes **`messag
 | [`../narration/AGENT.md`](../narration/AGENT.md) | **`Character Spoke`** consumer; terminal character-voice depiction (active) |
 | [`AGENT.implementation.md`](./AGENT.implementation.md) | Implementation playbook: affordance wiring, stream contracts, message protocols, test checklist |
 | [`enrich/AGENT.md`](./enrich/AGENT.md) | Post-discrimination enrich namespace contract; current `acmeOrder` implementation boundary |
-| [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
+| [`../objects/AGENT.md`](../objects/AGENT.md) | Improvisational object spawn/clear; Acme **`stableKey`** pass-through to **`Meta::Object`** |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
 | **`/test generation`** harness parse | Same **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Engine testing harness**). Actions entrypoints: [`parseCoyoteEngineTestSlash.ts`](./discriminateIntent/parseCoyoteEngineTestSlash.ts), [`coyoteEngineTestSlashCommand.ts`](./discriminateIntent/coyoteEngineTestSlashCommand.ts), [`deterministicChecks.ts`](./discriminateIntent/deterministicChecks.ts) |
 | [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable trope and legacy-role helper contracts used by Coyote pipelines |

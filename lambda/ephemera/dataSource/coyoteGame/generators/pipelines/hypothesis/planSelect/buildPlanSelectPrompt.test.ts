@@ -144,7 +144,7 @@ describe('buildPlanSelectPrompt', () => {
         const parts = buildPlanSelectPrompt({
             roomObjectsByRoom: {
                 'ROOM#VORTEX': [{
-                    uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#anvil' as `OBJECT#${string}`,
                     shortName: 'anvil',
                     stableKey: 'anvil',
                     tropeAffinities: [{

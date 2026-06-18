@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 
@@ -11,6 +11,13 @@ export type RoomStackItem = {
 export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */
+    targetRoomId: EphemeraRoomId | null;
+}
+
+/** Object room placement apply (Phase 4). */
+export type ObjectMembershipApplyArgs = {
+    objectId: EphemeraObjectId;
+    /** null = removed from all rooms. */
     targetRoomId: EphemeraRoomId | null;
 }
 

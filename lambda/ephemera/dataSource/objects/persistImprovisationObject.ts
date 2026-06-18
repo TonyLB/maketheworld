@@ -57,6 +57,10 @@ const pairRowFromShortName = (objectId: EphemeraObjectId, shortName: string) => 
     shortName,
 })
 
+export const improvisationPairPutItem = (objectId: EphemeraObjectId, shortName: string) => ({
+    Put: pairRowFromShortName(objectId, shortName),
+})
+
 const metaRowFromArgs = (args: {
     objectId: EphemeraObjectId;
     stableKey: string;
@@ -68,6 +72,15 @@ const metaRowFromArgs = (args: {
     stableKey: args.stableKey,
     ...(args.tropeAffinities !== undefined ? { tropeAffinities: args.tropeAffinities } : {}),
     ...(args.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
+})
+
+export const metaObjectPutItem = (args: {
+    objectId: EphemeraObjectId;
+    stableKey: string;
+    tropeAffinities?: CoyoteTropeAffinity[];
+    tropeAffinitiesFailed?: boolean;
+}) => ({
+    Put: metaRowFromArgs(args),
 })
 
 const deleteTransactItemsForObject = (objectId: EphemeraObjectId) => [
@@ -109,8 +122,8 @@ export const persistSpawnImprovisationObject = async (
 
     try {
         await transactWrite([
-            { Put: pairRowFromShortName(args.objectId, args.shortName) },
-            { Put: metaRow },
+            improvisationPairPutItem(args.objectId, args.shortName),
+            metaObjectPutItem(args),
         ])
 
         const component = new StandardObject({

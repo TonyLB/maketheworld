@@ -65,7 +65,8 @@ export type EphemeraRoomActiveCharacter = {
     sessions?: string[];
 }
 
-/** Runtime object row on Meta::Room; uuid is OBJECT#... (ephemera wire / WML StandardRoom.objects). */
+/** Objects Change ingress add-row / affordance wire compose shape (not persisted on Meta::Room).
+ *  At persist: shortName -> improvisation pair; stableKey + trope fields -> Meta::Object. */
 export type EphemeraMetaRoomObject = {
     uuid: EphemeraObjectId;
     shortName: string;
@@ -99,16 +100,16 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 }
 
 //
-// First-class improvisational objects (Phase 0 sketch; persistence Phase 2+)
+// First-class improvisational objects (shipped steady state)
 //
-// ADR (I1 / I2): three-way split mirrors Character --- merge body on component pair row,
+// ADR: three-way split mirrors Character --- merge body on component pair row,
 // play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
 //   v1 writes use ASSET#IMPROVISATION as DataCategory; type does not hard-code that layer.
 // - shortName lives only on the pair row (future StandardObject JSON); never on Meta::Object.
 // - stableKey / trope fields live only on EphemeraMetaObject.
-// - Spawn/clear coordinators write or delete both rows in one transact (Phase 2/4).
+// - Spawn/clear coordinators write or delete both rows in one transact.
 //
 // Pair merge-body shape: ComponentPairPersistedFields / EphemeraDbGetItemsComponentRow in
 // @tonylb/mtw-gateways/ts/assets/components/componentData/fetch.ts (not duplicated here).
@@ -144,7 +145,7 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
     return true
 }
 
-/** Slice 2 v1 shipped Character nodes; Object nodes typed for Phase 4 (not yet written). */
+/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes (nodes only). */
 export type EphemeraPlayPositionGraphNode =
     | {
         tag: 'Character';
@@ -209,7 +210,7 @@ export type EphemeraMetaRoom = {
     activeCharacters?: EphemeraRoomActiveCharacter[];
 
     //
-    // Play-time membership graph (slice 2+ authority). Character nodes shipped; Object nodes Phase 4+.
+    // Play-time membership graph (slice 2+ authority). Character + Object nodes shipped (Object: nodes only).
     //
     positionGraph?: EphemeraPlayPositionGraph;
 
@@ -220,11 +221,6 @@ export type EphemeraMetaRoom = {
     /** Legacy fast-pointer map; canonical pointer is `currentCacheId` on `Cache::${perspectiveKey}` catalog rows (M2 migration). */
     currentCacheByPerspective?: EphemeraRoomCurrentCacheByPerspective;
     currentCacheId?: EphemeraCacheId;
-
-    //
-    // v1 runtime objects (mtw.ephemera.objects on this Meta::Room row).
-    //
-    objects?: EphemeraMetaRoomObject[];
 }
 
 export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
@@ -296,13 +292,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
         }
     }
     if ('objects' in value) {
-        const objects = value.objects
-        if (!Array.isArray(objects)) {
-            return false
-        }
-        if (!objects.every((entry: unknown) => isEphemeraMetaRoomObject(entry))) {
-            return false
-        }
+        return false
     }
     if ('positionGraph' in value && !isEphemeraPlayPositionGraph(value.positionGraph)) {
         return false

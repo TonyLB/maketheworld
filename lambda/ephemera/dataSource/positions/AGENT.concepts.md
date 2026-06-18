@@ -41,7 +41,7 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 
 | Type | Layer | Carries |
 | --- | --- | --- |
-| **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character **identity** nodes only (`CHARACTER#...`); no roster display fields |
+| **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character + Object **identity** nodes (`CHARACTER#...`, `OBJECT#...`); no roster display fields |
 | **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored `EphemeraPlayPositionGraph` nodes/edges to WML graph shape; no roster display or reverse-membership fields |
 
 Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
@@ -56,11 +56,23 @@ Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via 
 
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each room hosts **`Meta::Room.positionGraph`** --- character **nodes** (slice 2 v1; no in-room edges yet).
+- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes** (slice 2 character; Phase 4 object; no in-room edges yet).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
+- Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row (**S2-6-H** / **S2-6**).
 
-A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**).
+A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**). Objects follow the same steady-state rule at Phase 4 (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
+
+### Object room placement (Phase 4; nodes only)
+
+Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation:
+
+- **Existence** (improvisation pair + **`Meta::Object`**) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md)).
+- **Where** the object is in play: **`Object`** node on the delivery room **`positionGraph`** + **`OBJECT#`** adjacency row (**I5**).
+- **Spawn + place:** [`spawnAndPlaceImprovisationObject`](../objects/spawnAndPlaceImprovisationObject.ts) atomically writes pair + meta + graph + adjacency.
+- **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
+- Relational in-room edges (`On`, `In`, ...) remain deferred (slice 5+).
+- Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
 
 ### Three play-time questions
 
@@ -131,18 +143,12 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Room scale (shipped v1):** each room hosts a play graph with **character nodes**. In-room edges and object nodes land in slice **5+**.
-
 **Container scale (future):** a Character (or held Object) hosts a graph for inventory and nested placement ("glass on tray on table", "broom against wall").
 
 ### Authored vs play graphs
 
 - **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
-- **Play mutations** (connect, navigate, pick up, place) update **play graphs** (or interim flat fields until graphs land); **projections** feed perception, affordance WML, nav, and LLM context.
-
-### Objects and `mtw.ephemera.objects`
-
-Today `Meta::Room.objects` is a **flat list** (Coyote staging). Target: object placement is **edges in a room (or container) graph**. The objects DataSource may remain a command/event lane while **positions** owns play-time graph membership --- or responsibilities merge over time. See [`../objects/AGENT.md`](../objects/AGENT.md). Phase 0 interface sketches: **`EphemeraMetaObject`** and **`OBJECT#`** adjacency in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) / [`ephemeraPositionAdjacency.ts`](../../../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.ts).
+- **Play mutations** (connect, navigate, pick up, place) update **play graphs**; **projections** feed perception, affordance WML, nav, and LLM context.
 
 ### Map Position facets (x/y)
 

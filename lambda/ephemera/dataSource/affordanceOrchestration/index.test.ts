@@ -182,24 +182,23 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('delegates mtw.ephemera.objects Objects Changed to fanOutAffordanceRefreshForRoom', async () => {
+    it('delegates mtw.ephemera.positions Object Moved to fanOutAffordanceRefreshForRoom', async () => {
         const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
         const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
         const payload = {
-            type: 'Objects Changed' as const,
-            componentId: 'ROOM#obj',
-            add: [],
-            remove: [],
-            priorObjects: [],
-            newObjects: [],
+            type: 'Object Moved' as const,
+            objectId: 'OBJECT#skates',
+            froms: ['ROOM#from' as const],
+            to: 'ROOM#obj' as const,
+            beatAnchorTime: 1,
         }
         const events: any[] = [
             {
                 header: {
-                    dataSourceKey: 'mtw.ephemera.objects',
-                    streamKey: 'ROOM#obj',
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'OBJECT#skates',
                     timestamp: Date.now(),
-                    type: 'Objects Changed',
+                    type: 'Object Moved',
                 },
                 getContent: () => Promise.resolve(payload),
             },
@@ -211,11 +210,15 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
-        expect(fanOutSpy).toHaveBeenCalledTimes(1)
-        expect(fanOutSpy.mock.calls[0][0]).toMatchObject({
+        expect(fanOutSpy).toHaveBeenCalledTimes(2)
+        expect(fanOutSpy).toHaveBeenCalledWith(expect.objectContaining({
+            roomId: 'ROOM#from',
+            reason: 'objects',
+        }))
+        expect(fanOutSpy).toHaveBeenCalledWith(expect.objectContaining({
             roomId: 'ROOM#obj',
             reason: 'objects',
-        })
+        }))
         expect(orchestrateSpy).not.toHaveBeenCalled()
         fanOutSpy.mockRestore()
         orchestrateSpy.mockRestore()

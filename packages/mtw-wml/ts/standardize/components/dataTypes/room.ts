@@ -24,7 +24,7 @@ export type StandardRoomData = {
     features?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
-    /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as ephemera Meta::Room.objects. */
+    /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as Objects Change ingress add row. */
     objects?: StandardRoomObjectData[];
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardRoomRenderData;

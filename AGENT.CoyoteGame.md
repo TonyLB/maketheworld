@@ -63,15 +63,14 @@ Practical interpretation notes:
 Needed state:
 - rooms
 - player location
-- room-local object lists (temporary local framework only; objects are not first-class system entities)
+- improvisational **`OBJECT#`** entities (improvisation pair + **`Meta::Object`** + **`positionGraph`** placement --- see [`lambda/ephemera/dataSource/objects/AGENT.md`](lambda/ephemera/dataSource/objects/AGENT.md))
 - short memory of prior attempts
 
 Not needed for this MVP:
-- first-class object system
-- manipulation of existing objects
-- explicit positioning graph
+- manipulation of existing objects (reposition, combine, or edit after spawn)
+- relational in-room edges on the play graph (box on table, inventory containers)
 - multi-step execution during plan resolution
-- persistent post-resolution world state
+- persistent post-resolution world state beyond the chase loop
 
 ## Delight Hypothesis Being Tested
 

@@ -1,20 +1,29 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
-    clearRoomObjectsAndPublishUpdate,
     handleAcmeOrderAddObjects,
     handleApiObjectsChangeCommand,
     handleAwaitRoadRunnerClearObjects,
 } from './handleApiObjectsChange'
-import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
+import { applyObjectsChange } from './applyObjectsChange'
+import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
+import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
 
-jest.mock('./mergePersistMetaRoomObjects', () => ({
-    clearPersistMetaRoomObjects: jest.fn(),
-    mergePersistMetaRoomObjects: jest.fn(),
+jest.mock('./applyObjectsChange', () => ({
+    applyObjectsChange: jest.fn(),
 }))
 
-const mergePersistMetaRoomObjectsMock = mergePersistMetaRoomObjects as jest.MockedFunction<typeof mergePersistMetaRoomObjects>
-const clearPersistMetaRoomObjectsMock = clearPersistMetaRoomObjects as jest.MockedFunction<typeof clearPersistMetaRoomObjects>
+jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
+    clearCoyoteGameImprovisationObjects: jest.fn(),
+}))
+
+jest.mock('./spawnAndPlaceImprovisationObject', () => ({
+    spawnAndPlaceImprovisationObject: jest.fn(),
+}))
+
+const applyObjectsChangeMock = applyObjectsChange as jest.MockedFunction<typeof applyObjectsChange>
+const clearCoyoteGameImprovisationObjectsMock = clearCoyoteGameImprovisationObjects as jest.MockedFunction<typeof clearCoyoteGameImprovisationObjects>
+const spawnAndPlaceMock = spawnAndPlaceImprovisationObject as jest.MockedFunction<typeof spawnAndPlaceImprovisationObject>
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
@@ -26,14 +35,12 @@ describe('handleApiObjectsChangeCommand', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
-        mergePersistMetaRoomObjectsMock.mockReset()
-        mergePersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
-        clearPersistMetaRoomObjectsMock.mockReset()
-        clearPersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
+        applyObjectsChangeMock.mockReset()
+        applyObjectsChangeMock.mockResolvedValue({ ok: true, persisted: false })
         streamEvent.mockClear()
     })
 
-    it('calls mergePersistMetaRoomObjects with roomId, add, and remove', async () => {
+    it('calls applyObjectsChange with roomId, add, and remove', async () => {
         const roomId = 'ROOM#r1' as EphemeraRoomId
         await handleApiObjectsChangeCommand(
             {
@@ -43,7 +50,7 @@ describe('handleApiObjectsChangeCommand', () => {
             },
             { streamEvent }
         )
-        expect(mergePersistMetaRoomObjectsMock).toHaveBeenCalledWith({
+        expect(applyObjectsChangeMock).toHaveBeenCalledWith({
             roomId,
             add: [obj('o1', 'One')],
             remove: ['OBJECT#o2' as EphemeraObjectId],
@@ -55,11 +62,11 @@ describe('handleApiObjectsChangeCommand', () => {
             { componentId: 'FEATURE#f1', add: [], remove: [] },
             { streamEvent }
         )
-        expect(mergePersistMetaRoomObjectsMock).not.toHaveBeenCalled()
+        expect(applyObjectsChangeMock).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
-    it('does not stream when merge did not persist', async () => {
+    it('does not stream when apply did not persist', async () => {
         const roomId = 'ROOM#r2' as EphemeraRoomId
         await handleApiObjectsChangeCommand(
             { componentId: roomId, add: [], remove: [] },
@@ -68,11 +75,10 @@ describe('handleApiObjectsChangeCommand', () => {
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
-    it('logs and does not stream when merge fails', async () => {
+    it('logs and does not stream when apply fails', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-        mergePersistMetaRoomObjectsMock.mockResolvedValue({
+        applyObjectsChangeMock.mockResolvedValue({
             ok: false,
-            errorCode: 'META_ROOM_MISSING',
             errorMessage: 'no row',
         })
         const roomId = 'ROOM#fail' as EphemeraRoomId
@@ -85,17 +91,16 @@ describe('handleApiObjectsChangeCommand', () => {
         consoleSpy.mockRestore()
     })
 
-    it('streams Objects Changed when merge persisted', async () => {
+    it('streams I4 Objects Changed when apply persisted', async () => {
         const roomId = 'ROOM#r3' as EphemeraRoomId
-        const add = [obj('b', 'B')]
-        mergePersistMetaRoomObjectsMock.mockResolvedValue({
+        applyObjectsChangeMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            priorObjects: [obj('a', 'A')],
-            newObjects: [obj('a', 'A'), obj('b', 'B')],
+            createdIds: ['OBJECT#b' as EphemeraObjectId],
+            destroyedIds: [],
         })
         await handleApiObjectsChangeCommand(
-            { componentId: roomId, add, remove: [] },
+            { componentId: roomId, add: [obj('b', 'B')], remove: [] },
             { streamEvent }
         )
         expect(streamEvent).toHaveBeenCalledTimes(1)
@@ -104,100 +109,10 @@ describe('handleApiObjectsChangeCommand', () => {
             header: { type: 'Objects Changed' },
             update: {
                 type: 'Objects Changed',
-                componentId: roomId,
-                add,
-                remove: [],
-                priorObjects: [obj('a', 'A')],
-                newObjects: [obj('a', 'A'), obj('b', 'B')],
+                createdIds: ['OBJECT#b'],
+                destroyedIds: [],
             },
         })
-    })
-
-    it('passes tropeAffinities affordancesProvided through to merge unchanged', async () => {
-        const roomId = 'ROOM#r-pass' as EphemeraRoomId
-        const affordancesProvided = [{
-            object: 'spring-loaded crate',
-            intended: true as const,
-            roles: ['Contraption' as const],
-        }]
-        const add = [{
-            uuid: 'OBJECT#o1' as EphemeraObjectId,
-            shortName: 'crate',
-            stableKey: 'crate',
-            tropeAffinities: [{
-                trope: 'Contraption' as const,
-                aptness: 'High' as const,
-                narrowing: 'boxed rig',
-                affordancesProvided,
-            }],
-        }]
-        mergePersistMetaRoomObjectsMock.mockResolvedValue({
-            ok: true,
-            persisted: false,
-        })
-        await handleApiObjectsChangeCommand(
-            { componentId: roomId, add, remove: [] },
-            { streamEvent }
-        )
-        expect(mergePersistMetaRoomObjectsMock).toHaveBeenCalledWith({
-            roomId,
-            add,
-            remove: [],
-        })
-    })
-})
-
-describe('clearRoomObjectsAndPublishUpdate', () => {
-    const roomId = 'ROOM#clear' as EphemeraRoomId
-    const streamEvent = jest.fn().mockResolvedValue(undefined)
-
-    beforeEach(() => {
-        clearPersistMetaRoomObjectsMock.mockReset()
-        clearPersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
-        streamEvent.mockClear()
-    })
-
-    it('publishes Objects Changed with empty newObjects when clear persists', async () => {
-        clearPersistMetaRoomObjectsMock.mockResolvedValue({
-            ok: true,
-            persisted: true,
-            priorObjects: [obj('a', 'A'), obj('b', 'B')],
-            newObjects: [],
-        })
-
-        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
-
-        expect(clearPersistMetaRoomObjectsMock).toHaveBeenCalledWith({ roomId })
-        expect(streamEvent).toHaveBeenCalledWith({
-            streamKey: roomId,
-            header: { type: 'Objects Changed' },
-            update: {
-                type: 'Objects Changed',
-                componentId: roomId,
-                add: [],
-                remove: ['OBJECT#a' as EphemeraObjectId, 'OBJECT#b' as EphemeraObjectId],
-                priorObjects: [obj('a', 'A'), obj('b', 'B')],
-                newObjects: [],
-            },
-        })
-    })
-
-    it('does not stream when clear does not persist', async () => {
-        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
-        expect(streamEvent).not.toHaveBeenCalled()
-    })
-
-    it('logs and does not stream when clear fails', async () => {
-        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-        clearPersistMetaRoomObjectsMock.mockResolvedValue({
-            ok: false,
-            errorCode: 'META_ROOM_MISSING',
-            errorMessage: 'no row',
-        })
-        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
-        expect(streamEvent).not.toHaveBeenCalled()
-        expect(consoleSpy).toHaveBeenCalled()
-        consoleSpy.mockRestore()
     })
 })
 
@@ -205,26 +120,23 @@ describe('handleAwaitRoadRunnerClearObjects', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
+        clearCoyoteGameImprovisationObjectsMock.mockReset()
+        clearCoyoteGameImprovisationObjectsMock.mockResolvedValue({ ok: true, persisted: false, destroyedIds: [] })
         streamEvent.mockClear()
     })
 
-    it('clears all coyote rooms in parallel via Promise.all', async () => {
-        const clearRoomObjectsAndPublishUpdateImpl = jest
-            .fn()
-            .mockImplementation(async () => Promise.resolve())
-        const getGameRooms = jest.fn(async () => ['VORTEX', 'ROOM#BRIDGE', 'CLIFFTOP'])
+    it('delegates to clearCoyoteGameImprovisationObjects with objects streamEvent', async () => {
+        const getGameRooms = jest.fn(async () => ['VORTEX', 'BRIDGE'])
 
         await handleAwaitRoadRunnerClearObjects({
             streamEvent,
             getGameRooms,
-            clearRoomObjectsAndPublishUpdateImpl,
         })
 
-        expect(getGameRooms).toHaveBeenCalledTimes(1)
-        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenCalledTimes(3)
-        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX', { streamEvent })
-        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(2, 'ROOM#BRIDGE', { streamEvent })
-        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(3, 'ROOM#CLIFFTOP', { streamEvent })
+        expect(clearCoyoteGameImprovisationObjectsMock).toHaveBeenCalledWith(
+            { getGameRooms },
+            { objectsStreamEvent: streamEvent }
+        )
     })
 })
 
@@ -255,46 +167,12 @@ describe('handleAcmeOrderAddObjects', () => {
     }
 
     beforeEach(() => {
-        mergePersistMetaRoomObjectsMock.mockReset()
-        mergePersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
+        spawnAndPlaceMock.mockReset()
+        spawnAndPlaceMock.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
         streamEvent.mockClear()
     })
 
-    it('adds incoming order lines as room objects for character current room', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
-            ok: true,
-            persisted: true,
-            priorObjects: [obj('old', 'Old')],
-            newObjects: [
-                obj('old', 'Old'),
-                {
-                    uuid: 'OBJECT#u1' as EphemeraObjectId,
-                    shortName: 'anvil',
-                    stableKey: 'anvil',
-                },
-                {
-                    uuid: 'OBJECT#u2' as EphemeraObjectId,
-                    shortName: 'giant magnet',
-                    stableKey: 'giant-magnet',
-                    tropeAffinities: [
-                        {
-                            trope: 'Contraption' as const,
-                            aptness: 'High' as const,
-                            narrowing: 'magnetic winch rig',
-                            environmentAffordances: [{
-                                object: 'boulder',
-                                roles: ['Contraption', 'Finishing Move'],
-                            }],
-                        },
-                        {
-                            trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'hanging chain mount',
-                        },
-                    ],
-                },
-            ],
-        })
+    it('spawns each order line in character current room and streams createdIds', async () => {
         const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
         const uuidValues = ['u1', 'u2']
         const uuidFactory = jest.fn(() => uuidValues.shift() || 'fallback')
@@ -307,22 +185,11 @@ describe('handleAcmeOrderAddObjects', () => {
                 {
                     shortName: 'giant magnet',
                     stableKey: 'giant-magnet',
-                    tropeAffinities: [
-                        {
-                            trope: 'Contraption',
-                            aptness: 'High',
-                            narrowing: 'magnetic winch rig',
-                            environmentAffordances: [{
-                                object: 'boulder',
-                                roles: ['Contraption', 'Finishing Move'],
-                            }],
-                        },
-                        {
-                            trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'hanging chain mount',
-                        },
-                    ],
+                    tropeAffinities: [{
+                        trope: 'Contraption',
+                        aptness: 'High',
+                        narrowing: 'magnetic winch rig',
+                    }],
                 },
             ],
             confidence: 0.9,
@@ -330,190 +197,33 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             getCharacterMeta,
             uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
+            spawnAndPlaceImpl: spawnAndPlaceMock,
         })
 
-        expect(getCharacterMeta).toHaveBeenCalledWith('CHARACTER#123')
-        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
-            roomId: 'ROOM#VORTEX',
-            add: [
-                { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
-                {
-                    uuid: 'OBJECT#u2',
-                    shortName: 'giant magnet',
-                    stableKey: 'giant-magnet',
-                    tropeAffinities: [
-                        {
-                            trope: 'Contraption',
-                            aptness: 'High',
-                            narrowing: 'magnetic winch rig',
-                            environmentAffordances: [{
-                                object: 'boulder',
-                                roles: ['Contraption', 'Finishing Move'],
-                            }],
-                        },
-                        {
-                            trope: 'Contraption',
-                            aptness: 'Good',
-                            narrowing: 'hanging chain mount',
-                        },
-                    ],
-                },
-            ],
-            remove: [],
-        })
+        expect(spawnAndPlaceMock).toHaveBeenCalledTimes(2)
+        expect(spawnAndPlaceMock).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                objectId: 'OBJECT#u1',
+                shortName: 'anvil',
+                stableKey: 'anvil',
+                targetRoomId: 'ROOM#VORTEX',
+            }),
+            expect.any(Object)
+        )
         expect(streamEvent).toHaveBeenCalledWith({
             streamKey: 'ROOM#VORTEX',
             header: { type: 'Objects Changed' },
             update: {
                 type: 'Objects Changed',
-                componentId: 'ROOM#VORTEX',
-                add: [
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
-                    {
-                        uuid: 'OBJECT#u2',
-                        shortName: 'giant magnet',
-                        stableKey: 'giant-magnet',
-                        tropeAffinities: [
-                            {
-                                trope: 'Contraption',
-                                aptness: 'High',
-                                narrowing: 'magnetic winch rig',
-                                environmentAffordances: [{
-                                    object: 'boulder',
-                                    roles: ['Contraption', 'Finishing Move'],
-                                }],
-                            },
-                            {
-                                trope: 'Contraption',
-                                aptness: 'Good',
-                                narrowing: 'hanging chain mount',
-                            },
-                        ],
-                    },
-                ],
-                remove: [],
-                priorObjects: [obj('old', 'Old')],
-                newObjects: [
-                    obj('old', 'Old'),
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil' },
-                    {
-                        uuid: 'OBJECT#u2',
-                        shortName: 'giant magnet',
-                        stableKey: 'giant-magnet',
-                        tropeAffinities: [
-                            {
-                                trope: 'Contraption',
-                                aptness: 'High',
-                                narrowing: 'magnetic winch rig',
-                                environmentAffordances: [{
-                                    object: 'boulder',
-                                    roles: ['Contraption', 'Finishing Move'],
-                                }],
-                            },
-                            {
-                                trope: 'Contraption',
-                                aptness: 'Good',
-                                narrowing: 'hanging chain mount',
-                            },
-                        ],
-                    },
-                ],
+                createdIds: ['OBJECT#u1', 'OBJECT#u2'],
+                destroyedIds: [],
             },
         })
     })
 
-    it('persists tropeAffinitiesFailed when present on the bus payload', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
-            ok: true,
-            persisted: true,
-            priorObjects: [],
-            newObjects: [{
-                uuid: 'OBJECT#u1' as EphemeraObjectId,
-                shortName: 'box',
-                stableKey: 'box',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-        })
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
-        const uuidFactory = jest.fn(() => 'u1')
-
-        await handleAcmeOrderAddObjects({
-            type: 'Acme Order',
-            characterId: 'CHARACTER#123',
-            orders: [{ shortName: 'box', stableKey: 'box', tropeAffinities: [], tropeAffinitiesFailed: true }],
-            confidence: 0.5,
-        }, {
-            streamEvent,
-            getCharacterMeta,
-            uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
-        })
-
-        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
-            roomId: 'ROOM#VORTEX',
-            add: [{
-                uuid: 'OBJECT#u1',
-                shortName: 'box',
-                stableKey: 'box',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-            remove: [],
-        })
-    })
-
-    it('persists tropeAffinitiesFailed when present on the bus payload', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
-            ok: true,
-            persisted: true,
-            priorObjects: [],
-            newObjects: [{
-                uuid: 'OBJECT#u1' as EphemeraObjectId,
-                shortName: 'box',
-                stableKey: 'box',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-        })
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
-        const uuidFactory = jest.fn(() => 'u1')
-
-        await handleAcmeOrderAddObjects({
-            type: 'Acme Order',
-            characterId: 'CHARACTER#123',
-            orders: [{
-                shortName: 'box',
-                stableKey: 'box',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-            confidence: 0.5,
-        }, {
-            streamEvent,
-            getCharacterMeta,
-            uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
-        })
-
-        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
-            roomId: 'ROOM#VORTEX',
-            add: [{
-                uuid: 'OBJECT#u1',
-                shortName: 'box',
-                stableKey: 'box',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-            remove: [],
-        })
-    })
-
     it('does nothing when character room cannot be resolved as ephemera room id', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn()
         const getCharacterMeta = jest.fn(async () => ({}))
-        const uuidFactory = jest.fn(() => 'u1')
 
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
@@ -523,16 +233,14 @@ describe('handleAcmeOrderAddObjects', () => {
         }, {
             streamEvent,
             getCharacterMeta,
-            uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
+            spawnAndPlaceImpl: spawnAndPlaceMock,
         })
 
-        expect(mergePersistMetaRoomObjectsImpl).not.toHaveBeenCalled()
+        expect(spawnAndPlaceMock).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
     it('filters environment affordances for ROOM#STRAIGHTAWAY', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
         const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#STRAIGHTAWAY' }))
         const uuidFactory = jest.fn(() => 'u1')
 
@@ -545,128 +253,18 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             getCharacterMeta,
             uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
+            spawnAndPlaceImpl: spawnAndPlaceMock,
         })
 
-        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
-        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
+        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
             { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
-        expect(addLine.tropeAffinities?.[1]).toEqual({
-            trope: 'Bait',
-            aptness: 'Good',
-            narrowing: 'portable bait',
-        })
     })
 
-    it('preserves affordancesProvided while filtering environmentAffordances for ROOM#STRAIGHTAWAY', async () => {
-        const affordancesProvided = [{
-            object: 'fold-out cliff facade',
-            intended: true as const,
-            roles: ['Contraption' as const, 'Finishing Move' as const],
-        }]
-        const orderWithProvided = {
-            shortName: 'paint tunnel kit',
-            stableKey: 'paint-tunnel-kit',
-            tropeAffinities: [
-                {
-                    trope: 'Contraption' as const,
-                    aptness: 'High' as const,
-                    narrowing: 'scene-dependent rig',
-                    environmentAffordances: [
-                        { object: 'rock-wall' as const, roles: ['Finishing Move' as const] },
-                        { object: 'long-fall' as const, roles: ['Finishing Move' as const] },
-                        { object: 'cactus' as const, roles: ['Disadvantage' as const] },
-                        { object: 'boulder' as const, roles: ['Contraption' as const] },
-                        { object: 'tumbleweed' as const, roles: ['Misdirection' as const] },
-                    ],
-                    affordancesProvided,
-                },
-                environmentAffordanceMatrixOrder.tropeAffinities[1],
-            ],
-        }
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#STRAIGHTAWAY' }))
-        const uuidFactory = jest.fn(() => 'u1')
-
-        await handleAcmeOrderAddObjects({
-            type: 'Acme Order',
-            characterId: 'CHARACTER#123',
-            orders: [orderWithProvided],
-            confidence: 0.7,
-        }, {
-            streamEvent,
-            getCharacterMeta,
-            uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
-        })
-
-        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
-        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
-            { object: 'cactus', roles: ['Disadvantage'] },
-            { object: 'boulder', roles: ['Contraption'] },
-            { object: 'tumbleweed', roles: ['Misdirection'] },
-        ])
-        expect(addLine.tropeAffinities?.[0]?.affordancesProvided).toEqual(affordancesProvided)
-    })
-
-    it('filters environment affordances for ROOM#BRIDGE', async () => {
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({ ok: true, persisted: false })
-        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#BRIDGE' }))
-        const uuidFactory = jest.fn(() => 'u1')
-
-        await handleAcmeOrderAddObjects({
-            type: 'Acme Order',
-            characterId: 'CHARACTER#123',
-            orders: [environmentAffordanceMatrixOrder],
-            confidence: 0.7,
-        }, {
-            streamEvent,
-            getCharacterMeta,
-            uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
-        })
-
-        const addLine = mergePersistMetaRoomObjectsImpl.mock.calls[0]?.[0]?.add?.[0]
-        expect(addLine.tropeAffinities?.[0]?.environmentAffordances).toEqual([
-            { object: 'long-fall', roles: ['Finishing Move'] },
-            { object: 'boulder', roles: ['Contraption'] },
-            { object: 'tumbleweed', roles: ['Misdirection'] },
-        ])
-    })
-
-    it('filters environment affordances for ROOM#VORTEX and reflects filtered payload in stream event', async () => {
-        const filteredAddObject = {
-            uuid: 'OBJECT#u1' as EphemeraObjectId,
-            shortName: 'paint tunnel kit',
-            stableKey: 'paint-tunnel-kit',
-            tropeAffinities: [
-                {
-                    trope: 'Contraption',
-                    aptness: 'High',
-                    narrowing: 'scene-dependent rig',
-                    environmentAffordances: [
-                        { object: 'rock-wall', roles: ['Finishing Move'] },
-                        { object: 'cactus', roles: ['Disadvantage'] },
-                        { object: 'boulder', roles: ['Contraption'] },
-                        { object: 'tumbleweed', roles: ['Misdirection'] },
-                    ],
-                },
-                {
-                    trope: 'Bait',
-                    aptness: 'Good',
-                    narrowing: 'portable bait',
-                },
-            ],
-        }
-        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
-            ok: true,
-            persisted: true,
-            priorObjects: [],
-            newObjects: [filteredAddObject],
-        })
+    it('filters environment affordances for ROOM#VORTEX', async () => {
         const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
         const uuidFactory = jest.fn(() => 'u1')
 
@@ -679,26 +277,15 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             getCharacterMeta,
             uuidFactory,
-            mergePersistMetaRoomObjectsImpl,
+            spawnAndPlaceImpl: spawnAndPlaceMock,
         })
 
-        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
-            roomId: 'ROOM#VORTEX',
-            add: [filteredAddObject],
-            remove: [],
-        })
-        expect(streamEvent).toHaveBeenCalledWith({
-            streamKey: 'ROOM#VORTEX',
-            header: { type: 'Objects Changed' },
-            update: {
-                type: 'Objects Changed',
-                componentId: 'ROOM#VORTEX',
-                add: [filteredAddObject],
-                remove: [],
-                priorObjects: [],
-                newObjects: [filteredAddObject],
-            },
-        })
+        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
+            { object: 'rock-wall', roles: ['Finishing Move'] },
+            { object: 'cactus', roles: ['Disadvantage'] },
+            { object: 'boulder', roles: ['Contraption'] },
+            { object: 'tumbleweed', roles: ['Misdirection'] },
+        ])
     })
-
 })

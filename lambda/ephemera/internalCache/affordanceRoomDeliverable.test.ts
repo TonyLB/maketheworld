@@ -2,6 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { mergeRoomExitsToJSON } from './roomWireMergeHelpers'
@@ -42,6 +43,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.resetAllMocks()
         internalCache.clear()
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
+        jest.spyOn(internalCache.Positions, 'getPositionGraph').mockResolvedValue({ nodes: [], edges: [] })
     })
 
     it('builds structural room WML from aggregate shortName, affordance topology, and roster', async () => {
@@ -241,7 +243,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         expect(wml).not.toContain('D door')
     })
 
-    it('includes Meta::Room.objects on the merged room', async () => {
+    it('includes graph-placed objects on the merged room', async () => {
         const assetStack: AssetUUID[] = ['ASSET#Base']
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
@@ -252,20 +254,26 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     shortName: 'Hall',
                     exits: [],
                 }),
-                mergeParticipationOrderApplied: assetStack,
+                mergeParticipationOrderApplied: [...assetStack, 'ASSET#IMPROVISATION'],
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
             mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
         )
         jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
-
-        const metaRoom: EphemeraMetaRoom = {
-            EphemeraId: 'ROOM#ObjRoom' as EphemeraRoomId,
-            DataCategory: 'Meta::Room',
-            objects: [{ uuid: 'OBJECT#foo', shortName: 'A lamp', stableKey: 'a-lamp' }],
-        }
-        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(metaRoom)
+        jest.spyOn(internalCache.Positions, 'getPositionGraph').mockResolvedValue({
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#foo' }],
+            edges: [],
+        })
+        jest.spyOn(internalCache.ImprovisationComponentData, 'get').mockResolvedValue({
+            universalKey: 'OBJECT#foo',
+            assetId: 'ASSET#IMPROVISATION',
+            component: new StandardObject({
+                tag: 'Object',
+                universalKey: 'OBJECT#foo',
+                shortName: 'A lamp',
+            }),
+        } as any)
 
         const merged = await getForStack('ROOM#ObjRoom', assetStack)
 

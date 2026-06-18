@@ -12,7 +12,7 @@ describe('combineCandidateOutput', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
-                    uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#a' as `OBJECT#${string}`,
                     shortName: 'rope',
                     stableKey: 'rope-0',
                 },
@@ -80,12 +80,12 @@ describe('combineCandidateOutput', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
-                    uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#a' as `OBJECT#${string}`,
                     shortName: 'rope',
                     stableKey: 'rope-0',
                 },
                 {
-                    uuid: 'OBJECT#b' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#b' as `OBJECT#${string}`,
                     shortName: 'glue',
                     stableKey: 'glue-1',
                 },
@@ -123,12 +123,12 @@ describe('combineCandidateOutput', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
-                    uuid: 'OBJECT#a' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#a' as `OBJECT#${string}`,
                     shortName: 'rope',
                     stableKey: 'rope-0',
                 },
                 {
-                    uuid: 'OBJECT#b' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#b' as `OBJECT#${string}`,
                     shortName: 'glue',
                     stableKey: 'glue-1',
                 },
@@ -185,7 +185,7 @@ describe('combineCandidateOutput', () => {
         ]
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [{
-                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                objectId: 'OBJECT#g' as `OBJECT#${string}`,
                 shortName: 'glue',
                 stableKey: 'glue-1',
                 tropeAffinities: [{
@@ -230,13 +230,13 @@ describe('combineCandidateOutput', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
-                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#g' as `OBJECT#${string}`,
                     shortName: 'glue',
                     stableKey: 'glue-1',
                     tropeAffinities: [{ trope: 'Disadvantage', aptness: 'High', narrowing: 'stick' }],
                 },
                 {
-                    uuid: 'OBJECT#r' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#r' as `OBJECT#${string}`,
                     shortName: 'rope',
                     stableKey: 'rope-0',
                     tropeAffinities: [{
@@ -277,7 +277,7 @@ describe('combineCandidateOutput', () => {
         const environmentAffordances = [{ object: 'long-fall' as const, roles: ['Finishing Move' as const] }]
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [{
-                uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                objectId: 'OBJECT#g' as `OBJECT#${string}`,
                 shortName: 'rocket skates',
                 stableKey: 'rocket-skates',
                 tropeAffinities: [{
@@ -322,13 +322,13 @@ describe('combineCandidateOutput', () => {
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
-                    uuid: 'OBJECT#g' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#g' as `OBJECT#${string}`,
                     shortName: 'glue',
                     stableKey: 'glue-1',
                     tropeAffinities: [{ trope: 'Disadvantage', aptness: 'High', narrowing: 'stick' }],
                 },
                 {
-                    uuid: 'OBJECT#b' as `OBJECT#${string}`,
+                    objectId: 'OBJECT#b' as `OBJECT#${string}`,
                     shortName: 'boulder',
                     stableKey: 'boulder-0',
                     tropeAffinities: [{

@@ -20,13 +20,11 @@ import type {
 import type { ComponentTopologyInvalidatedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/componentTopology'
 import { isComponentTopologyInvalidatedEnvelope } from '../affordanceCache/subscribedEvents'
 import {
-    isEphemeraObjectsObjectsChangedEnvelope,
-    type ObjectsChangedPayload,
-} from '../objects/events'
-import {
     isConnectionsCharacterRegisteredEnvelope,
     type ConnectionsCharacterRegisteredSubscribedContent,
 } from '../connectionsCharacterRegistered/subscribedEvents'
+import type { ObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import { isEphemeraPositionsObjectMovedEnvelope } from '../positions/publishedEvents'
 
 export type AffordanceOrchestrationIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Affordances Requested' }
@@ -60,9 +58,14 @@ export const isAffordanceOrchestrationIngressEnvelope = makeStreamingEnvelopeGua
     AffordanceOrchestrationIngressHeader
 >(isAffordanceOrchestrationIngressHeader)
 
+export type EphemeraPositionsObjectMovedIngressHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.positions'; type: 'Object Moved' }
+
+export const isEphemeraPositionsObjectMovedIngressEnvelope = isEphemeraPositionsObjectMovedEnvelope
+
 export type AffordanceOrchestrationSubscribedContent =
     | AffordanceOrchestrationIngressCommand
-    | ObjectsChangedPayload
+    | ObjectMovedPublishedPayload
     | ComponentTopologyInvalidatedEvent
     | ConnectionsCharacterRegisteredSubscribedContent
 
@@ -70,7 +73,7 @@ export const isAffordanceOrchestrationSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<AffordanceOrchestrationSubscribedContent> => (
     isAffordanceOrchestrationIngressEnvelope(envelope)
-        || isEphemeraObjectsObjectsChangedEnvelope(envelope)
+        || isEphemeraPositionsObjectMovedIngressEnvelope(envelope)
         || isComponentTopologyInvalidatedEnvelope(envelope)
         || isConnectionsCharacterRegisteredEnvelope(envelope)
 )
@@ -86,7 +89,7 @@ const apiEphemeraSerializer = {
 
 /**
  * External / cross-module kick: publish `api.ephemera` `Affordances Requested` for affordanceOrchestration ingress.
- * Same-DataSource handoffs (session orientation, Objects Changed fan-out) call {@link orchestrateAffordanceRequest} directly.
+ * Same-DataSource handoffs (session orientation, Object Moved fan-out) call {@link orchestrateAffordanceRequest} directly.
  */
 export function sendAffordancesRequested(
     bus: PublishBus,

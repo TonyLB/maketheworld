@@ -44,7 +44,7 @@ describe('affordanceOrchestration subscribedEvents', () => {
         expect(isAffordanceOrchestrationIngressEnvelope(rejected)).toBe(false)
     })
 
-    it('isAffordanceOrchestrationSubscribedEnvelope accepts ingress and mtw.ephemera.objects Objects Changed', () => {
+    it('isAffordanceOrchestrationSubscribedEnvelope accepts ingress and mtw.ephemera.positions Object Moved', () => {
         expect(
             isAffordanceOrchestrationSubscribedEnvelope({
                 header: {
@@ -59,12 +59,17 @@ describe('affordanceOrchestration subscribedEvents', () => {
         expect(
             isAffordanceOrchestrationSubscribedEnvelope({
                 header: {
-                    dataSourceKey: 'mtw.ephemera.objects',
-                    streamKey: 'ROOM#one',
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'OBJECT#one',
                     timestamp: Date.now(),
-                    type: 'Objects Changed',
+                    type: 'Object Moved',
                 },
-                getContent: () => Promise.resolve({ type: 'Objects Changed' }),
+                getContent: () => Promise.resolve({
+                    type: 'Object Moved',
+                    objectId: 'OBJECT#one',
+                    froms: ['ROOM#a'],
+                    to: 'ROOM#b',
+                }),
             } as any)
         ).toBe(true)
         expect(

@@ -55,7 +55,7 @@ export type LookCommandRequestedPublishedPayload = {
     directResponse?: boolean;
 }
 
-/** One catalog line on the bus; aligns with EphemeraMetaRoomObject minus uuid. */
+/** One catalog line on the bus; aligns with Objects Change add row (EphemeraMetaRoomObject) minus uuid. */
 export type AcmeOrderPublishedOrder = {
     shortName: string;
     /** Machine correlation key after deterministic finalize in actions `index.ts`. */
