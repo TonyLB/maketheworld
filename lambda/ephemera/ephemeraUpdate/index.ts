@@ -1,19 +1,34 @@
 import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgument, isPublishTargetCharacter, isPublishTargetExcludeCharacter, isPublishTargetExcludeSession, isPublishTargetSession, MessageBus, PublishTargetSession } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
+import type { CharacterMetaItem } from '../internalCache/characterMeta'
+import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
 
 import { apiClient } from '../apiClient'
-import { EphemeraCharacterId } from "@tonylb/mtw-interfaces/ts/baseClasses"
+import { EphemeraCharacterId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
 import { objectMap } from "../lib/objects"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 
+type CharacterInPlayEnrichment = {
+    meta?: CharacterMetaItem;
+    roomId: EphemeraRoomId;
+}
+
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const characterIds = payloads.map(({ updates }) => (updates.map(({ connectionTargets, ...rest }) => (rest)).filter(isEphemeraCharacterArgument).map(({ CharacterId }) => (CharacterId)))).flat(1)
-    const [RequestId, ...characterMetaValues] = await Promise.all([
+    const uniqueCharacterIds = unique(characterIds)
+    const [RequestId, enrichmentRows] = await Promise.all([
         internalCache.Global.get('RequestId'),
-        ...unique(characterIds).map((characterId) => (internalCache.CharacterMeta.get(characterId)))
+        Promise.all(uniqueCharacterIds.map(async (characterId): Promise<[EphemeraCharacterId, CharacterInPlayEnrichment]> => {
+            const [meta, roomId] = await Promise.all([
+                internalCache.CharacterMeta.get(characterId),
+                resolveCharacterRoomId(characterId),
+            ])
+            return [characterId, { meta, roomId }]
+        })),
     ])
+    const enrichmentByCharacterId = Object.fromEntries(enrichmentRows) as Record<EphemeraCharacterId, CharacterInPlayEnrichment>
 
     // PR8 stub window: character-target map fanout is intentionally disabled.
     // See dataSource/maps/AGENT.md. Character-targeted map updates resolve to no sessions here.
@@ -60,20 +75,18 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                         if (update.type === 'CharacterInPlay') {
                             const { connectionTargets, ...rest } = update
                             if (update.Connected) {
-                                const characterDefaults = characterMetaValues
-                                    .filter((value) => (value))
-                                    .find(({ EphemeraId }) => (EphemeraId === update.CharacterId))
+                                const enrichment = enrichmentByCharacterId[update.CharacterId]
                                 updatesBySessionId[sessionId] = [
                                     ...(updatesBySessionId[sessionId] || []),
                                     {
-                                        ...(characterDefaults
+                                        ...(enrichment?.meta
                                             ? {
-                                                DisplayName: characterDefaults.Name,
-                                                RoomId: characterDefaults.RoomId,
-                                                fileURL: characterDefaults.fileURL,
-                                                Color: characterDefaults.Color
+                                                DisplayName: enrichment.meta.Name,
+                                                fileURL: enrichment.meta.fileURL,
+                                                Color: enrichment.meta.Color,
                                             }
                                             : {}),
+                                        ...(enrichment ? { RoomId: enrichment.roomId } : {}),
                                         ...rest
                                     } as EphemeraClientMessageEphemeraUpdateCharacterInPlayActive
                                 ]

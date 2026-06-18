@@ -1,5 +1,7 @@
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
+import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder'
+import type { RoomStackItem } from '../dataSource/positions/membership/types'
 
 // Recreated function from deleted cacheAsset module
 const pushCharacterEphemera = async (character: {
@@ -10,10 +12,10 @@ const pushCharacterEphemera = async (character: {
     Pronouns: string;
     Description?: string;
     assets: string[];
-    RoomId: string;
+    RoomStack: RoomStackItem[];
     player: string;
 }) => {
-    const updateKeys: (keyof typeof character)[] = ['Name', 'Pronouns', 'Color', 'assets', 'RoomId', 'player', 'Description']
+    const updateKeys: (keyof typeof character)[] = ['Name', 'Pronouns', 'Color', 'assets', 'RoomStack', 'player', 'Description']
     await ephemeraDB.optimisticUpdate({
         Key: {
             EphemeraId: character.EphemeraId,
@@ -47,7 +49,7 @@ export const confirmGuestCharacter = async (userName: string): Promise<void> => 
         Pronouns: 'they/them',
         ...(coyoteGameEnabled ? { Description: 'A scraggly coyote with a hungry and cunning look in his eye.' } : {}),
         assets: [],
-        RoomId: 'VORTEX',
+        RoomStack: DEFAULT_ROOM_STACK,
         player: userName
     })
 }
