@@ -1405,7 +1405,7 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('does not publish OOC or stream when in a Coyote Game room (P2 stream wiring)', async () => {
+        it('publishes Predict Hypothesis streamEvent without WorldOOCMessage when in a Coyote Game room', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'PredictHypothesis', confidence: 1 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: coyoteRoom,
@@ -1433,11 +1433,18 @@ describe('ephemeraActionsDataSource', () => {
             })
 
             expect(mockedIsCoyoteGameRoom).toHaveBeenCalledWith(coyoteRoom)
-            expect(streamEvent).not.toHaveBeenCalled()
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Predict Hypothesis' },
+                update: {
+                    type: 'Predict Hypothesis',
+                    characterId: 'CHARACTER#123',
+                    confidence: 1,
+                },
+            })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({
                     displayProtocol: 'WorldOOCMessage',
-                    message: ['You can only predict your Coyote plan from a Coyote Game room.'],
                 })
             )
         })

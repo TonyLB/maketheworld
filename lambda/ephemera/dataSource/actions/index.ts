@@ -395,6 +395,17 @@ const publishStreamEventsForIntent = async (
                 message: ['You can only predict your Coyote plan from a Coyote Game room.'],
             })
         }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Predict Hypothesis' },
+                update: {
+                    type: 'Predict Hypothesis',
+                    characterId,
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
     }
 }
 

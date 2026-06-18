@@ -1,6 +1,6 @@
 # Coyote Game: player-requested hypothesis (`predict`) (planning)
 
-**Status:** In progress. P1 parse affordance shipped. Next step is Phase P2 (actions stream contract).
+**Status:** In progress. P2 actions stream contract shipped. Next step is Phase P3 (coyoteGame handler migration).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -91,13 +91,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Apply D-4 guard in parse or handler (not in Coyote room -> OOC; no stream).
   - [X] Tests: [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts).
 
-**P1 handoff:** Coyote-room **`PredictHypothesis`** parse succeeds but **`index.ts`** is a no-op stub until P2 adds **`Predict Hypothesis`** **`streamEvent`**.
+**P2 handoff:** Coyote-room **`predict`** publishes **`Predict Hypothesis`** on the actions bus; **`mtw.ephemera.coyoteGame`** does not subscribe until P3 wires the handler.
 
-- [ ] Phase P2 - actions stream contract
-  - [ ] Add **`PredictHypothesisPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) per D-1.
-  - [ ] Add **`streamEvent`** branch in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (no **`WorldOOCMessage`** ack per D-6).
-  - [ ] Add envelope guard in [`objects/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/objects/subscribedEvents.ts) (or shared actions subscribe helper if extracted).
-  - [ ] Tests: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts), [`publishedEvents.test.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.test.ts).
+- [X] Phase P2 - actions stream contract
+  - [X] Add **`PredictHypothesisPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) per D-1.
+  - [X] Add **`streamEvent`** branch in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (no **`WorldOOCMessage`** ack per D-6).
+  - [X] Add envelope guard in [`objects/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/objects/subscribedEvents.ts) (or shared actions subscribe helper if extracted).
+  - [X] Tests: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts), [`publishedEvents.test.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.test.ts).
 
 - [ ] Phase P3 - coyoteGame handler migration
   - [ ] Refactor [`handleObjectMovedForHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.ts) into **`handlePredictHypothesisForHypothesis`** (or rename in place) keyed on actions payload + D-2 audience rules.
@@ -155,7 +155,7 @@ Manual smoke (optional):
 | Task plan drafted | Done |
 | Open decisions locked (P0) | Done |
 | Parse affordance shipped (P1) | Done |
-| Actions stream contract shipped (P2) | Not started |
+| Actions stream contract shipped (P2) | Done |
 | CoyoteGame migration shipped (P3) | Not started |
 | Client + product docs updated (P4) | Not started |
 | Verification green; plan archived (P5) | Not started |
