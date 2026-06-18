@@ -35,5 +35,6 @@ After local Dynamo writes in **`mtw.ephemera.objects`** improvisation coordinato
 
 ## Related
 
-- Task plan: [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md)
+- Objects lane: [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../lambda/ephemera/dataSource/objects/AGENT.md)
+- Ephemera composite **`ComponentData`**: [`lambda/ephemera/internalCache/componentData.AGENT.md`](../../../../lambda/ephemera/internalCache/componentData.AGENT.md)
 - Object play meta cache: [`lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md`](../../../../lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md)

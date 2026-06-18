@@ -100,16 +100,16 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 }
 
 //
-// First-class improvisational objects (Phase 0 sketch; persistence Phase 2+)
+// First-class improvisational objects (shipped steady state)
 //
-// ADR (I1 / I2): three-way split mirrors Character --- merge body on component pair row,
+// ADR: three-way split mirrors Character --- merge body on component pair row,
 // play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
 //   v1 writes use ASSET#IMPROVISATION as DataCategory; type does not hard-code that layer.
 // - shortName lives only on the pair row (future StandardObject JSON); never on Meta::Object.
 // - stableKey / trope fields live only on EphemeraMetaObject.
-// - Spawn/clear coordinators write or delete both rows in one transact (Phase 2/4).
+// - Spawn/clear coordinators write or delete both rows in one transact.
 //
 // Pair merge-body shape: ComponentPairPersistedFields / EphemeraDbGetItemsComponentRow in
 // @tonylb/mtw-gateways/ts/assets/components/componentData/fetch.ts (not duplicated here).

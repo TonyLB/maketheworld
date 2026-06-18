@@ -117,11 +117,19 @@ These settings are per-player and currently onboarding-focused. They are not a g
 
 Current gaps relative to Coyote Game intent:
 - no coyote-specific guest generation pattern selection
-- no built-in object staging model for Acme objects
 - no first-class hypothesis generation pipeline labeled for Coyote loop
 - no explicit run memory model dedicated to prior attempt summaries
 
 This is expected for the current stage and aligns with "partial bespoke scaffolding first".
+
+## Object staging (shipped)
+
+Acme object delivery uses first-class improvisational **`OBJECT#`** entities:
+
+- **Spawn + place:** [`handleAcmeOrderAddObjects`](lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) -> [`spawnAndPlaceImprovisationObject`](lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) (pair + **`Meta::Object`** + graph + adjacency)
+- **Hypothesis trigger:** **`Object Moved`** on **`mtw.ephemera.positions`** -> [`coyoteGame/AGENT.md`](lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Object Moved** path
+- **Staged-object reads:** [`coyoteRoomObjectSnapshot.ts`](lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) (`positionGraph` + **`Meta::Object`** + improvisation pair **`shortName`**)
+- **Lane authority:** [`lambda/ephemera/dataSource/objects/AGENT.md`](lambda/ephemera/dataSource/objects/AGENT.md)
 
 ## Getting Started
 

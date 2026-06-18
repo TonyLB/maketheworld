@@ -1,14 +1,26 @@
-*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; first-class improvisation rows + **`positionGraph`** placement (Phase 5); outbound **`Objects Changed`** is object-id existence (**I4**); placement-driven affordance refresh via **`mtw.ephemera.positions`** **`Object Moved`** -> **`mtw.ephemera.affordanceOrchestration`**; terminal **`PublishMessage`** via **`Affordances Pertain`** -> [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts).*
+*Status: **Shipped** --- bus-only **`mtw.ephemera.objects`**; first-class improvisation rows + **`positionGraph`** placement; outbound **`Objects Changed`** is object-id existence (**I4**); placement-driven affordance refresh via **`mtw.ephemera.positions`** **`Object Moved`** -> **`mtw.ephemera.affordanceOrchestration`**; terminal **`PublishMessage`** via **`Affordances Pertain`** -> [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts).*
 
 ## Overview
 
 This package owns **runtime improvisational objects** for play: dual ephemeraDB rows per **`OBJECT#`** (component pair under **`ASSET#IMPROVISATION`** + **`Meta::Object`** play meta) and **`positionGraph`** **`Object`** nodes for room placement. Human-facing labels come from the improvisation pair; Coyote correlation uses **`stableKey`** on **`Meta::Object`** (see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**). Optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich live on **`Meta::Object`** ([`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object existence and ingress, **not** nested under a room aggregate.
 
-**Steady state:** writers **must not** touch **`Meta::Room.objects`** (removed from room meta in Phase 6). Planning: [`taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.improvisationalFirstClassObjects.planning.md).
+**Steady state:** writers **must not** touch **`Meta::Room.objects`** (removed from room meta type).
 
-## Improvisation storage (Phase 2)
+## Three-way split (body / play meta / placement)
 
-Dual ephemeraDB rows per **`OBJECT#`** (see **I1** / **I2** in planning doc):
+Each improvisational **`OBJECT#`** splits across three authorities (mirrors Character: blueprint pair vs **`Meta::Character`** vs graph membership):
+
+| Concern | Storage | Owner |
+| --- | --- | --- |
+| **Merge body** (`shortName`, future WML fields) | `(OBJECT#, ASSET#IMPROVISATION)` pair row | This lane ([`persistImprovisationObject.ts`](persistImprovisationObject.ts)) |
+| **Play meta** (`stableKey`, trope fields) | `(OBJECT#, Meta::Object)` | This lane; read via **`internalCache.ObjectEphemeraMeta`** ([`objectEphemeraMeta.AGENT.md`](../../internalCache/objectEphemeraMeta.AGENT.md)) |
+| **Placement** (which room hosts the object) | **`Object`** node on room **`positionGraph`** + **`OBJECT#`** adjacency | **`mtw.ephemera.positions`** ([`../positions/AGENT.concepts.md`](../positions/AGENT.concepts.md#object-room-placement-phase-4-nodes-only)) |
+
+**Invariants:** one pair row and one **`Meta::Object`** row per spawned object; spawn/clear coordinators write or delete both in one transact; **`shortName`** never on **`Meta::Object`**. Type authority: [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) ADR comment block.
+
+## Improvisation storage
+
+Dual ephemeraDB rows per **`OBJECT#`**:
 
 | Row | Key | Module |
 | --- | --- | --- |
@@ -17,13 +29,13 @@ Dual ephemeraDB rows per **`OBJECT#`** (see **I1** / **I2** in planning doc):
 
 **Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** graphs, removes graph placement, then **`persistClearCoyoteGameImprovisationObjects`** deletes pair + **`Meta::Object`** rows.
 
-**Spawn + place (Phase 4--5):** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Acme and API ingress call this via [`applyObjectsChange.ts`](applyObjectsChange.ts) / [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts).
+**Spawn + place:** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Acme and API ingress call this via [`applyObjectsChange.ts`](applyObjectsChange.ts) / [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts).
 
 **Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> spawn+place per row; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** for outbound **`Objects Changed`**.
 
 **Cache invalidation:** [`invalidateImprovisationObjectCaches.ts`](invalidateImprovisationObjectCaches.ts) --- **`ImprovisationComponentData`**, **`ObjectEphemeraMeta`**, **`ComponentEphemeraMeta`**, **`Positions`**, optional **`AffordanceRoomDeliverable`** per affected room.
 
-**Reads:** **`internalCache.ImprovisationComponentData`** ([`packages/mtw-gateways/ts/ephemera/improvisation/`](../../../../packages/mtw-gateways/ts/ephemera/improvisation/)); **`internalCache.ObjectEphemeraMeta`** ([`objectEphemeraMeta.AGENT.md`](../../internalCache/objectEphemeraMeta.AGENT.md)). **`ComponentAggregate`** and **`GenerationContext`** read improvisation merge bodies via composite **`internalCache.ComponentData`** when **`ASSET#IMPROVISATION`** is in the participation stack (Phase 3). Room perspectives append that layer with **`appendImprovisationToPerspective`** ([`packages/mtw-interfaces/ts/perspective.ts`](../../../../packages/mtw-interfaces/ts/perspective.ts)) when objects are in scope (Phase 5 wiring).
+**Reads:** **`internalCache.ImprovisationComponentData`** ([`packages/mtw-gateways/ts/ephemera/improvisation/`](../../../../packages/mtw-gateways/ts/ephemera/improvisation/)); **`internalCache.ObjectEphemeraMeta`** ([`objectEphemeraMeta.AGENT.md`](../../internalCache/objectEphemeraMeta.AGENT.md)). **`ComponentAggregate`** and **`GenerationContext`** read improvisation merge bodies via composite **`internalCache.ComponentData`** when **`ASSET#IMPROVISATION`** is in the participation stack. Room perspectives append that layer with **`appendImprovisationToPerspective`** ([`packages/mtw-interfaces/ts/perspective.ts`](../../../../packages/mtw-interfaces/ts/perspective.ts)) when objects are in scope.
 
 ## Bus events
 
@@ -77,7 +89,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | Topic | Decision |
 | --- | --- |
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
-| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type (Phase 6). |
+| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
