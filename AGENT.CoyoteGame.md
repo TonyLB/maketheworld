@@ -29,9 +29,8 @@ The strong existing IP frame is intentional:
    - e.g. road under cliff, cliff top near boulder
 2. In a place, the player can:
    - navigate
-   - order an Acme object into the current place
-   - wait for the Road Runner
-3. After each object order, the system updates a Hypothesis.
+   - order / stage Acme objects into the current place
+3. When the player `predict`s, the system updates a Hypothesis.
    - "It looks like you're trying to ..."
    - this hypothesis should be confident, coherent, and grounded in the currently staged objects and their room locations
    - it should assume the player has an intelligent, possibly insane plan
@@ -67,6 +66,7 @@ Needed state:
 - short memory of prior attempts
 
 Not needed for this MVP:
+- automatic hypothesis on object placement or move (the player must `predict` when they want a reading)
 - manipulation of existing objects (reposition, combine, or edit after spawn)
 - relational in-room edges on the play graph (box on table, inventory containers)
 - multi-step execution during plan resolution

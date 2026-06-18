@@ -1,6 +1,6 @@
 # Coyote Game: player-requested hypothesis (`predict`) (planning)
 
-**Status:** In progress. P3 coyoteGame handler migration shipped. Next step is Phase P4 (client + product docs).
+**Status:** In progress. P4 client + product docs shipped. Next step is Phase P5 (verification + closeout).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -106,11 +106,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Retire [`handleObjectMovedForHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handleObjectMovedForHypothesis.test.ts); add [`handlePredictHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.test.ts).
   - [X] Confirm **`Object Moved`** still drives affordance refresh only (no coyoteGame subscription).
 
-- [ ] Phase P4 - client + product docs
-  - [ ] Update [`CoyoteHelpMessage.tsx`](../../../../../charcoal-client/src/components/Message/CoyoteHelpMessage.tsx): insert **`predict`** step between Acme order and wait.
-  - [ ] Update [`AGENT.CoyoteGame.md`](../../../../../AGENT.CoyoteGame.md) core loop step 3.
-  - [ ] Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md): document **`Predict Hypothesis`** ingress; remove **Object Moved** hypothesis path.
-  - [ ] Update [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) outbound list.
+- [X] Phase P4 - client + product docs
+  - [X] Update [`CoyoteHelpMessage.tsx`](../../../../../charcoal-client/src/components/Message/CoyoteHelpMessage.tsx): insert **`predict`** step between Acme order and wait.
+  - [X] Update [`AGENT.CoyoteGame.md`](../../../../../AGENT.CoyoteGame.md) core loop step 3.
+  - [X] Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md): document **`Predict Hypothesis`** ingress; remove **Object Moved** hypothesis path.
+  - [X] Update [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) outbound list.
+  - [X] Also updated: [`AGENT.CoyoteGame.implementation.md`](../../../../../AGENT.CoyoteGame.implementation.md) (hypothesis trigger), [`lambda/ephemera/dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md) (actions + coyoteGame index rows).
 
 - [ ] Phase P5 - closeout
   - [ ] Run full **Verification** block.
@@ -157,7 +158,7 @@ Manual smoke (optional):
 | Parse affordance shipped (P1) | Done |
 | Actions stream contract shipped (P2) | Done |
 | CoyoteGame migration shipped (P3) | Done |
-| Client + product docs updated (P4) | Not started |
+| Client + product docs updated (P4) | Done |
 | Verification green; plan archived (P5) | Not started |
 
 ## Related docs

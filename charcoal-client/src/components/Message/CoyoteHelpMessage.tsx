@@ -43,6 +43,9 @@ export const CoyoteHelpMessage = ({ message: _message, ...rest }: CoyoteHelpMess
                 <Typography variant='body2' align='left' sx={{ marginBottom: '0.5em' }}>
                     Order Acme products by describing what you want to buy from the catalog: "order rocket power roller-skates" or "order a plate of birdseed and a cannister of ball bearings from Acme."
                 </Typography>
+                <Typography variant='body2' align='left' sx={{ marginBottom: '0.5em' }}>
+                    When your setup is ready, ask for a reading of your plan: "predict" or "what's my plan?"
+                </Typography>
                 <Typography variant='body2' align='left'>
                     Wait for the Road Runner to put your plan into action: "wait for road runner."
                 </Typography>

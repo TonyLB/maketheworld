@@ -9,6 +9,8 @@ This package handles Coyote gameplay synthesis after explicit **Predict Hypothes
 - `mtw.ephemera.actions` `Predict Hypothesis` ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)) --- hypothesis trigger on player **`predict`** command
 - `mtw.ephemera.actions` `Await RoadRunner` ([`../actions/publishedEvents.ts`](../actions/publishedEvents.ts))
 
+Does **not** subscribe to **`mtw.ephemera.positions` `Object Moved`**; affordance refresh on object placement or move is owned by **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/AGENT.md`](../affordanceOrchestration/AGENT.md)).
+
 ## Layout and key files
 
 | Area | Path | Purpose |
