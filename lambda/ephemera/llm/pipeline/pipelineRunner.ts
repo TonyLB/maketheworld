@@ -1,7 +1,7 @@
 import type { AnyPipelineState, PipelineStep } from './pipelineSteps';
 
 /**
- * Optional hooks for structured logging / tracing; Phase 2 invokes these around each step.
+ * Optional hooks for structured logging / tracing; invoked around each step.
  * Token usage remains on **`meta*`** slots on pipeline state, not here.
  */
 export type PipelineTelemetryHooks = {
@@ -10,7 +10,7 @@ export type PipelineTelemetryHooks = {
 };
 
 /**
- * Failure policy is caller-defined in Phase 2 (fail-fast, stub paths, no partial player-visible output).
+ * Failure policy is caller-defined in the feature layer (fail-fast, stub paths, no partial player-visible output).
  * This shape only carries the failed step identity and error payload for structured handling.
  */
 export type PipelineRunFailure<S extends AnyPipelineState> = {
@@ -36,7 +36,7 @@ export type PipelineRunSuccess<S extends AnyPipelineState> = {
 export type PipelineRunResult<S extends AnyPipelineState> = PipelineRunSuccess<S> | PipelineRunFailure<S>;
 
 export type PipelineRunOptions<S extends AnyPipelineState> = PipelineTelemetryHooks & {
-    /** Phase 2: extend with abort signals, per-run metrics tags, etc. */
+    /** Extend with abort signals, per-run metrics tags, etc. */
     extra?: Record<string, unknown>;
 };
 

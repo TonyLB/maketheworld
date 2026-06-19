@@ -24,7 +24,7 @@ export type PipelineStepRunFn<S extends AnyPipelineState> = (
  * derive the next step's inputs.
  */
 export type OrchestrationStepDefinition<S extends AnyPipelineState> = {
-    /** Structured log / span name (Phase 2). */
+    /** Structured log / span name. */
     name: string;
     run: PipelineStepRunFn<S>;
 };

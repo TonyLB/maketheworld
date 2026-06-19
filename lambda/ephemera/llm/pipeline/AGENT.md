@@ -75,6 +75,30 @@ flowchart LR
 
 **Telemetry:** Optional **`PipelineRunOptions`** hooks **`onStepStart` / `onStepEnd`** (step name and index). Hooks are for spans or logs; **usage** stays on **`meta*`** slots on **`S`**.
 
+### Side effects
+
+Side effects that cross async boundaries (message bus **`publish`**, Dynamo writes, external APIs) must use **plain data** assembled into **`nextState`**, never Immer draft proxies or objects that still reference draft-backed graphs. Lambda boundary drain (**`flushAndSettle`**) can persist bus payloads **after** the step returns; publishing draft references caused production **`marshall`** failures when thinking results were persisted asynchronously.
+
+**Order on success paths:**
+
+1. Finish async work (Bedrock invoke, parse, combine, etc.).
+2. Build plain **`nextState`** (spread, locals, or sync **`produce`** --- see **Immer inside steps** above).
+3. Run side effects that read from **`nextState`** only.
+4. **`return { state: nextState }`**.
+
+Do **not** run success-path side effects on **`return { state: nextState, abort: true }`** paths. The runner has no **`onStepCommitted`** hook; keep segment-complete emits in the step body that owns the work.
+
+**Step authoring sketch** (success path; Coyote [`seamCombineRender`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) is the reference consumer):
+
+```typescript
+run: async (state) => {
+    const combinedResult = await combineCandidateOutput(/* ... */);
+    const nextState = { ...state, combined: combinedResult.combined, /* ... */ };
+    await emitSegmentResult(nextState, buildVerboseFromState(nextState));
+    return { state: nextState };
+}
+```
+
 ## Optional Bedrock-shaped helper
 
 **[`defineLlmInvokeStep`](llmInvokeStep.ts)** wraps calls that match **`invokeBedrockConverseText`** ( **`InvokeBedrockConverseTextParams`** in / out). Use it when the feature already builds **Converse** messages directly. Features that wrap Bedrock with **custom user content** (for example cache points in [`invokeBedrockHypothesis`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/invokeBedrockHypothesis.ts)) often use **`defineLlmStep`** with a **`run`** that calls those wrappers instead.
