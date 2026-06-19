@@ -222,3 +222,4 @@ Stage responsibilities:
 
 - Unit tests are colocated next to each phase module under `candidates/`, `planSelect/`, and `narrativeBeats/`.
 - Harness-focused tests remain under [`../../testHarness/`](../../testHarness/).
+- **Async persist regression:** [`coyoteHypothesisPipeline.test.ts`](coyoteHypothesisPipeline.test.ts) (`pipeline thinking async persist (marshall guard)`) runs the pipeline through **`seamCombineRender`**, then drains the bus via **`ephemeraThinkingResultsDataSource.receiveEvents`** with real **`persistThinkingResult`** (mocked **`ephemeraDB`**) to guard revoked-proxy **`marshall`** failures. [`hypothesisThinkingPersistence.test.ts`](hypothesisThinkingPersistence.test.ts) (`bus to persistThinkingResult`) covers the same persist path with realistic **`verbose`** from **`buildCandidatesThinkingResultVerbose`**.

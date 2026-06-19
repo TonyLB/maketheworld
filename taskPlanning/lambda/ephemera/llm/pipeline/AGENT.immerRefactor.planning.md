@@ -1,6 +1,6 @@
 # Ephemera LLM pipeline: return-state runner refactor (planning)
 
-**Status:** **Phase 2 complete.** Next step: **Phase 3** (regression guard for revoked-proxy / async bus persist).
+**Status:** **Phase 3 complete.** Next step: **Phase 4** (closeout: full **`AGENT.md`**, delete this plan).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -216,10 +216,10 @@ return { state: nextState };
 | **0** | Optional hotfix: clone **`verbose`** at emit | **Skipped** (**D5**) |
 | **1** | New step contract + runner + **`runPipeline.test.ts`** | **Complete** |
 | **2** | Migrate **`coyoteHypothesisPipeline.ts`** + thinking emit from plain **`nextState`** in step (**D4**) | **Complete** |
-| **3** | Regression test: async bus persist after step commit (revoked-proxy guard) | Not started |
+| **3** | Regression test: async bus persist after step commit (revoked-proxy guard) | **Complete** |
 | **4** | Update **`llm/pipeline/AGENT.md`**; delete this plan | Not started |
 
-**Phase 1 landed:** Framework runner uses return-state fold (no Immer). **Phase 2 landed:** Coyote consumer migrated; **`coyoteHypothesisPipeline.test.ts`** and **`npm run build`** should pass. Phase 4 closeout (full **`AGENT.md`**, delete this plan) remains.
+**Phase 1 landed:** Framework runner uses return-state fold (no Immer). **Phase 2 landed:** Coyote consumer migrated. **Phase 3 landed:** pipeline + async **`receiveEvents`** regression tests guard revoked-proxy **`marshall`** failures (see Phase 3 notes below). Phase 4 closeout (full **`AGENT.md`**, delete this plan) remains.
 
 ## Getting started
 
@@ -258,9 +258,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Confirm **`finalizeHypothesisThinkingOnRunFailure`** still receives plain **`runResult.state`** (should be unchanged).
   - [X] Update [`coyoteHypothesisPipeline.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts) and any harness mocks.
 
-- [ ] Phase 3 - regression guard
-  - [ ] Add test: publish thinking result from pipeline path after step returns plain **`S`**, then **`ephemeraThinkingResultsDataSource.receiveEvents`** + **`persistThinkingResult`** (mock **`ephemeraDB`**) does not throw on **`marshall`**.
-  - [ ] Optionally extend [`hypothesisThinkingPersistence.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.test.ts) bus-to-Dynamo integration case with realistic **`verbose`** shape (**`roomObjectsByRoom`**, **`combined`**).
+- [X] Phase 3 - regression guard
+  - [X] Add test: publish thinking result from pipeline path after step returns plain **`S`**, then **`ephemeraThinkingResultsDataSource.receiveEvents`** + **`persistThinkingResult`** (mock **`ephemeraDB`**) does not throw on **`marshall`**. **`coyoteHypothesisPipeline.test.ts`**: `pipeline thinking async persist (marshall guard)` / `candidates Thinking Result from pipeline survives async receiveEvents marshall`.
+  - [X] Optionally extend [`hypothesisThinkingPersistence.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/hypothesisThinkingPersistence.test.ts) bus-to-Dynamo integration case with realistic **`verbose`** shape (**`roomObjectsByRoom`**, **`combined`**).
 
 - [ ] Phase 4 - closeout
   - [ ] Update [`llm/pipeline/AGENT.md`](../../../../../lambda/ephemera/llm/pipeline/AGENT.md): step signature, Immer scope, side-effect guidance.

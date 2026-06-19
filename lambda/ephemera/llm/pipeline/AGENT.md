@@ -101,7 +101,7 @@ Other multi-step flows that are still **ad hoc** (for example [`parseCommand`](.
 
 ## Tests and verification
 
-- **Unit tests:** [`runPipeline.test.ts`](runPipeline.test.ts) (ordering, abort discriminant, unexpected throw, hooks). Feature pipeline tests live next to the feature (for example [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts), [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts)).
+- **Unit tests:** [`runPipeline.test.ts`](runPipeline.test.ts) (ordering, abort discriminant, unexpected throw, hooks). Feature pipeline tests live next to the feature (for example [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/generateHypothesis.test.ts), [`../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts)). Coyote **`pipeline thinking async persist (marshall guard)`** exercises side effects on plain returned state through async bus drain + Dynamo **`marshall`**.
 - From [`lambda/ephemera`](../../), run **`npm run build`**, then Jest as needed, for example **`npm run test -- --runInBand llm/pipeline/`** plus targeted paths for touched features.
 - Confirm **ReadLints** clean on edited TypeScript in the workspace after substantive changes.
 

@@ -2,8 +2,10 @@ import {
     THINKING_RESULT_HEADER_TYPE,
     isThinkingResultEvent,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import * as apiEphemera from '../../../../apiEphemera'
+import internalCache from '../../../../../internalCache'
 import type { StreamingEventMessage } from '../../../../../messageBus/baseClasses'
 import * as persistModule from '../../../../thinking/results/persistThinkingResult'
 import { ephemeraThinkingResultsDataSource } from '../../../../thinking/results/index'
@@ -26,6 +28,21 @@ import {
 } from './hypothesisThinkingPersistence'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('@tonylb/mtw-gateways/ts/ephemera/thinking', () => {
+    const actual = jest.requireActual('@tonylb/mtw-gateways/ts/ephemera/thinking')
+    return {
+        ...actual,
+        thinkingDeleteAtFromTerminalIso: jest.fn(() => 1735689600),
+    }
+})
+jest.mock('../../../../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ThinkingResults: {
+            invalidate: jest.fn(),
+        },
+    },
+}))
 
 jest.mock('../../../../apiEphemera', () => ({
     sendPutThinkingJobCreate: jest.fn(),
@@ -476,6 +493,11 @@ describe('hypothesisThinkingPersistence', () => {
     })
 
     describe('bus to persistThinkingResult', () => {
+        beforeEach(() => {
+            ;(ephemeraDB.putItem as jest.Mock).mockResolvedValue(undefined)
+            ;(ephemeraDB.nonCollidingPutItem as jest.Mock).mockResolvedValue(true)
+        })
+
         it('receiveEvents persists Coyote Thinking Result with ok false from mock bus envelope', async () => {
             const publish = jest.fn()
             const ids = mintHypothesisThinkingIds(['planSelect'])
@@ -531,6 +553,17 @@ describe('hypothesisThinkingPersistence', () => {
             const workItemId = ids.workItems.candidates!
             const streamKey = thinkingStreamKey(generationId)
             const completedAt = '2026-05-15T12:00:00.000Z'
+            const stageOneBody = '{"candidates":[]}'
+            const verbose = buildCandidatesThinkingResultVerbose({
+                roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                stageOneResult: {
+                    success: true,
+                    body: stageOneBody,
+                    usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+                },
+                combined: { candidates: [] },
+                stageOnePromptParts: { invariantPrefix: 'INV_', dynamicSuffix: 'DYN' },
+            })
 
             sendCoyoteThinkingResult(
                 { publish },
@@ -542,12 +575,11 @@ describe('hypothesisThinkingPersistence', () => {
                     segment: 'candidates',
                     ok: true,
                     completedAt,
-                    verbose: { combined: { candidates: [], schemaVersion: 4 } },
+                    verbose,
                 }
             )
 
             const msg = publish.mock.calls[0][0] as StreamingEventMessage
-            const spy = jest.spyOn(persistModule, 'persistThinkingResult').mockResolvedValue('written')
             await ephemeraThinkingResultsDataSource.receiveEvents!({
                 events: [
                     {
@@ -558,16 +590,23 @@ describe('hypothesisThinkingPersistence', () => {
                 streamEvent: jest.fn(),
                 streamEnvelope: jest.fn(),
             })
-            expect(spy).toHaveBeenCalledWith(
+            expect(ephemeraDB.putItem).toHaveBeenCalledTimes(1)
+            expect(ephemeraDB.nonCollidingPutItem).toHaveBeenCalledWith(
                 expect.objectContaining({
                     generationId,
                     workItemId,
                     segment: 'candidates',
                     ok: true,
                     completedAt,
+                    verbose: expect.objectContaining({
+                        roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+                        combined: { candidates: [] },
+                        stageOneBody,
+                        bedrockPrompt: expect.objectContaining({ fullText: 'INV_DYN' }),
+                    }),
                 })
             )
-            spy.mockRestore()
+            expect(internalCache.ThinkingResults.invalidate).toHaveBeenCalledWith(workItemId)
         })
     })
 })

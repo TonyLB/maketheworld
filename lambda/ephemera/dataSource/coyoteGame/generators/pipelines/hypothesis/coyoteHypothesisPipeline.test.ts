@@ -14,12 +14,32 @@ jest.mock('../../../../apiEphemera', () => ({
     sendPutThinkingJobError: jest.fn(),
 }))
 
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
+jest.mock('@tonylb/mtw-gateways/ts/ephemera/thinking', () => {
+    const actual = jest.requireActual('@tonylb/mtw-gateways/ts/ephemera/thinking')
+    return {
+        ...actual,
+        thinkingDeleteAtFromTerminalIso: jest.fn(() => 1735689600),
+    }
+})
+jest.mock('../../../../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ThinkingResults: {
+            invalidate: jest.fn(),
+        },
+    },
+}))
+
 import {
     THINKING_RESULT_HEADER_TYPE,
     isThinkingResultEvent,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import * as apiEphemera from '../../../../apiEphemera'
+import internalCache from '../../../../../internalCache'
+import { ephemeraThinkingResultsDataSource } from '../../../../thinking/results/index'
 import type { StreamingEventMessage } from '../../../../../messageBus/baseClasses'
 import { EPHEMERA_COYOTE_GAME_DATA_SOURCE_KEY } from './hypothesisThinkingPersistence'
 
@@ -798,5 +818,68 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
         }
         expect(narrativeBeatMock).not.toHaveBeenCalled()
         expect(planSelectionMock).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('pipeline thinking async persist (marshall guard)', () => {
+    const getGameRooms = jest.fn<Promise<string[]>, []>()
+
+    const pipelineDeps = () => ({
+        ...coyoteSnapshotDepsFromRoomObjects(getGameRooms, DEFAULT_PIPELINE_ROOM_OBJECTS),
+        messageBus: mockMessageBus(),
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
+        stageOneMock.mockResolvedValue({
+            success: true,
+            body: stageOneSeamBody,
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        })
+        ;(ephemeraDB.putItem as jest.Mock).mockResolvedValue(undefined)
+        ;(ephemeraDB.nonCollidingPutItem as jest.Mock).mockResolvedValue(true)
+    })
+
+    it('candidates Thinking Result from pipeline survives async receiveEvents marshall', async () => {
+        const bus = mockMessageBus()
+        const result = await runCoyoteHypothesisPipeline(
+            { ...pipelineDeps(), messageBus: bus },
+            { testOnly: 'candidates', harnessRunKind: 'runUntil' }
+        )
+        expect(result.kind).toBe('harnessPartial')
+
+        const thinkingMsgs = findCoyoteThinkingResultMessages(bus.publish)
+        expect(thinkingMsgs).toHaveLength(1)
+
+        const msg = thinkingMsgs[0]
+        await ephemeraThinkingResultsDataSource.receiveEvents!({
+            events: [
+                {
+                    header: msg.header,
+                    getContent: msg.getContent,
+                } as never,
+            ],
+            streamEvent: jest.fn(),
+            streamEnvelope: jest.fn(),
+        })
+
+        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraDB.nonCollidingPutItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraDB.nonCollidingPutItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                verbose: expect.objectContaining({
+                    roomObjectsByRoom: DEFAULT_PIPELINE_ROOM_OBJECTS,
+                    combined: expect.objectContaining({ candidates: expect.any(Array) }),
+                    stageOneBody: stageOneSeamBody,
+                }),
+            })
+        )
+
+        const content = await msg.getContent()
+        expect(isThinkingResultEvent(content)).toBe(true)
+        if (isThinkingResultEvent(content)) {
+            expect(internalCache.ThinkingResults.invalidate).toHaveBeenCalledWith(content.workItemId)
+        }
     })
 })
