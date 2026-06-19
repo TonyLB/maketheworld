@@ -32,7 +32,6 @@ import {
     invokeBedrockHypothesisStageOne,
 } from './invokeBedrockHypothesis'
 import {
-    CoyoteHypothesisPipelineAbortError,
     mapPipelineRunToGenerateHypothesisResult,
     runCoyoteHypothesisPipeline,
     validateCoyoteHypothesisHarnessOptions,
@@ -228,6 +227,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
     it('maps abort failure with stage results to stub pipeline result', () => {
         const result = mapPipelineRunToGenerateHypothesisResult({
             ok: false,
+            abort: true,
             state: {
                 stageOneResult: { success: false, errorMessage: 'Throttled' },
                 planSelectionResult: null,
@@ -235,7 +235,6 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
             },
             failedStepName: 'hypothesisCandidatesLlm',
             failedStepIndex: 1,
-            error: new CoyoteHypothesisPipelineAbortError(),
         })
         expect(result).toEqual({
             kind: 'stub',
@@ -250,6 +249,7 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
         expect(() =>
             mapPipelineRunToGenerateHypothesisResult({
                 ok: false,
+                abort: false,
                 state: {},
                 failedStepName: 'loadRoomObjects',
                 failedStepIndex: 0,
@@ -637,7 +637,7 @@ describe('runCoyoteHypothesisPipeline harness modes', () => {
                     },
                 }
             )
-        ).rejects.toThrow(CoyoteHypothesisPipelineAbortError)
+        ).rejects.toThrow('CoyoteHypothesisPipelineAbort')
         expect(await thinkingResultsOkFromBus(bus.publish)).toEqual([{ segment: 'planSelect', ok: false }])
         expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
     })

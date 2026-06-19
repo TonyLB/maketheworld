@@ -1,6 +1,6 @@
 # Ephemera LLM pipeline: return-state runner refactor (planning)
 
-**Status:** Design complete (**D1--D5**). Next step: **Phase 1** (runner contract + unit tests).
+**Status:** **Phase 2 complete.** Next step: **Phase 3** (regression guard for revoked-proxy / async bus persist).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -214,10 +214,12 @@ return { state: nextState };
 | Phase | Description | Status |
 | --- | --- | --- |
 | **0** | Optional hotfix: clone **`verbose`** at emit | **Skipped** (**D5**) |
-| **1** | New step contract + runner + **`runPipeline.test.ts`** | Not started |
-| **2** | Migrate **`coyoteHypothesisPipeline.ts`** + thinking emit from plain **`nextState`** in step (**D4**) | Not started |
+| **1** | New step contract + runner + **`runPipeline.test.ts`** | **Complete** |
+| **2** | Migrate **`coyoteHypothesisPipeline.ts`** + thinking emit from plain **`nextState`** in step (**D4**) | **Complete** |
 | **3** | Regression test: async bus persist after step commit (revoked-proxy guard) | Not started |
 | **4** | Update **`llm/pipeline/AGENT.md`**; delete this plan | Not started |
+
+**Phase 1 landed:** Framework runner uses return-state fold (no Immer). **Phase 2 landed:** Coyote consumer migrated; **`coyoteHypothesisPipeline.test.ts`** and **`npm run build`** should pass. Phase 4 closeout (full **`AGENT.md`**, delete this plan) remains.
 
 ## Getting started
 
@@ -243,18 +245,18 @@ npm run test -- --watchAll=false dataSource/coyoteGame/generators/pipelines/hypo
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as each sub-step lands.
 
 - [X] Phase 0 (optional) - production hotfix --- **skipped** (**D5**): no emit-time clone; Phase 2 fixes persistence
-- [ ] Phase 1 - runner contract
-  - [ ] Add **`PipelineStepRunResult<S>`** and **`PipelineStepRunFn<S>`** in [`pipelineSteps.ts`](../../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts); extend **`PipelineRunFailure`** with **`abort?: boolean`**.
-  - [ ] Rewrite [`pipelineRunner.ts`](../../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts): fold **`PipelineStepRunResult`** (no Immer); on **`abort: true`**, fail with **`result.state`**; on **`throw`**, fail with last committed **`state`** and **`abort: false`**.
-  - [ ] Mechanical port [`llmInvokeStep.ts`](../../../../../lambda/ephemera/llm/pipeline/llmInvokeStep.ts) to new step contract (see **Phase 1 notes**); invoke failure stays **`throw`**.
-  - [ ] Rewrite [`runPipeline.test.ts`](../../../../../lambda/ephemera/llm/pipeline/runPipeline.test.ts): ordering, async-before-return, **`abort: true`** partial **`state`**, unexpected **`throw`**, telemetry hooks, **`defineLlmInvokeStep`** cases.
-  - [ ] Remove **`Draft`** from public step surface in [`index.ts`](../../../../../lambda/ephemera/llm/pipeline/index.ts) exports if no longer needed.
+- [X] Phase 1 - runner contract
+  - [X] Add **`PipelineStepRunResult<S>`** and **`PipelineStepRunFn<S>`** in [`pipelineSteps.ts`](../../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts); extend **`PipelineRunFailure`** with **`abort?: boolean`**.
+  - [X] Rewrite [`pipelineRunner.ts`](../../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts): fold **`PipelineStepRunResult`** (no Immer); on **`abort: true`**, fail with **`result.state`**; on **`throw`**, fail with last committed **`state`** and **`abort: false`**.
+  - [X] Mechanical port [`llmInvokeStep.ts`](../../../../../lambda/ephemera/llm/pipeline/llmInvokeStep.ts) to new step contract (see **Phase 1 notes**); invoke failure stays **`throw`**.
+  - [X] Rewrite [`runPipeline.test.ts`](../../../../../lambda/ephemera/llm/pipeline/runPipeline.test.ts): ordering, async-before-return, **`abort: true`** partial **`state`**, unexpected **`throw`**, telemetry hooks, **`defineLlmInvokeStep`** cases.
+  - [X] Remove **`Draft`** from public step surface in [`index.ts`](../../../../../lambda/ephemera/llm/pipeline/index.ts) exports if no longer needed.
 
-- [ ] Phase 2 - Coyote consumer migration
-  - [ ] Rewrite seven steps in [`coyoteHypothesisPipeline.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts): **`{ state: nextS }`** or **`{ state: nextS, abort: true }`**; remove **`abort()`** / **`CoyoteHypothesisPipelineAbortError`** product path; update **`mapPipelineRunToGenerateHypothesisResult`** to use **`result.abort`**.
-  - [ ] Update **`emitThinkingResultForSegmentIfActive`** and the three segment-complete steps per **D4** (**`nextState`**, emit, then **`return { state: nextState }`**).
-  - [ ] Confirm **`finalizeHypothesisThinkingOnRunFailure`** still receives plain **`runResult.state`** (should be unchanged).
-  - [ ] Update [`coyoteHypothesisPipeline.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts) and any harness mocks.
+- [X] Phase 2 - Coyote consumer migration
+  - [X] Rewrite seven steps in [`coyoteHypothesisPipeline.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts): **`{ state: nextS }`** or **`{ state: nextS, abort: true }`**; remove **`abort()`** / **`CoyoteHypothesisPipelineAbortError`** product path; update **`mapPipelineRunToGenerateHypothesisResult`** to use **`result.abort`**.
+  - [X] Update **`emitThinkingResultForSegmentIfActive`** and the three segment-complete steps per **D4** (**`nextState`**, emit, then **`return { state: nextState }`**).
+  - [X] Confirm **`finalizeHypothesisThinkingOnRunFailure`** still receives plain **`runResult.state`** (should be unchanged).
+  - [X] Update [`coyoteHypothesisPipeline.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.test.ts) and any harness mocks.
 
 - [ ] Phase 3 - regression guard
   - [ ] Add test: publish thinking result from pipeline path after step returns plain **`S`**, then **`ephemeraThinkingResultsDataSource.receiveEvents`** + **`persistThinkingResult`** (mock **`ephemeraDB`**) does not throw on **`marshall`**.

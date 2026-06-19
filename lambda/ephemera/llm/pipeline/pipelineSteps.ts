@@ -1,5 +1,3 @@
-import type { Draft } from 'immer';
-
 /**
  * Upper bound for pipeline state: a shallow record of optional **slots** (`input*`, `output*`, `meta*`, ...).
  * Each feature defines its own concrete `S` (for example `Partial<{ inputA, outputA, metaA }>`); distinct slot
@@ -8,11 +6,18 @@ import type { Draft } from 'immer';
  */
 export type AnyPipelineState = Record<string, unknown>;
 
+export type PipelineStepRunSuccess<S> = { state: S };
+export type PipelineStepRunAbort<S> = { state: S; abort: true };
+export type PipelineStepRunResult<S> = PipelineStepRunSuccess<S> | PipelineStepRunAbort<S>;
+
 /**
- * Primary step contract: each step mutates a single Immer **draft** of `S`.
- * The runner applies **`createDraft` / `finishDraft`** per step; prefer shallow writes to top-level slot keys.
+ * Primary step contract: each step receives read-only committed state and returns the next full `S`
+ * (or an abort discriminant carrying that `S`). The runner folds results sequentially; it does not use Immer.
+ * Steps may use sync `produce` internally after async work when nested updates are clearer that way.
  */
-export type PipelineStepDraftFn<S extends AnyPipelineState> = (draft: Draft<S>) => void | Promise<void>;
+export type PipelineStepRunFn<S extends AnyPipelineState> = (
+    state: Readonly<S>
+) => Promise<PipelineStepRunResult<S>>;
 
 /**
  * Orchestration: async TypeScript only; no Bedrock. Reads prior `input*` / `output*` slots and may
@@ -21,17 +26,17 @@ export type PipelineStepDraftFn<S extends AnyPipelineState> = (draft: Draft<S>) 
 export type OrchestrationStepDefinition<S extends AnyPipelineState> = {
     /** Structured log / span name (Phase 2). */
     name: string;
-    run: PipelineStepDraftFn<S>;
+    run: PipelineStepRunFn<S>;
 };
 
 /**
  * LLM adapter: thin wrapper around feature-owned `invokeBedrock*` + prompt builders + parse/validate.
- * Framework (Phase 2) wires invoke to typed extraction and writes **`output*`** and **`meta*`** on `S`.
+ * Framework wires invoke to typed extraction and writes **`output*`** and **`meta*`** on `S`.
  * Prompt assembly, cache points, and domain options stay in the feature.
  */
 export type LlmAdapterStepDefinition<S extends AnyPipelineState> = {
     name: string;
-    run: PipelineStepDraftFn<S>;
+    run: PipelineStepRunFn<S>;
 };
 
 export type PipelineStep<S extends AnyPipelineState> =
