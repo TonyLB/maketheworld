@@ -1,5 +1,3 @@
-import type { Draft } from 'immer';
-
 import { createPipelineContext, defineLlmInvokeStep } from '.';
 import type { InvokeBedrockConverseTextParams, InvokeBedrockConverseTextResult } from '../invokeBedrockConverseText';
 
@@ -14,17 +12,26 @@ describe('runPipeline', () => {
         const steps = [
             ctx.defineOrchestrationStep({
                 name: 'first',
-                run: (draft) => {
-                    draft.trace = `${String(draft.trace)}a`;
-                    draft.counter = Number(draft.counter) + 1;
-                },
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: `${String(state.trace)}a`,
+                            counter: Number(state.counter) + 1,
+                        },
+                    }),
             }),
             ctx.defineOrchestrationStep({
                 name: 'second',
-                run: (draft) => {
-                    expect(draft.trace).toBe('a');
-                    expect(draft.counter).toBe(1);
-                    draft.trace = `${String(draft.trace)}b`;
+                run: (state) => {
+                    expect(state.trace).toBe('a');
+                    expect(state.counter).toBe(1);
+                    return Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: `${String(state.trace)}b`,
+                        },
+                    });
                 },
             }),
         ];
@@ -37,14 +44,18 @@ describe('runPipeline', () => {
         }
     });
 
-    it('propagates failure and leaves state at last successful step', async () => {
+    it('propagates unexpected throw with last committed state only', async () => {
         const ctx = createPipelineContext<TraceState>();
         const steps = [
             ctx.defineOrchestrationStep({
                 name: 'ok',
-                run: (draft) => {
-                    draft.trace = 'before-boom';
-                },
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'before-boom',
+                        },
+                    }),
             }),
             ctx.defineOrchestrationStep({
                 name: 'boom',
@@ -54,9 +65,13 @@ describe('runPipeline', () => {
             }),
             ctx.defineOrchestrationStep({
                 name: 'skipped',
-                run: (draft) => {
-                    draft.trace = 'should-not-run';
-                },
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'should-not-run',
+                        },
+                    }),
             }),
         ];
 
@@ -65,8 +80,58 @@ describe('runPipeline', () => {
         if (!r.ok) {
             expect(r.failedStepName).toBe('boom');
             expect(r.failedStepIndex).toBe(1);
+            expect(r.abort).toBe(false);
             expect(r.state.trace).toBe('before-boom');
             expect(r.error).toEqual(new Error('step failed'));
+        }
+    });
+
+    it('stops on abort discriminant with partial returned state', async () => {
+        const ctx = createPipelineContext<TraceState>();
+        const steps = [
+            ctx.defineOrchestrationStep({
+                name: 'ok',
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'committed',
+                        },
+                    }),
+            }),
+            ctx.defineOrchestrationStep({
+                name: 'abort-step',
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'partial-abort',
+                            counter: 99,
+                        },
+                        abort: true,
+                    }),
+            }),
+            ctx.defineOrchestrationStep({
+                name: 'skipped',
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'should-not-run',
+                        },
+                    }),
+            }),
+        ];
+
+        const r = await ctx.runPipeline({ trace: '', counter: 0 }, steps);
+        expect(r.ok).toBe(false);
+        if (!r.ok) {
+            expect(r.abort).toBe(true);
+            expect(r.failedStepName).toBe('abort-step');
+            expect(r.failedStepIndex).toBe(1);
+            expect(r.state.trace).toBe('partial-abort');
+            expect(r.state.counter).toBe(99);
+            expect(r.error).toBeUndefined();
         }
     });
 
@@ -78,15 +143,23 @@ describe('runPipeline', () => {
         const steps = [
             ctx.defineOrchestrationStep({
                 name: 'alpha',
-                run: (draft) => {
-                    draft.trace = 'x';
-                },
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: 'x',
+                        },
+                    }),
             }),
             ctx.defineOrchestrationStep({
                 name: 'beta',
-                run: (draft) => {
-                    draft.trace = `${String(draft.trace)}y`;
-                },
+                run: (state) =>
+                    Promise.resolve({
+                        state: {
+                            ...state,
+                            trace: `${String(state.trace)}y`,
+                        },
+                    }),
             }),
         ];
 
@@ -108,15 +181,20 @@ describe('runPipeline', () => {
         expect(ends).toEqual(['alpha:0', 'beta:1']);
     });
 
-    it('supports async work inside a step before mutating the draft', async () => {
+    it('supports async work inside a step before returning next state', async () => {
         type AsyncState = Record<string, unknown> & { ready: boolean };
         const ctx = createPipelineContext<AsyncState>();
         const steps = [
             ctx.defineOrchestrationStep({
                 name: 'async-step',
-                run: async (draft: Draft<AsyncState>) => {
+                run: async (state) => {
                     await Promise.resolve();
-                    draft.ready = true;
+                    return {
+                        state: {
+                            ...state,
+                            ready: true,
+                        },
+                    };
                 },
             }),
         ];
@@ -158,12 +236,14 @@ describe('defineLlmInvokeStep', () => {
                 name: 'llm',
                 buildParams: () => params,
                 invoke,
-                applyOutputs: (draft, { body }) => {
-                    draft.out = body;
-                },
-                applyMeta: (draft, meta) => {
-                    draft.meta = meta;
-                },
+                applyOutputs: (state, { body }) => ({
+                    ...state,
+                    out: body,
+                }),
+                applyMeta: (state, meta) => ({
+                    ...state,
+                    meta,
+                }),
             })
         );
 
@@ -178,7 +258,7 @@ describe('defineLlmInvokeStep', () => {
         expect(invoke).toHaveBeenCalledWith(params);
     });
 
-    it('records meta on invoke failure then fails the run', async () => {
+    it('fails invoke with last committed state unchanged on throw', async () => {
         type LlmState = Record<string, unknown> & {
             meta?: { ok: boolean; errorMessage?: string };
         };
@@ -203,12 +283,11 @@ describe('defineLlmInvokeStep', () => {
                     timeoutMs: 1,
                 }),
                 invoke,
-                applyOutputs: () => {
-                    /* no outputs on failure path */
-                },
-                applyMeta: (draft, meta) => {
-                    draft.meta = meta;
-                },
+                applyOutputs: (state) => state,
+                applyMeta: (state, meta) => ({
+                    ...state,
+                    meta,
+                }),
             })
         );
 
@@ -216,8 +295,9 @@ describe('defineLlmInvokeStep', () => {
         expect(r.ok).toBe(false);
         if (!r.ok) {
             expect(r.failedStepName).toBe('llm-fail');
-            expect(r.state.meta?.ok).toBe(false);
-            expect(r.state.meta?.errorMessage).toBe('rate limited');
+            expect(r.abort).toBe(false);
+            expect(r.state).toEqual({});
+            expect(r.error).toEqual(new Error('rate limited'));
         }
     });
 });

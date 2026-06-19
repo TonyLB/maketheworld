@@ -1,8 +1,8 @@
 /**
  * Session orientation kick on `mtw.connections` / `Character Registered`.
  *
- * Resolves room + canon-filtered perspective from `Meta::Character`, registers a
- * channel-specific perception thread with `CHARACTER#` targets, and kicks orchestration
+ * Resolves room + canon-filtered perspective from play membership (or eviction ladder
+ * when out of play), registers a channel-specific perception thread with `CHARACTER#` targets, and kicks orchestration
  * with routing identity only (no delivery fields on orchestration ingress).
  *
  * Each orchestration DataSource calls this with its own `channel` so both threads
@@ -17,6 +17,7 @@ import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
 import type { PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageBus } from '../../messageBus/baseClasses'
+import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { orchestrateAffordanceRequest } from '../affordanceOrchestration/orchestrationHandler'
@@ -39,7 +40,8 @@ export type SessionOrientationContext = {
 }
 
 export type ResolveSessionOrientationContextDeps = {
-    characterMetaGet?: (characterId: EphemeraCharacterId) => Promise<{ RoomId?: EphemeraRoomId; assets?: readonly string[] } | undefined>;
+    resolveCharacterRoomId?: typeof resolveCharacterRoomId;
+    characterMetaGet?: (characterId: EphemeraCharacterId) => Promise<{ assets?: readonly string[] } | undefined>;
     resolvePerspective?: (
         roomId: EphemeraRoomId,
         characterAssets: readonly string[]
@@ -51,16 +53,13 @@ export async function resolveSessionOrientationContext(
     deps?: ResolveSessionOrientationContextDeps
 ): Promise<SessionOrientationContext | null> {
     const { characterId } = event
+    const resolveRoomId = deps?.resolveCharacterRoomId ?? resolveCharacterRoomId
     const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
     const resolvePerspective = deps?.resolvePerspective ?? resolveCharacterRoomPerspectiveForRoom
 
+    const roomId = await resolveRoomId(characterId)
     const meta = await characterMetaGet(characterId)
-    const roomId = meta?.RoomId
-    if (!roomId) {
-        return null
-    }
-
-    const resolved = await resolvePerspective(roomId, meta.assets ?? [])
+    const resolved = await resolvePerspective(roomId, meta?.assets ?? [])
     if (!resolved) {
         return null
     }
@@ -78,14 +77,9 @@ export async function resolveSessionOrientationContext(
 }
 
 async function resolveSessionOrientationSkipReason(
-    event: ConnectionsCharacterRegisteredEvent,
-    deps?: ResolveSessionOrientationContextDeps
+    _event: ConnectionsCharacterRegisteredEvent,
+    _deps?: ResolveSessionOrientationContextDeps
 ): Promise<SessionOrientationSkipReason> {
-    const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
-    const meta = await characterMetaGet(event.characterId)
-    if (!meta?.RoomId) {
-        return 'no_room'
-    }
     return 'no_perspective'
 }
 

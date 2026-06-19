@@ -3,7 +3,10 @@ export type {
     LlmAdapterStepDefinition,
     OrchestrationStepDefinition,
     PipelineStep,
-    PipelineStepDraftFn,
+    PipelineStepRunAbort,
+    PipelineStepRunFn,
+    PipelineStepRunResult,
+    PipelineStepRunSuccess,
 } from './pipelineSteps';
 
 export type {

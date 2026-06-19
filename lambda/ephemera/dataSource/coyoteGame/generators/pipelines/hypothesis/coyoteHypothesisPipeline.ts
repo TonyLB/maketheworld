@@ -144,17 +144,7 @@ export type CoyoteHypothesisPipelineState = {
     };
 };
 
-/** Thrown after partial state is written so [`runPipeline`] stops and the mapper returns a stub [`GenerateHypothesisPipelineResult`]. */
-export class CoyoteHypothesisPipelineAbortError extends Error {
-    constructor() {
-        super('CoyoteHypothesisPipelineAbort');
-        this.name = 'CoyoteHypothesisPipelineAbortError';
-    }
-}
-
-function abort(): never {
-    throw new CoyoteHypothesisPipelineAbortError();
-}
+const PRODUCT_ABORT_ERROR_MESSAGE = 'CoyoteHypothesisPipelineAbort';
 
 function summarizeInvokeResult(result: InvokeBedrockHypothesisResult): Record<string, unknown> {
     return {
@@ -237,13 +227,13 @@ const RUN_UNTIL_LAST_STEP_INDEX: Record<CoyoteHypothesisTestPhase, number> = {
 };
 
 async function emitThinkingResultForSegmentIfActive(
-    draft: CoyoteHypothesisPipelineState,
+    state: CoyoteHypothesisPipelineState,
     deps: GenerateHypothesisDeps,
     thinkingHarness: HypothesisThinkingHarnessOptions | undefined,
     segment: ThinkingSegment,
     verbose: unknown
 ): Promise<void> {
-    const thinking = draft.thinking;
+    const thinking = state.thinking;
     if (thinking === undefined) {
         return;
     }
@@ -265,15 +255,16 @@ function buildCoyoteHypothesisSteps(
     return [
         ctx.defineOrchestrationStep({
             name: 'loadRoomObjects',
-            run: async (draft) => {
-                draft.roomObjectsByRoom =
+            run: async (state) => {
+                const roomObjectsByRoom =
                     deps.roomObjectsByRoomOverride ?? (await loadCoyoteRoomObjectsByRoom(deps));
+                return { state: { ...state, roomObjectsByRoom } };
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisCandidatesLlm',
-            run: async (draft) => {
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
+            run: async (state) => {
+                const roomObjectsByRoom = state.roomObjectsByRoom;
                 if (!roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: missing roomObjectsByRoom');
                 }
@@ -281,21 +272,25 @@ function buildCoyoteHypothesisSteps(
                     roomObjectsByRoom,
                     includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
-                draft.stageOnePromptParts = stageOneParts;
                 const stageOneResult = await invokeBedrockHypothesisStageOne(stageOneParts);
-                draft.stageOneResult = stageOneResult;
+                const nextState: CoyoteHypothesisPipelineState = {
+                    ...state,
+                    stageOnePromptParts: stageOneParts,
+                    stageOneResult,
+                };
                 hypothesisDebugLog('stage one invoke complete', summarizeInvokeResult(stageOneResult));
                 if (!stageOneResult.success) {
                     hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'stageOneInvokeFailed' });
-                    abort();
+                    return { state: nextState, abort: true };
                 }
+                return { state: nextState };
             },
         }),
         ctx.defineOrchestrationStep({
             name: 'seamCombineRender',
-            run: async (draft) => {
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const stageOneResult = draft.stageOneResult;
+            run: async (state) => {
+                const roomObjectsByRoom = state.roomObjectsByRoom;
+                const stageOneResult = state.stageOneResult;
                 if (!roomObjectsByRoom || !stageOneResult?.success) {
                     throw new Error('CoyoteHypothesisPipeline: seamCombineRender preconditions');
                 }
@@ -305,7 +300,7 @@ function buildCoyoteHypothesisSteps(
                         reason: 'stageOneParseFailed',
                         parseErrorMessage: seamParsed.errorMessage,
                     });
-                    abort();
+                    return { state, abort: true };
                 }
                 const combinedResult = combineCandidateOutput(
                     seamParsed.candidates,
@@ -316,28 +311,32 @@ function buildCoyoteHypothesisSteps(
                         reason: 'combineFailed',
                         combineErrorMessage: combinedResult.errorMessage,
                     });
-                    abort();
+                    return { state, abort: true };
                 }
-                draft.combined = combinedResult.combined;
+                const nextState: CoyoteHypothesisPipelineState = {
+                    ...state,
+                    combined: combinedResult.combined,
+                };
                 await emitThinkingResultForSegmentIfActive(
-                    draft,
+                    nextState,
                     deps,
                     thinkingHarness,
                     'candidates',
                     buildCandidatesThinkingResultVerbose({
-                        roomObjectsByRoom,
-                        stageOneResult,
-                        combined: combinedResult.combined,
-                        stageOnePromptParts: draft.stageOnePromptParts,
+                        roomObjectsByRoom: nextState.roomObjectsByRoom!,
+                        stageOneResult: nextState.stageOneResult!,
+                        combined: nextState.combined!,
+                        stageOnePromptParts: nextState.stageOnePromptParts,
                     })
                 );
+                return { state: nextState };
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisPlanSelectionLlm',
-            run: async (draft) => {
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combined = draft.combined;
+            run: async (state) => {
+                const roomObjectsByRoom = state.roomObjectsByRoom;
+                const combined = state.combined;
                 if (!roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisPlanSelectionLlm preconditions');
                 }
@@ -346,33 +345,38 @@ function buildCoyoteHypothesisSteps(
                     combined,
                     includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
-                draft.planSelectPromptParts = parts;
                 const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
-                draft.planSelectionResult = planSelectionResult;
+                const nextState: CoyoteHypothesisPipelineState = {
+                    ...state,
+                    planSelectPromptParts: parts,
+                    planSelectionResult,
+                };
                 hypothesisDebugLog('plan selection invoke complete', summarizeInvokeResult(planSelectionResult));
                 if (!planSelectionResult.success) {
                     hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'planSelectionInvokeFailed' });
-                    abort();
+                    return { state: nextState, abort: true };
                 }
+                return { state: nextState };
             },
         }),
         ctx.defineOrchestrationStep({
             name: 'parsePlanSelectionHandoff',
-            run: async (draft) => {
-                const planSelectionResult = draft.planSelectionResult;
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const combined = draft.combined;
+            run: async (state) => {
+                const planSelectionResult = state.planSelectionResult;
+                const roomObjectsByRoom = state.roomObjectsByRoom;
+                const combined = state.combined;
                 if (!planSelectionResult?.success || !roomObjectsByRoom || combined === undefined) {
                     throw new Error('CoyoteHypothesisPipeline: parsePlanSelectionHandoff preconditions');
                 }
-                draft.selectionBody = planSelectionResult.body;
-                const handoff = parsePlanSelectOutput(planSelectionResult.body);
+                const selectionBody = planSelectionResult.body;
+                let nextState: CoyoteHypothesisPipelineState = { ...state, selectionBody };
+                const handoff = parsePlanSelectOutput(selectionBody);
                 if (!handoff.ok) {
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionHandoffParseFailed',
                         parseReason: handoff.reason,
                     });
-                    abort();
+                    return { state: nextState, abort: true };
                 }
                 let planSelectOutput = handoff.handoff;
                 const selected = planSelectOutput.selectedCandidate;
@@ -405,7 +409,7 @@ function buildCoyoteHypothesisSteps(
                         };
                     }
                 }
-                draft.planSelectOutput = planSelectOutput;
+                nextState = { ...nextState, planSelectOutput };
                 const winner = planSelectOutput.selectedCandidate;
                 if (winner !== undefined && !(winner.gimmick?.trim() ?? '')) {
                     hypothesisDebugLog('planSelectHandoff missing gimmick on winner', {
@@ -416,29 +420,30 @@ function buildCoyoteHypothesisSteps(
                     hypothesisDebugLog('aborting hypothesis pipeline', {
                         reason: 'planSelectionMissingSelectedCandidate',
                     });
-                    abort();
+                    return { state: nextState, abort: true };
                 }
                 await emitThinkingResultForSegmentIfActive(
-                    draft,
+                    nextState,
                     deps,
                     thinkingHarness,
                     'planSelect',
                     buildPlanSelectThinkingResultVerbose({
-                        roomObjectsByRoom,
-                        combined,
-                        planSelectionResult,
-                        planSelectOutput,
-                        selectionBody: planSelectionResult.body,
-                        planSelectPromptParts: draft.planSelectPromptParts,
+                        roomObjectsByRoom: nextState.roomObjectsByRoom!,
+                        combined: nextState.combined!,
+                        planSelectionResult: planSelectionResult,
+                        planSelectOutput: nextState.planSelectOutput!,
+                        selectionBody: nextState.selectionBody!,
+                        planSelectPromptParts: nextState.planSelectPromptParts,
                     })
                 );
+                return { state: nextState };
             },
         }),
         ctx.defineLlmStep({
             name: 'hypothesisNarrativeBeatLlm',
-            run: async (draft) => {
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
-                const handoff = draft.planSelectOutput;
+            run: async (state) => {
+                const roomObjectsByRoom = state.roomObjectsByRoom;
+                const handoff = state.planSelectOutput;
                 if (!roomObjectsByRoom || !handoff?.selectedCandidate) {
                     throw new Error('CoyoteHypothesisPipeline: hypothesisNarrativeBeatLlm preconditions');
                 }
@@ -448,21 +453,25 @@ function buildCoyoteHypothesisSteps(
                     planSelectOutput: handoff as PlanSelectOutputWithWinner,
                     includeIconicFewShots: fewShotOptions?.includeIconicFewShots,
                 });
-                draft.narrativeBeatPromptParts = parts;
                 const narrativeBeatResult = await invokeBedrockHypothesisNarrativeBeat(parts);
-                draft.narrativeBeatResult = narrativeBeatResult;
+                const nextState: CoyoteHypothesisPipelineState = {
+                    ...state,
+                    narrativeBeatPromptParts: parts,
+                    narrativeBeatResult,
+                };
                 hypothesisDebugLog('narrative beat invoke complete', summarizeInvokeResult(narrativeBeatResult));
                 if (!narrativeBeatResult.success) {
                     hypothesisDebugLog('aborting hypothesis pipeline', { reason: 'narrativeBeatInvokeFailed' });
-                    abort();
+                    return { state: nextState, abort: true };
                 }
+                return { state: nextState };
             },
         }),
         ctx.defineOrchestrationStep({
             name: 'parseNarrativeBeatRecord',
-            run: async (draft) => {
-                const narrativeBeatResult = draft.narrativeBeatResult;
-                const roomObjectsByRoom = draft.roomObjectsByRoom;
+            run: async (state) => {
+                const narrativeBeatResult = state.narrativeBeatResult;
+                const roomObjectsByRoom = state.roomObjectsByRoom;
                 if (!narrativeBeatResult?.success || !roomObjectsByRoom) {
                     throw new Error('CoyoteHypothesisPipeline: parseNarrativeBeatRecord preconditions');
                 }
@@ -475,7 +484,7 @@ function buildCoyoteHypothesisSteps(
                     narrativeBeatsCtx,
                     parseOptions
                 );
-                const selectedCandidate = draft.planSelectOutput?.selectedCandidate;
+                const selectedCandidate = state.planSelectOutput?.selectedCandidate;
                 const winnerGimmickRaw = selectedCandidate?.gimmick;
                 const winnerGimmick =
                     typeof winnerGimmickRaw === 'string' && winnerGimmickRaw.trim().length > 0
@@ -485,35 +494,37 @@ function buildCoyoteHypothesisSteps(
                     selectedCandidate !== undefined
                         ? tropeSequenceFromAssignments(selectedCandidate.tropeAssignments)
                         : [];
-                draft.record = {
+                const record: CoyoteGameIntentRecord = {
                     ...parsed.record,
                     ...(winnerGimmick !== undefined && winnerGimmick.length > 0
                         ? { gimmick: winnerGimmick }
                         : {}),
                     ...(winnerTropeSequence.length > 0 ? { tropeSequence: winnerTropeSequence } : {}),
                 };
-                draft.narrativeBeatsStructuredJson = parsed.narrativeBeatsStructuredJson;
-                draft.narrativeBeatsStructuredValidationReason = parsed.narrativeBeatsStructuredValidationReason;
-                if (
-                    narrativeBeatResult.reasoningContent !== undefined &&
+                const nextState: CoyoteHypothesisPipelineState = {
+                    ...state,
+                    record,
+                    narrativeBeatsStructuredJson: parsed.narrativeBeatsStructuredJson,
+                    narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
+                    ...(narrativeBeatResult.reasoningContent !== undefined &&
                     narrativeBeatResult.reasoningContent.length > 0
-                ) {
-                    draft.narrativeBeatReasoningContent = narrativeBeatResult.reasoningContent;
-                }
+                        ? { narrativeBeatReasoningContent: narrativeBeatResult.reasoningContent }
+                        : {}),
+                };
                 hypothesisDebugLog('narrative beat parse complete', {
                     intent: parsed.record.intent,
                     hasWalkthrough: parsed.record.walkthrough !== undefined,
                     hasNarrativeBeatsStructured: parsed.record.narrativeBeatsStructured !== undefined,
-                    hasGimmick: draft.record.gimmick !== undefined,
+                    hasGimmick: record.gimmick !== undefined,
                     narrativeBeatsStructuredValidationReason: parsed.narrativeBeatsStructuredValidationReason,
                     narrativeBeatsStructuredJsonPresent: parsed.narrativeBeatsStructuredJson !== undefined,
                 });
-                const planSelectOutput = draft.planSelectOutput;
+                const planSelectOutput = nextState.planSelectOutput;
                 if (!planSelectOutput) {
                     throw new Error('CoyoteHypothesisPipeline: parseNarrativeBeatRecord missing planSelectOutput');
                 }
                 await emitThinkingResultForSegmentIfActive(
-                    draft,
+                    nextState,
                     deps,
                     thinkingHarness,
                     'narrativeBeats',
@@ -521,13 +532,14 @@ function buildCoyoteHypothesisSteps(
                         roomObjectsByRoom,
                         planSelectOutput,
                         narrativeBeatResult,
-                        record: draft.record,
-                        narrativeBeatsStructuredJson: draft.narrativeBeatsStructuredJson,
-                        narrativeBeatsStructuredValidationReason: draft.narrativeBeatsStructuredValidationReason,
-                        narrativeBeatReasoningContent: draft.narrativeBeatReasoningContent,
-                        narrativeBeatPromptParts: draft.narrativeBeatPromptParts,
+                        record: nextState.record!,
+                        narrativeBeatsStructuredJson: nextState.narrativeBeatsStructuredJson,
+                        narrativeBeatsStructuredValidationReason: nextState.narrativeBeatsStructuredValidationReason,
+                        narrativeBeatReasoningContent: nextState.narrativeBeatReasoningContent,
+                        narrativeBeatPromptParts: nextState.narrativeBeatPromptParts,
                     })
                 );
+                return { state: nextState };
             },
         }),
     ];
@@ -536,9 +548,9 @@ function buildCoyoteHypothesisSteps(
 function pipelineFailureToStubResult(
     failure: PipelineRunFailure<CoyoteHypothesisPipelineState>
 ): GenerateHypothesisPipelineStubResult | null {
-    const { state, error } = failure;
+    const { state, abort } = failure;
 
-    if (!(error instanceof CoyoteHypothesisPipelineAbortError)) {
+    if (abort !== true) {
         return null;
     }
 
@@ -655,9 +667,18 @@ export function mapPipelineRunToGenerateHypothesisResult(
         hypothesisDebugLog('pipeline mapper: abort fallback to stub', {
             failedStepName: result.failedStepName,
             failedStepIndex: result.failedStepIndex,
-            ...errorDetails(result.error),
+            abort: result.abort === true,
+            ...(result.error !== undefined ? errorDetails(result.error) : {}),
         });
         return stub;
+    }
+
+    if (result.abort === true) {
+        hypothesisDebugLog('pipeline mapper: rethrowing product abort without stub payload', {
+            failedStepName: result.failedStepName,
+            failedStepIndex: result.failedStepIndex,
+        });
+        throw new Error(PRODUCT_ABORT_ERROR_MESSAGE);
     }
 
     hypothesisDebugLog('pipeline mapper: rethrowing non-abort error', {
@@ -772,18 +793,22 @@ export async function runCoyoteHypothesisPipeline(
     } else {
         hypothesisDebugLog('pipeline run complete', {
             ok: false,
+            abort: runResult.abort === true,
             failedStepName: runResult.failedStepName,
             failedStepIndex: runResult.failedStepIndex,
-            ...errorDetails(runResult.error),
+            ...(runResult.error !== undefined ? errorDetails(runResult.error) : {}),
         });
         if (runResult.state.thinking !== undefined) {
+            const failureError =
+                runResult.error ??
+                (runResult.abort === true ? new Error(PRODUCT_ABORT_ERROR_MESSAGE) : undefined);
             await finalizeHypothesisThinkingOnRunFailure(
                 { messageBus: bus },
                 {
                     ids: runResult.state.thinking,
                     failedStepName: runResult.failedStepName,
                     failedStepIndex: runResult.failedStepIndex,
-                    error: runResult.error,
+                    error: failureError,
                     state: runResult.state,
                     thinkingHarness,
                 }

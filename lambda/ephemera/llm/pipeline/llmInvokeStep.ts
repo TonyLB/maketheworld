@@ -1,5 +1,3 @@
-import type { Draft } from 'immer';
-
 import type {
     InvokeBedrockConverseTextParams,
     InvokeBedrockConverseTextResult,
@@ -24,48 +22,46 @@ export type LlmInvokeDiagnostics = {
 export function defineLlmInvokeStep<S extends AnyPipelineState>(options: {
     name: string;
     buildParams: (
-        draft: Draft<S>
+        state: Readonly<S>
     ) => InvokeBedrockConverseTextParams | Promise<InvokeBedrockConverseTextParams>;
     invoke: (params: InvokeBedrockConverseTextParams) => Promise<InvokeBedrockConverseTextResult>;
     applyOutputs: (
-        draft: Draft<S>,
+        state: Readonly<S>,
         extracted: { body: string; reasoningContent?: string }
-    ) => void | Promise<void>;
-    /** Writes invoke diagnostics onto `S` (for example `draft.metaA = meta`) */
-    applyMeta?: (draft: Draft<S>, meta: LlmInvokeDiagnostics) => void | Promise<void>;
+    ) => S | Promise<S>;
+    /** Writes invoke diagnostics onto `S` (for example `metaA` slot) */
+    applyMeta?: (state: Readonly<S>, meta: LlmInvokeDiagnostics) => S | Promise<S>;
 }): LlmAdapterStepDefinition<S> {
     const { name, buildParams, invoke: invokeBedrock, applyOutputs, applyMeta } = options;
 
     return {
         name,
-        run: async (draft) => {
-            const params = await buildParams(draft);
+        run: async (state) => {
+            const params = await buildParams(state);
             const started = Date.now();
             const modelId = params.modelId;
             const result = await invokeBedrock(params);
             const latencyMs = Date.now() - started;
 
             if (!result.success) {
-                await applyMeta?.(draft, {
-                    ok: false,
-                    modelId,
-                    latencyMs,
-                    errorMessage: result.errorMessage,
-                });
                 throw new Error(result.errorMessage);
             }
 
-            await applyOutputs(draft, {
+            let nextState = await applyOutputs(state, {
                 body: result.body,
                 reasoningContent: result.reasoningContent,
             });
 
-            await applyMeta?.(draft, {
-                ok: true,
-                modelId,
-                latencyMs,
-                usage: result.usage,
-            });
+            if (applyMeta) {
+                nextState = await applyMeta(nextState, {
+                    ok: true,
+                    modelId,
+                    latencyMs,
+                    usage: result.usage,
+                });
+            }
+
+            return { state: nextState };
         },
     };
 }
