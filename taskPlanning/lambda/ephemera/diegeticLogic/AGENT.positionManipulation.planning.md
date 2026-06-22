@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Design-only. No implementation slices started. **Next:** lock **D16** (character `positionGraph` storage) and **D3** classify contract; then Phase 0 operator spec in `diegeticLogic/`.
+**Status:** Design-only. No implementation slices started. **Next:** lock **Phase 1 gates** (**D3**, **D15**); then Phase 1 classifier implementation.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -47,7 +47,21 @@ Matches existing **`AcmeOrderIntent`** -> **`enrichAcmeOrder`** split ([`parseCo
 
 **Not at classify:** enumerated verb lists (`grab`, `seize`, ...), fine **`operationKind`** taxonomy, or graph mutation proposals.
 
-**Collision handling (prompt tie-breakers, not grammar):** e.g. **`get rocket skates`** -> **`AcmeOrder`**; in-room **`get the broom`** -> manipulation when object reads as present; **`take the south door`** -> **`NavigationIntent`**; targeted examine -> look family. May need **in-room object catalog** in discriminate context (parallel to **`movementExitLabels`**) --- see **D15**.
+**Collision handling (prompt tie-breakers, not grammar):** e.g. **`get rocket skates`** -> **`AcmeOrder`**; in-room **`get the broom`** -> manipulation when object reads as present; **`take the south door`** -> **`NavigationIntent`**; targeted examine -> look family. Requires **in-room object catalog** in discriminate context (parallel to **`movementExitLabels`**) --- **D15** (Phase 1 gate).
+
+---
+
+## Phase gate cadence
+
+Open decisions are tagged with the **earliest phase they block**. Work proceeds in this rhythm:
+
+1. **Before starting Phase N:** every **Required** row with **Blocks phase = N** is **Decided** and recorded (here or in **Locked**).
+2. **Phase N implementation:** code + tests for that lane seam; may include a **stub** terminal (e.g. **`WorldOOCMessage`**) until a later phase owns full behavior.
+3. **Before starting Phase N+1:** repeat for the next phase's gate set.
+
+**Gate** column: **Required** rows must be decided before that phase starts. **Advisory** rows inform design but do not block the phase checklist --- resolve them before the phase they most affect, or at graduation.
+
+Phases map to lane seams: **1** classify, **2** enrich + resolve, **3** actions egress, **4** positions apply, **5** perception / transcript, **6** graduation.
 
 ---
 
@@ -116,38 +130,54 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in the owning **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and graduate operator prose into **`diegeticLogic/`** or positions concepts) and remove the row here.
 
-| ID | Decision | Blocks slice | Status |
+Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Next queue:** all Open **Required** rows where **Blocks phase = 1** (**D3**, **D15**).
+
+### Decided (cross-phase)
+
+| ID | Decision | Blocks phase | Status |
 | --- | --- | --- | --- |
-| **D1** | **v1 graph semantics** | All implementation | **Decided:** character-hosted graph (**C**); pick up = room -> character transfer (**L8**, **L9**). Options **A** / **D** out of v1; **B** superseded. |
-| **D2** | **First-slice `operationKind`:** enrich implements **`takeHold`** (pick up) only; classify accepts broader manipulation family; drop / put-on return enrich-time **`Error`** or pass-through until later slices. | Enrich prompt, positions apply | **Decided** |
-| **D3** | **Classify contract:** confirm **`ObjectManipulationIntent`** + raw object span array field name/shape; tie-breaker rules vs Acme / Nav / Look; confidence thresholds. | `discriminateIntent/`, `baseClasses.ts` | Open |
-| **D4** | **Stream contract name and payload** for actions egress (intent leg for perception fan-in?). | actions + downstream subscribers | Open |
-| **D5** | **Object resolution:** match by `shortName` only, `stableKey`, LLM-proposed label + deterministic disambiguation, or explicit id from UI later? | Enrich + resolve step | Open |
-| **D6** | **Which objects in v1:** improvisation `OBJECT#` only, or any graph-placed object? | Enrich context assembly | Open |
-| **D7** | **Ambiguity policy:** fail closed with OOC error, pick best match above confidence threshold, or ask player (conversation path)? | actions + client | Open |
-| **D8** | **Extend `Object Moved` fact** vs new fact type for relational / non-room-host changes? | positions + perception adapters | Open |
-| **D9** | **Perception pattern:** immediate `WorldMessage`, new fan-in cluster (intent + fact), or enrich-generated copy streamed separately? | perception | Open |
-| **D10** | **Transcript beat shape:** single line vs leave/place-style multi-line beat; `CreatedTime` / `OrchestrateMessages` policy | perception + [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) | Open |
-| **D11** | **LLM hop count:** classify-only + deterministic template copy vs classify + enrich + optional copy hop | actions + perception | Open |
-| **D12** | **Unknowns policy** for unstated spatial detail (withhold vs elaborate in copy only) --- see [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md) | enrich + perception | Open |
-| **D13** | **Trusted `Action Assessed` path** for manipulation (UI click) in v1 or parse-only? | actions ingress | Open |
-| **D14** | **Code layout:** `actions/enrich/objectManipulation/` vs generic enrich router; `positions/manipulation/` vs extend `membership/` | Implementation | Open |
-| **D15** | **Discriminate context:** inject in-room object labels (like **`movementExitLabels`**) to disambiguate manipulation vs Acme **`get`**? | Classifier prompt + `parseCommand` deps | Open |
-| **D16** | **`Meta::Character.positionGraph` storage:** row shape on **`Meta::Character`**, object **adjacency** when host is **`CHARACTER#`** (extend reverse index?), gateway/cache handler scope, steady-state one-object-per-hand rules. | Phase 4 positions apply | Open |
+| **D1** | **v1 graph semantics** | 2+ | **Decided:** character-hosted graph (**C**); pick up = room -> character transfer (**L8**, **L9**). Options **A** / **D** out of v1; **B** superseded. |
+| **D2** | **First-slice `operationKind`:** enrich implements **`takeHold`** (pick up) only; classify accepts broader manipulation family; drop / put-on return enrich-time **`Error`** or pass-through until later slices. | 2 | **Decided** |
+
+### Open
+
+| ID | Decision | Blocks phase | Gate | Status |
+| --- | --- | --- | --- | --- |
+| **D3** | **Classify contract:** confirm **`ObjectManipulationIntent`** + raw object span array field name/shape; tie-breaker rules vs Acme / Nav / Look; confidence thresholds. | 1 | Required | Open |
+| **D15** | **Discriminate context:** inject in-room object labels (like **`movementExitLabels`**) to disambiguate manipulation vs Acme **`get`**. | 1 | Required | Open |
+| **D5** | **Object resolution:** match by `shortName` only, `stableKey`, LLM-proposed label + deterministic disambiguation, or explicit id from UI later? | 2 | Required | Open |
+| **D6** | **Which objects in v1:** improvisation `OBJECT#` only, or any graph-placed object? | 2 | Required | Open |
+| **D7** | **Ambiguity policy:** fail closed with OOC error, pick best match above confidence threshold, or ask player (conversation path)? | 2 | Required | Open |
+| **D14** | **Code layout:** `actions/enrich/objectManipulation/` vs generic enrich router; `positions/manipulation/` vs extend `membership/` | 2 | Required | Open |
+| **D4** | **Stream contract name and payload** for actions egress (intent leg for perception fan-in?). | 3 | Required | Open |
+| **D13** | **Trusted `Action Assessed` path** for manipulation (UI click) in v1 or parse-only? | 3 | Required | Open |
+| **D16** | **`Meta::Character.positionGraph` storage:** row shape on **`Meta::Character`**, object **adjacency** when host is **`CHARACTER#`** (extend reverse index?), gateway/cache handler scope, steady-state one-object-per-hand rules. | 4 | Required | Open |
+| **D8** | **Extend `Object Moved` fact** vs new fact type for relational / non-room-host changes? | 4 | Required | Open |
+| **D9** | **Perception pattern:** immediate `WorldMessage`, new fan-in cluster (intent + fact), or enrich-generated copy streamed separately? | 5 | Required | Open |
+| **D10** | **Transcript beat shape:** single line vs leave/place-style multi-line beat; `CreatedTime` / `OrchestrateMessages` policy | 5 | Required | Open |
+| **D11** | **LLM hop count:** classify-only + deterministic template copy vs classify + enrich + optional copy hop | 5 | Required | Open |
+| **D12** | **Unknowns policy** for unstated spatial detail (withhold vs elaborate in copy only) --- see [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md) | 5 | Required | Open |
+
+### Advisory (inform; not phase gate checklist)
+
+| ID | Decision | Informs phase | Status |
+| --- | --- | --- | --- |
+| **A1** | **Operator spec** in [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) (`AGENT.operators.concepts.md` or section) --- graduate prose as operators ship. | 2--6 | Not started |
+| **A2** | **Pre-flight legality** in actions (character must be in room with object) vs positions-only rejection. | 4 | Open |
+| **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Open |
 
 ---
 
 ## Open questions (design --- not yet decision rows)
 
-Broader threads to resolve into **D*** rows or durable concepts as they mature.
+Broader threads to resolve into **D*** / **A*** rows or durable concepts as they mature.
 
-- Do we need **pre-flight legality** in actions (character must be in room with object) vs positions-only rejection?
-- Should enrich see **full affordance WML** or a trimmed **object catalog** projection?
+- Should enrich see **full affordance WML** or a trimmed **object catalog** projection? (feeds **D6** / **D15**)
 - Relationship to **`Objects Change`** API ingress --- shared apply path or separate?
 - Multi-object commands: **`MultipleCommands`** vs single enrich with multiple deltas?
 - Failure copy: **`WorldOOCMessage`** vs in-world **`WorldMessage`** for "you can't do that"?
-- Classify accepts **`drop`** / **`put X on Y`** paraphrases while enrich v1 only implements take-hold --- terminal **`Unimplemented`** vs enrich-time **`Error`**?
-- Tie-breaker ordering when manipulation and **`AcmeOrder`** both seem plausible on **`get <noun>`**.
+- Classify accepts **`drop`** / **`put X on Y`** paraphrases while enrich v1 only implements take-hold --- covered by **D2** (enrich-time **`Error`**); confirm at Phase 2 gate.
+- Tie-breaker ordering when manipulation and **`AcmeOrder`** both seem plausible on **`get <noun>`** --- covered by **D3** + **D15** at Phase 1 gate.
 
 ---
 
@@ -183,45 +213,45 @@ npm run build
 
 ## Recommended order
 
-Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step finishes.
-
-- [ ] **Phase 0 --- design lock (diegeticLogic + this plan)**
-  - [X] Resolve **D1** and **D2** (character host graph + **`takeHold`**); recorded in **Locked** and v1 semantics section.
-  - [ ] Resolve **D16** (`Meta::Character.positionGraph` + adjacency).
-  - [ ] Lock **D3** classify JSON shape and tie-breakers (intent + raw spans; no verb whitelist).
-  - [ ] Draft operator spec in [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) (new `AGENT.operators.concepts.md` or section --- durable, not plan-only).
-  - [ ] Sketch stream payload (**D4**) and fact shape (**D8**) at envelope level.
-  - [ ] Resolve **D9** / **D10** at least enough for perception slice sizing.
+Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step finishes. Each phase begins with its **gate**: all **Required** open decisions for that phase must be **Decided** before implementation work under that phase starts.
 
 - [ ] **Phase 1 --- classifier (semantic intent)**
+  - [ ] **Gate:** **D3**, **D15** decided and recorded (classify contract + in-room object catalog in discriminate context).
   - [ ] Add **`ObjectManipulationIntent`** section to `buildIntentClassificationPrompt.ts` (primacy + examples, not synonym enumeration).
-  - [ ] Optional **D15**: thread in-room object catalog into discriminate deps.
+  - [ ] Thread in-room object catalog into discriminate deps (**D15**).
   - [ ] Wire `discriminateIntent/` guards and `baseClasses.ts` (raw object span array).
+  - [ ] **`index.ts` stub:** terminal **`WorldOOCMessage`** for recognized manipulation intent until later phases own full behavior.
   - [ ] Tests: paraphrase fixtures (`pick up` / `grab` / `get the <in-room object>`), Acme vs manipulation collision cases, `Unimplemented` regression for out-of-family actions.
 
 - [ ] **Phase 2 --- enrich + resolve**
-  - [ ] `actions/enrich/objectManipulation/` (or chosen layout): prompt, JSON schema (**`operationKind`** + proposal), Bedrock invoke.
-  - [ ] Deterministic grounding (**D5**, **D6**, **D7**).
+  - [ ] **Gate:** **D5**, **D6**, **D7**, **D14** decided (**D2** already decided).
+  - [ ] `actions/enrich/objectManipulation/` (or chosen layout per **D14**): prompt, JSON schema (**`operationKind`** + proposal), Bedrock invoke.
+  - [ ] Deterministic grounding per **D5** / **D6** / **D7**.
+  - [ ] Enrich-time terminal for unimplemented **`operationKind`**s (drop / put-on until later slices --- **D2**).
   - [ ] Tests with mocked Bedrock and room object fixtures.
 
 - [ ] **Phase 3 --- actions egress**
+  - [ ] **Gate:** **D4**, **D13** decided (optional **A3** envelope sketch).
   - [ ] `publishedEvents.ts` stream type + guards.
   - [ ] `index.ts` handler branch; correlate `ReturnValue` when `requestId` present.
   - [ ] Subscriber registration plan (positions execution ingress).
 
 - [ ] **Phase 4 --- positions apply**
+  - [ ] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
   - [ ] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
   - [ ] Cross-host coordinator: atomic room-remove + character-add on **`takeHold`**.
-  - [ ] Contract updates in `positions/AGENT.contract.md` (extend **`Object Moved`** or new fact --- **D8**).
+  - [ ] Contract updates in `positions/AGENT.contract.md` per **D8**.
   - [ ] Cache memo per gateway rules (`internalCache.Positions`).
 
 - [ ] **Phase 5 --- perception / transcript**
-  - [ ] Emission plan (copy templates or fan-in spec).
-  - [ ] `PublishMessage` / `CreatedTime` policy.
+  - [ ] **Gate:** **D9**, **D10**, **D11**, **D12** decided.
+  - [ ] Emission plan (copy templates or fan-in spec per **D9**).
+  - [ ] `PublishMessage` / `CreatedTime` policy per **D10**.
   - [ ] Integration test: command -> fact -> transcript row shape.
 
 - [ ] **Phase 6 --- graduation**
   - [ ] Move normative rules out of this plan; update positions / actions / perception AGENT siblings.
+  - [ ] Graduate operator prose (**A1**) into [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) as needed.
   - [ ] Archive or delete this planning file.
 
 ---
@@ -232,14 +262,18 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | --- | --- |
 | `diegeticLogic/` doc stub | Done |
 | Lane split agreement (L1--L9) | Done |
-| v1 graph semantics (D1) | Decided (character host) |
-| First-slice operationKind (D2) | Decided (`takeHold`) |
-| Character graph storage (D16) | Open |
-| Classify intent contract (D3) | Open |
-| Classifier slice | Not started |
-| Enrich slice | Not started |
-| Positions apply | Not started |
-| Perception transcript | Not started |
+| Cross-phase decided (D1, D2) | Done |
+| **Phase 1 gate** (D3, D15) | Open |
+| Phase 1 classifier | Not started |
+| Phase 2 gate (D5, D6, D7, D14) | Open |
+| Phase 2 enrich + resolve | Not started |
+| Phase 3 gate (D4, D13) | Open |
+| Phase 3 actions egress | Not started |
+| Phase 4 gate (D16, D8) | Open |
+| Phase 4 positions apply | Not started |
+| Phase 5 gate (D9--D12) | Open |
+| Phase 5 perception / transcript | Not started |
+| Phase 6 graduation | Not started |
 
 ---
 
