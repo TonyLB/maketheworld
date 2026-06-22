@@ -4,6 +4,8 @@ Design home for **in-fiction consistency**: how play-time operations assert, rev
 
 **Status:** Concepts only --- no shipped code, contract, or implementation map yet.
 
+**Active task plan:** [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md) (position manipulation vertical).
+
 ## Documentation
 
 | Doc | Role |
