@@ -4,6 +4,8 @@ import type { StreamingEventHeader, HeaderGuard } from '@tonylb/mtw-lambda-patte
 import { makeStreamingEnvelopeGuardFromHeaderGuard, type StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 /**
@@ -24,15 +26,19 @@ export type CharacterMovedPublishedPayload = {
 export type ObjectMovedPublishedPayload = {
     type: 'Object Moved';
     objectId: EphemeraObjectId;
-    froms: EphemeraRoomId[];
-    to: EphemeraRoomId | null;
+    froms: EphemeraMembershipHostId[];
+    to: EphemeraMembershipHostId | null;
     beatAnchorTime: number;
 }
 
 export type PositionsPublishedPayload = CharacterMovedPublishedPayload | ObjectMovedPublishedPayload
 
-const isMembershipEndpoint = (value: unknown): value is EphemeraRoomId | null => (
+const isRoomMembershipEndpoint = (value: unknown): value is EphemeraRoomId | null => (
     value === null || (typeof value === 'string' && isEphemeraRoomId(value))
+)
+
+const isObjectMembershipEndpoint = (value: unknown): value is EphemeraMembershipHostId | null => (
+    value === null || (typeof value === 'string' && isEphemeraMembershipHostId(value))
 )
 
 export const isCharacterMovedPublishedPayload = (
@@ -54,7 +60,7 @@ export const isCharacterMovedPublishedPayload = (
     if (!Array.isArray(v.froms) || !v.froms.every((entry) => typeof entry === 'string' && isEphemeraRoomId(entry))) {
         return false
     }
-    if (!isMembershipEndpoint(v.to)) {
+    if (!isRoomMembershipEndpoint(v.to)) {
         return false
     }
     if (typeof v.beatAnchorTime !== 'number' || !Number.isFinite(v.beatAnchorTime)) {
@@ -87,10 +93,10 @@ export const isObjectMovedPublishedPayload = (
     if ('from' in v) {
         return false
     }
-    if (!Array.isArray(v.froms) || !v.froms.every((entry) => typeof entry === 'string' && isEphemeraRoomId(entry))) {
+    if (!Array.isArray(v.froms) || !v.froms.every((entry) => typeof entry === 'string' && isEphemeraMembershipHostId(entry))) {
         return false
     }
-    if (!isMembershipEndpoint(v.to)) {
+    if (!isObjectMembershipEndpoint(v.to)) {
         return false
     }
     if (typeof v.beatAnchorTime !== 'number' || !Number.isFinite(v.beatAnchorTime)) {

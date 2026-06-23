@@ -1,9 +1,11 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ObjectMovedPublishedPayload } from '../publishedEvents'
+import type { ObjectMembershipDiff } from '../manipulation/membership/types'
 import type { MembershipDiff } from './types'
 
 export const buildObjectMovedFact = (args: {
-    objectId: import('@tonylb/mtw-interfaces/ts/baseClasses').EphemeraObjectId;
-    diff: MembershipDiff;
+    objectId: EphemeraObjectId;
+    diff: MembershipDiff | ObjectMembershipDiff;
     beatAnchorTime: number;
 }): ObjectMovedPublishedPayload | undefined => {
     const { objectId, diff, beatAnchorTime } = args

@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 3 actions egress shipped. **Phase 4 gate decided** (**D16**, **D8**). **Next:** Phase 4 positions apply.
+**Status:** Phase 4 positions apply shipped. **Next:** Phase 5 perception / transcript.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -650,12 +650,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] `index.ts` handler branch; correlate `ReturnValue` when `requestId` present.
   - [X] Subscriber registration plan (positions execution ingress): guards + stub [`executeObjectTakeHold`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeObjectTakeHold.ts) wired in [`positions/index.ts`](../../../../lambda/ephemera/dataSource/positions/index.ts).
 
-- [ ] **Phase 4 --- positions apply**
+- [X] **Phase 4 --- positions apply**
   - [X] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
   - [X] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
-  - [ ] **`positions/manipulation/membership/`** cross-host coordinator: atomic room-remove + character-add on **`takeHold`** (**D14**).
-  - [ ] Contract updates in `positions/AGENT.contract.md` per **D8**.
-  - [ ] Cache memo per gateway rules (`internalCache.Positions`).
+  - [X] **`positions/manipulation/membership/`** cross-host coordinator: atomic room-remove + character-add on **`takeHold`** (**D14**).
+  - [X] Contract updates in `positions/AGENT.contract.md` per **D8**.
+  - [X] Cache memo per gateway rules (`internalCache.Positions`).
 
 - [ ] **Phase 5 --- perception / transcript**
   - [ ] **Gate:** **D9**, **D10**, **D11**, **D12** decided.
@@ -688,12 +688,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | Actions egress intent (**Object Take Hold**) | Decided |
 | Trusted ingress (parse-only v1) | Decided (**D13**) |
 | Phase 3 actions egress | Done |
-| Positions stub ingress (`Object Take Hold` -> `executeObjectTakeHold`) | Done (no-op until Phase 4) |
+| Positions stub ingress (`Object Take Hold` -> `executeObjectTakeHold`) | Done (Phase 4 apply shipped) |
 | Host positionGraph storage (D16) | Decided (fractal-host pattern; extend Positions gateway; no carrying limits) |
 | **`Meta::Character.positionGraph`** read + persist primitives (D16 slice 1) | Done |
-| **`Object Moved` fact extension (D8)** | Decided (non-room hosts yes; relational not yet) |
+| **`Object Moved` fact extension (D8)** | Done (types + cross-host apply) |
 | **Phase 4 gate** | Decided (**D16**, **D8**) |
-| Phase 4 positions apply | In progress (D16 slice 1 shipped; cross-host apply next) |
+| Phase 4 positions apply | Done |
 | Phase 5 gate (D9--D12) | Open |
 | Phase 5 perception / transcript | Not started |
 | Phase 6 graduation | Not started |
@@ -759,6 +759,16 @@ npm run test -- --watchAll=false \
   dataSource/positions/manipulation/membership/characterInventoryTransactItems.test.ts \
   dataSource/positions/membership/applyObjectRoomMembership.test.ts \
   dataSource/actions/parseCommand.test.ts
+npm run build
+```
+
+Phase 4 slice 2 (cross-host `takeHold` apply):
+
+```bash
+npm run test -- --watchAll=false \
+  dataSource/positions/manipulation/membership/ \
+  dataSource/positions/publishedEvents.test.ts \
+  dataSource/positions/receivePaths.integration.test.ts
 npm run build
 ```
 

@@ -78,7 +78,7 @@ Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoin
 
 All memo APIs patch in-memory state only; **no Dynamo write-through**.
 
-After membership apply in positions, call forward **`set`** / **`invalidate`** for affected rooms and **`setMembershipContainers`** for the character or object on the same **`internalCache.Positions`** instance.
+After membership apply in positions, call forward **`set`** / **`invalidate`** for affected rooms and character hosts (cross-host **`takeHold`** apply seeds both room and character forward memo) and **`setMembershipContainers`** for the character or object on the same **`internalCache.Positions`** instance.
 
 ## Consumers
 
