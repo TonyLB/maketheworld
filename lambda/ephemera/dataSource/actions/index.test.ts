@@ -8,6 +8,7 @@ import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -38,6 +39,10 @@ jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
+jest.mock('./roomObjectCatalogForCharacter', () => ({
+    getRoomObjectCatalogForCharacter: jest.fn(),
+    roomObjectLabelsFromCatalog: jest.requireActual('./roomObjectCatalogForCharacter').roomObjectLabelsFromCatalog,
+}))
 jest.mock('./resolveHomeTargetForCharacter', () => ({
     resolveHomeTargetForCharacter: jest.fn(),
 }))
@@ -64,6 +69,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
+const mockedGetRoomObjectCatalogForCharacter = jest.mocked(getRoomObjectCatalogForCharacter)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
@@ -86,6 +92,7 @@ describe('ephemeraActionsDataSource', () => {
             toRoomIds: [],
             exits: [],
         })
+        mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({ roomId: null, entries: [] })
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         mockedParseCommand.mockResolvedValue({
@@ -1053,6 +1060,8 @@ describe('ephemeraActionsDataSource', () => {
                 {
                     command: 'order widget',
                     roomExits: [],
+                    roomObjectLabels: [],
+                    roomObjectCatalog: [],
                     occupiedStableKeys: ['alpha', 'beta'],
                 },
                 { messageBus: mockMessageBus }
@@ -1450,6 +1459,171 @@ describe('ephemeraActionsDataSource', () => {
                     displayProtocol: 'WorldOOCMessage',
                 })
             )
+        })
+    })
+
+    describe('ParseCommandObjectManipulationResult', () => {
+        const from = 'ROOM#from' as EphemeraRoomId
+
+        it('emits Object Take Hold streamEvent when takeHold is grounded', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'takeHold',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Take Hold' },
+                update: {
+                    type: 'Object Take Hold',
+                    characterId: 'CHARACTER#123',
+                    objectId: 'OBJECT#Broom',
+                    roomId: from,
+                    confidence: 0.9,
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    displayProtocol: 'WorldOOCMessage',
+                })
+            )
+        })
+
+        it('emits correlated ReturnValue when requestId is present', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'takeHold',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                        requestId: 'req-takehold',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-takehold',
+                    message: 'parse_request_handled',
+                },
+            })
+        })
+
+        it('publishes WorldOOCMessage when character has no current room', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'takeHold',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: null,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot pick that up.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+
+        it('publishes WorldOOCMessage for manipulation enrich Error', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: 'ObjectManipulation enrich: relational placement is not implemented yet',
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'put the broom on the table',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['That kind of object manipulation is not implemented yet.'],
+            })
         })
     })
 

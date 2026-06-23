@@ -3,6 +3,7 @@ import {
     isCharacterHomePublishedPayload,
     isCharacterNavigatePublishedPayload,
     isLookCommandRequestedPublishedPayload,
+    isObjectTakeHoldPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
 
@@ -265,6 +266,40 @@ describe('isCharacterNavigatePublishedPayload', () => {
     it('rejects non-string endpoint fields', () => {
         expect(isCharacterNavigatePublishedPayload({ ...minimal, fromRoomId: 1 } as unknown)).toBe(false)
         expect(isCharacterNavigatePublishedPayload({ ...minimal, toRoomId: null } as unknown)).toBe(false)
+    })
+})
+
+describe('isObjectTakeHoldPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Take Hold' as const,
+        characterId: 'CHARACTER#test',
+        objectId: 'OBJECT#Broom',
+        roomId: 'ROOM#from',
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isObjectTakeHoldPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts optional confidence', () => {
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, type: 'Character Navigate' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isObjectTakeHoldPublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects invalid ids', () => {
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, objectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+    })
+
+    it('rejects non-finite confidence', () => {
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
     })
 })
 

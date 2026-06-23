@@ -45,6 +45,27 @@ describe('discriminateIntent', () => {
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.7 })
     })
 
+    it('passes through ObjectManipulationIntent without exit resolution', async () => {
+        const result = await discriminateIntent(
+            {
+                command: 'pick up the broom',
+                roomObjectLabels: ['broom'],
+            },
+            {
+                invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({
+                    success: true,
+                    body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.93}',
+                }),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            confidence: 0.93,
+        })
+    })
+
     it('resolves NavigationIntent into Navigation when exit matches', async () => {
         const result = await discriminateIntent(
             {

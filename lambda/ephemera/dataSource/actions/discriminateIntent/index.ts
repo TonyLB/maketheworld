@@ -20,6 +20,7 @@ export async function discriminateIntent(
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
     const prompt = buildIntentClassificationPrompt(input.command, {
         movementExitLabels: [...new Set((input.roomExits ?? []).map(({ normalizedName }) => normalizedName))],
+        movementObjectLabels: [...new Set(input.roomObjectLabels ?? [])],
     })
     const invokeResult = await invoke(prompt)
     if (!invokeResult.success) {

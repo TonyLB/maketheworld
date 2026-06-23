@@ -2,7 +2,9 @@ import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './
 import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
+export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { enrichAcmeOrder } from './enrich/acmeOrder'
+import { enrichObjectManipulation } from './enrich/objectManipulation'
 
 /** Acme order enrich chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -16,6 +18,21 @@ async function parseCommandCore(
     deps: ParseCommandDeps = {}
 ): Promise<ParseCommandWithEnrichReasoningResult> {
     const intentResult = await discriminateIntent(input, deps)
+
+    if (intentResult.type === 'ObjectManipulationIntent') {
+        const result = await enrichObjectManipulation(
+            {
+                command: input.command,
+                rawObjectSpans: intentResult.rawObjectSpans,
+                roomObjectCatalog: input.roomObjectCatalog,
+            },
+            intentResult.confidence,
+            {
+                invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
+            }
+        )
+        return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+    }
 
     if (intentResult.type !== 'AcmeOrderIntent') {
         return { result: intentResult, enrichReasoningMarkdown: '', enrichRawBody: undefined }
@@ -39,7 +56,9 @@ async function parseCommandCore(
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**: all without Bedrock.
- * Otherwise runs intent discrimination, then runs Acme order enrich only when intent is **`AcmeOrderIntent`**. Intent outcomes **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without Acme enrich.
+ * Otherwise runs intent discrimination, then runs Acme order enrich when intent is **`AcmeOrderIntent`**
+ * and object manipulation enrich when intent is **`ObjectManipulationIntent`**. Intent outcomes
+ * **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without enrich.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */
 export async function parseCommand(

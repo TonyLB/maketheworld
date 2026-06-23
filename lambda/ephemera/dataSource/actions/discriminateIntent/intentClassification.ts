@@ -2,11 +2,13 @@ import type {
     IntentClassificationResult,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandNavigationIntentResult,
+    ParseCommandObjectManipulationIntentResult,
 } from '../baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandHomeIntentResult,
     isParseCommandNavigationIntentResult,
+    isParseCommandObjectManipulationIntentResult,
 } from './baseClasses'
 import {
     isParseCommandAwaitRoadrunnerResult,
@@ -39,6 +41,30 @@ const forbiddenHomeIntentFields = new Set([
     'fromRoomId',
     'exitCandidate',
 ])
+
+const forbiddenObjectManipulationIntentFields = new Set([
+    'operationKind',
+    'disposition',
+    'objectId',
+    'targetId',
+    'targetRoomId',
+    'fromRoomId',
+    'toRoomId',
+    'roomId',
+    'destinationId',
+    'exitCandidate',
+    'orders',
+    'rawObjectSpans',
+])
+
+function hasForbiddenObjectManipulationIntentField(obj: Record<string, unknown>): boolean {
+    return Object.keys(obj).some((key) => {
+        if (forbiddenObjectManipulationIntentFields.has(key)) {
+            return true
+        }
+        return /id$/i.test(key) && /(target|room|destination|to|from|object|exit)/i.test(key)
+    })
+}
 
 function hasForbiddenHomeIntentField(obj: Record<string, unknown>): boolean {
     return Object.keys(obj).some((key) => {
@@ -82,6 +108,38 @@ function parseAcmeOrderIntentRawOrders(obj: Record<string, unknown>): { rawOrder
     return { rawOrders }
 }
 
+function parseObjectManipulationIntentRawObjectSpans(
+    obj: Record<string, unknown>
+): { rawObjectSpans: string[] } | { error: string } {
+    if ('rawObjectSpans' in obj) {
+        return { error: 'ObjectManipulationIntent intent payload must use objectSpans, not rawObjectSpans' }
+    }
+    if ('orders' in obj) {
+        return { error: 'ObjectManipulationIntent intent payload must not use orders field' }
+    }
+    if (!('objectSpans' in obj)) {
+        return { error: 'ObjectManipulationIntent intent payload must include objectSpans array of raw object spans' }
+    }
+    if (!Array.isArray(obj.objectSpans)) {
+        return { error: 'ObjectManipulationIntent intent objectSpans must be a non-empty array of strings' }
+    }
+    const rawObjectSpans: string[] = []
+    for (const element of obj.objectSpans) {
+        if (typeof element !== 'string') {
+            return { error: 'ObjectManipulationIntent intent objectSpans must contain only non-empty strings' }
+        }
+        const trimmed = element.trim()
+        if (trimmed.length === 0) {
+            return { error: 'ObjectManipulationIntent intent objectSpans entries must be non-empty after trim' }
+        }
+        rawObjectSpans.push(trimmed)
+    }
+    if (rawObjectSpans.length === 0) {
+        return { error: 'ObjectManipulationIntent intent objectSpans array must be non-empty' }
+    }
+    return { rawObjectSpans }
+}
+
 /** Strip markdown code fences and extract a JSON object from the model response. */
 function extractJsonBody(raw: string): string {
     let s = raw.trim()
@@ -98,6 +156,7 @@ function extractJsonBody(raw: string): string {
 /**
  * Parses and validates LLM output for the intent-classification prompt.
  * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`PredictHypothesis`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
+ * **`ObjectManipulationIntent`** (with **`objectSpans`**: raw object spans mapped to **`rawObjectSpans`**),
  * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`HomeIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
@@ -230,6 +289,27 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         }
     }
 
+    if (type === 'ObjectManipulationIntent') {
+        if (hasForbiddenObjectManipulationIntentField(obj)) {
+            return {
+                type: 'Error',
+                errorMessage: 'ObjectManipulationIntent must not include operationKind, disposition, object ids, or routing fields',
+            }
+        }
+        const parsedObjectSpans = parseObjectManipulationIntentRawObjectSpans(obj)
+        if ('error' in parsedObjectSpans) {
+            return { type: 'Error', errorMessage: parsedObjectSpans.error }
+        }
+        const candidate: ParseCommandObjectManipulationIntentResult = {
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: parsedObjectSpans.rawObjectSpans,
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandObjectManipulationIntentResult(candidate)) {
+            return candidate
+        }
+    }
+
     if (type === 'Unimplemented') {
         const candidate: IntentClassificationResult = {
             type: 'Unimplemented',
@@ -263,6 +343,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

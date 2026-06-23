@@ -6,7 +6,7 @@
  * `Meta::Room.positionGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`, `Character Home`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * (`Character Navigate`, `Character Home`, `Object Take Hold`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -23,10 +23,11 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
+    isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
@@ -37,6 +38,7 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
+import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
@@ -57,6 +59,20 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     return
                 }
                 await repairRoomOccupancyDrift({
+                    roomId: content.roomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectTakeHoldEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectTakeHoldPublishedPayload(content)) {
+                    return
+                }
+                await executeObjectTakeHold({
+                    characterId: content.characterId,
+                    objectId: content.objectId,
                     roomId: content.roomId,
                     messageBus,
                     streamEvent,

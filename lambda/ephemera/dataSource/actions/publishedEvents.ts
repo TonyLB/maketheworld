@@ -2,12 +2,14 @@ import type {
     EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
+    EphemeraObjectId,
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
@@ -36,6 +38,14 @@ export type CharacterHomePublishedPayload = {
     characterId: EphemeraCharacterId;
     fromRoomId: EphemeraRoomId;
     toRoomId: EphemeraRoomId;
+}
+
+export type ObjectTakeHoldPublishedPayload = {
+    type: 'Object Take Hold';
+    characterId: EphemeraCharacterId;
+    objectId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    confidence?: number;
 }
 
 export type AwaitRoadRunnerPublishedPayload = {
@@ -190,6 +200,33 @@ export const isCharacterNavigatePublishedPayload = (
     return true
 }
 
+export const isObjectTakeHoldPublishedPayload = (
+    value: unknown
+): value is ObjectTakeHoldPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Take Hold') {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (typeof v.objectId !== 'string' || !isEphemeraObjectId(v.objectId)) {
+        return false
+    }
+    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
+        return false
+    }
+    if (v.confidence !== undefined) {
+        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    return true
+}
+
 export const isCharacterHomePublishedPayload = (
     value: unknown
 ): value is CharacterHomePublishedPayload => {
@@ -287,6 +324,7 @@ export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
+    | ObjectTakeHoldPublishedPayload
     | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload

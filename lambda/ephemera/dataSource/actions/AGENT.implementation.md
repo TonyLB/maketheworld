@@ -78,6 +78,19 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ## Affordance design notes
 
+### `ObjectManipulationIntent` steady-state (classify + enrich + resolve)
+
+Position-manipulation initiative: [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md). **Phase 2 shipped:** enrich + deterministic resolve. **Phase 3 shipped:** egress + positions stub ingress. **Phase 4+:** graph apply, transcript.
+
+1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback) per **D6**; labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.
+2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers per planning **L12**.
+3. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
+4. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- Bedrock D17 JSON (`disposition: atomic | complex`); v1 implements atomic **`takeHold`** through resolve only.
+5. **Resolve:** deterministic **`shortName`** match against catalog (**D5** / **D7** fail closed) in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts).
+6. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex stub, unimplemented atomic **`operationKind`**, resolve/enrich failure). Complex disposition: no stream, no positions (**L10**).
+7. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> silent success (no OOC).
+8. **Egress (Phase 3 shipped --- D4):** **`streamEvent`** **`Object Take Hold`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Subscriber: **`mtw.ephemera.positions`** stub [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts) (graph apply Phase 4).
+
 ### `PromptInjectionAttempt` steady-state
 
 Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section H labels parser-manipulation tone.
