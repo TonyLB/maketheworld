@@ -3,6 +3,7 @@ import {
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsCharacterHomeEnvelope,
+    isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
 } from './subscribedEvents'
 
@@ -115,6 +116,27 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(true)
     })
 
+    it('accepts mtw.ephemera.actions Object Take Hold envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Object Take Hold' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Take Hold' as const,
+                characterId: 'CHARACTER#alpha' as const,
+                objectId: 'OBJECT#Broom' as const,
+                roomId: 'ROOM#from' as const,
+                confidence: 0.9,
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsObjectTakeHoldEnvelope(envelope as any)).toBe(true)
+    })
+
     it('rejects unrelated event type on mtw.ephemera.actions', () => {
         const envelope = {
             header: {
@@ -129,6 +151,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsActionsObjectTakeHoldEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {

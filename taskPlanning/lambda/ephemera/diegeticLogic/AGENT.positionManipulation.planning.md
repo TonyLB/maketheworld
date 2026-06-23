@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 2 enrich + resolve shipped. **Next:** Phase 3 actions egress (D4, D13).
+**Status:** Phase 3 actions egress shipped. **Next:** Phase 4 positions apply (gates **D16**, **D8** open).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -68,9 +68,7 @@ Phases map to lane seams: **1** classify, **2** enrich + resolve, **3** actions 
 
 ---
 
-## Target pipeline (draft)
-
-Names are placeholders until stream contracts lock.
+## Target pipeline
 
 ```text
 command -> Parse Requested
@@ -78,7 +76,7 @@ command -> Parse Requested
        -> enrich (Bedrock: disposition atomic | complex + proposal from in-room context)
        -> [complex] terminal parse stub (OOC / Error) --- out of scope beyond stub
        -> [atomic] deterministic resolve/ground (object id, legality checks)
-       -> streamEvent intent (e.g. Object Manipulation Requested) --- atomic only
+       -> streamEvent intent (**Object Take Hold** --- atomic **`takeHold`** only; **D4**)
        -> positions apply coordinator (graph + adjacency transact)
        -> streamEvent fact (Object Moved extended and/or cross-host fact --- D8)
        -> perception emission (WorldMessage and/or fan-in cluster)
@@ -139,7 +137,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in the owning **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and graduate operator prose into **`diegeticLogic/`** or positions concepts) and remove the row here.
 
-Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**).
+Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**). **Phase 3 gate:** **Decided** (**D4**, **D13**).
 
 ### Decided (cross-phase)
 
@@ -154,13 +152,13 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | **D7** | **Ambiguity policy:** **fail closed** with OOC error when resolve cannot pick a unique object; no confidence-threshold best-guess in v1. Conversation / ask-player disambiguation deferred. | 2 | **Decided** |
 | **D14** | **Code layout:** **`actions/enrich/objectManipulation/`** for enrich + resolve (dedicated module, not generic enrich router only). Positions apply under new **`positions/manipulation/`** tree: **`membership/`** for cross-host graph transfers (room <-> character, etc.); **`relationships/`** reserved for relational edge apply (deferred beyond v1 atomic pick-up). Reuse **`membership/`** primitives (e.g. **`positionGraphMerge`**) where appropriate --- do not fold manipulation coordinators into existing room-only **`positions/membership/`** apply entry points. | 2 | **Decided** |
 | **D17** | **Enrich disposition schema:** thin vertical --- extensible **`operationKind`**, v1 implements **`takeHold`** only on the atomic path; **`disposition: complex`** stub vocabulary; finalize rules per [Enrich disposition schema (D17)](#enrich-disposition-schema-d17---decided). | 2 | **Decided** |
+| **D4** | **Stream contract:** **`Object Take Hold`** on **`mtw.ephemera.actions`**; payload **`characterId`**, **`objectId`**, **`roomId`** (source room at egress), optional **`confidence`**. Mirrors **`Character Navigate`** grounded-id pattern; pairs with positions **`Object Moved`** fact family (**D8** still open). See [Actions egress intent (D4)](#actions-egress-intent-d4---decided). | 3 | **Decided** |
+| **D13** | **Trusted ingress:** **parse-only** for v1 --- **`Parse Requested`** only; no **`Action Assessed`** manipulation branch until a trusted UI path is designed. | 3 | **Decided** |
 
 ### Open
 
 | ID | Decision | Blocks phase | Gate | Status |
 | --- | --- | --- | --- | --- |
-| **D4** | **Stream contract name and payload** for actions egress (intent leg for perception fan-in?). | 3 | Required | Open |
-| **D13** | **Trusted `Action Assessed` path** for manipulation (UI click) in v1 or parse-only? | 3 | Required | Open |
 | **D16** | **`Meta::Character.positionGraph` storage:** row shape on **`Meta::Character`**, object **adjacency** when host is **`CHARACTER#`** (extend reverse index?), gateway/cache handler scope, steady-state one-object-per-hand rules. | 4 | Required | Open |
 | **D8** | **Extend `Object Moved` fact** vs new fact type for relational / non-room-host changes? | 4 | Required | Open |
 | **D9** | **Perception pattern:** immediate `WorldMessage`, new fan-in cluster (intent + fact), or enrich-generated copy streamed separately? | 5 | Required | Open |
@@ -174,7 +172,7 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | --- | --- | --- | --- |
 | **A1** | **Operator spec** in [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) (`AGENT.operators.concepts.md` or section) --- graduate prose as operators ship. | 2--6 | Not started |
 | **A2** | **Pre-flight legality** in actions (character must be in room with object) vs positions-only rejection. | 4 | Open |
-| **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Open |
+| **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Intent leg sketched (**D4**); fact leg still **D8** |
 | **A4** | **Nested containment + dynamic closures** --- graduate [future direction](#future-direction-nested-containment-and-dynamic-closures-post-vertical) into durable concepts when container-host / relational slices ship; v1 flat room nodes remain valid. | post-vertical | Documented |
 
 ---
@@ -403,15 +401,24 @@ Existing **`positions/membership/`** remains **room-host-only** apply (`applyObj
 
 ### After resolve (internal, pre-egress)
 
-Grounded atomic **`takeHold`** proposal (TypeScript --- names illustrative until stream contract **D4** locks):
+Grounded atomic **`takeHold`** parse result (**`ParseCommandObjectManipulationResult`**) plus egress context from **`Parse Requested`** (**D4**):
 
 ```ts
+// parse result (Phase 2)
 {
-  disposition: 'atomic',
+  type: 'ObjectManipulation',
   operationKind: 'takeHold',
   objectId: EphemeraObjectId,
-  // hosts implied by operationKind + character context in v1:
-  // fromHost: roomId, toHost: characterId
+  confidence: ParseCommandConfidence,
+}
+
+// streamEvent update (Phase 3 --- D4)
+{
+  type: 'Object Take Hold',
+  characterId: EphemeraCharacterId,
+  objectId: EphemeraObjectId,
+  roomId: EphemeraRoomId,  // character's current room at egress (source host)
+  confidence?: number,
 }
 ```
 
@@ -428,6 +435,54 @@ Grounded atomic **`takeHold`** proposal (TypeScript --- names illustrative until
 | --- | --- | --- |
 | **`drop`** | Membership atomic (character -> room) | After pick-up vertical proven; same **`positions/manipulation/membership/`**, new **`operationKind`** |
 | Relational attach | Edge apply | After **`positions/manipulation/relationships/`** + complex-path plan |
+
+---
+
+## Actions egress intent (D4 --- decided)
+
+**Direction:** v1 atomic **`takeHold`** intent streams as **`Object Take Hold`** on **`mtw.ephemera.actions`**, parallel to **`Character Navigate`** / **`Character Home`** (grounded ids post-parse; header **`type`** mirrors payload **`type`**; **`streamKey`** = **`characterId`**).
+
+**Rejected for v1:** generic **`Object Manipulation Requested`** + **`operationKind`** on payload (deferred --- add when a second atomic operator ships and fan-in needs one leg); bare **`Take Hold`** without **`Object`** prefix (weaker pairing with **`Object Moved`** fact).
+
+### Bus payload (`publishedEvents.ts` target)
+
+```json
+{
+  "type": "Object Take Hold",
+  "characterId": "CHARACTER#...",
+  "objectId": "OBJECT#...",
+  "roomId": "ROOM#...",
+  "confidence": 0.92
+}
+```
+
+| Field | Rule |
+| --- | --- |
+| **`type`** | Exactly **`Object Take Hold`**. |
+| **`characterId`** | Actor performing pick-up. |
+| **`objectId`** | Grounded target from resolve (**D5**). |
+| **`roomId`** | Source room at egress (character's current room membership --- room host for **`takeHold`**). Positions apply uses this as **`fromHost`**; character inventory is implicit **`toHost`**. |
+| **`confidence`** | Optional; include when emitting from **`Parse Requested`** parse path (same register as **`Acme Order`** / **`Look Command Requested`**). |
+
+### Egress wiring (Phase 3)
+
+- Emit only when parse result is **`ObjectManipulation`** with **`operationKind: takeHold`**.
+- **`roomId`** from **`roomExitContext.fromRoomId`** (or catalog room) on **`Parse Requested`** --- do not re-read membership inside enrich.
+- Subscriber: **`mtw.ephemera.positions`** execution ingress (Phase 4 apply coordinator).
+- Perception fan-in intent leg (Phase 5 / **D9**): adapter alongside **`Character Navigate`** in [`membershipPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts).
+
+---
+
+## Trusted ingress (D13 --- decided)
+
+**Direction:** **parse-only** for v1 manipulation.
+
+| Path | v1 |
+| --- | --- |
+| **`Parse Requested`** (typed command) | **Yes** --- classify -> enrich -> resolve -> egress |
+| **`Action Assessed`** (trusted UI) | **No** --- defer until inventory / object UI design |
+
+Mirror navigation eventually if a trusted pick-up UI ships; reuse **`Object Take Hold`** stream contract when added.
 
 ---
 
@@ -510,11 +565,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Enrich-time terminal for unimplemented atomic **`operationKind`**s (drop / put-on until later slices --- **D2**).
   - [X] Tests with mocked Bedrock and room object fixtures (atomic **`takeHold`** success path; **`disposition: complex`** stub terminal; unimplemented **`operationKind`** on atomic path).
 
-- [ ] **Phase 3 --- actions egress (atomic intents only)**
-  - [ ] **Gate:** **D4**, **D13** decided (optional **A3** envelope sketch).
-  - [ ] `publishedEvents.ts` stream type + guards.
-  - [ ] `index.ts` handler branch; correlate `ReturnValue` when `requestId` present.
-  - [ ] Subscriber registration plan (positions execution ingress).
+- [X] **Phase 3 --- actions egress (atomic intents only)**
+  - [X] **Gate:** **D4**, **D13** decided (optional **A3** intent-leg sketch in [Actions egress intent (D4)](#actions-egress-intent-d4---decided)).
+  - [X] `publishedEvents.ts` stream type + guards.
+  - [X] `index.ts` handler branch; correlate `ReturnValue` when `requestId` present.
+  - [X] Subscriber registration plan (positions execution ingress): guards + stub [`executeObjectTakeHold`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeObjectTakeHold.ts) wired in [`positions/index.ts`](../../../../lambda/ephemera/dataSource/positions/index.ts).
 
 - [ ] **Phase 4 --- positions apply**
   - [ ] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
@@ -542,7 +597,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | --- | --- |
 | `diegeticLogic/` doc stub | Done |
 | Lane split agreement (L1--L12) | Done |
-| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17) | Done |
+| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17, D4, D13) | Done |
 | In-room label read path (L11) | Decided (compose-stack projection) |
 | Classify contract (L12, D3) | Decided (no slots; **`movementObjectLabels`**) |
 | **Phase 1 gate** | Decided |
@@ -550,8 +605,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | **Phase 2 gate** | Decided |
 | Enrich disposition schema (D17) | Decided (thin **`takeHold`** vertical; extensible **`operationKind`**) |
 | Phase 2 enrich + resolve (atomic + complex stub) | Done |
-| Phase 3 gate (D4, D13) | Open |
-| Phase 3 actions egress | Not started |
+| **Phase 3 gate** | Decided (**D4**, **D13**) |
+| Actions egress intent (**Object Take Hold**) | Decided |
+| Trusted ingress (parse-only v1) | Decided (**D13**) |
+| Phase 3 actions egress | Done |
+| Positions stub ingress (`Object Take Hold` -> `executeObjectTakeHold`) | Done (no-op until Phase 4) |
 | Phase 4 gate (D16, D8) | Open |
 | Phase 4 positions apply | Not started |
 | Phase 5 gate (D9--D12) | Open |
@@ -594,6 +652,18 @@ npm run test -- --watchAll=false \
   dataSource/actions/parseCommand.test.ts \
   dataSource/actions/index.test.ts \
   dataSource/actions/discriminateIntent/intentClassification.test.ts
+npm run build
+```
+
+Phase 3 (shipped):
+
+```bash
+npm run test -- --watchAll=false \
+  dataSource/actions/publishedEvents.test.ts \
+  dataSource/actions/index.test.ts \
+  dataSource/positions/subscribedEvents.test.ts \
+  dataSource/positions/manipulation/membership/executeObjectTakeHold.test.ts \
+  dataSource/positions/receivePaths.integration.test.ts
 npm run build
 ```
 

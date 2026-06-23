@@ -39,6 +39,7 @@ import {
     isParseCommandLookComponentResult,
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
+    isParseCommandObjectManipulationResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -413,6 +414,30 @@ const publishStreamEventsForIntent = async (
                 update: {
                     type: 'Predict Hypothesis',
                     characterId,
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
+    }
+    else if (isParseCommandObjectManipulationResult(parseResult)) {
+        const { fromRoomId } = roomExitContext
+        if (!fromRoomId) {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot pick that up.'],
+            })
+        }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Take Hold' },
+                update: {
+                    type: 'Object Take Hold',
+                    characterId,
+                    objectId: parseResult.objectId,
+                    roomId: fromRoomId,
                     confidence: parseResult.confidence,
                 },
             })

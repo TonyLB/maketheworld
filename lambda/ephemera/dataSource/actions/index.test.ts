@@ -1463,12 +1463,19 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandObjectManipulationResult', () => {
-        it('does not publish OOC or stream for grounded takeHold (Phase 3 egress deferred)', async () => {
+        const from = 'ROOM#from' as EphemeraRoomId
+
+        it('emits Object Take Hold streamEvent when takeHold is grounded', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
                 objectId: 'OBJECT#Broom',
                 confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -1489,11 +1496,102 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Take Hold' },
+                update: {
+                    type: 'Object Take Hold',
+                    characterId: 'CHARACTER#123',
+                    objectId: 'OBJECT#Broom',
+                    roomId: from,
+                    confidence: 0.9,
+                },
+            })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({
                     displayProtocol: 'WorldOOCMessage',
                 })
             )
+        })
+
+        it('emits correlated ReturnValue when requestId is present', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'takeHold',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                        requestId: 'req-takehold',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Success',
+                    RequestId: 'req-takehold',
+                    message: 'parse_request_handled',
+                },
+            })
+        })
+
+        it('publishes WorldOOCMessage when character has no current room', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'takeHold',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: null,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot pick that up.'],
+            })
             expect(streamEvent).not.toHaveBeenCalled()
         })
 

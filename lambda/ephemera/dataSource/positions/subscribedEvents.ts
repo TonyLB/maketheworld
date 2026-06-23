@@ -17,7 +17,7 @@ import type {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import type { DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 export type EphemeraPositionsConnectionsCharactersHeader =
@@ -29,6 +29,9 @@ export type EphemeraPositionsActionsCharacterNavigateHeader =
 export type EphemeraPositionsActionsCharacterHomeHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Home' }
 
+export type EphemeraPositionsActionsObjectTakeHoldHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Object Take Hold' }
+
 export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Room Occupancy Drift Finding' }
 
@@ -36,12 +39,14 @@ export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsConnectionsCharactersHeader
     | EphemeraPositionsActionsCharacterNavigateHeader
     | EphemeraPositionsActionsCharacterHomeHeader
+    | EphemeraPositionsActionsObjectTakeHoldHeader
     | EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
 
 export type EphemeraPositionsSubscribedContent =
     | ConnectionsCharactersEventUpdate
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
+    | ObjectTakeHoldPublishedPayload
     | DiagnosticsRoomOccupancyDriftFindingEvent
 
 export type EphemeraPositionsConnectionsCharactersEnvelope =
@@ -56,6 +61,11 @@ export type EphemeraPositionsActionsCharacterNavigateEnvelope = {
 export type EphemeraPositionsActionsCharacterHomeEnvelope = {
     header: EphemeraPositionsActionsCharacterHomeHeader;
     getContent: () => Promise<CharacterHomePublishedPayload>;
+}
+
+export type EphemeraPositionsActionsObjectTakeHoldEnvelope = {
+    header: EphemeraPositionsActionsObjectTakeHoldHeader;
+    getContent: () => Promise<ObjectTakeHoldPublishedPayload>;
 }
 
 export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = {
@@ -81,6 +91,12 @@ const isEphemeraPositionsActionsCharacterHomeHeader: HeaderGuard<EphemeraPositio
     header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Character Home'
 )
 
+const isEphemeraPositionsActionsObjectTakeHoldHeader: HeaderGuard<EphemeraPositionsActionsObjectTakeHoldHeader> = (
+    header
+): header is EphemeraPositionsActionsObjectTakeHoldHeader => (
+    header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Object Take Hold'
+)
+
 const isEphemeraPositionsConnectionsCharactersHeader: HeaderGuard<EphemeraPositionsConnectionsCharactersHeader> = (
     header
 ): header is EphemeraPositionsConnectionsCharactersHeader => (
@@ -96,6 +112,7 @@ export const isEphemeraPositionsSubscribedHeader: HeaderGuard<EphemeraPositionsS
     isEphemeraPositionsConnectionsCharactersHeader(header)
     || isEphemeraPositionsActionsCharacterNavigateHeader(header)
     || isEphemeraPositionsActionsCharacterHomeHeader(header)
+    || isEphemeraPositionsActionsObjectTakeHoldHeader(header)
     || isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader(header)
 
 export const isEphemeraPositionsConnectionsCharactersEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -112,6 +129,11 @@ export const isEphemeraPositionsActionsCharacterHomeEnvelope = makeStreamingEnve
     CharacterHomePublishedPayload,
     EphemeraPositionsActionsCharacterHomeHeader
 >(isEphemeraPositionsActionsCharacterHomeHeader)
+
+export const isEphemeraPositionsActionsObjectTakeHoldEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectTakeHoldPublishedPayload,
+    EphemeraPositionsActionsObjectTakeHoldHeader
+>(isEphemeraPositionsActionsObjectTakeHoldHeader)
 
 export const isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     DiagnosticsRoomOccupancyDriftFindingEvent,

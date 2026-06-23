@@ -18,11 +18,16 @@ jest.mock('./navigate/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
 
+jest.mock('./manipulation/membership/executeObjectTakeHold', () => ({
+    executeObjectTakeHold: jest.fn(),
+}))
+
 import messageBus from '../../messageBus'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
+import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
 
 import './index'
 
@@ -37,6 +42,9 @@ const repairRoomOccupancyDriftMock = repairRoomOccupancyDrift as jest.MockedFunc
 >
 const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
     typeof executeCharacterNavigate
+>
+const executeObjectTakeHoldMock = executeObjectTakeHold as jest.MockedFunction<
+    typeof executeObjectTakeHold
 >
 
 const CHARACTER_ID = 'CHARACTER#alpha' as const
@@ -94,6 +102,7 @@ describe('positions receive paths (integration)', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         })
+        executeObjectTakeHoldMock.mockResolvedValue(undefined)
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
     })
 
@@ -182,6 +191,33 @@ describe('positions receive paths (integration)', () => {
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Object Take Hold', () => {
+        it('routes mtw.ephemera.actions Object Take Hold through executeObjectTakeHold', async () => {
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
+                type: 'Object Take Hold',
+                characterId: CHARACTER_ID,
+                objectId: 'OBJECT#Broom',
+                roomId: ROOM_A,
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeObjectTakeHoldMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    objectId: 'OBJECT#Broom',
+                    roomId: ROOM_A,
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
+            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
 

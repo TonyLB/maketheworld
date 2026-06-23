@@ -12,7 +12,13 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** with **`froms[]`** + **`to`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) (stub) |
+
+### `manipulation/membership/` (object manipulation ingress --- stub Phase 3)
+
+| File | Role |
+| --- | --- |
+| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** execution entry (no-op stub until Phase 4 graph apply) |
 
 ### `navigate/` (shared execution + post-persist orchestration)
 

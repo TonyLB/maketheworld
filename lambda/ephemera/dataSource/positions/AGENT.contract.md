@@ -149,6 +149,14 @@ Positions **must** subscribe to:
 | --- | --- |
 | `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
 | `Character Home` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
+| `Object Take Hold` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) (**stub** --- no membership writes until Phase 4) |
+
+### `Object Take Hold` (positions-owned, stub Phase 3)
+
+- **Ingress:** typed pick-up via actions **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1).
+- **Must** trust actions-resolved `objectId` and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
+- **Phase 3 stub:** [`executeObjectTakeHold`](manipulation/membership/executeObjectTakeHold.ts) **must not** write Dynamo, emit **`Object Moved`**, or publish player copy.
+- **Phase 4:** replace stub body with cross-host graph apply (room-remove + character-add per **L9** / **D14**).
 
 ### `Character Home` (positions-owned)
 
