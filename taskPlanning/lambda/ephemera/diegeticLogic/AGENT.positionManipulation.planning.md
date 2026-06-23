@@ -128,6 +128,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 ### Deferred (later iterations)
 
 - **`Meta::Area`** / **`Meta::Object`** host graphs beyond what v1 pick-up requires.
+- **Nested containment, scene discovery, and dynamic closures** --- design direction in [Future direction: nested containment and dynamic closures](#future-direction-nested-containment-and-dynamic-closures-post-vertical); does **not** block Phases 2--5 or the first **`takeHold`** vertical.
 - Perspective-scoped play graph forks (asset-layer **`perspectiveKey`** as manipulation authority).
 - **Additional atomic `operationKind`s** (`drop`, relational attach, ...) --- enrich schema is extensible (**D17**), but only **`takeHold`** is implemented through resolve, egress, and positions in this initiative; next membership mirror (e.g. **`drop`**) ships after the pick-up vertical is proven end-to-end.
 - **Ambiguity conversation path** --- player disambiguation when object resolution is unclear (**D7**); v1 fails closed with OOC error.
@@ -174,6 +175,7 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | **A1** | **Operator spec** in [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) (`AGENT.operators.concepts.md` or section) --- graduate prose as operators ship. | 2--6 | Not started |
 | **A2** | **Pre-flight legality** in actions (character must be in room with object) vs positions-only rejection. | 4 | Open |
 | **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Open |
+| **A4** | **Nested containment + dynamic closures** --- graduate [future direction](#future-direction-nested-containment-and-dynamic-closures-post-vertical) into durable concepts when container-host / relational slices ship; v1 flat room nodes remain valid. | post-vertical | Documented |
 
 ---
 
@@ -186,6 +188,77 @@ Broader threads to resolve into **D*** / **A*** rows or durable concepts as they
 - Failure copy: **`WorldOOCMessage`** vs in-world **`WorldMessage`** for "you can't do that" (including **complex** stub terminal)?
 - **`drop`** / **`put X on Y`** at classify: enrich routes **`put X on Y`** and multi-object lines to **`disposition: complex`**; unrecognized or unimplemented atomic **`operationKind`**s (including **`drop`** in v1) -> terminal OOC per **D17**.
 - Multi-object commands: **`MultipleCommands`** vs single enrich with multiple deltas --- if not **`MultipleCommands`**, treat as **complex** (out of scope beyond stub) unless decomposable to one atomic **`takeHold`**.
+- Graduate [nested containment and dynamic closures](#future-direction-nested-containment-and-dynamic-closures-post-vertical) into **`diegeticLogic/`** concepts and positions **`AGENT.concepts.md`** when relational / container-host manipulation ships.
+
+---
+
+## Future direction: nested containment and dynamic closures (post-vertical)
+
+**Status:** Design direction only --- **not** a Phase 2--5 gate. Documents how later slices can represent deeper structure **without** dual-authority containment or a monolithic room closure, so the first **`takeHold`** vertical (flat room object nodes per **D6**) does not paint the project into a corner.
+
+Cross-links: fractal hosts in [`positions/AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md).
+
+### Problem (why this section exists)
+
+v1 treats in-room objects as **top-level nodes** on **`Meta::Room.positionGraph`** (**D6**, [`roomObjectLabelsForCharacter.ts`](../../../../lambda/ephemera/dataSource/actions/roomObjectLabelsForCharacter.ts)). That is sufficient for **`takeHold`** on loose objects. Later we expect:
+
+- **Nested portable containment** (candlestick **in** bookshelf **in** room) --- membership on the **container host**, not duplicated on the room.
+- **Non-local extent** (thread managed at Area scope, **present** in a hallway via relational claims) --- mutation authority **not** the same as room membership.
+- **Parse / enrich discovery** (`get candlestick`) over **deep or wide** trees without unbounded read-time graph walks or massive write-time room indexes.
+
+### Authority invariants (do not violate in later slices)
+
+| Invariant | Rule |
+| --- | --- |
+| **Single membership host** | Each **`OBJECT#`** has exactly one direct container at steady state (room, character inventory, or parent object host). **Forbidden:** same object as a room node **and** nested on a container host (bookcase-move / candlestick-in-two-rooms drift). |
+| **Mutation authority** | One apply path judges and commits changes to an object (or coordinated transact for host + subtree). Mirrors characters today: managed at **`Meta::Character`**, **present** as a node on the room graph. |
+| **Presence vs membership** | Multi-place **story** (thread through a labyrinth) uses **presence / relational** claims or **unknowns** --- not duplicate membership hosts. |
+| **Closures are derived** | Scene **closures** are read optimizations only; **stored host `positionGraph` wins** (same register as graph vs adjacency **S2-5**). Apply never mutates through a closure row. |
+
+### Canonical storage (target, not v1)
+
+- **Room graph:** top-level scene anchors (characters, loose objects, container objects such as bookshelves) --- not every nested leaf.
+- **Container host graph:** nested members on **`Meta::Object.positionGraph`** (and **`Meta::Character.positionGraph`** for inventory per **L9** / **D16**).
+- **Adjacency:** direct host only per contained id (`POSITION#${immediateHost}`); extend parsers beyond room-only hosts when object / character / area containers ship.
+- **Relational edges** (`On`, `In`, `Span`, ...): room- or host-scoped **among co-present members** or for area-managed extent --- **`positions/manipulation/relationships/`** (deferred).
+
+### Dynamic closures (fetch optimization seam)
+
+**Closure** --- per-host **derived** index of reachable **`OBJECT#`** ids for discoverability (parse **`movementObjectLabels`**, enrich catalog, affordance object slice), without redefining manipulation truth.
+
+**Not every container is equal:** closure materialization is **tiered and dynamic**, not an all-or-nothing room flatten.
+
+| Scene shape | Closure strategy | Read pattern (illustrative) |
+| --- | --- | --- |
+| **Shallow** (room, table, one candlestick) | **Room closure** lists terminal ids (full flatten under room) | One closure read -> labels |
+| **Wide** (library, many bookshelves x many books) | **Room closure** lists **container boundaries** only; **per-shelf closure** lists book ids | Room closure + parallel shelf closures --- O(boundaries), not O(all leaves) on the room row |
+| **Deep single branch** | Promote into ancestor closure when subtree size / depth is below a threshold; otherwise stop at a boundary host | Bounded hops; policy at apply or lazy rebuild |
+
+Illustrative closure shape (names TBD at implementation):
+
+```ts
+type SceneClosure = {
+  terminalObjectIds: EphemeraObjectId[]  // fully listed under this host
+  containerIds: EphemeraObjectId[]       // fetch child closure next (boundary hosts)
+}
+```
+
+**Materialization policy (TBD):** thresholds on child count / depth, explicit author "closure boundary" on a container, or lazy first-read build. **Write path:** patch or invalidate closures when host **`positionGraph`** or adjacency changes (book moves between shelves updates shelf closures; room closure unchanged).
+
+**Rejected for this direction:** alternate **authoritative** encodings of the same containment fact (room edges **and** nested host membership for the same object); monolithic room closure of every leaf in a large library (write amplification on every in-shelf move).
+
+### v1 compatibility (explicit non-regression)
+
+The first vertical **does not** implement nested hosts, object **`getPositionGraph`**, extended adjacency hosts, or scene closures. It **may** assume:
+
+- Objects targeted by **`takeHold`** are **top-level** room graph nodes (**D6**).
+- Nested / relational lines route to **`disposition: complex`** (**L10**, **D17**).
+
+Later work adds host graphs, closure maintenance, and expanded label projection **without** changing the v1 single-host pick-up contract for loose in-room objects.
+
+### Graduation (when relational / container manipulation ships)
+
+Move normative rules to **`diegeticLogic/AGENT.concepts.md`** (vocabulary: membership host, mutation authority, presence, closure boundary) and **`positions/AGENT.concepts.md`** / **`AGENT.contract.md`** (closure invalidation, adjacency host kinds). Remove or shorten this section per [task plan disposal](../../../AGENT.md).
 
 ---
 
@@ -484,6 +557,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | Phase 5 gate (D9--D12) | Open |
 | Phase 5 perception / transcript | Not started |
 | Phase 6 graduation | Not started |
+| Nested containment / dynamic closures (future direction) | Documented ([section](#future-direction-nested-containment-and-dynamic-closures-post-vertical); **A4**) |
 
 ---
 
