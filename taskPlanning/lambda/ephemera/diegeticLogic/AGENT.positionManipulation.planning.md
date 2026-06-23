@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 4 positions apply shipped. **Next:** Phase 5 perception / transcript.
+**Status:** Phase 5 shipped. **Next:** Phase 6 graduation.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -79,7 +79,7 @@ command -> Parse Requested
        -> streamEvent intent (**Object Take Hold** --- atomic **`takeHold`** only; **D4**)
        -> positions apply coordinator (graph + adjacency transact)
        -> streamEvent fact (**Object Moved** extended for non-room membership hosts --- **D8**)
-       -> perception emission (WorldMessage and/or fan-in cluster)
+       -> perception fan-in (intent + fact -> single-line **`WorldMessage`**)
        -> affordance refresh (existing path)
 ```
 
@@ -95,7 +95,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 - **Fractal host graphs:** storage and apply for **`positionGraph`** on non-room hosts (v1: **`Meta::Character`** for held objects; Area / Object hosts deferred unless needed).
 - Actions: new intent(s), enrich pipeline(s), stream contract, handler wiring.
 - Positions: apply coordinator(s) for agreed graph mutations; contract updates.
-- Perception: transcript copy for manipulation (minimal or fan-in --- TBD).
+- Perception: transcript copy via **new fan-in cluster** (intent + fact; **D9**--**D12**).
 - Tests and durable doc graduation per [`diegeticLogic/AGENT.md` graduation rule](../../../../lambda/ephemera/diegeticLogic/AGENT.md#graduation-rule).
 
 ### Explicit deferrals
@@ -121,7 +121,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 - **`Meta::Character.positionGraph`** (and gateway/cache read path) for held objects.
 - Cross-host apply: atomic **room -> character** graph transfer on pick up under **`positions/manipulation/membership/`** (reuse [`positionGraphMerge`](../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts) / adjacency patterns from room-only **`positions/membership/`**).
 - Relational in-room **edges** (`On`, `In`, ...) on room graphs --- **complex manipulation**; out of scope for this plan (see [Explicit deferrals](#explicit-deferrals)).
-- Perception **membership-style fan-in** for object manipulation transcript.
+- Perception **object-manipulation fan-in** for pick-up transcript (**D9**--**D12** shipped; [`objectManipulationPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.ts)).
 
 ### Deferred (later iterations)
 
@@ -138,7 +138,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in the owning **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and graduate operator prose into **`diegeticLogic/`** or positions concepts) and remove the row here.
 
-Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**). **Phase 3 gate:** **Decided** (**D4**, **D13**). **Phase 4 gate:** **Decided** (**D16**, **D8**).
+Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**). **Phase 3 gate:** **Decided** (**D4**, **D13**). **Phase 4 gate:** **Decided** (**D16**, **D8**). **Phase 5 gate:** **Decided** (**D9**, **D10**, **D11**, **D12**).
 
 ### Decided (cross-phase)
 
@@ -157,15 +157,14 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | **D13** | **Trusted ingress:** **parse-only** for v1 --- **`Parse Requested`** only; no **`Action Assessed`** manipulation branch until a trusted UI path is designed. | 3 | **Decided** |
 | **D16** | **Fractal host `positionGraph` storage:** row shape parallel to **`Meta::Room`** on any eligible component meta; adjacency parallel to room-host reverse index; extend existing **`createPositionsCacheHandler`** / **`internalCache.Positions`** for forward graph + adjacency on eligible hosts; **no** v1 carrying limits. See [Host positionGraph storage (D16)](#host-positiongraph-storage-d16---decided). | 4 | **Decided** |
 | **D8** | **Fact contract:** **extend** existing **`Object Moved`** for **non-room membership hosts** (v1: room -> character on **`takeHold`**); **do not** extend for **relational** edge changes yet. See [`Object Moved` fact (D8)](#object-moved-fact-d8---decided). | 4 | **Decided** |
+| **D9** | **Perception pattern:** **new fan-in cluster** (intent + fact), parallel to navigate **`MembershipPresentationFanInCluster`**; not immediate pre-fact **`WorldMessage`**, not enrich-streamed copy leg. See [Perception / transcript (D9--D12)](#perception--transcript-d9--d12---decided). | 5 | **Decided** |
+| **D10** | **Transcript beat shape:** **single line** per pick-up (e.g. **`${Player} picks up ${Object}`**); not leave/arrive-style multi-line beat. **`createdTime`** from fact **`beatAnchorTime`** (Model A, mirror navigate fan-in). | 5 | **Decided** |
+| **D11** | **LLM hop count:** **classify + enrich** (existing parse hops) then **deterministic template** copy at fan-in emit --- **no** separate copy-generating LLM invocation. Display strings from resolve / cache reads at emit time. | 5 | **Decided** |
+| **D12** | **Unknowns policy:** **withhold** --- v1 pick-up copy does not elaborate unstated spatial detail (where in room, how held, etc.). See [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md). | 5 | **Decided** |
 
 ### Open
 
-| ID | Decision | Blocks phase | Gate | Status |
-| --- | --- | --- | --- | --- |
-| **D9** | **Perception pattern:** immediate `WorldMessage`, new fan-in cluster (intent + fact), or enrich-generated copy streamed separately? | 5 | Required | Open |
-| **D10** | **Transcript beat shape:** single line vs leave/place-style multi-line beat; `CreatedTime` / `OrchestrateMessages` policy | 5 | Required | Open |
-| **D11** | **LLM hop count:** classify-only + deterministic template copy vs classify + enrich + optional copy hop | 5 | Required | Open |
-| **D12** | **Unknowns policy** for unstated spatial detail (withhold vs elaborate in copy only) --- see [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md) | 5 | Required | Open |
+No **Required** phase-gate rows remain open. Advisory rows: [Advisory](#advisory-inform-not-phase-gate-checklist).
 
 ### Advisory (inform; not phase gate checklist)
 
@@ -548,7 +547,65 @@ Grounded atomic **`takeHold`** parse result (**`ParseCommandObjectManipulationRe
 - Emit only when parse result is **`ObjectManipulation`** with **`operationKind: takeHold`**.
 - **`roomId`** from **`roomExitContext.fromRoomId`** (or catalog room) on **`Parse Requested`** --- do not re-read membership inside enrich.
 - Subscriber: **`mtw.ephemera.positions`** execution ingress (Phase 4 apply coordinator).
-- Perception fan-in intent leg (Phase 5 / **D9**): adapter alongside **`Character Navigate`** in [`membershipPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts).
+- Perception fan-in intent leg (Phase 5 / **D9** shipped): [`objectManipulationPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.ts) sibling module + cluster in [`objectManipulationPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.ts).
+
+---
+
+## Perception / transcript (D9--D12 --- decided)
+
+**Direction:** Mirror navigate **intent + fact fan-in**, adapted for object pick-up: correlate **`Object Take Hold`** (actions) with **`Object Moved`** (positions), emit one deterministic **`WorldMessage`** when the cluster completes. Reference: [`membershipPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts), [`publishMembershipPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishMembershipPresentation.ts).
+
+### D9 --- Perception pattern
+
+| Choice | Verdict |
+| --- | --- |
+| **New fan-in cluster** (intent + fact) | **Selected** --- separate from navigate **`MembershipPresentationFanInCluster`** (object manipulation legs, room-audience targeting) |
+| Immediate **`WorldMessage`** on intent (pre-fact) | Rejected |
+| Enrich-generated copy streamed as its own bus leg | Rejected |
+
+| Leg | Source | Payload |
+| --- | --- | --- |
+| **Intent** | **`mtw.ephemera.actions`** | **`Object Take Hold`** (**D4**) |
+| **Fact** | **`mtw.ephemera.positions`** | **`Object Moved`** with room **`froms`** + character **`to`** (**D8**) |
+
+Cluster identity: actor **`characterId`** + grounded **`objectId`** + fact **`beatAnchorTime`** (or equivalent correlation key --- align with existing **`FanInCluster`** patterns at implementation).
+
+### D10 --- Transcript beat shape
+
+| Concern | Rule |
+| --- | --- |
+| **Shape** | **Single line** per successful pick-up --- not leave/arrive multi-line beat |
+| **Template (v1)** | **`${Player} picks up ${Object}`** (display names at emit time) |
+| **`createdTime`** | Fact **`beatAnchorTime`** (Model A --- same register as navigate membership fan-in) |
+| **`OrchestrateMessages`** | **Not** used for v1 pick-up copy (simple **`PublishMessage`** / **`WorldMessage`** from fan-in handler) |
+
+**Rejected:** leave/place-style paired lines; separate header + body thread for pick-up.
+
+### D11 --- LLM hop count / copy generation
+
+| Stage | Role |
+| --- | --- |
+| **Classify** (existing) | Intent family + raw object span(s) |
+| **Enrich** (existing) | **`operationKind`**, proposal, grounding inputs |
+| **Fan-in emit** (new) | **Deterministic template** fill using grounded **`objectId`**, actor display name, object **`shortName`** (or equivalent label from resolve / cache reads) |
+
+**Selected:** copy is produced **after** enrich + resolve ground the object --- fan-in does **not** call Bedrock for transcript.
+
+**Rejected:** separate copy-generating LLM hop; classify-only template without enrich grounding (insufficient for **`${Object}`** label).
+
+### D12 --- Unknowns policy
+
+**Direction:** **Withhold** per [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md).
+
+| Concern | v1 pick-up |
+| --- | --- |
+| Where in room the object sat | **Do not** assert or elaborate in copy |
+| How the character holds / carries it | **Do not** elaborate beyond "picks up" |
+| Unstated object attributes | **Do not** invent in transcript |
+
+Copy states only the committed membership change (object moved from room host to character inventory) in plain template form.
+
+**Rejected:** presentation-only elaboration of spatial detail on pick-up.
 
 ---
 
@@ -657,11 +714,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Contract updates in `positions/AGENT.contract.md` per **D8**.
   - [X] Cache memo per gateway rules (`internalCache.Positions`).
 
-- [ ] **Phase 5 --- perception / transcript**
-  - [ ] **Gate:** **D9**, **D10**, **D11**, **D12** decided.
-  - [ ] Emission plan (copy templates or fan-in spec per **D9**).
-  - [ ] `PublishMessage` / `CreatedTime` policy per **D10**.
-  - [ ] Integration test: command -> fact -> transcript row shape.
+- [X] **Phase 5 --- perception / transcript**
+  - [X] **Gate:** **D9**, **D10**, **D11**, **D12** decided.
+  - [X] Emission plan (fan-in cluster + template copy per **D9** / **D10** / **D11**).
+  - [X] `PublishMessage` / `createdTime` policy per **D10** (fact **`beatAnchorTime`**).
+  - [X] Integration test: command -> fact -> transcript row shape.
 
 - [ ] **Phase 6 --- graduation**
   - [ ] Move normative rules out of this plan; update positions / actions / perception AGENT siblings.
@@ -676,7 +733,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | --- | --- |
 | `diegeticLogic/` doc stub | Done |
 | Lane split agreement (L1--L12) | Done |
-| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17, D4, D13, D16, D8) | Done |
+| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17, D4, D13, D16, D8, D9, D10, D11, D12) | Done |
 | In-room label read path (L11) | Decided (compose-stack projection) |
 | Classify contract (L12, D3) | Decided (no slots; **`movementObjectLabels`**) |
 | **Phase 1 gate** | Decided |
@@ -694,8 +751,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | **`Object Moved` fact extension (D8)** | Done (types + cross-host apply) |
 | **Phase 4 gate** | Decided (**D16**, **D8**) |
 | Phase 4 positions apply | Done |
-| Phase 5 gate (D9--D12) | Open |
-| Phase 5 perception / transcript | Not started |
+| **Phase 5 gate** | Decided (**D9**, **D10**, **D11**, **D12**) |
+| Perception fan-in pattern (D9) | Decided (new intent + fact cluster) |
+| Transcript beat shape (D10) | Decided (single line; Model A **`createdTime`**) |
+| Copy generation (D11) | Decided (post-enrich deterministic template; no copy LLM) |
+| Unknowns on pick-up (D12) | Decided (withhold) |
+| Phase 5 perception / transcript | Done |
 | Phase 6 graduation | Not started |
 | Nested containment / dynamic closures (future direction) | Documented ([section](#future-direction-nested-containment-and-dynamic-closures-post-vertical); **A4**) |
 
@@ -769,6 +830,18 @@ npm run test -- --watchAll=false \
   dataSource/positions/manipulation/membership/ \
   dataSource/positions/publishedEvents.test.ts \
   dataSource/positions/receivePaths.integration.test.ts
+npm run build
+```
+
+Phase 5 (perception / transcript --- object take-hold fan-in):
+
+```bash
+npm run test -- --watchAll=false \
+  dataSource/perception/objectManipulationPresentationFanIn.test.ts \
+  dataSource/perception/publishObjectManipulationPresentation.test.ts \
+  dataSource/perception/objectManipulationPresentationLegAdapters.test.ts \
+  dataSource/perception/subscribedEvents.test.ts \
+  dataSource/perception/index.test.ts
 npm run build
 ```
 

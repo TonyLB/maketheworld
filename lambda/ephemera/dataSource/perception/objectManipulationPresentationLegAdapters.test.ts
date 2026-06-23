@@ -1,0 +1,130 @@
+import {
+    StreamingEventEnvelope,
+} from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
+import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
+import {
+    isPerceptionActionsObjectTakeHoldEnvelope,
+    isPerceptionObjectManipulationPresentationEnvelope,
+    isPerceptionPositionsObjectMovedEnvelope,
+    toObjectManipulationPresentationLeg,
+} from './objectManipulationPresentationLegAdapters'
+
+const CHARACTER = 'CHARACTER#Alice' as const
+const OBJECT = 'OBJECT#Broom' as const
+const ROOM = 'ROOM#Cafe' as const
+const ANCHOR_TIME = 1_700_000_000_000
+
+const envelope = (
+    dataSourceKey: string,
+    type: string,
+    content: object,
+    streamKey: string = CHARACTER
+): StreamingEventEnvelope<unknown> => ({
+    header: {
+        dataSourceKey,
+        streamKey,
+        timestamp: Date.now(),
+        type,
+    },
+    getContent: () => Promise.resolve(content),
+})
+
+describe('objectManipulationPresentationLegAdapters', () => {
+    describe('envelope guards', () => {
+        it('accepts Object Take Hold from actions', () => {
+            const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
+                type: 'Object Take Hold',
+                characterId: CHARACTER,
+                objectId: OBJECT,
+                roomId: ROOM,
+            })
+            expect(isPerceptionActionsObjectTakeHoldEnvelope(env)).toBe(true)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
+        })
+
+        it('accepts Object Moved from positions', () => {
+            const env = envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
+                type: 'Object Moved',
+                objectId: OBJECT,
+                froms: [ROOM],
+                to: CHARACTER,
+                beatAnchorTime: ANCHOR_TIME,
+            }, OBJECT)
+            expect(isPerceptionPositionsObjectMovedEnvelope(env)).toBe(true)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
+        })
+
+        it('rejects Character Moved for object manipulation guards', () => {
+            const env = envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                type: 'Character Moved',
+                characterId: CHARACTER,
+                froms: [ROOM],
+                to: 'ROOM#Other',
+                beatAnchorTime: ANCHOR_TIME,
+            })
+            expect(isPerceptionPositionsObjectMovedEnvelope(env)).toBe(false)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(false)
+        })
+    })
+
+    describe('toObjectManipulationPresentationLeg', () => {
+        it('maps Object Take Hold to intent leg', async () => {
+            const leg = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
+                    type: 'Object Take Hold',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    confidence: 0.9,
+                })
+            )
+            expect(leg).toEqual({
+                kind: 'intent',
+                characterId: CHARACTER,
+                objectId: OBJECT,
+                roomId: ROOM,
+            })
+        })
+
+        it('maps Object Moved to fact leg', async () => {
+            const leg = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
+                    type: 'Object Moved',
+                    objectId: OBJECT,
+                    froms: [ROOM],
+                    to: CHARACTER,
+                    beatAnchorTime: ANCHOR_TIME,
+                }, OBJECT)
+            )
+            expect(leg).toEqual({
+                kind: 'fact',
+                objectId: OBJECT,
+                froms: [ROOM],
+                to: CHARACTER,
+                beatAnchorTime: ANCHOR_TIME,
+            })
+        })
+
+        it('returns undefined for non-object-manipulation envelopes', async () => {
+            const leg = await toObjectManipulationPresentationLeg(
+                envelope('api.ephemera', 'Character Perception Requested', {
+                    ephemeraId: CHARACTER,
+                } as never)
+            )
+            expect(leg).toBeUndefined()
+        })
+
+        it('returns undefined when content fails payload guard', async () => {
+            const leg = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
+                    type: 'Object Take Hold',
+                    characterId: CHARACTER,
+                    objectId: 'ROOM#bad',
+                    roomId: ROOM,
+                } as never)
+            )
+            expect(leg).toBeUndefined()
+        })
+    })
+})
