@@ -13,6 +13,7 @@
 | [**AGENT.multiChannel.concepts.md**](../AGENT.multiChannel.concepts.md) | Multi-channel mental models (render vs affordances) |
 | [**AGENT.multiChannel.contract.md**](../AGENT.multiChannel.contract.md) | Multi-channel norms: wire shape, `messageId`, Phase B/C |
 | [**AGENT.narrativeTranscript.concepts.md**](../AGENT.narrativeTranscript.concepts.md) | Fictional transcript **`CreatedTime`**, delivery looseness vs fan-in correlation |
+| [**diegeticLogic/**](../diegeticLogic/AGENT.md) | Play-semantics design (knowns/unknowns, operators); graduates into positions / actions / perception |
 | Multi-channel room UI (initiative complete) | Norms: [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md); server publish map: [`perception/AGENT.md`](perception/AGENT.md) **Server publish sites (multi-channel)** |
 | Cross-cutting concepts index | [`../AGENT.concepts.md`](../AGENT.concepts.md) |
 

@@ -66,7 +66,7 @@ Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-
 
 #### **`mtw.ephemera.positions` (positions in play)**
 
-Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative rules), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map).
+Ephemera lane for **positions in play** --- runtime where entities are and how they relate (`dataSourceKey: 'mtw.ephemera.positions'`). Package docs: [`dataSource/positions/AGENT.md`](dataSource/positions/AGENT.md) (entry), [`AGENT.concepts.md`](dataSource/positions/AGENT.concepts.md) (mental models), [`AGENT.contract.md`](dataSource/positions/AGENT.contract.md) (normative rules), [`AGENT.implementation.md`](dataSource/positions/AGENT.implementation.md) (code map). Future relational operators: design in [`diegeticLogic/`](diegeticLogic/AGENT.md).
 
 Slice 0: `mtw.connections.characters` presence ingress (`Character Connected` / `Character Disconnected` owned in positions). Session RoomHeader bootstrap remains **`Character Registered`** (below), not positions.
 
@@ -279,7 +279,7 @@ For complete testing pattern documentation including dependency injection, real-
 
 ## Related Documentation
 
-- **[Cross-cutting concepts](AGENT.concepts.md)**: Narrative transcript, multi-channel room UI (concepts + contracts at ephemera root)
+- **[Cross-cutting concepts](AGENT.concepts.md)**: Narrative transcript, multi-channel room UI, diegetic logic (concepts at ephemera root and [`diegeticLogic/`](diegeticLogic/))
 - **[Event Flow Documentation](AGENT.event.md)**: Comprehensive event processing patterns, WebSocket handling, and migration planning
 - **[Testing Patterns](AGENT.testing.md)**: Dependency injection patterns, real-time system testing, and migration testing strategy
 - **[DataSource layer](dataSource/AGENT.md)**: `EphemeraDataSource` packages, internal bus keys, cross-cutting contracts (multi-channel, narrative transcript; see [`AGENT.concepts.md`](AGENT.concepts.md))

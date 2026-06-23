@@ -131,6 +131,8 @@ Code paths: [`AGENT.implementation.md`](AGENT.implementation.md#eviction-ladder-
 
 ## Target mental model (not yet enforced in contract or storage)
 
+Operator design for play-time relational mutations (including unknowns): [`../../diegeticLogic/AGENT.md`](../../diegeticLogic/AGENT.md).
+
 ### Fractal position graphs (container scale and edges)
 
 The same **node + edge** pattern recurs at finer granularity beyond room character nodes:
