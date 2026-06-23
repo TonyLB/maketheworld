@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 1 classifier shipped. **Phase 2 gate decided** (**D17** locked). **Next:** Phase 2 enrich + resolve implementation.
+**Status:** Phase 2 enrich + resolve shipped. **Next:** Phase 3 actions egress (D4, D13).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -501,14 +501,14 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] **`index.ts` stub:** terminal **`WorldOOCMessage`** for recognized manipulation intent until later phases own full behavior.
   - [X] Tests: paraphrase fixtures (`pick up` / `grab` / `get the <in-room object>`), Acme vs manipulation collision cases, `Unimplemented` regression for out-of-family actions.
 
-- [ ] **Phase 2 --- enrich + resolve (atomic path + complex stub)**
+- [X] **Phase 2 --- enrich + resolve (atomic path + complex stub)**
   - [X] **Gate:** **D17** decided (**D2**, **D5**, **D6**, **D7**, **D14**, **L10**).
-  - [ ] `actions/enrich/objectManipulation/` per **D14**: prompt, JSON schema per **D17** (**`disposition`**, atomic proposal fields, **`complexityClass`** stub).
-  - [ ] Bedrock invoke + interpret/finalize: **`disposition: atomic`** -> resolve; **`disposition: complex`** -> terminal OOC/**`Error`** (no stream, no positions --- complex processing **out of scope**).
-  - [ ] Expand in-room object label projection to merged component layers (**D6**); align classify **`movementObjectLabels`** with enrich catalog.
-  - [ ] Deterministic **`shortName`** grounding per **D5** / **D7** (**atomic only**).
-  - [ ] Enrich-time terminal for unimplemented atomic **`operationKind`**s (drop / put-on until later slices --- **D2**).
-  - [ ] Tests with mocked Bedrock and room object fixtures (atomic **`takeHold`** success path; **`disposition: complex`** stub terminal; unimplemented **`operationKind`** on atomic path).
+  - [X] `actions/enrich/objectManipulation/` per **D14**: prompt, JSON schema per **D17** (**`disposition`**, atomic proposal fields, **`complexityClass`** stub).
+  - [X] Bedrock invoke + interpret/finalize: **`disposition: atomic`** -> resolve; **`disposition: complex`** -> terminal OOC/**`Error`** (no stream, no positions --- complex processing **out of scope**).
+  - [X] Expand in-room object label projection to merged component layers (**D6**); align classify **`movementObjectLabels`** with enrich catalog.
+  - [X] Deterministic **`shortName`** grounding per **D5** / **D7** (**atomic only**).
+  - [X] Enrich-time terminal for unimplemented atomic **`operationKind`**s (drop / put-on until later slices --- **D2**).
+  - [X] Tests with mocked Bedrock and room object fixtures (atomic **`takeHold`** success path; **`disposition: complex`** stub terminal; unimplemented **`operationKind`** on atomic path).
 
 - [ ] **Phase 3 --- actions egress (atomic intents only)**
   - [ ] **Gate:** **D4**, **D13** decided (optional **A3** envelope sketch).
@@ -549,7 +549,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | Phase 1 classifier | Done |
 | **Phase 2 gate** | Decided |
 | Enrich disposition schema (D17) | Decided (thin **`takeHold`** vertical; extensible **`operationKind`**) |
-| Phase 2 enrich + resolve (atomic + complex stub) | Not started |
+| Phase 2 enrich + resolve (atomic + complex stub) | Done |
 | Phase 3 gate (D4, D13) | Open |
 | Phase 3 actions egress | Not started |
 | Phase 4 gate (D16, D8) | Open |
@@ -581,6 +581,19 @@ npm run test -- --watchAll=false \
   dataSource/actions/parseCommand.test.ts \
   dataSource/actions/index.test.ts \
   dataSource/positions/membership/applyObjectRoomMembership.test.ts
+npm run build
+```
+
+Phase 2 (shipped):
+
+```bash
+npm run test -- --watchAll=false \
+  dataSource/actions/enrich/objectManipulation/ \
+  dataSource/actions/roomObjectLabelsForCharacter.test.ts \
+  dataSource/actions/roomObjectCatalogForCharacter.test.ts \
+  dataSource/actions/parseCommand.test.ts \
+  dataSource/actions/index.test.ts \
+  dataSource/actions/discriminateIntent/intentClassification.test.ts
 npm run build
 ```
 

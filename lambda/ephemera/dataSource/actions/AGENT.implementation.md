@@ -78,15 +78,17 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ## Affordance design notes
 
-### `ObjectManipulationIntent` steady-state (Phase 1 classify only)
+### `ObjectManipulationIntent` steady-state (classify + enrich + resolve)
 
-Position-manipulation initiative: [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md). Operator behavior (enrich, positions apply, transcript) is **Phase 2+**; Phase 1 is classify + terminal stub only.
+Position-manipulation initiative: [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md). **Phase 2 shipped:** enrich + deterministic resolve; **Phase 3+** egress, positions apply, transcript.
 
-1. **In-room labels:** [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts) --- thin compose-stack read (`Positions.getMembershipContainers` + `getPositionGraph` + `ImprovisationComponentData` **`shortName`**); normalized like exit labels. Wired on **`Parse Requested`** in [`index.ts`](index.ts) as **`roomObjectLabels`** on **`parseCommand`** input.
-2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers: in-room **`get <noun>`** -> **`ObjectManipulationIntent`** over **`AcmeOrder`**; out-of-room product -> **`AcmeOrder`**; explicit **`order <noun>`** for in-room duplicate -> **`AcmeOrder`**.
-3. **Model JSON:** `{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }` interpreted to **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)). Forbidden at classify: **`operationKind`**, **`disposition`**, object ids, routing fields.
-4. **Parse path:** **`parseCommand`** passes through **`ObjectManipulationIntent`** without enrich (like **`Unimplemented`**).
-5. **Receive path:** [`index.ts`](index.ts) **`WorldOOCMessage`** stub only --- no **`streamEvent`** / **`publishedEvents`** entry until Phase 3.
+1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback) per **D6**; labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.
+2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers per planning **L12**.
+3. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
+4. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- Bedrock D17 JSON (`disposition: atomic | complex`); v1 implements atomic **`takeHold`** through resolve only.
+5. **Resolve:** deterministic **`shortName`** match against catalog (**D5** / **D7** fail closed) in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts).
+6. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex stub, unimplemented atomic **`operationKind`**, resolve/enrich failure). Complex disposition: no stream, no positions (**L10**).
+7. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> no OOC and no **`streamEvent`** until Phase 3 egress.
 
 ### `PromptInjectionAttempt` steady-state
 

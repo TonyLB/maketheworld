@@ -17,7 +17,11 @@ import type {
 import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
+import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
+import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/invokeBedrockObjectManipulationEnrich'
+import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
+import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import type { MessageBus } from '../../messageBus/baseClasses'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
@@ -239,12 +243,20 @@ export type ParseCommandAcmeOrderIntentResult = {
 
 /**
  * Intent discrimination only: player intent is to manipulate a scene object (pick up, drop, etc.).
- * `operationKind` and graph proposals belong in enrich (Phase 2+); Phase 1 stubs terminal OOC only.
+ * `operationKind` and graph proposals belong in enrich; terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
  */
 export type ParseCommandObjectManipulationIntentResult = {
     type: 'ObjectManipulationIntent'
     /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
     rawObjectSpans: string[]
+    confidence: ParseCommandConfidence
+}
+
+/** Grounded atomic object manipulation after enrich + resolve (v1: `takeHold` only). */
+export type ParseCommandObjectManipulationResult = {
+    type: 'ObjectManipulation'
+    operationKind: 'takeHold'
+    objectId: EphemeraObjectId
     confidence: ParseCommandConfidence
 }
 
@@ -280,6 +292,7 @@ export type ParseCommandResult =
     | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
+    | ParseCommandObjectManipulationResult
     | ParseCommandObjectManipulationIntentResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
@@ -503,23 +516,36 @@ export function isParseCommandMultipleCommandsResult(
     return isParseConfidence(result.confidence)
 }
 
+export function isParseCommandObjectManipulationResult(
+    result: ParseCommandResult
+): result is ParseCommandObjectManipulationResult {
+    if (result.type !== 'ObjectManipulation') {
+        return false
+    }
+    return result.operationKind === 'takeHold' && isParseConfidence(result.confidence)
+}
+
 export type ParseCommandInput = {
     command: string
     roomExits?: {
         normalizedName: string
         targetId: EphemeraRoomId
     }[]
-    /** Normalized improvisation shortNames for objects in the character's current room (classify prompt only). */
+    /** Normalized shortNames for objects in the character's current room (classify prompt only). */
     roomObjectLabels?: string[]
+    /** In-room object catalog for enrich and deterministic resolve (D6). */
+    roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }
 
 export type ParseCommandDeps = {
     /** Tests inject a mock; production uses Bedrock Nova via `invokeBedrockParseCommand` in generateExample. */
-    invokeBedrockParseCommandImpl?: typeof import('../../generateExample/invokeBedrockParseCommand').invokeBedrockParseCommand;
+    invokeBedrockParseCommandImpl?: typeof invokeBedrockParseCommand;
     /** Second Bedrock call for Acme line enrichment; tests may inject a mock. */
-    invokeBedrockAcmeOrderEnrichImpl?: typeof import('../../generateExample/invokeBedrockAcmeOrderEnrich').invokeBedrockAcmeOrderEnrich;
+    invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
+    /** Bedrock enrich for object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */

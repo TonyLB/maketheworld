@@ -22,7 +22,7 @@ import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
+import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -44,10 +44,9 @@ import {
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
-import { isParseCommandObjectManipulationIntentResult } from './discriminateIntent/baseClasses'
 import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
 import { parseCommand } from './parseCommand'
-import { navigationIntentErrorMessages } from './parseCommand'
+import { navigationIntentErrorMessages, objectManipulationErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
@@ -112,6 +111,20 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'There is no exit to that place from here.'
         case navigationIntentErrorMessages.ambiguousMatch:
             return "I can't tell which exit you mean from here."
+        case objectManipulationErrorMessages.noCatalog:
+            return "There is nothing here you can pick up."
+        case objectManipulationErrorMessages.noMatch:
+            return "You do not see that object here."
+        case objectManipulationErrorMessages.ambiguousMatch:
+            return "I can't tell which object you mean."
+        case objectManipulationErrorMessages.complexRelational:
+        case objectManipulationErrorMessages.complexMultiObject:
+        case objectManipulationErrorMessages.complexUnimplementedVerb:
+        case objectManipulationErrorMessages.unimplementedAtomicOperation:
+            return "That kind of object manipulation is not implemented yet."
+        case objectManipulationErrorMessages.enrichInvokeFailed:
+        case objectManipulationErrorMessages.enrichParseFailed:
+            return "I couldn't understand how you want to manipulate that object."
         default:
             return errorMessage ?? 'Parse error'
     }
@@ -171,16 +184,6 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
                     : {}),
             })
         }
-    }
-    else if (isParseCommandObjectManipulationIntentResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [
-                "I can tell you're trying to manipulate something in the scene, but that isn't fully implemented yet.",
-            ],
-        })
     }
     else if (isParseCommandUnimplementedResult(parseResult)) {
         messageBus.publish({
@@ -457,10 +460,11 @@ const handleParseRequested = async (
         displayProtocol: 'CommandTranscriptMessage',
         message: linesToRenderTree([content.command.trim()]),
     })
-    const [roomExitContext, roomObjectLabels] = await Promise.all([
+    const [roomExitContext, roomObjectCatalogResult] = await Promise.all([
         getRoomExitTargetsForCharacter(content.characterId),
-        getRoomObjectLabelsForCharacter(content.characterId),
+        getRoomObjectCatalogForCharacter(content.characterId),
     ])
+    const roomObjectLabels = roomObjectLabelsFromCatalog(roomObjectCatalogResult.entries)
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
     const parseResult = await parseCommand({
         command: content.command,
@@ -469,6 +473,7 @@ const handleParseRequested = async (
             targetId: toRoomId,
         })),
         roomObjectLabels,
+        roomObjectCatalog: roomObjectCatalogResult.entries,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
     }, { messageBus })
     const responseContext: ResponseContext = {

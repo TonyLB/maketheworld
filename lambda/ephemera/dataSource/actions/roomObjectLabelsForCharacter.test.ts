@@ -14,6 +14,12 @@ const makeObjectComponent = (shortName: string) => new StandardObject({
     shortName,
 })
 
+const catalogPerspectiveDeps = {
+    getCharacterAssets: async () => ['ASSET#Test'],
+    resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
+    getComponentAggregate: async () => [],
+}
+
 describe('getRoomObjectLabelsForCharacter', () => {
     it('returns empty array when character has no room', async () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
@@ -27,6 +33,7 @@ describe('getRoomObjectLabelsForCharacter', () => {
 
     it('returns normalized deduped labels for objects with improvisation shortNames', async () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
+            ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
             getPositionGraph: async () => ({
                 nodes: [
@@ -51,6 +58,7 @@ describe('getRoomObjectLabelsForCharacter', () => {
 
     it('skips objects without a string shortName', async () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
+            ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
             getPositionGraph: async () => ({
                 nodes: [{ tag: 'Object', universalKey: noNameId }],
@@ -64,6 +72,7 @@ describe('getRoomObjectLabelsForCharacter', () => {
 
     it('returns empty array when room graph has no objects', async () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
+            ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
             getPositionGraph: async () => ({ nodes: [], edges: [] }),
             getImprovisationObject: async () => ({}),

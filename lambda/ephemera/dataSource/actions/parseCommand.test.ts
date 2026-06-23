@@ -991,47 +991,89 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns ObjectManipulationIntent from classify without Acme order enrich', async () => {
+    it('returns grounded ObjectManipulation from classify + enrich for takeHold', async () => {
+        const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom"}',
+        })
 
         const result = await parseCommand(
             {
                 command: 'pick up the broom',
                 roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            {
+                ...depsCoyoteUnderCap,
+                invokeBedrockParseCommandImpl,
+                invokeBedrockAcmeOrderEnrichImpl,
+                invokeBedrockObjectManipulationEnrichImpl,
+            }
         )
 
         expect(result).toEqual({
-            type: 'ObjectManipulationIntent',
-            rawObjectSpans: ['broom'],
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId: broomId,
             confidence: 0.94,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationEnrichImpl).toHaveBeenCalled()
     })
 
-    it('returns ObjectManipulationIntent for grab paraphrase without Acme enrich', async () => {
+    it('returns Error for complex manipulation enrich disposition', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'put the broom on the table',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: 'OBJECT#Broom', normalizedShortName: 'broom' }],
+            },
+            { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationEnrichImpl }
+        )
+
+        expect(result.type).toBe('Error')
+    })
+
+    it('returns ObjectManipulation for grab paraphrase after enrich', async () => {
+        const anvilId = 'OBJECT#Anvil'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectManipulationIntent","objectSpans":["anvil"],"confidence":0.9}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"anvil"}',
+        })
 
         const result = await parseCommand(
             {
                 command: 'grab anvil',
                 roomObjectLabels: ['anvil'],
+                roomObjectCatalog: [{ objectId: anvilId, normalizedShortName: 'anvil' }],
             },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl, invokeBedrockObjectManipulationEnrichImpl }
         )
 
         expect(result).toEqual({
-            type: 'ObjectManipulationIntent',
-            rawObjectSpans: ['anvil'],
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId: anvilId,
             confidence: 0.9,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
