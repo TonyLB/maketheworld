@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 3 actions egress shipped. **Next:** Phase 4 positions apply (gates **D16**, **D8** open).
+**Status:** Phase 3 actions egress shipped. **Phase 4 gate decided** (**D16**, **D8**). **Next:** Phase 4 positions apply.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -78,7 +78,7 @@ command -> Parse Requested
        -> [atomic] deterministic resolve/ground (object id, legality checks)
        -> streamEvent intent (**Object Take Hold** --- atomic **`takeHold`** only; **D4**)
        -> positions apply coordinator (graph + adjacency transact)
-       -> streamEvent fact (Object Moved extended and/or cross-host fact --- D8)
+       -> streamEvent fact (**Object Moved** extended for non-room membership hosts --- **D8**)
        -> perception emission (WorldMessage and/or fan-in cluster)
        -> affordance refresh (existing path)
 ```
@@ -130,6 +130,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 - Perspective-scoped play graph forks (asset-layer **`perspectiveKey`** as manipulation authority).
 - **Additional atomic `operationKind`s** (`drop`, relational attach, ...) --- enrich schema is extensible (**D17**), but only **`takeHold`** is implemented through resolve, egress, and positions in this initiative; next membership mirror (e.g. **`drop`**) ships after the pick-up vertical is proven end-to-end.
 - **Ambiguity conversation path** --- player disambiguation when object resolution is unclear (**D7**); v1 fails closed with OOC error.
+- **Carrying capacity rules** --- no v1 **`one-object-per-hand`**, weight, or volume limits (**D16**); defer until a follow-on initiative.
 
 ---
 
@@ -137,7 +138,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in the owning **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and graduate operator prose into **`diegeticLogic/`** or positions concepts) and remove the row here.
 
-Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**). **Phase 3 gate:** **Decided** (**D4**, **D13**).
+Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**). **Phase 3 gate:** **Decided** (**D4**, **D13**). **Phase 4 gate:** **Decided** (**D16**, **D8**).
 
 ### Decided (cross-phase)
 
@@ -152,15 +153,15 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | **D7** | **Ambiguity policy:** **fail closed** with OOC error when resolve cannot pick a unique object; no confidence-threshold best-guess in v1. Conversation / ask-player disambiguation deferred. | 2 | **Decided** |
 | **D14** | **Code layout:** **`actions/enrich/objectManipulation/`** for enrich + resolve (dedicated module, not generic enrich router only). Positions apply under new **`positions/manipulation/`** tree: **`membership/`** for cross-host graph transfers (room <-> character, etc.); **`relationships/`** reserved for relational edge apply (deferred beyond v1 atomic pick-up). Reuse **`membership/`** primitives (e.g. **`positionGraphMerge`**) where appropriate --- do not fold manipulation coordinators into existing room-only **`positions/membership/`** apply entry points. | 2 | **Decided** |
 | **D17** | **Enrich disposition schema:** thin vertical --- extensible **`operationKind`**, v1 implements **`takeHold`** only on the atomic path; **`disposition: complex`** stub vocabulary; finalize rules per [Enrich disposition schema (D17)](#enrich-disposition-schema-d17---decided). | 2 | **Decided** |
-| **D4** | **Stream contract:** **`Object Take Hold`** on **`mtw.ephemera.actions`**; payload **`characterId`**, **`objectId`**, **`roomId`** (source room at egress), optional **`confidence`**. Mirrors **`Character Navigate`** grounded-id pattern; pairs with positions **`Object Moved`** fact family (**D8** still open). See [Actions egress intent (D4)](#actions-egress-intent-d4---decided). | 3 | **Decided** |
+| **D4** | **Stream contract:** **`Object Take Hold`** on **`mtw.ephemera.actions`**; payload **`characterId`**, **`objectId`**, **`roomId`** (source room at egress), optional **`confidence`**. Mirrors **`Character Navigate`** grounded-id pattern; pairs with positions **`Object Moved`** fact family (**D8**). See [Actions egress intent (D4)](#actions-egress-intent-d4---decided). | 3 | **Decided** |
 | **D13** | **Trusted ingress:** **parse-only** for v1 --- **`Parse Requested`** only; no **`Action Assessed`** manipulation branch until a trusted UI path is designed. | 3 | **Decided** |
+| **D16** | **Fractal host `positionGraph` storage:** row shape parallel to **`Meta::Room`** on any eligible component meta; adjacency parallel to room-host reverse index; extend existing **`createPositionsCacheHandler`** / **`internalCache.Positions`** for forward graph + adjacency on eligible hosts; **no** v1 carrying limits. See [Host positionGraph storage (D16)](#host-positiongraph-storage-d16---decided). | 4 | **Decided** |
+| **D8** | **Fact contract:** **extend** existing **`Object Moved`** for **non-room membership hosts** (v1: room -> character on **`takeHold`**); **do not** extend for **relational** edge changes yet. See [`Object Moved` fact (D8)](#object-moved-fact-d8---decided). | 4 | **Decided** |
 
 ### Open
 
 | ID | Decision | Blocks phase | Gate | Status |
 | --- | --- | --- | --- | --- |
-| **D16** | **`Meta::Character.positionGraph` storage:** row shape on **`Meta::Character`**, object **adjacency** when host is **`CHARACTER#`** (extend reverse index?), gateway/cache handler scope, steady-state one-object-per-hand rules. | 4 | Required | Open |
-| **D8** | **Extend `Object Moved` fact** vs new fact type for relational / non-room-host changes? | 4 | Required | Open |
 | **D9** | **Perception pattern:** immediate `WorldMessage`, new fan-in cluster (intent + fact), or enrich-generated copy streamed separately? | 5 | Required | Open |
 | **D10** | **Transcript beat shape:** single line vs leave/place-style multi-line beat; `CreatedTime` / `OrchestrateMessages` policy | 5 | Required | Open |
 | **D11** | **LLM hop count:** classify-only + deterministic template copy vs classify + enrich + optional copy hop | 5 | Required | Open |
@@ -172,7 +173,7 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | --- | --- | --- | --- |
 | **A1** | **Operator spec** in [`diegeticLogic/`](../../../../lambda/ephemera/diegeticLogic/AGENT.md) (`AGENT.operators.concepts.md` or section) --- graduate prose as operators ship. | 2--6 | Not started |
 | **A2** | **Pre-flight legality** in actions (character must be in room with object) vs positions-only rejection. | 4 | Open |
-| **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Intent leg sketched (**D4**); fact leg still **D8** |
+| **A3** | **D4 / D8 envelope sketch** at intent + fact level --- avoid rework before Phase 3 egress wiring. | 3--4 | Decided (**D4**, **D8**) |
 | **A4** | **Nested containment + dynamic closures** --- graduate [future direction](#future-direction-nested-containment-and-dynamic-closures-post-vertical) into durable concepts when container-host / relational slices ship; v1 flat room nodes remain valid. | post-vertical | Documented |
 
 ---
@@ -217,7 +218,7 @@ v1 treats in-room objects as **top-level nodes** on **`Meta::Room.positionGraph`
 
 - **Room graph:** top-level scene anchors (characters, loose objects, container objects such as bookshelves) --- not every nested leaf.
 - **Container host graph:** nested members on **`Meta::Object.positionGraph`** (and **`Meta::Character.positionGraph`** for inventory per **L9** / **D16**).
-- **Adjacency:** direct host only per contained id (`POSITION#${immediateHost}`); extend parsers beyond room-only hosts when object / character / area containers ship.
+- **Adjacency:** direct host only per contained id (`POSITION#${immediateHost}`); eligible hosts include **`ROOM#`**, **`CHARACTER#`**, and later **`OBJECT#`** / **`AREA#`** per **D16** (extend parsers beyond room-only SK validation when character / object hosts ship).
 - **Relational edges** (`On`, `In`, `Span`, ...): room- or host-scoped **among co-present members** or for area-managed extent --- **`positions/manipulation/relationships/`** (deferred).
 
 ### Dynamic closures (fetch optimization seam)
@@ -268,8 +269,86 @@ Move normative rules to **`diegeticLogic/AGENT.concepts.md`** (vocabulary: membe
 | --- | --- |
 | **A. Relational edges** | Deferred (slice 5+) unless a v1 verb forces it |
 | **B. Room host only** (`targetRoomId` / `null`) | Insufficient for pick up --- superseded by **C** for v1 |
-| **C. Character inventory graph** | **Selected** --- storage design is **D16** |
+| **C. Character inventory graph** | **Selected** --- storage design **D16** (**decided**) |
 | **D. Narrative-first** | Rejected for v1 |
+
+---
+
+## Host positionGraph storage (D16 --- decided)
+
+**Direction:** **General fractal-host pattern** parallel to **`Meta::Room`** (**L8**). v1 lands **`Meta::Character.positionGraph`** for **`takeHold`** inventory; **`Meta::Object`**, **`Meta::Area`**, and other eligible hosts reuse the **same** row shape and read path when those slices ship --- not a one-off character schema.
+
+### Forward meta row (parallel to room)
+
+| Concern | Rule |
+| --- | --- |
+| **Row** | **`Meta::${ComponentTag}`** on the host component's ephemera id (same register as **`Meta::Room`**) |
+| **`positionGraph` field** | Optional **`EphemeraPlayPositionGraph`** --- `{ nodes?, edges? }` --- identical type and node conventions as room hosts ([`EphemeraMetaRoom.positionGraph`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) |
+| **v1 nodes on character host** | **`Object`** membership nodes only (`{ tag: 'Object', universalKey }`) for held inventory |
+| **Edges** | Absent or `[]` until relational / in-host edges ship (same deferral as room in-room edges) |
+
+**Rejected:** a character-specific graph envelope or alternate node encoding; duplicating room graph types under a new name.
+
+### Reverse adjacency (parallel to room)
+
+| Concern | Rule |
+| --- | --- |
+| **Pattern** | Same adjacency index as today: PK = contained component (`OBJECT#`, `CHARACTER#`, ...); SK = **`POSITION#${hostEphemeraId}`** |
+| **Host id** | **`hostEphemeraId`** is any eligible membership host --- v1 adds **`CHARACTER#...`** alongside existing **`ROOM#...`**; later **`OBJECT#`**, **`AREA#`** without a new index design |
+| **Implementation** | Extend existing parsers / gateway reads (e.g. **`parsePositionAdjacencyDataCategory`**, **`getMembershipContainers`**) to accept non-room host ids --- not a parallel adjacency table |
+
+### Gateway / cache handler
+
+| Concern | Rule |
+| --- | --- |
+| **Handler** | Extend existing **`createPositionsCacheHandler`** / **`internalCache.Positions`** ([`packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md)) --- **do not** add a separate character-inventory handler |
+| **`getPositionGraph(componentId)`** | Real Dynamo forward read for any eligible host meta row (replace character inventory **stub** with stored graph read, same code path as room after host-id dispatch) |
+| **Memo** | Generalize forward **`set`** / **`invalidate`** cache keys beyond room-only where Phase 4 apply writes character (or other) host graphs |
+
+Lambdas **must** register and call **`internalCache.Positions.get(...)`** per gateway rules --- not ad hoc **`Meta::Character`** Dynamo in apply or enrich paths (**L5**).
+
+### Carrying limits (deferred)
+
+| Policy | Verdict |
+| --- | --- |
+| **No v1 limits** | **Selected** --- no steady-state **`one-object-per-hand`**, weight, or volume caps in Phase 4 |
+| Inventory size / encumbrance | **Deferred** --- follow-on initiative after pick-up vertical is proven |
+
+---
+
+## `Object Moved` fact (D8 --- decided)
+
+**Direction:** **Extend** the existing **`Object Moved`** stream on **`mtw.ephemera.positions`** for **membership-host** changes that are not room-only --- **do not** introduce a separate cross-host fact type for v1 **`takeHold`**. **Relational** placement (in-room **`On`** / **`In`** edges, area extent, ...) is **not** in scope for this extension --- defer until **`positions/manipulation/relationships/`** and complex manipulation ship.
+
+### Membership-host extension (Phase 4 --- yes)
+
+| Concern | Rule |
+| --- | --- |
+| **Event type** | Keep **`type: 'Object Moved'`** (same header, same affordance-orchestration subscription path per **L6**) |
+| **`froms` / `to`** | Generalize membership endpoints beyond **`EphemeraRoomId`** to eligible **host** ids --- v1 **`takeHold`**: **`froms: [ROOM#...]`**, **`to: CHARACTER#...`** (mirror graph-diff semantics of today's room-only fact) |
+| **Builder** | Extend [`buildObjectMovedFact`](../../../../lambda/ephemera/dataSource/positions/membership/buildObjectMovedFact.ts) + [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/positions/publishedEvents.ts) guards + **`MembershipDiff`** --- not a parallel fact builder |
+| **Consumers** | Existing **`Object Moved`** subscribers (affordance orchestration, cache invalidation bundles) remain valid; audit room-only assumptions in invalidation / **`RoomUpdate`** paths when **`to`** is a character host |
+
+Illustrative v1 **`takeHold`** fact after room -> character apply:
+
+```json
+{
+  "type": "Object Moved",
+  "objectId": "OBJECT#Broom",
+  "froms": ["ROOM#Cafe"],
+  "to": "CHARACTER#Alpha",
+  "beatAnchorTime": 1700000000000
+}
+```
+
+### Relational changes (not yet)
+
+| Concern | Verdict |
+| --- | --- |
+| In-host / cross-member **relational edges** (`put X on Y`, `On`, `In`, ...) | **Deferred** --- not **`Object Moved`** in Phase 4; complex manipulation + **`relationships/`** follow-on |
+| New fact type for relational deltas | **Rejected for now** --- decide when relational apply ships |
+
+**Rejected for v1:** a second positions fact type (e.g. **`Object Relational Changed`**) parallel to **`Object Moved`** for membership-only pick-up; overloading **`Object Moved`** with edge payloads before relational apply exists.
 
 ---
 
@@ -572,7 +651,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Subscriber registration plan (positions execution ingress): guards + stub [`executeObjectTakeHold`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeObjectTakeHold.ts) wired in [`positions/index.ts`](../../../../lambda/ephemera/dataSource/positions/index.ts).
 
 - [ ] **Phase 4 --- positions apply**
-  - [ ] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
+  - [X] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
   - [ ] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
   - [ ] **`positions/manipulation/membership/`** cross-host coordinator: atomic room-remove + character-add on **`takeHold`** (**D14**).
   - [ ] Contract updates in `positions/AGENT.contract.md` per **D8**.
@@ -597,7 +676,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | --- | --- |
 | `diegeticLogic/` doc stub | Done |
 | Lane split agreement (L1--L12) | Done |
-| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17, D4, D13) | Done |
+| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17, D4, D13, D16, D8) | Done |
 | In-room label read path (L11) | Decided (compose-stack projection) |
 | Classify contract (L12, D3) | Decided (no slots; **`movementObjectLabels`**) |
 | **Phase 1 gate** | Decided |
@@ -610,7 +689,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | Trusted ingress (parse-only v1) | Decided (**D13**) |
 | Phase 3 actions egress | Done |
 | Positions stub ingress (`Object Take Hold` -> `executeObjectTakeHold`) | Done (no-op until Phase 4) |
-| Phase 4 gate (D16, D8) | Open |
+| Host positionGraph storage (D16) | Decided (fractal-host pattern; extend Positions gateway; no carrying limits) |
+| **`Object Moved` fact extension (D8)** | Decided (non-room hosts yes; relational not yet) |
+| **Phase 4 gate** | Decided (**D16**, **D8**) |
 | Phase 4 positions apply | Not started |
 | Phase 5 gate (D9--D12) | Open |
 | Phase 5 perception / transcript | Not started |
