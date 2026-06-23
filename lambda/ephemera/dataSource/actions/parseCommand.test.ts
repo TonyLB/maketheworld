@@ -991,6 +991,90 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
+    it('returns ObjectManipulationIntent from classify without Acme order enrich', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'pick up the broom',
+                roomObjectLabels: ['broom'],
+            },
+            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            confidence: 0.94,
+        })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns ObjectManipulationIntent for grab paraphrase without Acme enrich', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["anvil"],"confidence":0.9}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'grab anvil',
+                roomObjectLabels: ['anvil'],
+            },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['anvil'],
+            confidence: 0.9,
+        })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('routes get rocket skates through Acme enrich when classify returns AcmeOrder', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.86}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: false,
+            errorMessage: 'enrich skipped in test',
+        })
+
+        await parseCommand(
+            {
+                command: 'get rocket skates',
+                roomObjectLabels: ['broom'],
+            },
+            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns Unimplemented for attack troll regression', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Unimplemented","confidence":0.8}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'attack troll' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'Unimplemented', confidence: 0.8 })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
     it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

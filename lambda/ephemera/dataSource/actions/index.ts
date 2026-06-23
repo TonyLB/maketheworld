@@ -22,6 +22,7 @@ import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -43,6 +44,7 @@ import {
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
+import { isParseCommandObjectManipulationIntentResult } from './discriminateIntent/baseClasses'
 import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
 import { parseCommand } from './parseCommand'
 import { navigationIntentErrorMessages } from './parseCommand'
@@ -169,6 +171,16 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
                     : {}),
             })
         }
+    }
+    else if (isParseCommandObjectManipulationIntentResult(parseResult)) {
+        messageBus.publish({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: [
+                "I can tell you're trying to manipulate something in the scene, but that isn't fully implemented yet.",
+            ],
+        })
     }
     else if (isParseCommandUnimplementedResult(parseResult)) {
         messageBus.publish({
@@ -445,7 +457,10 @@ const handleParseRequested = async (
         displayProtocol: 'CommandTranscriptMessage',
         message: linesToRenderTree([content.command.trim()]),
     })
-    const roomExitContext = await getRoomExitTargetsForCharacter(content.characterId)
+    const [roomExitContext, roomObjectLabels] = await Promise.all([
+        getRoomExitTargetsForCharacter(content.characterId),
+        getRoomObjectLabelsForCharacter(content.characterId),
+    ])
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
     const parseResult = await parseCommand({
         command: content.command,
@@ -453,6 +468,7 @@ const handleParseRequested = async (
             normalizedName,
             targetId: toRoomId,
         })),
+        roomObjectLabels,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
     }, { messageBus })
     const responseContext: ResponseContext = {

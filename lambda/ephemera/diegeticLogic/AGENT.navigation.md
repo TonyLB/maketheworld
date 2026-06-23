@@ -31,3 +31,5 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 ## When operators ship
 
 Expect implementation to land primarily under [`../dataSource/positions/`](../dataSource/positions/) (graph mutations), with ingress in [`../dataSource/actions/`](../dataSource/actions/) and presentation specs in [`../dataSource/perception/`](../dataSource/perception/). Update this file as concrete paths appear.
+
+**Shipped (Phase 1):** object-manipulation **classify** seam in [`../dataSource/actions/`](../dataSource/actions/) --- **`ObjectManipulationIntent`** + [`roomObjectLabelsForCharacter.ts`](../dataSource/actions/roomObjectLabelsForCharacter.ts); see [`AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) (**`ObjectManipulationIntent` steady-state**). Enrich / apply / transcript deferred to Phase 2+.

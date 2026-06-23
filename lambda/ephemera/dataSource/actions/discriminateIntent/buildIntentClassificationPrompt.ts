@@ -1,16 +1,17 @@
 /**
  * Intent discrimination prompt: **MultipleCommands**, **PromptInjectionAttempt**, **AwaitRoadRunner**,
- * **PredictHypothesis**, **AcmeOrder** (intent + raw product spans), **LookRoom**, **Help**,
- * **NavigationIntent**, **HomeIntent**, **Unimplemented** vs **Unknown**.
+ * **PredictHypothesis**, **AcmeOrder** (intent + raw product spans), **ObjectManipulationIntent**,
+ * **LookRoom**, **Help**, **NavigationIntent**, **HomeIntent**, **Unimplemented** vs **Unknown**.
  */
 
 export function buildIntentClassificationPrompt(
     command: string,
-    options: { movementExitLabels?: string[] } = {}
+    options: { movementExitLabels?: string[]; movementObjectLabels?: string[] } = {}
 ): string {
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
     const movementExitLabels = options.movementExitLabels ?? []
+    const movementObjectLabels = options.movementObjectLabels ?? []
     const movementContextBlock = movementExitLabels.length > 0
         ? [
             '### Movement context',
@@ -24,6 +25,20 @@ export function buildIntentClassificationPrompt(
             'No validated exits are currently available in parser context.',
             'You may still classify movement as NavigationIntent when movement intent is central.',
             'Server-side parse resolution will validate destination and may return an error if no exit match exists.',
+        ].join('\n')
+    const objectContextBlock = movementObjectLabels.length > 0
+        ? [
+            '### Object context',
+            '',
+            `Objects currently in the room: ${movementObjectLabels.join(', ')}`,
+            'When manipulation intent is central and the named object matches a room object, return ObjectManipulationIntent.',
+        ].join('\n')
+        : [
+            '### Object context',
+            '',
+            'No validated in-room object labels are currently available in parser context.',
+            'You may still classify manipulation as ObjectManipulationIntent when manipulation intent is central.',
+            'Use AcmeOrder for get/order language when the product is not an in-room object.',
         ].join('\n')
 
     return `You are a parser for a text-based multiplayer game with a Coyote / Road Runner cartoon vibe.
@@ -40,6 +55,7 @@ have tested each real intent and found it does not fit should you reach for the 
 The recognized game intents are:
 
 - **AcmeOrder** - ordering or buying something from Acme (Section A)
+- **ObjectManipulationIntent** - manipulating a scene object in the room (Section A2)
 - **NavigationIntent** - moving to another room (Section B)
 - **HomeIntent** - returning to the character's home room (Section B2)
 - **AwaitRoadRunner** - waiting / biding time for the Road Runner (Section C)
@@ -121,6 +137,35 @@ strings only.
 
 ---
 
+## Section A2 - ObjectManipulationIntent
+
+Choose **ObjectManipulationIntent** when the line is **primarily** about manipulating a scene
+object that is present in the current room - picking it up, grabbing it, taking hold of it,
+dropping it, putting it down, or similar physical interaction with an object already in the scene.
+
+Examples (paraphrase, not an exhaustive verb list): "pick up the broom", "grab the anvil",
+"take hold of the crate", "drop the rope", "put down the hammer".
+
+For **ObjectManipulationIntent**, extract the object noun phrase(s) from the line and return them
+as an \`objectSpans\` array of raw strings. Strip leading articles (\`a\`, \`an\`, \`the\`, \`some\`);
+trim whitespace. These are unvalidated extractions - object id matching and operation details
+are handled downstream. Your job is only to identify the span(s) that name what the player is
+trying to manipulate.
+
+**Do not** include \`operationKind\`, object ids, disposition, relational frames ("on", "in",
+"under"), or graph proposal fields at this step.
+
+${objectContextBlock}
+
+When \`get <noun>\` names a product **not** listed in object context, prefer **AcmeOrder** (catalog
+delivery). When the player wants Acme to deliver a second copy of something already in the room,
+explicit order verbs (\`order <noun>\`, \`buy <noun>\`, etc.) remain **AcmeOrder**.
+
+Return:
+{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }
+
+---
+
 ## Section B - NavigationIntent
 
 Choose **NavigationIntent** when the line is primarily about moving to another room by exit
@@ -190,11 +235,12 @@ or what the player can do next (for example "help", "what can I do", "show comma
 ## Section F - Unimplemented
 
 Choose **Unimplemented** when the line clearly expresses a recognizable in-world game action
-that is not AcmeOrder, NavigationIntent, HomeIntent, AwaitRoadRunner, PredictHypothesis, LookRoom, or Help - something the
+that is not AcmeOrder, ObjectManipulationIntent, NavigationIntent, HomeIntent, AwaitRoadRunner, PredictHypothesis, LookRoom, or Help - something the
 Coyote might plausibly do in the game world but that this parser does not yet implement.
-For example: attacking, picking something up, dropping something, speaking to a character.
+For example: attacking, speaking to a character.
 
 Do not use Unimplemented for noise, gibberish, or benign out-of-character text - use Unknown for those.
+Do not use Unimplemented for pick-up, grab, drop, or put-down language when object manipulation fits (Section A2).
 
 ---
 
@@ -254,6 +300,14 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 
 - **AcmeOrder** beats **LookRoom** when ordering language is present (even alongside "look at"
   a product - that is still an order).
+- **ObjectManipulationIntent** beats **AcmeOrder** when \`get <noun>\` or similar manipulation
+  language names an object listed in object context (Section A2).
+- **AcmeOrder** beats **ObjectManipulationIntent** when \`get <noun>\` names a product **not**
+  in object context (for example \`get rocket skates\` when only \`broom\` is in the room).
+- **AcmeOrder** beats **ObjectManipulationIntent** when explicit order verbs (\`order\`, \`buy\`,
+  \`mail order\`) are used even for in-room nouns (player wants a second copy from Acme).
+- **NavigationIntent** beats **ObjectManipulationIntent** when movement through an exit is central
+  (for example \`take the south door\`).
 - **HomeIntent** beats **NavigationIntent** when home-return language is central.
 - **AwaitRoadRunner** beats **NavigationIntent** when waiting/patience language is central.
 - **PredictHypothesis** beats **LookRoom** when the line is about inferring plan or scheme from
@@ -271,16 +325,17 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 ## Outcomes (choose exactly one)
 
 1. **AcmeOrder** - Section A. Respond with \`type\`, \`orders\` (non-empty string array of raw product spans), and \`confidence\`.
-2. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
-3. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
-4. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
-5. **PredictHypothesis** - Section C2. Respond with **only** \`type\` and \`confidence\`.
-6. **LookRoom** - Section D. Respond with **only** \`type\` and \`confidence\`.
-7. **Help** - Section E. Respond with **only** \`type\` and \`confidence\`.
-8. **Unimplemented** - Section F. Respond with **only** \`type\` and \`confidence\`.
-9. **MultipleCommands** - Section G. Respond with **only** \`type\` and \`confidence\`.
-10. **PromptInjectionAttempt** - Section H. Respond with **only** \`type\` and \`confidence\`.
-11. **Unknown** - Section I. Respond with **only** \`type\` and \`confidence\`.
+2. **ObjectManipulationIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), and \`confidence\`.
+3. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
+4. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
+5. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
+6. **PredictHypothesis** - Section C2. Respond with **only** \`type\` and \`confidence\`.
+7. **LookRoom** - Section D. Respond with **only** \`type\` and \`confidence\`.
+8. **Help** - Section E. Respond with **only** \`type\` and \`confidence\`.
+9. **Unimplemented** - Section F. Respond with **only** \`type\` and \`confidence\`.
+10. **MultipleCommands** - Section G. Respond with **only** \`type\` and \`confidence\`.
+11. **PromptInjectionAttempt** - Section H. Respond with **only** \`type\` and \`confidence\`.
+12. **Unknown** - Section I. Respond with **only** \`type\` and \`confidence\`.
 
 ---
 
@@ -289,10 +344,15 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 - Output **only** a single JSON object, no markdown fences, no explanation before or after.
 - \`confidence\` is a number from 0 through 1.
 - \`orders\` entries are raw extracted strings - do not validate, enrich, or add catalog fields.
+- \`objectSpans\` entries are raw extracted strings - do not validate, enrich, or add object ids.
 
 ## Required JSON shapes
 
 { "type": "AcmeOrder", "orders": ["<product span>", ...], "confidence": <number> }
+
+or
+
+{ "type": "ObjectManipulationIntent", "objectSpans": ["<object span>", ...], "confidence": <number> }
 
 or
 
@@ -334,7 +394,7 @@ or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AcmeOrder\`, \`NavigationIntent\`, \`HomeIntent\`, \`AwaitRoadRunner\`,
+The \`type\` string must be exactly \`AcmeOrder\`, \`ObjectManipulationIntent\`, \`NavigationIntent\`, \`HomeIntent\`, \`AwaitRoadRunner\`,
 \`PredictHypothesis\`, \`LookRoom\`, \`Help\`, \`Unimplemented\`, \`MultipleCommands\`, \`PromptInjectionAttempt\`,
 or \`Unknown\` (case-sensitive).
 

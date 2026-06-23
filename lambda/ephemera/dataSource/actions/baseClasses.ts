@@ -238,6 +238,17 @@ export type ParseCommandAcmeOrderIntentResult = {
 }
 
 /**
+ * Intent discrimination only: player intent is to manipulate a scene object (pick up, drop, etc.).
+ * `operationKind` and graph proposals belong in enrich (Phase 2+); Phase 1 stubs terminal OOC only.
+ */
+export type ParseCommandObjectManipulationIntentResult = {
+    type: 'ObjectManipulationIntent'
+    /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
+    rawObjectSpans: string[]
+    confidence: ParseCommandConfidence
+}
+
+/**
  * Outcome of intent discrimination only (includes Acme intent with **`rawOrders`** spans, and
  * `LookRoom` for full room description / examine-surroundings intent without Acme order enrich).
  */
@@ -249,6 +260,7 @@ export type IntentClassificationResult =
     | ParseCommandPredictHypothesisResult
     | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
+    | ParseCommandObjectManipulationIntentResult
     | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
@@ -268,6 +280,7 @@ export type ParseCommandResult =
     | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
+    | ParseCommandObjectManipulationIntentResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult
@@ -496,6 +509,8 @@ export type ParseCommandInput = {
         normalizedName: string
         targetId: EphemeraRoomId
     }[]
+    /** Normalized improvisation shortNames for objects in the character's current room (classify prompt only). */
+    roomObjectLabels?: string[]
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

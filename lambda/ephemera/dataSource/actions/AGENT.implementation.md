@@ -78,6 +78,16 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ## Affordance design notes
 
+### `ObjectManipulationIntent` steady-state (Phase 1 classify only)
+
+Position-manipulation initiative: [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md). Operator behavior (enrich, positions apply, transcript) is **Phase 2+**; Phase 1 is classify + terminal stub only.
+
+1. **In-room labels:** [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts) --- thin compose-stack read (`Positions.getMembershipContainers` + `getPositionGraph` + `ImprovisationComponentData` **`shortName`**); normalized like exit labels. Wired on **`Parse Requested`** in [`index.ts`](index.ts) as **`roomObjectLabels`** on **`parseCommand`** input.
+2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers: in-room **`get <noun>`** -> **`ObjectManipulationIntent`** over **`AcmeOrder`**; out-of-room product -> **`AcmeOrder`**; explicit **`order <noun>`** for in-room duplicate -> **`AcmeOrder`**.
+3. **Model JSON:** `{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }` interpreted to **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)). Forbidden at classify: **`operationKind`**, **`disposition`**, object ids, routing fields.
+4. **Parse path:** **`parseCommand`** passes through **`ObjectManipulationIntent`** without enrich (like **`Unimplemented`**).
+5. **Receive path:** [`index.ts`](index.ts) **`WorldOOCMessage`** stub only --- no **`streamEvent`** / **`publishedEvents`** entry until Phase 3.
+
 ### `PromptInjectionAttempt` steady-state
 
 Discriminate intent returns JSON `type: 'PromptInjectionAttempt'` when the intent prompt section H labels parser-manipulation tone.

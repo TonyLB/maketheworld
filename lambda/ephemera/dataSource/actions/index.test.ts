@@ -8,6 +8,7 @@ import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -38,6 +39,9 @@ jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
+jest.mock('./roomObjectLabelsForCharacter', () => ({
+    getRoomObjectLabelsForCharacter: jest.fn(),
+}))
 jest.mock('./resolveHomeTargetForCharacter', () => ({
     resolveHomeTargetForCharacter: jest.fn(),
 }))
@@ -64,6 +68,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
+const mockedGetRoomObjectLabelsForCharacter = jest.mocked(getRoomObjectLabelsForCharacter)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
@@ -86,6 +91,7 @@ describe('ephemeraActionsDataSource', () => {
             toRoomIds: [],
             exits: [],
         })
+        mockedGetRoomObjectLabelsForCharacter.mockResolvedValue([])
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         mockedParseCommand.mockResolvedValue({
@@ -1053,6 +1059,7 @@ describe('ephemeraActionsDataSource', () => {
                 {
                     command: 'order widget',
                     roomExits: [],
+                    roomObjectLabels: [],
                     occupiedStableKeys: ['alpha', 'beta'],
                 },
                 { messageBus: mockMessageBus }
@@ -1450,6 +1457,44 @@ describe('ephemeraActionsDataSource', () => {
                     displayProtocol: 'WorldOOCMessage',
                 })
             )
+        })
+    })
+
+    describe('ParseCommandObjectManipulationIntentResult', () => {
+        it('publishes WorldOOCMessage for manipulation intent without stream event', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulationIntent',
+                rawObjectSpans: ['broom'],
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: [
+                    "I can tell you're trying to manipulate something in the scene, but that isn't fully implemented yet.",
+                ],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
         })
     })
 

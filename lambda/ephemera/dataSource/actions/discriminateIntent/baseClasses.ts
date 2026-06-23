@@ -4,6 +4,7 @@ import type {
     ParseCommandConfidence,
     ParseCommandHomeIntentResult,
     ParseCommandNavigationIntentResult,
+    ParseCommandObjectManipulationIntentResult,
     ParseCommandResult,
 } from '../baseClasses'
 
@@ -53,4 +54,21 @@ export function isParseCommandHomeIntentResult(
         return false
     }
     return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandObjectManipulationIntentResult(
+    result: IntentClassificationResult | ParseCommandResult
+): result is ParseCommandObjectManipulationIntentResult {
+    if (result.type !== 'ObjectManipulationIntent') {
+        return false
+    }
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (!Array.isArray(result.rawObjectSpans) || result.rawObjectSpans.length === 0) {
+        return false
+    }
+    return result.rawObjectSpans.every(
+        (s) => typeof s === 'string' && s.trim().length > 0 && s === s.trim()
+    )
 }

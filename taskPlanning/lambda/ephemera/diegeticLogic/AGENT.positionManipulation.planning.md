@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Design-only. No implementation slices started. **Next:** Phase 1 classifier implementation (**D3**, **D15**, **L11**, **L12** decided).
+**Status:** Phase 1 classifier shipped. **Next:** Phase 2 gate (**D5**, **D6**, **D7**, **D14**, **D17**) then enrich + resolve.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -281,13 +281,13 @@ npm run build
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each sub-step finishes. Each phase begins with its **gate**: all **Required** open decisions for that phase must be **Decided** before implementation work under that phase starts.
 
-- [ ] **Phase 1 --- classifier (semantic intent)**
+- [X] **Phase 1 --- classifier (semantic intent)**
   - [X] **Gate:** **D3**, **D15** decided (**L11**, **L12**).
-  - [ ] Add **`ObjectManipulationIntent`** section to `buildIntentClassificationPrompt.ts` per **D3** / **L12** (primacy + examples, not verb whitelist).
-  - [ ] Thin in-room object label projection per **L11**; pass as **`movementObjectLabels`** into classify prompt.
-  - [ ] Wire `discriminateIntent/` guards and `baseClasses.ts` (**`ObjectManipulationIntent`**, **`rawObjectSpans`**, forbidden-field checks).
-  - [ ] **`index.ts` stub:** terminal **`WorldOOCMessage`** for recognized manipulation intent until later phases own full behavior.
-  - [ ] Tests: paraphrase fixtures (`pick up` / `grab` / `get the <in-room object>`), Acme vs manipulation collision cases, `Unimplemented` regression for out-of-family actions.
+  - [X] Add **`ObjectManipulationIntent`** section to `buildIntentClassificationPrompt.ts` per **D3** / **L12** (primacy + examples, not verb whitelist).
+  - [X] Thin in-room object label projection per **L11**; pass as **`movementObjectLabels`** into classify prompt.
+  - [X] Wire `discriminateIntent/` guards and `baseClasses.ts` (**`ObjectManipulationIntent`**, **`rawObjectSpans`**, forbidden-field checks).
+  - [X] **`index.ts` stub:** terminal **`WorldOOCMessage`** for recognized manipulation intent until later phases own full behavior.
+  - [X] Tests: paraphrase fixtures (`pick up` / `grab` / `get the <in-room object>`), Acme vs manipulation collision cases, `Unimplemented` regression for out-of-family actions.
 
 - [ ] **Phase 2 --- enrich + resolve (atomic path + complex stub)**
   - [ ] **Gate:** **D5**, **D6**, **D7**, **D14**, **D17** decided (**D2**, **L10** already decided).
@@ -333,7 +333,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | In-room label read path (L11) | Decided (compose-stack projection) |
 | Classify contract (L12, D3) | Decided (no slots; **`movementObjectLabels`**) |
 | **Phase 1 gate** | Decided |
-| Phase 1 classifier | Not started |
+| Phase 1 classifier | Done |
 | Phase 2 gate (D5, D6, D7, D14, D17) | Open |
 | Enrich disposition direction (L10) | Decided (complex out of scope beyond stub) |
 | Phase 2 enrich + resolve (atomic + complex stub) | Not started |
@@ -355,6 +355,18 @@ From `lambda/ephemera/`:
 
 ```bash
 npm run test -- --watchAll=false dataSource/positions/membership/applyObjectRoomMembership.test.ts dataSource/actions/parseCommand.test.ts
+npm run build
+```
+
+Phase 1 (shipped):
+
+```bash
+npm run test -- --watchAll=false \
+  dataSource/actions/discriminateIntent/intentClassification.test.ts \
+  dataSource/actions/roomObjectLabelsForCharacter.test.ts \
+  dataSource/actions/parseCommand.test.ts \
+  dataSource/actions/index.test.ts \
+  dataSource/positions/membership/applyObjectRoomMembership.test.ts
 npm run build
 ```
 
