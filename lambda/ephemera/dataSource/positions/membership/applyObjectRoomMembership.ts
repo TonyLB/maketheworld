@@ -1,5 +1,5 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { projectRoomGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
@@ -28,7 +28,7 @@ const seedPositionsGraphMemos = (
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
         internalCache.Positions.set({
             componentId: roomId,
-            graph: projectRoomGraphFromStoredPositionGraph(storedGraph),
+            graph: projectComponentGraphFromStoredPositionGraph(storedGraph),
         })
     }
 }

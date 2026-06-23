@@ -1,16 +1,19 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type {
+    EphemeraMembershipHostId,
+    EphemeraPositionAdjacencyContainedId,
+} from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionsReadDB } from './fetch'
-import { getRoomPositionGraphFromDynamo } from './fetch'
+import {
+    getCharacterPositionGraphFromDynamo,
+    getRoomPositionGraphFromDynamo,
+} from './fetch'
 import { queryMembershipContainersFromDynamo } from './adjacency'
 import { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
-import {
-    projectCharacterInventoryGraphStub,
-    projectRoomGraphFromStoredPositionGraph,
-} from './project'
+import { projectComponentGraphFromStoredPositionGraph } from './project'
 import type {
     MembershipContainersCacheSetParams,
     PlayPositionGraph,
@@ -24,8 +27,8 @@ import type {
 export class PositionsCacheHandler {
     private readonly _PositionGraphCache: DeferredCache<PlayPositionGraph>
     private _PositionGraphStore: Record<string, PlayPositionGraph> = {}
-    private readonly _MembershipContainersCache: DeferredCache<EphemeraRoomId[]>
-    private _MembershipContainersStore: Record<string, EphemeraRoomId[]> = {}
+    private readonly _MembershipContainersCache: DeferredCache<EphemeraMembershipHostId[]>
+    private _MembershipContainersStore: Record<string, EphemeraMembershipHostId[]> = {}
 
     constructor(private readonly db: EphemeraPositionsReadDB) {
         this._PositionGraphCache = new DeferredCache<PlayPositionGraph>({
@@ -33,7 +36,7 @@ export class PositionsCacheHandler {
                 this._PositionGraphStore[key] = value
             },
         })
-        this._MembershipContainersCache = new DeferredCache<EphemeraRoomId[]>({
+        this._MembershipContainersCache = new DeferredCache<EphemeraMembershipHostId[]>({
             callback: (key, value) => {
                 this._MembershipContainersStore[key] = value
             },
@@ -43,10 +46,6 @@ export class PositionsCacheHandler {
     async getPositionGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId
     ): Promise<PlayPositionGraph> {
-        if (isEphemeraCharacterId(componentId)) {
-            return projectCharacterInventoryGraphStub()
-        }
-
         const key = positionGraphCacheKey(componentId)
         if (!this._PositionGraphCache.isCached(key)) {
             this._PositionGraphCache.add({
@@ -54,8 +53,8 @@ export class PositionsCacheHandler {
                     const out: Record<string, PlayPositionGraph> = {}
                     await Promise.all(
                         keys.map(async (cacheKey) => {
-                            const id = cacheKey.replace('::positionGraph', '') as EphemeraRoomId
-                            out[cacheKey] = await this.loadRoomPositionGraphFromDynamo(id)
+                            const id = cacheKey.replace('::positionGraph', '')
+                            out[cacheKey] = await this.loadPositionGraphFromDynamo(id)
                         })
                     )
                     return out
@@ -70,12 +69,12 @@ export class PositionsCacheHandler {
 
     async getMembershipContainers(
         componentId: EphemeraPositionAdjacencyContainedId
-    ): Promise<EphemeraRoomId[]> {
+    ): Promise<EphemeraMembershipHostId[]> {
         const key = membershipContainersCacheKey(componentId)
         if (!this._MembershipContainersCache.isCached(key)) {
             this._MembershipContainersCache.add({
                 promiseFactory: async (keys: string[]) => {
-                    const out: Record<string, EphemeraRoomId[]> = {}
+                    const out: Record<string, EphemeraMembershipHostId[]> = {}
                     await Promise.all(
                         keys.map(async (cacheKey) => {
                             const id = cacheKey.replace('::membershipContainers', '') as EphemeraPositionAdjacencyContainedId
@@ -92,18 +91,27 @@ export class PositionsCacheHandler {
         return this._MembershipContainersStore[key]
     }
 
-    private async loadRoomPositionGraphFromDynamo(
-        roomId: EphemeraRoomId
+    private async loadPositionGraphFromDynamo(
+        componentId: string
     ): Promise<PlayPositionGraph> {
-        const stored = await getRoomPositionGraphFromDynamo(this.db, roomId)
-        return projectRoomGraphFromStoredPositionGraph(
-            stored ?? { nodes: [], edges: [] }
-        )
+        if (isEphemeraRoomId(componentId)) {
+            const stored = await getRoomPositionGraphFromDynamo(this.db, componentId)
+            return projectComponentGraphFromStoredPositionGraph(
+                stored ?? { nodes: [], edges: [] }
+            )
+        }
+        if (isEphemeraCharacterId(componentId)) {
+            const stored = await getCharacterPositionGraphFromDynamo(this.db, componentId)
+            return projectComponentGraphFromStoredPositionGraph(
+                stored ?? { nodes: [], edges: [] }
+            )
+        }
+        return projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })
     }
 
     private async loadMembershipContainersFromDynamo(
         containedId: EphemeraPositionAdjacencyContainedId
-    ): Promise<EphemeraRoomId[]> {
+    ): Promise<EphemeraMembershipHostId[]> {
         if (!this.db.query) {
             return []
         }

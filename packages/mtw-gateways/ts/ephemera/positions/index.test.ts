@@ -1,8 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
-    projectRoomGraphFromStoredPositionGraph,
-    projectCharacterInventoryGraphStub,
+    projectComponentGraphFromStoredPositionGraph,
     extractCharacterIdsFromPlayPositionGraph,
     extractObjectIdsFromPlayPositionGraph,
 } from './project'
@@ -13,16 +12,12 @@ import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ep
 
 const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#Skates' as EphemeraObjectId
 
-describe('positions project', () => {
-    it('projectCharacterInventoryGraphStub returns empty forward graph', () => {
-        expect(projectCharacterInventoryGraphStub()).toEqual({
-            nodes: [],
-            edges: [],
-        })
-    })
+const emptyGraph = projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })
 
+describe('positions project', () => {
     it('extractCharacterIdsFromPlayPositionGraph walks character nodes', () => {
         expect(extractCharacterIdsFromPlayPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
@@ -37,8 +32,8 @@ describe('positions project', () => {
         })).toEqual([objectId])
     })
 
-    it('projectRoomGraphFromStoredPositionGraph maps stored nodes to topology only', () => {
-        const graph = projectRoomGraphFromStoredPositionGraph({
+    it('projectComponentGraphFromStoredPositionGraph maps stored nodes to topology only', () => {
+        const graph = projectComponentGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
         expect(graph).toEqual({
@@ -50,8 +45,8 @@ describe('positions project', () => {
         })
     })
 
-    it('projectRoomGraphFromStoredPositionGraph includes Object nodes', () => {
-        const graph = projectRoomGraphFromStoredPositionGraph({
+    it('projectComponentGraphFromStoredPositionGraph includes Object nodes', () => {
+        const graph = projectComponentGraphFromStoredPositionGraph({
             nodes: [
                 { tag: 'Character', universalKey: characterId },
                 { tag: 'Object', universalKey: objectId },
@@ -66,8 +61,8 @@ describe('positions project', () => {
         })
     })
 
-    it('projectRoomGraphFromStoredPositionGraph returns empty graph for absent nodes', () => {
-        expect(projectRoomGraphFromStoredPositionGraph({ nodes: [], edges: [] })).toEqual({
+    it('projectComponentGraphFromStoredPositionGraph returns empty graph for absent nodes', () => {
+        expect(projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })).toEqual({
             nodes: [],
             edges: [],
         })
@@ -77,55 +72,90 @@ describe('positions project', () => {
 describe('PositionsCacheHandler', () => {
     it('loads room graph topology from stored positionGraph', async () => {
         const db: EphemeraPositionsReadDB = {
-            getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
-                if (ProjectionFields?.includes('positionGraph')) {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('positionGraph')) {
                     return {
                         positionGraph: {
                             nodes: [{ tag: 'Character', universalKey: characterId }],
                         },
                     }
                 }
-                throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
             }),
         }
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getPositionGraph(roomId)
 
-        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph({
+        expect(graph).toEqual(projectComponentGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
-    it('returns empty graph when stored positionGraph is absent', async () => {
+    it('returns empty graph when stored room positionGraph is absent', async () => {
         const db: EphemeraPositionsReadDB = {
-            getItem: jest.fn().mockImplementation(async ({ ProjectionFields }) => {
-                if (ProjectionFields?.includes('positionGraph')) {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('positionGraph')) {
                     return {}
                 }
-                throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
             }),
         }
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getPositionGraph(roomId)
 
-        expect(graph).toEqual(projectRoomGraphFromStoredPositionGraph({ nodes: [], edges: [] }))
+        expect(graph).toEqual(emptyGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
-    it('returns empty inventory stub for character getPositionGraph without Dynamo', async () => {
-        const db: EphemeraPositionsReadDB = { getItem: jest.fn() }
+    it('loads character inventory graph from Meta::Character.positionGraph', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('positionGraph')) {
+                    return {
+                        positionGraph: {
+                            nodes: [{ tag: 'Object', universalKey: objectId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getPositionGraph(characterId)
 
-        expect(graph).toEqual(projectCharacterInventoryGraphStub())
-        expect(db.getItem).not.toHaveBeenCalled()
+        expect(graph).toEqual(projectComponentGraphFromStoredPositionGraph({
+            nodes: [{ tag: 'Object', universalKey: objectId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: characterId, DataCategory: 'Meta::Character' },
+                ProjectionFields: ['positionGraph'],
+            })
+        )
     })
 
-    it('loads membership containers for OBJECT# from adjacency on miss', async () => {
+    it('returns empty graph when stored character positionGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('positionGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getPositionGraph(characterId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads membership containers for OBJECT# from room adjacency on miss', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn(),
             query: jest.fn().mockResolvedValue([{
@@ -136,6 +166,20 @@ describe('PositionsCacheHandler', () => {
         const handler = createPositionsCacheHandler(db)
 
         await expect(handler.getMembershipContainers(objectId)).resolves.toEqual([roomId])
+        expect(db.query).toHaveBeenCalled()
+    })
+
+    it('loads membership containers for OBJECT# from character host adjacency', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn(),
+            query: jest.fn().mockResolvedValue([{
+                EphemeraId: objectId,
+                DataCategory: buildPositionAdjacencyDataCategory(characterHostId),
+            }]),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        await expect(handler.getMembershipContainers(objectId)).resolves.toEqual([characterHostId])
         expect(db.query).toHaveBeenCalled()
     })
 
@@ -170,7 +214,7 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectRoomGraphFromStoredPositionGraph({
+        const graph = projectComponentGraphFromStoredPositionGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
 
@@ -185,6 +229,19 @@ describe('PositionsCacheHandler', () => {
                 ProjectionFields: ['positionGraph'],
             })
         )
+    })
+
+    it('memo set patches character forward graph without Dynamo write', async () => {
+        const getItem = jest.fn().mockResolvedValue({})
+        const db: EphemeraPositionsReadDB = { getItem }
+        const handler = createPositionsCacheHandler(db)
+        const graph = projectComponentGraphFromStoredPositionGraph({
+            nodes: [{ tag: 'Object', universalKey: objectId }],
+        })
+
+        handler.set({ componentId: characterId, graph })
+        await expect(handler.getPositionGraph(characterId)).resolves.toEqual(graph)
+        expect(db.getItem).not.toHaveBeenCalled()
     })
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {
@@ -231,6 +288,19 @@ describe('queryMembershipContainersFromDynamo', () => {
             KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
             ExpressionAttributeValues: { ':prefix': 'POSITION#' },
         })
+    })
+
+    it('parses character host from adjacency rows', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue([
+                {
+                    EphemeraId: objectId,
+                    DataCategory: buildPositionAdjacencyDataCategory(characterHostId),
+                },
+            ]),
+        }
+
+        await expect(queryMembershipContainersFromDynamo(db, objectId)).resolves.toEqual([characterHostId])
     })
 
     it('parses DataCategory-only rows from default ephemeraDB query projection', async () => {

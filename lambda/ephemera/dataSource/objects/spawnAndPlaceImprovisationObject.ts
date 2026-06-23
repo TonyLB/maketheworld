@@ -1,5 +1,5 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { projectRoomGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -100,7 +100,7 @@ export const spawnAndPlaceImprovisationObject = async (
         if (storedGraph) {
             internalCache.Positions.set({
                 componentId: args.targetRoomId,
-                graph: projectRoomGraphFromStoredPositionGraph(storedGraph),
+                graph: projectComponentGraphFromStoredPositionGraph(storedGraph),
             })
         }
         internalCache.Positions.setMembershipContainers({

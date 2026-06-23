@@ -652,7 +652,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 
 - [ ] **Phase 4 --- positions apply**
   - [X] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
-  - [ ] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
+  - [X] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
   - [ ] **`positions/manipulation/membership/`** cross-host coordinator: atomic room-remove + character-add on **`takeHold`** (**D14**).
   - [ ] Contract updates in `positions/AGENT.contract.md` per **D8**.
   - [ ] Cache memo per gateway rules (`internalCache.Positions`).
@@ -690,9 +690,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | Phase 3 actions egress | Done |
 | Positions stub ingress (`Object Take Hold` -> `executeObjectTakeHold`) | Done (no-op until Phase 4) |
 | Host positionGraph storage (D16) | Decided (fractal-host pattern; extend Positions gateway; no carrying limits) |
+| **`Meta::Character.positionGraph`** read + persist primitives (D16 slice 1) | Done |
 | **`Object Moved` fact extension (D8)** | Decided (non-room hosts yes; relational not yet) |
 | **Phase 4 gate** | Decided (**D16**, **D8**) |
-| Phase 4 positions apply | Not started |
+| Phase 4 positions apply | In progress (D16 slice 1 shipped; cross-host apply next) |
 | Phase 5 gate (D9--D12) | Open |
 | Phase 5 perception / transcript | Not started |
 | Phase 6 graduation | Not started |
@@ -745,6 +746,19 @@ npm run test -- --watchAll=false \
   dataSource/positions/subscribedEvents.test.ts \
   dataSource/positions/manipulation/membership/executeObjectTakeHold.test.ts \
   dataSource/positions/receivePaths.integration.test.ts
+npm run build
+```
+
+Phase 4 slice 1 (D16 --- character `positionGraph` read + persist primitives):
+
+```bash
+npm run test -- --watchAll=false \
+  ../../packages/mtw-interfaces/ts/ephemeraPositionAdjacency.test.ts \
+  ../../packages/mtw-interfaces/ts/ephemeraMeta.test.ts \
+  ../../packages/mtw-gateways/ts/ephemera/positions/index.test.ts \
+  dataSource/positions/manipulation/membership/characterInventoryTransactItems.test.ts \
+  dataSource/positions/membership/applyObjectRoomMembership.test.ts \
+  dataSource/actions/parseCommand.test.ts
 npm run build
 ```
 

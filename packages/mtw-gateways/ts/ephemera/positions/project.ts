@@ -6,10 +6,10 @@ import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/
 import type { PlayPositionGraph } from './types'
 
 /**
- * Slice 2 forward read: stored topology from Meta::Room.positionGraph.
+ * Forward read: stored topology from any eligible host Meta::*.positionGraph.
  * Roster display metadata is hydrated at read time in ephemera internalCache (S2-6-H).
  */
-export const projectRoomGraphFromStoredPositionGraph = (
+export const projectComponentGraphFromStoredPositionGraph = (
     stored: EphemeraPlayPositionGraph
 ): PlayPositionGraph => {
     const nodes: StandardReferenceData[] = stored.nodes.flatMap((node): StandardReferenceData[] => {
@@ -26,12 +26,6 @@ export const projectRoomGraphFromStoredPositionGraph = (
         edges: [],
     }
 }
-
-/** Forward-looking stub for future character inventory (container-scale play graph). */
-export const projectCharacterInventoryGraphStub = (): PlayPositionGraph => ({
-    nodes: [],
-    edges: [],
-})
 
 export const extractCharacterIdsFromPlayPositionGraph = (
     graph: PlayPositionGraph

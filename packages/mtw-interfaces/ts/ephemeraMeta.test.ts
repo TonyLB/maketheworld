@@ -1,4 +1,5 @@
 import {
+    isEphemeraMetaCharacter,
     isEphemeraMetaObject,
     isEphemeraMetaRoom,
     isEphemeraMetaRoomObject,
@@ -242,6 +243,42 @@ describe('isEphemeraMetaRoom positionGraph', () => {
                 shortName: 'helmet',
                 stableKey: 'helmet',
             }],
+        })).toBe(false)
+    })
+})
+
+describe('isEphemeraMetaCharacter positionGraph', () => {
+    it('accepts Meta::Character with object-only positionGraph', () => {
+        expect(isEphemeraMetaCharacter({
+            EphemeraId: 'CHARACTER#Alpha',
+            DataCategory: 'Meta::Character',
+            positionGraph: {
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            },
+        })).toBe(true)
+    })
+
+    it('accepts Meta::Character without positionGraph', () => {
+        expect(isEphemeraMetaCharacter({
+            EphemeraId: 'CHARACTER#Alpha',
+            DataCategory: 'Meta::Character',
+        })).toBe(true)
+    })
+
+    it('rejects character host graph with Character nodes', () => {
+        expect(isEphemeraMetaCharacter({
+            EphemeraId: 'CHARACTER#Alpha',
+            DataCategory: 'Meta::Character',
+            positionGraph: {
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta' }],
+            },
+        })).toBe(false)
+    })
+
+    it('rejects invalid DataCategory', () => {
+        expect(isEphemeraMetaCharacter({
+            EphemeraId: 'CHARACTER#Alpha',
+            DataCategory: 'Meta::Room',
         })).toBe(false)
     })
 })

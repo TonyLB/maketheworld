@@ -8,12 +8,17 @@ import {
 } from './ephemeraPositionAdjacency'
 
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#helmet' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 
 describe('ephemeraPositionAdjacency key helpers', () => {
-    it('buildPositionAdjacencyDataCategory prefixes host id', () => {
+    it('buildPositionAdjacencyDataCategory prefixes room host id', () => {
         expect(buildPositionAdjacencyDataCategory(roomId)).toBe('POSITION#ROOM#Cafe')
+    })
+
+    it('buildPositionAdjacencyDataCategory prefixes character host id', () => {
+        expect(buildPositionAdjacencyDataCategory(characterHostId)).toBe('POSITION#CHARACTER#Beta')
     })
 
     it('parsePositionAdjacencyDataCategory round-trips host room id', () => {
@@ -21,8 +26,14 @@ describe('ephemeraPositionAdjacency key helpers', () => {
         expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(roomId)
     })
 
+    it('parsePositionAdjacencyDataCategory round-trips character host id', () => {
+        const dataCategory = buildPositionAdjacencyDataCategory(characterHostId)
+        expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(characterHostId)
+    })
+
     it('parsePositionAdjacencyDataCategory rejects malformed SK', () => {
         expect(parsePositionAdjacencyDataCategory('POSITION#not-a-room')).toBeUndefined()
+        expect(parsePositionAdjacencyDataCategory('POSITION#OBJECT#held')).toBeUndefined()
         expect(parsePositionAdjacencyDataCategory('Meta::Room')).toBeUndefined()
         expect(parsePositionAdjacencyDataCategory(`${EPHEMERA_POSITION_ADJACENCY_PREFIX}`)).toBeUndefined()
     })
@@ -40,6 +51,13 @@ describe('isEphemeraPositionAdjacencyRow', () => {
         expect(isEphemeraPositionAdjacencyRow({
             EphemeraId: objectId,
             DataCategory: buildPositionAdjacencyDataCategory(roomId),
+        })).toBe(true)
+    })
+
+    it('accepts valid object adjacency row on character host', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: objectId,
+            DataCategory: buildPositionAdjacencyDataCategory(characterHostId),
         })).toBe(true)
     })
 
@@ -69,6 +87,12 @@ describe('parseMembershipContainerFromAdjacencyQueryItem', () => {
         expect(parseMembershipContainerFromAdjacencyQueryItem({
             DataCategory: buildPositionAdjacencyDataCategory(roomId),
         })).toBe(roomId)
+    })
+
+    it('parses character host from DataCategory-only query item', () => {
+        expect(parseMembershipContainerFromAdjacencyQueryItem({
+            DataCategory: buildPositionAdjacencyDataCategory(characterHostId),
+        })).toBe(characterHostId)
     })
 
     it('ignores malformed DataCategory', () => {

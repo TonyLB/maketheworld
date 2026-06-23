@@ -107,3 +107,10 @@ export const effectiveRoomPositionGraph = (meta: {
     }
     return seedGraphFromActiveCharacters(record.activeCharacters ?? [])
 }
+
+export const effectiveCharacterPositionGraph = (meta: {
+    positionGraph?: EphemeraPlayPositionGraph;
+} | Record<string, unknown>): EphemeraPlayPositionGraph => {
+    const record = meta as { positionGraph?: EphemeraPlayPositionGraph }
+    return record.positionGraph ?? { nodes: [], edges: [] }
+}

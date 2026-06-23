@@ -1,4 +1,5 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
@@ -21,7 +22,10 @@ export const syncObjectMembershipAdjacencyToRoom = async (
     deps?: SyncObjectMembershipAdjacencyToRoomDependencies
 ): Promise<{ synced: boolean }> => {
     const getMembershipContainers = deps?.getMembershipContainers
-        ?? ((objectId) => internalCache.Positions.getMembershipContainers(objectId))
+        ?? (async (objectId) => {
+            const containers = await internalCache.Positions.getMembershipContainers(objectId)
+            return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+        })
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const priorContainers = await getMembershipContainers(args.objectId)
