@@ -1,6 +1,6 @@
 # Position manipulation (diegetic logic) --- planning
 
-**Status:** Phase 1 classifier shipped. **Next:** Phase 2 gate (**D5**, **D6**, **D7**, **D14**, **D17**) then enrich + resolve.
+**Status:** Phase 1 classifier shipped. **Phase 2 gate decided** (**D17** locked). **Next:** Phase 2 enrich + resolve implementation.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
@@ -32,7 +32,7 @@ This plan tracks **process, open forks, and ordering**. Steady-state architectur
 | **L8** | **Play graphs at component Meta, not perspectiveKey.** For early positioning iterations, **`positionGraph`** is an **ephemeral play layer** stored on component **meta** rows (**`Meta::Room`**, **`Meta::Area`**, **`Meta::Character`**, **`Meta::Object`**, ...) --- not on asset-layer **`perspectiveKey`** slices. Manipulation operators read and write **global play truth** (same register as today's room membership graphs). Perspective-filtered **presentation** remains downstream. |
 | **L9** | **Pick up = atomic host transfer.** For movement, **pick up** removes the object from the **room** host graph and adds it to the **character** host graph in one apply --- not a separate "in plain sight" fiction with unchanged storage. **`Meta::Character.positionGraph`** (and read/apply paths) are **not shipped**; designing and landing that storage is **in scope** for this initiative. |
 | **L10** | **Enrich disposition fork.** Manipulation enrich returns **`disposition: atomic`** (**`operationKind`** + proposal fields) or **`disposition: complex`** (**`complexityClass`** + optional summary). Only **atomic** proposals proceed through resolve, egress, and positions apply. **Complex** finalizes to a terminal parse outcome in v1 (enrich-time **`Error`** or equivalent OOC) --- **not** a stream event and **not** positions ingress. In-depth complex processing is **out of scope** for this plan; extend this plan or open a follow-on task plan after simple manipulation ships. |
-| **L11** | **In-room object labels at classify (compose-stack read).** Discriminate prompt context for **`get <noun>`** vs **`AcmeOrder`** uses a **thin label projection** parallel to **`movementExitLabels`**: character's current room from **`Positions.getMembershipContainers`**; object ids from **`Positions.getPositionGraph`** + **`extractObjectIdsFromPlayPositionGraph`**; display strings from **`ImprovisationComponentData`** **`shortName`** per id (**L5**). Same read pattern as **`AffordanceRoomDeliverable`** object slice ([`affordanceRoomDeliverable.ts`](../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts)) and Coyote [`coyoteRoomObjectSnapshot.ts`](../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts). **Do not** denormalize object catalogs onto **`AffordanceCache`** rows. v1 labels: improvisation **`OBJECT#`** only unless **D6** expands scope. |
+| **L11** | **In-room object labels at classify (compose-stack read).** Discriminate prompt context for **`get <noun>`** vs **`AcmeOrder`** uses a **thin label projection** parallel to **`movementExitLabels`**: character's current room from **`Positions.getMembershipContainers`**; object ids from **`Positions.getPositionGraph`** + **`extractObjectIdsFromPlayPositionGraph`**; display strings from merged component layers (**`ComponentAggregate`** + **`appendImprovisationToPerspective`** when in scope) -> **`shortName`** per id (**L5**, **D6**). Same read pattern as **`AffordanceRoomDeliverable`** object slice ([`affordanceRoomDeliverable.ts`](../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts)) and Coyote [`coyoteRoomObjectSnapshot.ts`](../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts). **Do not** denormalize object catalogs onto **`AffordanceCache`** rows. v1 scope: **any graph-placed object** in the room graph (**D6**). Phase 1 shipped improvisation-only projection; align with merged-layer reads at Phase 2. |
 | **L12** | **Classify contract (no slots).** Discriminate returns **`ObjectManipulationIntent`** only: semantic intent + optional **raw object span strings** (mirror **`AcmeOrder`** / **`AcmeOrderIntent`**). **No** verb frames, **`operationKind`**, **`OBJECT#`** ids, or relational slots at classify --- those belong in enrich / resolve (**L7**, **D3**). Prompt context: **`movementObjectLabels`** (**L11**). **`get <noun>`** when **`<noun>`** is in **`movementObjectLabels`** beats **`AcmeOrder`**; explicit Acme re-order via **`order <noun>`** (or equivalent order verbs). **`confidence`** same register as other intents (required on payload; no downstream threshold logic in v1). |
 
 ---
@@ -105,7 +105,6 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 - **Complex manipulation processing** --- enrich **`disposition: complex`** (relational placement, multi-object deltas, contradictory spatial claims, second enrich hop, diegetic consistency algebra). This plan **recognizes** complex via enrich schema (**L10**) and **stubs** a terminal player outcome only. Full handling ships in a **follow-on task plan** (or a later revision of this plan) after simple atomic manipulation is working. Do not block Phases 3--5 on complex-path design.
 - **`AffordanceCache` object-catalog denormalization** --- labels stay on improvisation/component reads; classify uses thin projection only (**L11**).
 - **Client UI** for object manipulation (typed command only until otherwise decided).
-- **Authored** (non-improvisation) object manipulation unless explicitly pulled into v1.
 - **Coyote-specific** manipulation rules (separate from general play verbs).
 - **`objects` lane** spawn/delete --- only if a verb **creates** or **destroys** existence; pure relocation stays positions.
 
@@ -122,7 +121,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 ### Not shipped (this initiative must address)
 
 - **`Meta::Character.positionGraph`** (and gateway/cache read path) for held objects.
-- Cross-host apply: atomic **room -> character** graph transfer on pick up (extend [`positionGraphMerge`](../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts) / adjacency patterns).
+- Cross-host apply: atomic **room -> character** graph transfer on pick up under **`positions/manipulation/membership/`** (reuse [`positionGraphMerge`](../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts) / adjacency patterns from room-only **`positions/membership/`**).
 - Relational in-room **edges** (`On`, `In`, ...) on room graphs --- **complex manipulation**; out of scope for this plan (see [Explicit deferrals](#explicit-deferrals)).
 - Perception **membership-style fan-in** for object manipulation transcript.
 
@@ -130,6 +129,8 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 - **`Meta::Area`** / **`Meta::Object`** host graphs beyond what v1 pick-up requires.
 - Perspective-scoped play graph forks (asset-layer **`perspectiveKey`** as manipulation authority).
+- **Additional atomic `operationKind`s** (`drop`, relational attach, ...) --- enrich schema is extensible (**D17**), but only **`takeHold`** is implemented through resolve, egress, and positions in this initiative; next membership mirror (e.g. **`drop`**) ships after the pick-up vertical is proven end-to-end.
+- **Ambiguity conversation path** --- player disambiguation when object resolution is unclear (**D7**); v1 fails closed with OOC error.
 
 ---
 
@@ -137,7 +138,7 @@ Reference vertical: **character navigate** --- [`executeCharacterNavigate`](../.
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in the owning **`AGENT.contract.md`** / **`AGENT.implementation.md`** (and graduate operator prose into **`diegeticLogic/`** or positions concepts) and remove the row here.
 
-Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Next queue:** Phase 1 implementation, then Phase 2 gates (**D5**, **D6**, **D7**, **D14**, **D17**).
+Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Phase 1 gate:** **Decided** (**D3**, **D15**). **Phase 2 gate:** **Decided** (**D5**, **D6**, **D7**, **D14**, **D17**).
 
 ### Decided (cross-phase)
 
@@ -147,16 +148,16 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 | **D2** | **First-slice `operationKind`:** enrich implements **`takeHold`** (pick up) only on the **atomic** path; classify accepts broader manipulation family; other atomic **`operationKind`**s or **`disposition: complex`** finalize to terminal parse (**L10**). | 2 | **Decided** |
 | **D3** | **Classify contract:** **`ObjectManipulationIntent`** + raw **`objectSpans`** (JSON) / **`rawObjectSpans`** (TS intent); no slots at classify; **`movementObjectLabels`** prompt context; tie-breakers per **L12**; **`confidence`** same register as other intents. | 1 | **Decided** |
 | **D15** | **Discriminate in-room object labels:** thin compose-stack projection (**L11**); thread into classify prompt as **`movementObjectLabels`**; **not** **`AffordanceCache`** denormalization. | 1 | **Decided** |
+| **D5** | **Object resolution:** match player span to in-room object by **`shortName`** (normalized); synonyms and paraphrase acceptable at enrich/classify via LLM, but deterministic resolve grounds to a single **`OBJECT#`** by **`shortName`** match only --- not **`stableKey`**, not UI id in v1. | 2 | **Decided** |
+| **D6** | **Which objects in v1:** any **graph-placed** object in the room **`positionGraph`**; derive **`shortName`** from merged component layers (authored participation stack + improvisation via **`ComponentAggregate`** / **`appendImprovisationToPerspective`**), not improvisation-only reads. | 2 | **Decided** |
+| **D7** | **Ambiguity policy:** **fail closed** with OOC error when resolve cannot pick a unique object; no confidence-threshold best-guess in v1. Conversation / ask-player disambiguation deferred. | 2 | **Decided** |
+| **D14** | **Code layout:** **`actions/enrich/objectManipulation/`** for enrich + resolve (dedicated module, not generic enrich router only). Positions apply under new **`positions/manipulation/`** tree: **`membership/`** for cross-host graph transfers (room <-> character, etc.); **`relationships/`** reserved for relational edge apply (deferred beyond v1 atomic pick-up). Reuse **`membership/`** primitives (e.g. **`positionGraphMerge`**) where appropriate --- do not fold manipulation coordinators into existing room-only **`positions/membership/`** apply entry points. | 2 | **Decided** |
+| **D17** | **Enrich disposition schema:** thin vertical --- extensible **`operationKind`**, v1 implements **`takeHold`** only on the atomic path; **`disposition: complex`** stub vocabulary; finalize rules per [Enrich disposition schema (D17)](#enrich-disposition-schema-d17---decided). | 2 | **Decided** |
 
 ### Open
 
 | ID | Decision | Blocks phase | Gate | Status |
 | --- | --- | --- | --- | --- |
-| **D5** | **Object resolution:** match by `shortName` only, `stableKey`, LLM-proposed label + deterministic disambiguation, or explicit id from UI later? | 2 | Required | Open |
-| **D6** | **Which objects in v1:** improvisation `OBJECT#` only, or any graph-placed object? | 2 | Required | Open |
-| **D7** | **Ambiguity policy:** fail closed with OOC error, pick best match above confidence threshold, or ask player (conversation path)? | 2 | Required | Open |
-| **D14** | **Code layout:** `actions/enrich/objectManipulation/` vs generic enrich router; `positions/manipulation/` vs extend `membership/` | 2 | Required | Open |
-| **D17** | **Enrich disposition schema:** JSON field names for **`disposition`** (`atomic` \| `complex`), atomic proposal shape (**`operationKind`** + spans/ids), stub **`complexityClass`** vocabulary, finalize rules (atomic -> resolve; complex -> terminal OOC/**`Error`** --- no stream, no positions). | 2 | Required | Open |
 | **D4** | **Stream contract name and payload** for actions egress (intent leg for perception fan-in?). | 3 | Required | Open |
 | **D13** | **Trusted `Action Assessed` path** for manipulation (UI click) in v1 or parse-only? | 3 | Required | Open |
 | **D16** | **`Meta::Character.positionGraph` storage:** row shape on **`Meta::Character`**, object **adjacency** when host is **`CHARACTER#`** (extend reverse index?), gateway/cache handler scope, steady-state one-object-per-hand rules. | 4 | Required | Open |
@@ -180,10 +181,10 @@ Sorted by **Blocks phase** (see [Phase gate cadence](#phase-gate-cadence)). **Ph
 
 Broader threads to resolve into **D*** / **A*** rows or durable concepts as they mature.
 
-- Should enrich reuse the same thin object-label projection as classify (**L11**), or a richer catalog? (feeds **D6**)
+- Enrich/resolve object catalog: same merged-layer **`shortName`** projection as classify (**L11**, **D6**), plus id grounding map for **D5** resolve.
 - Relationship to **`Objects Change`** API ingress --- shared apply path or separate?
 - Failure copy: **`WorldOOCMessage`** vs in-world **`WorldMessage`** for "you can't do that" (including **complex** stub terminal)?
-- Classify accepts **`drop`** / **`put X on Y`** paraphrases while enrich v1 only implements take-hold on the atomic path --- likely **`disposition: complex`** or enrich-time **`Error`** per **D2** / **L10**; confirm at Phase 2 gate (**D17**).
+- **`drop`** / **`put X on Y`** at classify: enrich routes **`put X on Y`** and multi-object lines to **`disposition: complex`**; unrecognized or unimplemented atomic **`operationKind`**s (including **`drop`** in v1) -> terminal OOC per **D17**.
 - Multi-object commands: **`MultipleCommands`** vs single enrich with multiple deltas --- if not **`MultipleCommands`**, treat as **complex** (out of scope beyond stub) unless decomposable to one atomic **`takeHold`**.
 
 ---
@@ -209,13 +210,151 @@ Broader threads to resolve into **D*** / **A*** rows or durable concepts as they
 | --- | --- |
 | Current room | **`internalCache.Positions.getMembershipContainers(characterId)`** (same endpoint as [`getRoomExitTargetsForCharacter`](../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts)) |
 | Object ids in room | **`internalCache.Positions.getPositionGraph(roomId)`** -> **`extractObjectIdsFromPlayPositionGraph`** |
-| Display labels | **`internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID)`** -> **`shortName`** (normalize for prompt like exit labels) |
+| Display labels | Merged component layers per room perspective (**`ComponentAggregate`** + **`appendImprovisationToPerspective`** when objects in scope) -> **`shortName`** (normalize for prompt like exit labels). Phase 1 shipped improvisation-only reads; expand at Phase 2 per **D6**. |
 
 **Implementation (Phase 1):** extend room context for parse (sibling to **`getRoomExitTargetsForCharacter`** or shared return shape); pass label list into **`buildIntentClassificationPrompt`** (prompt option parallel to **`movementExitLabels`**). Share **`objectReads`** deps with **`AffordanceRoomDeliverable`** where practical --- do **not** call full **`AffordanceRoomDeliverable.get`** on the parse path.
 
 **Rejected:** persisting object label catalogs on **`AffordanceCache`** **`Affordance::${perspectiveKey}`** rows (staleness vs **`Object Moved`**; wrong authority boundary vs positions + improvisation bodies).
 
-**v1 scope:** improvisation **`OBJECT#`** **`shortName`**s only unless **D6** expands to authored graph-placed objects (**ComponentAggregate** path).
+**v1 scope:** any graph-placed object in the room graph; **`shortName`** from merged component layers (**D6**).
+
+---
+
+## Object resolution (D5 --- decided)
+
+**Direction:** deterministic resolve matches enrich/classify object span(s) to a unique in-room **`OBJECT#`** by **`shortName`** only (normalized, same register as **`movementObjectLabels`**).
+
+| Approach | Verdict |
+| --- | --- |
+| **`shortName`** match (synonyms via LLM upstream) | **Selected** --- LLM may paraphrase at classify/enrich; resolve compares against catalog **`shortName`**s |
+| **`stableKey`** | Rejected for v1 |
+| LLM-proposed label + deterministic disambiguation without unique **`shortName`** | Rejected --- falls through to **D7** fail closed |
+| Explicit id from UI | Deferred |
+
+---
+
+## In-room object scope (D6 --- decided)
+
+**Direction:** **any graph-placed object** present in the room **`positionGraph`**, not improvisation **`OBJECT#`** only.
+
+| Source | Rule |
+| --- | --- |
+| Object ids | **`Positions.getPositionGraph(roomId)`** -> **`extractObjectIdsFromPlayPositionGraph`** |
+| **`shortName`** | Merged component layers: room perspective participation stack via **`internalCache.ComponentAggregate`**, with improvisation appended via **`appendImprovisationToPerspective`** when in scope (same register as **`AffordanceRoomDeliverable`** object slice) |
+
+**Phase 1 note:** [`roomObjectLabelsForCharacter.ts`](../../../../lambda/ephemera/dataSource/actions/roomObjectLabelsForCharacter.ts) shipped improvisation-only reads; align classify + enrich catalogs with merged-layer reads when Phase 2 starts.
+
+---
+
+## Ambiguity policy (D7 --- decided)
+
+**Direction:** **fail closed** --- when resolve cannot match a unique in-room object by **`shortName`**, terminal **`WorldOOCMessage`** (or equivalent OOC **`Error`**).
+
+| Policy | Verdict |
+| --- | --- |
+| Fail closed with OOC error | **Selected** for v1 |
+| Pick best match above confidence threshold | Rejected for v1 |
+| Ask player (conversation path) | **Deferred** --- follow-on iteration after simple atomic manipulation ships |
+
+---
+
+## Code layout (D14 --- decided)
+
+**Direction:**
+
+| Area | Path |
+| --- | --- |
+| Enrich + resolve | **`actions/enrich/objectManipulation/`** |
+| Positions apply | **`positions/manipulation/`** --- umbrella for player-driven object manipulation apply |
+
+**`positions/manipulation/`** structure (draft):
+
+| Submodule | Responsibility |
+| --- | --- |
+| **`membership/`** | Cross-host **membership** transfers --- v1 **`takeHold`** room -> character (and future room <-> character / inventory moves). Coordinator + tests live here. |
+| **`relationships/`** | Relational **edge** apply (`On`, `In`, ... on room graphs) --- **deferred** (complex manipulation); stub or empty until follow-on plan. |
+
+Existing **`positions/membership/`** remains **room-host-only** apply (`applyObjectRoomMembership`, spawn/place ingress). Manipulation coordinators **import** shared primitives (e.g. **`positionGraphMerge`**, fact builders) but **do not** extend those entry points for cross-host or relational semantics.
+
+---
+
+## Enrich disposition schema (D17 --- decided)
+
+**Direction:** **thin vertical** --- lock enrich JSON + finalize rules so Phases 2--5 can prove the full lane stack for **one** atomic operator (**`takeHold`**). **`operationKind`** is **extensible**; additional operators (e.g. **`drop`**, relational attach) ship in later slices **after** pick-up works end-to-end (including **`Meta::Character.positionGraph`** --- **D16**).
+
+### Strategy
+
+| Choice | Verdict |
+| --- | --- |
+| One atomic operator, full vertical first (**`takeHold`**) | **Selected** |
+| Define multiple atomics in enrich before any completes the vertical | Rejected for v1 |
+| Relational attach (`put X on Y`) as v1 atomic | Rejected --- **`disposition: complex`** stub (**L10**, **D14** **`relationships/`** deferred) |
+
+### Model JSON (enrich Bedrock response)
+
+**Atomic (v1 implemented):**
+
+```json
+{
+  "disposition": "atomic",
+  "operationKind": "takeHold",
+  "objectSpan": "broom"
+}
+```
+
+**Complex (terminal stub in v1):**
+
+```json
+{
+  "disposition": "complex",
+  "complexityClass": "relationalPlacement",
+  "summary": "put the vase on the table"
+}
+```
+
+| Field | Rule |
+| --- | --- |
+| **`disposition`** | Required. Exactly **`atomic`** or **`complex`**. |
+| **`operationKind`** | Required when **`disposition: atomic`**. String enum --- v1 **implements** only **`takeHold`**. Forbidden when **`disposition: complex`**. |
+| **`objectSpan`** | Required when **`disposition: atomic`** and **`operationKind: takeHold`**. Single raw object string (articles stripped); enrich proposes, resolve grounds to **`OBJECT#`** by **`shortName`** (**D5**). No **`objectId`** from model in v1. |
+| **`complexityClass`** | Required when **`disposition: complex`**. Stub vocabulary (finalize to terminal OOC only --- no stream, no positions): **`relationalPlacement`** (`put X on Y`, `tie A to B`, in-room edge claims), **`multiObject`** (multiple deltas in one line), **`unimplementedVerb`** (recognized manipulation family but no v1 atomic path --- e.g. **`drop`** until a later slice). Optional **`summary`** for operator/debug copy. |
+| **Forbidden at enrich** | **`objectId`**, **`targetId`**, host routing ids, graph delta payloads --- resolve and downstream lanes own grounded ids (**D3**, **L12**). |
+
+### Finalize rules (v1)
+
+| Enrich outcome | Next step |
+| --- | --- |
+| **`disposition: complex`** | Terminal **`WorldOOCMessage`** / **`ParseCommandErrorResult`** --- **no** resolve, **no** stream, **no** positions (**L10**) |
+| **`disposition: atomic`** + **`operationKind` !== `takeHold`** | Terminal OOC --- unimplemented atomic (e.g. **`drop`** until follow-on slice) |
+| **`disposition: atomic`** + **`takeHold`** | Deterministic resolve: unique **`shortName`** match (**D5** / **D7**) -> grounded proposal -> Phases 3--5 egress / apply / perception |
+
+### After resolve (internal, pre-egress)
+
+Grounded atomic **`takeHold`** proposal (TypeScript --- names illustrative until stream contract **D4** locks):
+
+```ts
+{
+  disposition: 'atomic',
+  operationKind: 'takeHold',
+  objectId: EphemeraObjectId,
+  // hosts implied by operationKind + character context in v1:
+  // fromHost: roomId, toHost: characterId
+}
+```
+
+### Prompt policy (enrich)
+
+- In-room object catalog in prompt (merged-layer **`shortName`**s per **D6**); same projection family as classify **`movementObjectLabels`**.
+- **`takeHold`** paraphrases (`pick up`, `grab`, `get the <in-room noun>`) -> **`disposition: atomic`** + **`operationKind: takeHold`**.
+- **`put X on Y`**, multi-object relational lines -> **`disposition: complex`** + **`complexityClass: relationalPlacement`**.
+- **`drop`** / other membership verbs -> **`disposition: complex`** + **`complexityClass: unimplementedVerb`** (or enrich may emit atomic + non-**`takeHold`** **`operationKind`**; finalize still terminal OOC in v1).
+
+### Follow-on slices (not v1)
+
+| Operator | Kind | When |
+| --- | --- | --- |
+| **`drop`** | Membership atomic (character -> room) | After pick-up vertical proven; same **`positions/manipulation/membership/`**, new **`operationKind`** |
+| Relational attach | Edge apply | After **`positions/manipulation/relationships/`** + complex-path plan |
 
 ---
 
@@ -256,7 +395,7 @@ Mirror **`AcmeOrderIntent`**: discriminant **`ObjectManipulationIntent`** with *
 | **`take the south door`** / exit movement | **`NavigationIntent`** (unchanged) |
 | Targeted examine | Look family (unchanged) |
 
-**Not at classify:** resolving whether **`objectSpans`** match a unique in-room object --- **D5** / **D7** at enrich + resolve.
+**Not at classify:** resolving whether **`objectSpans`** match a unique in-room object --- enrich + deterministic resolve per **D5** / **D7**.
 
 ---
 
@@ -290,10 +429,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
   - [X] Tests: paraphrase fixtures (`pick up` / `grab` / `get the <in-room object>`), Acme vs manipulation collision cases, `Unimplemented` regression for out-of-family actions.
 
 - [ ] **Phase 2 --- enrich + resolve (atomic path + complex stub)**
-  - [ ] **Gate:** **D5**, **D6**, **D7**, **D14**, **D17** decided (**D2**, **L10** already decided).
-  - [ ] `actions/enrich/objectManipulation/` (or chosen layout per **D14**): prompt, JSON schema per **D17** (**`disposition`**, atomic proposal fields, **`complexityClass`** stub).
+  - [X] **Gate:** **D17** decided (**D2**, **D5**, **D6**, **D7**, **D14**, **L10**).
+  - [ ] `actions/enrich/objectManipulation/` per **D14**: prompt, JSON schema per **D17** (**`disposition`**, atomic proposal fields, **`complexityClass`** stub).
   - [ ] Bedrock invoke + interpret/finalize: **`disposition: atomic`** -> resolve; **`disposition: complex`** -> terminal OOC/**`Error`** (no stream, no positions --- complex processing **out of scope**).
-  - [ ] Deterministic grounding per **D5** / **D6** / **D7** (**atomic only**).
+  - [ ] Expand in-room object label projection to merged component layers (**D6**); align classify **`movementObjectLabels`** with enrich catalog.
+  - [ ] Deterministic **`shortName`** grounding per **D5** / **D7** (**atomic only**).
   - [ ] Enrich-time terminal for unimplemented atomic **`operationKind`**s (drop / put-on until later slices --- **D2**).
   - [ ] Tests with mocked Bedrock and room object fixtures (atomic **`takeHold`** success path; **`disposition: complex`** stub terminal; unimplemented **`operationKind`** on atomic path).
 
@@ -306,7 +446,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 - [ ] **Phase 4 --- positions apply**
   - [ ] **Gate:** **D16**, **D8** decided (optional **A2** pre-flight legality).
   - [ ] **`Meta::Character.positionGraph`** persistence + read path (**D16**).
-  - [ ] Cross-host coordinator: atomic room-remove + character-add on **`takeHold`**.
+  - [ ] **`positions/manipulation/membership/`** cross-host coordinator: atomic room-remove + character-add on **`takeHold`** (**D14**).
   - [ ] Contract updates in `positions/AGENT.contract.md` per **D8**.
   - [ ] Cache memo per gateway rules (`internalCache.Positions`).
 
@@ -329,13 +469,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines `[X]` as each su
 | --- | --- |
 | `diegeticLogic/` doc stub | Done |
 | Lane split agreement (L1--L12) | Done |
-| Cross-phase decided (D1, D2, D3, D15) | Done |
+| Cross-phase decided (D1, D2, D3, D5, D6, D7, D14, D15, D17) | Done |
 | In-room label read path (L11) | Decided (compose-stack projection) |
 | Classify contract (L12, D3) | Decided (no slots; **`movementObjectLabels`**) |
 | **Phase 1 gate** | Decided |
 | Phase 1 classifier | Done |
-| Phase 2 gate (D5, D6, D7, D14, D17) | Open |
-| Enrich disposition direction (L10) | Decided (complex out of scope beyond stub) |
+| **Phase 2 gate** | Decided |
+| Enrich disposition schema (D17) | Decided (thin **`takeHold`** vertical; extensible **`operationKind`**) |
 | Phase 2 enrich + resolve (atomic + complex stub) | Not started |
 | Phase 3 gate (D4, D13) | Open |
 | Phase 3 actions egress | Not started |
@@ -375,7 +515,7 @@ Future slices (indicative):
 - `dataSource/actions/discriminateIntent/intentClassification.test.ts`
 - `dataSource/actions/index.test.ts`
 - New enrich module tests under `dataSource/actions/enrich/`
-- Positions manipulation coordinator tests
+- `dataSource/positions/manipulation/` coordinator tests
 - Perception emission tests (fan-in or publish helper)
 
 Command authority: [`lambda/ephemera/AGENT.testing.md`](../../../../lambda/ephemera/AGENT.testing.md).
