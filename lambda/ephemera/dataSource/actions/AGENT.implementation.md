@@ -60,6 +60,28 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 3. Branch in [`index.ts`](index.ts) **`handleActionAssessed`** / shared **`processAssessedParseResult`** tail --- skip **`CommandTranscriptMessage`**.
 4. Reuse or extend the same stream contracts as the parse path where behavior matches (e.g. **`Character Navigate`** for navigation, **`Character Home`** for home, **`Character Spoke`** for speech).
 
+### Adding an atomic position-manipulation operator
+
+Use when a player command commits a **membership-host** graph change via **`mtw.ephemera.positions`** (not relational in-room edges; not objects-lane existence). First shipped operator: **`takeHold`**. Next expected: **`drop`** (character -> room).
+
+Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Positions apply: [**Adding a cross-host manipulation apply coordinator**](../positions/AGENT.implementation.md#adding-a-cross-host-manipulation-apply-coordinator). Normative ingress: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md).
+
+1. **When to use this path** --- atomic transfer between eligible membership hosts (room, character inventory in v1). Relational placement and multi-object deltas stay **`disposition: complex`** (terminal stub only until a follow-on plan ships).
+
+2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** only; thread **`movementObjectLabels`** from [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts) into the classify prompt. New operators add enrich prompt tie-breakers, not new classify discriminants, unless catalog context expands (e.g. held-object labels for **`drop`** --- decide at that slice).
+
+3. **Enrich** --- extend [`enrich/objectManipulation/`](enrich/objectManipulation/): **`operationKind`** enum + Bedrock prompt; **`disposition: complex`** still terminal stub (no stream, no positions). Room ops use [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts); held inventory catalog TBD at **`drop`**.
+
+4. **Resolve** --- deterministic **`shortName`** match in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts); fail closed on ambiguity or no match.
+
+5. **Terminal parse** --- extend **`ParseCommandObjectManipulationResult`** / guards in [`baseClasses.ts`](baseClasses.ts) when adding **`operationKind`** values.
+
+6. **Egress** --- one stream type per atomic operator (v1: **`Object Take Hold`** for **`takeHold`**; e.g. **`Object Drop`** when second operator ships). Add payload + guard in [`publishedEvents.ts`](publishedEvents.ts); wire **`Parse Requested`** branch in [`index.ts`](index.ts) only (no **`Action Assessed`** in v1).
+
+7. **Reference files (`takeHold`)** --- egress wiring mirrors existing **`Object Take Hold`** path; tests under **`dataSource/actions/enrich/objectManipulation/`**, **`parseCommand.test.ts`**, **`index.test.ts`**.
+
+8. **Downstream** --- positions registers envelope guard in [`../positions/subscribedEvents.ts`](../positions/subscribedEvents.ts) and routes to **`executeObject*`** under [`../positions/manipulation/membership/`](../positions/manipulation/membership/); perception extends object-manipulation fan-in (see [`../perception/AGENT.md`](../perception/AGENT.md)).
+
 ### `CharacterSpoke` steady-state
 
 1. Trusted UI **`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`** ingress via [`routeTrustedUiAction`](../routeTrustedUiAction.ts) -> **`sendActionAssessed`** with **`CharacterSpoke`** and `source: 'uiSpeech'`.
@@ -78,18 +100,18 @@ When adding a new assessed outcome type (beyond **`Navigation`** and **`Home`**)
 
 ## Affordance design notes
 
-### `ObjectManipulationIntent` steady-state (classify + enrich + resolve)
+### `ObjectManipulationIntent` steady-state (shipped --- classify + enrich + resolve + egress)
 
-Position-manipulation initiative: [`taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md`](../../../taskPlanning/lambda/ephemera/diegeticLogic/AGENT.positionManipulation.planning.md). **Phase 2 shipped:** enrich + deterministic resolve. **Phase 3 shipped:** egress + positions stub ingress. **Phase 4+:** graph apply, transcript.
+Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md).
 
-1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback) per **D6**; labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.
-2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers per planning **L12**.
+1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.
+2. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy.
 3. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
-4. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- Bedrock D17 JSON (`disposition: atomic | complex`); v1 implements atomic **`takeHold`** through resolve only.
-5. **Resolve:** deterministic **`shortName`** match against catalog (**D5** / **D7** fail closed) in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts).
-6. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex stub, unimplemented atomic **`operationKind`**, resolve/enrich failure). Complex disposition: no stream, no positions (**L10**).
+4. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- Bedrock JSON (`disposition: atomic | complex`); v1 implements atomic **`takeHold`** through resolve only.
+5. **Resolve:** deterministic **`shortName`** match against catalog (fail closed) in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts).
+6. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex stub, unimplemented atomic **`operationKind`**, resolve/enrich failure). Complex disposition: no stream, no positions.
 7. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> silent success (no OOC).
-8. **Egress (Phase 3 shipped --- D4):** **`streamEvent`** **`Object Take Hold`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Subscriber: **`mtw.ephemera.positions`** stub [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts) (graph apply Phase 4).
+8. **Egress:** **`streamEvent`** **`Object Take Hold`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Subscriber: **`mtw.ephemera.positions`** [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts).
 
 ### `PromptInjectionAttempt` steady-state
 

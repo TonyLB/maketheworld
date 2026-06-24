@@ -9,9 +9,13 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 | Doc / path | Role |
 | --- | --- |
 | [`../AGENT.concepts.md`](../AGENT.concepts.md) | Cross-cutting concepts index |
+| [`AGENT.implementation.md`](AGENT.implementation.md) | Four-lane hub + follow-on operators |
+| [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) | Operator fiction (`takeHold`, deferred `drop`) |
 | [`../dataSource/positions/AGENT.md`](../dataSource/positions/AGENT.md) | Play manipulation truth (`mtw.ephemera.positions`) |
 | [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md) | Graph roles, membership, fractal graphs |
+| [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply coordinator playbook |
 | [`../dataSource/actions/AGENT.md`](../dataSource/actions/AGENT.md) | Command parse, intent streams |
+| [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) | Atomic manipulation operator playbook |
 | [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) | Audience bridge, fan-in, `PublishMessage` |
 | [`../dataSource/objects/AGENT.md`](../dataSource/objects/AGENT.md) | Improvisation existence vs positions placement |
 | [`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md) | Fictional transcript ordering |
@@ -28,8 +32,8 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 
 ---
 
-## When operators ship
+## Shipped: object manipulation (`takeHold`)
 
-Expect implementation to land primarily under [`../dataSource/positions/`](../dataSource/positions/) (graph mutations), with ingress in [`../dataSource/actions/`](../dataSource/actions/) and presentation specs in [`../dataSource/perception/`](../dataSource/perception/). Update this file as concrete paths appear.
+End-to-end path: **`ObjectManipulationIntent`** classify -> [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts) -> [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/) -> **`Object Take Hold`** -> [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) -> [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) -> single-line **`WorldMessage`**.
 
-**Shipped (Phase 1--5):** object-manipulation **classify + enrich + resolve + egress + positions apply + perception transcript** --- **`ObjectManipulationIntent`** classify, [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts) (merged-layer catalog), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/) (D17 Bedrock enrich; atomic **`takeHold`** -> grounded **`ObjectManipulation`** -> **`Object Take Hold`** stream -> [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) cross-host graph apply -> [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) intent+fact fan-in -> single-line **`WorldMessage`**); see [`AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md). **v1 operator:** **`takeHold`** --- atomic room-remove + character-add (**L9**).
+**v1 operator:** **`takeHold`** --- atomic room-remove + character-add. See [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).

@@ -23,6 +23,7 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 
 - Membership persist (`Meta::Room.positionGraph`, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
 - **`Object`** nodes on room **`positionGraph`** + **`OBJECT#`** adjacency rows (**I5**); objects lane owns existence rows (improvisation pair + **`Meta::Object`**) only.
+- **`Meta::Character.positionGraph`** for character-hosted inventory (**D16**); cross-host membership apply under [`manipulation/membership/`](manipulation/membership/).
 - **`Character Moved`** and **`Object Moved`** descriptive fact streams from graph-diff at persistence apply.
 - Gateway topology read backing for stored membership graph and adjacency (see [Read surface](#read-surface-s1-5-s1-15-slice-2)).
 
@@ -101,6 +102,7 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 - **Graph persist engine:** [`updateObjectPositionGraphs`](membership/updateObjectPositionGraphs.ts) --- end-state apply mirroring character **`updatePositionGraphs`** (no `RoomStack`, no `CharacterInPlay`).
 - **Must** persist **`positionGraph`** + adjacency in the same transact; on conflict **`positionGraph` wins** (mirror S2-4 character rule).
 - **Spawn + place bundle:** [`spawnAndPlaceImprovisationObject`](../objects/spawnAndPlaceImprovisationObject.ts) --- single transact: improvisation pair + **`Meta::Object`** + graph node + adjacency (**I1** / **I5**).
+- **Must not** route cross-host membership transfers (room <-> character inventory) through [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) --- use [`manipulation/membership/`](manipulation/membership/) coordinators instead (**D14**).
 
 ### `Object Moved` fact (I4)
 

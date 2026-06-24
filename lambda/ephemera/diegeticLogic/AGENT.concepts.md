@@ -33,3 +33,11 @@ Concept extension of [`../AGENT.concepts.md`](../AGENT.concepts.md). Normative r
 Shipped play graphs hold **membership** (character and object **nodes** in rooms; adjacency reverse index). Relational in-room **edges** remain future work ([`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges)).
 
 Diegetic logic is where we design **those** mutations and their unknowns **before** they become positions contract obligations.
+
+---
+
+## Future: nested containment (post-vertical)
+
+v1 in-room objects are **top-level nodes** on **`Meta::Room.positionGraph`**, sufficient for **`takeHold`** on loose objects. Later slices may add nested portable containment, non-local extent via relational claims, and derived scene closures --- without dual-authority membership or monolithic room indexes.
+
+Design direction when relational / container-host manipulation ships: fractal hosts in [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md). Shipped atomic operators: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).

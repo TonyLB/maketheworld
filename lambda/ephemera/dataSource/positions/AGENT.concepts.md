@@ -81,7 +81,8 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPlayPositionGraph`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
-- **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items. Cross-host **`takeHold`** apply (room-remove + character-add) is the next slice.
+- **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
+- **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped).
 
 ### Three play-time questions
 
