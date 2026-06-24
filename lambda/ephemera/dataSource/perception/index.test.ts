@@ -16,6 +16,7 @@ import messageBus from '../../messageBus'
 import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import {
     affordancePassThroughFixtureRouting,
     makePassThroughGenerationDeferredPayload,
@@ -43,6 +44,11 @@ const MEMBERSHIP_ROOM_A = 'ROOM#a' as const
 const MEMBERSHIP_ROOM_B = 'ROOM#b' as const
 const MEMBERSHIP_ANCHOR_TIME = 1_700_000_000_000
 
+const TAKE_HOLD_CHARACTER = 'CHARACTER#Alice' as const
+const TAKE_HOLD_OBJECT = 'OBJECT#Broom' as const
+const TAKE_HOLD_ROOM = 'ROOM#Cafe' as const
+const TAKE_HOLD_ANCHOR_TIME = 1_700_000_000_100
+
 function publishMembershipStreamingEvent(
     dataSourceKey: string,
     type: string,
@@ -57,6 +63,28 @@ function publishMembershipStreamingEvent(
         header: {
             dataSourceKey,
             streamKey: MEMBERSHIP_CHARACTER,
+            timestamp: ts,
+            type,
+        },
+        getContent: () => Promise.resolve(content),
+    })
+}
+
+function publishObjectManipulationStreamingEvent(
+    dataSourceKey: string,
+    type: string,
+    content: object,
+    streamKey: string
+): void {
+    const ts = Date.now()
+    messageBus.publish({
+        type: 'StreamingEvent',
+        dataSourceKey,
+        streamKey,
+        timestamp: ts,
+        header: {
+            dataSourceKey,
+            streamKey,
             timestamp: ts,
             type,
         },
@@ -1146,6 +1174,121 @@ describe('mtw.ephemera.perception DataSource', () => {
             expect(worldPublishes).toHaveLength(2)
             expect((worldPublishes[0][0] as { message?: string[] }).message).toEqual(['Alice has left.'])
             publishSpy.mockRestore()
+        })
+    })
+
+    describe('object manipulation presentation fan-in receiveEvents routing', () => {
+        beforeEach(() => {
+            jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
+                Name: 'Alice',
+                assets: ['ASSET#Test'],
+            } as any)
+            jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
+                { merged: new StandardObject({ tag: 'Object', shortName: 'broom' }) },
+            ] as any)
+            jest.spyOn(internalCache.ImprovisationComponentData, 'get').mockResolvedValue({} as any)
+            jest.spyOn(roomHeaderBroadcastModule, 'resolveCharacterRoomPerspectiveForRoom').mockResolvedValue({
+                perspective: { assetStack: ['ASSET#Test'] },
+            } as any)
+        })
+
+        it('intent + fact batch publishes single take-hold WorldMessage', async () => {
+            const publishSpy = spyPublish()
+
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                'Object Take Hold',
+                {
+                    type: 'Object Take Hold',
+                    characterId: TAKE_HOLD_CHARACTER,
+                    objectId: TAKE_HOLD_OBJECT,
+                    roomId: TAKE_HOLD_ROOM,
+                },
+                TAKE_HOLD_CHARACTER
+            )
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+                'Object Moved',
+                {
+                    type: 'Object Moved',
+                    objectId: TAKE_HOLD_OBJECT,
+                    froms: [TAKE_HOLD_ROOM],
+                    to: TAKE_HOLD_CHARACTER,
+                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
+                },
+                TAKE_HOLD_OBJECT
+            )
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            expect(worldPublishes[0][0]).toMatchObject({
+                targets: [TAKE_HOLD_ROOM, TAKE_HOLD_CHARACTER],
+                displayProtocol: 'WorldMessage',
+                message: ['Alice picks up broom'],
+                createdTime: TAKE_HOLD_ANCHOR_TIME,
+                deliveryMode: 'deferred',
+            })
+            publishSpy.mockRestore()
+        })
+
+        it('fact before intent still publishes after correlation', async () => {
+            const publishSpy = spyPublish()
+
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+                'Object Moved',
+                {
+                    type: 'Object Moved',
+                    objectId: TAKE_HOLD_OBJECT,
+                    froms: [TAKE_HOLD_ROOM],
+                    to: TAKE_HOLD_CHARACTER,
+                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
+                },
+                TAKE_HOLD_OBJECT
+            )
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                'Object Take Hold',
+                {
+                    type: 'Object Take Hold',
+                    characterId: TAKE_HOLD_CHARACTER,
+                    objectId: TAKE_HOLD_OBJECT,
+                    roomId: TAKE_HOLD_ROOM,
+                },
+                TAKE_HOLD_CHARACTER
+            )
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            publishSpy.mockRestore()
+        })
+
+        it('routes Object Take Hold through fan-in without calling orchestrateRoomDescriptionStreams', async () => {
+            const orchestrateSpy = jest.spyOn(orchestrateModule, 'orchestrateRoomDescriptionStreams')
+
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                'Object Take Hold',
+                {
+                    type: 'Object Take Hold',
+                    characterId: TAKE_HOLD_CHARACTER,
+                    objectId: TAKE_HOLD_OBJECT,
+                    roomId: TAKE_HOLD_ROOM,
+                },
+                TAKE_HOLD_CHARACTER
+            )
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateSpy).not.toHaveBeenCalled()
+            orchestrateSpy.mockRestore()
         })
     })
 })

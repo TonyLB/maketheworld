@@ -17,8 +17,14 @@ import {
 
 export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const
 
+/** v1 eligible membership hosts (room + character inventory; OBJECT# / AREA# later). */
+export type EphemeraMembershipHostId = EphemeraRoomId | EphemeraCharacterId
+
+export const isEphemeraMembershipHostId = (value: string): value is EphemeraMembershipHostId =>
+    isEphemeraRoomId(value) || isEphemeraCharacterId(value)
+
 export type EphemeraPositionAdjacencyDataCategory =
-    `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraRoomId}`
+    `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraMembershipHostId}`
 
 export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId
 
@@ -28,18 +34,18 @@ export type EphemeraPositionAdjacencyRow = {
 }
 
 export const buildPositionAdjacencyDataCategory = (
-    hostComponentId: EphemeraRoomId
+    hostComponentId: EphemeraMembershipHostId
 ): EphemeraPositionAdjacencyDataCategory =>
     `${EPHEMERA_POSITION_ADJACENCY_PREFIX}${hostComponentId}`
 
 export const parsePositionAdjacencyDataCategory = (
     dataCategory: string
-): EphemeraRoomId | undefined => {
+): EphemeraMembershipHostId | undefined => {
     if (!dataCategory.startsWith(EPHEMERA_POSITION_ADJACENCY_PREFIX)) {
         return undefined
     }
     const hostComponentId = dataCategory.slice(EPHEMERA_POSITION_ADJACENCY_PREFIX.length)
-    if (!isEphemeraRoomId(hostComponentId)) {
+    if (!isEphemeraMembershipHostId(hostComponentId)) {
         return undefined
     }
     return hostComponentId
@@ -51,7 +57,7 @@ export const parsePositionAdjacencyDataCategory = (
  */
 export const parseMembershipContainerFromAdjacencyQueryItem = (
     item: unknown
-): EphemeraRoomId | undefined => {
+): EphemeraMembershipHostId | undefined => {
     if (!item || typeof item !== 'object') {
         return undefined
     }

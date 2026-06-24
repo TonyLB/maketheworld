@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StandardPositionGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/positionGraph'
 
 /**
@@ -17,5 +17,5 @@ export type PositionsCacheSetParams = {
 
 export type MembershipContainersCacheSetParams = {
     componentId: EphemeraPositionAdjacencyContainedId;
-    containers: EphemeraRoomId[];
+    containers: EphemeraMembershipHostId[];
 }

@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { createPositionsCacheHandler } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
@@ -58,7 +59,10 @@ describe('membership containers shared memo (slice 1c)', () => {
         await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_ID },
             {
-                getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
+                getMembershipContainers: async (characterId) => {
+                    const containers = await internalCache.Positions.getMembershipContainers(characterId)
+                    return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+                },
                 transactWrite: jest.fn(),
                 getCharacterMeta: async () => ({
                     EphemeraId: CHARACTER_ID,

@@ -74,6 +74,16 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 - Relational in-room edges (`On`, `In`, ...) remain deferred (slice 5+).
 - Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
 
+### Character inventory graph (D16; object nodes only)
+
+Held-object inventory is **positions-owned** play manipulation on the character host:
+
+- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPlayPositionGraph`** shape as room hosts; v1 **Object** nodes only.
+- **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
+- **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
+- **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
+- **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped).
+
 ### Three play-time questions
 
 Area **topology**, **room membership**, and the **eviction ladder** answer different questions (instances of [graph roles](#graph-roles-shared-shape-different-authority)):
@@ -145,7 +155,7 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Container scale (future):** a Character (or held Object) hosts a graph for inventory and nested placement ("glass on tray on table", "broom against wall").
+**Container scale (D16 shipped v1):** **`Meta::Character.positionGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. Object **`OBJECT#`** / Area hosts deferred until needed.
 
 ### Authored vs play graphs
 

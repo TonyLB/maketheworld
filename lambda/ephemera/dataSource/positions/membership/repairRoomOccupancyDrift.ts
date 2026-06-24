@@ -1,6 +1,6 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     extractCharacterIdsFromPlayPositionGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -48,7 +48,10 @@ export const repairRoomOccupancyDrift = async (
     const getCharacterSessions = deps?.getCharacterSessions
         ?? ((characterId) => internalCache.CharacterSessions.get(characterId))
     const getMembershipContainers = deps?.getMembershipContainers
-        ?? ((characterId) => internalCache.Positions.getMembershipContainers(characterId))
+        ?? (async (characterId) => {
+            const containers = await internalCache.Positions.getMembershipContainers(characterId)
+            return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+        })
     const applyMembership = deps?.applyMembership ?? applyCharacterRoomMembership
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 

@@ -71,6 +71,27 @@ describe('isObjectMovedPublishedPayload', () => {
         expect(isObjectMovedPublishedPayload(minimal)).toBe(true)
     })
 
+    it('accepts room-to-character membership host endpoints (D8)', () => {
+        expect(isObjectMovedPublishedPayload({
+            type: 'Object Moved',
+            objectId: 'OBJECT#broom',
+            froms: ['ROOM#cafe'],
+            to: 'CHARACTER#alpha',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(true)
+    })
+
+    it('rejects invalid membership host ids', () => {
+        expect(isObjectMovedPublishedPayload({
+            ...minimal,
+            froms: ['ASSET#invalid'],
+        })).toBe(false)
+        expect(isObjectMovedPublishedPayload({
+            ...minimal,
+            to: 'FEATURE#invalid',
+        })).toBe(false)
+    })
+
     it('rejects legacy singular from field', () => {
         expect(isObjectMovedPublishedPayload({
             type: 'Object Moved',

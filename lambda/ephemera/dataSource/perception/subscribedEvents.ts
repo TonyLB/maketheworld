@@ -24,9 +24,9 @@ import {
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
 import type { CharacterHomePublishedPayload } from '../actions/publishedEvents'
-import type { CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
+import type { CharacterNavigatePublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import type { ConnectionsCharactersEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterMovedPublishedPayload } from '../positions/publishedEvents'
+import type { CharacterMovedPublishedPayload, ObjectMovedPublishedPayload } from '../positions/publishedEvents'
 import {
     isPerceptionActionsCharacterHomeEnvelope,
     isPerceptionActionsCharacterNavigateEnvelope,
@@ -34,6 +34,11 @@ import {
     isPerceptionPositionsCharacterMovedEnvelope,
     toMembershipPresentationLeg,
 } from './membershipPresentationLegAdapters'
+import {
+    isPerceptionActionsObjectTakeHoldEnvelope,
+    isPerceptionPositionsObjectMovedEnvelope,
+    toObjectManipulationPresentationLeg,
+} from './objectManipulationPresentationLegAdapters'
 
 export {
     isPerceptionActionsCharacterHomeEnvelope,
@@ -42,6 +47,12 @@ export {
     isPerceptionPositionsCharacterMovedEnvelope,
     toMembershipPresentationLeg,
 } from './membershipPresentationLegAdapters'
+
+export {
+    isPerceptionActionsObjectTakeHoldEnvelope,
+    isPerceptionPositionsObjectMovedEnvelope,
+    toObjectManipulationPresentationLeg,
+} from './objectManipulationPresentationLegAdapters'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -97,6 +108,8 @@ export type PerceptionSubscribedContent =
     | CharacterHomePublishedPayload
     | ConnectionsCharactersEventUpdate
     | CharacterMovedPublishedPayload
+    | ObjectTakeHoldPublishedPayload
+    | ObjectMovedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -131,6 +144,8 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionActionsCharacterHomeEnvelope(envelope)
         || isPerceptionConnectionsCharactersEnvelope(envelope)
         || isPerceptionPositionsCharacterMovedEnvelope(envelope)
+        || isPerceptionActionsObjectTakeHoldEnvelope(envelope)
+        || isPerceptionPositionsObjectMovedEnvelope(envelope)
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>

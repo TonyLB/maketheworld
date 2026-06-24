@@ -44,7 +44,10 @@ export const resolveCharacterRoomId = async (
     deps?: ResolveCharacterRoomIdDependencies
 ): Promise<EphemeraRoomId> => {
     const getMembershipContainers = deps?.getMembershipContainers
-        ?? ((id: EphemeraCharacterId) => internalCache.Positions.getMembershipContainers(id))
+        ?? (async (id: EphemeraCharacterId) => {
+            const containers = await internalCache.Positions.getMembershipContainers(id)
+            return containers.filter((hostId): hostId is EphemeraRoomId => isEphemeraRoomId(hostId))
+        })
     const getCharacterMeta = deps?.getCharacterMeta
         ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
     const getCanonAssets = deps?.getCanonAssets

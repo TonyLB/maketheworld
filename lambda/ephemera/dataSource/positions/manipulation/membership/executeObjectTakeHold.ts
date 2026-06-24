@@ -2,6 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
+import { applyObjectTakeHold } from './applyObjectTakeHold'
 
 export type ExecuteObjectTakeHoldArgs = {
     characterId: EphemeraCharacterId;
@@ -11,7 +12,16 @@ export type ExecuteObjectTakeHoldArgs = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
 }
 
-/** Phase 3 stub: ingress wired; graph apply lands Phase 4 (D16, D8). */
-export const executeObjectTakeHold = async (_args: ExecuteObjectTakeHoldArgs): Promise<void> => {
-    // no-op until Phase 4
+export const executeObjectTakeHold = async (args: ExecuteObjectTakeHoldArgs): Promise<void> => {
+    await applyObjectTakeHold(
+        {
+            objectId: args.objectId,
+            roomId: args.roomId,
+            characterId: args.characterId,
+        },
+        {
+            messageBus: args.messageBus,
+            streamEvent: args.streamEvent,
+        }
+    )
 }

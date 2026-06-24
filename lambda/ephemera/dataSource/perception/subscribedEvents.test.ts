@@ -210,4 +210,38 @@ describe('perception subscribedEvents', () => {
         expect(isPerceptionSubscribedEnvelope(navigate as any)).toBe(true)
         expect(isPerceptionSubscribedEnvelope(moved as any)).toBe(true)
     })
+
+    it('isPerceptionSubscribedEnvelope matches object manipulation presentation ingress', () => {
+        const takeHold = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#Alice',
+                timestamp: Date.now(),
+                type: 'Object Take Hold',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Take Hold',
+                characterId: 'CHARACTER#Alice',
+                objectId: 'OBJECT#Broom',
+                roomId: 'ROOM#Cafe',
+            }),
+        }
+        const objectMoved = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.positions',
+                streamKey: 'OBJECT#Broom',
+                timestamp: Date.now(),
+                type: 'Object Moved',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Moved',
+                objectId: 'OBJECT#Broom',
+                froms: ['ROOM#Cafe'],
+                to: 'CHARACTER#Alice',
+                beatAnchorTime: Date.now(),
+            }),
+        }
+        expect(isPerceptionSubscribedEnvelope(takeHold as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(objectMoved as any)).toBe(true)
+    })
 })

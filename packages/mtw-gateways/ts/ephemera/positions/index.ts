@@ -10,6 +10,7 @@ export type { EphemeraPositionsReadDB } from './fetch'
 export {
     getRoomActiveCharactersFromDynamo,
     getRoomPositionGraphFromDynamo,
+    getCharacterPositionGraphFromDynamo,
     getCharacterRoomIdFromDynamo,
     isPositionsComponentId,
 } from './fetch'
@@ -27,8 +28,7 @@ export type {
 } from './adjacency'
 
 export {
-    projectRoomGraphFromStoredPositionGraph,
-    projectCharacterInventoryGraphStub,
+    projectComponentGraphFromStoredPositionGraph,
     extractCharacterIdsFromPlayPositionGraph,
     extractObjectIdsFromPlayPositionGraph,
 } from './project'

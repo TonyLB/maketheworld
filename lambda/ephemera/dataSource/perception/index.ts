@@ -7,7 +7,7 @@
 import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
 import type { PerceptionSubscribedContent } from './subscribedEvents'
-import { isPerceptionSubscribedEnvelope, toMembershipPresentationLeg } from './subscribedEvents'
+import { isPerceptionSubscribedEnvelope, toMembershipPresentationLeg, toObjectManipulationPresentationLeg } from './subscribedEvents'
 import { isAffordancesPertainPayload } from '../affordanceCache/publishedEvents'
 import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisterCommand } from './localApiEvents'
 import { handleCharacterPerceptionRequested } from './characterPerception'
@@ -17,17 +17,29 @@ import {
     createMembershipFanInHandlerContext,
     createMembershipPresentationFanInStore,
 } from './membershipPresentationFanIn'
+import {
+    createObjectManipulationFanInHandlerContext,
+    createObjectManipulationPresentationFanInStore,
+} from './objectManipulationPresentationFanIn'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 
 const membershipPresentationFanInStore = createMembershipPresentationFanInStore()
+const objectManipulationPresentationFanInStore = createObjectManipulationPresentationFanInStore()
 messageBus.registerDeferral('fanIn-mtw.ephemera.perception', {
-    onClear: () => membershipPresentationFanInStore.clear(),
+    onClear: () => {
+        membershipPresentationFanInStore.clear()
+        objectManipulationPresentationFanInStore.clear()
+    },
     afterSettled: async () => {
-        if (membershipPresentationFanInStore.getOpenPartialCount() === 0) {
-            return
+        const membershipOpen = membershipPresentationFanInStore.getOpenPartialCount()
+        const objectManipulationOpen = objectManipulationPresentationFanInStore.getOpenPartialCount()
+        if (membershipOpen > 0) {
+            await membershipPresentationFanInStore.settleDeferrals()
         }
-        await membershipPresentationFanInStore.settleDeferrals()
+        if (objectManipulationOpen > 0) {
+            await objectManipulationPresentationFanInStore.settleDeferrals()
+        }
     },
 })
 
@@ -41,13 +53,21 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isPerceptionSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
-        const fanInCtx = createMembershipFanInHandlerContext(messageBus)
-        membershipPresentationFanInStore.setHandlerContext(fanInCtx)
+        const membershipFanInCtx = createMembershipFanInHandlerContext(messageBus)
+        const objectManipulationFanInCtx = createObjectManipulationFanInHandlerContext(messageBus)
+        membershipPresentationFanInStore.setHandlerContext(membershipFanInCtx)
+        objectManipulationPresentationFanInStore.setHandlerContext(objectManipulationFanInCtx)
 
         for (const event of events) {
-            const leg = await toMembershipPresentationLeg(event)
-            if (leg) {
-                await membershipPresentationFanInStore.route(leg)
+            const membershipLeg = await toMembershipPresentationLeg(event)
+            if (membershipLeg) {
+                await membershipPresentationFanInStore.route(membershipLeg)
+                continue
+            }
+
+            const objectManipulationLeg = await toObjectManipulationPresentationLeg(event)
+            if (objectManipulationLeg) {
+                await objectManipulationPresentationFanInStore.route(objectManipulationLeg)
                 continue
             }
 

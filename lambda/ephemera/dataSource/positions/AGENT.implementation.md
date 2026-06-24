@@ -1,6 +1,6 @@
 # Positions --- implementation map
 
-This file records **where behavior lives** for `mtw.ephemera.positions` through slice **4** (object membership). Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
+This file records **where behavior lives** for `mtw.ephemera.positions` through object membership and cross-host manipulation apply. Contracts: [`AGENT.contract.md`](AGENT.contract.md). Concepts: [`AGENT.concepts.md`](AGENT.concepts.md).
 
 ---
 
@@ -12,13 +12,40 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** with **`froms[]`** + **`to`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) (stub) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
 
-### `manipulation/membership/` (object manipulation ingress --- stub Phase 3)
+### `manipulation/membership/` (cross-host object manipulation apply)
 
 | File | Role |
 | --- | --- |
-| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** execution entry (no-op stub until Phase 4 graph apply) |
+| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
+| [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
+| [`manipulation/membership/updateTakeHoldPositionGraphs.ts`](manipulation/membership/updateTakeHoldPositionGraphs.ts) | Pre-read, diff, single transact (room-remove + character-add) |
+| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Cross-host diff + apply result types |
+| [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) | Character-host **`Meta::Character.positionGraph`** + adjacency transact item builders (D16) |
+
+#### Adding a cross-host manipulation apply coordinator
+
+Use when an atomic operator transfers an **`Object`** node between **membership hosts** (v1: room <-> character inventory). Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Actions egress playbook: [**Adding an atomic position-manipulation operator**](../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
+
+1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**`positionGraphMerge`**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
+
+2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
+
+3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts). Contract: [Cross-host object membership-changed bundle](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-takehold).
+
+4. **Graph transact** --- single **`transactWrite`**: remove from source host graph + adjacency, add to destination host. Character inventory: [`characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts). Room side reuses room membership transact patterns from [`membership/`](membership/).
+
+5. **Fact shape** --- extend [`buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) for eligible host ids; **must not** introduce a parallel fact type for membership-only moves.
+
+6. **Per-operator checklist**
+
+| Operator | Host direction | Intent payload | `RoomUpdate` / affordance scope |
+| --- | --- | --- | --- |
+| **`takeHold`** (shipped) | room -> character | `objectId`, `roomId`, `characterId` | **`froms`** rooms only |
+| **`drop`** (deferred) | character -> room | TBD at slice | destination room (+ source character graph memo) |
+
+7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** describe block.
 
 ### `navigate/` (shared execution + post-persist orchestration)
 
@@ -32,7 +59,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | File | Role |
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
-| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character and object nodes, seed from roster) |
+| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character and object nodes, seed from roster; **`effectiveCharacterPositionGraph`**) |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) | Pure trim + normalize helpers --- legal placement resolution (connect, asset visibility) |
 | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) | Trim ladder to accessible assets; persist trim-only when shape changes |
@@ -59,7 +86,11 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate + diagnostics drift finding) |
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + orchestrate; disconnect routes through coordinator |
-| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / drift finding) |
+| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / drift finding) |
+| [`manipulation/membership/applyObjectTakeHold.test.ts`](manipulation/membership/applyObjectTakeHold.test.ts) | Cross-host coordinator bundle on `changed` (fact, cache memo, `RoomUpdate`) |
+| [`manipulation/membership/executeObjectTakeHold.test.ts`](manipulation/membership/executeObjectTakeHold.test.ts) | **`Object Take Hold`** ingress entry delegates to coordinator |
+| [`manipulation/membership/updateTakeHoldPositionGraphs.test.ts`](manipulation/membership/updateTakeHoldPositionGraphs.test.ts) | Pre-read, diff, single transact (room-remove + character-add) |
+| [`manipulation/membership/characterInventoryTransactItems.test.ts`](manipulation/membership/characterInventoryTransactItems.test.ts) | Character-host graph + adjacency transact item builders |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
@@ -162,7 +193,7 @@ Manipulation truth (`positionGraph`, adjacency) vs presentation compose (hydrate
 | --- | --- |
 | [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`createPositionsCacheHandler(ephemeraDB)`** (topology + adjacency memo) |
 | [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts) | **`hydrateRoomRosterFromCharacterIds`**, **`getRoomCharacterList`** --- derive-on-call roster assembler (**S2-6-H**) |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency only) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room + character `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency only) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`getRoomCharacterList`** |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |

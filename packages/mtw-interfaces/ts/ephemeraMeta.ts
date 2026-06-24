@@ -300,3 +300,46 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
     return true
 }
 
+//
+// Partial projection of the ephemeraDB `Meta::Character` row (same PK/SK as presentation meta).
+//
+// The full row also carries `RoomStack`, `Name`, `HomeId`, `assets`, and other fields typed for
+// lambda `CharacterMeta` / eviction-ladder reads --- not duplicated here. This interface names
+// only the positions-owned slice we validate on Dynamo fetch (e.g. `getCharacterPositionGraphFromDynamo`
+// projects `positionGraph` via `Pick<EphemeraMetaCharacter, 'positionGraph'>`). Do not treat the
+// type name as a complete meta document shape.
+//
+export type EphemeraMetaCharacter = {
+    EphemeraId: EphemeraCharacterId;
+    DataCategory: 'Meta::Character';
+
+    //
+    // Play-time inventory graph (D16 / character host). v1: Object membership nodes only.
+    //
+    positionGraph?: EphemeraPlayPositionGraph;
+}
+
+/** Validates the positions slice of a `Meta::Character` row; does not assert presentation / ladder fields. */
+export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharacter => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    if (!checkTypes(value, { EphemeraId: 'string', DataCategory: 'string' })) {
+        return false
+    }
+    if (!isEphemeraCharacterId(value.EphemeraId) || value.DataCategory !== 'Meta::Character') {
+        return false
+    }
+    if ('positionGraph' in value) {
+        const positionGraph = value.positionGraph
+        if (!isEphemeraPlayPositionGraph(positionGraph)) {
+            return false
+        }
+        const hasCharacterNode = positionGraph.nodes.some((node) => node.tag === 'Character')
+        if (hasCharacterNode) {
+            return false
+        }
+    }
+    return true
+}
+

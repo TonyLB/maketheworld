@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -28,8 +29,10 @@ export type UpdatePositionGraphsDependencies = {
     transactWrite?: typeof ephemeraDB.transactWrite;
 }
 
-const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> =>
-    internalCache.Positions.getMembershipContainers(characterId)
+const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> => {
+    const containers = await internalCache.Positions.getMembershipContainers(characterId)
+    return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+}
 
 const containersChanged = (priorContainers: EphemeraRoomId[], targetRoomId: EphemeraRoomId | null): boolean => {
     const priorSet = new Set(priorContainers)

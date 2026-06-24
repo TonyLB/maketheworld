@@ -1,22 +1,45 @@
 import messageBus from '../../../../messageBus'
+import * as applyModule from './applyObjectTakeHold'
 import { executeObjectTakeHold } from './executeObjectTakeHold'
 
-describe('executeObjectTakeHold', () => {
-    it('resolves without side effects (Phase 3 stub)', async () => {
-        const streamEvent = jest.fn(async () => {})
-        const publishSpy = jest.spyOn(messageBus, 'publish')
+jest.mock('./applyObjectTakeHold', () => ({
+    applyObjectTakeHold: jest.fn(),
+}))
 
-        await expect(executeObjectTakeHold({
+const applyObjectTakeHoldMock = applyModule.applyObjectTakeHold as jest.MockedFunction<
+    typeof applyModule.applyObjectTakeHold
+>
+
+describe('executeObjectTakeHold', () => {
+    it('delegates to applyObjectTakeHold with ingress args', async () => {
+        applyObjectTakeHoldMock.mockResolvedValue({
+            ok: true,
+            froms: ['ROOM#Cafe'],
+            to: 'CHARACTER#alpha',
+            changed: true,
+            beatAnchorTime: 1_700_000_000_000,
+        })
+
+        const streamEvent = jest.fn(async () => {})
+
+        await executeObjectTakeHold({
             characterId: 'CHARACTER#alpha',
             objectId: 'OBJECT#Broom',
             roomId: 'ROOM#TownSquare',
             messageBus,
             streamEvent,
-        })).resolves.toBeUndefined()
+        })
 
-        expect(streamEvent).not.toHaveBeenCalled()
-        expect(publishSpy).not.toHaveBeenCalled()
-
-        publishSpy.mockRestore()
+        expect(applyObjectTakeHoldMock).toHaveBeenCalledWith(
+            {
+                objectId: 'OBJECT#Broom',
+                roomId: 'ROOM#TownSquare',
+                characterId: 'CHARACTER#alpha',
+            },
+            {
+                messageBus,
+                streamEvent,
+            }
+        )
     })
 })

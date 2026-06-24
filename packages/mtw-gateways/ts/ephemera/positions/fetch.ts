@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
+    EphemeraMetaCharacter,
     EphemeraMetaRoom,
     EphemeraPlayPositionGraph,
     EphemeraRoomActiveCharacter,
@@ -46,6 +47,20 @@ export async function getRoomPositionGraphFromDynamo(
         Key: {
             EphemeraId: roomId,
             DataCategory: 'Meta::Room',
+        },
+        ProjectionFields: ['positionGraph'],
+    })
+    return row?.positionGraph
+}
+
+export async function getCharacterPositionGraphFromDynamo(
+    db: EphemeraPositionsReadDB,
+    characterId: EphemeraCharacterId
+): Promise<EphemeraPlayPositionGraph | undefined> {
+    const row = await db.getItem<Pick<EphemeraMetaCharacter, 'positionGraph'>>({
+        Key: {
+            EphemeraId: characterId,
+            DataCategory: 'Meta::Character',
         },
         ProjectionFields: ['positionGraph'],
     })

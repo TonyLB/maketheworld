@@ -1,4 +1,4 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import {
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
@@ -25,7 +25,7 @@ export type EphemeraPositionsAdjacencyReadDB = {
 export async function queryMembershipContainersFromDynamo(
     db: EphemeraPositionsAdjacencyReadDB,
     containedId: EphemeraPositionAdjacencyContainedId
-): Promise<EphemeraRoomId[]> {
+): Promise<EphemeraMembershipHostId[]> {
     const raw = await db.query<EphemeraPositionAdjacencyRow>({
         Key: { EphemeraId: containedId },
         KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
@@ -33,7 +33,7 @@ export async function queryMembershipContainersFromDynamo(
             ':prefix': EPHEMERA_POSITION_ADJACENCY_PREFIX,
         },
     })
-    const containers: EphemeraRoomId[] = []
+    const containers: EphemeraMembershipHostId[] = []
     for (const row of raw) {
         const hostId = parseMembershipContainerFromAdjacencyQueryItem(row)
         if (hostId) {

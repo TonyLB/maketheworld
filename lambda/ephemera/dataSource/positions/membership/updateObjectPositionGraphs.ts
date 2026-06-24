@@ -1,4 +1,5 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -22,8 +23,10 @@ export type UpdateObjectPositionGraphsDependencies = {
     transactWrite?: typeof ephemeraDB.transactWrite;
 }
 
-const defaultGetMembershipContainers = async (objectId: EphemeraObjectId): Promise<EphemeraRoomId[]> =>
-    internalCache.Positions.getMembershipContainers(objectId)
+const defaultGetMembershipContainers = async (objectId: EphemeraObjectId): Promise<EphemeraRoomId[]> => {
+    const containers = await internalCache.Positions.getMembershipContainers(objectId)
+    return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+}
 
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
     [...new Set([...froms, ...(to ? [to] : [])])]
