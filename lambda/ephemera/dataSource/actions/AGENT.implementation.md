@@ -102,6 +102,8 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ### `ObjectManipulationIntent` steady-state (shipped --- classify + enrich + resolve + egress)
 
+**In flight:** membership-aware atomic vs complex --- [`../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationParse.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationParse.planning.md). Positions kernel: [`../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+
 Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md).
 
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.

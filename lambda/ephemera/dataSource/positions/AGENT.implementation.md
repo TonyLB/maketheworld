@@ -16,6 +16,8 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ### `manipulation/membership/` (cross-host object manipulation apply)
 
+**In flight:** manipulation kernel and authority alignment --- [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+
 | File | Role |
 | --- | --- |
 | [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
