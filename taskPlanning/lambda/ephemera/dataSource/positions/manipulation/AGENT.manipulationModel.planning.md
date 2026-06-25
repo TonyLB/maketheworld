@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (actions parse graduated 2026-06-25).
+**Status:** In progress. **Next:** Phase 3 doc graduation (or Phase 4a scaffold in parallel). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 2 **Done** 2026-06-25).
 
 **Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
@@ -215,7 +215,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- | --- |
 | 1 | As-is archaeology (this doc) | Done |
 | 1b | Fork actions parse sub-plan (**M6** decided) | Done |
-| 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Not started |
+| 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Done |
 | 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Not started |
 | 4a | Shared adapter + kernel scaffold (M5, M8) | Not started |
 | 4b | Migrate through adapter + kernel (M7 incremental order) | Not started |
@@ -234,12 +234,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Decide **M6** --- graduated to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)
   - [X] Review archaeology with owner; all **M1**--**M8** decided (rows remain until Phase 3 graduation)
   - [X] Link this plan from [`positions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) (one line under `manipulation/membership/`)
-- [ ] **Phase 2 --- Kernel + adapter spec** ( **gate:** actions parse plan Phase 1--2; align eligibility with **M2** )
-  - [ ] Write kernel section: **`HostEffect`** shape, **`applyHostEffects`** contract (validate + transact on affected hosts only)
-  - [ ] Write shared adapter section: **`froms`/`to` planning**, apply modes (**M2** bounded = ingress `roomId` only), membership observation -> **`HostEffect[]`**
-  - [ ] Document compose rules: ingress -> shared adapter -> **`HostEffect[]`** -> kernel -> fact projection
-  - [ ] Record **M4**, **M5**, **M8**, **M7** in spec (decided)
-  - [ ] Document **character-row effects** (`RoomStack`) bundled with kernel transact on navigate
+- [X] **Phase 2 --- Kernel + adapter spec** ( **gate:** actions parse plan Phase 1--2; align eligibility with **M2** )
+  - [X] Write kernel section: **`HostEffect`** shape, **`applyHostEffects`** contract (validate + transact on affected hosts only) --- [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Section A
+  - [X] Write shared adapter section: **`froms`/`to` planning**, apply modes (**M2** bounded = ingress `roomId` only), membership observation -> **`HostEffect[]`** --- Section B
+  - [X] Document compose rules: ingress -> shared adapter -> **`HostEffect[]`** -> kernel -> fact projection --- Section C
+  - [X] Record **M4**, **M5**, **M8**, **M7** in spec (decided) --- Section D
+  - [X] Document **character-row effects** (`RoomStack`) bundled with kernel transact on navigate --- Section A (`CharacterRowEffect`)
 - [ ] **Phase 3 --- Doc graduation** (may overlap Phase 4b)
   - [ ] Update `positions/AGENT.concepts.md` (vocabulary; Target -> Shipped where applicable)
   - [ ] Update `positions/AGENT.contract.md` (M1 adapter/kernel split, **M2** bounded `takeHold`, module paths, fact naming)

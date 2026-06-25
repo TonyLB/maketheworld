@@ -14,9 +14,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
 
-### `manipulation/` (cross-host apply today; adapter + kernel in flight)
+### `manipulation/` (cross-host apply today; adapter + kernel spec shipped)
 
-**In flight (Phase 2+):** shared adapter ([`manipulation/adapters/`](manipulation/adapters/)), kernel ([`manipulation/`](manipulation/) top-level `applyHostEffects`), thin coordinators --- [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md) (Phase 1 archaeology **Done**).
+Kernel + shared adapter spec: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 2 **Done**). TypeScript scaffold: Phase 4a (`manipulation/adapters/`, `applyHostEffects`). Migration: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 
 #### `manipulation/membership/` (cross-host object manipulation apply)
 

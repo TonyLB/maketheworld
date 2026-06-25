@@ -11,6 +11,7 @@ Ephemera lane for **positions in play** --- runtime truth about where entities a
 | [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models: room membership, **eviction ladder**, fractal graphs, [**graph roles**](AGENT.concepts.md#graph-roles-shared-shape-different-authority) (manipulation vs presentation) |
 | [**AGENT.contract.md**](AGENT.contract.md) | Normative rules enforced **today** |
 | [**AGENT.implementation.md**](AGENT.implementation.md) | Code map for this folder |
+| [**manipulation/AGENT.md**](manipulation/AGENT.md) | Manipulation kernel + shared adapter spec (membership transfer persist) |
 | [**AGENT.navigation.md**](AGENT.navigation.md) | Cross-area links (topology, actions, objects, perception) |
 
 ## Non-goals (this package entry)
