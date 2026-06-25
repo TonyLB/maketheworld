@@ -1,6 +1,6 @@
 # Object manipulation parse --- atomic vs complex (next iteration)
 
-**Status:** In progress. **Next:** Phase 3 --- enrich refactor (split identity/complexity stages per **O2**).
+**Status:** In progress. **Next:** Phase 4 --- parse wiring (held inventory catalog + `index.ts` / `parseCommand` threading per **O5**).
 
 Framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Parent / sibling initiative: [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) (graph-first manipulation kernel + intent adapters; **gates** positions Phase 2 spec and Phase 4b migrate).
 
@@ -71,7 +71,23 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 ---
 
-## Shipped pipeline (as-is)
+## Shipped pipeline (enrich --- Phase 3)
+
+```text
+Parse Requested
+  -> parallel: roomExitContext + roomObjectCatalog
+  -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[]
+  -> cardinality gate (deterministic)
+  -> identity (stage 1): merged catalog resolve + optional identity LLM
+  -> unary collapse
+  -> membership observation + complexity pre-gates (O4)
+  -> complexity LLM (stage 2) only on pre-gate defer
+  -> terminal parse / egress (Object Take Hold) or Error (complex stub)
+```
+
+Held inventory catalog fetch on **`Parse Requested`** ships Phase 4. Room-only merge is live today (`held` defaults to `[]`).
+
+## Prior pipeline (v1 --- superseded)
 
 ```text
 Parse Requested
@@ -196,7 +212,7 @@ When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephem
 | --- | --- | --- |
 | 1 | Pipeline design + step I/O (**O1**--**O5**; **M2** cross-lane note) | Done |
 | 2 | Membership observation + deterministic pre-gates per **O4**; **`multiPresent`** stub per **O3** | Done |
-| 3 | Enrich refactor (split stages per **O2**); identity LLM per **O1**; prompts + interpret/finalize | Not started |
+| 3 | Enrich refactor (split stages per **O2**); identity LLM per **O1**; prompts + interpret/finalize | Done |
 | 4 | `parseCommand` / `index.ts` wiring; egress unchanged unless new fields needed | Not started |
 | 5 | Tests + graduate actions implementation doc | Not started |
 
@@ -220,16 +236,16 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Implement complexity pre-gates (**O4**): rule 0 -> Error; rule 1 -> **`multiPresent`**; rule 2 -> atomic `takeHold`; rule 3 -> defer to stage-2 LLM
   - [X] Register **`multiPresent`** in enrich guards + terminal Error copy (**O3**); unit tests (multi-present -> complex, edge-free single-host -> atomic, zero containers -> Error)
   - **Bridge wiring (Phase 2):** cardinality pre-Bedrock + post-resolve pre-gate rules 0--1 in [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts). Full pre-LLM ordering ships Phase 3.
-- [ ] **Phase 3 --- Enrich refactor (split stages per O2)**
-  - [ ] Identity: per-span groundings via merged catalog; unary collapse; identity-stage LLM (**O1**) with separate JSON contract (`objectId` allowed)
-  - [ ] Update [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) --- identity vs complexity prompt shapes; membership context on complexity stage only
-  - [ ] Refactor [`interpretAndFinalize.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/interpretAndFinalize.ts) for stage-2 complexity only (post-membership)
-  - [ ] Preserve v1 **`takeHold`** atomic path for eligible single-span, in-room, single-host, edge-free objects
+- [X] **Phase 3 --- Enrich refactor (split stages per O2)**
+  - [X] Identity: per-span groundings via merged catalog; unary collapse; identity-stage LLM (**O1**) with separate JSON contract (`objectId` allowed)
+  - [X] Update [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) --- identity vs complexity prompt shapes; membership context on complexity stage only
+  - [X] Refactor [`interpretAndFinalize.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/interpretAndFinalize.ts) for stage-2 complexity only (post-membership)
+  - [X] Preserve v1 **`takeHold`** atomic path for eligible single-span, in-room, single-host, edge-free objects (zero post-classify Bedrock)
 - [ ] **Phase 4 --- Parse wiring**
   - [ ] Add held inventory catalog module (character `positionGraph` + perspective merge; mirror room catalog entry shape + `catalogScope`)
   - [ ] Extend [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) `Promise.all`: room catalog + held inventory catalog (**O5**)
   - [ ] Thread catalogs through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) -> identity merged catalog (**O1**)
-  - [ ] Thread membership observation through object-manipulation orchestration ([`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) or successor module)
+  - [ ] Thread membership observation through object-manipulation orchestration ([`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) or successor module) --- **done in enrich module (Phase 3);** confirm parse wiring passes catalogs
   - [ ] Confirm complex still produces no stream / no positions
 - [ ] **Phase 5 --- Graduate**
   - [ ] Extend [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)

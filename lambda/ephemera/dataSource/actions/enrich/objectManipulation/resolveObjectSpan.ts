@@ -15,6 +15,8 @@ export const objectManipulationErrorMessages = {
     unimplementedAtomicOperation: 'ObjectManipulation enrich: that atomic operation is not implemented yet',
     enrichInvokeFailed: 'Object manipulation enrich failed',
     enrichParseFailed: 'Object manipulation enrich response was not valid',
+    identityInvokeFailed: 'Object manipulation identity failed',
+    identityParseFailed: 'Object manipulation identity response was not valid',
 } as const
 
 export type ObjectSpanResolutionResult =

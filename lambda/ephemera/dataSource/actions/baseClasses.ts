@@ -545,8 +545,12 @@ export type ParseCommandDeps = {
     invokeBedrockParseCommandImpl?: typeof invokeBedrockParseCommand;
     /** Second Bedrock call for Acme line enrichment; tests may inject a mock. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
-    /** Bedrock enrich for object manipulation; tests may inject a mock. */
+    /** Bedrock enrich for object manipulation complexity stage; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Bedrock identity stage for object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Injectable Positions reads for object manipulation membership pre-gates. */
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */

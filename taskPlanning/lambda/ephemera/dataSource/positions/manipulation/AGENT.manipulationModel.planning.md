@@ -130,7 +130,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 | --- | --- |
 | **Phase 2** (kernel + adapter spec) | **Ungated (2026-06-25):** actions parse plan Phase 2 shipped --- parse routes **`multiPresent`** and zero-host objects to terminal Error before egress; align atomic eligibility with **M2** in spec |
 | **Phase 4a** (kernel scaffold) | None required; may run parallel to actions parse Phase 2--3 |
-| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 3--5** shipped --- do not change atomic **`takeHold`** apply until parse routes **`multiPresent`** / relational complexity to terminal Error reliably |
+| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 4--5** shipped --- Phase 3 enrich stage split + `deferToComplexityLlm` wiring live; do not change atomic **`takeHold`** apply until parse routes **`multiPresent`** / relational complexity to terminal Error reliably (held catalog wiring Phase 4) |
 
 ---
 

@@ -6,32 +6,38 @@ import type {
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import { evaluateCardinalityGate } from './cardinalityGate'
-import { buildParseObjectManipulationEnrichPrompt } from './buildPrompt'
+import { buildObjectManipulationComplexityPrompt } from './buildPrompt'
+import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { complexErrorMessage } from './complexityClasses'
 import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
 } from './complexityPreGates'
+import { runIdentityStage } from './identityStage'
 import {
-    finalizeObjectManipulationFromEnrich,
-    interpretObjectManipulationEnrichBody,
-    type ObjectManipulationEnrichModelResponse,
+    finalizeComplexityFromEnrich,
+    interpretObjectManipulationComplexityBody,
+    type ObjectManipulationComplexityModelResponse,
 } from './interpretAndFinalize'
 import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
+import { collapseUnaryGrounding } from './unaryCollapse'
 
 export type EnrichObjectManipulationInput = {
     command: string
     rawObjectSpans: readonly string[]
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
 
 export type EnrichObjectManipulationResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
 
 export type EnrichObjectManipulationDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich
+    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
+    invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
 }
 
@@ -53,51 +59,86 @@ export async function enrichObjectManipulation(
         }
     }
 
-    const catalog = input.roomObjectCatalog ?? []
-    const invokeEnrich = deps.invokeBedrockObjectManipulationEnrichImpl ?? invokeBedrockObjectManipulationEnrich
-    const enrichPromptParts = buildParseObjectManipulationEnrichPrompt(input.command, {
-        rawObjectSpans: input.rawObjectSpans,
-        catalog,
-    })
-    const enrichInvoke = await invokeEnrich(enrichPromptParts)
+    const mergedCatalog = mergeObjectManipulationCatalogs(
+        input.roomObjectCatalog ?? [],
+        input.heldInventoryCatalog ?? []
+    )
 
-    let enrichInvokeFailed = !enrichInvoke.success
-    let enrichResponse: ObjectManipulationEnrichModelResponse | null = null
+    const identityResult = await runIdentityStage(
+        input.command,
+        input.rawObjectSpans,
+        mergedCatalog,
+        {
+            invokeBedrockObjectManipulationIdentityImpl:
+                deps.invokeBedrockObjectManipulationIdentityImpl
+                ?? deps.invokeBedrockObjectManipulationEnrichImpl,
+        }
+    )
+    if (identityResult.type === 'error') {
+        return { type: 'Error', errorMessage: identityResult.errorMessage }
+    }
+
+    const collapseResult = collapseUnaryGrounding(identityResult.spanGroundings)
+    if (collapseResult.type === 'error') {
+        return { type: 'Error', errorMessage: collapseResult.errorMessage }
+    }
+
+    const { objectId } = collapseResult
+    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
+    const observation = await observeMembershipForObject(objectId, positionsReadDeps)
+    const preGateOutcome = evaluateComplexityPreGates({
+        objectId,
+        containers: observation.containers,
+        positionGraph: observation.positionGraph,
+    })
+
+    const preGateError = preGateOutcomeToTerminalError(preGateOutcome)
+    if (preGateError !== null) {
+        return { type: 'Error', errorMessage: preGateError }
+    }
+
+    if (preGateOutcome.type === 'atomic') {
+        return {
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId,
+            confidence: intentConfidence,
+        }
+    }
+
+    const invokeComplexity = deps.invokeBedrockObjectManipulationComplexityImpl
+        ?? deps.invokeBedrockObjectManipulationEnrichImpl
+        ?? invokeBedrockObjectManipulationEnrich
+    const complexityPromptParts = buildObjectManipulationComplexityPrompt(input.command, {
+        objectId,
+        containers: observation.containers,
+        positionGraph: observation.positionGraph,
+    })
+    const complexityInvoke = await invokeComplexity(complexityPromptParts)
+
+    let complexityInvokeFailed = !complexityInvoke.success
+    let complexityResponse: ObjectManipulationComplexityModelResponse | null = null
     let parseFailureReason: string | undefined
 
-    if (enrichInvoke.success) {
-        const parsed = interpretObjectManipulationEnrichBody(enrichInvoke.body)
+    if (complexityInvoke.success) {
+        const parsed = interpretObjectManipulationComplexityBody(complexityInvoke.body)
         if (parsed.success) {
-            enrichResponse = parsed.response
+            complexityResponse = parsed.response
         } else {
-            enrichInvokeFailed = true
+            complexityInvokeFailed = true
             parseFailureReason = parsed.errorMessage
         }
     }
 
-    const result = finalizeObjectManipulationFromEnrich(
+    const result = finalizeComplexityFromEnrich(
         intentConfidence,
-        enrichResponse,
-        enrichInvokeFailed,
-        catalog
+        objectId,
+        complexityResponse,
+        complexityInvokeFailed
     )
 
-    if (enrichInvokeFailed && result.type === 'Error' && parseFailureReason !== undefined) {
+    if (complexityInvokeFailed && result.type === 'Error' && parseFailureReason !== undefined) {
         return { type: 'Error', errorMessage: parseFailureReason }
-    }
-
-    if (result.type === 'ObjectManipulation') {
-        const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-        const observation = await observeMembershipForObject(result.objectId, positionsReadDeps)
-        const preGateOutcome = evaluateComplexityPreGates({
-            objectId: result.objectId,
-            containers: observation.containers,
-            positionGraph: observation.positionGraph,
-        })
-        const preGateError = preGateOutcomeToTerminalError(preGateOutcome)
-        if (preGateError !== null) {
-            return { type: 'Error', errorMessage: preGateError }
-        }
     }
 
     return result

@@ -1,34 +1,50 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
 import { extractJsonObjectText } from '../../../../llm/extractJsonObjectText'
 import type {
     ParseCommandErrorResult,
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
-import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import {
-    objectManipulationErrorMessageForResolution,
-    objectManipulationErrorMessages,
-    resolveObjectSpanToObjectId,
-} from './resolveObjectSpan'
 import { complexComplexityClasses, complexErrorMessage } from './complexityClasses'
+import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
+export type ObjectManipulationComplexityAtomicModelResponse = {
+    disposition: 'atomic'
+    operationKind: string
+}
+
+export type ObjectManipulationComplexityComplexModelResponse = {
+    disposition: 'complex'
+    complexityClass: string
+    summary?: string
+}
+
+export type ObjectManipulationComplexityModelResponse =
+    | ObjectManipulationComplexityAtomicModelResponse
+    | ObjectManipulationComplexityComplexModelResponse
+
+/** @deprecated Use ObjectManipulationComplexityModelResponse */
 export type ObjectManipulationEnrichAtomicModelResponse = {
     disposition: 'atomic'
     operationKind: string
     objectSpan: string
 }
 
+/** @deprecated Use ObjectManipulationComplexityModelResponse */
 export type ObjectManipulationEnrichComplexModelResponse = {
     disposition: 'complex'
     complexityClass: string
     summary?: string
 }
 
+/** @deprecated Use ObjectManipulationComplexityModelResponse */
 export type ObjectManipulationEnrichModelResponse =
     | ObjectManipulationEnrichAtomicModelResponse
     | ObjectManipulationEnrichComplexModelResponse
 
-const forbiddenEnrichFields = new Set([
+const forbiddenComplexityFields = new Set([
     'objectId',
+    'objectSpan',
     'targetId',
     'fromHost',
     'toHost',
@@ -38,17 +54,17 @@ const forbiddenEnrichFields = new Set([
     'roomId',
 ])
 
-function hasForbiddenEnrichField(obj: Record<string, unknown>): boolean {
-    return Object.keys(obj).some((key) => forbiddenEnrichFields.has(key))
+function hasForbiddenComplexityField(obj: Record<string, unknown>): boolean {
+    return Object.keys(obj).some((key) => forbiddenComplexityFields.has(key))
 }
 
-function parseEnrichModelResponse(parsed: Record<string, unknown>):
-    | { success: true; response: ObjectManipulationEnrichModelResponse }
+function parseComplexityModelResponse(parsed: Record<string, unknown>):
+    | { success: true; response: ObjectManipulationComplexityModelResponse }
     | { success: false; errorMessage: string } {
-    if (hasForbiddenEnrichField(parsed)) {
+    if (hasForbiddenComplexityField(parsed)) {
         return {
             success: false,
-            errorMessage: 'Object manipulation enrich must not include object ids or routing fields',
+            errorMessage: 'Object manipulation complexity must not include object ids or routing fields',
         }
     }
 
@@ -56,7 +72,7 @@ function parseEnrichModelResponse(parsed: Record<string, unknown>):
     if (disposition !== 'atomic' && disposition !== 'complex') {
         return {
             success: false,
-            errorMessage: 'Object manipulation enrich disposition must be atomic or complex',
+            errorMessage: 'Object manipulation complexity disposition must be atomic or complex',
         }
     }
 
@@ -64,21 +80,21 @@ function parseEnrichModelResponse(parsed: Record<string, unknown>):
         if (typeof parsed.operationKind === 'string') {
             return {
                 success: false,
-                errorMessage: 'Object manipulation enrich complex disposition must not include operationKind',
+                errorMessage: 'Object manipulation complexity complex disposition must not include operationKind',
             }
         }
         const complexityClass = parsed.complexityClass
         if (typeof complexityClass !== 'string' || !complexComplexityClasses.has(complexityClass)) {
             return {
                 success: false,
-                errorMessage: 'Object manipulation enrich complex disposition requires a valid complexityClass',
+                errorMessage: 'Object manipulation complexity complex disposition requires a valid complexityClass',
             }
         }
         const summary = parsed.summary
         if (summary !== undefined && typeof summary !== 'string') {
             return {
                 success: false,
-                errorMessage: 'Object manipulation enrich summary must be a string when present',
+                errorMessage: 'Object manipulation complexity summary must be a string when present',
             }
         }
         return {
@@ -95,14 +111,7 @@ function parseEnrichModelResponse(parsed: Record<string, unknown>):
     if (typeof operationKind !== 'string' || operationKind.trim().length === 0) {
         return {
             success: false,
-            errorMessage: 'Object manipulation enrich atomic disposition requires operationKind',
-        }
-    }
-    const objectSpan = parsed.objectSpan
-    if (typeof objectSpan !== 'string' || objectSpan.trim().length === 0) {
-        return {
-            success: false,
-            errorMessage: 'Object manipulation enrich atomic takeHold requires objectSpan',
+            errorMessage: 'Object manipulation complexity atomic disposition requires operationKind',
         }
     }
 
@@ -111,14 +120,13 @@ function parseEnrichModelResponse(parsed: Record<string, unknown>):
         response: {
             disposition: 'atomic',
             operationKind: operationKind.trim(),
-            objectSpan: objectSpan.trim(),
         },
     }
 }
 
-export function interpretObjectManipulationEnrichBody(
+export function interpretObjectManipulationComplexityBody(
     body: string
-): { success: true; response: ObjectManipulationEnrichModelResponse } | {
+): { success: true; response: ObjectManipulationComplexityModelResponse } | {
     success: false
     errorMessage: string
 } {
@@ -132,14 +140,70 @@ export function interpretObjectManipulationEnrichBody(
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
         return { success: false, errorMessage: objectManipulationErrorMessages.enrichParseFailed }
     }
-    return parseEnrichModelResponse(parsed as Record<string, unknown>)
+    return parseComplexityModelResponse(parsed as Record<string, unknown>)
 }
 
+/** @deprecated Use interpretObjectManipulationComplexityBody */
+export function interpretObjectManipulationEnrichBody(
+    body: string
+): { success: true; response: ObjectManipulationEnrichModelResponse } | {
+    success: false
+    errorMessage: string
+} {
+    const parsed = interpretObjectManipulationComplexityBody(body)
+    if (!parsed.success) {
+        return parsed
+    }
+    if (parsed.response.disposition === 'complex') {
+        return { success: true, response: parsed.response }
+    }
+    return {
+        success: false,
+        errorMessage: 'Object manipulation enrich atomic takeHold requires objectSpan',
+    }
+}
+
+export function finalizeComplexityFromEnrich(
+    intentConfidence: number,
+    objectId: EphemeraObjectId,
+    complexityResponse: ObjectManipulationComplexityModelResponse | null,
+    complexityInvokeFailed: boolean
+): ParseCommandObjectManipulationResult | ParseCommandErrorResult {
+    if (complexityInvokeFailed || complexityResponse === null) {
+        return {
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.enrichInvokeFailed,
+        }
+    }
+
+    if (complexityResponse.disposition === 'complex') {
+        return {
+            type: 'Error',
+            errorMessage: complexErrorMessage(complexityResponse.complexityClass),
+        }
+    }
+
+    if (complexityResponse.operationKind !== 'takeHold') {
+        return {
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.unimplementedAtomicOperation,
+        }
+    }
+
+    return {
+        type: 'ObjectManipulation',
+        operationKind: 'takeHold',
+        objectId,
+        confidence: intentConfidence,
+    }
+}
+
+/** @deprecated Use finalizeComplexityFromEnrich */
 export function finalizeObjectManipulationFromEnrich(
     intentConfidence: number,
     enrichResponse: ObjectManipulationEnrichModelResponse | null,
     enrichInvokeFailed: boolean,
-    catalog: readonly RoomInPlayObjectCatalogEntry[] | undefined
+    _catalog: unknown
 ): ParseCommandObjectManipulationResult | ParseCommandErrorResult {
     if (enrichInvokeFailed || enrichResponse === null) {
         return {
@@ -155,25 +219,8 @@ export function finalizeObjectManipulationFromEnrich(
         }
     }
 
-    if (enrichResponse.operationKind !== 'takeHold') {
-        return {
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.unimplementedAtomicOperation,
-        }
-    }
-
-    const resolved = resolveObjectSpanToObjectId(enrichResponse.objectSpan, catalog)
-    if (resolved.type !== 'Resolved') {
-        return {
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessageForResolution(resolved),
-        }
-    }
-
     return {
-        type: 'ObjectManipulation',
-        operationKind: 'takeHold',
-        objectId: resolved.objectId,
-        confidence: intentConfidence,
+        type: 'Error',
+        errorMessage: objectManipulationErrorMessages.enrichParseFailed,
     }
 }
