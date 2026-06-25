@@ -22,10 +22,14 @@ Current implementation:
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 - [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
 - [`acmeOrder/index.ts`](./acmeOrder/index.ts) - orchestrates thinking lifecycle when **`EnrichAcmeOrderDeps.messageBus`** is set (see **Thinking** below).
-- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - Bedrock **`invokeBedrockObjectManipulationEnrich`**, D17 interpret/finalize, deterministic **`shortName`** resolve.
+- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - Bedrock **`invokeBedrockObjectManipulationEnrich`**, D17 interpret/finalize, deterministic **`shortName`** resolve, cardinality gate, membership pre-gates (Phase 2 bridge).
 - [`objectManipulation/buildPrompt.ts`](./objectManipulation/buildPrompt.ts) - D17 schema instructions + in-room catalog context.
 - [`objectManipulation/interpretAndFinalize.ts`](./objectManipulation/interpretAndFinalize.ts) - JSON validation and finalize to **`ObjectManipulation`** or **`Error`**.
 - [`objectManipulation/resolveObjectSpan.ts`](./objectManipulation/resolveObjectSpan.ts) - deterministic catalog grounding (**D5** / **D7**).
+- [`objectManipulation/cardinalityGate.ts`](./objectManipulation/cardinalityGate.ts) - deterministic **`multiObject`** short-circuit when **`rawObjectSpans.length > 1`**.
+- [`objectManipulation/membershipObservation.ts`](./objectManipulation/membershipObservation.ts) - **`getMembershipContainers`** + sole-host **`getPositionGraph`**; edge-touch predicate.
+- [`objectManipulation/complexityPreGates.ts`](./objectManipulation/complexityPreGates.ts) - O4 pre-gate evaluator (rules 0--3).
+- [`objectManipulation/complexityClasses.ts`](./objectManipulation/complexityClasses.ts) - shared **`complexityClass`** guards and terminal Error copy (**`multiPresent`**, etc.).
 
 ## Notes
 

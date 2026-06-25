@@ -22,6 +22,7 @@ import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/inv
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
+import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MessageBus } from '../../messageBus/baseClasses'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
@@ -546,6 +547,8 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
     /** Bedrock enrich for object manipulation; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Injectable Positions reads for object manipulation membership pre-gates. */
+    objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */

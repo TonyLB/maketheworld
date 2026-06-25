@@ -25,6 +25,9 @@ Relational placement (put X on Y, tie A to B):
 Multiple objects or deltas in one line:
 { "disposition": "complex", "complexityClass": "multiObject", "summary": "<optional>" }
 
+Object present on more than one membership host:
+{ "disposition": "complex", "complexityClass": "multiPresent", "summary": "<optional>" }
+
 Recognized manipulation but no v1 atomic path (e.g. drop until later):
 { "disposition": "complex", "complexityClass": "unimplementedVerb", "summary": "<optional>" }
 

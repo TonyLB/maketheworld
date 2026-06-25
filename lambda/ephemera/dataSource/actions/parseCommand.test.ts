@@ -52,6 +52,11 @@ const mockMessageBus = () => ({
     publish: jest.fn(),
 })
 
+const objectManipulationPositionsReadDepsForTests = () => ({
+    getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
+    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+})
+
 const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
     publish.mock.calls
         .map((call) => call[0] as StreamingEventMessage)
@@ -1014,6 +1019,7 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockAcmeOrderEnrichImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
 
@@ -1067,7 +1073,12 @@ describe('parseCommand LLM path', () => {
                 roomObjectLabels: ['anvil'],
                 roomObjectCatalog: [{ objectId: anvilId, normalizedShortName: 'anvil' }],
             },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl, invokeBedrockObjectManipulationEnrichImpl }
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockAcmeOrderEnrichImpl,
+                invokeBedrockObjectManipulationEnrichImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
         )
 
         expect(result).toEqual({

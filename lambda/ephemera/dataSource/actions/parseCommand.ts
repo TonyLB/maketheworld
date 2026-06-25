@@ -29,6 +29,7 @@ async function parseCommandCore(
             intentResult.confidence,
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
+                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
             }
         )
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }

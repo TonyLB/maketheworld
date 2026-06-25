@@ -1,6 +1,6 @@
 # Object manipulation parse --- atomic vs complex (next iteration)
 
-**Status:** In progress. **Next:** Phase 2 --- cardinality gate + membership observation + complexity pre-gates; baseline tests green.
+**Status:** In progress. **Next:** Phase 3 --- enrich refactor (split identity/complexity stages per **O2**).
 
 Framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Parent / sibling initiative: [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) (graph-first manipulation kernel + intent adapters; **gates** positions Phase 2 spec and Phase 4b migrate).
 
@@ -195,7 +195,7 @@ When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephem
 | Phase | Description | Status |
 | --- | --- | --- |
 | 1 | Pipeline design + step I/O (**O1**--**O5**; **M2** cross-lane note) | Done |
-| 2 | Membership observation + deterministic pre-gates per **O4**; **`multiPresent`** stub per **O3** | Not started |
+| 2 | Membership observation + deterministic pre-gates per **O4**; **`multiPresent`** stub per **O3** | Done |
 | 3 | Enrich refactor (split stages per **O2**); identity LLM per **O1**; prompts + interpret/finalize | Not started |
 | 4 | `parseCommand` / `index.ts` wiring; egress unchanged unless new fields needed | Not started |
 | 5 | Tests + graduate actions implementation doc | Not started |
@@ -214,11 +214,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Decide **O4** (hybrid complexity pre-gates; four rules --- see Target pipeline)
   - [X] Decide **O5** (held inventory catalog parallel fetch; identity-stage context only; **`drop`** apply deferred)
   - [X] Align with manipulation model plan: atomic egress -> coordinator -> shared adapter -> kernel; **bounded** apply semantics (**M2** --- [Cross-lane atomic egress](#cross-lane-atomic-egress-m2))
-- [ ] **Phase 2 --- Membership observation + pre-gates**
-  - [ ] Cardinality gate: `rawObjectSpans.length > 1` -> terminal complex **`multiObject`** (no Bedrock)
-  - [ ] Add helper: grounded `OBJECT#` -> `containers` via `getMembershipContainers`; sole-host `positionGraph` + edge-touch predicate for pre-gate rule 2
-  - [ ] Implement complexity pre-gates (**O4**): rule 0 -> Error; rule 1 -> **`multiPresent`**; rule 2 -> atomic `takeHold`; rule 3 -> defer to stage-2 LLM
-  - [ ] Register **`multiPresent`** in enrich guards + terminal Error copy (**O3**); unit tests (multi-present -> complex, edge-free single-host -> atomic, zero containers -> Error)
+- [X] **Phase 2 --- Membership observation + pre-gates**
+  - [X] Cardinality gate: `rawObjectSpans.length > 1` -> terminal complex **`multiObject`** (no Bedrock)
+  - [X] Add helper: grounded `OBJECT#` -> `containers` via `getMembershipContainers`; sole-host `positionGraph` + edge-touch predicate for pre-gate rule 2
+  - [X] Implement complexity pre-gates (**O4**): rule 0 -> Error; rule 1 -> **`multiPresent`**; rule 2 -> atomic `takeHold`; rule 3 -> defer to stage-2 LLM
+  - [X] Register **`multiPresent`** in enrich guards + terminal Error copy (**O3**); unit tests (multi-present -> complex, edge-free single-host -> atomic, zero containers -> Error)
+  - **Bridge wiring (Phase 2):** cardinality pre-Bedrock + post-resolve pre-gate rules 0--1 in [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts). Full pre-LLM ordering ships Phase 3.
 - [ ] **Phase 3 --- Enrich refactor (split stages per O2)**
   - [ ] Identity: per-span groundings via merged catalog; unary collapse; identity-stage LLM (**O1**) with separate JSON contract (`objectId` allowed)
   - [ ] Update [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) --- identity vs complexity prompt shapes; membership context on complexity stage only

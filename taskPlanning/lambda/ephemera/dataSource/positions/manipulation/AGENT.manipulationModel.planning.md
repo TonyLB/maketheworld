@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (parallel with actions parse plan Phase 1 where gated).
+**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (actions parse Phase 2 shipped; gate cleared).
 
 **Upstream gate:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) --- atomic vs complex enrich refinement (ownership **M6** = actions sub-plan).
 
@@ -128,7 +128,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 | This plan phase | Gate |
 | --- | --- |
-| **Phase 2** (kernel + adapter spec) | Actions parse plan **Phase 1** done + **Phase 2** shipped --- align atomic eligibility with **M2** (bounded scrub: ingress `roomId` only); parse routes **`multiPresent`** to complex before egress |
+| **Phase 2** (kernel + adapter spec) | **Ungated (2026-06-25):** actions parse plan Phase 2 shipped --- parse routes **`multiPresent`** and zero-host objects to terminal Error before egress; align atomic eligibility with **M2** in spec |
 | **Phase 4a** (kernel scaffold) | None required; may run parallel to actions parse Phase 2--3 |
 | **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 3--5** shipped --- do not change atomic **`takeHold`** apply until parse routes **`multiPresent`** / relational complexity to terminal Error reliably |
 

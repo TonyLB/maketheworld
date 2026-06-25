@@ -36,6 +36,18 @@ describe('interpretObjectManipulationEnrichBody', () => {
         })
     })
 
+    it('accepts multiPresent complex disposition JSON', () => {
+        expect(interpretObjectManipulationEnrichBody(
+            '{"disposition":"complex","complexityClass":"multiPresent"}'
+        )).toEqual({
+            success: true,
+            response: {
+                disposition: 'complex',
+                complexityClass: 'multiPresent',
+            },
+        })
+    })
+
     it('rejects forbidden object id fields', () => {
         const parsed = interpretObjectManipulationEnrichBody(
             '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom","objectId":"OBJECT#Broom"}'
@@ -75,6 +87,21 @@ describe('finalizeObjectManipulationFromEnrich', () => {
         )).toEqual({
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+    })
+
+    it('finalizes multiPresent complex disposition to Error', () => {
+        expect(finalizeObjectManipulationFromEnrich(
+            0.9,
+            {
+                disposition: 'complex',
+                complexityClass: 'multiPresent',
+            },
+            false,
+            catalog
+        )).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexMultiPresent,
         })
     })
 

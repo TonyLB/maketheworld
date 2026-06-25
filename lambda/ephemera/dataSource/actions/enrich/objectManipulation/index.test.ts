@@ -1,9 +1,10 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { enrichObjectManipulation } from './index'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
+const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const catalog = [{ objectId: broomId, normalizedShortName: 'broom' }]
 
 describe('enrichObjectManipulation', () => {
@@ -12,6 +13,8 @@ describe('enrichObjectManipulation', () => {
             success: true,
             body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom"}',
         })
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
 
         const result = await enrichObjectManipulation(
             {
@@ -20,7 +23,10 @@ describe('enrichObjectManipulation', () => {
                 roomObjectCatalog: catalog,
             },
             0.92,
-            { invokeBedrockObjectManipulationEnrichImpl }
+            {
+                invokeBedrockObjectManipulationEnrichImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
         )
 
         expect(result).toEqual({
@@ -50,6 +56,82 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexMultiObject,
+        })
+        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('short-circuits multiObject via cardinality gate without Bedrock', async () => {
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'pick up the broom and the anvil',
+                rawObjectSpans: ['broom', 'anvil'],
+                roomObjectCatalog: catalog,
+            },
+            0.8,
+            { invokeBedrockObjectManipulationEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexMultiObject,
+        })
+        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('blocks atomic takeHold when object is multi-present', async () => {
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom"}',
+        })
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId, 'ROOM#Hall'])
+        const getPositionGraph = jest.fn()
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'pick up the broom',
+                rawObjectSpans: ['broom'],
+                roomObjectCatalog: catalog,
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationEnrichImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexMultiPresent,
+        })
+        expect(getPositionGraph).not.toHaveBeenCalled()
+    })
+
+    it('blocks atomic takeHold when object has no membership host', async () => {
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom"}',
+        })
+        const getMembershipContainers = jest.fn().mockResolvedValue([])
+        const getPositionGraph = jest.fn()
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'pick up the broom',
+                rawObjectSpans: ['broom'],
+                roomObjectCatalog: catalog,
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationEnrichImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.noMembershipHost,
         })
     })
 
