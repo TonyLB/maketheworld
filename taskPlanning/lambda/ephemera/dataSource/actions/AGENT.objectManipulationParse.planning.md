@@ -26,15 +26,16 @@ Parse classifies; positions persists. **One kernel path** for all membership tra
 
 | Parse outcome | Positions path |
 | --- | --- |
-| **Atomic** | Terminal egress (e.g. **`Object Take Hold`**) -> operator adapter (`applyObjectTakeHold`) -> **manipulation kernel** |
+| **Atomic** | Terminal egress (e.g. **`Object Take Hold`**) -> per-operator coordinator -> **shared membership adapter** -> **manipulation kernel** |
 | **Complex** | Terminal **`Error`** --- no stream, no positions |
 
-**Two uses of membership (do not conflate with kernel planning):**
+**Membership observation by lane:**
 
 | Lane | Role |
 | --- | --- |
 | **This plan (parse)** | **`getMembershipContainers`** for **eligibility / complexity** (multi-parent -> complex). Adjacency-shaped read is appropriate. |
-| **Manipulation kernel** | **Graph-reconciled priors** for apply planning (**M1** in manipulation model plan). Parse does not implement kernel planning. |
+| **Shared membership adapter** | **`getMembershipContainers`** to **plan** `froms`/`to` -> **`HostEffect[]`** for apply (see manipulation model plan **M1**). |
+| **Manipulation kernel** | Applies supplied **`HostEffect[]`** only; does **not** plan transfers or call **`getMembershipContainers`**. |
 
 Atomic egress ids must align with **bounded** kernel apply semantics (**M2**).
 
@@ -45,7 +46,7 @@ Atomic egress ids must align with **bounded** kernel apply semantics (**M2**).
 1. [`taskPlanning/AGENT.md`](../../../../AGENT.md) --- durability ladder, open decisions, checkboxes.
 2. [`lambda/ephemera/dataSource/actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- shipped **`ObjectManipulationIntent`** steady-state.
 3. [`lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`takeHold`** / deferred **`drop`**.
-4. [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) --- kernel + intent adapters, apply modes, cross-lane dependency table.
+4. [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) --- shared adapter + kernel, apply modes, cross-lane dependency table.
 
 **Code anchors:**
 
@@ -120,7 +121,7 @@ When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephem
 | --- | --- |
 | Steady-state parse/enrich sequence | [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- `ObjectManipulationIntent` section |
 | Atomic eligibility / complex classes | [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) if fiction-relevant |
-| Apply-mode implications; kernel adapter contract | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) via manipulation model plan **M2**; kernel module path via **M5** after Phase 4a |
+| Apply-mode implications; adapter/kernel contract | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) via manipulation model plan **M2**; module paths via **M5** / **M8** after Phase 4a |
 
 ---
 
@@ -143,7 +144,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 - [ ] **Phase 1 --- Design**
   - [ ] Document target pipeline steps and inputs/outputs per step
   - [ ] Decide **O1**, **O2**, **O3**; record in Open decisions or mark Decided
-  - [ ] Align with manipulation model plan: atomic egress -> operator adapter -> kernel; **bounded** apply semantics (**M2**)
+  - [ ] Align with manipulation model plan: atomic egress -> coordinator -> shared adapter -> kernel; **bounded** apply semantics (**M2**)
 - [ ] **Phase 2 --- Membership observation + pre-gates**
   - [ ] Add helper: given span-matched catalog entries, parallel `getMembershipContainers`
   - [ ] Implement deterministic pre-gates (**O4**); unit tests (multi-parent -> complex)
@@ -184,6 +185,6 @@ rg -n "getMembershipContainers|multiParent|complexityClass" \
 
 | Doc | Role |
 | --- | --- |
-| [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) | Graph-first kernel + intent adapters; upstream/downstream gates |
+| [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) | Shared adapter + kernel; upstream/downstream gates |
 | [`diegeticLogic/AGENT.implementation.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.implementation.md) | Four-lane operator hub |
 | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) | **`Object Take Hold`** ingress |
