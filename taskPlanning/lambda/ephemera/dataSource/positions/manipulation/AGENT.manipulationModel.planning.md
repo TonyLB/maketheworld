@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Close Phase 1 archaeology review; start Phase 2 kernel spec (parallel with actions parse plan Phase 1).
+**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (parallel with actions parse plan Phase 1 where gated).
 
 **Upstream gate:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) --- atomic vs complex enrich refinement (ownership **M6** = actions sub-plan).
 
@@ -152,7 +152,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 ### Authority ( -> `positions/AGENT.contract.md` + gateway `AGENT.md`)
 
-Decide and record (see Open decisions):
+Decided (graduate at Phase 3; see Open decisions):
 
 - **Conflict / repair:** graph wins (unchanged intent)
 - **Transfer planning (**M1**):** shared membership adapter upstream of kernel; kernel does **not** call **`getMembershipContainers`** to discover priors
@@ -179,7 +179,9 @@ Operators remain intent/fact/presentation shaped per [`diegeticLogic/AGENT.imple
 
 ## Open decisions (implementation --- plan only)
 
-Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
+Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships to durable docs, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
+
+**Phase 1:** all rows below **Decided** (2026-06-24 archaeology review). Rows remain until Phase 3 graduation.
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
@@ -191,8 +193,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | **M8** | Shared membership adapter location | Phase 4a | **Decided:** [`manipulation/adapters/`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/) |
 | **M7** | Migration order: scaffold adapter + kernel -> object room -> character (+ `RoomStack`) -> **`takeHold`** cross-host (incremental, not big-bang) | Phase 4b | **Decided** |
 | ~~**M6**~~ | ~~Plan ownership~~ | --- | **Decided:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) |
-
-Large option comparisons for open rows may use a root temporary analysis doc per [`AGENT.md` temporary working documents](../../../../../../AGENT.md); link from the decision row if created.
 
 ---
 
@@ -213,7 +213,7 @@ Large option comparisons for open rows may use a root temporary analysis doc per
 
 | Phase | Description | Status |
 | --- | --- | --- |
-| 1 | As-is archaeology (this doc) | In progress |
+| 1 | As-is archaeology (this doc) | Done |
 | 1b | Fork actions parse sub-plan (**M6** decided) | Done |
 | 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Not started |
 | 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Not started |
@@ -228,11 +228,11 @@ Large option comparisons for open rows may use a root temporary analysis doc per
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as each sub-task finishes.
 
-- [ ] **Phase 1 --- Archaeology**
+- [X] **Phase 1 --- Archaeology**
   - [X] Create this planning doc
   - [X] Capture cross-lane object parse-pipeline question (high level)
   - [X] Decide **M6** --- promote to [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md)
-  - [ ] Review archaeology with owner; mark Open decisions complete (all **M*** decided except graduation cleanup)
+  - [X] Review archaeology with owner; all **M1**--**M8** decided (rows remain until Phase 3 graduation)
   - [X] Link this plan from [`positions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) (one line under `manipulation/membership/`)
 - [ ] **Phase 2 --- Kernel + adapter spec** ( **gate:** actions parse plan Phase 1--2; align eligibility with **M2** )
   - [ ] Write kernel section: **`HostEffect`** shape, **`applyHostEffects`** contract (validate + transact on affected hosts only)

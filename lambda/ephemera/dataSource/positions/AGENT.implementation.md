@@ -14,9 +14,11 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
 
-### `manipulation/membership/` (cross-host object manipulation apply)
+### `manipulation/` (cross-host apply today; adapter + kernel in flight)
 
-**In flight:** manipulation kernel and authority alignment --- [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+**In flight (Phase 2+):** shared adapter ([`manipulation/adapters/`](manipulation/adapters/)), kernel ([`manipulation/`](manipulation/) top-level `applyHostEffects`), thin coordinators --- [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md) (Phase 1 archaeology **Done**).
+
+#### `manipulation/membership/` (cross-host object manipulation apply)
 
 | File | Role |
 | --- | --- |
