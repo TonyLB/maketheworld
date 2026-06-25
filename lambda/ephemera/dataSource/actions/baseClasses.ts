@@ -536,6 +536,8 @@ export type ParseCommandInput = {
     roomObjectLabels?: string[]
     /** In-room object catalog for enrich and deterministic resolve (D6). */
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** Character-held inventory catalog for object-manipulation identity stage (O5). */
+    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

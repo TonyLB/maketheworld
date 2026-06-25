@@ -1,6 +1,6 @@
 # Object manipulation parse --- atomic vs complex (next iteration)
 
-**Status:** In progress. **Next:** Phase 4 --- parse wiring (held inventory catalog + `index.ts` / `parseCommand` threading per **O5**).
+**Status:** In progress. **Next:** Phase 5 --- Graduate (implementation doc + slim plan).
 
 Framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Parent / sibling initiative: [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) (graph-first manipulation kernel + intent adapters; **gates** positions Phase 2 spec and Phase 4b migrate).
 
@@ -52,17 +52,18 @@ Atomic egress ids must align with **bounded** kernel apply semantics (**M2**).
 
 | Area | Path |
 | --- | --- |
-| Parse orchestration | [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (`roomObjectCatalog` + `parseCommand`) |
+| Parse orchestration | [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (`roomObjectCatalog` + `heldInventoryCatalog` + `parseCommand`) |
 | Classify | [`discriminateIntent/`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/) |
 | Enrich | [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/) |
 | Catalog (room) | [`roomObjectCatalogForCharacter.ts`](../../../../../lambda/ephemera/dataSource/actions/roomObjectCatalogForCharacter.ts) |
-| Catalog (held inventory) | new module (mirror room catalog pattern); parallel fetch per **O5** |
+| Catalog (held inventory) | [`heldInventoryCatalogForCharacter.ts`](../../../../../lambda/ephemera/dataSource/actions/heldInventoryCatalogForCharacter.ts); parallel fetch per **O5** |
 | Membership read | `internalCache.Positions.getMembershipContainers` ([`packages/mtw-gateways/ts/ephemera/positions/factory.ts`](../../../../../packages/mtw-gateways/ts/ephemera/positions/factory.ts)) |
 
 **Baseline tests (before edits):**
 
 ```bash
 npm --prefix lambda/ephemera run test -- --watchAll=false \
+  dataSource/actions/heldInventoryCatalogForCharacter.test.ts \
   dataSource/actions/enrich/objectManipulation/ \
   dataSource/actions/roomObjectCatalogForCharacter.test.ts \
   dataSource/actions/parseCommand.test.ts \
@@ -71,11 +72,11 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 
 ---
 
-## Shipped pipeline (enrich --- Phase 3)
+## Shipped pipeline (parse + enrich --- Phases 3--4)
 
 ```text
 Parse Requested
-  -> parallel: roomExitContext + roomObjectCatalog
+  -> parallel: roomExitContext + roomObjectCatalog + heldInventoryCatalog
   -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[]
   -> cardinality gate (deterministic)
   -> identity (stage 1): merged catalog resolve + optional identity LLM
@@ -84,8 +85,6 @@ Parse Requested
   -> complexity LLM (stage 2) only on pre-gate defer
   -> terminal parse / egress (Object Take Hold) or Error (complex stub)
 ```
-
-Held inventory catalog fetch on **`Parse Requested`** ships Phase 4. Room-only merge is live today (`held` defaults to `[]`).
 
 ## Prior pipeline (v1 --- superseded)
 
@@ -190,7 +189,6 @@ When terminal parse is **atomic** `takeHold`:
 | **O2** | **Split logical stages:** always identity then membership observation then complexity --- not a single fused enrich hop. Each stage may complete without Bedrock (identity via **O1** deterministic path; complexity via **O4** pre-gates). Worst case 0--2 Bedrock hops after classify | Phase 3 | **Decided** |
 | **O3** | New **`complexityClass: multiPresent`** for multi-present targets --- object listed on **more than one** membership host `positionGraph` (`containers.length > 1`); distinct from **`multiObject`** (multiple objects / deltas in one command line) | Phase 2 gates | **Decided** |
 | **O4** | **Hybrid complexity (stage 2):** deterministic pre-gates first, LLM when undecided. Rules: (0) `containers.length === 0` -> **Error**; (1) `containers.length > 1` -> complex / **`multiPresent`**; (2) `containers.length === 1` and no `positionGraph` edges touch target -> atomic `takeHold`; (3) else LLM | Phase 2 | **Decided** |
-| **O5** | **Held inventory catalog in this plan:** fetch in parallel with room catalog on **`Parse Requested`**; thread into identity stage (deterministic resolve + LLM fallback). Does **not** ship **`drop`** atomic egress / positions apply --- that remains a follow-on operator slice | Phase 4 | **Decided** |
 
 When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) and remove the row here.
 
@@ -213,7 +211,7 @@ When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephem
 | 1 | Pipeline design + step I/O (**O1**--**O5**; **M2** cross-lane note) | Done |
 | 2 | Membership observation + deterministic pre-gates per **O4**; **`multiPresent`** stub per **O3** | Done |
 | 3 | Enrich refactor (split stages per **O2**); identity LLM per **O1**; prompts + interpret/finalize | Done |
-| 4 | `parseCommand` / `index.ts` wiring; egress unchanged unless new fields needed | Not started |
+| 4 | `parseCommand` / `index.ts` wiring; egress unchanged unless new fields needed | Done |
 | 5 | Tests + graduate actions implementation doc | Not started |
 
 ---
@@ -241,12 +239,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Update [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) --- identity vs complexity prompt shapes; membership context on complexity stage only
   - [X] Refactor [`interpretAndFinalize.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/interpretAndFinalize.ts) for stage-2 complexity only (post-membership)
   - [X] Preserve v1 **`takeHold`** atomic path for eligible single-span, in-room, single-host, edge-free objects (zero post-classify Bedrock)
-- [ ] **Phase 4 --- Parse wiring**
-  - [ ] Add held inventory catalog module (character `positionGraph` + perspective merge; mirror room catalog entry shape + `catalogScope`)
-  - [ ] Extend [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) `Promise.all`: room catalog + held inventory catalog (**O5**)
-  - [ ] Thread catalogs through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) -> identity merged catalog (**O1**)
-  - [ ] Thread membership observation through object-manipulation orchestration ([`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) or successor module) --- **done in enrich module (Phase 3);** confirm parse wiring passes catalogs
-  - [ ] Confirm complex still produces no stream / no positions
+- [X] **Phase 4 --- Parse wiring**
+  - [X] Add held inventory catalog module (character `positionGraph` + perspective merge; mirror room catalog entry shape + `catalogScope`)
+  - [X] Extend [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) `Promise.all`: room catalog + held inventory catalog (**O5**)
+  - [X] Thread catalogs through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) -> identity merged catalog (**O1**)
+  - [X] Thread membership observation through object-manipulation orchestration ([`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) or successor module) --- **done in enrich module (Phase 3);** confirm parse wiring passes catalogs
+  - [X] Confirm complex still produces no stream / no positions
 - [ ] **Phase 5 --- Graduate**
   - [ ] Extend [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)
   - [ ] Notify manipulation model plan: ungate Phase **4b** migrate when Phase 2--3 criteria met (Phase **4a** kernel scaffold may proceed earlier)
@@ -258,6 +256,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 
 ```bash
 npm --prefix lambda/ephemera run test -- --watchAll=false \
+  dataSource/actions/heldInventoryCatalogForCharacter.test.ts \
   dataSource/actions/enrich/objectManipulation/ \
   dataSource/actions/parseCommand.test.ts \
   dataSource/actions/index.test.ts

@@ -1033,6 +1033,60 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns Error for held-only object grounding (unimplementedVerb)', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'drop the broom',
+                roomObjectLabels: [],
+                roomObjectCatalog: [],
+                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
+        })
+    })
+
+    it('prefers room catalog scope when same objectId appears in room and held catalogs', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'pick up the broom',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'held broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId: broomId,
+            confidence: 0.94,
+        })
+    })
+
     it('returns Error for complex manipulation enrich disposition', async () => {
         const broomId = 'OBJECT#Broom'
         const roomId = 'ROOM#Bridge' as EphemeraRoomId

@@ -39,7 +39,7 @@ Current implementation:
 
 ```text
 cardinality gate
-  -> merge catalogs (room + optional held)
+  -> merge catalogs (room + held; held fetched at parse ingress, not classify)
   -> identity stage (deterministic resolve; identity LLM on NoMatch/AmbiguousMatch)
   -> unary collapse
   -> membership observation

@@ -109,7 +109,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 **Owner:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) --- membership-aware **atomic vs complex** discriminator and fall-through in **`enrich/objectManipulation/`**.
 
-**Summary:** Shipped v1 uses one enrich LLM hop + deterministic catalog resolve without reverse membership observation. Next iteration (actions parse plan **Phase 1** done): per-span identity groundings -> unary collapse -> **`getMembershipContainers`** -> complexity pre-gates (**`multiPresent`**, edge-touch, LLM fall-through) on **`Parse Requested`**. See [**Pipeline step I/O**](../../actions/AGENT.objectManipulationParse.planning.md#pipeline-step-io).
+**Summary:** Shipped v1 uses one enrich LLM hop + deterministic catalog resolve without reverse membership observation. Next iteration (actions parse plan **Phase 1--4** done): per-span identity groundings (room + held catalogs merged) -> unary collapse -> **`getMembershipContainers`** -> complexity pre-gates (**`multiPresent`**, edge-touch, LLM fall-through) on **`Parse Requested`**. See [**Pipeline step I/O**](../../actions/AGENT.objectManipulationParse.planning.md#pipeline-step-io).
 
 | Parse outcome | Positions expectation (this plan) |
 | --- | --- |
@@ -120,7 +120,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 | Lane | Role |
 | --- | --- |
-| **Actions parse** | **`getMembershipContainers(OBJECT#)`** for complexity pre-gates (**`multiPresent`** when `containers.length > 1`); **`getPositionGraph`** on sole host for edge-touch check. Identity stage is per-span; unary atomic path supplies one trusted `objectId` + ingress `roomId` for bounded **`takeHold`** (**M2**). |
+| **Actions parse** | **`getMembershipContainers(OBJECT#)`** for complexity pre-gates (**`multiPresent`** when `containers.length > 1`); **`getPositionGraph`** on sole host for edge-touch check. Identity stage merges room + held catalogs (held catalog fetched at parse ingress per **O5**); unary atomic path supplies one trusted `objectId` + ingress `roomId` for bounded **`takeHold`** (**M2**). |
 | **Shared membership adapter** | **`getMembershipContainers`** (or graph-forward reads where repair already observed) to **plan** `froms`/`to` -> **`HostEffect[]`**. Same helpers for navigate, object place, **`takeHold`**, future **`drop`**. |
 | **Manipulation kernel** | Reads **`positionGraph` only on hosts in the supplied effect list** --- validate, apply, dual-write adjacency. **Does not** plan transfers. |
 
@@ -130,7 +130,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 | --- | --- |
 | **Phase 2** (kernel + adapter spec) | **Ungated (2026-06-25):** actions parse plan Phase 2 shipped --- parse routes **`multiPresent`** and zero-host objects to terminal Error before egress; align atomic eligibility with **M2** in spec |
 | **Phase 4a** (kernel scaffold) | None required; may run parallel to actions parse Phase 2--3 |
-| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 4--5** shipped --- Phase 3 enrich stage split + `deferToComplexityLlm` wiring live; do not change atomic **`takeHold`** apply until parse routes **`multiPresent`** / relational complexity to terminal Error reliably (held catalog wiring Phase 4) |
+| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 5** shipped --- Phase 3--4 enrich stage split + held catalog wiring live; do not change atomic **`takeHold`** apply until parse graduates to durable docs and complex routing remains reliable |
 
 ---
 

@@ -22,6 +22,7 @@ import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
 import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
@@ -485,9 +486,10 @@ const handleParseRequested = async (
         displayProtocol: 'CommandTranscriptMessage',
         message: linesToRenderTree([content.command.trim()]),
     })
-    const [roomExitContext, roomObjectCatalogResult] = await Promise.all([
+    const [roomExitContext, roomObjectCatalogResult, heldInventoryCatalogResult] = await Promise.all([
         getRoomExitTargetsForCharacter(content.characterId),
         getRoomObjectCatalogForCharacter(content.characterId),
+        getHeldInventoryCatalogForCharacter(content.characterId),
     ])
     const roomObjectLabels = roomObjectLabelsFromCatalog(roomObjectCatalogResult.entries)
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
@@ -499,6 +501,7 @@ const handleParseRequested = async (
         })),
         roomObjectLabels,
         roomObjectCatalog: roomObjectCatalogResult.entries,
+        heldInventoryCatalog: heldInventoryCatalogResult.entries,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
     }, { messageBus })
     const responseContext: ResponseContext = {

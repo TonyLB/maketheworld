@@ -8,6 +8,7 @@ import { navigationIntentErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
 import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
@@ -43,6 +44,9 @@ jest.mock('./roomObjectCatalogForCharacter', () => ({
     getRoomObjectCatalogForCharacter: jest.fn(),
     roomObjectLabelsFromCatalog: jest.requireActual('./roomObjectCatalogForCharacter').roomObjectLabelsFromCatalog,
 }))
+jest.mock('./heldInventoryCatalogForCharacter', () => ({
+    getHeldInventoryCatalogForCharacter: jest.fn(),
+}))
 jest.mock('./resolveHomeTargetForCharacter', () => ({
     resolveHomeTargetForCharacter: jest.fn(),
 }))
@@ -70,6 +74,7 @@ const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
 const mockedGetRoomObjectCatalogForCharacter = jest.mocked(getRoomObjectCatalogForCharacter)
+const mockedGetHeldInventoryCatalogForCharacter = jest.mocked(getHeldInventoryCatalogForCharacter)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
@@ -93,6 +98,7 @@ describe('ephemeraActionsDataSource', () => {
             exits: [],
         })
         mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({ roomId: null, entries: [] })
+        mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [] })
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         mockedParseCommand.mockResolvedValue({
@@ -1062,8 +1068,43 @@ describe('ephemeraActionsDataSource', () => {
                     roomExits: [],
                     roomObjectLabels: [],
                     roomObjectCatalog: [],
+                    heldInventoryCatalog: [],
                     occupiedStableKeys: ['alpha', 'beta'],
                 },
+                { messageBus: mockMessageBus }
+            )
+        })
+
+        it('passes heldInventoryCatalog from parallel fetch into parseCommand', async () => {
+            const heldEntry = { objectId: 'OBJECT#Broom' as const, normalizedShortName: 'broom' }
+            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [heldEntry] })
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: 'held only',
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'drop broom',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedGetHeldInventoryCatalogForCharacter).toHaveBeenCalledWith('CHARACTER#123')
+            expect(mockedParseCommand).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    heldInventoryCatalog: [heldEntry],
+                }),
                 { messageBus: mockMessageBus }
             )
         })
