@@ -52,6 +52,11 @@ const mockMessageBus = () => ({
     publish: jest.fn(),
 })
 
+const objectManipulationPositionsReadDepsForTests = () => ({
+    getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
+    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+})
+
 const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
     publish.mock.calls
         .map((call) => call[0] as StreamingEventMessage)
@@ -998,10 +1003,8 @@ describe('parseCommand LLM path', () => {
             body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"broom"}',
-        })
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await parseCommand(
             {
@@ -1014,6 +1017,8 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockAcmeOrderEnrichImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
 
@@ -1024,15 +1029,73 @@ describe('parseCommand LLM path', () => {
             confidence: 0.94,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationEnrichImpl).toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for complex manipulation enrich disposition', async () => {
+    it('returns Error for held-only object grounding (unimplementedVerb)', async () => {
+        const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
+
+        const result = await parseCommand(
+            {
+                command: 'drop the broom',
+                roomObjectLabels: [],
+                roomObjectCatalog: [],
+                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
+        })
+    })
+
+    it('prefers room catalog scope when same objectId appears in room and held catalogs', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'pick up the broom',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'held broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId: broomId,
+            confidence: 0.94,
+        })
+    })
+
+    it('returns Error for complex manipulation enrich disposition', async () => {
+        const broomId = 'OBJECT#Broom'
+        const roomId = 'ROOM#Bridge' as EphemeraRoomId
+        const tableId = 'OBJECT#Table'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
         })
@@ -1041,12 +1104,29 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put the broom on the table',
                 roomObjectLabels: ['broom'],
-                roomObjectCatalog: [{ objectId: 'OBJECT#Broom', normalizedShortName: 'broom' }],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
-            { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationEnrichImpl }
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                objectManipulationPositionsReadDeps: {
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
+                    getPositionGraph: jest.fn().mockResolvedValue({
+                        nodes: [],
+                        edges: [{
+                            tag: 'Exit',
+                            uuid: 'edge-1',
+                            from: broomId,
+                            to: tableId,
+                            payload: {},
+                        }],
+                    }),
+                },
+            }
         )
 
         expect(result.type).toBe('Error')
+        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
     it('returns ObjectManipulation for grab paraphrase after enrich', async () => {
@@ -1056,10 +1136,7 @@ describe('parseCommand LLM path', () => {
             body: '{"type":"ObjectManipulationIntent","objectSpans":["anvil"],"confidence":0.9}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"disposition":"atomic","operationKind":"takeHold","objectSpan":"anvil"}',
-        })
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
 
         const result = await parseCommand(
             {
@@ -1067,7 +1144,12 @@ describe('parseCommand LLM path', () => {
                 roomObjectLabels: ['anvil'],
                 roomObjectCatalog: [{ objectId: anvilId, normalizedShortName: 'anvil' }],
             },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl, invokeBedrockObjectManipulationEnrichImpl }
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockAcmeOrderEnrichImpl,
+                invokeBedrockObjectManipulationEnrichImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+            }
         )
 
         expect(result).toEqual({
@@ -1077,6 +1159,7 @@ describe('parseCommand LLM path', () => {
             confidence: 0.9,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
     })
 
     it('routes get rocket skates through Acme enrich when classify returns AcmeOrder', async () => {

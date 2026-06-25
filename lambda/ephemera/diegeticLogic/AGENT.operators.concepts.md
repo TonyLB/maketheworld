@@ -12,7 +12,7 @@ Atomic manipulation operators follow the same three-leg pattern as navigate:
 
 | Leg | Lane | Role |
 | --- | --- | --- |
-| **Intent** | `mtw.ephemera.actions` | Grounded proposal after classify + enrich + resolve (trusted ids post-parse) |
+| **Intent** | `mtw.ephemera.actions` | Grounded proposal after classify + split-stage enrich (trusted ids post-parse) |
 | **Fact** | `mtw.ephemera.positions` | Graph persist + **`Object Moved`** membership-host endpoints |
 | **Presentation** | `mtw.ephemera.perception` | Fan-in intent + fact -> single **`WorldMessage`** transcript line |
 
@@ -31,7 +31,7 @@ Affordance refresh on placement change reuses the existing **`Object Moved`** ->
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectManipulationIntent`** + raw object span(s) only (no **`operationKind`** at classify) |
-| Enrich | **`disposition: atomic`**, **`operationKind: takeHold`** |
+| Enrich | Identity -> membership observation -> complexity pre-gates (optional LLM); atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
@@ -73,7 +73,13 @@ When implementing, follow [**Adding an atomic position-manipulation operator**](
 
 ## Complex / relational manipulation (out of scope)
 
-Commands that require relational edges (`On`, `In`, ...), multi-object coordinated deltas, or nested container hosts are recognized at enrich as **`disposition: complex`** and finalize to a terminal parse stub in v1 --- no stream, no positions ingress. Full processing requires a **separate follow-on task plan**.
+Commands that require relational edges (`On`, `In`, ...), multi-object coordinated deltas, or nested container hosts finalize to a terminal parse **`Error`** in v1 --- no stream, no positions ingress. Player-facing rejections include:
+
+- **`multiObject`**: the command names or resolves more than one object target (e.g. "pick up the broom and the anvil").
+- **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
+- **`relationalPlacement`**: the move depends on in-room relational edges (e.g. "put the broom on the table").
+
+Full processing requires a **separate follow-on task plan**.
 
 ---
 

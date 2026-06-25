@@ -1,29 +1,47 @@
-import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+
+import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 
 export type ParseObjectManipulationEnrichPromptParts = {
     invariantPrefix: string
     dynamicSuffix: string
 }
 
-const INVARIANT_PREFIX = `You enrich player commands about manipulating scene objects in the current room.
+const IDENTITY_INVARIANT_PREFIX = `You ground a player object noun phrase to exactly one catalog object id.
+
+Respond with a single JSON object only (no markdown fences, no commentary).
+
+## Required response
+
+{ "objectId": "OBJECT#..." }
+
+- objectId must be exactly one id from the supplied catalog.
+- Pick the best match for the span given the player command and catalog entries.
+- If no catalog entry fits or more than one fits equally, still return your best single objectId.
+
+## Forbidden fields
+
+objectSpan, disposition, operationKind, complexityClass, targetId, host routing ids, graph deltas.
+`
+
+const COMPLEXITY_INVARIANT_PREFIX = `You assess whether a grounded object manipulation is atomic or complex.
+
+The object id is already resolved. Do not re-resolve identity or supply objectSpan.
 
 Respond with a single JSON object only (no markdown fences, no commentary).
 
 ## disposition: atomic (v1 implemented: takeHold only)
 
-Pick up / grab / take hold of a single in-room object:
-{ "disposition": "atomic", "operationKind": "takeHold", "objectSpan": "<raw object string>" }
-
-- objectSpan: single raw object noun phrase (articles stripped, trimmed).
-- operationKind must be exactly "takeHold" for pick-up paraphrases.
+Simple pick-up of the grounded object despite relational edges on its host:
+{ "disposition": "atomic", "operationKind": "takeHold" }
 
 ## disposition: complex (terminal stub only)
 
 Relational placement (put X on Y, tie A to B):
 { "disposition": "complex", "complexityClass": "relationalPlacement", "summary": "<optional>" }
-
-Multiple objects or deltas in one line:
-{ "disposition": "complex", "complexityClass": "multiObject", "summary": "<optional>" }
 
 Recognized manipulation but no v1 atomic path (e.g. drop until later):
 { "disposition": "complex", "complexityClass": "unimplementedVerb", "summary": "<optional>" }
@@ -33,28 +51,81 @@ Recognized manipulation but no v1 atomic path (e.g. drop until later):
 - disposition is required: exactly "atomic" or "complex".
 - When disposition is atomic, operationKind is required (v1: use "takeHold" for pick-up).
 - When disposition is complex, complexityClass is required; operationKind is forbidden.
-- Forbidden: objectId, targetId, host routing ids, graph deltas.
-- Prefer atomic takeHold when the line is a simple pick-up of one in-room catalog object.
-- Route put X on Y and multi-object relational lines to disposition complex.
+- Forbidden: objectId, objectSpan, targetId, host routing ids, graph deltas.
+- Prefer complex relationalPlacement when exit edges imply relational manipulation.
 `
 
-export function buildParseObjectManipulationEnrichPrompt(
+export function buildObjectManipulationIdentityPrompt(
     command: string,
     options: {
-        rawObjectSpans: readonly string[]
-        catalog: readonly RoomInPlayObjectCatalogEntry[]
+        rawObjectSpan: string
+        catalog: readonly ObjectManipulationCatalogEntry[]
     }
 ): ParseObjectManipulationEnrichPromptParts {
-    const catalogLabels = [...new Set(options.catalog.map(({ normalizedShortName }) => normalizedShortName))]
+    const catalogRows = options.catalog.map(({ objectId, normalizedShortName, catalogScope }) => ({
+        objectId,
+        normalizedShortName,
+        catalogScope,
+    }))
     const dynamicSuffix = [
         `Player command: ${command.trim()}`,
-        `Classifier object spans: ${JSON.stringify([...options.rawObjectSpans])}`,
-        `In-room object catalog (normalized shortNames): ${JSON.stringify(catalogLabels)}`,
+        `Object span to ground: ${JSON.stringify(options.rawObjectSpan)}`,
+        `Object catalog: ${JSON.stringify(catalogRows)}`,
         'Respond with JSON only.',
     ].join('\n')
 
     return {
-        invariantPrefix: INVARIANT_PREFIX,
+        invariantPrefix: IDENTITY_INVARIANT_PREFIX,
         dynamicSuffix,
     }
+}
+
+function summarizeTouchingEdges(graph: PlayPositionGraph, objectId: EphemeraObjectId): string[] {
+    const edges = graph.edges ?? []
+    const summaries: string[] = []
+    for (let i = 0; i < edges.length; i++) {
+        if (objectTouchesExitEdgeOnGraph({ nodes: graph.nodes, edges: [edges[i]] }, objectId)) {
+            summaries.push(`edge[${i}]`)
+        }
+    }
+    return summaries
+}
+
+export function buildObjectManipulationComplexityPrompt(
+    command: string,
+    options: {
+        objectId: EphemeraObjectId
+        containers: readonly EphemeraMembershipHostId[]
+        positionGraph?: PlayPositionGraph
+    }
+): ParseObjectManipulationEnrichPromptParts {
+    const touchingEdges = options.positionGraph !== undefined
+        ? summarizeTouchingEdges(options.positionGraph, options.objectId)
+        : []
+    const dynamicSuffix = [
+        `Player command: ${command.trim()}`,
+        `Grounded objectId: ${options.objectId}`,
+        `Membership containers: ${JSON.stringify([...options.containers])}`,
+        `Exit edges touching object: ${JSON.stringify(touchingEdges)}`,
+        'Respond with JSON only.',
+    ].join('\n')
+
+    return {
+        invariantPrefix: COMPLEXITY_INVARIANT_PREFIX,
+        dynamicSuffix,
+    }
+}
+
+/** @deprecated Use buildObjectManipulationComplexityPrompt or buildObjectManipulationIdentityPrompt */
+export function buildParseObjectManipulationEnrichPrompt(
+    command: string,
+    options: {
+        rawObjectSpans: readonly string[]
+        catalog: readonly { normalizedShortName: string }[]
+    }
+): ParseObjectManipulationEnrichPromptParts {
+    return buildObjectManipulationComplexityPrompt(command, {
+        objectId: 'OBJECT#Unknown' as EphemeraObjectId,
+        containers: [],
+    })
 }

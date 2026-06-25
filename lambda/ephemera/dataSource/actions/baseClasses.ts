@@ -22,6 +22,7 @@ import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/inv
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
+import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MessageBus } from '../../messageBus/baseClasses'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
@@ -535,6 +536,8 @@ export type ParseCommandInput = {
     roomObjectLabels?: string[]
     /** In-room object catalog for enrich and deterministic resolve (D6). */
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** Character-held inventory catalog for object-manipulation identity stage (O5). */
+    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }
@@ -544,8 +547,14 @@ export type ParseCommandDeps = {
     invokeBedrockParseCommandImpl?: typeof invokeBedrockParseCommand;
     /** Second Bedrock call for Acme line enrichment; tests may inject a mock. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
-    /** Bedrock enrich for object manipulation; tests may inject a mock. */
+    /** Bedrock enrich for object manipulation complexity stage; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Bedrock identity stage for object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Injectable Positions reads for object manipulation membership pre-gates. */
+    objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */

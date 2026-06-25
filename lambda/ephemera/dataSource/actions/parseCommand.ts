@@ -25,10 +25,14 @@ async function parseCommandCore(
                 command: input.command,
                 rawObjectSpans: intentResult.rawObjectSpans,
                 roomObjectCatalog: input.roomObjectCatalog,
+                heldInventoryCatalog: input.heldInventoryCatalog,
             },
             intentResult.confidence,
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
+                invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
+                invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
             }
         )
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }

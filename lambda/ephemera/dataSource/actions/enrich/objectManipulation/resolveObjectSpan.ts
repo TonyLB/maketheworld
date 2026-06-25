@@ -9,10 +9,14 @@ export const objectManipulationErrorMessages = {
     ambiguousMatch: 'ObjectManipulation resolution failed: ambiguous object',
     complexRelational: 'ObjectManipulation enrich: relational placement is not implemented yet',
     complexMultiObject: 'ObjectManipulation enrich: multi-object manipulation is not implemented yet',
+    complexMultiPresent: 'ObjectManipulation enrich: object is present in more than one place',
     complexUnimplementedVerb: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
+    noMembershipHost: 'ObjectManipulation resolution failed: object has no membership host',
     unimplementedAtomicOperation: 'ObjectManipulation enrich: that atomic operation is not implemented yet',
     enrichInvokeFailed: 'Object manipulation enrich failed',
     enrichParseFailed: 'Object manipulation enrich response was not valid',
+    identityInvokeFailed: 'Object manipulation identity failed',
+    identityParseFailed: 'Object manipulation identity response was not valid',
 } as const
 
 export type ObjectSpanResolutionResult =
