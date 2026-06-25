@@ -2,7 +2,7 @@
 
 **Status:** Not started. **Next:** Phase 1 --- pipeline design and open decisions; baseline tests green.
 
-Framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Parent / sibling initiative: [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) (positions apply kernel; **gates** on this plan at Phase 2 spec and Phase 4 apply).
+Framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Parent / sibling initiative: [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) (graph-first manipulation kernel + intent adapters; **gates** positions Phase 2 spec and Phase 4b migrate).
 
 **Delete criterion:** When enrich + parse wiring graduate into [`lambda/ephemera/dataSource/actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) and tests cover membership-aware atomic vs complex fall-through, slim or delete this plan.
 
@@ -14,9 +14,29 @@ Refine **`mtw.ephemera.actions`** object manipulation parse so **atomic vs compl
 
 **Problem (shipped v1):** [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/) returns `disposition: atomic | complex` from one Bedrock call; [`resolveObjectSpanToObjectId`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts) matches spans against [`roomObjectCatalogForCharacter`](../../../../../lambda/ephemera/dataSource/actions/roomObjectCatalogForCharacter.ts) (room **forward graph**). Reverse membership (`internalCache.Positions.getMembershipContainers`) is **not** consulted before complexity classification --- multi-parent / cross-host drift can reach atomic egress incorrectly.
 
-**Outcome:** Faster, more reliable **complex fall-through** when manipulation is not a simple single-parent atomic move; clearer **atomic eligibility** when it is.
+**Outcome:** Faster, more reliable **complex fall-through** when manipulation is not a simple single-parent atomic move; clearer **atomic eligibility** when it is. Atomic egress must call a **positions intent adapter** that routes through the **shared manipulation kernel** --- not a parse-local or per-verb persist fork.
 
-**Non-goals:** Positions apply kernel implementation (see manipulation model plan); relational edge persistence (slice 5+); full **`drop`** vertical (inventory catalog may be a follow-on slice here or separate).
+**Non-goals:** Positions kernel implementation (see manipulation model plan Phases 4a--4c); relational edge persistence (slice 5+); full **`drop`** vertical (inventory catalog may be a follow-on slice here or separate).
+
+---
+
+## Downstream apply (cross-lane contract)
+
+Parse classifies; positions persists. **One kernel path** for all membership transfer apply.
+
+| Parse outcome | Positions path |
+| --- | --- |
+| **Atomic** | Terminal egress (e.g. **`Object Take Hold`**) -> operator adapter (`applyObjectTakeHold`) -> **manipulation kernel** |
+| **Complex** | Terminal **`Error`** --- no stream, no positions |
+
+**Two uses of membership (do not conflate with kernel planning):**
+
+| Lane | Role |
+| --- | --- |
+| **This plan (parse)** | **`getMembershipContainers`** for **eligibility / complexity** (multi-parent -> complex). Adjacency-shaped read is appropriate. |
+| **Manipulation kernel** | **Graph-reconciled priors** for apply planning (**M1** in manipulation model plan). Parse does not implement kernel planning. |
+
+Atomic egress ids must align with **bounded** kernel apply semantics (**M2**).
 
 ---
 
@@ -25,7 +45,7 @@ Refine **`mtw.ephemera.actions`** object manipulation parse so **atomic vs compl
 1. [`taskPlanning/AGENT.md`](../../../../AGENT.md) --- durability ladder, open decisions, checkboxes.
 2. [`lambda/ephemera/dataSource/actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- shipped **`ObjectManipulationIntent`** steady-state.
 3. [`lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`takeHold`** / deferred **`drop`**.
-4. [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) --- apply modes, cross-lane dependency table.
+4. [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) --- kernel + intent adapters, apply modes, cross-lane dependency table.
 
 **Code anchors:**
 
@@ -100,7 +120,7 @@ When a row ships, update [`AGENT.implementation.md`](../../../../../lambda/ephem
 | --- | --- |
 | Steady-state parse/enrich sequence | [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- `ObjectManipulationIntent` section |
 | Atomic eligibility / complex classes | [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) if fiction-relevant |
-| Apply-mode implications | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) via manipulation model plan **M2** |
+| Apply-mode implications; kernel adapter contract | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) via manipulation model plan **M2**; kernel module path via **M5** after Phase 4a |
 
 ---
 
@@ -123,7 +143,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 - [ ] **Phase 1 --- Design**
   - [ ] Document target pipeline steps and inputs/outputs per step
   - [ ] Decide **O1**, **O2**, **O3**; record in Open decisions or mark Decided
-  - [ ] Align with manipulation model plan on atomic -> **bounded** apply semantics (**M2**)
+  - [ ] Align with manipulation model plan: atomic egress -> operator adapter -> kernel; **bounded** apply semantics (**M2**)
 - [ ] **Phase 2 --- Membership observation + pre-gates**
   - [ ] Add helper: given span-matched catalog entries, parallel `getMembershipContainers`
   - [ ] Implement deterministic pre-gates (**O4**); unit tests (multi-parent -> complex)
@@ -137,7 +157,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [ ] Confirm complex still produces no stream / no positions
 - [ ] **Phase 5 --- Graduate**
   - [ ] Extend [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)
-  - [ ] Notify manipulation model plan: ungate Phase 4 apply work when Phase 2--3 criteria met
+  - [ ] Notify manipulation model plan: ungate Phase **4b** migrate when Phase 2--3 criteria met (Phase **4a** kernel scaffold may proceed earlier)
   - [ ] Slim or delete this file
 
 ---
@@ -164,6 +184,6 @@ rg -n "getMembershipContainers|multiParent|complexityClass" \
 
 | Doc | Role |
 | --- | --- |
-| [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) | Positions kernel; upstream/downstream gates |
+| [`../positions/manipulation/AGENT.manipulationModel.planning.md`](../positions/manipulation/AGENT.manipulationModel.planning.md) | Graph-first kernel + intent adapters; upstream/downstream gates |
 | [`diegeticLogic/AGENT.implementation.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.implementation.md) | Four-lane operator hub |
 | [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) | **`Object Take Hold`** ingress |
