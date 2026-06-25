@@ -1,8 +1,8 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (actions parse Phase 2 shipped; gate cleared).
+**Status:** In progress. **Next:** Phase 2 --- kernel + shared adapter spec (actions parse graduated 2026-06-25).
 
-**Upstream gate:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) --- atomic vs complex enrich refinement (ownership **M6** = actions sub-plan).
+**Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
 Framework: [`taskPlanning/AGENT.md`](../../../../../AGENT.md). This plan converges **storage authority**, a **graph-first manipulation kernel**, a **shared membership adapter layer** for `froms`/`to` planning, and **per-operator intent coordinators** so future verbs do not accumulate parallel persist paths.
 
@@ -39,7 +39,7 @@ Per-operator coordinators       membership fact projection, stream/cache/bus bun
 
 **Anti-pattern:** new `update*PositionGraphs` modules, per-verb diff computers outside the shared adapter, or parallel transact builders per ingress.
 
-**Cross-lane dependency:** Object manipulation **parse** (actions) must classify **atomic vs complex** before positions apply runs. Atomic egress calls an **operator adapter** that routes through the **same kernel** --- not a parse-local persist fork. Detail: [**`AGENT.objectManipulationParse.planning.md`**](../../actions/AGENT.objectManipulationParse.planning.md); summary below.
+**Cross-lane dependency:** Object manipulation **parse** (actions) must classify **atomic vs complex** before positions apply runs. Atomic egress calls an **operator adapter** that routes through the **same kernel** --- not a parse-local persist fork. Detail: [**`ObjectManipulationIntent` steady-state**](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress); summary below.
 
 **Non-goals (this plan):** Slice 5+ relational edge implementation; **`drop`** operator vertical (separate plan may fork an adapter only); full graph structural diff algebra; **actions** enrich/parse pipeline spec (separate plan).
 
@@ -105,11 +105,11 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 ---
 
-## Cross-lane dependency: object parse (actions sub-plan)
+## Cross-lane dependency: object parse (actions --- graduated)
 
-**Owner:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) --- membership-aware **atomic vs complex** discriminator and fall-through in **`enrich/objectManipulation/`**.
+**Owner:** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- membership-aware **atomic vs complex** discriminator and fall-through in **`enrich/objectManipulation/`**.
 
-**Summary:** Shipped v1 uses one enrich LLM hop + deterministic catalog resolve without reverse membership observation. Next iteration (actions parse plan **Phase 1--4** done): per-span identity groundings (room + held catalogs merged) -> unary collapse -> **`getMembershipContainers`** -> complexity pre-gates (**`multiPresent`**, edge-touch, LLM fall-through) on **`Parse Requested`**. See [**Pipeline step I/O**](../../actions/AGENT.objectManipulationParse.planning.md#pipeline-step-io).
+**Summary (shipped):** Per-span identity groundings (room + held catalogs merged) -> unary collapse -> **`getMembershipContainers`** -> complexity pre-gates (**`multiPresent`**, edge-touch, LLM fall-through) on **`Parse Requested`**. See [**`ObjectManipulationIntent` steady-state**](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress).
 
 | Parse outcome | Positions expectation (this plan) |
 | --- | --- |
@@ -120,17 +120,17 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 | Lane | Role |
 | --- | --- |
-| **Actions parse** | **`getMembershipContainers(OBJECT#)`** for complexity pre-gates (**`multiPresent`** when `containers.length > 1`); **`getPositionGraph`** on sole host for edge-touch check. Identity stage merges room + held catalogs (held catalog fetched at parse ingress per **O5**); unary atomic path supplies one trusted `objectId` + ingress `roomId` for bounded **`takeHold`** (**M2**). |
+| **Actions parse** | **`getMembershipContainers(OBJECT#)`** for complexity pre-gates (**`multiPresent`** when `containers.length > 1`); **`getPositionGraph`** on sole host for edge-touch check. Identity stage merges room + held catalogs (held catalog fetched at parse ingress); unary atomic path supplies one trusted `objectId` + ingress `roomId` for bounded **`takeHold`** (**M2**). |
 | **Shared membership adapter** | **`getMembershipContainers`** (or graph-forward reads where repair already observed) to **plan** `froms`/`to` -> **`HostEffect[]`**. Same helpers for navigate, object place, **`takeHold`**, future **`drop`**. |
 | **Manipulation kernel** | Reads **`positionGraph` only on hosts in the supplied effect list** --- validate, apply, dual-write adjacency. **Does not** plan transfers. |
 
-### Gates (this plan waits on actions sub-plan)
+### Gates (actions parse graduated 2026-06-25)
 
 | This plan phase | Gate |
 | --- | --- |
-| **Phase 2** (kernel + adapter spec) | **Ungated (2026-06-25):** actions parse plan Phase 2 shipped --- parse routes **`multiPresent`** and zero-host objects to terminal Error before egress; align atomic eligibility with **M2** in spec |
-| **Phase 4a** (kernel scaffold) | None required; may run parallel to actions parse Phase 2--3 |
-| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | Actions parse plan **Phase 5** shipped --- Phase 3--4 enrich stage split + held catalog wiring live; do not change atomic **`takeHold`** apply until parse graduates to durable docs and complex routing remains reliable |
+| **Phase 2** (kernel + adapter spec) | **Ungated (2026-06-25):** parse routes **`multiPresent`** and zero-host objects to terminal Error before egress; align atomic eligibility with **M2** in spec |
+| **Phase 4a** (kernel scaffold) | None required |
+| **Phase 4b** (migrate persist through kernel; **M2** / **M5**) | **Ungated (2026-06-25):** actions parse graduated to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md); safe to migrate **`takeHold`** through shared adapter + kernel once Phase 4a scaffold exists |
 
 ---
 
@@ -192,7 +192,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | **M5** | Kernel module location: under **`manipulation/`** (top-level, sibling to `adapters/` and `membership/`) --- not `membership/` | Phase 4a | **Decided:** [`manipulation/`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/) |
 | **M8** | Shared membership adapter location | Phase 4a | **Decided:** [`manipulation/adapters/`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/) |
 | **M7** | Migration order: scaffold adapter + kernel -> object room -> character (+ `RoomStack`) -> **`takeHold`** cross-host (incremental, not big-bang) | Phase 4b | **Decided** |
-| ~~**M6**~~ | ~~Plan ownership~~ | --- | **Decided:** [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) |
+| ~~**M6**~~ | ~~Plan ownership~~ | --- | **Decided:** graduated to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) |
 
 ---
 
@@ -204,7 +204,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | Authority rules (decided M1--M4, M2, M5, M7, M8) | [`positions/AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md), [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) |
 | Module paths, shared adapter + kernel + coordinators | [`positions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) |
 | Operator playbooks | Unchanged; add link from implementation playbook to manipulation kernel |
-| Object parse pipeline | [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) -> [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) |
+| Object parse pipeline | **Done** --- [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) **`ObjectManipulationIntent` steady-state** |
 | Archaeology / session notes | Delete from this plan |
 
 ---
@@ -231,7 +231,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
 - [X] **Phase 1 --- Archaeology**
   - [X] Create this planning doc
   - [X] Capture cross-lane object parse-pipeline question (high level)
-  - [X] Decide **M6** --- promote to [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md)
+  - [X] Decide **M6** --- graduated to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)
   - [X] Review archaeology with owner; all **M1**--**M8** decided (rows remain until Phase 3 graduation)
   - [X] Link this plan from [`positions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) (one line under `manipulation/membership/`)
 - [ ] **Phase 2 --- Kernel + adapter spec** ( **gate:** actions parse plan Phase 1--2; align eligibility with **M2** )
@@ -250,7 +250,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [ ] Introduce **`manipulation/adapters/`** (**M8**): transfer planner (end-state / bounded per **M2**)
   - [ ] Introduce kernel at **`manipulation/`** top-level (**M5**): `applyHostEffects`; wrap `positionGraphMerge`, `*TransactItems`
   - [ ] Unit tests: planner modes -> effect list; effect list -> transact items; graph validation / `changed`
-- [ ] **Phase 4b --- Migrate through adapter + kernel** ( **gate:** actions parse plan Phase 3--5 shipped for object atomic paths; order per **M7** )
+- [ ] **Phase 4b --- Migrate through adapter + kernel** ( **gate cleared 2026-06-25:** actions parse graduated; order per **M7** )
   - [ ] **M7** step 1: object room --- move `computeMembershipDiff` into shared adapter; route `updateObjectPositionGraphs` through adapter + kernel
   - [ ] **M7** step 2: character (+ `RoomStack`) --- route `updatePositionGraphs` through adapter + kernel
   - [ ] **M7** step 3: **`takeHold`** cross-host --- move `computeTakeHoldDiff` into shared adapter; route `updateTakeHoldPositionGraphs` through adapter + kernel (**M2** bounded scrub)
@@ -324,4 +324,4 @@ rg -n "graph-forward|getPositionGraph" \
 | [`diegeticLogic/AGENT.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.md) | Operator semantics hub |
 | [`diegeticLogic/AGENT.implementation.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.implementation.md) | Four-lane operator playbooks |
 | [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) | Adding atomic position-manipulation operator |
-| [`../../actions/AGENT.objectManipulationParse.planning.md`](../../actions/AGENT.objectManipulationParse.planning.md) | Atomic vs complex parse/enrich (upstream) |
+| [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) | Object manipulation parse steady-state (upstream, graduated) |

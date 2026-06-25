@@ -66,13 +66,13 @@ Use when a player command commits a **membership-host** graph change via **`mtw.
 
 Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Positions apply: [**Adding a cross-host manipulation apply coordinator**](../positions/AGENT.implementation.md#adding-a-cross-host-manipulation-apply-coordinator). Normative ingress: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md).
 
-1. **When to use this path** --- atomic transfer between eligible membership hosts (room, character inventory in v1). Relational placement and multi-object deltas stay **`disposition: complex`** (terminal stub only until a follow-on plan ships).
+1. **When to use this path** --- atomic transfer between eligible membership hosts (room, character inventory in v1). Atomic eligibility is decided by cardinality gate + membership complexity pre-gates (not a single enrich disposition hop). Relational placement, multi-object deltas, and multi-host membership (`multiPresent`) terminalize as **`Error`** (no stream, no positions) until a follow-on planner ships.
 
-2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** only; thread **`movementObjectLabels`** from [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts) into the classify prompt. New operators add enrich prompt tie-breakers, not new classify discriminants, unless catalog context expands (e.g. held-object labels for **`drop`** --- decide at that slice).
+2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** only; thread **`movementObjectLabels`** from [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts) into the classify prompt. New operators add identity/complexity prompt tie-breakers, not new classify discriminants, unless catalog context expands (e.g. held-object labels for **`drop`** --- decide at that slice).
 
-3. **Enrich** --- extend [`enrich/objectManipulation/`](enrich/objectManipulation/): **`operationKind`** enum + Bedrock prompt; **`disposition: complex`** still terminal stub (no stream, no positions). Room ops use [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts); held inventory uses [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) at identity stage (atomic **`drop`** egress deferred).
+3. **Enrich (split stages)** --- extend [`enrich/objectManipulation/`](enrich/objectManipulation/): add **`operationKind`** enum + identity/complexity Bedrock prompts (separate JSON contracts). Room ops use [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts); held inventory uses [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) at identity stage (atomic **`drop`** egress deferred). Complex outcomes (`multiObject`, `multiPresent`, `relationalPlacement`, `unimplementedVerb`) remain terminal **`Error`** stubs.
 
-4. **Resolve** --- deterministic **`shortName`** match in [`enrich/objectManipulation/resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts); fail closed on ambiguity or no match.
+4. **Identity resolve** --- deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + [`catalogMerge.ts`](enrich/objectManipulation/catalogMerge.ts)); optional identity LLM on NoMatch / AmbiguousMatch; fail closed on ambiguity. Held-only grounding -> **`unimplementedVerb`** until **`drop`** slice.
 
 5. **Terminal parse** --- extend **`ParseCommandObjectManipulationResult`** / guards in [`baseClasses.ts`](baseClasses.ts) when adding **`operationKind`** values.
 
@@ -100,21 +100,44 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ## Affordance design notes
 
-### `ObjectManipulationIntent` steady-state (shipped --- classify + enrich + resolve + egress)
+### `ObjectManipulationIntent` steady-state (shipped --- membership-aware classify + enrich + egress)
 
-**In flight:** membership-aware atomic vs complex --- [`../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationParse.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationParse.planning.md). Positions kernel: [`../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Positions kernel migration: [`../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
 
-Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md).
+**Pipeline sequence:**
+
+```text
+Parse Requested
+  -> parallel: roomExitContext + roomObjectCatalog + heldInventoryCatalog
+  -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[]
+  -> cardinality gate (deterministic)
+  -> identity (stage 1): merged catalog resolve + optional identity LLM
+  -> unary collapse
+  -> membership observation + complexity pre-gates
+  -> complexity LLM (stage 2) only on pre-gate defer
+  -> terminal parse / egress (Object Take Hold) or Error (complex stub)
+```
+
+**Bedrock budget (after classify):** 0--2 hops --- identity LLM only when deterministic per-span resolve fails; complexity LLM only when pre-gates do not decide. Eligible exact-name, single-span, single-host, edge-free **`takeHold`** may need **zero** post-classify Bedrock calls.
 
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsForCharacter.ts`](roomObjectLabelsForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectLabels`** + **`roomObjectCatalog`** on **`parseCommand`** input.
 2. **Held inventory catalog:** [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) --- character `positionGraph` + character asset-stack perspective merge; parallel fetch on **`Parse Requested`**; threaded as **`heldInventoryCatalog`** on **`parseCommand`**; merged in identity stage via [`catalogMerge.ts`](enrich/objectManipulation/catalogMerge.ts) (`catalogScope: room | held`). Classify prompt stays room-label-only; held-only grounding -> **`unimplementedVerb`** Error until **`drop`** slice.
 3. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** context parallel to **`movementExitLabels`**. Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy.
 4. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
-5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- **split stages (O2):** cardinality gate -> identity (deterministic catalog + optional identity LLM per **O1**) -> unary collapse -> membership observation -> complexity pre-gates (**O4**) -> optional complexity LLM on edge-touch defer. Eligible single-span, in-room, single-host, edge-free **`takeHold`** uses **zero** post-classify Bedrock. v1 atomic **`takeHold`** only; held-only grounding -> **`unimplementedVerb`** Error until **`drop`** slice.
-6. **Resolve:** deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + [`catalogMerge.ts`](enrich/objectManipulation/catalogMerge.ts)); identity LLM may return **`objectId`** on NoMatch / AmbiguousMatch.
-7. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex stub including **`multiObject`** / **`multiPresent`**, unimplemented atomic **`operationKind`**, resolve/enrich failure, no membership host). Complex disposition: no stream, no positions.
-8. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> silent success (no OOC).
-9. **Egress:** **`streamEvent`** **`Object Take Hold`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Subscriber: **`mtw.ephemera.positions`** [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts).
+5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- split stages: cardinality gate -> identity (deterministic catalog + optional identity LLM) -> unary collapse -> membership observation (`getMembershipContainers` + sole-host `getPositionGraph` for edge-touch) -> complexity pre-gates -> optional complexity LLM on edge-touch defer. v1 atomic **`takeHold`** only.
+6. **Complexity pre-gates** (first decisive outcome wins; otherwise complexity LLM):
+
+| Order | Condition | Outcome (no Bedrock) |
+| --- | --- | --- |
+| 0 | `containers.length === 0` | **Error** --- fail closed (no membership host) |
+| 1 | `containers.length > 1` | **complex** --- `complexityClass: multiPresent` |
+| 2 | `containers.length === 1` and no exit edges on sole host `positionGraph` touch target | **atomic** --- `operationKind: takeHold` |
+| 3 | otherwise | **LLM fall-through** --- relational / edge-implied complexity |
+
+7. **`complexityClass` taxonomy** (all terminal **`Error`**, no stream, no positions): **`multiObject`** (multiple spans or multiple grounded targets in one command); **`multiPresent`** (one object, multiple membership hosts); **`relationalPlacement`** (edge-implied or LLM-classified relational move); **`unimplementedVerb`** (held-only grounding or unsupported atomic **`operationKind`**).
+8. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold`, grounded **`objectId`**) or **`Error`** (complex classes above, resolve/enrich failure, no membership host).
+9. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> silent success (no OOC).
+10. **Egress:** **`streamEvent`** **`Object Take Hold`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Subscriber: **`mtw.ephemera.positions`** [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts). Positions **`takeHold`** apply uses **bounded** mode: scrub **only** the trusted ingress **`roomId`** when the object is on that room --- not end-state scrub of all prior hosts ([`../positions/AGENT.contract.md`](../positions/AGENT.contract.md)). Parse must reject **`multiPresent`** and relational complexity before egress so bounded apply never receives ambiguous multi-host targets.
 
 ### `PromptInjectionAttempt` steady-state
 

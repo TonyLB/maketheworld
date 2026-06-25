@@ -11,8 +11,7 @@ Cross-lane index for **atomic position-manipulation** operators. Operator fictio
 ```text
 Parse Requested
   -> ObjectManipulationIntent (classify; movementObjectLabels)
-  -> enrich objectManipulation (disposition atomic | complex; operationKind at enrich)
-  -> resolve shortName against operation catalog (room for takeHold)
+  -> enrich objectManipulation (cardinality gate -> identity -> membership -> complexity pre-gates)
   -> streamEvent intent (Object Take Hold)
   -> positions apply (room-remove + character-add)
   -> streamEvent fact (Object Moved; froms room, to character)
@@ -43,7 +42,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 | --- | --- | --- | --- |
 | **`takeHold`** | Shipped | room -> character | v1 reference vertical |
 | **`drop`** | Deferred | character -> room | Symmetric delta; held-object catalog at classify TBD |
-| Relational attach (`put X on Y`, nested hosts) | Out of scope | varies | Separate task plan; enrich **`disposition: complex`** stub only in v1 |
+| Relational attach (`put X on Y`, nested hosts) | Out of scope | varies | Terminal **`Error`** / **`relationalPlacement`** at complexity stage; no stream in v1 |
 
 ---
 
@@ -51,7 +50,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 
 Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`roomObjectLabelsForCharacter.ts`](../dataSource/actions/roomObjectLabelsForCharacter.ts).
 
-Enrich + resolve: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
+Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
 
 Apply: [`applyObjectTakeHold.ts`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts), [`buildObjectMovedFact.ts`](../dataSource/positions/membership/buildObjectMovedFact.ts).
 
