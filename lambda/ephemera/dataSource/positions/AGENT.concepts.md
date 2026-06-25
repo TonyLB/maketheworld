@@ -84,6 +84,36 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
 - **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped).
 
+### Manipulation layering (membership transfer)
+
+Membership transfer persist is organized in four layers. Expedient modules (`updatePositionGraphs`, `updateTakeHoldPositionGraphs`, ...) remain authoritative until Phase 4b migration; the layering below is the steady-state mental model. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+
+```text
+Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)
+        |
+        v
+Shared membership adapter       froms/to planning, apply mode, membership observation -> HostEffect[]
+        |
+        v
+Manipulation kernel             validate + apply HostEffect[] on affected positionGraphs only
+        |
+        v
+Per-operator coordinators       membership host transfer fact projection, stream/cache/bus bundles
+```
+
+**Invariant:** the manipulation kernel does **not** discover priors via **`getMembershipContainers`** --- transfer planning lives in the shared membership adapter upstream.
+
+| Term | Meaning |
+| --- | --- |
+| **Manipulation kernel** | Graph-grounded persist executor: accept **`HostEffect[]`**, read affected hosts' `positionGraph`, validate, transact, dual-write adjacency |
+| **Host effect** | One alteration on a fixed host: add/remove identity node on `positionGraph` + matching adjacency dual-write (v1); add/remove edge (future slice 5+) |
+| **Shared membership adapter** | Reusable **transfer planner**: membership observation + apply mode (`end-state` / `bounded`) -> **`HostEffect[]`** + projected `froms`/`to` |
+| **Per-operator coordinator** | Verb-specific ingress wrapper: calls shared adapter, then kernel; owns fact/cache/bus bundle |
+| **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); planned by shared adapter; projected to bus facts as `froms[]` / `to` |
+| **Apply mode: end-state** | Planner scrubs all prior membership hosts, places at target |
+| **Apply mode: bounded** | Planner scrubs **only** hosts named by trusted ingress (v1 **`takeHold`**: passed `roomId` only --- not end-state multi-room scrub) |
+| **Layered vocabulary** | **Kernel** docs: host effects, graph-grounded persist. **Adapter** docs: transfer planning, apply modes. **Bus facts** docs: membership host transfer projection |
+
 ### Three play-time questions
 
 Area **topology**, **room membership**, and the **eviction ladder** answer different questions (instances of [graph roles](#graph-roles-shared-shape-different-authority)):

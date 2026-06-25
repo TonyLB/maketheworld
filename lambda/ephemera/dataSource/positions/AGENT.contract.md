@@ -2,7 +2,7 @@
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**) only (**S2-6** shipped). **`Character Moved`** and **`Object Moved`** are graph-diff descriptive emissions (**F1-8** / **S2-4** / **I4**). Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
+Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse, **S2-5**) only (**S2-6** shipped). **`Character Moved`** and **`Object Moved`** are **membership host transfer** projections on the bus (**F1-8** / **S2-4** / **I4**) --- `froms[]` / `to` describe eligible host endpoints, not kernel **`HostEffect[]`** granularity. Fact bus shape uses plural **`froms[]`** (fan-in **F2-2**).
 
 ---
 
@@ -24,7 +24,7 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 - Membership persist (`Meta::Room.positionGraph`, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
 - **`Object`** nodes on room **`positionGraph`** + **`OBJECT#`** adjacency rows (**I5**); objects lane owns existence rows (improvisation pair + **`Meta::Object`**) only.
 - **`Meta::Character.positionGraph`** for character-hosted inventory (**D16**); cross-host membership apply under [`manipulation/membership/`](manipulation/membership/).
-- **`Character Moved`** and **`Object Moved`** descriptive fact streams from graph-diff at persistence apply.
+- **`Character Moved`** and **`Object Moved`** descriptive fact streams --- **membership host transfer projection** from persist outcome at apply.
 - Gateway topology read backing for stored membership graph and adjacency (see [Read surface](#read-surface-s1-5-s1-15-slice-2)).
 
 **Positions must not own (presentation truth):**
@@ -36,6 +36,32 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 
 - **`PlayPositionGraph`** **must** be topology only (alias of `StandardPositionGraphData`); **must not** carry roster display fields or reverse-membership encodings on the forward graph.
 - Forward **`getPositionGraph`** **must** return stored topology only on Dynamo load; **`Positions.set`** **must** accept topology-only graphs.
+
+---
+
+## Manipulation persist layering
+
+Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layering-membership-transfer). Code map: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Gateway conflict policy: [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md).
+
+**Architectural (Phase 4b target; expedient `update*PositionGraphs` modules transitional until migration):**
+
+- Membership transfer persist **must** converge on one graph-grounded path: **shared membership adapter** plans -> **`applyHostEffects`** kernel transacts.
+- Kernel **must** accept explicit **`HostEffect[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
+- **Must not** add parallel persist paths (new `update*PositionGraphs` with bundled planner + transact; per-verb diff computers outside [`manipulation/adapters/`](manipulation/adapters/)).
+
+**Today (shipped behavior):**
+
+- On graph vs adjacency conflict, **`positionGraph` wins** (diagnostics repair from graph).
+- Transfer-planning pre-reads (**`getMembershipContainers`**) **must** run on coordinator / adapter side, **not** in kernel persist.
+
+**Apply modes:**
+
+| Mode | Coordinators | Scrub rule |
+| --- | --- | --- |
+| **end-state** | navigate, connect, disconnect, object room place | Remove from **every** prior membership host `!== target` |
+| **bounded** (room) + **end-state** (character hosts) | **`takeHold`** | Room: scrub **only** trusted ingress `roomId` when object is on that room; character: end-state on character inventory hosts |
+
+Module paths (Phase 4a+): [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) (kernel). Migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
 
 ---
 
@@ -61,7 +87,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 When **`MembershipDiff.changed`** is true and persist succeeds, the coordinator **must** run (together or not at all):
 
-1. **`streamMembershipFact`** --- **`Character Moved`** on `mtw.ephemera.positions` (graph-diff **F1-8**).
+1. **`streamMembershipFact`** --- **`Character Moved`** on `mtw.ephemera.positions` (membership host transfer projection **F1-8**).
 2. Cache memo for **every** room in **`froms`** and non-null **`to`** (`ComponentEphemeraMeta.invalidate`, `AffordanceRoomDeliverable.invalidate`, `Positions.set` / `Positions.invalidate` when roster snapshot available).
 3. `CharacterMeta.invalidate(characterId)`.
 4. `RoomUpdate` for each room in **`froms`** and non-null **`to`**.
@@ -85,9 +111,11 @@ Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). 
 
 ### `Character Moved` fact (F1-8 steady state)
 
+Membership host transfer projection --- coordinators **must** derive fact fields from persist diff (or adapter projection), not from ingress args alone.
+
 - **Must** stream only when **`MembershipDiff.changed`** after successful graph persist (**S1-8**).
-- **`froms: EphemeraRoomId[]`** = distinct prior in-play containers removed at apply (`[]` = out of play). **May** emit **`froms.length > 1`** when drift repair scrubs multiple hosts.
-- **`to`** = successful apply target (`null` on disconnect).
+- **`froms: EphemeraRoomId[]`** = distinct prior membership hosts removed at apply (`[]` = out of play). **May** emit **`froms.length > 1`** when drift repair scrubs multiple hosts.
+- **`to`** = destination membership host after apply (`null` on disconnect).
 - **`beatAnchorTime`** = recorded time at persistence apply.
 - **Must not** populate **`legalExits`** on emitted facts (**S1-10**).
 - **Must not** branch **`streamEvent`** on ingress type (navigate vs disconnect); emission is descriptive from **`MembershipDiff`** only.
@@ -106,6 +134,8 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 
 ### `Object Moved` fact (I4)
 
+Membership host transfer projection --- coordinators **must** derive fact fields from persist diff (or adapter projection), not from ingress args alone.
+
 - **Must** stream only when membership diff **`changed`** after successful object graph persist.
 - Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- membership-host endpoints (`ROOM#`, `CHARACTER#` in v1; **D8**). v1 **`takeHold`**: `froms: [ROOM#...]`, `to: CHARACTER#...`.
 - **Must not** populate presentation fields on the fact.
@@ -123,6 +153,8 @@ When object room-only **`MembershipDiff.changed`** after successful graph persis
 **Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts).
 
 ### Cross-host object membership-changed bundle (v1 `takeHold`)
+
+Bounded apply (**M2**): room remove **only** when object is on trusted ingress `roomId` --- **must not** end-state scrub other room hosts. Character add at target; remove from other character inventory hosts when present. Graph persist: [`updateTakeHoldPositionGraphs`](manipulation/membership/updateTakeHoldPositionGraphs.ts) (`computeTakeHoldDiff`).
 
 When **`ObjectMembershipDiff.changed`** after successful cross-host graph persist, the coordinator **must**:
 
@@ -169,6 +201,8 @@ Positions **must** subscribe to:
 - **Ingress:** typed pick-up via actions **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1).
 - **Must** trust actions-resolved `objectId` and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
 - **Must** call [`applyObjectTakeHold`](manipulation/membership/applyObjectTakeHold.ts) with `{ objectId, roomId, characterId }` --- atomic room-remove + character-add in one transact (**L9** / **D14**).
+- **Bounded room scrub (M2):** **must** remove object from room graph **only** when it is on trusted ingress `roomId` --- **must not** end-state scrub other room hosts.
+- **Character inventory:** **must** add at target `characterId`; **must** remove from other character inventory hosts when object is held elsewhere (`needsCharacterMove`).
 
 ### `Character Home` (positions-owned)
 

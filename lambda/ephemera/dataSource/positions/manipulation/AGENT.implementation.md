@@ -1,10 +1,10 @@
 # Positions manipulation --- implementation map and kernel spec
 
-**Status:** Phase 2 spec (kernel + shared adapter). TypeScript scaffold ships in Phase 4a; expedient persist paths remain authoritative until Phase 4b migration.
+**Status:** Phase 2 spec (kernel + shared adapter). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). TypeScript scaffold ships in Phase 4a; expedient persist paths remain authoritative until Phase 4b migration.
 
 Contracts (shipped today): [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md). Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 
-**Vocabulary note:** This spec uses **layered vocabulary** (host effect, membership host transfer, graph-grounded persist) per manipulation plan **M3**. Graduation into [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md) is Phase 3; until then, shipped contract prose may still say "graph-diff" on fact emissions.
+**Vocabulary:** Layered terms (host effect, membership host transfer, graph-grounded persist) live in [`../AGENT.concepts.md` --- Manipulation layering](../AGENT.concepts.md#manipulation-layering-membership-transfer) and [`../AGENT.contract.md` --- Manipulation persist layering](../AGENT.contract.md#manipulation-persist-layering).
 
 ---
 
@@ -201,9 +201,9 @@ Public coordinator APIs remain membership-shaped at ingress --- **not** raw `Hos
 
 ---
 
-## Section D --- Decided decisions (M4, M5, M7, M8, M2)
+## Section D --- Migration decisions (graduated to durable docs)
 
-Rows remain in the task plan **Open decisions** table until Phase 3 graduation. Spec record:
+Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.contract.md`](../AGENT.contract.md#manipulation-persist-layering) and [`../AGENT.concepts.md`](../AGENT.concepts.md#manipulation-layering-membership-transfer). This section retains the migration map for Phase 4b.
 
 | ID | Decision | Spec location |
 | --- | --- | --- |

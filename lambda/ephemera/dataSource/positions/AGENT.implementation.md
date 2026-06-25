@@ -16,7 +16,15 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ### `manipulation/` (cross-host apply today; adapter + kernel spec shipped)
 
-Kernel + shared adapter spec: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 2 **Done**). TypeScript scaffold: Phase 4a (`manipulation/adapters/`, `applyHostEffects`). Migration: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter spec: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 2 **Done**; Phase 3 vocabulary graduated). **M7** migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
+
+| Path | Role |
+| --- | --- |
+| [`manipulation/adapters/`](manipulation/adapters/) | Shared membership transfer planner (Phase 4a; **M8**) |
+| [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (Phase 4a; **M5**, **M4**) |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators + expedient persist (authoritative until Phase 4b) |
+
+Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 
 #### `manipulation/membership/` (cross-host object manipulation apply)
 
@@ -76,8 +84,8 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/objectPlacementTransactItems.ts`](membership/objectPlacementTransactItems.ts) | Shared transact item builders for object graph + adjacency |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: character graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) | Coordinator: object graph persist, `Object Moved` fact, cache seed, `RoomUpdate` |
-| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Graph-diff fact payload from **`MembershipDiff`** (F1-8) |
-| [`membership/buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) | **`Object Moved`** graph-diff fact payload (I4) |
+| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Membership host transfer fact payload from **`MembershipDiff`** (F1-8) |
+| [`membership/buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) | **`Object Moved`** membership host transfer fact payload (I4) |
 | [`membership/streamMembershipFact.ts`](membership/streamMembershipFact.ts) | `Character Moved` `streamEvent` at persistence apply |
 | [`membership/streamObjectMembershipFact.ts`](membership/streamObjectMembershipFact.ts) | `Object Moved` `streamEvent` at persistence apply |
 | [`membership/syncObjectMembershipAdjacency.ts`](membership/syncObjectMembershipAdjacency.ts) | Object adjacency-only sync when graph correct but index lags |
@@ -104,7 +112,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
 | [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects; multi-from) |
-| [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Graph-diff fact builder (including multi-from) |
+| [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Membership host transfer fact builder (including multi-from) |
 | [`navigate/executeCharacterNavigate.test.ts`](navigate/executeCharacterNavigate.test.ts) | Apply + orchestrate routing on `changed` |
 | [`navigate/orchestrateNavigate.test.ts`](navigate/orchestrateNavigate.test.ts) | Post-persist `characterMove` registration (no `MapUpdate`) |
 

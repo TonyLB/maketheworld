@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 3 doc graduation (or Phase 4a scaffold in parallel). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 2 **Done** 2026-06-25).
+**Status:** In progress. **Next:** Phase 4a shared adapter + kernel scaffold (may overlap Phase 4b prep). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 2 **Done** 2026-06-25; Phase 3 doc graduation **Done** 2026-06-25).
 
 **Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
@@ -134,7 +134,17 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 ---
 
-## Target steady-state (to graduate)
+## Target steady-state (graduated --- see durable docs)
+
+Vocabulary and authority rules below shipped to durable docs in Phase 3. Authoritative copies:
+
+- Vocabulary: [`positions/AGENT.concepts.md` --- Manipulation layering](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#manipulation-layering-membership-transfer)
+- Authority / apply modes / facts: [`positions/AGENT.contract.md` --- Manipulation persist layering](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering)
+- Kernel + adapter spec: [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md)
+- Gateway read surfaces: [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md)
+
+<details>
+<summary>Archived target tables (pre-graduation reference)</summary>
 
 ### Vocabulary ( -> `positions/AGENT.concepts.md`)
 
@@ -152,7 +162,7 @@ Three lenses coexist today; the target splits **transfer planning** (shared adap
 
 ### Authority ( -> `positions/AGENT.contract.md` + gateway `AGENT.md`)
 
-Decided (graduate at Phase 3; see Open decisions):
+Decided (graduated Phase 3):
 
 - **Conflict / repair:** graph wins (unchanged intent)
 - **Transfer planning (**M1**):** shared membership adapter upstream of kernel; kernel does **not** call **`getMembershipContainers`** to discover priors
@@ -175,24 +185,13 @@ Decided (graduate at Phase 3; see Open decisions):
 
 Operators remain intent/fact/presentation shaped per [`diegeticLogic/AGENT.implementation.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.implementation.md). This plan does not duplicate operator fiction.
 
+</details>
+
 ---
 
 ## Open decisions (implementation --- plan only)
 
-Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships to durable docs, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
-
-**Phase 1:** all rows below **Decided** (2026-06-24 archaeology review). Rows remain until Phase 3 graduation.
-
-| ID | Decision | Blocks slice | Status |
-| --- | --- | --- | --- |
-| **M1** | **Kernel boundary:** accept explicit **`HostEffect[]`** only; validate + apply on affected `positionGraph`s; **no** independent **`getMembershipContainers`** prior-read in kernel. Transfer planning lives in **shared membership adapter** upstream | Phase 2 spec; Phase 4a--4b | **Decided** (Option A; see **Target layering**) |
-| **M2** | Bounded **`takeHold`**: shared adapter scrubs **only** trusted ingress **`roomId`** (when present on that room) --- **not** end-state scrub of all room hosts | Phase 4b; **`takeHold`** tests | **Decided** (retain shipped bounded semantics) |
-| **M3** | **Layered doc vocabulary:** kernel = host effects / graph-grounded persist; adapter = transfer planning; bus facts = membership host transfer projection; retire **"graph-diff"** on fact prose | Phase 3 doc graduation | **Decided** (see **Layered vocabulary** above) |
-| **M4** | Manipulation kernel v1 primitives: **`applyHostEffects`** (membership-node add/remove) only; **host-local relational patch** as second primitive (doc stub, no impl) | Phase 2 kernel spec | **Decided** |
-| **M5** | Kernel module location: under **`manipulation/`** (top-level, sibling to `adapters/` and `membership/`) --- not `membership/` | Phase 4a | **Decided:** [`manipulation/`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/) |
-| **M8** | Shared membership adapter location | Phase 4a | **Decided:** [`manipulation/adapters/`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/) |
-| **M7** | Migration order: scaffold adapter + kernel -> object room -> character (+ `RoomStack`) -> **`takeHold`** cross-host (incremental, not big-bang) | Phase 4b | **Decided** |
-| ~~**M6**~~ | ~~Plan ownership~~ | --- | **Decided:** graduated to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) |
+All manipulation-model decisions (**M1**--**M5**, **M7**, **M8**, **M3**) graduated to durable docs in Phase 3 (2026-06-25). See [`positions/AGENT.contract.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering), [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#manipulation-layering-membership-transfer), and [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md). **M6** graduated earlier to [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md).
 
 ---
 
@@ -216,7 +215,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | 1 | As-is archaeology (this doc) | Done |
 | 1b | Fork actions parse sub-plan (**M6** decided) | Done |
 | 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Done |
-| 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Not started |
+| 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Done |
 | 4a | Shared adapter + kernel scaffold (M5, M8) | Not started |
 | 4b | Migrate through adapter + kernel (M7 incremental order) | Not started |
 | 4c | Ingress audit; prep **`drop`** as adapter-only | Not started |
@@ -240,12 +239,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Document compose rules: ingress -> shared adapter -> **`HostEffect[]`** -> kernel -> fact projection --- Section C
   - [X] Record **M4**, **M5**, **M8**, **M7** in spec (decided) --- Section D
   - [X] Document **character-row effects** (`RoomStack`) bundled with kernel transact on navigate --- Section A (`CharacterRowEffect`)
-- [ ] **Phase 3 --- Doc graduation** (may overlap Phase 4b)
-  - [ ] Update `positions/AGENT.concepts.md` (vocabulary; Target -> Shipped where applicable)
-  - [ ] Update `positions/AGENT.contract.md` (M1 adapter/kernel split, **M2** bounded `takeHold`, module paths, fact naming)
-  - [ ] Align gateway `positions/AGENT.md` conflict + read surfaces with contract
-  - [ ] Resolve **M3** in durable docs: layered vocabulary
-  - [ ] Remove decided rows from Open decisions
+- [X] **Phase 3 --- Doc graduation** (may overlap Phase 4b)
+  - [X] Update `positions/AGENT.concepts.md` (vocabulary; Target -> Shipped where applicable)
+  - [X] Update `positions/AGENT.contract.md` (M1 adapter/kernel split, **M2** bounded `takeHold`, module paths, fact naming)
+  - [X] Align gateway `positions/AGENT.md` conflict + read surfaces with contract
+  - [X] Resolve **M3** in durable docs: layered vocabulary
+  - [X] Remove decided rows from Open decisions
 - [ ] **Phase 4a --- Shared adapter + kernel scaffold** (may run parallel to actions parse Phase 2--3)
   - [ ] Introduce **`manipulation/adapters/`** (**M8**): transfer planner (end-state / bounded per **M2**)
   - [ ] Introduce kernel at **`manipulation/`** top-level (**M5**): `applyHostEffects`; wrap `positionGraphMerge`, `*TransactItems`
