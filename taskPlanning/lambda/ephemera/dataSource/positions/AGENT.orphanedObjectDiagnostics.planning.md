@@ -1,6 +1,6 @@
 # Orphaned improvised object diagnostics (spawn S1 follow-up)
 
-**Status:** Phase 0 complete. **Next:** Phase 1 --- problem report contract + S1 double-fail emission.
+**Status:** Phase 1 complete. **Next:** Phase 2 --- sweep + finding (diagnostics lambda).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
@@ -170,10 +170,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Lock **O1**--**O5** (at minimum **O2**, **O3**, **O4**, **O5** before implementation).
   - [X] Confirm orphan litmus (pair + meta + empty containers) with one worked example in plan or test fixture.
 
-- [ ] **Phase 1 --- Problem report (objects lane)**
-  - [ ] Add EventBridge contract + serializer for **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** (**O3**, **`eventBridge/ephemera/objects/`** per **O4**): `objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp` (mirror connections problem-report fields where applicable).
-  - [ ] Wire `ephemeraObjectsDataSource` (or shared stream helper) to **`streamEvent`** the problem report on S1 double-fail --- **in addition to** existing `console.error` (keep log until ops confirms EventBridge delivery).
-  - [ ] Unit tests: compensation double-fail emits problem report with expected payload + dedupeKey stability.
+- [X] **Phase 1 --- Problem report (objects lane)**
+  - [X] Add EventBridge contract + serializer for **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** (**O3**, **`eventBridge/ephemera/objects/`** per **O4**): `objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp` (mirror connections problem-report fields where applicable).
+  - [X] Wire `ephemeraObjectsDataSource` (or shared stream helper) to **`streamEvent`** the problem report on S1 double-fail --- **in addition to** existing `console.error` (keep log until ops confirms EventBridge delivery).
+  - [X] Unit tests: compensation double-fail emits problem report with expected payload + dedupeKey stability.
 
 - [ ] **Phase 2 --- Sweep + finding (diagnostics lambda)**
   - [ ] Implement [`orphanedImprovisedObjectSweep/`](../../../../../lambda/diagnostics/) (new module): classify orphans per litmus above; use gateway reads (`ImprovisationComponentData` / pair get, meta get, `queryMembershipContainersFromDynamo` or diagnostics-local equivalent).
@@ -247,7 +247,7 @@ Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds ob
 | Task plan created | Done |
 | Phase 0 (decisions + litmus) | Done |
 | **O1**--**O5** decided | Done |
-| Problem report contract + emission | Not started |
+| Problem report contract + emission | Done |
 | Sweep + finding | Not started |
 | Durable docs updated | Not started |
 | Optional repair (**O1**) | Not started |

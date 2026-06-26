@@ -96,6 +96,7 @@ Resources:
           - mtw.connections.characters
           - mtw.diagnostics
           - mtw.ephemera
+          - mtw.ephemera.objects
           - mtw.ephemera.thinking.scheduling
           - mtw.messages
           - mtw.players

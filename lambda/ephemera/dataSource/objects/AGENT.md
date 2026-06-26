@@ -42,7 +42,8 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 | Header `type` | Where | Role |
 | --- | --- | --- |
 | **`Objects Change`** | **`api.ephemera`** ingress (internal) | Imperative command; parallels **`State Change`**. Payload: **`componentId`** (room, v1) and **`{ add, remove }`**. |
-| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
+| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound (bus-only) | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
+| **`Spawn Compensation Problem`** | **`mtw.ephemera.objects`** outbound (EventBridge) | S1 double-fail: placement fails after existence create, then compensating delete also fails. Emitted via [`problemReports.ts`](problemReports.ts) **`streamSpawnCompensationProblem`** ( **`publishStreamEvent`** + PutEvents; **`Objects Changed`** remains bus-only). Contract: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts). |
 
 Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** apply coordinators, not duplicated from objects handlers.
 

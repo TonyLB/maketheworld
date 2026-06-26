@@ -9,6 +9,7 @@ import {
     persistDeleteImprovisationObject,
     persistSpawnImprovisationObject,
 } from './persistImprovisationObject'
+import { streamSpawnCompensationProblem } from './problemReports'
 
 export type SpawnImprovisationObjectRow = {
     objectId: EphemeraObjectId;
@@ -25,6 +26,7 @@ export type SpawnOneImprovisationObjectDependencies = {
     spawnImpl?: typeof persistSpawnImprovisationObject;
     applyMembershipImpl?: typeof applyObjectRoomMembership;
     deleteImpl?: typeof persistDeleteImprovisationObject;
+    streamProblemReport?: typeof streamSpawnCompensationProblem;
 }
 
 /**
@@ -37,6 +39,7 @@ export const spawnOneImprovisationObject = async (
     const spawnImpl = deps.spawnImpl ?? persistSpawnImprovisationObject
     const applyMembershipImpl = deps.applyMembershipImpl ?? applyObjectRoomMembership
     const deleteImpl = deps.deleteImpl ?? persistDeleteImprovisationObject
+    const streamProblemReport = deps.streamProblemReport ?? streamSpawnCompensationProblem
 
     const spawnResult = await spawnImpl({
         objectId: args.objectId,
@@ -60,10 +63,19 @@ export const spawnOneImprovisationObject = async (
             affectedRoomIds: [args.targetRoomId],
         })
         if (!deleteResult.ok) {
+            const deleteError = deleteResult.errorMessage ?? 'persistDeleteImprovisationObject failed'
             console.error('[mtw.ephemera.objects] spawn placement failed; compensation delete failed', {
                 objectId: args.objectId,
                 placementError,
-                deleteError: deleteResult.errorMessage,
+                deleteError,
+            })
+            await streamProblemReport({
+                objectId: args.objectId,
+                targetRoomId: args.targetRoomId,
+                placementError,
+                deleteError,
+                sourceOperation: 'spawnOneImprovisationObject',
+                attemptCount: 1,
             })
         }
         return { ok: false, errorMessage: placementError }
