@@ -1,6 +1,6 @@
 # Orphaned improvised object diagnostics (spawn S1 follow-up)
 
-**Status:** Not started. **Next:** Phase 0 --- decide problem-report wire shape and sweep scope.
+**Status:** Phase 0 complete. **Next:** Phase 1 --- problem report contract + S1 double-fail emission.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
@@ -26,7 +26,7 @@ Deliver the same signal as a **problem report** on `mtw.ephemera.objects` that t
 
 **Non-goals for initial slice:**
 
-- Automatic repair (delete orphan rows or placement retry) --- product decision; plan Phase 4 only.
+- Placement retry repair (**O1** locked to delete-on-finding for Coyote Game v1; other contexts may need different repair later).
 - Inverse drift (graph placement without pair/meta rows) --- different finding; out of scope here.
 - Changing **S1** / **S2** / **S3** spawn coordinator semantics (already shipped).
 
@@ -47,6 +47,44 @@ Without diagnostics, orphans are discoverable only via CloudWatch grep on the co
 
 **Explicit non-orphan:** object on graph with adjacency lag only --- handled by existing object placement drift repair ([`repairObjectPlacementDrift`](../../../../../lambda/ephemera/dataSource/positions/membership/repairObjectPlacementDrift.ts)), not this finding.
 
+### Worked example (orphan litmus)
+
+Concrete ids reused from [`spawnImprovisationObjectsBatch.test.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.test.ts): **`OBJECT#Skates`**, **`ROOM#Cafe`**. Phase 2 **`classification.test.ts`** should mirror these rows.
+
+**Classifier (target):** orphan **iff** pair row present **and** meta row present **and** `getMembershipContainers(objectId)` is empty. Sweep also requires an **`Object`** node absent from every room **`positionGraph`** (equivalent to empty containers for this initiative).
+
+#### Positive --- S1 double-fail orphan (emit finding)
+
+Trigger: [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) --- placement fails, then compensation delete fails.
+
+| Step | Durable state |
+| --- | --- |
+| `persistSpawnImprovisationObject` ok | `(OBJECT#Skates, ASSET#IMPROVISATION)` pair + `(OBJECT#Skates, Meta::Object)` written |
+| `applyObjectRoomMembership` fails | No **`Object`** node for **`OBJECT#Skates`** on **`ROOM#Cafe`** (or any room) graph |
+| `persistDeleteImprovisationObject` fails | Pair + meta rows **remain** |
+| Sweep reads | Pair: present; meta: present; `getMembershipContainers('OBJECT#Skates')` -> `[]` |
+
+**Outcome:** emit **`Orphaned Improvised Object Finding`** for **`OBJECT#Skates`**. Problem report intake (**O2**) passes **`objectIds: ['OBJECT#Skates']`** from the **`Spawn Compensation Problem`** payload.
+
+#### Negative --- healthy spawn (no finding)
+
+| Pair | Meta | Graph / containers | Outcome |
+| --- | --- | --- | --- |
+| present | present | `getMembershipContainers` -> `[ROOM#Cafe]` | **Not orphan** --- skip |
+
+#### Negative --- adjacency lag only (no finding)
+
+| Pair | Meta | Graph / containers | Outcome |
+| --- | --- | --- | --- |
+| present | present | **`Object`** node on **`ROOM#Cafe`** graph; `getMembershipContainers` -> `[]` or missing **`ROOM#Cafe`** | **Not orphan** --- [`repairObjectPlacementDrift`](../../../../../lambda/ephemera/dataSource/positions/membership/repairObjectPlacementDrift.ts) owns adjacency sync |
+
+#### Negative --- partial existence (no finding)
+
+| Pair | Meta | Graph / containers | Outcome |
+| --- | --- | --- | --- |
+| present only | absent | `[]` | **Not orphan** --- incomplete existence |
+| absent | present | `[]` | **Not orphan** --- incomplete existence |
+
 ---
 
 ## Target steady state (after merge)
@@ -57,7 +95,7 @@ Without diagnostics, orphans are discoverable only via CloudWatch grep on the co
 | Problem report intake + sweep trigger | Diagnostics lambda | Subscribe to `mtw.ephemera.objects` problem report; run `orphanedImprovisedObjectSweep` |
 | Read-only classification | Diagnostics lambda | Enumerate candidate `OBJECT#` ids; verify pair + meta + empty containers |
 | Finding emission | Diagnostics lambda | `mtw.diagnostics` / `Orphaned Improvised Object Finding` |
-| Optional repair | Objects or positions lane (TBD) | Consume finding --- delete rows or retry placement (**O1**) |
+| Repair (Phase 4) | Objects lane | On **`Orphaned Improvised Object Finding`** -> **`persistDeleteImprovisationObject`** (idempotent; **O1**) |
 
 ### Event flow (target)
 
@@ -72,7 +110,7 @@ sequenceDiagram
     EB->>Diag: problem report intake
     Diag->>Diag: orphanedImprovisedObjectSweep
     Diag->>EB: Orphaned Improvised Object Finding
-    EB->>Repair: optional Phase 4
+    EB->>Repair: Phase 4 delete repair (O1)
 ```
 
 ---
@@ -116,11 +154,11 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **O1** | **Repair owner and behavior:** (a) no repair v1 --- finding only; (b) objects lane `persistDeleteImprovisationObject` on finding; (c) positions lane placement retry when `targetRoomId` known on problem report. | Phase 4 | Open |
-| **O2** | **Sweep scope on problem report:** full-table scan vs targeted check of `objectId` from report payload only. Recommendation: **targeted first** (report carries `objectId`); optional full sweep via direct invoke for ops. | Phase 2 | Open |
-| **O3** | **Problem report `detail-type` name:** e.g. `Spawn Compensation Problem` on `mtw.ephemera.objects` (mirror `Session Disconnect Problem` on `mtw.connections`). | Phase 1 | Open |
-| **O4** | **EventBridge contract home:** extend [`packages/mtw-interfaces/ts/eventBridge/ephemera/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/) with an `objects` submodule vs colocate problem report in new `eventBridge/ephemera/objects/index.ts`. | Phase 1 | Open |
-| **O5** | **Finding payload:** `{ objectId }` only vs include `stableKey` / `diagnosticRunId` / optional `sourceOperation` echo. Recommendation: **`objectId` required**; `diagnosticRunId` for sweep correlation (house pattern). | Phase 2 | Open |
+| **O1** | **Repair owner and behavior:** **(b) objects lane** --- on **`Orphaned Improvised Object Finding`**, call **`persistDeleteImprovisationObject`** (idempotent). Sufficient for Coyote Game v1; non-Coyote orphan contexts may need different repair later (out of scope until product asks). | Phase 4 | **Decided** |
+| **O2** | **Sweep scope on problem report:** **targeted** --- classify **`objectId`** from the problem report payload only. **Direct invoke** on **`api.diagnostics`** may still run a **full scan** when **`objectIds`** is omitted (ops backstop). | Phase 2 | **Decided** |
+| **O3** | **Problem report `detail-type` name:** **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** (mirror **`Session Disconnect Problem`** on **`mtw.connections`**). | Phase 1 | **Decided** |
+| **O4** | **EventBridge contract home:** add **`objects`** submodule under [`packages/mtw-interfaces/ts/eventBridge/ephemera/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/) (e.g. **`eventBridge/ephemera/objects/index.ts`**). Split to a dedicated directory if the module outgrows a single file. | Phase 1 | **Decided** |
+| **O5** | **Finding payload:** **`objectId` required**; **`diagnosticRunId`** for sweep correlation (house pattern). No **`stableKey`** or **`sourceOperation`** echo on the finding wire in v1. | Phase 2 | **Decided** |
 
 ---
 
@@ -128,12 +166,12 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` as it is done.
 
-- [ ] **Phase 0 --- Decide**
-  - [ ] Lock **O1**--**O5** (at minimum **O2**, **O3**, **O4**, **O5** before implementation).
-  - [ ] Confirm orphan litmus (pair + meta + empty containers) with one worked example in plan or test fixture.
+- [X] **Phase 0 --- Decide**
+  - [X] Lock **O1**--**O5** (at minimum **O2**, **O3**, **O4**, **O5** before implementation).
+  - [X] Confirm orphan litmus (pair + meta + empty containers) with one worked example in plan or test fixture.
 
 - [ ] **Phase 1 --- Problem report (objects lane)**
-  - [ ] Add EventBridge contract + serializer for **`Spawn Compensation Problem`** (or locked name) on **`mtw.ephemera.objects`**: `objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp` (mirror connections problem-report fields where applicable).
+  - [ ] Add EventBridge contract + serializer for **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** (**O3**, **`eventBridge/ephemera/objects/`** per **O4**): `objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp` (mirror connections problem-report fields where applicable).
   - [ ] Wire `ephemeraObjectsDataSource` (or shared stream helper) to **`streamEvent`** the problem report on S1 double-fail --- **in addition to** existing `console.error` (keep log until ops confirms EventBridge delivery).
   - [ ] Unit tests: compensation double-fail emits problem report with expected payload + dedupeKey stability.
 
@@ -141,7 +179,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [ ] Implement [`orphanedImprovisedObjectSweep/`](../../../../../lambda/diagnostics/) (new module): classify orphans per litmus above; use gateway reads (`ImprovisationComponentData` / pair get, meta get, `queryMembershipContainersFromDynamo` or diagnostics-local equivalent).
   - [ ] Add **`Orphaned Improvised Object Finding`** to [`packages/mtw-interfaces/ts/eventBridge/diagnostics`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts) + serializer round-trip tests.
   - [ ] Subscribe diagnostics DataSource to **`mtw.ephemera.objects`** problem report; invocation dedupe by `dedupeKey` (reuse [`intakeDeduper`](../../../../../lambda/diagnostics/dataSource/intakeDeduper.ts) pattern --- generalize or parallel handler).
-  - [ ] Direct invoke entry: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], diagnosticRunId?, nowMs? }` on **`api.diagnostics`** (full scan when `objectIds` omitted; targeted when provided from problem report).
+  - [ ] Direct invoke entry: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], diagnosticRunId?, nowMs? }` on **`api.diagnostics`** (**O2**: problem-report intake passes **`objectIds: [objectId]`**; omit **`objectIds`** for full-scan ops backstop).
   - [ ] Tests: problem report triggers sweep; malformed report dropped; dedupe; finding emission for confirmed orphan; no finding when placement exists.
 
 - [ ] **Phase 3 --- Durable docs**
@@ -150,10 +188,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [ ] Update [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): cross-reference orphan finding (existence-without-placement).
   - [X] Trim follow-up bullets from parent spawn refactor plan or link here once Phase 1--3 ship (parent plan disposed; follow-up tracked in this document).
 
-- [ ] **Phase 4 --- Optional repair (product gate --- O1)**
-  - [ ] If **O1** = delete: objects lane handler on finding -> `persistDeleteImprovisationObject` (idempotent).
-  - [ ] If **O1** = retry placement: positions/objects coordinator with `targetRoomId` from problem report or finding enrichment.
-  - [ ] If **O1** = none: document ops runbook (manual delete or sweep-only).
+- [ ] **Phase 4 --- Repair (**O1** = delete on finding)**
+  - [ ] Objects lane handler on **`Orphaned Improvised Object Finding`** -> **`persistDeleteImprovisationObject`** (idempotent).
+  - [ ] Unit tests: confirmed orphan finding triggers delete; no-op when rows already absent.
+  - [ ] Note in durable docs: Coyote Game v1 repair is delete-only; placement retry remains a future product fork if needed.
 
 - [ ] **Phase 5 --- Close**
   - [ ] Run verification commands below.
@@ -161,11 +199,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 
 ---
 
-## Wire shapes (draft --- lock in Phase 0)
+## Wire shapes (locked --- Phase 0)
 
 ### Problem report (`mtw.ephemera.objects`)
 
-Proposed **`detail-type`:** `Spawn Compensation Problem`
+**`detail-type`:** **`Spawn Compensation Problem`** (**O3**). Contract home: **`packages/mtw-interfaces/ts/eventBridge/ephemera/objects/`** (**O4**).
 
 ```typescript
 {
@@ -187,7 +225,7 @@ Proposed **`detail-type`:** `Spawn Compensation Problem`
 
 ### Finding (`mtw.diagnostics`)
 
-Proposed **`detail-type`:** `Orphaned Improvised Object Finding`
+**`detail-type`:** **`Orphaned Improvised Object Finding`**. Payload: **`objectId`** required, **`diagnosticRunId`** for sweep correlation (**O5**).
 
 ```typescript
 {
@@ -198,7 +236,7 @@ Proposed **`detail-type`:** `Orphaned Improvised Object Finding`
 }
 ```
 
-Diagnostics remains **report-only** for v1 unless Phase 4 (**O1**) ships.
+Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds objects-lane delete repair on the finding.
 
 ---
 
@@ -207,7 +245,8 @@ Diagnostics remains **report-only** for v1 unless Phase 4 (**O1**) ships.
 | Milestone | Status |
 | --- | --- |
 | Task plan created | Done |
-| **O1**--**O5** decided | Not started |
+| Phase 0 (decisions + litmus) | Done |
+| **O1**--**O5** decided | Done |
 | Problem report contract + emission | Not started |
 | Sweep + finding | Not started |
 | Durable docs updated | Not started |
