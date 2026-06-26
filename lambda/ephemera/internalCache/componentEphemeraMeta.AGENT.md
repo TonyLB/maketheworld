@@ -21,7 +21,7 @@ Invalidation does **not** flush writes; there is no `flush()` (no write-behind).
 
 Any code path that **writes** `Meta::Room` in ephemeraDB must call `internalCache.ComponentEphemeraMeta.invalidate(roomId)` after success.
 
-Room occupancy for publish/render paths uses **`getRoomCharacterList`** ([`hydrateRoomRoster.ts`](hydrateRoomRoster.ts)), which derives from **`internalCache.Positions.getPositionGraph`** on each call. After membership apply, the coordinator seeds **`Positions.set`** from **`postApplyRoomGraphs`** returned by **`updatePositionGraphs`**. When a writer only changes other fields (e.g. `state.marks`, `currentCacheByPerspective`), invalidate only `ComponentEphemeraMeta`.
+Room occupancy for publish/render paths uses **`getRoomCharacterList`** ([`hydrateRoomRoster.ts`](hydrateRoomRoster.ts)), which derives from **`internalCache.Positions.getPositionGraph`** on each call. After membership apply, the coordinator seeds **`Positions.set`** from kernel **`postApplyGraphs`** returned by **`applyHostEffects`**. When a writer only changes other fields (e.g. `state.marks`, `currentCacheByPerspective`), invalidate only `ComponentEphemeraMeta`.
 
 ## Related
 

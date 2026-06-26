@@ -1,9 +1,9 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectTakeHold } from './applyObjectTakeHold'
-import * as graphPersist from './updateTakeHoldPositionGraphs'
+import * as kernelPersist from '../applyHostEffects'
 
-jest.mock('./updateTakeHoldPositionGraphs', () => ({
-    updateTakeHoldPositionGraphs: jest.fn(),
+jest.mock('../applyHostEffects', () => ({
+    applyHostEffects: jest.fn(),
 }))
 
 jest.mock('../../../../internalCache', () => ({
@@ -12,6 +12,7 @@ jest.mock('../../../../internalCache', () => ({
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
+            getMembershipContainers: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -25,8 +26,8 @@ jest.mock('../../../../internalUtils/dateUtil', () => ({
 
 import internalCache from '../../../../internalCache'
 
-const updateTakeHoldPositionGraphsMock = graphPersist.updateTakeHoldPositionGraphs as jest.MockedFunction<
-    typeof graphPersist.updateTakeHoldPositionGraphs
+const applyHostEffectsMock = kernelPersist.applyHostEffects as jest.MockedFunction<
+    typeof kernelPersist.applyHostEffects
 >
 
 const OBJECT_ID = 'OBJECT#Broom' as EphemeraObjectId
@@ -42,11 +43,7 @@ describe('applyObjectTakeHold', () => {
     })
 
     it('skips side-effect bundle when placement is unchanged', async () => {
-        updateTakeHoldPositionGraphsMock.mockResolvedValue({
-            ok: true,
-            persisted: false,
-            diff: { froms: [], to: CHARACTER_ID, changed: false },
-        })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([CHARACTER_ID])
 
         const result = await applyObjectTakeHold(
             { objectId: OBJECT_ID, roomId: ROOM_ID, characterId: CHARACTER_ID },
@@ -59,19 +56,19 @@ describe('applyObjectTakeHold', () => {
             to: CHARACTER_ID,
             changed: false,
         })
+        expect(applyHostEffectsMock).not.toHaveBeenCalled()
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
     it('runs membership-changed bundle on successful takeHold', async () => {
-        updateTakeHoldPositionGraphsMock.mockResolvedValue({
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([ROOM_ID])
+        applyHostEffectsMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            diff: { froms: [ROOM_ID], to: CHARACTER_ID, changed: true },
-            postApplyRoomGraphs: {
+            changed: true,
+            postApplyGraphs: {
                 [ROOM_ID]: { nodes: [], edges: [] as [] },
-            },
-            postApplyCharacterGraphs: {
                 [CHARACTER_ID]: {
                     nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
                     edges: [] as [],

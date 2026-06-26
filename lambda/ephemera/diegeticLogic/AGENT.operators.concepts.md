@@ -61,6 +61,8 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 **Expected graph delta:** Character-host remove + room-host add in one transact.
 
+**Expected persist path (deferred):** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B deferred **`drop`**.
+
 **Open at implementation time:**
 
 - Held-object label projection at classify (**`movementObjectLabels`** today is in-room only).
@@ -79,7 +81,7 @@ Commands that require relational edges (`On`, `In`, ...), multi-object coordinat
 - **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
 - **`relationalPlacement`**: the move depends on in-room relational edges (e.g. "put the broom on the table").
 
-Full processing requires a **separate follow-on task plan**.
+Full processing requires a **separate follow-on task plan** for relational **operators** (parse, facts, presentation). Persist-layer hook (documented stub): [`../dataSource/positions/manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
 
 ---
 

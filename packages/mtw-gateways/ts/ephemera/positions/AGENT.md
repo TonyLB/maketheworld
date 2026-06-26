@@ -1,6 +1,6 @@
 # Positions read surfaces (`ts/ephemera/positions`)
 
-Play position graph read handler for ephemera. **Authoritative writer:** [`lambda/ephemera/dataSource/positions/membership/`](../../../../lambda/ephemera/dataSource/positions/membership/) membership persistence API.
+Play position graph read handler for ephemera. **Authoritative writer:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)); graph-grounded persist routes through shared membership adapter -> **`applyHostEffects`** kernel per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering). Future **`positionGraph.edges`** writers: [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) (slice 5+ stub).
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
 
@@ -32,14 +32,14 @@ Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/intern
 | --- | --- | --- |
 | **`getPositionGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.positionGraph` topology only; empty graph when absent |
 | **`getPositionGraph(characterId)`** | What does this character **contain**? (inventory) | Stored `Meta::Character.positionGraph` topology only; empty graph when absent |
-| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only (**S2-5** / **S2-6**); room hosts only at steady state |
-| **`getMembershipContainers(objectId)`** | Which hosts **contain** this object? | Adjacency index only --- `ROOM#` or `CHARACTER#` hosts (**D16** / **I5**) |
+| **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only (**S2-5** / **S2-6**); room hosts only at steady state. **Transfer-planning observation** --- manipulation kernel persist **must not** use this for prior discovery ([M1](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering)). |
+| **`getMembershipContainers(objectId)`** | Which hosts **contain** this object? | Adjacency index only --- `ROOM#` or `CHARACTER#` hosts (**D16** / **I5**). Same transfer-planning role as character reverse reads. |
 
 Handler API unchanged from slice 1c.
 
 ## Storage schema (slice 2; types landed)
 
-Play membership persistence converges on two authoritative structures (**S2-5**). **Conflict policy:** stored **`positionGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch.
+Play membership persistence converges on two authoritative structures (**S2-5**). **Conflict policy:** stored **`positionGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch. Persist writers route through [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering) (adapter plans membership host transfer; kernel applies graph-grounded **`HostEffect[]`**).
 
 ### Forward: host `positionGraph` (`Meta::Room`, `Meta::Character`, ...)
 
@@ -67,12 +67,12 @@ One row per host container. Multi-container drift (character in rooms A and C) y
 
 **Query helper:** **`queryMembershipContainersFromDynamo`** in [`adjacency.ts`](adjacency.ts) --- `begins_with(DataCategory, 'POSITION#')` on contained component PK; parse SK to **`EphemeraMembershipHostId[]`**.
 
-Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoint` on `PlayPositionGraph`; legacy endpoint encoding removed).
+Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoint` on `PlayPositionGraph`; legacy endpoint encoding removed). **Role:** reverse membership and **transfer-planning observation** on coordinator / adapter paths --- not kernel prior discovery ([`AGENT.contract.md` --- Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering)).
 
 ## Handler API ([`factory.ts`](factory.ts))
 
 - **`getPositionGraph(componentId)`** --- forward **topology** graph for room or character hosts (Dynamo load + memo).
-- **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array** of eligible host ids --- **`ROOM#`** and/or **`CHARACTER#`** in v1).
+- **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array** of eligible host ids --- **`ROOM#`** and/or **`CHARACTER#`** in v1). Transfer-planning / reverse reads only; kernel graph-grounded persist **must not** call this to discover priors.
 - **Forward memo:** **`set`** / **`invalidate`** on position graphs for room or character hosts (`positionGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 

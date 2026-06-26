@@ -1,9 +1,9 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
-import * as graphPersist from './updateObjectPositionGraphs'
+import * as kernelPersist from '../manipulation/applyHostEffects'
 
-jest.mock('./updateObjectPositionGraphs', () => ({
-    updateObjectPositionGraphs: jest.fn(),
+jest.mock('../manipulation/applyHostEffects', () => ({
+    applyHostEffects: jest.fn(),
 }))
 
 jest.mock('../../../internalCache', () => ({
@@ -12,6 +12,7 @@ jest.mock('../../../internalCache', () => ({
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
+            getMembershipContainers: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -25,8 +26,8 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 
 import internalCache from '../../../internalCache'
 
-const updateObjectPositionGraphsMock = graphPersist.updateObjectPositionGraphs as jest.MockedFunction<
-    typeof graphPersist.updateObjectPositionGraphs
+const applyHostEffectsMock = kernelPersist.applyHostEffects as jest.MockedFunction<
+    typeof kernelPersist.applyHostEffects
 >
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
@@ -42,11 +43,7 @@ describe('applyObjectRoomMembership', () => {
     })
 
     it('skips side-effect bundle when placement endpoint is unchanged', async () => {
-        updateObjectPositionGraphsMock.mockResolvedValue({
-            ok: true,
-            persisted: false,
-            diff: { froms: [], to: FROM_ROOM, changed: false },
-        })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
 
         const result = await applyObjectRoomMembership(
             { objectId: OBJECT_ID, targetRoomId: FROM_ROOM },
@@ -59,16 +56,18 @@ describe('applyObjectRoomMembership', () => {
             to: FROM_ROOM,
             changed: false,
         })
+        expect(applyHostEffectsMock).not.toHaveBeenCalled()
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
     it('runs membership-changed bundle when placement changes', async () => {
-        updateObjectPositionGraphsMock.mockResolvedValue({
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        applyHostEffectsMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            diff: { froms: [FROM_ROOM], to: TO_ROOM, changed: true },
-            postApplyRoomGraphs: {
+            changed: true,
+            postApplyGraphs: {
                 [FROM_ROOM]: { nodes: [], edges: [] as [] },
                 [TO_ROOM]: {
                     nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],

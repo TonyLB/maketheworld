@@ -102,7 +102,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ### `ObjectManipulationIntent` steady-state (shipped --- membership-aware classify + enrich + egress)
 
-Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Positions kernel migration: [`../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
+Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Manipulation kernel + adapter: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md#target-layering). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
 
 **Pipeline sequence:**
 
