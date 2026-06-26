@@ -1,6 +1,6 @@
 # Spawn object refactor (two-step existence + placement)
 
-**Status:** Phase 1 complete (**S1**--**S3** implemented). **Next:** Phase 2 delete parallel paths.
+**Status:** Phase 2 complete (parallel paths removed). **Next:** Phase 3 tests.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/ephemera/dataSource/positions/`](../../../../../lambda/ephemera/dataSource/positions/) `AGENT*.md` siblings.
 
@@ -13,7 +13,7 @@ Replace the **spawn + place bundle** --- one Dynamo `transactWrite` spanning obj
 1. **Existence (objects lane):** atomically create `(OBJECT#, ASSET#IMPROVISATION)` pair + `(OBJECT#, Meta::Object)` via [`persistSpawnImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts).
 2. **Placement (positions lane):** atomically add the object to the target room via [`applyObjectRoomMembership`](../../../../../lambda/ephemera/dataSource/positions/membership/applyObjectRoomMembership.ts) -> shared adapter -> [`applyHostEffects`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts).
 
-**Why now:** Phase 4c shipped the manipulation kernel + adapter for all membership-transfer ingress. [`spawnAndPlaceImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) remains the sole documented exception; it bypasses the kernel and maintains a parallel cache path ([`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts)). Splitting existence and placement lets spawn use the **same** positions coordinator as place/remove without a kernel transact-composition extension.
+**Why now:** Phase 4c shipped the manipulation kernel + adapter for all membership-transfer ingress. The legacy spawn bundle bypassed the kernel via a single cross-lane transact and [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) for cache seeding. Splitting existence and placement lets spawn use the **same** positions coordinator as place/remove without a kernel transact-composition extension.
 
 **Non-goals for this initiative:**
 
@@ -23,17 +23,11 @@ Replace the **spawn + place bundle** --- one Dynamo `transactWrite` spanning obj
 
 ---
 
-## Problem statement
+## Problem statement (historical)
 
-Today [`spawnAndPlaceImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) inlines:
+Before Phase 1, the spawn bundle inlined pair + `Meta::Object` puts, direct `buildObjectPlacementTransactItems`, hand-built `MembershipDiff`, `computePostApplyObjectRoomGraphs` for cache seeding (kernel bypass), and duplicated `Object Moved` / cache / `RoomUpdate` bundle logic in a single cross-lane transact.
 
-- Pair + `Meta::Object` puts
-- `buildObjectPlacementTransactItems` (same builder the kernel uses, but called directly)
-- Hand-built `MembershipDiff` (`froms: []`, `to: targetRoom`)
-- `computePostApplyObjectRoomGraphs` for cache seeding (kernel bypass)
-- Duplicated `Object Moved` / cache / `RoomUpdate` bundle logic
-
-The contract currently requires a **single transact** across both lanes (**I1** / **I5** in [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)). That cross-domain atomicity is a **policy choice**, not a read-model requirement: manipulation catalog, Coyote `stableKey` occupancy, and affordance compose all key off **graph placement**, not existence rows alone. **Remove** already accepts two atomic steps in the opposite order.
+The contract required a **single transact** across both lanes (**I1** / **I5** in [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)). That cross-domain atomicity was a **policy choice**, not a read-model requirement: manipulation catalog, Coyote `stableKey` occupancy, and affordance compose all key off **graph placement**, not existence rows alone. **Remove** already accepted two atomic steps in the opposite order.
 
 ---
 
@@ -48,7 +42,7 @@ The contract currently requires a **single transact** across both lanes (**I1** 
 | Outbound placement fact | Positions lane | `Object Moved` --- from `applyObjectRoomMembership` membership-changed bundle |
 | Batch `add` failures | Objects coordinator | **Per-object isolation** (**S3**): continue remaining rows; aggregate `createdIds` + per-failure error reporting |
 
-**Removed:** `spawnAndPlaceImprovisationObject.ts`, `postApplyGraphProjection.ts` (sole caller today is spawn).
+**Removed:** `spawnAndPlaceImprovisationObject.ts`, `postApplyGraphProjection.ts` (deleted in Phase 2).
 
 ---
 
@@ -71,8 +65,7 @@ The contract currently requires a **single transact** across both lanes (**I1** 
 ```bash
 cd lambda/ephemera
 npm run test -- --watchAll=false \
-  dataSource/objects/spawnAndPlaceImprovisationObject.test.ts \
-  dataSource/objects/applyObjectsChange.test.ts \
+  dataSource/objects/spawnImprovisationObjectsBatch.test.ts \
   dataSource/objects/handleApiObjectsChange.test.ts \
   dataSource/positions/membership/applyObjectRoomMembership.test.ts \
   dataSource/positions/membership/planMembershipTransfer.objectPersist.test.ts
@@ -134,12 +127,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 
   **Note:** [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) is now dead code from spawn's perspective (Phase 2 deletes it).
 
-- [ ] **Phase 2 --- Delete parallel paths**
-  - [ ] Remove [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) and tests if any.
-  - [ ] Remove or thin [`spawnAndPlaceImprovisationObject.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) (delete if coordinator moves to `applyObjectsChange` only).
+- [X] **Phase 2 --- Delete parallel paths**
+  - [X] Remove [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) and tests if any.
+  - [X] Remove or thin [`spawnAndPlaceImprovisationObject.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) (deleted; per-object coordinator inlined into [`spawnImprovisationObjectsBatch.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) as `spawnOneImprovisationObject`).
 
 - [ ] **Phase 3 --- Tests**
-  - [ ] Update `spawnAndPlaceImprovisationObject.test.ts` -> two-step transact expectations (two `transactWrite` calls, or mock coordinators).
+  - [ ] Extend `spawnImprovisationObjectsBatch.test.ts` with integration-style two-step transact expectations if gaps remain (S1/S3 unit coverage already present).
   - [ ] Add test: existence succeeds, placement fails -> compensation delete called; placement + delete both fail -> error logged, not in `createdIds`.
   - [ ] Add test: batch partial success (**S3**) --- first `add` succeeds, second fails -> `createdIds` length 1, outbound includes only success.
   - [ ] Regression: `applyObjectRoomMembership.test.ts`, `planMembershipTransfer.objectPersist.test.ts`, Acme/handleApiObjectsChange tests.
@@ -170,7 +163,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 | Task plan created | Done |
 | **S1** / **S2** / **S3** decided | Done |
 | Phase 1 coordinator refactor | Done |
-| Parallel paths removed | Not started |
+| Parallel paths removed | Done |
 | Durable docs updated | Not started |
 
 ---
@@ -190,11 +183,11 @@ npm run test -- --watchAll=false \
 **No spawn bypass of kernel (after Phase 2):**
 
 ```bash
-rg -n "computePostApplyObjectRoomGraphs|spawnAndPlaceImprovisationObject" \
-  lambda/ephemera/dataSource/positions/
+rg -n "computePostApplyObjectRoomGraphs|postApplyGraphProjection|spawnAndPlaceImprovisationObject" \
+  lambda/ephemera/
 ```
 
-Expect **no** matches under `positions/` (spawn coordinator may remain under `objects/` until removed).
+Expect **no** matches under `lambda/ephemera/`.
 
 **Ingress audit grep (spawn uses kernel path):**
 

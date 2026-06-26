@@ -10,8 +10,7 @@ import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisat
 import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
-import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
-import { spawnImprovisationObjectsBatch } from './spawnImprovisationObjectsBatch'
+import { spawnImprovisationObjectsBatch, spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 import messageBus from '../../messageBus'
 import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
@@ -110,7 +109,7 @@ export const handleAcmeOrderAddObjects = async (
     payload: AcmeOrderPublishedPayload,
     deps: {
         streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
-        spawnAndPlaceImpl?: typeof spawnAndPlaceImprovisationObject;
+        spawnOneImpl?: typeof spawnOneImprovisationObject;
         uuidFactory?: () => string;
         getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
         resolveCharacterRoomId?: typeof resolveCharacterRoomId;
@@ -140,7 +139,7 @@ export const handleAcmeOrderAddObjects = async (
     const { createdIds, addFailures } = await spawnImprovisationObjectsBatch(rows, {
         messageBus,
         streamEvent: positionsStreamEvent,
-        spawnAndPlaceImpl: deps.spawnAndPlaceImpl,
+        spawnOneImpl: deps.spawnOneImpl,
     })
 
     if (addFailures.length > 0) {

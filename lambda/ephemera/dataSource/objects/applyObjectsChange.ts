@@ -8,9 +8,9 @@ import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
 import { persistDeleteImprovisationObject } from './persistImprovisationObject'
-import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
 import {
     spawnImprovisationObjectsBatch,
+    spawnOneImprovisationObject,
     type ApplyObjectsAddFailure,
 } from './spawnImprovisationObjectsBatch'
 
@@ -30,7 +30,7 @@ export type ApplyObjectsChangeResult =
 export type ApplyObjectsChangeDependencies = {
     messageBus?: typeof messageBus;
     positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
-    spawnAndPlaceImpl?: typeof spawnAndPlaceImprovisationObject;
+    spawnOneImpl?: typeof spawnOneImprovisationObject;
     applyMembershipImpl?: typeof applyObjectRoomMembership;
     deleteObjectImpl?: typeof persistDeleteImprovisationObject;
 }
@@ -62,7 +62,7 @@ export const applyObjectsChange = async (
 
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
-    const spawnAndPlace = deps.spawnAndPlaceImpl ?? spawnAndPlaceImprovisationObject
+    const spawnOne = deps.spawnOneImpl ?? spawnOneImprovisationObject
     const applyMembership = deps.applyMembershipImpl ?? applyObjectRoomMembership
     const deleteObject = deps.deleteObjectImpl ?? persistDeleteImprovisationObject
 
@@ -72,7 +72,7 @@ export const applyObjectsChange = async (
     const { createdIds, addFailures } = await spawnImprovisationObjectsBatch(addRows, {
         messageBus: bus,
         streamEvent: positionsStreamEvent,
-        spawnAndPlaceImpl: spawnAndPlace,
+        spawnOneImpl: spawnOne,
     })
 
     for (const objectId of args.remove) {

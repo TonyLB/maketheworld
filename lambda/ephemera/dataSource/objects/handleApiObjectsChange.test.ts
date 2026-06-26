@@ -7,7 +7,7 @@ import {
 } from './handleApiObjectsChange'
 import { applyObjectsChange } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
-import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
+import { spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 
 jest.mock('./applyObjectsChange', () => ({
     applyObjectsChange: jest.fn(),
@@ -17,13 +17,14 @@ jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
     clearCoyoteGameImprovisationObjects: jest.fn(),
 }))
 
-jest.mock('./spawnAndPlaceImprovisationObject', () => ({
-    spawnAndPlaceImprovisationObject: jest.fn(),
+jest.mock('./spawnImprovisationObjectsBatch', () => ({
+    ...jest.requireActual('./spawnImprovisationObjectsBatch'),
+    spawnOneImprovisationObject: jest.fn(),
 }))
 
 const applyObjectsChangeMock = applyObjectsChange as jest.MockedFunction<typeof applyObjectsChange>
 const clearCoyoteGameImprovisationObjectsMock = clearCoyoteGameImprovisationObjects as jest.MockedFunction<typeof clearCoyoteGameImprovisationObjects>
-const spawnAndPlaceMock = spawnAndPlaceImprovisationObject as jest.MockedFunction<typeof spawnAndPlaceImprovisationObject>
+const spawnOneMock = spawnOneImprovisationObject as jest.MockedFunction<typeof spawnOneImprovisationObject>
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
@@ -217,8 +218,8 @@ describe('handleAcmeOrderAddObjects', () => {
     }
 
     beforeEach(() => {
-        spawnAndPlaceMock.mockReset()
-        spawnAndPlaceMock.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
+        spawnOneMock.mockReset()
+        spawnOneMock.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
         streamEvent.mockClear()
     })
 
@@ -247,11 +248,11 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        expect(spawnAndPlaceMock).toHaveBeenCalledTimes(2)
-        expect(spawnAndPlaceMock).toHaveBeenNthCalledWith(
+        expect(spawnOneMock).toHaveBeenCalledTimes(2)
+        expect(spawnOneMock).toHaveBeenNthCalledWith(
             1,
             expect.objectContaining({
                 objectId: 'OBJECT#u1',
@@ -285,11 +286,11 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
         expect(resolveCharacterRoomId).toHaveBeenCalledWith('CHARACTER#123')
-        expect(spawnAndPlaceMock).toHaveBeenCalledWith(
+        expect(spawnOneMock).toHaveBeenCalledWith(
             expect.objectContaining({ targetRoomId: 'ROOM#STRAIGHTAWAY' }),
             expect.any(Object)
         )
@@ -307,11 +308,11 @@ describe('handleAcmeOrderAddObjects', () => {
         }, {
             streamEvent,
             resolveCharacterRoomId,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
         expect(resolveCharacterRoomId).not.toHaveBeenCalled()
-        expect(spawnAndPlaceMock).not.toHaveBeenCalled()
+        expect(spawnOneMock).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
@@ -328,10 +329,10 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        const spawnArgs = spawnOneMock.mock.calls[0]?.[0]
         expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
@@ -352,10 +353,10 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        const spawnArgs = spawnOneMock.mock.calls[0]?.[0]
         expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'rock-wall', roles: ['Finishing Move'] },
             { object: 'cactus', roles: ['Disadvantage'] },
