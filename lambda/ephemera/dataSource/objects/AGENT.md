@@ -106,6 +106,14 @@ npm run test -- --watchAll=false
 # npm run test dataSource/objects
 ```
 
+**Spawn refactor test inventory (S1--S3):**
+
+| File | Policies |
+| --- | --- |
+| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log; **S3** batch partial `createdIds` |
+| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove |
+| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream |
+
 **Regression checks:**
 
 - Tests under **`lambda/ephemera/dataSource/objects/`** and **`handleApiObjectsChange`** pass.

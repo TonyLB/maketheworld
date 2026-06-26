@@ -364,4 +364,75 @@ describe('handleAcmeOrderAddObjects', () => {
             { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
     })
+
+    it('streams partial createdIds when some spawns fail (S3)', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidValues = ['u1', 'u2']
+        const uuidFactory = jest.fn(() => uuidValues.shift() || 'fallback')
+        spawnOneMock.mockImplementation(async (args) => {
+            if (args.objectId === 'OBJECT#u2') {
+                return { ok: false, errorMessage: 'placement failed' }
+            }
+            return { ok: true, objectId: args.objectId }
+        })
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [
+                { shortName: 'anvil', stableKey: 'anvil' },
+                { shortName: 'magnet', stableKey: 'magnet' },
+            ],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(streamEvent).toHaveBeenCalledTimes(1)
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: 'ROOM#VORTEX',
+            header: { type: 'Objects Changed' },
+            update: {
+                type: 'Objects Changed',
+                createdIds: ['OBJECT#u1'],
+                destroyedIds: [],
+            },
+        })
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#u2',
+            stableKey: 'magnet',
+            errorMessage: 'placement failed',
+        }))
+        consoleSpy.mockRestore()
+    })
+
+    it('does not stream when all spawns fail', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+        spawnOneMock.mockResolvedValue({ ok: false, errorMessage: 'placement failed' })
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(streamEvent).not.toHaveBeenCalled()
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#u1',
+            stableKey: 'anvil',
+        }))
+        consoleSpy.mockRestore()
+    })
 })

@@ -1,6 +1,6 @@
 # Spawn object refactor (two-step existence + placement)
 
-**Status:** Phase 2 complete (parallel paths removed). **Next:** Phase 3 tests.
+**Status:** Phase 3 complete (tests). **Next:** Phase 4 durable docs.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/ephemera/dataSource/positions/`](../../../../../lambda/ephemera/dataSource/positions/) `AGENT*.md` siblings.
 
@@ -66,6 +66,7 @@ The contract required a **single transact** across both lanes (**I1** / **I5** i
 cd lambda/ephemera
 npm run test -- --watchAll=false \
   dataSource/objects/spawnImprovisationObjectsBatch.test.ts \
+  dataSource/objects/applyObjectsChange.test.ts \
   dataSource/objects/handleApiObjectsChange.test.ts \
   dataSource/positions/membership/applyObjectRoomMembership.test.ts \
   dataSource/positions/membership/planMembershipTransfer.objectPersist.test.ts
@@ -131,11 +132,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Remove [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) and tests if any.
   - [X] Remove or thin [`spawnAndPlaceImprovisationObject.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnAndPlaceImprovisationObject.ts) (deleted; per-object coordinator inlined into [`spawnImprovisationObjectsBatch.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) as `spawnOneImprovisationObject`).
 
-- [ ] **Phase 3 --- Tests**
-  - [ ] Extend `spawnImprovisationObjectsBatch.test.ts` with integration-style two-step transact expectations if gaps remain (S1/S3 unit coverage already present).
-  - [ ] Add test: existence succeeds, placement fails -> compensation delete called; placement + delete both fail -> error logged, not in `createdIds`.
-  - [ ] Add test: batch partial success (**S3**) --- first `add` succeeds, second fails -> `createdIds` length 1, outbound includes only success.
-  - [ ] Regression: `applyObjectRoomMembership.test.ts`, `planMembershipTransfer.objectPersist.test.ts`, Acme/handleApiObjectsChange tests.
+- [X] **Phase 3 --- Tests**
+  - [X] Extend `spawnImprovisationObjectsBatch.test.ts` with integration-style two-step transact expectations if gaps remain (S1/S3 unit coverage already present; no extra block needed --- `spawnOneImprovisationObject` + `applyObjectsChange` cover wiring).
+  - [X] Add test: existence succeeds, placement fails -> compensation delete called; placement + delete both fail -> error logged, not in `createdIds` (`spawnImprovisationObjectsBatch.test.ts` S1; `applyObjectsChange.test.ts` excludes failed id from `createdIds`).
+  - [X] Add test: batch partial success (**S3**) --- first `add` succeeds, second fails -> `createdIds` length 1, outbound includes only success (`spawnImprovisationObjectsBatch.test.ts`, `applyObjectsChange.test.ts`, `handleApiObjectsChange.test.ts` API + Acme paths).
+  - [X] Regression: `applyObjectRoomMembership.test.ts`, `planMembershipTransfer.objectPersist.test.ts`, Acme/handleApiObjectsChange tests (37 baseline + 154 broader scope pass).
 
 - [ ] **Phase 4 --- Durable docs**
   - [ ] Update [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): two-step spawn+place; remove single-transact bundle language; **S3** partial batch / `createdIds` semantics.
@@ -164,6 +165,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 | **S1** / **S2** / **S3** decided | Done |
 | Phase 1 coordinator refactor | Done |
 | Parallel paths removed | Done |
+| Phase 3 tests | Done |
 | Durable docs updated | Not started |
 
 ---
