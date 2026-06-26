@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 4c ingress audit. **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4b migration **Done** 2026-06-26).
+**Status:** In progress. **Next:** Phase 5 relational hook. **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4c ingress audit **Done** 2026-06-26).
 
 **Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
@@ -58,18 +58,19 @@ Read in order before editing durable docs or apply code:
 | 5 | [`lambda/ephemera/diegeticLogic/AGENT.concepts.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.concepts.md) | Local edits, intent/fact/presentation |
 | 6 | [`lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) | Shipped **`takeHold`** fiction |
 
-**Code anchors (expedient paths today):**
+**Code anchors (steady state):**
 
-- End-state membership: [`membership/updatePositionGraphs.ts`](../../../../../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts), [`membership/computeMembershipDiff`](../../../../../../lambda/ephemera/dataSource/positions/membership/updatePositionGraphs.ts) (exported)
-- Cross-host operator: [`manipulation/membership/updateTakeHoldPositionGraphs.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/updateTakeHoldPositionGraphs.ts)
+- End-state membership adapter: [`manipulation/adapters/planMembershipTransfer.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/planMembershipTransfer.ts), [`adapters/computeEndStateRoomDiff.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/computeEndStateRoomDiff.ts)
+- Cross-host operator: [`manipulation/membership/applyObjectTakeHold.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/applyObjectTakeHold.ts), [`adapters/planObjectTakeHoldTransfer.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/planObjectTakeHoldTransfer.ts)
+- Kernel: [`manipulation/applyHostEffects.ts`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts)
 - Graph merge primitives: [`membership/positionGraphMerge.ts`](../../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts)
 
 **Tests (baseline before edits):**
 
 ```bash
 npm --prefix lambda/ephemera run test -- --watchAll=false \
-  dataSource/positions/membership/updatePositionGraphs.test.ts \
-  dataSource/positions/manipulation/membership/updateTakeHoldPositionGraphs.test.ts
+  dataSource/positions/membership/planMembershipTransfer.characterPersist.test.ts \
+  dataSource/positions/manipulation/applyHostEffects.test.ts
 ```
 
 If commands conflict, follow the nearest area testing doc under `lambda/ephemera/`.
@@ -218,7 +219,7 @@ All manipulation-model decisions (**M1**--**M5**, **M7**, **M8**, **M3**) gradua
 | 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Done |
 | 4a | Shared adapter + kernel scaffold (M5, M8) | Done |
 | 4b | Migrate through adapter + kernel (M7 incremental order) | Done |
-| 4c | Ingress audit; prep **`drop`** as adapter-only | Not started |
+| 4c | Ingress audit; prep **`drop`** as adapter-only | Done |
 | 5 | Relational patch hook (doc stub only) | Not started |
 
 ---
@@ -255,9 +256,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] **M7** step 2: character (+ `RoomStack`) --- route `updatePositionGraphs` through adapter + kernel
   - [X] **M7** step 3: **`takeHold`** cross-host --- move `computeTakeHoldDiff` into shared adapter; route `updateTakeHoldPositionGraphs` through adapter + kernel (**M2** bounded scrub)
   - [X] Thin coordinators to adapter + kernel + fact bundle; update tests
-- [ ] **Phase 4c --- Ingress audit**
-  - [ ] Verify no transfer planning or transact builders outside shared adapter + kernel (`rg` audit)
-  - [ ] Document **`drop`** as future coordinator + shared adapter only (no new `update*PositionGraphs` fork)
+- [X] **Phase 4c --- Ingress audit**
+  - [X] Verify no transfer planning or transact builders outside shared adapter + kernel (`rg` audit)
+  - [X] Document **`drop`** as future coordinator + shared adapter only (no new `update*PositionGraphs` fork)
 - [ ] **Phase 5 --- Relational hook**
   - [ ] Add implementation map stub for host-local relational patch (no slice 5 code)
   - [ ] Link from [`diegeticLogic/AGENT.concepts.md`](../../../../../../lambda/ephemera/diegeticLogic/AGENT.concepts.md) future containment section
@@ -303,7 +304,7 @@ rg -n "computeTakeHoldDiff|computeMembershipDiff|updatePositionGraphs|updateObje
   lambda/ephemera/dataSource/positions/
 ```
 
-Goal after migration: transfer planners live in **shared adapter**; kernel has no **`getMembershipContainers`**; legacy `update*PositionGraphs` are thin wrappers or removed.
+Goal after migration: transfer planners live in **shared adapter**; kernel has no **`getMembershipContainers`**; no `update*PositionGraphs` modules (removed Phase 4c).
 
 **Drift repair still graph-forward:**
 

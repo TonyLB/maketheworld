@@ -4,7 +4,7 @@ import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ep
 import { createPositionsCacheHandler } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import { getRoomExitTargetsForCharacter } from '../../actions/roomExitTargetsForCharacter'
-import { updatePositionGraphs } from './updatePositionGraphs'
+import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
 
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
@@ -56,22 +56,16 @@ describe('membership containers shared memo (slice 1c)', () => {
         }) as typeof internalCache.Positions
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
-        await updatePositionGraphs(
+        await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_ID },
             {
+                messageBus: { publish: jest.fn() } as any,
+                streamEvent: jest.fn(),
                 getMembershipContainers: async (characterId) => {
                     const containers = await internalCache.Positions.getMembershipContainers(characterId)
                     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
                 },
-                transactWrite: jest.fn(),
-                getCharacterMeta: async () => ({
-                    EphemeraId: CHARACTER_ID,
-                    Name: 'Shared',
-                    RoomId: ROOM_ID,
-                    HomeId: ROOM_ID,
-                    assets: [],
-                    RoomStack: [],
-                }),
+                kernelPersist: { transactWrite: jest.fn() },
             }
         )
 

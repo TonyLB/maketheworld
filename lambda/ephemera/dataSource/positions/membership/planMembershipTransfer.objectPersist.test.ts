@@ -20,14 +20,79 @@ jest.mock('../../../internalCache', () => ({
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { updateObjectPositionGraphs } from './updateObjectPositionGraphs'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
+import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import type { MembershipDiff, ObjectMembershipApplyArgs } from './types'
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const ROOM_A = 'ROOM#VORTEX' as EphemeraRoomId
 const ROOM_B = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 
-describe('updateObjectPositionGraphs', () => {
+type PersistObjectDeps = {
+    getMembershipContainers: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
+} & ApplyHostEffectsDependencies
+
+const persistObjectRoomGraphViaKernel = async (
+    args: ObjectMembershipApplyArgs,
+    deps: PersistObjectDeps
+) => {
+    const priorContainers = await deps.getMembershipContainers(args.objectId)
+    const plan = planMembershipTransfer({
+        entityId: args.objectId,
+        entityKind: 'object',
+        applyMode: 'end-state',
+        target: args.targetRoomId,
+        priorContainers,
+    })
+
+    const diff: MembershipDiff = {
+        froms: plan.projection.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+        to: plan.projection.to !== null && isEphemeraRoomId(plan.projection.to) ? plan.projection.to : null,
+        changed: plan.projection.changed,
+    }
+
+    if (!diff.changed) {
+        return { ok: true as const, persisted: false, diff }
+    }
+
+    const kernelResult = await applyHostEffects(
+        { hostEffects: plan.hostEffects },
+        deps
+    )
+
+    if (!kernelResult.ok) {
+        return {
+            ok: false as const,
+            errorCode: 'OBJECT_MEMBERSHIP_TRANSACT_FAILED',
+            errorMessage: kernelResult.errorMessage,
+        }
+    }
+
+    if (!kernelResult.persisted) {
+        return { ok: true as const, persisted: false, diff }
+    }
+
+    const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
+        Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+    >((result, [hostId, graph]) => {
+        if (isEphemeraRoomId(hostId)) {
+            result[hostId] = graph
+        }
+        return result
+    }, {})
+
+    return {
+        ok: true as const,
+        persisted: true,
+        diff,
+        postApplyRoomGraphs,
+    }
+}
+
+describe('object room membership persist (adapter + kernel)', () => {
     const transactWrite = ephemeraDB.transactWrite as jest.Mock
     const exponentialBackoffWrapperMock = exponentialBackoffWrapper as jest.MockedFunction<typeof exponentialBackoffWrapper>
     const getMembershipContainers = jest.fn()
@@ -41,7 +106,7 @@ describe('updateObjectPositionGraphs', () => {
     it('returns persisted false without transact when endpoint is unchanged', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: ROOM_A },
             { getMembershipContainers, transactWrite }
         )
@@ -57,7 +122,7 @@ describe('updateObjectPositionGraphs', () => {
     it('returns persisted false without transact when removing from out of play', async () => {
         getMembershipContainers.mockResolvedValue([])
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: null },
             { getMembershipContainers, transactWrite }
         )
@@ -74,7 +139,7 @@ describe('updateObjectPositionGraphs', () => {
         getMembershipContainers.mockResolvedValue([])
         const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: ROOM_A },
             { getMembershipContainers, transactWrite, getPositionGraph }
         )
@@ -112,7 +177,7 @@ describe('updateObjectPositionGraphs', () => {
             return { nodes: [], edges: [] }
         })
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: ROOM_B },
             { getMembershipContainers, transactWrite, getPositionGraph }
         )
@@ -152,7 +217,7 @@ describe('updateObjectPositionGraphs', () => {
             edges: [],
         })
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: null },
             { getMembershipContainers, transactWrite, getPositionGraph }
         )
@@ -181,7 +246,7 @@ describe('updateObjectPositionGraphs', () => {
             return { nodes: [], edges: [] }
         })
 
-        const result = await updateObjectPositionGraphs(
+        const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: ROOM_B },
             { getMembershipContainers, transactWrite, getPositionGraph }
         )

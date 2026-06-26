@@ -11,7 +11,7 @@ import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { buildObjectMovedFact } from '../positions/membership/buildObjectMovedFact'
 import { buildObjectPlacementTransactItems } from '../positions/membership/objectPlacementTransactItems'
-import { computePostApplyObjectRoomGraphs } from '../positions/membership/updateObjectPositionGraphs'
+import { computePostApplyObjectRoomGraphs } from '../positions/membership/postApplyGraphProjection'
 import { streamObjectMembershipFact } from '../positions/membership/streamObjectMembershipFact'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import {

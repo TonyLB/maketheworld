@@ -14,16 +14,16 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
 
-### `manipulation/` (adapter + kernel scaffold shipped Phase 4a; expedient persist until Phase 4b)
+### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
 
-Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4a **Done** 2026-06-25). **M7** migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` stub |
+| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` |
 | [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff` |
 | [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**) |
-| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators + expedient persist (authoritative until Phase 4b) |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`; future `drop`) |
 | [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
 
 Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
@@ -34,7 +34,6 @@ Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../
 | --- | --- |
 | [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
 | [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
-| [`manipulation/membership/updateTakeHoldPositionGraphs.ts`](manipulation/membership/updateTakeHoldPositionGraphs.ts) | Thin wrapper: observe -> `planObjectTakeHoldTransfer` -> `applyHostEffects` |
 | [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Cross-host diff + apply result types |
 | [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) | Character-host **`Meta::Character.positionGraph`** + adjacency transact item builders (D16) |
 
@@ -48,16 +47,16 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts). Contract: [Cross-host object membership-changed bundle](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-takehold).
 
-4. **Graph transact** --- single **`transactWrite`**: remove from source host graph + adjacency, add to destination host. Character inventory: [`characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts). Room side reuses room membership transact patterns from [`membership/`](membership/).
+4. **Graph transact** --- coordinator -> shared adapter -> **`applyHostEffects`** only. **Must not** add `update*PositionGraphs` forks. Character inventory transact builders: [`characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts). Room side reuses room membership transact patterns from [`membership/`](membership/) via kernel.
 
 5. **Fact shape** --- extend [`buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) for eligible host ids; **must not** introduce a parallel fact type for membership-only moves.
 
 6. **Per-operator checklist**
 
-| Operator | Host direction | Intent payload | `RoomUpdate` / affordance scope |
-| --- | --- | --- | --- |
-| **`takeHold`** (shipped) | room -> character | `objectId`, `roomId`, `characterId` | **`froms`** rooms only |
-| **`drop`** (deferred) | character -> room | TBD at slice | destination room (+ source character graph memo) |
+| Operator | Host direction | Intent payload | Adapter + kernel | `RoomUpdate` / affordance scope |
+| --- | --- | --- | --- | --- |
+| **`takeHold`** (shipped) | room -> character | `objectId`, `roomId`, `characterId` | `planObjectTakeHoldTransfer` -> `applyHostEffects` | **`froms`** rooms only |
+| **`drop`** (deferred) | character -> room | `objectId`, `roomId`, `characterId` | `planObjectDropTransfer` (future) -> `applyHostEffects` | destination room (+ rooms in **`froms`** if any) |
 
 7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** describe block.
 
@@ -81,8 +80,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate (**S2-6-DR**) |
 | [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
-| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | Thin wrapper: observe -> `planMembershipTransfer` -> `applyHostEffects` + `CharacterRowEffect` (**S2-4** end-state apply) |
-| [`membership/updateObjectPositionGraphs.ts`](membership/updateObjectPositionGraphs.ts) | Thin wrapper: observe -> `planMembershipTransfer` -> `applyHostEffects` (object room placement) |
+| [`membership/postApplyGraphProjection.ts`](membership/postApplyGraphProjection.ts) | Spawn-bundle-only: `computePostApplyObjectRoomGraphs` for cache seeding; defer removal until spawn aligns with kernel |
 | [`membership/characterRoomStackTransactItems.ts`](membership/characterRoomStackTransactItems.ts) | Navigate-only `RoomStack` transact items (kernel `CharacterRowEffect`) |
 | [`membership/objectPlacementTransactItems.ts`](membership/objectPlacementTransactItems.ts) | Shared transact item builders for object graph + adjacency |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: character graph persist, `changed` gate, S1-11 bundle (fact stream first) |
@@ -104,7 +102,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / drift finding) |
 | [`manipulation/membership/applyObjectTakeHold.test.ts`](manipulation/membership/applyObjectTakeHold.test.ts) | Cross-host coordinator bundle on `changed` (fact, cache memo, `RoomUpdate`) |
 | [`manipulation/membership/executeObjectTakeHold.test.ts`](manipulation/membership/executeObjectTakeHold.test.ts) | **`Object Take Hold`** ingress entry delegates to coordinator |
-| [`manipulation/membership/updateTakeHoldPositionGraphs.test.ts`](manipulation/membership/updateTakeHoldPositionGraphs.test.ts) | Pre-read, diff, single transact (room-remove + character-add) |
+| [`manipulation/applyHostEffects.test.ts`](manipulation/applyHostEffects.test.ts) | Kernel transact, validation, RoomStack bundle, takeHold-shaped effects |
 | [`manipulation/membership/characterInventoryTransactItems.test.ts`](manipulation/membership/characterInventoryTransactItems.test.ts) | Character-host graph + adjacency transact item builders |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
@@ -112,7 +110,8 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/repairRoomOccupancyDrift.test.ts`](membership/repairRoomOccupancyDrift.test.ts) | Occupancy drift repair (ghost purge, adjacency sync, idempotency) |
 | [`membership/syncMembershipAdjacency.test.ts`](membership/syncMembershipAdjacency.test.ts) | Adjacency-only sync transact + memo |
 | [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
-| [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | Graph persist transact, drift scrub, adjacency |
+| [`membership/planMembershipTransfer.characterPersist.test.ts`](membership/planMembershipTransfer.characterPersist.test.ts) | Character navigate persist: adapter + kernel transact, drift scrub, adjacency, RoomStack |
+| [`membership/planMembershipTransfer.objectPersist.test.ts`](membership/planMembershipTransfer.objectPersist.test.ts) | Object room placement persist: adapter + kernel transact |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
 | [`membership/applyCharacterRoomMembership.test.ts`](membership/applyCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (fact stream before side effects; multi-from) |
 | [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Membership host transfer fact builder (including multi-from) |
@@ -157,7 +156,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 
 **Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder-shipped).
 
-### `updatePositionGraphs` transact locking
+### Kernel transact locking (RoomStack + room graphs)
 
 Character-row (`RoomStack`) and room-row `Update` items inside kernel `transactWrite` use the same `_optimisticUpdateFactory` / `updateReducer` pattern as standalone `optimisticUpdate` (fetch prior state, run immer reducer, conditional write).
 
@@ -170,7 +169,7 @@ Character-row (`RoomStack`) and room-row `Update` items inside kernel `transactW
 | File | Covers |
 | --- | --- |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend, rewrite-tail, fork, circus-style overlay trim |
-| [`membership/updatePositionGraphs.test.ts`](membership/updatePositionGraphs.test.ts) | `RoomStack` shape on graph persist transact (same-asset replace, child push, parent truncate) |
+| [`membership/planMembershipTransfer.characterPersist.test.ts`](membership/planMembershipTransfer.characterPersist.test.ts) | `RoomStack` shape on graph persist transact (same-asset replace, child push, parent truncate) |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility trim, relocate, trim-only, forceMove, out-of-play trim-only |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 

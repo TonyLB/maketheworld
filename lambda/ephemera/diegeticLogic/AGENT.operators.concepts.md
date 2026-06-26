@@ -61,6 +61,8 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 **Expected graph delta:** Character-host remove + room-host add in one transact.
 
+**Expected persist path (deferred):** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B deferred **`drop`**.
+
 **Open at implementation time:**
 
 - Held-object label projection at classify (**`movementObjectLabels`** today is in-room only).

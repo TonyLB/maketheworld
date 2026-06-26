@@ -29,7 +29,11 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
-import { computeMembershipDiff, updatePositionGraphs } from './updatePositionGraphs'
+import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { computeMembershipDiff } from '../manipulation/adapters/computeEndStateRoomDiff'
+import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
+import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import type { MembershipApplyArgs, MembershipDiff } from './types'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const ROOM_A = 'ROOM#VORTEX' as EphemeraRoomId
@@ -61,6 +65,93 @@ const getPositionGraphForCharacterRooms = async (
     presentOn: EphemeraRoomId[]
 ) => (isEphemeraRoomId(hostId) && presentOn.includes(hostId) ? characterPresentGraph : emptyGraph)
 
+type PersistCharacterDeps = {
+    getCharacterMeta?: () => Promise<CharacterMetaItem>;
+    getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
+    getCanonAssets?: () => Promise<string[] | undefined>;
+    getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
+} & ApplyHostEffectsDependencies
+
+const persistCharacterRoomGraphViaKernel = async (
+    args: MembershipApplyArgs,
+    deps: PersistCharacterDeps
+) => {
+    const priorContainers = await deps.getMembershipContainers(args.characterId)
+    const plan = planMembershipTransfer({
+        entityId: args.characterId,
+        entityKind: 'character',
+        applyMode: 'end-state',
+        target: args.targetRoomId,
+        priorContainers,
+    })
+
+    const diff: MembershipDiff = {
+        froms: plan.projection.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+        to: plan.projection.to !== null && isEphemeraRoomId(plan.projection.to) ? plan.projection.to : null,
+        changed: plan.projection.changed,
+    }
+
+    if (!diff.changed) {
+        return { ok: true as const, persisted: false, diff }
+    }
+
+    const characterMetaRow = deps.getCharacterMeta ? await deps.getCharacterMeta() : characterMeta
+
+    const [roomAssets = [], canonAssets = []] = diff.to
+        ? await Promise.all([
+            deps.getRoomAssets?.(diff.to) ?? Promise.resolve([]),
+            deps.getCanonAssets?.() ?? Promise.resolve([]),
+        ])
+        : [[], []]
+
+    const characterRowEffects = diff.to !== null
+        ? [{
+            characterId: characterMetaRow.EphemeraId,
+            targetRoomId: diff.to,
+            characterAssets: characterMetaRow.assets || [],
+            roomAssets,
+            canonAssets,
+            currentRoomStack: characterMetaRow.RoomStack ?? [],
+        }]
+        : []
+
+    const kernelResult = await applyHostEffects(
+        {
+            hostEffects: plan.hostEffects,
+            characterRowEffects,
+        },
+        deps
+    )
+
+    if (!kernelResult.ok) {
+        return {
+            ok: false as const,
+            errorCode: 'MEMBERSHIP_TRANSACT_FAILED',
+            errorMessage: kernelResult.errorMessage,
+        }
+    }
+
+    if (!kernelResult.persisted) {
+        return { ok: true as const, persisted: false, diff }
+    }
+
+    const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
+        Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+    >((result, [hostId, graph]) => {
+        if (isEphemeraRoomId(hostId)) {
+            result[hostId] = graph
+        }
+        return result
+    }, {})
+
+    return {
+        ok: true as const,
+        persisted: true,
+        diff,
+        postApplyRoomGraphs,
+    }
+}
+
 describe('computeMembershipDiff', () => {
     it('detects no change when already at target', () => {
         expect(computeMembershipDiff([ROOM_A], ROOM_A)).toEqual({
@@ -87,7 +178,7 @@ describe('computeMembershipDiff', () => {
     })
 })
 
-describe('updatePositionGraphs', () => {
+describe('character membership persist (adapter + kernel)', () => {
     const transactWrite = ephemeraDB.transactWrite as jest.Mock
     const exponentialBackoffWrapperMock = exponentialBackoffWrapper as jest.MockedFunction<typeof exponentialBackoffWrapper>
     const getMembershipContainers = jest.fn()
@@ -101,7 +192,7 @@ describe('updatePositionGraphs', () => {
     it('returns persisted false without transact when endpoint is unchanged', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
 
-        const result = await updatePositionGraphs(
+        const result = await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_A },
             {
                 getMembershipContainers,
@@ -121,7 +212,7 @@ describe('updatePositionGraphs', () => {
     it('returns persisted false without transact when disconnecting from out of play', async () => {
         getMembershipContainers.mockResolvedValue([])
 
-        const result = await updatePositionGraphs(
+        const result = await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: null },
             {
                 getMembershipContainers,
@@ -144,7 +235,7 @@ describe('updatePositionGraphs', () => {
             async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A])
         )
 
-        const result = await updatePositionGraphs(
+        const result = await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
             {
                 getMembershipContainers,
@@ -220,7 +311,7 @@ describe('updatePositionGraphs', () => {
             async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A])
         )
 
-        const result = await updatePositionGraphs(
+        const result = await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: null },
             {
                 getMembershipContainers,
@@ -250,7 +341,7 @@ describe('updatePositionGraphs', () => {
             async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A, ROOM_C])
         )
 
-        const result = await updatePositionGraphs(
+        const result = await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
             {
                 getMembershipContainers,
@@ -293,7 +384,7 @@ describe('updatePositionGraphs', () => {
         ]
         const dynamoStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
 
-        await updatePositionGraphs(
+        await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
             {
                 getMembershipContainers,
@@ -350,7 +441,7 @@ describe('updatePositionGraphs', () => {
             }
         })
 
-        await updatePositionGraphs(
+        await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
             {
                 getMembershipContainers,
@@ -414,7 +505,7 @@ describe('updatePositionGraphs', () => {
     }) => {
         getMembershipContainers.mockResolvedValue([fromRoomId])
 
-        await updatePositionGraphs(
+        await persistCharacterRoomGraphViaKernel(
             { characterId: CHARACTER_ID, targetRoomId },
             {
                 getMembershipContainers,

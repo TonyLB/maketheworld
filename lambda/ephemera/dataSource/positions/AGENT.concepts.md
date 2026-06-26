@@ -82,11 +82,11 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
-- **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped).
+- **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped). Future **`drop`**: same adapter + kernel path via deferred **`applyObjectDrop`** --- **no** new `update*PositionGraphs` fork.
 
 ### Manipulation layering (membership transfer)
 
-Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`applyHostEffects`** kernel; legacy **`update*PositionGraphs`** modules are thin wrappers over the same path. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`applyHostEffects`** kernel. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
 
 ```text
 Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)
