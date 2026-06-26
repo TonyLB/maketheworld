@@ -114,6 +114,56 @@ describe('handleApiObjectsChangeCommand', () => {
             },
         })
     })
+
+    it('streams partial createdIds when some adds failed', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const roomId = 'ROOM#partial' as EphemeraRoomId
+        applyObjectsChangeMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            createdIds: ['OBJECT#a' as EphemeraObjectId],
+            destroyedIds: [],
+            addFailures: [{
+                objectId: 'OBJECT#b' as EphemeraObjectId,
+                stableKey: 'b',
+                errorMessage: 'placement failed',
+            }],
+        })
+        await handleApiObjectsChangeCommand(
+            { componentId: roomId, add: [obj('a', 'A'), obj('b', 'B')], remove: [] },
+            { streamEvent }
+        )
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            streamKey: roomId,
+            update: expect.objectContaining({
+                createdIds: ['OBJECT#a'],
+            }),
+        }))
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#b',
+            stableKey: 'b',
+        }))
+        consoleSpy.mockRestore()
+    })
+
+    it('does not stream when all adds failed', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        applyObjectsChangeMock.mockResolvedValue({
+            ok: false,
+            errorMessage: '1 add(s) failed',
+            addFailures: [{
+                objectId: 'OBJECT#x' as EphemeraObjectId,
+                stableKey: 'x',
+                errorMessage: 'placement failed',
+            }],
+        })
+        await handleApiObjectsChangeCommand(
+            { componentId: 'ROOM#allfail' as EphemeraRoomId, add: [obj('x', 'X')], remove: [] },
+            { streamEvent }
+        )
+        expect(streamEvent).not.toHaveBeenCalled()
+        consoleSpy.mockRestore()
+    })
 })
 
 describe('handleAwaitRoadRunnerClearObjects', () => {

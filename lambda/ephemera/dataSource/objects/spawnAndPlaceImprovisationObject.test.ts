@@ -1,98 +1,135 @@
-jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
-    ephemeraDB: {
-        transactWrite: jest.fn(),
-    },
-    exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => fn()),
+jest.mock('./persistImprovisationObject', () => ({
+    persistSpawnImprovisationObject: jest.fn(),
+    persistDeleteImprovisationObject: jest.fn(),
 }))
 
-jest.mock('../../internalCache', () => ({
-    __esModule: true,
-    default: {
-        ComponentEphemeraMeta: { invalidate: jest.fn() },
-        AffordanceRoomDeliverable: { invalidate: jest.fn() },
-        Positions: {
-            getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
-            set: jest.fn(),
-            setMembershipContainers: jest.fn(),
-            invalidate: jest.fn(),
-        },
-        ImprovisationComponentData: { set: jest.fn() },
-        ObjectEphemeraMeta: { set: jest.fn() },
-    },
+jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
+    applyObjectRoomMembership: jest.fn(),
 }))
 
-jest.mock('../../internalUtils/dateUtil', () => ({
-    __esModule: true,
-    default: jest.fn(() => 1_700_000_000_000),
-}))
-
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import internalCache from '../../internalCache'
+import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import {
+    persistDeleteImprovisationObject,
+    persistSpawnImprovisationObject,
+} from './persistImprovisationObject'
 import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
+const spawnArgs = {
+    objectId: OBJECT_ID,
+    shortName: 'Skates',
+    stableKey: 'skates',
+    targetRoomId: ROOM_ID,
+}
+
 describe('spawnAndPlaceImprovisationObject', () => {
-    const transactWrite = ephemeraDB.transactWrite as jest.Mock
+    const spawnImpl = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
+    const applyMembershipImpl = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const deleteImpl = persistDeleteImprovisationObject as jest.MockedFunction<typeof persistDeleteImprovisationObject>
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
-        transactWrite.mockResolvedValue(undefined)
+        spawnImpl.mockResolvedValue({ ok: true, objectId: OBJECT_ID })
+        applyMembershipImpl.mockResolvedValue({
+            ok: true,
+            froms: [],
+            to: ROOM_ID,
+            changed: true,
+        })
+        deleteImpl.mockResolvedValue({ ok: true, objectId: OBJECT_ID })
     })
 
-    it('transacts pair, meta, graph, and adjacency in one bundle', async () => {
-        const result = await spawnAndPlaceImprovisationObject(
-            {
-                objectId: OBJECT_ID,
-                shortName: 'Skates',
-                stableKey: 'skates',
-                targetRoomId: ROOM_ID,
-            },
-            { messageBus: messageBus as any, streamEvent }
-        )
+    it('persists existence then applies room membership', async () => {
+        const result = await spawnAndPlaceImprovisationObject(spawnArgs, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
+        })
 
         expect(result).toEqual({ ok: true, objectId: OBJECT_ID })
-        expect(transactWrite).toHaveBeenCalledTimes(1)
-
-        const items = transactWrite.mock.calls[0][0]
-        expect(items).toHaveLength(4)
-        expect(items[0].Put).toEqual(expect.objectContaining({
-            EphemeraId: OBJECT_ID,
-            DataCategory: IMPROVISATION_ASSET_ID,
+        expect(spawnImpl).toHaveBeenCalledWith({
+            objectId: OBJECT_ID,
             shortName: 'Skates',
-        }))
-        expect(items[1].Put).toEqual(expect.objectContaining({
-            EphemeraId: OBJECT_ID,
-            DataCategory: 'Meta::Object',
             stableKey: 'skates',
-        }))
-        expect(items[2].Update.Key.EphemeraId).toBe(ROOM_ID)
-        expect(items[3].Put).toEqual({
-            EphemeraId: OBJECT_ID,
-            DataCategory: buildPositionAdjacencyDataCategory(ROOM_ID),
+        })
+        expect(applyMembershipImpl).toHaveBeenCalledWith(
+            { objectId: OBJECT_ID, targetRoomId: ROOM_ID },
+            { messageBus, streamEvent }
+        )
+        expect(deleteImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns early when existence persist fails', async () => {
+        spawnImpl.mockResolvedValue({ ok: false, errorMessage: 'transact failed' })
+
+        const result = await spawnAndPlaceImprovisationObject(spawnArgs, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
         })
 
-        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
-            streamKey: OBJECT_ID,
-            header: { type: 'Object Moved' },
-            update: expect.objectContaining({
-                type: 'Object Moved',
-                objectId: OBJECT_ID,
-                froms: [],
-                to: ROOM_ID,
-            }),
-        }))
-        expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_ID })
-        expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(ROOM_ID)
-        expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
-            componentId: OBJECT_ID,
-            containers: [ROOM_ID],
+        expect(result).toEqual({ ok: false, errorMessage: 'transact failed' })
+        expect(applyMembershipImpl).not.toHaveBeenCalled()
+        expect(deleteImpl).not.toHaveBeenCalled()
+    })
+
+    it('compensates with delete when placement fails', async () => {
+        applyMembershipImpl.mockResolvedValue({
+            ok: false,
+            errorCode: 'KERNEL_FAIL',
+            errorMessage: 'placement failed',
         })
+
+        const result = await spawnAndPlaceImprovisationObject(spawnArgs, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
+        })
+
+        expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
+        expect(deleteImpl).toHaveBeenCalledWith({
+            objectId: OBJECT_ID,
+            affectedRoomIds: [ROOM_ID],
+        })
+    })
+
+    it('logs when placement and compensation delete both fail', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        applyMembershipImpl.mockResolvedValue({
+            ok: false,
+            errorCode: 'KERNEL_FAIL',
+            errorMessage: 'placement failed',
+        })
+        deleteImpl.mockResolvedValue({ ok: false, errorMessage: 'delete failed' })
+
+        const result = await spawnAndPlaceImprovisationObject(spawnArgs, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
+        })
+
+        expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.objects] spawn placement failed; compensation delete failed',
+            expect.objectContaining({
+                objectId: OBJECT_ID,
+                placementError: 'placement failed',
+                deleteError: 'delete failed',
+            })
+        )
+        consoleSpy.mockRestore()
     })
 })

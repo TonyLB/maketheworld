@@ -334,9 +334,9 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 | Path | Role |
 | --- | --- |
-| [`spawnAndPlaceImprovisationObject.ts`](../../objects/spawnAndPlaceImprovisationObject.ts) | Spawn bundle (**I1/I5**): improvisation pair + meta + `buildObjectPlacementTransactItems` in one transact |
+| [`spawnAndPlaceImprovisationObject.ts`](../../objects/spawnAndPlaceImprovisationObject.ts) | Thin two-step spawn coordinator (existence + placement); routes placement through kernel via `applyObjectRoomMembership` (Phase 2 may inline into batch helper) |
 | [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) / [`syncObjectMembershipAdjacency.ts`](../membership/syncObjectMembershipAdjacency.ts) | Adjacency-only sync when graph is correct but reverse index lags |
-| [`postApplyGraphProjection.ts`](../membership/postApplyGraphProjection.ts) | Spawn-bundle-only diff projection for cache seeding (`computePostApplyObjectRoomGraphs`); defer removal until spawn aligns with kernel |
+| [`postApplyGraphProjection.ts`](../membership/postApplyGraphProjection.ts) | **Dead code** after Phase 1 spawn refactor; Phase 2 removes |
 
 **Removed:** `updatePositionGraphs`, `updateObjectPositionGraphs`, `updateTakeHoldPositionGraphs` (redundant with coordinators).
 

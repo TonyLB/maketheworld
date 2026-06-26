@@ -1,7 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 import messageBus from '../../messageBus'
 import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
@@ -10,6 +9,12 @@ import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from 
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
 import { persistDeleteImprovisationObject } from './persistImprovisationObject'
 import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
+import {
+    spawnImprovisationObjectsBatch,
+    type ApplyObjectsAddFailure,
+} from './spawnImprovisationObjectsBatch'
+
+export type { ApplyObjectsAddFailure }
 
 export type ApplyObjectsChangeArgs = {
     roomId: EphemeraRoomId;
@@ -19,8 +24,8 @@ export type ApplyObjectsChangeArgs = {
 
 export type ApplyObjectsChangeResult =
     | { ok: true; persisted: false }
-    | { ok: true; persisted: true; createdIds: EphemeraObjectId[]; destroyedIds: EphemeraObjectId[] }
-    | { ok: false; errorMessage: string }
+    | { ok: true; persisted: true; createdIds: EphemeraObjectId[]; destroyedIds: EphemeraObjectId[]; addFailures?: ApplyObjectsAddFailure[] }
+    | { ok: false; errorMessage: string; addFailures?: ApplyObjectsAddFailure[] }
 
 export type ApplyObjectsChangeDependencies = {
     messageBus?: typeof messageBus;
@@ -30,7 +35,7 @@ export type ApplyObjectsChangeDependencies = {
     deleteObjectImpl?: typeof persistDeleteImprovisationObject;
 }
 
-const mapAddEntryToSpawnArgs = (
+export const mapAddEntryToSpawnArgs = (
     entry: EphemeraMetaRoomObject,
     roomId: EphemeraRoomId
 ) => ({
@@ -61,19 +66,14 @@ export const applyObjectsChange = async (
     const applyMembership = deps.applyMembershipImpl ?? applyObjectRoomMembership
     const deleteObject = deps.deleteObjectImpl ?? persistDeleteImprovisationObject
 
-    const createdIds: EphemeraObjectId[] = []
     const destroyedIds: EphemeraObjectId[] = []
 
-    for (const entry of args.add) {
-        const spawnResult = await spawnAndPlace(
-            mapAddEntryToSpawnArgs(entry, args.roomId),
-            { messageBus: bus, streamEvent: positionsStreamEvent }
-        )
-        if (!spawnResult.ok) {
-            return { ok: false, errorMessage: spawnResult.errorMessage }
-        }
-        createdIds.push(spawnResult.objectId)
-    }
+    const addRows = args.add.map((entry) => mapAddEntryToSpawnArgs(entry, args.roomId))
+    const { createdIds, addFailures } = await spawnImprovisationObjectsBatch(addRows, {
+        messageBus: bus,
+        streamEvent: positionsStreamEvent,
+        spawnAndPlaceImpl: spawnAndPlace,
+    })
 
     for (const objectId of args.remove) {
         const membershipResult = await applyMembership(
@@ -100,8 +100,21 @@ export const applyObjectsChange = async (
     }
 
     if (createdIds.length === 0 && destroyedIds.length === 0) {
+        if (addFailures.length > 0) {
+            return {
+                ok: false,
+                errorMessage: `${addFailures.length} add(s) failed`,
+                addFailures,
+            }
+        }
         return { ok: true, persisted: false }
     }
 
-    return { ok: true, persisted: true, createdIds, destroyedIds }
+    return {
+        ok: true,
+        persisted: true,
+        createdIds,
+        destroyedIds,
+        ...(addFailures.length > 0 ? { addFailures } : {}),
+    }
 }

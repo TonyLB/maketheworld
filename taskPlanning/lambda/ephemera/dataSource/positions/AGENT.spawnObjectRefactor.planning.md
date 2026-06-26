@@ -1,6 +1,6 @@
 # Spawn object refactor (two-step existence + placement)
 
-**Status:** Phase 0 complete (**S1**--**S3** decided). **Next:** Phase 1 coordinator refactor.
+**Status:** Phase 1 complete (**S1**--**S3** implemented). **Next:** Phase 2 delete parallel paths.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/ephemera/dataSource/positions/`](../../../../../lambda/ephemera/dataSource/positions/) `AGENT*.md` siblings.
 
@@ -124,13 +124,15 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Resolve **S2** (`Objects Changed` only after both steps succeed).
   - [X] Resolve **S3** (per-object batch isolation + partial `createdIds`).
 
-- [ ] **Phase 1 --- Coordinator refactor**
-  - [ ] Replace `spawnAndPlaceImprovisationObject` body with: `persistSpawnImprovisationObject` -> `applyObjectRoomMembership` (same deps: `messageBus`, positions `streamEvent`).
-  - [ ] Implement **S1**: on placement failure, `persistDeleteImprovisationObject`; on compensation failure, structured `console.error` (hook for future orphan finding).
-  - [ ] Implement **S3**: per-object loop isolation; extend `ApplyObjectsChangeResult` with failure reporting; update `handleAcmeOrderAddObjects` to match.
-  - [ ] Wire `applyObjectsChange` / `handleApiObjectsChange` to the refactored entry (or inline two-step in coordinator module).
-  - [ ] Ensure improvisation cache memo (`invalidateImprovisationObjectCaches` with `pairComponent` / `metaRow`) still runs after existence create; invalidate after successful compensation delete.
-  - [ ] Remove duplicate fact/cache/`RoomUpdate` logic from spawn module (placement bundle owned by `applyObjectRoomMembership` only).
+- [X] **Phase 1 --- Coordinator refactor**
+  - [X] Replace `spawnAndPlaceImprovisationObject` body with: `persistSpawnImprovisationObject` -> `applyObjectRoomMembership` (same deps: `messageBus`, positions `streamEvent`).
+  - [X] Implement **S1**: on placement failure, `persistDeleteImprovisationObject`; on compensation failure, structured `console.error` (hook for future orphan finding).
+  - [X] Implement **S3**: per-object loop isolation; extend `ApplyObjectsChangeResult` with failure reporting; update `handleAcmeOrderAddObjects` to match.
+  - [X] Wire `applyObjectsChange` / `handleApiObjectsChange` to the refactored entry (or inline two-step in coordinator module).
+  - [X] Ensure improvisation cache memo (`invalidateImprovisationObjectCaches` with `pairComponent` / `metaRow`) still runs after existence create; invalidate after successful compensation delete.
+  - [X] Remove duplicate fact/cache/`RoomUpdate` logic from spawn module (placement bundle owned by `applyObjectRoomMembership` only).
+
+  **Note:** [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) is now dead code from spawn's perspective (Phase 2 deletes it).
 
 - [ ] **Phase 2 --- Delete parallel paths**
   - [ ] Remove [`postApplyGraphProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/postApplyGraphProjection.ts) and tests if any.
@@ -167,7 +169,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 | --- | --- |
 | Task plan created | Done |
 | **S1** / **S2** / **S3** decided | Done |
-| Phase 1 coordinator refactor | Not started |
+| Phase 1 coordinator refactor | Done |
 | Parallel paths removed | Not started |
 | Durable docs updated | Not started |
 

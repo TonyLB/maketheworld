@@ -29,9 +29,9 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 
 **Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** graphs, removes graph placement, then **`persistClearCoyoteGameImprovisationObjects`** deletes pair + **`Meta::Object`** rows.
 
-**Spawn + place:** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Acme and API ingress call this via [`applyObjectsChange.ts`](applyObjectsChange.ts) / [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts).
+**Spawn + place:** two-step coordinator --- [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence) then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel). [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) is the thin per-object orchestrator (**S1** compensating delete on placement failure). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) (**S3** per-object isolation; partial **`createdIds`**).
 
-**Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> spawn+place per row; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** for outbound **`Objects Changed`**.
+**Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> **`spawnImprovisationObjectsBatch`**; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** (and optional **`addFailures`**) for outbound **`Objects Changed`**.
 
 **Cache invalidation:** [`invalidateImprovisationObjectCaches.ts`](invalidateImprovisationObjectCaches.ts) --- **`ImprovisationComponentData`**, **`ObjectEphemeraMeta`**, **`ComponentEphemeraMeta`**, **`Positions`**, optional **`AffordanceRoomDeliverable`** per affected room.
 
@@ -58,7 +58,7 @@ Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** a
 
 **Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamObjectsChangedFact`** on **`mtw.ephemera.objects`** when any ids created/destroyed.
 
-**Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) calls **`spawnAndPlaceImprovisationObject`** per enriched catalog line (mint **`OBJECT#`**, filter tropes by delivery room), then one **`Objects Changed`** with **`createdIds`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
+**Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) mints **`OBJECT#`** per enriched catalog line, calls **`spawnImprovisationObjectsBatch`**, streams partial **`createdIds`** when at least one row succeeds, logs per-failure **`addFailures`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
 
 **Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`outboundBusDelivery: 'publish'`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**). Outbounds use **`publish`** via the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 

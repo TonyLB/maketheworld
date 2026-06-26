@@ -5,15 +5,26 @@ import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import { v4 as uuidv4 } from 'uuid'
 import type { ObjectsChangeCommand } from '../localApiEvents'
 import type { AcmeOrderPublishedPayload } from '../actions/publishedEvents'
-import { applyObjectsChange } from './applyObjectsChange'
+import { applyObjectsChange, type ApplyObjectsAddFailure } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
 import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
 import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
+import { spawnImprovisationObjectsBatch } from './spawnImprovisationObjectsBatch'
 import messageBus from '../../messageBus'
 import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
+
+const logAddFailures = (addFailures: ApplyObjectsAddFailure[]): void => {
+    for (const failure of addFailures) {
+        console.error('[mtw.ephemera.objects] add failed', {
+            objectId: failure.objectId,
+            stableKey: failure.stableKey,
+            errorMessage: failure.errorMessage,
+        })
+    }
+}
 
 /**
  * Apply api.ephemera `Objects Change`: spawn/place improvisation objects or remove/delete via graph.
@@ -37,7 +48,14 @@ export const handleApiObjectsChangeCommand = async (
 
     if (!result.ok) {
         console.error(`[mtw.ephemera.objects] applyObjectsChange failed: ${result.errorMessage}`)
+        if (result.addFailures?.length) {
+            logAddFailures(result.addFailures)
+        }
         return
+    }
+
+    if (result.persisted && result.addFailures?.length) {
+        logAddFailures(result.addFailures)
     }
 
     if (result.persisted) {
@@ -102,7 +120,6 @@ export const handleAcmeOrderAddObjects = async (
         ?? ((characterId: EphemeraCharacterId) => resolveCharacterRoomId(characterId, {
             getMembershipContainers: deps.getMembershipContainers,
         }))
-    const spawnAndPlace = deps.spawnAndPlaceImpl ?? spawnAndPlaceImprovisationObject
     const positionsStreamEvent = streamPositionsEventFromMessageBus(messageBus)
 
     if (payload.orders.length === 0) {
@@ -115,19 +132,23 @@ export const handleAcmeOrderAddObjects = async (
     }
 
     const makeUuid = deps.uuidFactory ?? uuidv4
-    const createdIds: EphemeraObjectId[] = []
-
-    for (const entry of payload.orders) {
+    const rows = payload.orders.map((entry) => {
         const objectId = `OBJECT#${makeUuid()}` as `OBJECT#${string}`
-        const spawnResult = await spawnAndPlace(
-            acmeOrderToSpawnArgs(entry, roomId, objectId),
-            { messageBus, streamEvent: positionsStreamEvent }
-        )
-        if (!spawnResult.ok) {
-            console.error(`[mtw.ephemera.objects] spawnAndPlaceImprovisationObject failed: ${spawnResult.errorMessage}`)
-            return
-        }
-        createdIds.push(spawnResult.objectId)
+        return acmeOrderToSpawnArgs(entry, roomId, objectId)
+    })
+
+    const { createdIds, addFailures } = await spawnImprovisationObjectsBatch(rows, {
+        messageBus,
+        streamEvent: positionsStreamEvent,
+        spawnAndPlaceImpl: deps.spawnAndPlaceImpl,
+    })
+
+    if (addFailures.length > 0) {
+        logAddFailures(addFailures)
+    }
+
+    if (createdIds.length === 0) {
+        return
     }
 
     await streamObjectsChangedFact({
