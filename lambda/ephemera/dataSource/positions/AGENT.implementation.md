@@ -26,7 +26,14 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`; future `drop`) |
 | [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
 
-Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+#### Relational patch (slice 5+ stub)
+
+| Path | Role |
+| --- | --- |
+| [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove *(file does not exist yet)* |
+| [`manipulation/relational/`](manipulation/relational/) | Future per-operator relational coordinators *(directory does not exist yet)* |
+
+Spec: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5). Relational operators will follow a **separate** coordinator playbook (to be written at slice 5) --- do not extend the membership coordinator checklist below.
 
 #### `manipulation/membership/` (cross-host object manipulation apply)
 

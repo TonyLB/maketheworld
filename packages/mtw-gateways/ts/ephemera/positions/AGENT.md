@@ -1,6 +1,6 @@
 # Positions read surfaces (`ts/ephemera/positions`)
 
-Play position graph read handler for ephemera. **Authoritative writer:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)); graph-grounded persist routes through shared membership adapter -> manipulation kernel per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering) (Phase 4b target; expedient `update*PositionGraphs` modules transitional).
+Play position graph read handler for ephemera. **Authoritative writer:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)); graph-grounded persist routes through shared membership adapter -> **`applyHostEffects`** kernel per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering). Future **`positionGraph.edges`** writers: [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) (slice 5+ stub).
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
 

@@ -42,7 +42,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 | --- | --- | --- | --- |
 | **`takeHold`** | Shipped | room -> character | v1 reference vertical |
 | **`drop`** | Deferred | character -> room | Symmetric delta; held-object catalog at classify TBD |
-| Relational attach (`put X on Y`, nested hosts) | Out of scope | varies | Terminal **`Error`** / **`relationalPlacement`** at complexity stage; no stream in v1 |
+| Relational attach (`put X on Y`, nested hosts) | Out of scope | varies | Terminal **`Error`** / **`relationalPlacement`** at complexity stage; no stream in v1. Persist stub: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) |
 
 ---
 
