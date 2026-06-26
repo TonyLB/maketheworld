@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 4b migrate through adapter + kernel (M7). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4a scaffold **Done** 2026-06-25).
+**Status:** In progress. **Next:** Phase 4c ingress audit. **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4b migration **Done** 2026-06-26).
 
 **Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
@@ -217,7 +217,7 @@ All manipulation-model decisions (**M1**--**M5**, **M7**, **M8**, **M3**) gradua
 | 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Done |
 | 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Done |
 | 4a | Shared adapter + kernel scaffold (M5, M8) | Done |
-| 4b | Migrate through adapter + kernel (M7 incremental order) | Not started |
+| 4b | Migrate through adapter + kernel (M7 incremental order) | Done |
 | 4c | Ingress audit; prep **`drop`** as adapter-only | Not started |
 | 5 | Relational patch hook (doc stub only) | Not started |
 
@@ -250,11 +250,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Introduce kernel at **`manipulation/`** top-level (**M5**): `applyHostEffects`; wrap `positionGraphMerge`, `*TransactItems`
   - [X] Unit tests: planner modes -> effect list; effect list -> transact items; graph validation / `changed`
   - [X] Document projection-first fact emission (provisional) in durable docs
-- [ ] **Phase 4b --- Migrate through adapter + kernel** ( **gate cleared 2026-06-25:** actions parse graduated; order per **M7** )
-  - [ ] **M7** step 1: object room --- move `computeMembershipDiff` into shared adapter; route `updateObjectPositionGraphs` through adapter + kernel
-  - [ ] **M7** step 2: character (+ `RoomStack`) --- route `updatePositionGraphs` through adapter + kernel
-  - [ ] **M7** step 3: **`takeHold`** cross-host --- move `computeTakeHoldDiff` into shared adapter; route `updateTakeHoldPositionGraphs` through adapter + kernel (**M2** bounded scrub)
-  - [ ] Thin coordinators to adapter + kernel + fact bundle; update tests
+- [X] **Phase 4b --- Migrate through adapter + kernel** ( **gate cleared 2026-06-25:** actions parse graduated; order per **M7** )
+  - [X] **M7** step 1: object room --- move `computeMembershipDiff` into shared adapter; route `updateObjectPositionGraphs` through adapter + kernel
+  - [X] **M7** step 2: character (+ `RoomStack`) --- route `updatePositionGraphs` through adapter + kernel
+  - [X] **M7** step 3: **`takeHold`** cross-host --- move `computeTakeHoldDiff` into shared adapter; route `updateTakeHoldPositionGraphs` through adapter + kernel (**M2** bounded scrub)
+  - [X] Thin coordinators to adapter + kernel + fact bundle; update tests
 - [ ] **Phase 4c --- Ingress audit**
   - [ ] Verify no transfer planning or transact builders outside shared adapter + kernel (`rg` audit)
   - [ ] Document **`drop`** as future coordinator + shared adapter only (no new `update*PositionGraphs` fork)

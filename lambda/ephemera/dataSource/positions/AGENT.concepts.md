@@ -86,7 +86,7 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 
 ### Manipulation layering (membership transfer)
 
-Membership transfer persist is organized in four layers. Expedient modules (`updatePositionGraphs`, `updateTakeHoldPositionGraphs`, ...) remain authoritative until Phase 4b migration; the layering below is the steady-state mental model. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`applyHostEffects`** kernel; legacy **`update*PositionGraphs`** modules are thin wrappers over the same path. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
 
 ```text
 Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)

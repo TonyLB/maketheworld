@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { computeMembershipDiff } from '../../membership/updatePositionGraphs'
+import { computeMembershipDiff } from './computeEndStateRoomDiff'
 import type { MembershipDiff } from '../../membership/types'
 import type { MembershipTransferPlan } from '../types'
 import { hostEffectsFromRoomMembershipDiff } from './hostEffectsFromDiffs'

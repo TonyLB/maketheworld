@@ -26,6 +26,8 @@ jest.mock('../../../internalCache', () => ({
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import { computeMembershipDiff, updatePositionGraphs } from './updatePositionGraphs'
 
@@ -46,6 +48,18 @@ const characterMeta: CharacterMetaItem = {
     fileURL: undefined,
     Color: undefined,
 }
+
+const characterPresentGraph = {
+    nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
+    edges: [] as [],
+}
+
+const emptyGraph = { nodes: [], edges: [] as [] }
+
+const getPositionGraphForCharacterRooms = async (
+    hostId: EphemeraMembershipHostId,
+    presentOn: EphemeraRoomId[]
+) => (isEphemeraRoomId(hostId) && presentOn.includes(hostId) ? characterPresentGraph : emptyGraph)
 
 describe('computeMembershipDiff', () => {
     it('detects no change when already at target', () => {
@@ -126,15 +140,9 @@ describe('updatePositionGraphs', () => {
 
     it('cross-room navigate transacts graph, adjacency, and RoomStack without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
-        const getRoomPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
-            if (roomId === ROOM_A) {
-                return {
-                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
-                    edges: [],
-                }
-            }
-            return { nodes: [], edges: [] }
-        })
+        const getPositionGraph = jest.fn().mockImplementation(
+            async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A])
+        )
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
@@ -144,7 +152,7 @@ describe('updatePositionGraphs', () => {
                 getCharacterMeta: async () => characterMeta,
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
-                getRoomPositionGraph,
+                getPositionGraph,
             }
         )
 
@@ -208,6 +216,9 @@ describe('updatePositionGraphs', () => {
 
     it('disconnect removes graph membership and adjacency without character-row transact', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
+        const getPositionGraph = jest.fn().mockImplementation(
+            async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A])
+        )
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: null },
@@ -215,6 +226,7 @@ describe('updatePositionGraphs', () => {
                 getMembershipContainers,
                 transactWrite,
                 getCharacterMeta: async () => characterMeta,
+                getPositionGraph,
             }
         )
 
@@ -234,6 +246,9 @@ describe('updatePositionGraphs', () => {
 
     it('drift scrub [A,C] -> B removes from both prior hosts', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A, ROOM_C])
+        const getPositionGraph = jest.fn().mockImplementation(
+            async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A, ROOM_C])
+        )
 
         const result = await updatePositionGraphs(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
@@ -243,6 +258,7 @@ describe('updatePositionGraphs', () => {
                 getCharacterMeta: async () => characterMeta,
                 getRoomAssets: async () => [],
                 getCanonAssets: async () => ['primitives'],
+                getPositionGraph,
             }
         )
 
@@ -288,6 +304,8 @@ describe('updatePositionGraphs', () => {
                 }),
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
+                    getPositionGraphForCharacterRooms(hostId, [ROOM_A]),
             }
         )
 
@@ -340,6 +358,8 @@ describe('updatePositionGraphs', () => {
                 getCharacterMeta: async () => characterMeta,
                 getRoomAssets: async () => ['ASSET#TownCenter'],
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
+                    getPositionGraphForCharacterRooms(hostId, [ROOM_A]),
             }
         )
 
@@ -406,6 +426,8 @@ describe('updatePositionGraphs', () => {
                 }),
                 getRoomAssets: roomAssetsForLadder,
                 getCanonAssets: async () => ['primitives', 'TownCenter'],
+                getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
+                    getPositionGraphForCharacterRooms(hostId, [fromRoomId]),
             }
         )
 

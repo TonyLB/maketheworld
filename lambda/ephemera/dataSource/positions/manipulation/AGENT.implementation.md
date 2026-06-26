@@ -1,6 +1,6 @@
 # Positions manipulation --- implementation map and kernel spec
 
-**Status:** Phase 4a scaffold shipped (2026-06-25). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). TypeScript adapter + kernel on disk; expedient persist paths remain authoritative until Phase 4b migration.
+**Status:** Phase 4b migration shipped (2026-06-26). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). Coordinators route through adapter + kernel; `update*PositionGraphs` are thin wrappers.
 
 Contracts (shipped today): [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md). Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 
@@ -145,8 +145,8 @@ type MembershipTransferPlan = {
 
 | Expedient function | Location | Adapter mode | Notes |
 | --- | --- | --- | --- |
-| `computeMembershipDiff` | [`updatePositionGraphs.ts`](../membership/updatePositionGraphs.ts) | end-state (room hosts) | Character room membership; object room placement reuses same diff |
-| `computeTakeHoldDiff` | [`updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | bounded room + character end-state | **M2** reference; emits split `roomDiff` + `characterDiff` today |
+| `computeMembershipDiff` | [`adapters/computeEndStateRoomDiff.ts`](adapters/computeEndStateRoomDiff.ts) | end-state (room hosts) | Character room membership; object room placement reuses same diff |
+| `computeTakeHoldDiff` | [`adapters/computeTakeHoldDiff.ts`](adapters/computeTakeHoldDiff.ts) | bounded room + character end-state | **M2** reference; split `roomDiff` + `characterDiff` consumed by `hostEffectsFromObjectTakeHoldDiffs` |
 
 Phase 4a adapter tests should assert `planMembershipTransfer` matches these functions for equivalent inputs.
 
@@ -290,25 +290,24 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 ## This folder (code map)
 
-### Phase 4a scaffold (shipped 2026-06-25)
+### Phase 4a--4b scaffold and migration (shipped 2026-06-25 / 2026-06-26)
 
 | Path | Role |
 | --- | --- |
-| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` stub |
-| [`adapters/`](adapters/) | Shared membership transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `hostEffectsFromDiffs` |
-| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact on explicit `HostEffect[]` |
+| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` |
+| [`adapters/`](adapters/) | Shared membership transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff`, `hostEffectsFromDiffs` |
+| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact; bundles `CharacterRowEffect` / RoomStack |
+| [`../membership/characterRoomStackTransactItems.ts`](../membership/characterRoomStackTransactItems.ts) | Navigate-only `RoomStack` transact items (kernel input) |
 
 Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts), [`../membership/characterRoomMembershipTransactItems.ts`](../membership/characterRoomMembershipTransactItems.ts), [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts).
 
-`CharacterRowEffect` / `RoomStack` bundling deferred to Phase 4b (M7 step 2).
-
-### Shipped coordinators (`manipulation/membership/`; expedient persist until Phase 4b)
+### Shipped coordinators (adapter + kernel; thin `update*PositionGraphs` wrappers)
 
 | File | Role |
 | --- | --- |
 | [`membership/executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | `Object Take Hold` ingress entry |
 | [`membership/applyObjectTakeHold.ts`](membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle |
-| [`membership/updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | Expedient: pre-read, diff, single transact |
+| [`membership/updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | Thin wrapper: observe -> `planObjectTakeHoldTransfer` -> `applyHostEffects` |
 | [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) | Character-host graph + adjacency transact builders |
 | [`membership/types.ts`](membership/types.ts) | Cross-host diff + apply result types |
 

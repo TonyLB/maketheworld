@@ -2,9 +2,9 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
-import { buildObjectPlacementTransactItems } from './objectPlacementTransactItems'
+import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import {
     addObjectToGraph,
     playPositionGraphToStoredTopology,
@@ -15,17 +15,38 @@ import type {
     ObjectMembershipApplyArgs,
     UpdatePositionGraphsResult,
 } from './types'
-import { computeMembershipDiff } from './updatePositionGraphs'
 
 export type UpdateObjectPositionGraphsDependencies = {
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>;
-    transactWrite?: typeof ephemeraDB.transactWrite;
-}
+} & ApplyHostEffectsDependencies
 
 const defaultGetMembershipContainers = async (objectId: EphemeraObjectId): Promise<EphemeraRoomId[]> => {
     const containers = await internalCache.Positions.getMembershipContainers(objectId)
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+}
+
+const membershipDiffFromProjection = (projection: {
+    froms: EphemeraRoomId[];
+    to: EphemeraRoomId | null;
+    changed: boolean;
+}): MembershipDiff => ({
+    froms: projection.froms,
+    to: projection.to,
+    changed: projection.changed,
+})
+
+const roomGraphsFromKernelResult = (
+    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
+): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> => {
+    return Object.entries(postApplyGraphs).reduce<Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>>(
+        (result, [hostId, graph]) => {
+            if (isEphemeraRoomId(hostId)) {
+                result[hostId] = graph
+            }
+            return result
+        },
+        {}
+    )
 }
 
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
@@ -59,56 +80,47 @@ export const updateObjectPositionGraphs = async (
     deps?: UpdateObjectPositionGraphsDependencies
 ): Promise<UpdatePositionGraphsResult> => {
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
-    const getRoomPositionGraph = deps?.getRoomPositionGraph
-        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getPositionGraph(roomId))
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const priorContainers = await getMembershipContainers(args.objectId)
-    const diff = computeMembershipDiff(priorContainers, args.targetRoomId)
+    const plan = planMembershipTransfer({
+        entityId: args.objectId,
+        entityKind: 'object',
+        applyMode: 'end-state',
+        target: args.targetRoomId,
+        priorContainers,
+    })
+
+    const diff = membershipDiffFromProjection({
+        froms: plan.projection.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+        to: plan.projection.to !== null && isEphemeraRoomId(plan.projection.to) ? plan.projection.to : null,
+        changed: plan.projection.changed,
+    })
 
     if (!diff.changed) {
         return { ok: true, persisted: false, diff }
     }
 
-    const postApplyRoomGraphs = await computePostApplyObjectRoomGraphs(
-        args.objectId,
-        diff,
-        getRoomPositionGraph
+    const kernelResult = await applyHostEffects(
+        { hostEffects: plan.hostEffects },
+        deps
     )
 
-    try {
-        let persisted = false
-        await exponentialBackoffWrapper(async () => {
-            const transactItems = buildObjectPlacementTransactItems({
-                objectId: args.objectId,
-                diff,
-            })
-
-            if (transactItems.length === 0) {
-                return
-            }
-
-            await transactWrite(transactItems)
-            persisted = true
-        }, { retryErrors: ['TransactionCanceledException'] })
-
-        if (!persisted) {
-            return { ok: true, persisted: false, diff }
-        }
-
-        return {
-            ok: true,
-            persisted: true,
-            diff,
-            postApplyRoomGraphs,
-        }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+    if (!kernelResult.ok) {
         return {
             ok: false,
             errorCode: 'OBJECT_MEMBERSHIP_TRANSACT_FAILED',
-            errorMessage: message,
+            errorMessage: kernelResult.errorMessage,
         }
+    }
+
+    if (!kernelResult.persisted) {
+        return { ok: true, persisted: false, diff }
+    }
+
+    return {
+        ok: true,
+        persisted: true,
+        diff,
+        postApplyRoomGraphs: roomGraphsFromKernelResult(kernelResult.postApplyGraphs),
     }
 }

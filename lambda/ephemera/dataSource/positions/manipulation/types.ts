@@ -21,10 +21,16 @@ export type MembershipTransferPlan = {
     projection: MembershipTransferProjection
 }
 
+import type { RoomStackItem } from '../membership/types'
+
 /** Navigate-only RoomStack maintenance; bundled in kernel transact (Phase 4b). */
 export type CharacterRowEffect = {
     characterId: EphemeraCharacterId
     targetRoomId: EphemeraRoomId
+    characterAssets: string[]
+    roomAssets: string[]
+    canonAssets: string[]
+    currentRoomStack: RoomStackItem[]
 }
 
 export type ApplyHostEffectsArgs = {

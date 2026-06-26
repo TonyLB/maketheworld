@@ -72,11 +72,11 @@ describe('updateObjectPositionGraphs', () => {
 
     it('places object in room with graph update and adjacency put', async () => {
         getMembershipContainers.mockResolvedValue([])
-        const getRoomPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
 
         const result = await updateObjectPositionGraphs(
             { objectId: OBJECT_ID, targetRoomId: ROOM_A },
-            { getMembershipContainers, transactWrite, getRoomPositionGraph }
+            { getMembershipContainers, transactWrite, getPositionGraph }
         )
 
         expect(result).toEqual(expect.objectContaining({
@@ -102,7 +102,7 @@ describe('updateObjectPositionGraphs', () => {
 
     it('cross-room move transacts graph remove, adjacency delete, graph add, adjacency put', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
-        const getRoomPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
+        const getPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
             if (roomId === ROOM_A) {
                 return {
                     nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
@@ -114,7 +114,7 @@ describe('updateObjectPositionGraphs', () => {
 
         const result = await updateObjectPositionGraphs(
             { objectId: OBJECT_ID, targetRoomId: ROOM_B },
-            { getMembershipContainers, transactWrite, getRoomPositionGraph }
+            { getMembershipContainers, transactWrite, getPositionGraph }
         )
 
         expect(result).toEqual(expect.objectContaining({
@@ -147,10 +147,14 @@ describe('updateObjectPositionGraphs', () => {
 
     it('remove from room deletes graph node and adjacency without target put', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
+        const getPositionGraph = jest.fn().mockResolvedValue({
+            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
+            edges: [],
+        })
 
         const result = await updateObjectPositionGraphs(
             { objectId: OBJECT_ID, targetRoomId: null },
-            { getMembershipContainers, transactWrite }
+            { getMembershipContainers, transactWrite, getPositionGraph }
         )
 
         expect(result).toEqual(expect.objectContaining({
@@ -167,10 +171,19 @@ describe('updateObjectPositionGraphs', () => {
 
     it('drift scrub [A,C] -> B removes from both prior hosts', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A, ROOM_C])
+        const getPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
+            if (roomId === ROOM_A || roomId === ROOM_C) {
+                return {
+                    nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
+                    edges: [],
+                }
+            }
+            return { nodes: [], edges: [] }
+        })
 
         const result = await updateObjectPositionGraphs(
             { objectId: OBJECT_ID, targetRoomId: ROOM_B },
-            { getMembershipContainers, transactWrite }
+            { getMembershipContainers, transactWrite, getPositionGraph }
         )
 
         expect(result).toEqual(expect.objectContaining({

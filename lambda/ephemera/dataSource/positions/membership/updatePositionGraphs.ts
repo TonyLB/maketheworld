@@ -1,68 +1,62 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
-import { applyRoomStackToCharacterDraft, computeRoomStackUpdate } from './membershipRoomStack'
+import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import {
     addCharacterToGraph,
-    effectiveRoomPositionGraph,
     playPositionGraphToStoredTopology,
     removeCharacterFromGraph,
 } from './positionGraphMerge'
 import type {
     MembershipApplyArgs,
     MembershipDiff,
+    RoomStackItem,
     UpdatePositionGraphsResult,
 } from './types'
-import type { RoomStackItem } from './types'
+
+export { computeMembershipDiff } from '../manipulation/adapters/computeEndStateRoomDiff'
 
 export type UpdatePositionGraphsDependencies = {
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>;
-    transactWrite?: typeof ephemeraDB.transactWrite;
-}
+} & ApplyHostEffectsDependencies
 
 const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> => {
     const containers = await internalCache.Positions.getMembershipContainers(characterId)
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
 }
 
-const containersChanged = (priorContainers: EphemeraRoomId[], targetRoomId: EphemeraRoomId | null): boolean => {
-    const priorSet = new Set(priorContainers)
-    const endSet = new Set(targetRoomId ? [targetRoomId] : [])
-    if (priorSet.size !== endSet.size) {
-        return true
-    }
-    for (const roomId of priorSet) {
-        if (!endSet.has(roomId)) {
-            return true
-        }
-    }
-    return false
-}
-
-export const computeMembershipDiff = (
-    priorContainers: EphemeraRoomId[],
-    targetRoomId: EphemeraRoomId | null
-): MembershipDiff => {
-    const to = targetRoomId
-    const froms = priorContainers.filter((roomId) => roomId !== to)
-    return {
-        froms,
-        to,
-        changed: containersChanged(priorContainers, targetRoomId),
-    }
-}
-
 const normalizeCurrentRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>
     stack ?? []
+
+const membershipDiffFromProjection = (projection: {
+    froms: EphemeraRoomId[];
+    to: EphemeraRoomId | null;
+    changed: boolean;
+}): MembershipDiff => ({
+    froms: projection.froms,
+    to: projection.to,
+    changed: projection.changed,
+})
+
+const roomGraphsFromKernelResult = (
+    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
+): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> =>
+    Object.entries(postApplyGraphs).reduce<Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>>(
+        (result, [hostId, graph]) => {
+            if (isEphemeraRoomId(hostId)) {
+                result[hostId] = graph
+            }
+            return result
+        },
+        {}
+    )
 
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
     [...new Set([...froms, ...(to ? [to] : [])])]
@@ -98,12 +92,21 @@ export const updatePositionGraphs = async (
     const getRoomAssets = deps?.getRoomAssets ?? ((roomId) => internalCache.RoomAssets.get(roomId))
     const getCanonAssets = deps?.getCanonAssets ?? (() => internalCache.Global.get('assets'))
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
-    const getRoomPositionGraph = deps?.getRoomPositionGraph
-        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getPositionGraph(roomId))
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const priorContainers = await getMembershipContainers(args.characterId)
-    const diff = computeMembershipDiff(priorContainers, args.targetRoomId)
+    const plan = planMembershipTransfer({
+        entityId: args.characterId,
+        entityKind: 'character',
+        applyMode: 'end-state',
+        target: args.targetRoomId,
+        priorContainers,
+    })
+
+    const diff = membershipDiffFromProjection({
+        froms: plan.projection.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+        to: plan.projection.to !== null && isEphemeraRoomId(plan.projection.to) ? plan.projection.to : null,
+        changed: plan.projection.changed,
+    })
 
     if (!diff.changed) {
         return { ok: true, persisted: false, diff }
@@ -118,115 +121,41 @@ export const updatePositionGraphs = async (
         ])
         : [[], []]
 
-    const postApplyRoomGraphs = await computePostApplyRoomGraphs(
-        characterMeta.EphemeraId,
-        diff,
-        getRoomPositionGraph
+    const characterRowEffects = diff.to !== null
+        ? [{
+            characterId: characterMeta.EphemeraId,
+            targetRoomId: diff.to,
+            characterAssets: characterMeta.assets || [],
+            roomAssets,
+            canonAssets,
+            currentRoomStack: normalizeCurrentRoomStack(characterMeta.RoomStack),
+        }]
+        : []
+
+    const kernelResult = await applyHostEffects(
+        {
+            hostEffects: plan.hostEffects,
+            characterRowEffects,
+        },
+        deps
     )
 
-    try {
-        let persisted = false
-        await exponentialBackoffWrapper(async () => {
-            const transactItems: Parameters<typeof transactWrite>[0] = []
-
-            if (diff.to !== null) {
-                const targetRoomId = diff.to
-                const characterAssets = characterMeta.assets || []
-                transactItems.push({
-                    Update: {
-                        Key: {
-                            EphemeraId: characterMeta.EphemeraId,
-                            DataCategory: 'Meta::Character',
-                        },
-                        updateKeys: ['RoomStack'],
-                        updateReducer: (draft) => {
-                            const { destinationChain } = computeRoomStackUpdate({
-                                targetRoomId,
-                                currentRoomStack: normalizeCurrentRoomStack(
-                                    draft.RoomStack as RoomStackItem[] | undefined
-                                ),
-                                characterAssets,
-                                roomAssets,
-                                canonAssets,
-                            })
-                            applyRoomStackToCharacterDraft(draft, {
-                                targetRoomId,
-                                destinationChain,
-                            })
-                        },
-                    },
-                })
-            }
-
-            for (const departureRoomId of diff.froms) {
-                transactItems.push({
-                    Update: {
-                        Key: {
-                            EphemeraId: departureRoomId,
-                            DataCategory: 'Meta::Room',
-                        },
-                        updateKeys: ['positionGraph'],
-                        updateReducer: (draft) => {
-                            const graph = effectiveRoomPositionGraph(draft)
-                            draft.positionGraph = removeCharacterFromGraph(graph, characterMeta.EphemeraId)
-                        },
-                    },
-                })
-                transactItems.push({
-                    Delete: {
-                        EphemeraId: characterMeta.EphemeraId,
-                        DataCategory: buildPositionAdjacencyDataCategory(departureRoomId),
-                    },
-                })
-            }
-
-            if (diff.to) {
-                transactItems.push({
-                    Update: {
-                        Key: {
-                            EphemeraId: diff.to,
-                            DataCategory: 'Meta::Room',
-                        },
-                        updateKeys: ['positionGraph'],
-                        updateReducer: (draft) => {
-                            const graph = effectiveRoomPositionGraph(draft)
-                            draft.positionGraph = addCharacterToGraph(graph, characterMeta.EphemeraId)
-                        },
-                    },
-                })
-                transactItems.push({
-                    Put: {
-                        EphemeraId: characterMeta.EphemeraId,
-                        DataCategory: buildPositionAdjacencyDataCategory(diff.to),
-                    },
-                })
-            }
-
-            if (transactItems.length === 0) {
-                return
-            }
-
-            await transactWrite(transactItems)
-            persisted = true
-        }, { retryErrors: ['TransactionCanceledException'] })
-
-        if (!persisted) {
-            return { ok: true, persisted: false, diff }
-        }
-
-        return {
-            ok: true,
-            persisted: true,
-            diff,
-            postApplyRoomGraphs,
-        }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+    if (!kernelResult.ok) {
         return {
             ok: false,
             errorCode: 'MEMBERSHIP_TRANSACT_FAILED',
-            errorMessage: message,
+            errorMessage: kernelResult.errorMessage,
         }
+    }
+
+    if (!kernelResult.persisted) {
+        return { ok: true, persisted: false, diff }
+    }
+
+    return {
+        ok: true,
+        persisted: true,
+        diff,
+        postApplyRoomGraphs: roomGraphsFromKernelResult(kernelResult.postApplyGraphs),
     }
 }

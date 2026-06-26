@@ -21,7 +21,7 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | Path | Role |
 | --- | --- |
 | [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` stub |
-| [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer` |
+| [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff` |
 | [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**) |
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators + expedient persist (authoritative until Phase 4b) |
 | [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
@@ -34,7 +34,7 @@ Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../
 | --- | --- |
 | [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
 | [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
-| [`manipulation/membership/updateTakeHoldPositionGraphs.ts`](manipulation/membership/updateTakeHoldPositionGraphs.ts) | Pre-read, diff, single transact (room-remove + character-add) |
+| [`manipulation/membership/updateTakeHoldPositionGraphs.ts`](manipulation/membership/updateTakeHoldPositionGraphs.ts) | Thin wrapper: observe -> `planObjectTakeHoldTransfer` -> `applyHostEffects` |
 | [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Cross-host diff + apply result types |
 | [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) | Character-host **`Meta::Character.positionGraph`** + adjacency transact item builders (D16) |
 
@@ -81,8 +81,9 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate (**S2-6-DR**) |
 | [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
-| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | **Character graph persist engine** (S2-4 end-state apply, adjacency only; **S2-6**) |
-| [`membership/updateObjectPositionGraphs.ts`](membership/updateObjectPositionGraphs.ts) | **Object graph persist engine** (Phase 4; end-state apply, adjacency only) |
+| [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) | Thin wrapper: observe -> `planMembershipTransfer` -> `applyHostEffects` + `CharacterRowEffect` (**S2-4** end-state apply) |
+| [`membership/updateObjectPositionGraphs.ts`](membership/updateObjectPositionGraphs.ts) | Thin wrapper: observe -> `planMembershipTransfer` -> `applyHostEffects` (object room placement) |
+| [`membership/characterRoomStackTransactItems.ts`](membership/characterRoomStackTransactItems.ts) | Navigate-only `RoomStack` transact items (kernel `CharacterRowEffect`) |
 | [`membership/objectPlacementTransactItems.ts`](membership/objectPlacementTransactItems.ts) | Shared transact item builders for object graph + adjacency |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: character graph persist, `changed` gate, S1-11 bundle (fact stream first) |
 | [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) | Coordinator: object graph persist, `Object Moved` fact, cache seed, `RoomUpdate` |
@@ -148,8 +149,8 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 | **Legal placement: connect (from nowhere)** | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) -> [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) |
 | **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) when in play (future asset-visibility ingress; **`CheckLocation` bus retired S2-6-DR**) |
 | **Occupancy drift repair** | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) --- consumes **`Room Occupancy Drift Finding`**; ghost disconnect via coordinator; adjacency-only via [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) |
-| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; called from [`updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) when `targetRoomId` non-null |
-| **Disconnect: purge membership, retain ladder** | [`membership/updatePositionGraphs.ts`](membership/updatePositionGraphs.ts) --- removes graph/adjacency; does **not** update `RoomStack` |
+| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) --- asset-chain extend / rewrite-tail / fork; bundled via [`characterRoomStackTransactItems.ts`](membership/characterRoomStackTransactItems.ts) in kernel `applyHostEffects` when `targetRoomId` non-null |
+| **Disconnect: purge membership, retain ladder** | Coordinator + kernel --- removes graph/adjacency; does **not** pass `CharacterRowEffect` |
 | **Default root frame** | [`../../internalCache/characterMeta.ts`](../../internalCache/characterMeta.ts) --- `[{ asset: 'primitives', RoomId: 'VORTEX' }]` when absent |
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).
@@ -158,7 +159,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 
 ### `updatePositionGraphs` transact locking
 
-Character-row and room-row `Update` items inside `transactWrite` use the same `_optimisticUpdateFactory` / `updateReducer` pattern as standalone `optimisticUpdate` (fetch prior state, run immer reducer, conditional write).
+Character-row (`RoomStack`) and room-row `Update` items inside kernel `transactWrite` use the same `_optimisticUpdateFactory` / `updateReducer` pattern as standalone `optimisticUpdate` (fetch prior state, run immer reducer, conditional write).
 
 - **No explicit `priorFetch` on Update items.** `transactWrite` batch-fetches each row before running reducers; each retry rebuilds transact items so reducers see fresh Dynamo state.
 - Ladder maintenance runs in the character-row reducer: `computeRoomStackUpdate` reads `draft.RoomStack` (the fetched prior ladder), not `CharacterMeta` cache.

@@ -3,16 +3,15 @@ import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
-import { buildObjectPlacementTransactItems } from '../../membership/objectPlacementTransactItems'
+import { applyHostEffects, type ApplyHostEffectsDependencies } from '../applyHostEffects'
+import { planObjectTakeHoldTransfer } from '../adapters/planObjectTakeHoldTransfer'
 import type { MembershipDiff } from '../../membership/types'
 import {
     addObjectToGraph,
     playPositionGraphToStoredTopology,
     removeObjectFromGraph,
 } from '../../membership/positionGraphMerge'
-import { buildCharacterInventoryTransactItems } from './characterInventoryTransactItems'
 import type { CharacterInventoryDiff } from './characterInventoryTransactItems'
 import type {
     ObjectMembershipDiff,
@@ -20,58 +19,49 @@ import type {
     UpdateTakeHoldPositionGraphsResult,
 } from './types'
 
+export { computeTakeHoldDiff } from '../adapters/computeTakeHoldDiff'
+
 export type UpdateTakeHoldPositionGraphsDependencies = {
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraMembershipHostId[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>;
-    getCharacterPositionGraph?: (characterId: EphemeraCharacterId) => Promise<PlayPositionGraph>;
-    transactWrite?: typeof ephemeraDB.transactWrite;
-}
+} & ApplyHostEffectsDependencies
 
 const defaultGetMembershipContainers = async (
     objectId: EphemeraObjectId
 ): Promise<EphemeraMembershipHostId[]> =>
     internalCache.Positions.getMembershipContainers(objectId)
 
-export const computeTakeHoldDiff = (args: {
-    priorContainers: EphemeraMembershipHostId[];
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-}): {
-    diff: ObjectMembershipDiff;
-    roomDiff: MembershipDiff;
-    characterDiff: CharacterInventoryDiff;
-} => {
-    const priorRooms = args.priorContainers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
-    const priorCharacterHosts = args.priorContainers.filter(
-        (id): id is EphemeraCharacterId => isEphemeraCharacterId(id)
-    )
+const objectMembershipDiffFromProjection = (projection: {
+    froms: EphemeraMembershipHostId[];
+    to: EphemeraMembershipHostId | null;
+    changed: boolean;
+}): ObjectMembershipDiff => ({
+    froms: projection.froms,
+    to: projection.to,
+    changed: projection.changed,
+})
 
-    const objectInSourceRoom = priorRooms.includes(args.roomId)
-    const objectOnTargetCharacter = priorCharacterHosts.includes(args.characterId)
-    const needsRoomRemove = objectInSourceRoom
-    const needsCharacterAdd = !objectOnTargetCharacter
-    const needsCharacterMove = priorCharacterHosts.some((hostId) => hostId !== args.characterId)
-    const changed = needsRoomRemove || needsCharacterAdd || needsCharacterMove
-
-    const diff: ObjectMembershipDiff = {
-        froms: needsRoomRemove ? [args.roomId] : [],
-        to: args.characterId,
-        changed,
+const roomGraphsFromKernelResult = (
+    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
+): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> => {
+    const result: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> = {}
+    for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
+        if (isEphemeraRoomId(hostId)) {
+            result[hostId] = graph
+        }
     }
+    return result
+}
 
-    const roomDiff: MembershipDiff = {
-        froms: needsRoomRemove ? [args.roomId] : [],
-        to: null,
-        changed: needsRoomRemove,
+const characterGraphsFromKernelResult = (
+    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
+): Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>> => {
+    const result: Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>> = {}
+    for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
+        if (isEphemeraCharacterId(hostId)) {
+            result[hostId] = graph
+        }
     }
-
-    const characterDiff: CharacterInventoryDiff = {
-        froms: priorCharacterHosts.filter((hostId) => hostId !== args.characterId),
-        to: args.characterId,
-        changed: needsCharacterAdd || needsCharacterMove,
-    }
-
-    return { diff, roomDiff, characterDiff }
+    return result
 }
 
 export const computePostApplyTakeHoldGraphs = async (args: {
@@ -109,67 +99,43 @@ export const updateTakeHoldPositionGraphs = async (
     deps?: UpdateTakeHoldPositionGraphsDependencies
 ): Promise<UpdateTakeHoldPositionGraphsResult> => {
     const getMembershipContainers = deps?.getMembershipContainers ?? defaultGetMembershipContainers
-    const getRoomPositionGraph = deps?.getRoomPositionGraph
-        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getPositionGraph(roomId))
-    const getCharacterPositionGraph = deps?.getCharacterPositionGraph
-        ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getPositionGraph(characterId))
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const priorContainers = await getMembershipContainers(args.objectId)
-    const { diff, roomDiff, characterDiff } = computeTakeHoldDiff({
-        priorContainers,
+    const plan = planObjectTakeHoldTransfer({
+        objectId: args.objectId,
         roomId: args.roomId,
         characterId: args.characterId,
+        priorContainers,
     })
+
+    const diff = objectMembershipDiffFromProjection(plan.projection)
 
     if (!diff.changed) {
         return { ok: true, persisted: false, diff }
     }
 
-    const { postApplyRoomGraphs, postApplyCharacterGraphs } = await computePostApplyTakeHoldGraphs({
-        objectId: args.objectId,
-        roomId: args.roomId,
-        characterId: args.characterId,
-        roomDiff,
-        characterDiff,
-        getRoomPositionGraph,
-        getCharacterPositionGraph,
-    })
+    const kernelResult = await applyHostEffects(
+        { hostEffects: plan.hostEffects },
+        deps
+    )
 
-    try {
-        let persisted = false
-        await exponentialBackoffWrapper(async () => {
-            const transactItems = [
-                ...buildObjectPlacementTransactItems({ objectId: args.objectId, diff: roomDiff }),
-                ...buildCharacterInventoryTransactItems({ objectId: args.objectId, diff: characterDiff }),
-            ]
-
-            if (transactItems.length === 0) {
-                return
-            }
-
-            await transactWrite(transactItems)
-            persisted = true
-        }, { retryErrors: ['TransactionCanceledException'] })
-
-        if (!persisted) {
-            return { ok: true, persisted: false, diff }
-        }
-
-        return {
-            ok: true,
-            persisted: true,
-            diff,
-            postApplyRoomGraphs,
-            postApplyCharacterGraphs,
-        }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+    if (!kernelResult.ok) {
         return {
             ok: false,
             errorCode: 'OBJECT_TAKE_HOLD_TRANSACT_FAILED',
-            errorMessage: message,
+            errorMessage: kernelResult.errorMessage,
         }
+    }
+
+    if (!kernelResult.persisted) {
+        return { ok: true, persisted: false, diff }
+    }
+
+    return {
+        ok: true,
+        persisted: true,
+        diff,
+        postApplyRoomGraphs: roomGraphsFromKernelResult(kernelResult.postApplyGraphs),
+        postApplyCharacterGraphs: characterGraphsFromKernelResult(kernelResult.postApplyGraphs),
     }
 }

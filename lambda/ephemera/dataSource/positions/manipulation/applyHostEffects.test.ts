@@ -155,6 +155,57 @@ describe('applyHostEffects', () => {
         expect(items).toHaveLength(4)
     })
 
+    it('bundles RoomStack character-row update with navigate hostEffects in one transact', async () => {
+        const plan = planMembershipTransfer({
+            entityId: NAV_CHARACTER_ID,
+            entityKind: 'character',
+            applyMode: 'end-state',
+            target: ROOM_TO,
+            priorContainers: [ROOM_FROM],
+        })
+
+        const fromGraph = {
+            nodes: [{ tag: 'Character' as const, universalKey: NAV_CHARACTER_ID }],
+            edges: [] as [],
+        }
+        const toGraph = { nodes: [], edges: [] as [] }
+
+        const result = await applyHostEffects(
+            {
+                hostEffects: plan.hostEffects,
+                characterRowEffects: [{
+                    characterId: NAV_CHARACTER_ID,
+                    targetRoomId: ROOM_TO,
+                    characterAssets: ['primitives', 'TownCenter'],
+                    roomAssets: ['ASSET#TownCenter'],
+                    canonAssets: ['primitives', 'TownCenter'],
+                    currentRoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                }],
+            },
+            {
+                getPositionGraph: async (hostId) => (hostId === ROOM_FROM ? fromGraph : toGraph),
+                transactWrite,
+            }
+        )
+
+        expect(result).toMatchObject({ ok: true, persisted: true, changed: true })
+        const items = transactWrite.mock.calls[0][0] as any[]
+        expect(items).toHaveLength(5)
+        expect(items[0].Update.Key.EphemeraId).toBe(NAV_CHARACTER_ID)
+        expect(items[0].Update.updateKeys).toEqual(['RoomStack'])
+
+        const characterDraft = produce(
+            { RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] },
+            items[0].Update.updateReducer
+        ) as { RoomStack: { asset: string; RoomId: string }[] }
+        expect(characterDraft).toEqual({
+            RoomStack: [
+                { asset: 'primitives', RoomId: 'VORTEX' },
+                { asset: 'TownCenter', RoomId: 'TestTwo' },
+            ],
+        })
+    })
+
     it('returns error when transact fails', async () => {
         transactWrite.mockRejectedValueOnce(new Error('transact failed'))
 

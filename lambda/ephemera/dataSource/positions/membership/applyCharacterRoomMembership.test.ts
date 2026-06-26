@@ -1,9 +1,9 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
-import * as graphPersist from './updatePositionGraphs'
+import * as kernelPersist from '../manipulation/applyHostEffects'
 
-jest.mock('./updatePositionGraphs', () => ({
-    updatePositionGraphs: jest.fn(),
+jest.mock('../manipulation/applyHostEffects', () => ({
+    applyHostEffects: jest.fn(),
 }))
 
 jest.mock('../../../internalCache/hydrateRoomRoster', () => ({
@@ -20,10 +20,12 @@ jest.mock('../../../internalCache', () => ({
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
+            getMembershipContainers: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
         Global: { get: jest.fn() },
+        RoomAssets: { get: jest.fn().mockResolvedValue([]) },
     },
 }))
 
@@ -35,8 +37,8 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 import internalCache from '../../../internalCache'
 import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 
-const updatePositionGraphsMock = graphPersist.updatePositionGraphs as jest.MockedFunction<
-    typeof graphPersist.updatePositionGraphs
+const applyHostEffectsMock = kernelPersist.applyHostEffects as jest.MockedFunction<
+    typeof kernelPersist.applyHostEffects
 >
 const getRoomCharacterListMock = getRoomCharacterList as jest.MockedFunction<typeof getRoomCharacterList>
 
@@ -63,6 +65,8 @@ describe('applyCharacterRoomMembership', () => {
             EphemeraId: CHARACTER_ID,
             Name: 'Test',
             HomeId: 'ROOM#VORTEX',
+            assets: ['primitives'],
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
         })
         ;(internalCache.Global.get as jest.Mock).mockResolvedValue('SESSION#abcdef')
         getRoomCharacterListMock.mockImplementation(async (roomId: EphemeraRoomId) => {
@@ -74,11 +78,7 @@ describe('applyCharacterRoomMembership', () => {
     })
 
     it('skips side-effect bundle when membership endpoint is unchanged', async () => {
-        updatePositionGraphsMock.mockResolvedValue({
-            ok: true,
-            persisted: false,
-            diff: { froms: [], to: FROM_ROOM, changed: false },
-        })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
 
         const result = await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM },
@@ -91,6 +91,7 @@ describe('applyCharacterRoomMembership', () => {
             to: FROM_ROOM,
             changed: false,
         })
+        expect(applyHostEffectsMock).not.toHaveBeenCalled()
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(internalCache.CharacterMeta.invalidate).not.toHaveBeenCalled()
         expect(internalCache.Positions.setMembershipContainers).not.toHaveBeenCalled()
@@ -98,11 +99,12 @@ describe('applyCharacterRoomMembership', () => {
     })
 
     it('runs membership-changed bundle when endpoint changes', async () => {
-        updatePositionGraphsMock.mockResolvedValue({
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        applyHostEffectsMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            diff: { froms: [FROM_ROOM], to: TO_ROOM, changed: true },
-            postApplyRoomGraphs: postApplyNavigateGraphs,
+            changed: true,
+            postApplyGraphs: postApplyNavigateGraphs,
         })
 
         const result = await applyCharacterRoomMembership(
@@ -171,11 +173,12 @@ describe('applyCharacterRoomMembership', () => {
     })
 
     it('runs side-effect bundle for all froms on drift scrub', async () => {
-        updatePositionGraphsMock.mockResolvedValue({
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, ROOM_C])
+        applyHostEffectsMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            diff: { froms: [FROM_ROOM, ROOM_C], to: TO_ROOM, changed: true },
-            postApplyRoomGraphs: {
+            changed: true,
+            postApplyGraphs: {
                 [FROM_ROOM]: { nodes: [], edges: [] as [] },
                 [ROOM_C]: { nodes: [], edges: [] as [] },
                 [TO_ROOM]: {
@@ -206,9 +209,10 @@ describe('applyCharacterRoomMembership', () => {
 
     it('logs and returns when graph persist fails', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
-        updatePositionGraphsMock.mockResolvedValue({
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        applyHostEffectsMock.mockResolvedValue({
             ok: false,
-            errorCode: 'MEMBERSHIP_TRANSACT_FAILED',
+            errorCode: 'HOST_EFFECTS_TRANSACT_FAILED',
             errorMessage: 'boom',
         })
 
@@ -219,7 +223,7 @@ describe('applyCharacterRoomMembership', () => {
 
         expect(result).toEqual({
             ok: false,
-            errorCode: 'MEMBERSHIP_TRANSACT_FAILED',
+            errorCode: 'HOST_EFFECTS_TRANSACT_FAILED',
             errorMessage: 'boom',
         })
         expect(messageBus.publish).not.toHaveBeenCalled()

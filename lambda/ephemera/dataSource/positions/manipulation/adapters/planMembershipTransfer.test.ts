@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { computeMembershipDiff } from '../../membership/updatePositionGraphs'
-import { computeTakeHoldDiff } from '../membership/updateTakeHoldPositionGraphs'
+import { computeMembershipDiff } from './computeEndStateRoomDiff'
+import { computeTakeHoldDiff } from '../adapters/computeTakeHoldDiff'
 import { planMembershipTransfer } from './planMembershipTransfer'
 import { planObjectTakeHoldTransfer } from './planObjectTakeHoldTransfer'
 
