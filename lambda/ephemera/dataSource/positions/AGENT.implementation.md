@@ -14,15 +14,17 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
 
-### `manipulation/` (cross-host apply today; adapter + kernel spec shipped)
+### `manipulation/` (adapter + kernel scaffold shipped Phase 4a; expedient persist until Phase 4b)
 
-Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter spec: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 2 **Done**; Phase 3 vocabulary graduated). **M7** migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4a **Done** 2026-06-25). **M7** migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/adapters/`](manipulation/adapters/) | Shared membership transfer planner (Phase 4a; **M8**) |
-| [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (Phase 4a; **M5**, **M4**) |
+| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` stub |
+| [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer` |
+| [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**) |
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators + expedient persist (authoritative until Phase 4b) |
+| [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
 
 Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 

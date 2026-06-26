@@ -1,6 +1,6 @@
 # Positions manipulation model - planning
 
-**Status:** In progress. **Next:** Phase 4a shared adapter + kernel scaffold (may overlap Phase 4b prep). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 2 **Done** 2026-06-25; Phase 3 doc graduation **Done** 2026-06-25).
+**Status:** In progress. **Next:** Phase 4b migrate through adapter + kernel (M7). **Spec:** [`manipulation/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4a scaffold **Done** 2026-06-25).
 
 **Upstream (graduated):** [`actions/AGENT.implementation.md`](../../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- **`ObjectManipulationIntent` steady-state** (membership-aware atomic vs complex parse).
 
@@ -216,7 +216,7 @@ All manipulation-model decisions (**M1**--**M5**, **M7**, **M8**, **M3**) gradua
 | 1b | Fork actions parse sub-plan (**M6** decided) | Done |
 | 2 | Kernel + shared adapter spec (HostEffect; record M4--M8, M2 in spec prose) | Done |
 | 3 | Graduate docs (M3; M1--M2, M4--M5, M7--M8 as contract prose) | Done |
-| 4a | Shared adapter + kernel scaffold (M5, M8) | Not started |
+| 4a | Shared adapter + kernel scaffold (M5, M8) | Done |
 | 4b | Migrate through adapter + kernel (M7 incremental order) | Not started |
 | 4c | Ingress audit; prep **`drop`** as adapter-only | Not started |
 | 5 | Relational patch hook (doc stub only) | Not started |
@@ -245,10 +245,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets `[X]` as
   - [X] Align gateway `positions/AGENT.md` conflict + read surfaces with contract
   - [X] Resolve **M3** in durable docs: layered vocabulary
   - [X] Remove decided rows from Open decisions
-- [ ] **Phase 4a --- Shared adapter + kernel scaffold** (may run parallel to actions parse Phase 2--3)
-  - [ ] Introduce **`manipulation/adapters/`** (**M8**): transfer planner (end-state / bounded per **M2**)
-  - [ ] Introduce kernel at **`manipulation/`** top-level (**M5**): `applyHostEffects`; wrap `positionGraphMerge`, `*TransactItems`
-  - [ ] Unit tests: planner modes -> effect list; effect list -> transact items; graph validation / `changed`
+- [X] **Phase 4a --- Shared adapter + kernel scaffold** (may run parallel to actions parse Phase 2--3)
+  - [X] Introduce **`manipulation/adapters/`** (**M8**): transfer planner (end-state / bounded per **M2**)
+  - [X] Introduce kernel at **`manipulation/`** top-level (**M5**): `applyHostEffects`; wrap `positionGraphMerge`, `*TransactItems`
+  - [X] Unit tests: planner modes -> effect list; effect list -> transact items; graph validation / `changed`
+  - [X] Document projection-first fact emission (provisional) in durable docs
 - [ ] **Phase 4b --- Migrate through adapter + kernel** ( **gate cleared 2026-06-25:** actions parse graduated; order per **M7** )
   - [ ] **M7** step 1: object room --- move `computeMembershipDiff` into shared adapter; route `updateObjectPositionGraphs` through adapter + kernel
   - [ ] **M7** step 2: character (+ `RoomStack`) --- route `updatePositionGraphs` through adapter + kernel

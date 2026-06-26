@@ -2,7 +2,7 @@
 
 Graph-first **membership transfer** persist for `mtw.ephemera.positions`: a shared membership adapter plans `froms`/`to` into **`HostEffect[]`**, a manipulation kernel validates and transacts on affected hosts only, and per-operator coordinators own fact/cache/bus bundles. Operator ingress stays membership-shaped; **`HostEffect[]`** is the adapter -> kernel contract.
 
-**Status:** Phase 2 spec complete; Phase 3 vocabulary graduated to parent [`AGENT.concepts.md`](../AGENT.concepts.md) and [`AGENT.contract.md`](../AGENT.contract.md). Expedient persist paths in [`membership/`](../membership/) and [`manipulation/membership/`](membership/) remain authoritative until Phase 4b migration. Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
+**Status:** Phase 4a scaffold shipped (2026-06-25). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). Expedient persist paths in [`membership/`](../membership/) and [`manipulation/membership/`](membership/) remain authoritative until Phase 4b migration.
 
 ## Documentation
 

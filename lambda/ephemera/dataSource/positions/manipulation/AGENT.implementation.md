@@ -1,6 +1,6 @@
 # Positions manipulation --- implementation map and kernel spec
 
-**Status:** Phase 2 spec (kernel + shared adapter). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). TypeScript scaffold ships in Phase 4a; expedient persist paths remain authoritative until Phase 4b migration.
+**Status:** Phase 4a scaffold shipped (2026-06-25). Phase 3 vocabulary graduated to [`../AGENT.concepts.md`](../AGENT.concepts.md) and [`../AGENT.contract.md`](../AGENT.contract.md). TypeScript adapter + kernel on disk; expedient persist paths remain authoritative until Phase 4b migration.
 
 Contracts (shipped today): [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md). Task plan: [`taskPlanning/.../AGENT.manipulationModel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/manipulation/AGENT.manipulationModel.planning.md).
 
@@ -178,6 +178,16 @@ Ingress args (coordinator)
 
 Public coordinator APIs remain membership-shaped at ingress --- **not** raw `HostEffect[]`.
 
+### Fact emission: projection-first (provisional)
+
+**For the moment**, coordinators emit stream facts, cache memo keys, and bus bundles from the adapter's **`MembershipTransferProjection`** on successful kernel persist --- **assuming apply succeeded as planned** --- rather than re-deriving membership transfer semantics from post-apply `postApplyGraphs` or applied `hostEffects`.
+
+| Chosen (now) | Deferred alternative |
+| --- | --- |
+| Use forward **`projection`** `{ froms, to, changed }` for `Character Moved` / `Object Moved` facts after `applyHostEffects` succeeds | Derive facts from **`postApplyGraphs`** or applied effects (graph-grounded projection) |
+
+Matches today's expedient coordinators (facts from forward diff, not a second graph read). **May revisit** when graph-grounded fact verification or slice 5+ relational ops land.
+
 ### Per-operator compose table
 
 | Coordinator | Ingress | Adapter mode | `boundedHostIds` | Kernel extras | Fact |
@@ -226,7 +236,7 @@ Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.cont
 | --- | --- | --- | --- |
 | [`updateObjectPositionGraphs.ts`](../membership/updateObjectPositionGraphs.ts) | `adapters/planMembershipTransfer` (end-state) | `applyHostEffects` | `applyObjectRoomMembership` |
 | [`updatePositionGraphs.ts`](../membership/updatePositionGraphs.ts) | `adapters/planMembershipTransfer` (end-state) | `applyHostEffects` + `CharacterRowEffect` | `applyCharacterRoomMembership` |
-| [`updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | `adapters/planMembershipTransfer` (bounded room + character end-state) | `applyHostEffects` | `applyObjectTakeHold` |
+| [`updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | `adapters/planObjectTakeHoldTransfer` (bounded room + character end-state) | `applyHostEffects` | `applyObjectTakeHold` |
 
 Expedient modules become thin wrappers or are removed after Phase 4b tests pass.
 
@@ -280,7 +290,19 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 ## This folder (code map)
 
-### Shipped today (`manipulation/membership/`)
+### Phase 4a scaffold (shipped 2026-06-25)
+
+| Path | Role |
+| --- | --- |
+| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` stub |
+| [`adapters/`](adapters/) | Shared membership transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `hostEffectsFromDiffs` |
+| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact on explicit `HostEffect[]` |
+
+Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts), [`../membership/characterRoomMembershipTransactItems.ts`](../membership/characterRoomMembershipTransactItems.ts), [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts).
+
+`CharacterRowEffect` / `RoomStack` bundling deferred to Phase 4b (M7 step 2).
+
+### Shipped coordinators (`manipulation/membership/`; expedient persist until Phase 4b)
 
 | File | Role |
 | --- | --- |
@@ -289,15 +311,6 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | [`membership/updateTakeHoldPositionGraphs.ts`](membership/updateTakeHoldPositionGraphs.ts) | Expedient: pre-read, diff, single transact |
 | [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) | Character-host graph + adjacency transact builders |
 | [`membership/types.ts`](membership/types.ts) | Cross-host diff + apply result types |
-
-### Phase 4a+ (not yet on disk)
-
-| Path | Role |
-| --- | --- |
-| [`adapters/`](adapters/) | Shared membership transfer planner (**M8**) |
-| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**) |
-
-Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts).
 
 ---
 
