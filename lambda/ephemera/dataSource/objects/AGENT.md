@@ -123,6 +123,26 @@ npm run test -- --watchAll=false
 - **`mtw.ephemera.objects`** appears in **[`app.ts`](../../app.ts)** side-effect imports and as the DataSource **`dataSourceKey`** in [`index.ts`](index.ts).
 - **[`app.ts`](../../app.ts):** **`./dataSource/objects`** import **above** **`./dataSource/state`**.
 
+**Regression greps (two-step spawn; no kernel bypass):**
+
+No live references to the retired cross-lane spawn bundle (historical **Removed:** notes in manipulation docs are OK):
+
+```bash
+rg -n "computePostApplyObjectRoomGraphs|postApplyGraphProjection|spawnAndPlaceImprovisationObject" \
+  lambda/ephemera/
+```
+
+Two-step primitives and ingress coordinator wiring:
+
+```bash
+rg -n "persistSpawnImprovisationObject|applyObjectRoomMembership" \
+  lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts
+
+rg -n "spawnImprovisationObjectsBatch|spawnOneImprovisationObject" \
+  lambda/ephemera/dataSource/objects/applyObjectsChange.ts \
+  lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts
+```
+
 ## Related documentation
 
 | Doc | Role |

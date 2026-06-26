@@ -4,7 +4,7 @@
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
-**Parent:** spawn-object two-step refactor --- follow-up deferred from [`AGENT.spawnObjectRefactor.planning.md`](AGENT.spawnObjectRefactor.planning.md) (lines 118--121). Phase 1 shipped **S1** compensating delete + structured `console.error` when compensation also fails; this initiative replaces log-only with operational diagnostics.
+**Follow-up to shipped spawn refactor:** two-step spawn+place is steady state ([`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) **S1**). [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) compensates with `persistDeleteImprovisationObject` on placement failure; when compensation also fails, it logs only today. This initiative replaces log-only with operational diagnostics.
 
 ---
 
@@ -148,7 +148,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [ ] Update [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md): problem-report intake, sweep, finding contract.
   - [ ] Update [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): S1 double-fail emits problem report (not log-only).
   - [ ] Update [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): cross-reference orphan finding (existence-without-placement).
-  - [ ] Trim follow-up bullets from parent [`AGENT.spawnObjectRefactor.planning.md`](AGENT.spawnObjectRefactor.planning.md) or link here once Phase 1--3 ship.
+  - [X] Trim follow-up bullets from parent spawn refactor plan or link here once Phase 1--3 ship (parent plan disposed; follow-up tracked in this document).
 
 - [ ] **Phase 4 --- Optional repair (product gate --- O1)**
   - [ ] If **O1** = delete: objects lane handler on finding -> `persistDeleteImprovisationObject` (idempotent).
@@ -258,7 +258,6 @@ rg -n "Spawn Compensation Problem|mtw.ephemera.objects" \
 
 | Doc | Role |
 | --- | --- |
-| [`AGENT.spawnObjectRefactor.planning.md`](AGENT.spawnObjectRefactor.planning.md) | Parent initiative; S1/S2/S3 decisions |
 | [`taskPlanning/AGENT.md`](../../../../AGENT.md) | Task planning framework |
 | [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md) | Diagnostics sweeps and problem-report intake |
 | [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md) | Objects lane steady state |
