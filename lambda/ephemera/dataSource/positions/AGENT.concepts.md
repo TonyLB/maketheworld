@@ -69,7 +69,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 
 - **Existence** (improvisation pair + **`Meta::Object`**) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md)).
 - **Where** the object is in play: **`Object`** node on the delivery room **`positionGraph`** + **`OBJECT#`** adjacency row (**I5**).
-- **Spawn + place:** [`spawnAndPlaceImprovisationObject`](../objects/spawnAndPlaceImprovisationObject.ts) atomically writes pair + meta + graph + adjacency.
+- **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
 - **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
 - Relational in-room edges (`On`, `In`, ...) remain deferred (slice 5+).
 - Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).

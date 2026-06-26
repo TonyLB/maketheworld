@@ -87,7 +87,6 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate (**S2-6-DR**) |
 | [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
-| [`membership/postApplyGraphProjection.ts`](membership/postApplyGraphProjection.ts) | Spawn-bundle-only: `computePostApplyObjectRoomGraphs` for cache seeding; defer removal until spawn aligns with kernel |
 | [`membership/characterRoomStackTransactItems.ts`](membership/characterRoomStackTransactItems.ts) | Navigate-only `RoomStack` transact items (kernel `CharacterRowEffect`) |
 | [`membership/objectPlacementTransactItems.ts`](membership/objectPlacementTransactItems.ts) | Shared transact item builders for object graph + adjacency |
 | [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: character graph persist, `changed` gate, S1-11 bundle (fact stream first) |
@@ -98,6 +97,15 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/streamObjectMembershipFact.ts`](membership/streamObjectMembershipFact.ts) | `Object Moved` `streamEvent` at persistence apply |
 | [`membership/syncObjectMembershipAdjacency.ts`](membership/syncObjectMembershipAdjacency.ts) | Object adjacency-only sync when graph correct but index lags |
 | [`membership/repairObjectPlacementDrift.ts`](membership/repairObjectPlacementDrift.ts) | Object placement drift repair (graph-forward room scan) |
+
+#### Cross-lane ingress (objects lane -> positions coordinator)
+
+Objects lane callers use **`applyObjectRoomMembership`** for graph placement; they do **not** register on positions **`receiveEvents`**. Coordinator semantics (**S1** compensating delete, **S3** batch isolation): [`../objects/spawnImprovisationObjectsBatch.ts`](../objects/spawnImprovisationObjectsBatch.ts), [`../objects/AGENT.md`](../objects/AGENT.md).
+
+| Caller | Entry | Positions coordinator |
+| --- | --- | --- |
+| Objects spawn (`spawnOneImprovisationObject`) | After `persistSpawnImprovisationObject` | `applyObjectRoomMembership` |
+| Objects remove (`applyObjectsChange`) | Graph removal first | `applyObjectRoomMembership` then row delete |
 
 ### Tests
 

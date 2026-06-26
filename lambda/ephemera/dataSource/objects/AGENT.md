@@ -29,9 +29,9 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 
 **Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** graphs, removes graph placement, then **`persistClearCoyoteGameImprovisationObjects`** deletes pair + **`Meta::Object`** rows.
 
-**Spawn + place:** [`spawnAndPlaceImprovisationObject.ts`](spawnAndPlaceImprovisationObject.ts) --- atomic transact: improvisation pair + **`Meta::Object`** + room graph **`Object`** node + adjacency. Emits **`Object Moved`** on **`mtw.ephemera.positions`**. Acme and API ingress call this via [`applyObjectsChange.ts`](applyObjectsChange.ts) / [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts).
+**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) sequences [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence) then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel; **S1** compensating delete on placement failure). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
 
-**Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> spawn+place per row; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** for outbound **`Objects Changed`**.
+**Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> **`spawnImprovisationObjectsBatch`**; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** (and optional **`addFailures`**) for outbound **`Objects Changed`**.
 
 **Cache invalidation:** [`invalidateImprovisationObjectCaches.ts`](invalidateImprovisationObjectCaches.ts) --- **`ImprovisationComponentData`**, **`ObjectEphemeraMeta`**, **`ComponentEphemeraMeta`**, **`Positions`**, optional **`AffordanceRoomDeliverable`** per affected room.
 
@@ -42,7 +42,7 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 | Header `type` | Where | Role |
 | --- | --- | --- |
 | **`Objects Change`** | **`api.ephemera`** ingress (internal) | Imperative command; parallels **`State Change`**. Payload: **`componentId`** (room, v1) and **`{ add, remove }`**. |
-| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
+| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
 
 Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** apply coordinators, not duplicated from objects handlers.
 
@@ -56,9 +56,9 @@ Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** a
 
 **Persist:** [`applyObjectsChange.ts`](applyObjectsChange.ts) coordinates spawn, graph apply, and delete modules.
 
-**Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamObjectsChangedFact`** on **`mtw.ephemera.objects`** when any ids created/destroyed.
+**Handler + outbound:** [`handleApiObjectsChange.ts`](handleApiObjectsChange.ts). On success, **`streamObjectsChangedFact`** on **`mtw.ephemera.objects`** when **`createdIds.length > 0`** and/or **`destroyedIds.length > 0`** --- partial batch (**S3**): stream partial **`createdIds`** when at least one **`add`** succeeded even if others failed; log per-failure **`addFailures`** without suppressing the outbound fact for successes.
 
-**Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) calls **`spawnAndPlaceImprovisationObject`** per enriched catalog line (mint **`OBJECT#`**, filter tropes by delivery room), then one **`Objects Changed`** with **`createdIds`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
+**Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) mints **`OBJECT#`** per enriched catalog line, calls **`spawnImprovisationObjectsBatch`**, streams partial **`createdIds`** when at least one row succeeds, logs per-failure **`addFailures`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
 
 **Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`outboundBusDelivery: 'publish'`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**). Outbounds use **`publish`** via the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 
@@ -91,6 +91,9 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
 | **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
+| **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`applyObjectRoomMembership`); not a cross-lane single transact. |
+| **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |
+| **Batch `add` isolation (S3)** | Per-object loop; partial **`createdIds`** + **`addFailures`**; one row's failure does not abort earlier successes or skip remaining rows. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
 | **Outbound header** | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
@@ -106,11 +109,39 @@ npm run test -- --watchAll=false
 # npm run test dataSource/objects
 ```
 
+**Spawn refactor test inventory (S1--S3):**
+
+| File | Policies |
+| --- | --- |
+| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log; **S3** batch partial `createdIds` |
+| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove |
+| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream |
+
 **Regression checks:**
 
 - Tests under **`lambda/ephemera/dataSource/objects/`** and **`handleApiObjectsChange`** pass.
 - **`mtw.ephemera.objects`** appears in **[`app.ts`](../../app.ts)** side-effect imports and as the DataSource **`dataSourceKey`** in [`index.ts`](index.ts).
 - **[`app.ts`](../../app.ts):** **`./dataSource/objects`** import **above** **`./dataSource/state`**.
+
+**Regression greps (two-step spawn; no kernel bypass):**
+
+No live references to the retired cross-lane spawn bundle (historical **Removed:** notes in manipulation docs are OK):
+
+```bash
+rg -n "computePostApplyObjectRoomGraphs|postApplyGraphProjection|spawnAndPlaceImprovisationObject" \
+  lambda/ephemera/
+```
+
+Two-step primitives and ingress coordinator wiring:
+
+```bash
+rg -n "persistSpawnImprovisationObject|applyObjectRoomMembership" \
+  lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts
+
+rg -n "spawnImprovisationObjectsBatch|spawnOneImprovisationObject" \
+  lambda/ephemera/dataSource/objects/applyObjectsChange.ts \
+  lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts
+```
 
 ## Related documentation
 

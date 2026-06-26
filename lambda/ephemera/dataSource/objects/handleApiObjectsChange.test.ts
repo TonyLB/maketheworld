@@ -7,7 +7,7 @@ import {
 } from './handleApiObjectsChange'
 import { applyObjectsChange } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
-import { spawnAndPlaceImprovisationObject } from './spawnAndPlaceImprovisationObject'
+import { spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 
 jest.mock('./applyObjectsChange', () => ({
     applyObjectsChange: jest.fn(),
@@ -17,13 +17,14 @@ jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
     clearCoyoteGameImprovisationObjects: jest.fn(),
 }))
 
-jest.mock('./spawnAndPlaceImprovisationObject', () => ({
-    spawnAndPlaceImprovisationObject: jest.fn(),
+jest.mock('./spawnImprovisationObjectsBatch', () => ({
+    ...jest.requireActual('./spawnImprovisationObjectsBatch'),
+    spawnOneImprovisationObject: jest.fn(),
 }))
 
 const applyObjectsChangeMock = applyObjectsChange as jest.MockedFunction<typeof applyObjectsChange>
 const clearCoyoteGameImprovisationObjectsMock = clearCoyoteGameImprovisationObjects as jest.MockedFunction<typeof clearCoyoteGameImprovisationObjects>
-const spawnAndPlaceMock = spawnAndPlaceImprovisationObject as jest.MockedFunction<typeof spawnAndPlaceImprovisationObject>
+const spawnOneMock = spawnOneImprovisationObject as jest.MockedFunction<typeof spawnOneImprovisationObject>
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
@@ -114,6 +115,56 @@ describe('handleApiObjectsChangeCommand', () => {
             },
         })
     })
+
+    it('streams partial createdIds when some adds failed', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const roomId = 'ROOM#partial' as EphemeraRoomId
+        applyObjectsChangeMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            createdIds: ['OBJECT#a' as EphemeraObjectId],
+            destroyedIds: [],
+            addFailures: [{
+                objectId: 'OBJECT#b' as EphemeraObjectId,
+                stableKey: 'b',
+                errorMessage: 'placement failed',
+            }],
+        })
+        await handleApiObjectsChangeCommand(
+            { componentId: roomId, add: [obj('a', 'A'), obj('b', 'B')], remove: [] },
+            { streamEvent }
+        )
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            streamKey: roomId,
+            update: expect.objectContaining({
+                createdIds: ['OBJECT#a'],
+            }),
+        }))
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#b',
+            stableKey: 'b',
+        }))
+        consoleSpy.mockRestore()
+    })
+
+    it('does not stream when all adds failed', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        applyObjectsChangeMock.mockResolvedValue({
+            ok: false,
+            errorMessage: '1 add(s) failed',
+            addFailures: [{
+                objectId: 'OBJECT#x' as EphemeraObjectId,
+                stableKey: 'x',
+                errorMessage: 'placement failed',
+            }],
+        })
+        await handleApiObjectsChangeCommand(
+            { componentId: 'ROOM#allfail' as EphemeraRoomId, add: [obj('x', 'X')], remove: [] },
+            { streamEvent }
+        )
+        expect(streamEvent).not.toHaveBeenCalled()
+        consoleSpy.mockRestore()
+    })
 })
 
 describe('handleAwaitRoadRunnerClearObjects', () => {
@@ -167,8 +218,8 @@ describe('handleAcmeOrderAddObjects', () => {
     }
 
     beforeEach(() => {
-        spawnAndPlaceMock.mockReset()
-        spawnAndPlaceMock.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
+        spawnOneMock.mockReset()
+        spawnOneMock.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
         streamEvent.mockClear()
     })
 
@@ -197,11 +248,11 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        expect(spawnAndPlaceMock).toHaveBeenCalledTimes(2)
-        expect(spawnAndPlaceMock).toHaveBeenNthCalledWith(
+        expect(spawnOneMock).toHaveBeenCalledTimes(2)
+        expect(spawnOneMock).toHaveBeenNthCalledWith(
             1,
             expect.objectContaining({
                 objectId: 'OBJECT#u1',
@@ -235,11 +286,11 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
         expect(resolveCharacterRoomId).toHaveBeenCalledWith('CHARACTER#123')
-        expect(spawnAndPlaceMock).toHaveBeenCalledWith(
+        expect(spawnOneMock).toHaveBeenCalledWith(
             expect.objectContaining({ targetRoomId: 'ROOM#STRAIGHTAWAY' }),
             expect.any(Object)
         )
@@ -257,11 +308,11 @@ describe('handleAcmeOrderAddObjects', () => {
         }, {
             streamEvent,
             resolveCharacterRoomId,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
         expect(resolveCharacterRoomId).not.toHaveBeenCalled()
-        expect(spawnAndPlaceMock).not.toHaveBeenCalled()
+        expect(spawnOneMock).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
@@ -278,10 +329,10 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        const spawnArgs = spawnOneMock.mock.calls[0]?.[0]
         expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
@@ -302,15 +353,86 @@ describe('handleAcmeOrderAddObjects', () => {
             streamEvent,
             resolveCharacterRoomId,
             uuidFactory,
-            spawnAndPlaceImpl: spawnAndPlaceMock,
+            spawnOneImpl: spawnOneMock,
         })
 
-        const spawnArgs = spawnAndPlaceMock.mock.calls[0]?.[0]
+        const spawnArgs = spawnOneMock.mock.calls[0]?.[0]
         expect(spawnArgs?.tropeAffinities?.[0]?.environmentAffordances).toEqual([
             { object: 'rock-wall', roles: ['Finishing Move'] },
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
             { object: 'tumbleweed', roles: ['Misdirection'] },
         ])
+    })
+
+    it('streams partial createdIds when some spawns fail (S3)', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidValues = ['u1', 'u2']
+        const uuidFactory = jest.fn(() => uuidValues.shift() || 'fallback')
+        spawnOneMock.mockImplementation(async (args) => {
+            if (args.objectId === 'OBJECT#u2') {
+                return { ok: false, errorMessage: 'placement failed' }
+            }
+            return { ok: true, objectId: args.objectId }
+        })
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [
+                { shortName: 'anvil', stableKey: 'anvil' },
+                { shortName: 'magnet', stableKey: 'magnet' },
+            ],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(streamEvent).toHaveBeenCalledTimes(1)
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: 'ROOM#VORTEX',
+            header: { type: 'Objects Changed' },
+            update: {
+                type: 'Objects Changed',
+                createdIds: ['OBJECT#u1'],
+                destroyedIds: [],
+            },
+        })
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#u2',
+            stableKey: 'magnet',
+            errorMessage: 'placement failed',
+        }))
+        consoleSpy.mockRestore()
+    })
+
+    it('does not stream when all spawns fail', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+        spawnOneMock.mockResolvedValue({ ok: false, errorMessage: 'placement failed' })
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(streamEvent).not.toHaveBeenCalled()
+        expect(consoleSpy).toHaveBeenCalledWith('[mtw.ephemera.objects] add failed', expect.objectContaining({
+            objectId: 'OBJECT#u1',
+            stableKey: 'anvil',
+        }))
+        consoleSpy.mockRestore()
     })
 })
