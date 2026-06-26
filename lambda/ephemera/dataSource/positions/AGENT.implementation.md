@@ -98,6 +98,15 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | [`membership/syncObjectMembershipAdjacency.ts`](membership/syncObjectMembershipAdjacency.ts) | Object adjacency-only sync when graph correct but index lags |
 | [`membership/repairObjectPlacementDrift.ts`](membership/repairObjectPlacementDrift.ts) | Object placement drift repair (graph-forward room scan) |
 
+#### Cross-lane ingress (objects lane -> positions coordinator)
+
+Objects lane callers use **`applyObjectRoomMembership`** for graph placement; they do **not** register on positions **`receiveEvents`**. Coordinator semantics (**S1** compensating delete, **S3** batch isolation): [`../objects/spawnImprovisationObjectsBatch.ts`](../objects/spawnImprovisationObjectsBatch.ts), [`../objects/AGENT.md`](../objects/AGENT.md).
+
+| Caller | Entry | Positions coordinator |
+| --- | --- | --- |
+| Objects spawn (`spawnOneImprovisationObject`) | After `persistSpawnImprovisationObject` | `applyObjectRoomMembership` |
+| Objects remove (`applyObjectsChange`) | Graph removal first | `applyObjectRoomMembership` then row delete |
+
 ### Tests
 
 | File | Covers |

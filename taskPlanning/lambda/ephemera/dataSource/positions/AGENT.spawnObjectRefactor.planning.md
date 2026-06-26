@@ -1,6 +1,6 @@
 # Spawn object refactor (two-step existence + placement)
 
-**Status:** Phase 3 complete (tests). **Next:** Phase 4 durable docs.
+**Status:** Phase 4 complete (durable docs). **Next:** Phase 5 close.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/ephemera/dataSource/positions/`](../../../../../lambda/ephemera/dataSource/positions/) `AGENT*.md` siblings.
 
@@ -53,7 +53,7 @@ The contract required a **single transact** across both lanes (**I1** / **I5** i
    - [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md) (**Three-way split**, **Spawn + place**)
    - [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#object-room-placement-phase-4-nodes-only)
 3. Read manipulation layering (shipped Phase 4c):
-   - [`lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4c exceptions table; spawn listed as documented exception)
+   - [`lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (Phase 4c ingress audit)
    - [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#object-room-membership-phase-4-nodes-only)
 4. Read existing primitives (no new graph reducers expected):
    - [`persistSpawnImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts)
@@ -71,41 +71,6 @@ npm run test -- --watchAll=false \
   dataSource/positions/membership/applyObjectRoomMembership.test.ts \
   dataSource/positions/membership/planMembershipTransfer.objectPersist.test.ts
 ```
-
----
-
-## Open decisions (implementation --- plan only)
-
-Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
-
-| ID | Decision | Blocks slice | Status |
-| --- | --- | --- | --- |
-| **S1** | Compensating delete on placement failure; log when compensation also fails | Phase 1 coordinator + error semantics | **Decided** |
-| **S2** | Emit `Objects Changed` `createdIds` only for objects where existence + placement both succeeded | Phase 1 outbound timing | **Decided** |
-| **S3** | Per-object batch isolation: partial `createdIds`, continue loop, report per-failure errors | `applyObjectsChange`, `handleAcmeOrderAddObjects` | **Decided** |
-
-### Decided policies (S1--S3)
-
-**S1 --- Compensating delete (SAGA undo):**
-
-- After `persistSpawnImprovisationObject` succeeds and `applyObjectRoomMembership` fails, call `persistDeleteImprovisationObject` for the same `objectId` before treating that `add` row as failed.
-- If compensation delete **also** fails: `console.error` with enough context (`objectId`, placement error, delete error) for operations follow-up. The row is a durable **orphaned improvised object** (existence rows, no graph placement).
-- **Follow-up (deferred, not Phase 1):** add an **orphaned improvised object** diagnostics **finding** type and a **scan** that detects `OBJECT#` rows with pair + `Meta::Object` but no membership-container / graph placement. Document the finding id in durable diagnostics docs when that slice lands; Phase 1 only reserves the failure path and logging hook.
-
-**S2 --- `Objects Changed` timing:**
-
-- Include an `objectId` in `createdIds` only when **both** existence create and room placement succeeded for that row.
-- Do **not** stream `Objects Changed` for objects that failed placement (even if existence briefly existed before compensation).
-- Handlers emit one `Objects Changed` when `createdIds.length > 0` and/or `destroyedIds.length > 0` after the batch loop (**S3**).
-
-**S3 --- Per-object batch isolation:**
-
-- **`add` loops** (`applyObjectsChange`, `handleAcmeOrderAddObjects`): failure on one row does **not** abort earlier successes or skip remaining rows.
-- **`createdIds`:** append only fully successful spawns (both steps, or compensated clean failure with no durable rows --- failed rows do not appear).
-- **Error reporting:** extend `ApplyObjectsChangeResult` (and Acme handler behavior) so callers can log **per-failure** detail (e.g. ingress `uuid` / minted `objectId`, `stableKey` where known, `errorMessage`) while still returning `{ ok: true, persisted: true, createdIds, ... }` when at least one row succeeded. When **every** `add` fails, `{ ok: false, errorMessage }` (aggregate or first failure --- pick one in implementation; prefer a summary plus structured log lines for each failure).
-- **`handleApiObjectsChangeCommand`:** stream partial `createdIds` when `persisted: true` even if some adds failed; log failures without suppressing the outbound fact for successes.
-
-**Remove path:** unchanged (still per-object loop; align error-reporting shape with `add` if useful).
 
 ---
 
@@ -138,11 +103,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Add test: batch partial success (**S3**) --- first `add` succeeds, second fails -> `createdIds` length 1, outbound includes only success (`spawnImprovisationObjectsBatch.test.ts`, `applyObjectsChange.test.ts`, `handleApiObjectsChange.test.ts` API + Acme paths).
   - [X] Regression: `applyObjectRoomMembership.test.ts`, `planMembershipTransfer.objectPersist.test.ts`, Acme/handleApiObjectsChange tests (37 baseline + 154 broader scope pass).
 
-- [ ] **Phase 4 --- Durable docs**
-  - [ ] Update [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): two-step spawn+place; remove single-transact bundle language; **S3** partial batch / `createdIds` semantics.
-  - [ ] Update [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): replace spawn bundle exception with two-step norm; record **S1** compensating delete + compensation-failure logging.
-  - [ ] Update [`positions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) and [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Phase 4c exceptions table (remove spawn/kernel bypass).
-  - [ ] Remove resolved rows from **Open decisions** above.
+- [X] **Phase 4 --- Durable docs**
+  - [X] Update [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): two-step spawn+place; remove single-transact bundle language; **S3** partial batch / `createdIds` semantics.
+  - [X] Update [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): replace spawn bundle exception with two-step norm; record **S1** compensating delete + compensation-failure logging.
+  - [X] Update [`positions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) and [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Phase 4c exceptions table (remove spawn/kernel bypass).
+  - [X] Remove resolved rows from **Open decisions** above.
 
 - [ ] **Phase 5 --- Close**
   - [ ] Run verification commands below.
@@ -166,7 +131,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 | Phase 1 coordinator refactor | Done |
 | Parallel paths removed | Done |
 | Phase 3 tests | Done |
-| Durable docs updated | Not started |
+| Durable docs updated | Done |
 
 ---
 

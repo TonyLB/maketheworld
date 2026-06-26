@@ -26,7 +26,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md) | Hydrated `Affordance::` rows, `topology.exits` |
 | [`../actions/AGENT.md`](../actions/AGENT.md) | Parse, `Character Navigate` stream (execution in positions) |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
-| [`../objects/AGENT.md`](../objects/AGENT.md) | Improvisation pair + **`Meta::Object`** + graph placement (**I1** / **I5**) |
+| [`../objects/AGENT.md`](../objects/AGENT.md) | Two-step existence + graph placement (**I5**); objects lane owns existence rows |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
 | [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `executeCharacterNavigate`) |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |

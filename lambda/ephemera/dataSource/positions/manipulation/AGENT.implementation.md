@@ -243,6 +243,7 @@ Matches today's expedient coordinators (facts from forward diff, not a second gr
 | --- | --- | --- | --- | --- | --- |
 | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `{ characterId, targetRoomId }` | end-state | --- | `CharacterRowEffect` when `targetRoomId !== null` | `Character Moved` |
 | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `{ objectId, targetRoomId }` | end-state | --- | none | `Object Moved` |
+| [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) (objects spawn) | via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) after existence create | end-state | --- | none | `Object Moved` |
 | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `{ objectId, roomId, characterId }` | bounded (room) + character end-state | `[roomId]` | none | `Object Moved` (cross-host) |
 | **`applyObjectDrop`** (deferred) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | none | `Object Moved` (cross-host) |
 
@@ -326,6 +327,7 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | --- | --- | --- | --- |
 | Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` + optional `CharacterRowEffect` |
 | Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
+| Improvisational object spawn (objects lane) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | **`takeHold`** | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `planObjectTakeHoldTransfer` | `applyHostEffects` |
 
 **Kernel invariant:** [`applyHostEffects.ts`](applyHostEffects.ts) does **not** call `getMembershipContainers`.
@@ -336,7 +338,7 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | --- | --- |
 | [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) / [`syncObjectMembershipAdjacency.ts`](../membership/syncObjectMembershipAdjacency.ts) | Adjacency-only sync when graph is correct but reverse index lags |
 
-**Removed:** `updatePositionGraphs`, `updateObjectPositionGraphs`, `updateTakeHoldPositionGraphs`, `postApplyGraphProjection` (redundant with coordinators / kernel).
+**Removed:** `updatePositionGraphs`, `updateObjectPositionGraphs`, `updateTakeHoldPositionGraphs`, `postApplyGraphProjection` (redundant with coordinators / kernel). Spawn no longer bypasses kernel via cross-lane transact or `postApplyGraphProjection`.
 
 **Future `drop`:** `applyObjectDrop` -> `planObjectDropTransfer` -> `applyHostEffects` only --- see Section B deferred **`drop`**.
 
