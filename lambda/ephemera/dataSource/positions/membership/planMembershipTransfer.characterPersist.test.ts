@@ -39,8 +39,6 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const ROOM_A = 'ROOM#VORTEX' as EphemeraRoomId
 const ROOM_B = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
-const ROOM_D = 'ROOM#TestFour' as EphemeraRoomId
-const ROOM_ONE = 'ROOM#TestOne' as EphemeraRoomId
 
 const characterMeta: CharacterMetaItem = {
     EphemeraId: CHARACTER_ID,
@@ -67,8 +65,6 @@ const getPositionGraphForCharacterRooms = async (
 
 type PersistCharacterDeps = {
     getCharacterMeta?: () => Promise<CharacterMetaItem>;
-    getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
-    getCanonAssets?: () => Promise<string[] | undefined>;
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
 } & ApplyHostEffectsDependencies
 
@@ -95,31 +91,8 @@ const persistCharacterRoomGraphViaKernel = async (
         return { ok: true as const, persisted: false, diff }
     }
 
-    const characterMetaRow = deps.getCharacterMeta ? await deps.getCharacterMeta() : characterMeta
-
-    const [roomAssets = [], canonAssets = []] = diff.to
-        ? await Promise.all([
-            deps.getRoomAssets?.(diff.to) ?? Promise.resolve([]),
-            deps.getCanonAssets?.() ?? Promise.resolve([]),
-        ])
-        : [[], []]
-
-    const characterRowEffects = diff.to !== null
-        ? [{
-            characterId: characterMetaRow.EphemeraId,
-            targetRoomId: diff.to,
-            characterAssets: characterMetaRow.assets || [],
-            roomAssets,
-            canonAssets,
-            currentRoomStack: characterMetaRow.RoomStack ?? [],
-        }]
-        : []
-
     const kernelResult = await applyHostEffects(
-        {
-            hostEffects: plan.hostEffects,
-            characterRowEffects,
-        },
+        { hostEffects: plan.hostEffects },
         deps
     )
 
@@ -229,7 +202,7 @@ describe('character membership persist (adapter + kernel)', () => {
         expect(transactWrite).not.toHaveBeenCalled()
     })
 
-    it('cross-room navigate transacts graph, adjacency, and RoomStack without priorFetch', async () => {
+    it('cross-room navigate transacts graph and adjacency without priorFetch', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
         const getPositionGraph = jest.fn().mockImplementation(
             async (hostId: EphemeraMembershipHostId) => getPositionGraphForCharacterRooms(hostId, [ROOM_A])
@@ -240,9 +213,6 @@ describe('character membership persist (adapter + kernel)', () => {
             {
                 getMembershipContainers,
                 transactWrite,
-                getCharacterMeta: async () => characterMeta,
-                getRoomAssets: async () => ['ASSET#TownCenter'],
-                getCanonAssets: async () => ['primitives', 'TownCenter'],
                 getPositionGraph,
             }
         )
@@ -262,20 +232,18 @@ describe('character membership persist (adapter + kernel)', () => {
         expect(transactWrite).toHaveBeenCalledTimes(1)
 
         const items = transactWrite.mock.calls[0][0]
-        expect(items).toHaveLength(5)
-        expect(items[0].Update.Key.EphemeraId).toBe(CHARACTER_ID)
+        expect(items).toHaveLength(4)
+        expect(items[0].Update.Key.EphemeraId).toBe(ROOM_A)
+        expect(items[0].Update.updateKeys).toEqual(['positionGraph'])
+        expect(items[0].Update.successCallback).toBeUndefined()
         expect(items[0].Update.priorFetch).toBeUndefined()
-        expect(items[1].Update.Key.EphemeraId).toBe(ROOM_A)
-        expect(items[1].Update.updateKeys).toEqual(['positionGraph'])
-        expect(items[1].Update.successCallback).toBeUndefined()
-        expect(items[1].Update.priorFetch).toBeUndefined()
-        expect(items[2].Delete).toEqual({
+        expect(items[1].Delete).toEqual({
             EphemeraId: CHARACTER_ID,
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_A),
         })
-        expect(items[3].Update.Key.EphemeraId).toBe(ROOM_B)
-        expect(items[3].Update.priorFetch).toBeUndefined()
-        expect(items[4].Put).toEqual({
+        expect(items[2].Update.Key.EphemeraId).toBe(ROOM_B)
+        expect(items[2].Update.priorFetch).toBeUndefined()
+        expect(items[3].Put).toEqual({
             EphemeraId: CHARACTER_ID,
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_B),
         })
@@ -287,22 +255,9 @@ describe('character membership persist (adapter + kernel)', () => {
                     edges: [],
                 },
             },
-            items[1].Update.updateReducer
+            items[0].Update.updateReducer
         ) as { positionGraph?: { nodes: unknown[]; edges: unknown[] } }
         expect(departureDraft.positionGraph).toEqual({ nodes: [], edges: [] })
-
-        const characterDraft = produce(
-            {
-                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-            },
-            items[0].Update.updateReducer
-        ) as { RoomStack: { asset: string; RoomId: string }[] }
-        expect(characterDraft).toEqual({
-            RoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-            ],
-        })
     })
 
     it('disconnect removes graph membership and adjacency without character-row transact', async () => {
@@ -346,9 +301,6 @@ describe('character membership persist (adapter + kernel)', () => {
             {
                 getMembershipContainers,
                 transactWrite,
-                getCharacterMeta: async () => characterMeta,
-                getRoomAssets: async () => [],
-                getCanonAssets: async () => ['primitives'],
                 getPositionGraph,
             }
         )
@@ -373,48 +325,6 @@ describe('character membership persist (adapter + kernel)', () => {
             buildPositionAdjacencyDataCategory(ROOM_A),
             buildPositionAdjacencyDataCategory(ROOM_C),
         ])
-    })
-
-    it('character reducer uses draft RoomStack for ladder when CharacterMeta cache diverges', async () => {
-        getMembershipContainers.mockResolvedValue([ROOM_A])
-
-        const cacheStack = [
-            { asset: 'primitives', RoomId: 'VORTEX' },
-            { asset: 'TownCenter', RoomId: 'TownSquare' },
-        ]
-        const dynamoStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
-
-        await persistCharacterRoomGraphViaKernel(
-            { characterId: CHARACTER_ID, targetRoomId: ROOM_B },
-            {
-                getMembershipContainers,
-                transactWrite,
-                getCharacterMeta: async () => ({
-                    ...characterMeta,
-                    RoomStack: cacheStack,
-                }),
-                getRoomAssets: async () => ['ASSET#TownCenter'],
-                getCanonAssets: async () => ['primitives', 'TownCenter'],
-                getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
-                    getPositionGraphForCharacterRooms(hostId, [ROOM_A]),
-            }
-        )
-
-        const items = transactWrite.mock.calls[0][0]
-        expect(items[0].Update.priorFetch).toBeUndefined()
-
-        const characterDraft = produce(
-            {
-                RoomStack: dynamoStack,
-            },
-            items[0].Update.updateReducer
-        ) as { RoomStack: { asset: string; RoomId: string }[] }
-        expect(characterDraft).toEqual({
-            RoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-            ],
-        })
     })
 
     it('rebuilds transact items on each exponentialBackoffWrapper retry', async () => {
@@ -446,9 +356,6 @@ describe('character membership persist (adapter + kernel)', () => {
             {
                 getMembershipContainers,
                 transactWrite,
-                getCharacterMeta: async () => characterMeta,
-                getRoomAssets: async () => ['ASSET#TownCenter'],
-                getCanonAssets: async () => ['primitives', 'TownCenter'],
                 getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
                     getPositionGraphForCharacterRooms(hostId, [ROOM_A]),
             }
@@ -460,121 +367,13 @@ describe('character membership persist (adapter + kernel)', () => {
 
         const secondAttemptDraft = produce(
             {
-                RoomStack: [
-                    { asset: 'primitives', RoomId: 'VORTEX' },
-                    { asset: 'TownCenter', RoomId: 'TownSquare' },
-                ],
+                positionGraph: {
+                    nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
+                },
             },
             transactWrite.mock.calls[1][0][0].Update.updateReducer
-        ) as { RoomStack: { asset: string; RoomId: string }[] }
-        expect(secondAttemptDraft).toEqual({
-            RoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-            ],
-        })
-    })
-
-    const roomAssetsForLadder = async (roomId: EphemeraRoomId): Promise<string[]> => {
-        switch (roomId) {
-            case ROOM_ONE:
-                return ['ASSET#primitives', 'ASSET#TownCenter']
-            case ROOM_B:
-                return ['ASSET#TownCenter']
-            case ROOM_C:
-                return ['ASSET#TownCenter', 'ASSET#draftOne']
-            case ROOM_D:
-                return ['ASSET#draftOne']
-            default:
-                return ['ASSET#primitives', 'ASSET#TownCenter', 'ASSET#Dockside']
-        }
-    }
-
-    const expectCharacterRoomStackReducer = async ({
-        fromRoomId,
-        priorRoomStack,
-        targetRoomId,
-        expectedRoomStack,
-        characterAssets = ['primitives', 'TownCenter'],
-    }: {
-        fromRoomId: EphemeraRoomId;
-        priorRoomStack: CharacterMetaItem['RoomStack'];
-        targetRoomId: EphemeraRoomId;
-        expectedRoomStack: CharacterMetaItem['RoomStack'];
-        characterAssets?: string[];
-    }) => {
-        getMembershipContainers.mockResolvedValue([fromRoomId])
-
-        await persistCharacterRoomGraphViaKernel(
-            { characterId: CHARACTER_ID, targetRoomId },
-            {
-                getMembershipContainers,
-                transactWrite,
-                getCharacterMeta: async () => ({
-                    ...characterMeta,
-                    RoomStack: priorRoomStack,
-                    assets: characterAssets,
-                }),
-                getRoomAssets: roomAssetsForLadder,
-                getCanonAssets: async () => ['primitives', 'TownCenter'],
-                getPositionGraph: async (hostId: EphemeraMembershipHostId) =>
-                    getPositionGraphForCharacterRooms(hostId, [fromRoomId]),
-            }
-        )
-
-        const items = transactWrite.mock.calls[0][0]
-        const characterDraft = produce(
-            { RoomStack: priorRoomStack },
-            items[0].Update.updateReducer
-        ) as { RoomStack: CharacterMetaItem['RoomStack'] }
-        expect(characterDraft).toEqual({ RoomStack: expectedRoomStack })
-    }
-
-    it('replaces same-asset tail when navigating within an asset chain', async () => {
-        await expectCharacterRoomStackReducer({
-            fromRoomId: ROOM_B,
-            priorRoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-            ],
-            targetRoomId: ROOM_C,
-            expectedRoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestThree' },
-            ],
-        })
-    })
-
-    it('extends RoomStack when navigating into a child asset', async () => {
-        await expectCharacterRoomStackReducer({
-            fromRoomId: ROOM_B,
-            priorRoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-            ],
-            targetRoomId: ROOM_D,
-            characterAssets: ['primitives', 'TownCenter', 'draftOne'],
-            expectedRoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-                { asset: 'draftOne', RoomId: 'TestFour' },
-            ],
-        })
-    })
-
-    it('truncates RoomStack when navigating back to a parent asset', async () => {
-        await expectCharacterRoomStackReducer({
-            fromRoomId: ROOM_D,
-            priorRoomStack: [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TestTwo' },
-                { asset: 'draftOne', RoomId: 'TestFour' },
-            ],
-            targetRoomId: ROOM_ONE,
-            characterAssets: ['primitives', 'TownCenter', 'draftOne'],
-            expectedRoomStack: [
-                { asset: 'primitives', RoomId: 'TestOne' },
-            ],
-        })
+        ) as { positionGraph?: { nodes: unknown[]; edges: unknown[] } }
+        expect(secondAttemptDraft.positionGraph).toEqual({ nodes: [], edges: [] })
     })
 })

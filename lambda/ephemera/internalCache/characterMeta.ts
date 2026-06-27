@@ -1,5 +1,6 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder';
 import type { RoomStackItem } from '../dataSource/positions/membership/types';
 
 export type CharacterMetaItem = {
@@ -16,8 +17,6 @@ export type CharacterMetaItem = {
 }
 
 type CharacterMetaFetch = Omit<CharacterMetaItem, 'RoomId' | 'HomeId' > & { RoomId?: string; HomeId?: string; }
-
-const defaultRoomStack = [{ asset: 'primitives', RoomId: 'VORTEX' }]
 
 export class CacheCharacterMetaData {
     CharacterMetaById: Record<EphemeraCharacterId, CharacterMetaItem> = {};
@@ -37,7 +36,7 @@ export class CacheCharacterMetaData {
                         DataCategory: 'Meta::Character'
                     },
                     ProjectionFields: ['EphemeraId', 'Name', 'RoomId', 'RoomStack', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns', 'player']
-                }) || { EphemeraId: 'CHARACTER#', Name: '', RoomId: 'VORTEX', RoomStack: defaultRoomStack, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: 'they/them' }
+                }) || { EphemeraId: 'CHARACTER#', Name: '', RoomId: 'VORTEX', RoomStack: DEFAULT_ROOM_STACK, Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: 'they/them' }
             if (options?.check && !(characterData.EphemeraId.split('#').slice(1)[0])) {
                 return undefined
             }
@@ -46,7 +45,7 @@ export class CacheCharacterMetaData {
                 ...characterData,
                 assets: [...(player ? [`draft[${player}]`] : []), ...(characterData.assets || [])],
                 RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
-                RoomStack: characterData.RoomStack ?? defaultRoomStack,
+                RoomStack: characterData.RoomStack ?? DEFAULT_ROOM_STACK,
                 HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,
                 EphemeraId: characterId
             }

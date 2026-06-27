@@ -1,5 +1,6 @@
 import type { RoomStackItem } from './types'
 
+/** Omitted timeWritten = legacy 0 (RS-4); first navigate persist stamps frames. */
 export const DEFAULT_ROOM_STACK: RoomStackItem[] = [{ asset: 'primitives', RoomId: 'VORTEX' }]
 
 export const normalizeRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>

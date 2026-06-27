@@ -5,6 +5,8 @@ import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 export type RoomStackItem = {
     asset: string;
     RoomId: string;
+    /** Epoch ms: navigate beatAnchorTime on frames this write applied. Omitted/0 = legacy. */
+    timeWritten?: number;
 }
 
 /** Ingress-facing stable API (S1-7). */

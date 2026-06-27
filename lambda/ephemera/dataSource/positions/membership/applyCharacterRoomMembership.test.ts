@@ -123,6 +123,10 @@ describe('applyCharacterRoomMembership', () => {
                 [TO_ROOM]: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }],
             },
         }))
+        expect(applyHostEffectsMock).toHaveBeenCalledWith(
+            { hostEffects: expect.any(Array) },
+            undefined
+        )
         expect(streamEvent).toHaveBeenCalledWith({
             streamKey: CHARACTER_ID,
             header: { type: 'Character Moved' },

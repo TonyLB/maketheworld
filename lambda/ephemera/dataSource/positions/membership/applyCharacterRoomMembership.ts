@@ -13,15 +13,13 @@ import { planMembershipTransfer } from '../manipulation/adapters/planMembershipT
 import { buildCharacterMovedFact } from './buildCharacterMovedFact'
 import { streamMembershipFact } from './streamMembershipFact'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
-import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff, RoomStackItem } from './types'
+import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
 export type ApplyCharacterRoomMembershipDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: typeof internalCache.CharacterMeta.get;
-    getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
-    getCanonAssets?: () => Promise<string[] | undefined>;
     kernelPersist?: ApplyHostEffectsDependencies;
     getSessionId?: () => Promise<string | undefined>;
 }
@@ -30,9 +28,6 @@ const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId):
     const containers = await internalCache.Positions.getMembershipContainers(characterId)
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
 }
-
-const normalizeCurrentRoomStack = (stack: RoomStackItem[] | undefined): RoomStackItem[] =>
-    stack ?? []
 
 const seedPositionsGraphMemos = (
     postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
@@ -87,8 +82,6 @@ export const applyCharacterRoomMembership = async (
 ): Promise<MembershipApplyResult> => {
     const getMembershipContainers = deps.getMembershipContainers ?? defaultGetMembershipContainers
     const getCharacterMeta = deps.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
-    const getRoomAssets = deps.getRoomAssets ?? ((roomId) => internalCache.RoomAssets.get(roomId))
-    const getCanonAssets = deps.getCanonAssets ?? (() => internalCache.Global.get('assets'))
 
     const priorContainers = await getMembershipContainers(args.characterId)
     const plan = planMembershipTransfer({
@@ -111,29 +104,8 @@ export const applyCharacterRoomMembership = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const [roomAssets = [], canonAssets = []] = diff.to
-        ? await Promise.all([
-            getRoomAssets(diff.to),
-            getCanonAssets(),
-        ])
-        : [[], []]
-
-    const characterRowEffects = diff.to !== null
-        ? [{
-            characterId: characterMeta.EphemeraId,
-            targetRoomId: diff.to,
-            characterAssets: characterMeta.assets || [],
-            roomAssets,
-            canonAssets,
-            currentRoomStack: normalizeCurrentRoomStack(characterMeta.RoomStack),
-        }]
-        : []
-
     const kernelResult = await applyHostEffects(
-        {
-            hostEffects: plan.hostEffects,
-            characterRowEffects,
-        },
+        { hostEffects: plan.hostEffects },
         deps.kernelPersist
     )
 

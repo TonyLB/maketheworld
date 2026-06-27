@@ -1,6 +1,8 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     applyLadderUpdateFromDestinationChain,
     buildAssetChainForAsset,
+    buildProposedRoomStackForNavigate,
     classifyRoomStackNavigateOperation,
     resolveDestinationAssetChain,
 } from './membershipRoomStack'
@@ -127,6 +129,69 @@ describe('applyLadderUpdateFromDestinationChain', () => {
     })
 })
 
+describe('buildProposedRoomStackForNavigate', () => {
+    const baseStack = [
+        { asset: 'primitives', RoomId: 'VORTEX' },
+        { asset: 'TownCenter', RoomId: 'TestTwo' },
+    ]
+
+    it('extends the ladder for a child asset navigate', () => {
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#TestFour' as EphemeraRoomId,
+            currentRoomStack: baseStack,
+            characterAssets,
+            roomAssets: ['ASSET#draftOne'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'TestTwo' },
+            { asset: 'draftOne', RoomId: 'TestFour' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
+    })
+
+    it('rewrites the tail for a lateral move within the same layer', () => {
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#TestThree' as EphemeraRoomId,
+            currentRoomStack: baseStack,
+            characterAssets,
+            roomAssets: ['ASSET#TownCenter'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'TestThree' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
+    })
+
+    it('forks to a sibling overlay branch', () => {
+        const currentRoomStack = [
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'Suburbs' },
+            { asset: 'draftOne', RoomId: 'Laboratory' },
+        ]
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#BigTop' as EphemeraRoomId,
+            currentRoomStack,
+            characterAssets,
+            roomAssets: ['ASSET#circusEvent'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'Suburbs' },
+            { asset: 'draftOne', RoomId: 'Laboratory' },
+            { asset: 'circusEvent', RoomId: 'BigTop' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
+    })
+})
+
 describe('circus-style overlay trim', () => {
     it('removes inaccessible overlay rungs and preserves the canon inner presence', () => {
         const overlayStack = [
@@ -138,6 +203,19 @@ describe('circus-style overlay trim', () => {
         expect(trimmed).toEqual([
             { asset: 'primitives', RoomId: 'VORTEX' },
             { asset: 'TownCenter', RoomId: 'Suburbs' },
+        ])
+    })
+
+    it('preserves timeWritten on surviving frames when trimming overlay rungs', () => {
+        const overlayStack = [
+            { asset: 'primitives', RoomId: 'VORTEX', timeWritten: 1000 },
+            { asset: 'TownCenter', RoomId: 'Suburbs', timeWritten: 2000 },
+            { asset: 'circusEvent', RoomId: 'BigTop', timeWritten: 3000 },
+        ]
+        const trimmed = trimRoomStackToAccessibleAssets(overlayStack, ['primitives', 'TownCenter'])
+        expect(trimmed).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX', timeWritten: 1000 },
+            { asset: 'TownCenter', RoomId: 'Suburbs', timeWritten: 2000 },
         ])
     })
 

@@ -68,19 +68,7 @@ type HostEffect =
 
 **`changed` derivation:** `true` iff at least one effect alters stored graph state (equivalent to today's `MembershipDiff.changed` / `ObjectMembershipDiff.changed` after successful persist).
 
-### `CharacterRowEffect` (navigate-only; not a `HostEffect`)
-
-**Eviction ladder** (`RoomStack`) maintenance is **not** membership-host transfer. It is a separate optional input bundled in the **same kernel transact** when the operator is character navigate with a non-null target room.
-
-| Concern | Rule |
-| --- | --- |
-| **Trigger** | Character navigate (or equivalent ingress) with `targetRoomId !== null` |
-| **Mechanism** | `Meta::Character` Update with `updateKeys: ['RoomStack']`; reducer calls `computeRoomStackUpdate` + `applyRoomStackToCharacterDraft` ([`membershipRoomStack.ts`](../membership/membershipRoomStack.ts)) |
-| **Inputs** | `targetRoomId`, current `RoomStack` from fetched character row, `characterAssets`, destination `roomAssets`, `canonAssets` (see [`applyCharacterRoomMembership.ts`](../membership/applyCharacterRoomMembership.ts)) |
-| **Disconnect** | No `RoomStack` purge --- ladder retained for connect resolution (unchanged **S1-9**) |
-| **`changed` gate** | Ladder-only updates **must not** gate `MembershipDiff.changed` --- coordinator skips membership-changed bundle when membership endpoint unchanged |
-
-`CharacterRowEffect` is **not** projected to bus facts as a host transfer; facts remain membership host transfer (`froms`/`to` on rooms).
+**RoomStack (eviction ladder):** **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](../membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ### Future: host-local relational patch (M4 stub; slice 5+)
 
@@ -220,9 +208,10 @@ Ingress args (coordinator)
   -> membership observation (getMembershipContainers or repair graph-forward read)
   -> shared adapter.planMembershipTransfer(observation + applyMode + target + boundedHostIds?)
   -> HostEffect[] + projection { froms, to, changed }
-  -> [navigate only] optional CharacterRowEffect for RoomStack
-  -> kernel.applyHostEffects({ hostEffects, characterRowEffects? })
+  -> kernel.applyHostEffects({ hostEffects })
   -> coordinator: fact stream, cache memo, RoomUpdate / EphemeraUpdate bundle (unchanged contracts)
+  -> [character navigate only, when changed && to !== null] parallel tail:
+       persistRoomStackNavigate + orchestrateCharacterNavigate
 ```
 
 Public coordinator APIs remain membership-shaped at ingress --- **not** raw `HostEffect[]`.
@@ -239,13 +228,13 @@ Matches today's expedient coordinators (facts from forward diff, not a second gr
 
 ### Per-operator compose table
 
-| Coordinator | Ingress | Adapter mode | `boundedHostIds` | Kernel extras | Fact |
-| --- | --- | --- | --- | --- | --- |
-| [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `{ characterId, targetRoomId }` | end-state | --- | `CharacterRowEffect` when `targetRoomId !== null` | `Character Moved` |
-| [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `{ objectId, targetRoomId }` | end-state | --- | none | `Object Moved` |
-| [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) (objects spawn) | via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) after existence create | end-state | --- | none | `Object Moved` |
-| [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `{ objectId, roomId, characterId }` | bounded (room) + character end-state | `[roomId]` | none | `Object Moved` (cross-host) |
-| **`applyObjectDrop`** (deferred) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | none | `Object Moved` (cross-host) |
+| Coordinator | Ingress | Adapter mode | `boundedHostIds` | Fact |
+| --- | --- | --- | --- | --- |
+| [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `{ characterId, targetRoomId }` | end-state | --- | `Character Moved` |
+| [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `{ objectId, targetRoomId }` | end-state | --- | `Object Moved` |
+| [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) (objects spawn) | via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) after existence create | end-state | --- | `Object Moved` |
+| [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `{ objectId, roomId, characterId }` | bounded (room) + character end-state | `[roomId]` | `Object Moved` (cross-host) |
+| **`applyObjectDrop`** (deferred) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | `Object Moved` (cross-host) |
 
 ### Future operators
 
@@ -278,7 +267,7 @@ Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.cont
 ### Phase 4b migration order (M7) --- **Done**
 
 1. **Object room** --- coordinator [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) -> `planMembershipTransfer` -> `applyHostEffects`.
-2. **Character + RoomStack** --- coordinator [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) -> `planMembershipTransfer` -> `applyHostEffects` + `CharacterRowEffect`.
+2. **Character navigate** --- coordinator [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) -> `planMembershipTransfer` -> `applyHostEffects` (graph only); ladder via parallel tail.
 3. **Cross-host takeHold** --- coordinator [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) -> `planObjectTakeHoldTransfer` -> `applyHostEffects`.
 
 Legacy `update*PositionGraphs` wrappers **removed** in Phase 4c (2026-06-26). Persist tests: [`planMembershipTransfer.characterPersist.test.ts`](../membership/planMembershipTransfer.characterPersist.test.ts), [`planMembershipTransfer.objectPersist.test.ts`](../membership/planMembershipTransfer.objectPersist.test.ts).
@@ -325,7 +314,7 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 | Ingress | Coordinator | Adapter | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` + optional `CharacterRowEffect` |
+| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | Improvisational object spawn (objects lane) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | **`takeHold`** | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `planObjectTakeHoldTransfer` | `applyHostEffects` |
@@ -360,10 +349,9 @@ Acceptance: stub paths documented in implementation maps; diegetic logic links t
 
 | Path | Role |
 | --- | --- |
-| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferPlan`, `CharacterRowEffect` |
+| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferPlan` |
 | [`adapters/`](adapters/) | Shared membership transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff`, `hostEffectsFromDiffs` |
-| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact; bundles `CharacterRowEffect` / RoomStack |
-| [`../membership/characterRoomStackTransactItems.ts`](../membership/characterRoomStackTransactItems.ts) | Navigate-only `RoomStack` transact items (kernel input) |
+| [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact graph + adjacency only |
 
 Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts), [`../membership/characterRoomMembershipTransactItems.ts`](../membership/characterRoomMembershipTransactItems.ts), [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts).
 

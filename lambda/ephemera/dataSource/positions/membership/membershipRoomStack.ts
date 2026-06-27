@@ -153,17 +153,20 @@ export const computeRoomStackUpdate = (
     return { destinationChain }
 }
 
-export const applyRoomStackToCharacterDraft = (
-    draft: Record<string, unknown>,
-    args: {
-        targetRoomId: EphemeraRoomId;
-        destinationChain: string[];
-    }
-): void => {
+/** Algorithm output for navigate ladder persist (frames without timeWritten). */
+export const buildProposedRoomStackForNavigate = (args: {
+    targetRoomId: EphemeraRoomId;
+    currentRoomStack: RoomStackItem[];
+    characterAssets: string[];
+    roomAssets: string[];
+    canonAssets: string[];
+}): RoomStackItem[] => {
+    const { destinationChain } = computeRoomStackUpdate(args)
     const targetRoomShortId = splitType(args.targetRoomId)[1]
-    draft.RoomStack = applyLadderUpdateFromDestinationChain(
-        draft.RoomStack as RoomStackItem[] | undefined,
-        args.destinationChain,
+    return applyLadderUpdateFromDestinationChain(
+        args.currentRoomStack,
+        destinationChain,
         targetRoomShortId
     )
 }
+
