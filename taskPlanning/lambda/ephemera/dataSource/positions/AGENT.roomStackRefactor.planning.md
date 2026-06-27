@@ -1,6 +1,6 @@
 # RoomStack unbundle + timestamp merge refactor
 
-**Status:** In progress (planning). **Next:** Phase 3 --- trim preserves per-frame timestamps.
+**Status:** In progress (planning). **Next:** Phase 4 --- contract/implementation doc updates and full verification.
 
 Task-scoped plan for unbundling eviction-ladder (`RoomStack`) maintenance from the manipulation kernel transact, running navigate ladder updates in parallel with post-navigate presentation orchestration, and mitigating out-of-order races with per-frame `timeWritten` merge semantics.
 
@@ -178,7 +178,7 @@ Decisions for upcoming slices. When a decision ships, record it in `AGENT.contra
 | RS-1 | **`writeTime` source:** `beatAnchorTime` at graph persist vs monotonic per-character sequence when `beatAnchorTime` collides in the same ms | Phase 1 merge tests | **Decided:** `beatAnchorTime`; add per-character sequence only if tests prove same-ms collisions in production paths |
 | RS-2 | **Navigate tail concurrency:** bus publish vs sequential await vs parallel with orchestrate | Phase 2 wiring | **Decided:** after membership-changed bundle in `apply`, callers run **`Promise.all([persistRoomStackNavigate, orchestrateCharacterNavigate])`**. No new bus type. `RoomUpdate` handlers from `apply` run in parallel with both branches. |
 | RS-3 | **Failed ladder retry:** exponential backoff in-module vs rely on next navigate to catch up | Phase 2 | **Decided:** exponential backoff with a **small capped retry count** in `persistRoomStackNavigate`; log and **resolve** (do not reject) --- **next navigate** is long-tail catch-up; **must not** fail `executeCharacterNavigate` / connect path |
-| RS-4 | **Trim vs timestamps** | Phase 3 | **Decided / N/A:** timestamps are **per frame**, not per stack. Trim filters frames and preserves survivor `timeWritten`; no trim merge or stack-level `writeTime` |
+| RS-4 | **Trim vs timestamps** | Phase 3 | **Shipped:** per-frame timestamps only. Trim reducer filters `draft.RoomStack` in-place (no merge). Survivor `timeWritten` preserved. Default/guest stacks omit `timeWritten` (legacy 0); first navigate persist stamps frames. |
 | RS-5 | **Module location for merge + persist + tail helper** | Phase 1--2 | **Decided:** [`membership/mergeRoomStack.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/mergeRoomStack.ts) + [`membership/persistRoomStackNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/persistRoomStackNavigate.ts) + shared navigate tail helper (e.g. [`navigate/afterCharacterMembershipNavigateChanged.ts`](../../../../../lambda/ephemera/dataSource/positions/navigate/afterCharacterMembershipNavigateChanged.ts)); keep algorithm in [`membershipRoomStack.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/membershipRoomStack.ts) |
 
 ---
@@ -190,7 +190,7 @@ Decisions for upcoming slices. When a decision ships, record it in `AGENT.contra
 | 0 | Task plan (this doc) | Done |
 | 1 | `mergeRoomStack` + race unit tests | Done |
 | 2 | Kernel unbundle + persist + `Promise.all` navigate tail | Done |
-| 3 | Trim preserves per-frame timestamps | Not started |
+| 3 | Trim preserves per-frame timestamps | Done |
 | 4 | Test migration + contract/implementation doc updates | Not started |
 | 5 | Delete this plan | Not started |
 
@@ -214,9 +214,9 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as you com
   - [X] Retire or narrow [`characterRoomStackTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomStackTransactItems.ts) (no kernel transact items).
   - [X] Update [`applyHostEffects.test.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.test.ts) (remove RoomStack bundle case); update navigate/connect/persist tests.
 
-- [ ] **Phase 3 --- Trim + defaults**
-  - [ ] Update [`trimPersistCharacterRoomStack.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/trimPersistCharacterRoomStack.ts): filter-only persist; preserve `timeWritten` on surviving frames (RS-4).
-  - [ ] Confirm guest character / default stack initialization sets sensible `timeWritten` or omits (legacy 0).
+- [X] **Phase 3 --- Trim + defaults**
+  - [X] Update [`trimPersistCharacterRoomStack.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/trimPersistCharacterRoomStack.ts): filter-only persist; preserve `timeWritten` on surviving frames (RS-4).
+  - [X] Confirm guest character / default stack initialization sets sensible `timeWritten` or omits (legacy 0).
 
 - [ ] **Phase 4 --- Docs and verification**
   - [ ] Replace contract clause "same character-row transact" with parallel persist + merge rules in [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage).

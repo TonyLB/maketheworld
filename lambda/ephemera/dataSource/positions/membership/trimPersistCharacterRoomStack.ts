@@ -26,6 +26,10 @@ export type TrimPersistCharacterRoomStackResult = {
 /**
  * Trim the eviction ladder to accessible assets, persist trim-only when the stack
  * shape changes, and resolve the legal room from the surviving top frame.
+ *
+ * RS-4: filter-only persist --- no mergeRoomStack, no stack-level write time.
+ * Surviving frames keep their per-frame timeWritten; the reducer filters draft.RoomStack
+ * at write time (same pattern as persistRoomStackNavigate reading current draft).
  */
 export const trimPersistCharacterRoomStack = async (
     characterId: EphemeraCharacterId,
@@ -56,7 +60,8 @@ export const trimPersistCharacterRoomStack = async (
             },
             updateKeys: ['RoomStack'],
             updateReducer: (draft) => {
-                draft.RoomStack = trimmedRoomStack
+                const current = normalizeRoomStack(draft.RoomStack as RoomStackItem[] | undefined)
+                draft.RoomStack = trimRoomStackToAccessibleAssets(current, accessibleAssets)
             },
             successCallback: ({ RoomStack }) => {
                 resolvedMeta = { ...characterMeta, RoomStack: RoomStack as RoomStackItem[] }

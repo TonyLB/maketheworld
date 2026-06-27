@@ -45,6 +45,7 @@ describe('confirmGuestCharacter', () => {
         const draft: Record<string, unknown> = {}
         updateReducer!(draft)
         expect(draft.RoomStack).toEqual(DEFAULT_ROOM_STACK)
+        expect((draft.RoomStack as typeof DEFAULT_ROOM_STACK)[0]).not.toHaveProperty('timeWritten')
         expect(draft.RoomId).toBeUndefined()
     })
 })

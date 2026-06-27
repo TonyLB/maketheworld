@@ -206,6 +206,19 @@ describe('circus-style overlay trim', () => {
         ])
     })
 
+    it('preserves timeWritten on surviving frames when trimming overlay rungs', () => {
+        const overlayStack = [
+            { asset: 'primitives', RoomId: 'VORTEX', timeWritten: 1000 },
+            { asset: 'TownCenter', RoomId: 'Suburbs', timeWritten: 2000 },
+            { asset: 'circusEvent', RoomId: 'BigTop', timeWritten: 3000 },
+        ]
+        const trimmed = trimRoomStackToAccessibleAssets(overlayStack, ['primitives', 'TownCenter'])
+        expect(trimmed).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX', timeWritten: 1000 },
+            { asset: 'TownCenter', RoomId: 'Suburbs', timeWritten: 2000 },
+        ])
+    })
+
     it('builds canon chain without the overlay asset', () => {
         expect(buildAssetChainForAsset('TownCenter', ['primitives', 'TownCenter', 'circusEvent']))
             .toEqual(['primitives', 'TownCenter'])
