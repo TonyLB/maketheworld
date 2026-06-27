@@ -15,6 +15,7 @@ export const handler = async (event) => {
             'PlayerMisalignmentSweep',
             'ComponentVerticalMisalignmentSweep',
             'RenderCacheDriftSweep',
+            'OrphanedImprovisedObjectSweep',
         ].includes(event?.type)
     ) {
         await routeDiagnosticsIngress(event)

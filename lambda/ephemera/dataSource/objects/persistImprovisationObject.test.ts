@@ -109,6 +109,16 @@ describe('persistImprovisationObject', () => {
         expect(positionsInvalidateMock).toHaveBeenCalledWith(roomId)
     })
 
+    it('persistDeleteImprovisationObject returns ok when rows are already absent', async () => {
+        const result = await persistDeleteImprovisationObject({ objectId })
+
+        expect(result).toEqual({ ok: true, objectId })
+        expect(transactWriteMock).toHaveBeenCalledWith([
+            { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
+            { Delete: { EphemeraId: objectId, DataCategory: 'Meta::Object' } },
+        ])
+    })
+
     it('persistUpdateImprovisationObject merges prior rows', async () => {
         objectMetaGetMock.mockResolvedValue({
             EphemeraId: objectId,

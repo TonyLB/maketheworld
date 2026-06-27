@@ -29,7 +29,7 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 
 **Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** graphs, removes graph placement, then **`persistClearCoyoteGameImprovisationObjects`** deletes pair + **`Meta::Object`** rows.
 
-**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) sequences [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence) then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel; **S1** compensating delete on placement failure). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
+**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) sequences [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence) then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel; **S1** compensating delete on placement failure). On **S1 double-fail** (compensation delete also fails), **`console.error`** **and** [`streamSpawnCompensationProblem`](problemReports.ts) emit **`Spawn Compensation Problem`** on EventBridge (see **Operational diagnostics** below). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
 
 **Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> **`spawnImprovisationObjectsBatch`**; **`remove`** -> graph removal + row delete; returns **`createdIds`** / **`destroyedIds`** (and optional **`addFailures`**) for outbound **`Objects Changed`**.
 
@@ -42,9 +42,30 @@ Dual ephemeraDB rows per **`OBJECT#`**:
 | Header `type` | Where | Role |
 | --- | --- | --- |
 | **`Objects Change`** | **`api.ephemera`** ingress (internal) | Imperative command; parallels **`State Change`**. Payload: **`componentId`** (room, v1) and **`{ add, remove }`**. |
-| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
+| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound (bus-only) | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
+| **`Spawn Compensation Problem`** | **`mtw.ephemera.objects`** outbound (EventBridge) | S1 double-fail: placement fails after existence create, then compensating delete also fails. Emitted via [`problemReports.ts`](problemReports.ts) **`streamSpawnCompensationProblem`** ( **`publishStreamEvent`** + PutEvents; **`Objects Changed`** remains bus-only). Contract: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts). |
 
 Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** apply coordinators, not duplicated from objects handlers.
+
+## Operational diagnostics (S1 double-fail)
+
+When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds at existence create but [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) fails, **S1** runs [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) as compensation. If compensation also fails, durable pair + **`Meta::Object`** rows can remain with no graph placement (existence-without-placement).
+
+**Emission:** [`streamSpawnCompensationProblem`](problemReports.ts) on **`mtw.ephemera.objects`** (EventBridge via **`publishStreamEvent`**), **in addition to** `console.error` until ops confirms EventBridge delivery. Wire shape: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts) (`objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp`).
+
+**Downstream:** diagnostics lambda intake triggers [`orphanedImprovisedObjectSweep`](../../../../diagnostics/orphanedImprovisedObjectSweep/) with targeted `objectIds: [objectId]`; confirmed orphans emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`**. Sweep contract: [`lambda/diagnostics/AGENT.md`](../../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**. Objects lane consumes the finding for delete repair (see **Diagnostics repair** below).
+
+## Diagnostics repair (orphan finding)
+
+**Subscription:** `mtw.diagnostics` / **`Orphaned Improvised Object Finding`**.
+
+| Event | Handler |
+| --- | --- |
+| `Orphaned Improvised Object Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`handleOrphanedImprovisedObjectFinding`](handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) |
+
+**Repair model (Coyote Game v1):** delete-only --- remove `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows. **Must not** retry placement on finding; non-Coyote orphan contexts may need different repair later (product fork). **Idempotency:** at-least-once finding delivery **must** be safe (unconditional Dynamo deletes; no-op when rows already absent). On delete failure, **must** `console.error` with `objectId`, `diagnosticRunId`, and delete error.
+
+**Trust the finding:** handler does not re-run orphan classification; diagnostics sweep already confirmed litmus before emission.
 
 ## Ingress and API
 
@@ -94,6 +115,8 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`applyObjectRoomMembership`); not a cross-lane single transact. |
 | **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |
 | **Batch `add` isolation (S3)** | Per-object loop; partial **`createdIds`** + **`addFailures`**; one row's failure does not abort earlier successes or skip remaining rows. |
+| **S1 double-fail signal** | **`Spawn Compensation Problem`** on EventBridge + `console.error`; triggers diagnostics orphan sweep (not log-only). |
+| **Orphan repair (O1)** | **`Orphaned Improvised Object Finding`** -> delete-only via **`persistDeleteImprovisationObject`**; placement retry out of scope for Coyote v1. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
 | **Outbound header** | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
@@ -113,7 +136,11 @@ npm run test -- --watchAll=false
 
 | File | Policies |
 | --- | --- |
-| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log; **S3** batch partial `createdIds` |
+| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds` |
+| [`handleOrphanedImprovisedObjectFinding.test.ts`](handleOrphanedImprovisedObjectFinding.test.ts) | Orphan finding triggers delete; invalid payload skipped; delete failure logged |
+| [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | **`Orphaned Improvised Object Finding`** envelope guard from `mtw.diagnostics` |
+| [`index.test.ts`](index.test.ts) | `receiveEvents` dispatches orphan finding to repair handler |
+| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete transact helpers used by spawn and repair |
 | [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove |
 | [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream |
 
@@ -154,3 +181,4 @@ rg -n "spawnImprovisationObjectsBatch|spawnOneImprovisationObject" \
 | [`../../internalCache/componentEphemeraMeta.AGENT.md`](../../internalCache/componentEphemeraMeta.AGENT.md) | **`Meta::Room`** cache; invalidation after writes |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Coyote hypothesis / plan-outcome prompts read graph + **`Meta::Object`** via **`CoyoteStagedObject`** snapshot |
 | [`../actions/`](../actions/) ([**`AGENT.md`**](../actions/AGENT.md), `parseCommand.ts`, `publishedEvents.ts`, `enrich/acmeOrder/interpretAndFinalize.ts`, [`index.ts`](../actions/index.ts)) | Normative **`stableKey`** contract (**`actions/AGENT.md`**); two-step Acme parse (**intent** + **enrich**); Coyote-wide occupancy (**`collectCoyoteOccupiedStableKeys`**) + deterministic finalize (**`finalizeStableKeysDeterministic`**) before **`Acme Order`**; **`AcmeOrderPublishedPayload.orders`**, confidence combine rule |
+| [`../../../../diagnostics/AGENT.md`](../../../../diagnostics/AGENT.md) | Orphan sweep intake, litmus, and **`Orphaned Improvised Object Finding`** contract |

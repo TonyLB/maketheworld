@@ -25,15 +25,17 @@
 - [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
-  - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`)
+  - `mtw.ephemera.objects` / `Spawn Compensation Problem`
+  - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`, `OrphanedImprovisedObjectSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
 
 **Handling semantics:**
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
+- `Spawn Compensation Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts); same tidy-failure, invocation dedupe, and report-only sweep trigger semantics as connections problem reports.
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
-- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry).
-- Diagnostics remains report-only: problem reports trigger `staleSessionSweep` evaluation and finding emission only; diagnostics does not perform connections-table repairs.
+- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to both `Session Disconnect Problem` and `Spawn Compensation Problem`.
+- Diagnostics remains report-only: problem reports trigger sweep evaluation and finding emission only; diagnostics does not perform storage repairs.
 - Bus ingress uses `publish`; boundary drain uses `flushAndSettle()`; direct command return values use ReturnValue/Error `publish` plus [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) (via [`returnValue/collector.ts`](returnValue/collector.ts)) and [`returnValue/index.ts`](returnValue/index.ts) assembly at the app boundary.
 
 ## Steady-state invariants
@@ -58,6 +60,49 @@
 **Evaluation:** For each `Meta::Room` row, enumerate character nodes from stored `positionGraph`. Per character on the graph, flag drift when (a) no live sessions (ghost on graph), or (b) sessions present but membership adjacency does not include this `roomId` (adjacency lag). Does **not** use `Meta::Room.activeCharacters` or `Meta::Character.RoomId`. **Explicit gap:** stale adjacency pointing at a room when the character is absent from that room's `positionGraph` is not detected (room-forward scan only). Implementation: [`roomOccupancyDriftSweep/`](roomOccupancyDriftSweep/).
 
 **Downstream handling:** Ephemera **`mtw.ephemera.positions`** consumes `mtw.diagnostics` / `Room Occupancy Drift Finding` via [`repairRoomOccupancyDrift`](../../lambda/ephemera/dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward repair; sessions gate; adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
+
+## Orphaned improvised object sweep (existence-without-placement diagnostics)
+
+**Purpose:** Read-only sweep for improvisational **`OBJECT#`** ids with both `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows present but no positions-lane placement (empty `getMembershipContainers` and no **`Object`** node on any host `positionGraph`). Emits descriptive findings only; no repairs in diagnostics.
+
+**Trigger context:** S1 spawn double-failure --- placement fails after existence create, then compensation delete also fails --- emits **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** ([`spawnOneImprovisationObject`](../ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) via [`streamSpawnCompensationProblem`](../ephemera/dataSource/objects/problemReports.ts); emission contract in [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)). Normative S1 + existence-without-placement rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
+
+**Entrypoints:**
+
+- Problem report intake: `mtw.ephemera.objects` / **`Spawn Compensation Problem`** triggers targeted sweep with `objectIds: [objectId]` from the payload.
+- Direct invoke: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], optional diagnosticRunId, optional nowMs }`. Omit **`objectIds`** for full-scan ops backstop (enumerates all `ASSET#IMPROVISATION` pair rows via `DataCategoryIndex`).
+
+**Finding contract:** `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** with payload `{ objectId, diagnosticRunId, timestamp }`. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
+
+**Evaluation (orphan litmus):** pair row present **and** `Meta::Object` present **and** no **`Object`** node on any `Meta::Room` or `Meta::Character` `positionGraph` **and** `internalCache.Positions.getMembershipContainers(objectId)` returns empty. **Not orphan:** adjacency lag only (graph node present, containers empty) --- owned by [`repairObjectPlacementDrift`](../ephemera/dataSource/positions/membership/repairObjectPlacementDrift.ts). Implementation: [`orphanedImprovisedObjectSweep/`](orphanedImprovisedObjectSweep/).
+
+**Downstream handling:** Ephemera **`mtw.ephemera.objects`** consumes `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** via [`handleOrphanedImprovisedObjectFinding`](../ephemera/dataSource/objects/handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](../ephemera/dataSource/objects/persistImprovisationObject.ts) (delete-only repair; Coyote Game v1). Diagnostics remains report-only; repair ownership is objects-lane. Contract: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Diagnostics repair**.
+
+**Verification:**
+
+```bash
+cd lambda/diagnostics
+npm run test -- --watchAll=false \
+  orphanedImprovisedObjectSweep/ \
+  dataSource/index.test.ts \
+  app.test.ts
+```
+
+| File | Policies |
+| --- | --- |
+| [`orphanedImprovisedObjectSweep/classification.test.ts`](orphanedImprovisedObjectSweep/classification.test.ts) | Orphan litmus (pair + meta + empty containers; adjacency lag excluded) |
+| [`orphanedImprovisedObjectSweep/index.test.ts`](orphanedImprovisedObjectSweep/index.test.ts) | Sweep emission, targeted vs full scan, finding payload |
+| [`dataSource/index.test.ts`](dataSource/index.test.ts) | **`Spawn Compensation Problem`** intake, dedupe, malformed drop |
+| [`app.test.ts`](app.test.ts) | End-to-end diagnostics handler wiring |
+
+**Wiring greps (repo root):**
+
+```bash
+rg -n "Spawn Compensation Problem|mtw.ephemera.objects" lambda/diagnostics/dataSource/
+rg -n "Orphaned Improvised Object Finding" lambda/diagnostics/ packages/mtw-interfaces/ts/eventBridge/diagnostics/
+```
+
+Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Verification**.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 
@@ -117,7 +162,9 @@
 
 ## Related docs
 
-- Diagnostics **`internalCache`** slice: [`internalCache/AGENT.md`](internalCache/AGENT.md)
+- Diagnostics **`internalCache`** slice (sweep read handlers): [`internalCache/AGENT.md`](internalCache/AGENT.md)
+- Objects lane problem-report emission: [`../ephemera/dataSource/objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)
+- Positions S1 + orphan vs adjacency lag: [`../ephemera/dataSource/positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**
 - Assets heal authority and event flow: [`../assets/AGENT.event.md`](../assets/AGENT.event.md)
 - Cognito signup publish flow (`mtw.cognito` / `New Player`): [`../cognitoEvent/AGENT.md`](../cognitoEvent/AGENT.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)

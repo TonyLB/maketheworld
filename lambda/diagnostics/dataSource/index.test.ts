@@ -1,5 +1,5 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderCacheTargetCatalog } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('../staleSessionSweep', () => ({
@@ -22,9 +22,13 @@ jest.mock('../renderCacheDriftSweep', () => ({
         driftedCatalogs: [] as RenderCacheTargetCatalog[],
     }))
 }))
+jest.mock('../orphanedImprovisedObjectSweep', () => ({
+    orphanedImprovisedObjectSweep: jest.fn(async () => ({ emittedCount: 0, objectIds: [] as string[] }))
+}))
 
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
+import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
 import { staleSessionSweep } from '../staleSessionSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -55,6 +59,24 @@ const sessionDisconnectProblemEnvelope = (dedupeKey: string) =>
         }
     )
 
+const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
+
+const spawnCompensationProblemEnvelope = (dedupeKey: string) =>
+    makeEnvelope(
+        { dataSourceKey: 'mtw.ephemera.objects', type: 'Spawn Compensation Problem' },
+        {
+            type: 'Spawn Compensation Problem',
+            objectId: OBJECT_ID,
+            targetRoomId: 'ROOM#Cafe',
+            sourceOperation: 'spawnOneImprovisationObject',
+            placementError: 'placement failed',
+            deleteError: 'delete failed',
+            attemptCount: 1,
+            dedupeKey,
+            timestamp: new Date().toISOString(),
+        }
+    )
+
 describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
         jest.mocked(staleSessionSweep).mockReset()
@@ -72,6 +94,8 @@ describe('diagnosticsDataSource subscribed event processing', () => {
             catalogsChecked: 0,
             driftedCatalogs: [] as RenderCacheTargetCatalog[],
         })
+        jest.mocked(orphanedImprovisedObjectSweep).mockReset()
+        jest.mocked(orphanedImprovisedObjectSweep).mockResolvedValue({ emittedCount: 0, objectIds: [] as EphemeraObjectId[] })
         messageBus.clear()
     })
 
@@ -235,5 +259,72 @@ describe('diagnosticsDataSource subscribed event processing', () => {
             error: 'RenderCacheDriftSweep requires roomIds array',
             statusCode: 400,
         })
+    })
+
+    it('triggers orphanedImprovisedObjectSweep for Spawn Compensation Problem with targeted objectId', async () => {
+        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-dup-1')])
+
+        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledWith({ objectIds: [OBJECT_ID] })
+    })
+
+    it('drops malformed Spawn Compensation Problem payloads without invoking sweep', async () => {
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'mtw.ephemera.objects', type: 'Spawn Compensation Problem' },
+                {
+                    type: 'Spawn Compensation Problem',
+                    objectId: OBJECT_ID,
+                    targetRoomId: 'ROOM#Cafe',
+                    sourceOperation: 'spawnOneImprovisationObject',
+                    placementError: 'placement failed',
+                    attemptCount: 1,
+                    dedupeKey: 'missing-delete-error',
+                }
+            )
+        ])
+
+        expect(orphanedImprovisedObjectSweep).not.toHaveBeenCalled()
+    })
+
+    it('dedupes repeated Spawn Compensation Problem reports by dedupeKey within one batch', async () => {
+        await processDiagnosticsSubscribedEvents([
+            spawnCompensationProblemEnvelope('skates-batch-dup'),
+            spawnCompensationProblemEnvelope('skates-batch-dup'),
+        ])
+
+        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledTimes(1)
+    })
+
+    it('dedupes repeated Spawn Compensation Problem reports by dedupeKey across separate receiveEvents calls', async () => {
+        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-cross-dup')])
+        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-cross-dup')])
+
+        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledTimes(1)
+    })
+
+    it('emits ReturnValue for api.diagnostics OrphanedImprovisedObjectSweep events', async () => {
+        jest.mocked(orphanedImprovisedObjectSweep).mockResolvedValueOnce({
+            emittedCount: 1,
+            objectIds: [OBJECT_ID],
+        })
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'api.diagnostics', type: 'OrphanedImprovisedObjectSweep' },
+                {
+                    type: 'OrphanedImprovisedObjectSweep',
+                    objectIds: [OBJECT_ID],
+                    diagnosticRunId: 'diag-orphan',
+                    nowMs: 99999,
+                }
+            )
+        ])
+        await messageBus.settle()
+
+        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledWith({
+            objectIds: [OBJECT_ID],
+            diagnosticRunId: 'diag-orphan',
+            nowMs: 99999,
+        })
+        expect(Object.keys(getCollectedReturnValueBody()).length).toBeGreaterThan(0)
     })
 })

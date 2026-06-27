@@ -17,6 +17,7 @@ import {
     spawnImprovisationObjectsBatch,
     spawnOneImprovisationObject,
 } from './spawnImprovisationObjectsBatch'
+import { buildSpawnCompensationDedupeKey } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -86,6 +87,7 @@ describe('spawnOneImprovisationObject', () => {
     })
 
     it('compensates with delete when placement fails', async () => {
+        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
         applyMembershipImpl.mockResolvedValue({
             ok: false,
             errorCode: 'KERNEL_FAIL',
@@ -98,6 +100,7 @@ describe('spawnOneImprovisationObject', () => {
             spawnImpl,
             applyMembershipImpl,
             deleteImpl,
+            streamProblemReport,
         })
 
         expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
@@ -105,10 +108,12 @@ describe('spawnOneImprovisationObject', () => {
             objectId: OBJECT_ID,
             affectedRoomIds: [ROOM_ID],
         })
+        expect(streamProblemReport).not.toHaveBeenCalled()
     })
 
     it('logs when placement and compensation delete both fail', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
         applyMembershipImpl.mockResolvedValue({
             ok: false,
             errorCode: 'KERNEL_FAIL',
@@ -122,6 +127,7 @@ describe('spawnOneImprovisationObject', () => {
             spawnImpl,
             applyMembershipImpl,
             deleteImpl,
+            streamProblemReport,
         })
 
         expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
@@ -133,7 +139,49 @@ describe('spawnOneImprovisationObject', () => {
                 deleteError: 'delete failed',
             })
         )
+        expect(streamProblemReport).toHaveBeenCalledTimes(1)
+        expect(streamProblemReport).toHaveBeenCalledWith({
+            objectId: OBJECT_ID,
+            targetRoomId: ROOM_ID,
+            placementError: 'placement failed',
+            deleteError: 'delete failed',
+            sourceOperation: 'spawnOneImprovisationObject',
+            attemptCount: 1,
+        })
         consoleSpy.mockRestore()
+    })
+
+    it('uses stable dedupeKey for repeated double-fail reports', async () => {
+        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
+        applyMembershipImpl.mockResolvedValue({
+            ok: false,
+            errorCode: 'KERNEL_FAIL',
+            errorMessage: 'placement failed',
+        })
+        deleteImpl.mockResolvedValue({ ok: false, errorMessage: 'delete failed' })
+
+        await spawnOneImprovisationObject(spawnRow, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
+            streamProblemReport,
+        })
+        await spawnOneImprovisationObject(spawnRow, {
+            messageBus: messageBus as any,
+            streamEvent,
+            spawnImpl,
+            applyMembershipImpl,
+            deleteImpl,
+            streamProblemReport,
+        })
+
+        const expectedDedupeKey = buildSpawnCompensationDedupeKey(OBJECT_ID, 1)
+        expect(expectedDedupeKey).toBe('OBJECT#Skates::spawnCompensation::1')
+        expect(streamProblemReport).toHaveBeenCalledTimes(2)
+        expect(streamProblemReport.mock.calls[0][0].attemptCount).toBe(1)
+        expect(streamProblemReport.mock.calls[1][0].attemptCount).toBe(1)
     })
 })
 

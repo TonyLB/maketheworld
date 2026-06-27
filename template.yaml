@@ -96,6 +96,7 @@ Resources:
           - mtw.connections.characters
           - mtw.diagnostics
           - mtw.ephemera
+          - mtw.ephemera.objects
           - mtw.ephemera.thinking.scheduling
           - mtw.messages
           - mtw.players
@@ -1737,6 +1738,15 @@ Resources:
                   - mtw.connections
                 detail-type:
                   - Session Disconnect Problem
+          SpawnCompensationProblem:
+            Type: CloudWatchEvent
+            Properties:
+              EventBusName: !Sub ${TablePrefix}-bus
+              Pattern:
+                source:
+                  - mtw.ephemera.objects
+                detail-type:
+                  - Spawn Compensation Problem
           StaleSessionSweep:
             Type: CloudWatchEvent
             Properties:
@@ -1751,6 +1761,8 @@ Resources:
               TableName: !Sub '${TablePrefix}_assets'
           - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_connections'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
           - Statement:
             - Effect: Allow
               Resource: '*'
