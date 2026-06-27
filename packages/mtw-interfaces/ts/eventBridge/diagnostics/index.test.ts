@@ -6,6 +6,7 @@ import {
     isEphemeraRenderCacheFindingEvent,
     isStaleSessionIdFindingEvent,
     isRoomOccupancyDriftFindingEvent,
+    isOrphanedImprovisedObjectFindingEvent,
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
     isDiagnosticsEventUpdate
@@ -189,6 +190,27 @@ describe('DiagnosticsEventSerializer', () => {
                 roomId: 'ROOM#alpha',
                 diagnosticRunId: 'run-room-1',
                 timestamp: '2025-10-18T17:10:00.000Z'
+            })
+        })
+
+        it('should serialize Orphaned Improvised Object Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates',
+                diagnosticRunId: 'run-orphan-1',
+                timestamp: '2025-10-18T17:12:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Orphaned Improvised Object Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates',
+                diagnosticRunId: 'run-orphan-1',
+                timestamp: '2025-10-18T17:12:00.000Z'
             })
         })
 
@@ -590,6 +612,65 @@ describe('DiagnosticsEventSerializer', () => {
             }
         })
 
+        it('should deserialize Orphaned Improvised Object Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates',
+                diagnosticRunId: 'run-orphan-2',
+                timestamp: '2025-10-18T17:18:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Orphaned Improvised Object Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates',
+                diagnosticRunId: 'run-orphan-2',
+                timestamp: '2025-10-18T17:18:00.000Z'
+            })
+        })
+
+        it('should deserialize Orphaned Improvised Object Finding with defaults for optional fields', async () => {
+            const externalEvent: any = {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Orphaned Improvised Object Finding')
+            })
+
+            expect(internal).toBeDefined()
+            expect(internal).toMatchObject({
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates'
+            })
+            if (internal && internal.type === 'Orphaned Improvised Object Finding') {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
+        })
+
+        it('should return null for Orphaned Improvised Object Finding with invalid objectId', async () => {
+            const invalidEvents = [
+                { type: 'Orphaned Improvised Object Finding', objectId: '' },
+                { type: 'Orphaned Improvised Object Finding', objectId: 'NOT-OBJECT' },
+                { type: 'Orphaned Improvised Object Finding' }
+            ]
+
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
+                    content: event,
+                    header: diagnosticsHeader('Orphaned Improvised Object Finding')
+                })
+                expect(internal).toBeNull()
+            }
+        })
+
         it('should deserialize Player Misalignment Finding event from EventBridge format', async () => {
             const externalEvent: any = {
                 type: 'Player Misalignment Finding',
@@ -825,6 +906,25 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
+        describe('isOrphanedImprovisedObjectFindingEvent', () => {
+            it('should return true for valid Orphaned Improvised Object Finding event', () => {
+                const event = {
+                    type: 'Orphaned Improvised Object Finding',
+                    objectId: 'OBJECT#Skates',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isOrphanedImprovisedObjectFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid objectId or payloads', () => {
+                expect(isOrphanedImprovisedObjectFindingEvent(null)).toBe(false)
+                expect(isOrphanedImprovisedObjectFindingEvent({ type: 'Orphaned Improvised Object Finding', objectId: '' })).toBe(false)
+                expect(isOrphanedImprovisedObjectFindingEvent({ type: 'Orphaned Improvised Object Finding', objectId: 'Skates' })).toBe(false)
+                expect(isOrphanedImprovisedObjectFindingEvent({ type: 'Orphaned Improvised Object Finding' })).toBe(false)
+            })
+        })
+
         describe('isComponentVerticalMisalignedFindingEvent', () => {
             it('should return true for valid Component Vertical Misaligned Finding event', () => {
                 const event = {
@@ -964,6 +1064,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Room Occupancy Drift Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Orphaned Improvised Object Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: 'OBJECT#Skates',
+                diagnosticRunId: 'run-orphan-rt',
+                timestamp: '2025-10-18T18:12:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Orphaned Improvised Object Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Orphaned Improvised Object Finding')
             })
 
             expect(deserialized).toEqual(original)

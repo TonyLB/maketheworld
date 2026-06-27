@@ -18,7 +18,16 @@ import {
     createRenderCacheCacheHandler,
     type RenderCacheCacheHandler,
 } from '@tonylb/mtw-gateways/ts/ephemera/renderCache'
+import {
+    createImprovisationComponentDataCacheHandler,
+    type ImprovisationComponentDataCache,
+} from '@tonylb/mtw-gateways/ts/ephemera/improvisation'
+import {
+    createPositionsCacheHandler,
+    type PositionsCacheHandler,
+} from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import ObjectEphemeraMetaData from './objectEphemeraMeta'
 
 class InternalCache {
     ComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB)
@@ -26,6 +35,9 @@ class InternalCache {
     ComponentAggregate: ComponentAggregateMergedCache
     ComponentExamples: ComponentExamplesMergedCache
     RenderCache: RenderCacheCacheHandler = createRenderCacheCacheHandler(ephemeraDB)
+    ImprovisationComponentData: ImprovisationComponentDataCache = createImprovisationComponentDataCacheHandler(ephemeraDB)
+    Positions: PositionsCacheHandler = createPositionsCacheHandler(ephemeraDB)
+    ObjectEphemeraMeta: ObjectEphemeraMetaData = new ObjectEphemeraMetaData()
 
     constructor() {
         this.ComponentAggregate = createComponentAggregateCacheHandler({
@@ -43,6 +55,9 @@ class InternalCache {
         this.ComponentAggregate.clear()
         this.ComponentExamples.clear()
         this.RenderCache.clear()
+        this.ImprovisationComponentData.clear()
+        this.Positions.clear()
+        this.ObjectEphemeraMeta.clear()
     }
 
     async flush(): Promise<void> {
@@ -50,6 +65,8 @@ class InternalCache {
             this.ComponentAggregate.flush(),
             this.ComponentExamples.flush(),
             this.RenderCache.flush(),
+            this.ImprovisationComponentData.flush(),
+            this.Positions.flush(),
         ])
     }
 }

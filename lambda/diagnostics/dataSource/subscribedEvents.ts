@@ -1,9 +1,13 @@
 import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ConnectionsSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
+import { EphemeraObjectsSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 import { DiagnosticsAPIPayload, DiagnosticsApiSubscribedHeader } from './apiDiagnostics'
 
 export type DiagnosticsConnectionsProblemHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections'; type: 'Session Disconnect Problem' }
+
+export type DiagnosticsEphemeraObjectsProblemHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.objects'; type: 'Spawn Compensation Problem' }
 
 export type DiagnosticsApiStaleSessionSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'StaleSessionSweep' }
@@ -20,10 +24,19 @@ export type DiagnosticsApiComponentVerticalMisalignmentSweepHeader =
 export type DiagnosticsApiRenderCacheDriftSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'RenderCacheDriftSweep' }
 
+export type DiagnosticsApiOrphanedImprovisedObjectSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'OrphanedImprovisedObjectSweep' }
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
     header.dataSourceKey === 'mtw.connections' && header.type === 'Session Disconnect Problem'
+)
+
+const isEphemeraObjectsProblemHeader: HeaderGuard<DiagnosticsEphemeraObjectsProblemHeader> = (
+    header
+): header is DiagnosticsEphemeraObjectsProblemHeader => (
+    header.dataSourceKey === 'mtw.ephemera.objects' && header.type === 'Spawn Compensation Problem'
 )
 
 const isDiagnosticsApiStaleSessionSweepHeader: HeaderGuard<DiagnosticsApiStaleSessionSweepHeader> = (
@@ -56,21 +69,38 @@ const isDiagnosticsApiRenderCacheDriftSweepHeader: HeaderGuard<DiagnosticsApiRen
     header.dataSourceKey === 'api.diagnostics' && header.type === 'RenderCacheDriftSweep'
 )
 
-export const isDiagnosticsSubscribedHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader> = (
+const isDiagnosticsApiOrphanedImprovisedObjectSweepHeader: HeaderGuard<DiagnosticsApiOrphanedImprovisedObjectSweepHeader> = (
     header
-): header is DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader => (
+): header is DiagnosticsApiOrphanedImprovisedObjectSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'OrphanedImprovisedObjectSweep'
+)
+
+export const isDiagnosticsSubscribedHeader: HeaderGuard<
+    DiagnosticsConnectionsProblemHeader |
+    DiagnosticsEphemeraObjectsProblemHeader |
+    DiagnosticsApiSubscribedHeader
+> = (
+    header
+): header is DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsApiSubscribedHeader => (
     isConnectionsProblemHeader(header) ||
+    isEphemeraObjectsProblemHeader(header) ||
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header) ||
     isDiagnosticsApiPlayerMisalignmentSweepHeader(header) ||
     isDiagnosticsApiComponentVerticalMisalignmentSweepHeader(header) ||
-    isDiagnosticsApiRenderCacheDriftSweepHeader(header)
+    isDiagnosticsApiRenderCacheDriftSweepHeader(header) ||
+    isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent,
     DiagnosticsConnectionsProblemHeader
 >(isConnectionsProblemHeader)
+
+export const isEphemeraObjectsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    EphemeraObjectsSpawnCompensationProblemEvent,
+    DiagnosticsEphemeraObjectsProblemHeader
+>(isEphemeraObjectsProblemHeader)
 
 export const isDiagnosticsApiStaleSessionSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     Extract<DiagnosticsAPIPayload, { type: 'StaleSessionSweep' }>,
@@ -97,9 +127,17 @@ export const isDiagnosticsApiRenderCacheDriftSweepEnvelope = makeStreamingEnvelo
     DiagnosticsApiRenderCacheDriftSweepHeader
 >(isDiagnosticsApiRenderCacheDriftSweepHeader)
 
+export const isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'OrphanedImprovisedObjectSweep' }>,
+    DiagnosticsApiOrphanedImprovisedObjectSweepHeader
+>(isDiagnosticsApiOrphanedImprovisedObjectSweepHeader)
+
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ConnectionsSessionDisconnectProblemEvent | DiagnosticsAPIPayload,
-    DiagnosticsConnectionsProblemHeader | DiagnosticsApiSubscribedHeader
+    ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | DiagnosticsAPIPayload,
+    DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsApiSubscribedHeader
 >(isDiagnosticsSubscribedHeader)
 
-export type DiagnosticsSubscribedContent = ConnectionsSessionDisconnectProblemEvent | DiagnosticsAPIPayload
+export type DiagnosticsSubscribedContent =
+    | ConnectionsSessionDisconnectProblemEvent
+    | EphemeraObjectsSpawnCompensationProblemEvent
+    | DiagnosticsAPIPayload

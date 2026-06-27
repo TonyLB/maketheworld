@@ -3,7 +3,9 @@ import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
+import { isSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 import messageBus from '../messageBus'
+import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -13,10 +15,12 @@ import { diagnosticsIntakeDeduper } from './intakeDeduper'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
+    isEphemeraObjectsProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
     isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope,
     isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
     isDiagnosticsApiRenderCacheDriftSweepEnvelope,
+    isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -25,7 +29,7 @@ const diagnosticsEventSerializer = new DiagnosticsEventSerializer(createNodeData
 
 export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
     const preparedEvents = await Promise.all(events.map(async (event) => {
-        if (!isConnectionsProblemEnvelope(event as any)) {
+        if (!isConnectionsProblemEnvelope(event as any) && !isEphemeraObjectsProblemEnvelope(event as any)) {
             return { event, normalizedContent: null }
         }
         const content = await event.getContent()
@@ -54,6 +58,24 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     return
                 }
                 await staleSessionSweep()
+                return
+            }
+            if (isEphemeraObjectsProblemEnvelope(event as any)) {
+                if (!isSpawnCompensationProblemEvent(normalizedContent)) {
+                    console.log(JSON.stringify({
+                        event: 'diagnostics-intake-drop',
+                        reason: 'invalid-ephemera-objects-event-payload',
+                        source: event.header.dataSourceKey,
+                        detailType: event.header.type
+                    }))
+                    return
+                }
+                if (!diagnosticsIntakeDeduper.tryClaim(normalizedContent.dedupeKey)) {
+                    return
+                }
+                await orphanedImprovisedObjectSweep({
+                    objectIds: [normalizedContent.objectId]
+                })
                 return
             }
             if (isDiagnosticsApiStaleSessionSweepEnvelope(event as any)) {
@@ -123,6 +145,19 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 }
                 const result = await renderCacheDriftSweep({
                     roomIds: content.roomIds,
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.publish({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await orphanedImprovisedObjectSweep({
+                    ...(Array.isArray(content.objectIds) ? { objectIds: content.objectIds } : {}),
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

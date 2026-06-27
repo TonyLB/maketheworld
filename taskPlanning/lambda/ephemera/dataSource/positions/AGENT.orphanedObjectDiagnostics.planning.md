@@ -1,6 +1,6 @@
 # Orphaned improvised object diagnostics (spawn S1 follow-up)
 
-**Status:** Phase 1 complete. **Next:** Phase 2 --- sweep + finding (diagnostics lambda).
+**Status:** Phase 2 complete. **Next:** Phase 3 --- durable docs (objects/positions cross-links) + Phase 4 repair.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
@@ -175,12 +175,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Wire `ephemeraObjectsDataSource` (or shared stream helper) to **`streamEvent`** the problem report on S1 double-fail --- **in addition to** existing `console.error` (keep log until ops confirms EventBridge delivery).
   - [X] Unit tests: compensation double-fail emits problem report with expected payload + dedupeKey stability.
 
-- [ ] **Phase 2 --- Sweep + finding (diagnostics lambda)**
-  - [ ] Implement [`orphanedImprovisedObjectSweep/`](../../../../../lambda/diagnostics/) (new module): classify orphans per litmus above; use gateway reads (`ImprovisationComponentData` / pair get, meta get, `queryMembershipContainersFromDynamo` or diagnostics-local equivalent).
-  - [ ] Add **`Orphaned Improvised Object Finding`** to [`packages/mtw-interfaces/ts/eventBridge/diagnostics`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts) + serializer round-trip tests.
-  - [ ] Subscribe diagnostics DataSource to **`mtw.ephemera.objects`** problem report; invocation dedupe by `dedupeKey` (reuse [`intakeDeduper`](../../../../../lambda/diagnostics/dataSource/intakeDeduper.ts) pattern --- generalize or parallel handler).
-  - [ ] Direct invoke entry: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], diagnosticRunId?, nowMs? }` on **`api.diagnostics`** (**O2**: problem-report intake passes **`objectIds: [objectId]`**; omit **`objectIds`** for full-scan ops backstop).
-  - [ ] Tests: problem report triggers sweep; malformed report dropped; dedupe; finding emission for confirmed orphan; no finding when placement exists.
+- [X] **Phase 2 --- Sweep + finding (diagnostics lambda)**
+  - [X] Implement [`orphanedImprovisedObjectSweep/`](../../../../../lambda/diagnostics/) (new module): classify orphans per litmus above; use gateway reads (`ImprovisationComponentData` / pair get, meta get, `queryMembershipContainersFromDynamo` or diagnostics-local equivalent).
+  - [X] Add **`Orphaned Improvised Object Finding`** to [`packages/mtw-interfaces/ts/eventBridge/diagnostics`](../../../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts) + serializer round-trip tests.
+  - [X] Subscribe diagnostics DataSource to **`mtw.ephemera.objects`** problem report; invocation dedupe by `dedupeKey` (reuse [`intakeDeduper`](../../../../../lambda/diagnostics/dataSource/intakeDeduper.ts) pattern --- generalize or parallel handler).
+  - [X] Direct invoke entry: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], diagnosticRunId?, nowMs? }` on **`api.diagnostics`** (**O2**: problem-report intake passes **`objectIds: [objectId]`**; omit **`objectIds`** for full-scan ops backstop).
+  - [X] Tests: problem report triggers sweep; malformed report dropped; dedupe; finding emission for confirmed orphan; no finding when placement exists.
 
 - [ ] **Phase 3 --- Durable docs**
   - [ ] Update [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md): problem-report intake, sweep, finding contract.
@@ -248,8 +248,8 @@ Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds ob
 | Phase 0 (decisions + litmus) | Done |
 | **O1**--**O5** decided | Done |
 | Problem report contract + emission | Done |
-| Sweep + finding | Not started |
-| Durable docs updated | Not started |
+| Sweep + finding | Done |
+| Durable docs updated | Partial (diagnostics AGENT; objects/positions Phase 3) |
 | Optional repair (**O1**) | Not started |
 
 ---

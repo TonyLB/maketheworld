@@ -3,9 +3,11 @@ import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSource
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
+    EphemeraObjectId,
     EphemeraRoomId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
 } from '../../baseClasses'
 
@@ -56,6 +58,13 @@ export type DiagnosticsRoomOccupancyDriftFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsOrphanedImprovisedObjectFindingEvent = {
+    type: 'Orphaned Improvised Object Finding'
+    objectId: EphemeraObjectId
+    diagnosticRunId: string
+    timestamp: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEvent = {
     type: 'Player Misalignment Finding'
     player: string
@@ -87,6 +96,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsEphemeraRenderCacheFindingEvent
     | DiagnosticsStaleSessionIdFindingEvent
     | DiagnosticsRoomOccupancyDriftFindingEvent
+    | DiagnosticsOrphanedImprovisedObjectFindingEvent
     | DiagnosticsPlayerMisalignmentFindingEvent
     | DiagnosticsComponentVerticalMisalignedFindingEvent
     | DiagnosticsHealGlobalValuesContent
@@ -133,6 +143,13 @@ export type DiagnosticsRoomOccupancyDriftFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsOrphanedImprovisedObjectFindingEventExternal = {
+    type: 'Orphaned Improvised Object Finding'
+    objectId: EphemeraObjectId
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEventExternal = {
     type: 'Player Misalignment Finding'
     player: string
@@ -154,6 +171,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsEphemeraRenderCacheFindingEventExternal
     | DiagnosticsStaleSessionIdFindingEventExternal
     | DiagnosticsRoomOccupancyDriftFindingEventExternal
+    | DiagnosticsOrphanedImprovisedObjectFindingEventExternal
     | DiagnosticsPlayerMisalignmentFindingEventExternal
     | DiagnosticsComponentVerticalMisalignedFindingEventExternal
 
@@ -255,6 +273,18 @@ export const isRoomOccupancyDriftFindingEvent = (event: any): event is Diagnosti
     )
 }
 
+export const isOrphanedImprovisedObjectFindingEvent = (
+    event: any
+): event is DiagnosticsOrphanedImprovisedObjectFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Orphaned Improvised Object Finding' &&
+        typeof event.objectId === 'string' &&
+        isEphemeraObjectId(event.objectId)
+    )
+}
+
 export const isPlayerMisalignmentFindingEvent = (event: any): event is DiagnosticsPlayerMisalignmentFindingEvent => {
     return Boolean(
         event &&
@@ -280,7 +310,8 @@ export const isComponentVerticalMisalignedFindingEvent = (
 
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
     return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
-        isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
+        isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
+        isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
@@ -346,6 +377,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Room Occupancy Drift Finding',
                 roomId: content.roomId,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Orphaned Improvised Object Finding' && isOrphanedImprovisedObjectFindingEvent(content)) {
+            return {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: content.objectId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -456,6 +495,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Room Occupancy Drift Finding',
                 roomId: content.roomId as EphemeraRoomId,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Orphaned Improvised Object Finding') {
+            if (typeof content.objectId !== 'string' || !isEphemeraObjectId(content.objectId)) {
+                return null
+            }
+            return {
+                type: 'Orphaned Improvised Object Finding',
+                objectId: content.objectId as EphemeraObjectId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

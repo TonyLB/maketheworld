@@ -21,6 +21,12 @@ const normalizeConnectionsEventBridgeIngress = async (event: any) => {
     await enqueueDiagnosticsEnvelope(envelope)
 }
 
+const normalizeEphemeraObjectsEventBridgeIngress = async (event: any) => {
+    const coreFormat = fromEventBridgeFormat(event)
+    const envelope = coreFormatToStreamingEnvelope(coreFormat, async () => coreFormat.update)
+    await enqueueDiagnosticsEnvelope(envelope)
+}
+
 const normalizeApiDiagnosticsIngress = async (event: any) => {
     switch (event.type) {
         case 'StaleSessionSweep':
@@ -63,12 +69,24 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'OrphanedImprovisedObjectSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'OrphanedImprovisedObjectSweep',
+                ...(Array.isArray(event.objectIds) ? { objectIds: event.objectIds } : {}),
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
 }
 
 export const routeDiagnosticsIngress = async (event: any) => {
     if (event?.source && event?.['detail-type'] && event.source === 'mtw.connections') {
         await normalizeConnectionsEventBridgeIngress(event)
+        return
+    }
+    if (event?.source && event?.['detail-type'] && event.source === 'mtw.ephemera.objects') {
+        await normalizeEphemeraObjectsEventBridgeIngress(event)
         return
     }
     await normalizeApiDiagnosticsIngress(event)
