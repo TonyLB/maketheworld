@@ -1,6 +1,8 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     applyLadderUpdateFromDestinationChain,
     buildAssetChainForAsset,
+    buildProposedRoomStackForNavigate,
     classifyRoomStackNavigateOperation,
     resolveDestinationAssetChain,
 } from './membershipRoomStack'
@@ -124,6 +126,69 @@ describe('applyLadderUpdateFromDestinationChain', () => {
         )).toEqual([
             { asset: 'primitives', RoomId: 'TestOne' },
         ])
+    })
+})
+
+describe('buildProposedRoomStackForNavigate', () => {
+    const baseStack = [
+        { asset: 'primitives', RoomId: 'VORTEX' },
+        { asset: 'TownCenter', RoomId: 'TestTwo' },
+    ]
+
+    it('extends the ladder for a child asset navigate', () => {
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#TestFour' as EphemeraRoomId,
+            currentRoomStack: baseStack,
+            characterAssets,
+            roomAssets: ['ASSET#draftOne'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'TestTwo' },
+            { asset: 'draftOne', RoomId: 'TestFour' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
+    })
+
+    it('rewrites the tail for a lateral move within the same layer', () => {
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#TestThree' as EphemeraRoomId,
+            currentRoomStack: baseStack,
+            characterAssets,
+            roomAssets: ['ASSET#TownCenter'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'TestThree' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
+    })
+
+    it('forks to a sibling overlay branch', () => {
+        const currentRoomStack = [
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'Suburbs' },
+            { asset: 'draftOne', RoomId: 'Laboratory' },
+        ]
+        const result = buildProposedRoomStackForNavigate({
+            targetRoomId: 'ROOM#BigTop' as EphemeraRoomId,
+            currentRoomStack,
+            characterAssets,
+            roomAssets: ['ASSET#circusEvent'],
+            canonAssets,
+        })
+
+        expect(result).toEqual([
+            { asset: 'primitives', RoomId: 'VORTEX' },
+            { asset: 'TownCenter', RoomId: 'Suburbs' },
+            { asset: 'draftOne', RoomId: 'Laboratory' },
+            { asset: 'circusEvent', RoomId: 'BigTop' },
+        ])
+        expect(result.every((frame) => frame.timeWritten === undefined)).toBe(true)
     })
 })
 

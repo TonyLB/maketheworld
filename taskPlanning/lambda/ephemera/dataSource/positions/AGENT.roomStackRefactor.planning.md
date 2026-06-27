@@ -1,6 +1,6 @@
 # RoomStack unbundle + timestamp merge refactor
 
-**Status:** In progress (planning). **Next:** Phase 1 --- implement `mergeRoomStack` + unit tests before kernel unbundle.
+**Status:** In progress (planning). **Next:** Phase 2 --- kernel unbundle + `persistRoomStackNavigate` + parallel navigate tail.
 
 Task-scoped plan for unbundling eviction-ladder (`RoomStack`) maintenance from the manipulation kernel transact, running navigate ladder updates in parallel with post-navigate presentation orchestration, and mitigating out-of-order races with per-frame `timeWritten` merge semantics.
 
@@ -188,7 +188,7 @@ Decisions for upcoming slices. When a decision ships, record it in `AGENT.contra
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Task plan (this doc) | Done |
-| 1 | `mergeRoomStack` + race unit tests | Not started |
+| 1 | `mergeRoomStack` + race unit tests | Done |
 | 2 | Kernel unbundle + persist + `Promise.all` navigate tail | Not started |
 | 3 | Trim preserves per-frame timestamps | Not started |
 | 4 | Test migration + contract/implementation doc updates | Not started |
@@ -200,10 +200,10 @@ Decisions for upcoming slices. When a decision ships, record it in `AGENT.contra
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as you complete them.
 
-- [ ] **Phase 1 --- Merge primitive**
-  - [ ] Add `timeWritten?: number` to `RoomStackItem` in [`types.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/types.ts).
-  - [ ] Implement `mergeRoomStack` (pure) + tests: out-of-order navigate (C then D, stale C arrives last), fork truncate, stale resurrection blocked, legacy `timeWritten` missing.
-  - [ ] Implement `buildProposedRoomStackForNavigate` (wrap existing `computeRoomStackUpdate` + `applyLadderUpdateFromDestinationChain` without timestamps on proposed frames).
+- [X] **Phase 1 --- Merge primitive**
+  - [X] Add `timeWritten?: number` to `RoomStackItem` in [`types.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/types.ts).
+  - [X] Implement `mergeRoomStack` (pure) + tests: out-of-order navigate (C then D, stale C arrives last), fork truncate, stale resurrection blocked, legacy `timeWritten` missing.
+  - [X] Implement `buildProposedRoomStackForNavigate` (wrap existing `computeRoomStackUpdate` + `applyLadderUpdateFromDestinationChain` without timestamps on proposed frames).
 
 - [ ] **Phase 2 --- Unbundle kernel + parallel navigate tail**
   - [ ] Add `persistRoomStackNavigate` in [`persistRoomStackNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/persistRoomStackNavigate.ts): `optimisticUpdate` + merge reducer; capped exponential backoff (RS-3); catch/log at tail helper so navigate does not fail.
