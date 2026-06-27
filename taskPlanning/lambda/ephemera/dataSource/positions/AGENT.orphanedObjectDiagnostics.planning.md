@@ -1,10 +1,10 @@
 # Orphaned improvised object diagnostics (spawn S1 follow-up)
 
-**Status:** Phase 2 complete. **Next:** Phase 3 --- durable docs (objects/positions cross-links) + Phase 4 repair.
+**Status:** Phase 3 complete. **Next:** Phase 4 --- repair (**O1** = delete on finding).
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
-**Follow-up to shipped spawn refactor:** two-step spawn+place is steady state ([`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) **S1**). [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) compensates with `persistDeleteImprovisationObject` on placement failure; when compensation also fails, it logs only today. This initiative replaces log-only with operational diagnostics.
+**Follow-up to shipped spawn refactor:** two-step spawn+place is steady state ([`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) **S1**). **S1 double-fail** emits **`Spawn Compensation Problem`** + `console.error`; diagnostics sweep emits **`Orphaned Improvised Object Finding`**. Durable docs: [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md), objects/positions AGENT siblings above. **Remaining:** Phase 4 delete repair on finding.
 
 ---
 
@@ -12,7 +12,7 @@ This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durabilit
 
 Detect and surface **orphaned improvised objects**: existence rows present (improvisation pair + `Meta::Object`) with **no** positions-lane placement (empty `getMembershipContainers` / absent from all room `positionGraph` object nodes).
 
-Primary operational trigger: **S1 double-failure** --- placement fails after successful existence create, then `persistDeleteImprovisationObject` compensation also fails ([`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts)). Today that path logs only:
+Primary operational trigger: **S1 double-failure** --- placement fails after successful existence create, then `persistDeleteImprovisationObject` compensation also fails ([`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts)). Emits **`Spawn Compensation Problem`** (plus `console.error`); diagnostics confirms via sweep and emits **`Orphaned Improvised Object Finding`**. Historical log-only path:
 
 ```63:67:lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts
             console.error('[mtw.ephemera.objects] spawn placement failed; compensation delete failed', {
@@ -182,10 +182,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Direct invoke entry: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], diagnosticRunId?, nowMs? }` on **`api.diagnostics`** (**O2**: problem-report intake passes **`objectIds: [objectId]`**; omit **`objectIds`** for full-scan ops backstop).
   - [X] Tests: problem report triggers sweep; malformed report dropped; dedupe; finding emission for confirmed orphan; no finding when placement exists.
 
-- [ ] **Phase 3 --- Durable docs**
-  - [ ] Update [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md): problem-report intake, sweep, finding contract.
-  - [ ] Update [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): S1 double-fail emits problem report (not log-only).
-  - [ ] Update [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): cross-reference orphan finding (existence-without-placement).
+- [X] **Phase 3 --- Durable docs**
+  - [X] Update [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md): problem-report intake, sweep, finding contract.
+  - [X] Update [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): S1 double-fail emits problem report (not log-only).
+  - [X] Update [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): cross-reference orphan finding (existence-without-placement).
   - [X] Trim follow-up bullets from parent spawn refactor plan or link here once Phase 1--3 ship (parent plan disposed; follow-up tracked in this document).
 
 - [ ] **Phase 4 --- Repair (**O1** = delete on finding)**
@@ -199,7 +199,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 
 ---
 
-## Wire shapes (locked --- Phase 0)
+## Wire shapes (locked --- durable copies in AGENT + mtw-interfaces)
 
 ### Problem report (`mtw.ephemera.objects`)
 
@@ -249,7 +249,7 @@ Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds ob
 | **O1**--**O5** decided | Done |
 | Problem report contract + emission | Done |
 | Sweep + finding | Done |
-| Durable docs updated | Partial (diagnostics AGENT; objects/positions Phase 3) |
+| Durable docs updated | Done |
 | Optional repair (**O1**) | Not started |
 
 ---

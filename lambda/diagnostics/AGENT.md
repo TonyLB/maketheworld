@@ -32,6 +32,7 @@
 **Handling semantics:**
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
+- `Spawn Compensation Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts); same tidy-failure, invocation dedupe, and report-only sweep trigger semantics as connections problem reports.
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
 - Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to both `Session Disconnect Problem` and `Spawn Compensation Problem`.
 - Diagnostics remains report-only: problem reports trigger sweep evaluation and finding emission only; diagnostics does not perform storage repairs.
@@ -64,7 +65,7 @@
 
 **Purpose:** Read-only sweep for improvisational **`OBJECT#`** ids with both `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows present but no positions-lane placement (empty `getMembershipContainers` and no **`Object`** node on any host `positionGraph`). Emits descriptive findings only; no repairs in diagnostics.
 
-**Trigger context:** S1 spawn double-failure --- placement fails after existence create, then compensation delete also fails --- emits **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** ([`objects/spawnImprovisationObjectsBatch.ts`](../ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts)). See [`taskPlanning/.../AGENT.orphanedObjectDiagnostics.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.orphanedObjectDiagnostics.planning.md).
+**Trigger context:** S1 spawn double-failure --- placement fails after existence create, then compensation delete also fails --- emits **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** ([`spawnOneImprovisationObject`](../ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) via [`streamSpawnCompensationProblem`](../ephemera/dataSource/objects/problemReports.ts); emission contract in [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)). Normative S1 + existence-without-placement rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
 
 **Entrypoints:**
 
@@ -135,7 +136,9 @@
 
 ## Related docs
 
-- Diagnostics **`internalCache`** slice: [`internalCache/AGENT.md`](internalCache/AGENT.md)
+- Diagnostics **`internalCache`** slice (sweep read handlers): [`internalCache/AGENT.md`](internalCache/AGENT.md)
+- Objects lane problem-report emission: [`../ephemera/dataSource/objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)
+- Positions S1 + orphan vs adjacency lag: [`../ephemera/dataSource/positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**
 - Assets heal authority and event flow: [`../assets/AGENT.event.md`](../assets/AGENT.event.md)
 - Cognito signup publish flow (`mtw.cognito` / `New Player`): [`../cognitoEvent/AGENT.md`](../cognitoEvent/AGENT.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)

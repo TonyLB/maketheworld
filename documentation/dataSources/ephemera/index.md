@@ -18,4 +18,4 @@ Events:
 
 Events:
 
-- Spawn Compensation Problem (S1 double-fail problem report; triggers diagnostics orphan sweep in Phase 2)
+- Spawn Compensation Problem (S1 double-fail problem report; triggers diagnostics orphan sweep)
