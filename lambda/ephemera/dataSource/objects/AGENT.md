@@ -53,7 +53,19 @@ When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds
 
 **Emission:** [`streamSpawnCompensationProblem`](problemReports.ts) on **`mtw.ephemera.objects`** (EventBridge via **`publishStreamEvent`**), **in addition to** `console.error` until ops confirms EventBridge delivery. Wire shape: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts) (`objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp`).
 
-**Downstream:** diagnostics lambda intake triggers [`orphanedImprovisedObjectSweep`](../../../../diagnostics/orphanedImprovisedObjectSweep/) with targeted `objectIds: [objectId]`; confirmed orphans emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`**. Sweep contract: [`lambda/diagnostics/AGENT.md`](../../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**. **Planned (not shipped):** objects-lane delete repair on finding via **`persistDeleteImprovisationObject`**.
+**Downstream:** diagnostics lambda intake triggers [`orphanedImprovisedObjectSweep`](../../../../diagnostics/orphanedImprovisedObjectSweep/) with targeted `objectIds: [objectId]`; confirmed orphans emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`**. Sweep contract: [`lambda/diagnostics/AGENT.md`](../../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**. Objects lane consumes the finding for delete repair (see **Diagnostics repair** below).
+
+## Diagnostics repair (orphan finding)
+
+**Subscription:** `mtw.diagnostics` / **`Orphaned Improvised Object Finding`**.
+
+| Event | Handler |
+| --- | --- |
+| `Orphaned Improvised Object Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`handleOrphanedImprovisedObjectFinding`](handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) |
+
+**Repair model (Coyote Game v1):** delete-only --- remove `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows. **Must not** retry placement on finding; non-Coyote orphan contexts may need different repair later (product fork). **Idempotency:** at-least-once finding delivery **must** be safe (unconditional Dynamo deletes; no-op when rows already absent). On delete failure, **must** `console.error` with `objectId`, `diagnosticRunId`, and delete error.
+
+**Trust the finding:** handler does not re-run orphan classification; diagnostics sweep already confirmed litmus before emission.
 
 ## Ingress and API
 
@@ -104,6 +116,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |
 | **Batch `add` isolation (S3)** | Per-object loop; partial **`createdIds`** + **`addFailures`**; one row's failure does not abort earlier successes or skip remaining rows. |
 | **S1 double-fail signal** | **`Spawn Compensation Problem`** on EventBridge + `console.error`; triggers diagnostics orphan sweep (not log-only). |
+| **Orphan repair (O1)** | **`Orphaned Improvised Object Finding`** -> delete-only via **`persistDeleteImprovisationObject`**; placement retry out of scope for Coyote v1. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
 | **Outbound header** | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
@@ -124,6 +137,7 @@ npm run test -- --watchAll=false
 | File | Policies |
 | --- | --- |
 | [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds` |
+| [`handleOrphanedImprovisedObjectFinding.test.ts`](handleOrphanedImprovisedObjectFinding.test.ts) | Orphan finding triggers delete; invalid payload skipped; delete failure logged |
 | [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove |
 | [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream |
 

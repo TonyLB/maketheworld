@@ -1,10 +1,10 @@
 # Orphaned improvised object diagnostics (spawn S1 follow-up)
 
-**Status:** Phase 3 complete. **Next:** Phase 4 --- repair (**O1** = delete on finding).
+**Status:** Phase 4 complete. **Next:** Phase 5 --- close-out.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability ladder, open decisions, recommended-order checkboxes). **Dispose** after the initiative ships and lasting rules live in [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects/) and [`lambda/diagnostics/`](../../../../../lambda/diagnostics/) `AGENT*.md` siblings.
 
-**Follow-up to shipped spawn refactor:** two-step spawn+place is steady state ([`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) **S1**). **S1 double-fail** emits **`Spawn Compensation Problem`** + `console.error`; diagnostics sweep emits **`Orphaned Improvised Object Finding`**. Durable docs: [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md), objects/positions AGENT siblings above. **Remaining:** Phase 4 delete repair on finding.
+**Follow-up to shipped spawn refactor:** two-step spawn+place is steady state ([`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) **S1**). **S1 double-fail** emits **`Spawn Compensation Problem`** + `console.error`; diagnostics sweep emits **`Orphaned Improvised Object Finding`**; objects lane delete repair on finding is shipped. Durable docs: [`lambda/diagnostics/AGENT.md`](../../../../../lambda/diagnostics/AGENT.md), objects/positions AGENT siblings above. **Remaining:** Phase 5 close-out.
 
 ---
 
@@ -104,13 +104,13 @@ sequenceDiagram
     participant Objects as mtw.ephemera.objects
     participant EB as EventBridge
     participant Diag as mtw.diagnostics
-    participant Repair as optional repair owner
+    participant Repair as mtw.ephemera.objects repair
 
     Objects->>EB: Spawn Compensation Problem
     EB->>Diag: problem report intake
     Diag->>Diag: orphanedImprovisedObjectSweep
     Diag->>EB: Orphaned Improvised Object Finding
-    EB->>Repair: Phase 4 delete repair (O1)
+    EB->>Repair: persistDeleteImprovisationObject (O1)
 ```
 
 ---
@@ -154,7 +154,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **O1** | **Repair owner and behavior:** **(b) objects lane** --- on **`Orphaned Improvised Object Finding`**, call **`persistDeleteImprovisationObject`** (idempotent). Sufficient for Coyote Game v1; non-Coyote orphan contexts may need different repair later (out of scope until product asks). | Phase 4 | **Decided** |
 | **O2** | **Sweep scope on problem report:** **targeted** --- classify **`objectId`** from the problem report payload only. **Direct invoke** on **`api.diagnostics`** may still run a **full scan** when **`objectIds`** is omitted (ops backstop). | Phase 2 | **Decided** |
 | **O3** | **Problem report `detail-type` name:** **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** (mirror **`Session Disconnect Problem`** on **`mtw.connections`**). | Phase 1 | **Decided** |
 | **O4** | **EventBridge contract home:** add **`objects`** submodule under [`packages/mtw-interfaces/ts/eventBridge/ephemera/`](../../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/) (e.g. **`eventBridge/ephemera/objects/index.ts`**). Split to a dedicated directory if the module outgrows a single file. | Phase 1 | **Decided** |
@@ -188,10 +187,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
   - [X] Update [`lambda/ephemera/dataSource/positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): cross-reference orphan finding (existence-without-placement).
   - [X] Trim follow-up bullets from parent spawn refactor plan or link here once Phase 1--3 ship (parent plan disposed; follow-up tracked in this document).
 
-- [ ] **Phase 4 --- Repair (**O1** = delete on finding)**
-  - [ ] Objects lane handler on **`Orphaned Improvised Object Finding`** -> **`persistDeleteImprovisationObject`** (idempotent).
-  - [ ] Unit tests: confirmed orphan finding triggers delete; no-op when rows already absent.
-  - [ ] Note in durable docs: Coyote Game v1 repair is delete-only; placement retry remains a future product fork if needed.
+- [X] **Phase 4 --- Repair (**O1** = delete on finding)**
+  - [X] Objects lane handler on **`Orphaned Improvised Object Finding`** -> **`persistDeleteImprovisationObject`** (idempotent).
+  - [X] Unit tests: confirmed orphan finding triggers delete; no-op when rows already absent.
+  - [X] Note in durable docs: Coyote Game v1 repair is delete-only; placement retry remains a future product fork if needed.
 
 - [ ] **Phase 5 --- Close**
   - [ ] Run verification commands below.
@@ -236,7 +235,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark each nested line `[X]` 
 }
 ```
 
-Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds objects-lane delete repair on the finding.
+Diagnostics remains **report-only**; repair is objects-lane owned via **`handleOrphanedImprovisedObjectFinding`** -> **`persistDeleteImprovisationObject`** (**O1**, shipped).
 
 ---
 
@@ -250,23 +249,36 @@ Diagnostics remains **report-only** through Phase 2--3. Phase 4 (**O1**) adds ob
 | Problem report contract + emission | Done |
 | Sweep + finding | Done |
 | Durable docs updated | Done |
-| Optional repair (**O1**) | Not started |
+| Repair (**O1**) | Done |
 
 ---
 
 ## Verification
 
-After Phase 1--2:
+After Phase 1--4:
 
 ```bash
 cd lambda/ephemera
-npm run test -- --watchAll=false dataSource/objects/
+npm run test -- --watchAll=false \
+  dataSource/objects/handleOrphanedImprovisedObjectFinding.test.ts \
+  dataSource/objects/subscribedEvents.test.ts \
+  dataSource/objects/index.test.ts \
+  dataSource/objects/persistImprovisationObject.test.ts \
+  dataSource/objects/spawnImprovisationObjectsBatch.test.ts \
+  dataSource/objects/
 
 cd lambda/diagnostics
 npm run test -- --watchAll=false \
   orphanedImprovisedObjectSweep/ \
   dataSource/index.test.ts \
   app.test.ts
+```
+
+**Objects lane repair handler wired:**
+
+```bash
+rg -n "Orphaned Improvised Object Finding|handleOrphanedImprovisedObjectFinding" \
+  lambda/ephemera/dataSource/objects/
 ```
 
 **Problem report wired at S1 double-fail:**

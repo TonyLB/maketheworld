@@ -19,3 +19,4 @@ Events:
 Events:
 
 - Spawn Compensation Problem (S1 double-fail problem report; triggers diagnostics orphan sweep)
+- Consumes `mtw.diagnostics` / Orphaned Improvised Object Finding (delete repair via persistDeleteImprovisationObject)

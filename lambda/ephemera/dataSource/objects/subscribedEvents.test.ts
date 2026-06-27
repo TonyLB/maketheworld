@@ -1,4 +1,5 @@
 import {
+    isDiagnosticsOrphanedImprovisedObjectFindingEnvelope,
     isEphemeraActionsAcmeOrderEnvelope,
     isEphemeraActionsAwaitRoadRunnerEnvelope,
     isEphemeraActionsPredictHypothesisEnvelope,
@@ -79,6 +80,42 @@ describe('objects subscribedEvents', () => {
         }
 
         expect(isEphemeraActionsAwaitRoadRunnerEnvelope(envelope as any)).toBe(false)
+        expect(isObjectsSubscribedEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts Orphaned Improvised Object Finding from mtw.diagnostics', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Orphaned Improvised Object Finding' as const,
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Orphaned Improvised Object Finding' as const,
+                    objectId: 'OBJECT#Skates',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-01-01T00:00:00.000Z',
+                }),
+        }
+
+        expect(isDiagnosticsOrphanedImprovisedObjectFindingEnvelope(envelope as any)).toBe(true)
+        expect(isObjectsSubscribedEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('rejects other diagnostics event types', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Room Occupancy Drift Finding',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+
+        expect(isDiagnosticsOrphanedImprovisedObjectFindingEnvelope(envelope as any)).toBe(false)
         expect(isObjectsSubscribedEnvelope(envelope as any)).toBe(false)
     })
 })

@@ -76,7 +76,7 @@
 
 **Evaluation (orphan litmus):** pair row present **and** `Meta::Object` present **and** no **`Object`** node on any `Meta::Room` or `Meta::Character` `positionGraph` **and** `internalCache.Positions.getMembershipContainers(objectId)` returns empty. **Not orphan:** adjacency lag only (graph node present, containers empty) --- owned by [`repairObjectPlacementDrift`](../ephemera/dataSource/positions/membership/repairObjectPlacementDrift.ts). Implementation: [`orphanedImprovisedObjectSweep/`](orphanedImprovisedObjectSweep/).
 
-**Downstream handling (planned):** Objects lane delete repair on finding (**Phase 4**); diagnostics remains report-only through Phase 2--3.
+**Downstream handling:** Ephemera **`mtw.ephemera.objects`** consumes `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** via [`handleOrphanedImprovisedObjectFinding`](../ephemera/dataSource/objects/handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](../ephemera/dataSource/objects/persistImprovisationObject.ts) (delete-only repair; Coyote Game v1). Diagnostics remains report-only; repair ownership is objects-lane. Contract: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Diagnostics repair**.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 
