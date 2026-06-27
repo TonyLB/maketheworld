@@ -6,7 +6,6 @@ import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/epheme
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import { buildCharacterRoomMembershipTransactItems } from '../membership/characterRoomMembershipTransactItems'
-import { buildCharacterRoomStackTransactItems } from '../membership/characterRoomStackTransactItems'
 import { buildObjectPlacementTransactItems } from '../membership/objectPlacementTransactItems'
 import {
     addCharacterToGraph,
@@ -175,23 +174,9 @@ const characterInventoryDiffFromEffects = (
 }
 
 const buildTransactItemsFromHostEffects = (
-    hostEffects: HostEffect[],
-    characterRowEffects: ApplyHostEffectsArgs['characterRowEffects'] = []
+    hostEffects: HostEffect[]
 ) => {
     const transactItems: Parameters<typeof ephemeraDB.transactWrite>[0] = []
-
-    for (const rowEffect of characterRowEffects) {
-        transactItems.push(
-            ...buildCharacterRoomStackTransactItems({
-                characterId: rowEffect.characterId,
-                targetRoomId: rowEffect.targetRoomId,
-                characterAssets: rowEffect.characterAssets,
-                roomAssets: rowEffect.roomAssets,
-                canonAssets: rowEffect.canonAssets,
-                currentRoomStack: rowEffect.currentRoomStack,
-            })
-        )
-    }
 
     const characterRoomEffects = new Map<EphemeraCharacterId, HostEffect[]>()
     const objectRoomEffects = new Map<EphemeraObjectId, HostEffect[]>()
@@ -291,43 +276,10 @@ export const applyHostEffects = async (
     args: ApplyHostEffectsArgs,
     deps?: ApplyHostEffectsDependencies
 ): Promise<ApplyHostEffectsResult> => {
-    const { hostEffects, characterRowEffects = [] } = args
-
-    if (hostEffects.length === 0 && characterRowEffects.length === 0) {
-        return { ok: true, persisted: false, changed: false }
-    }
+    const { hostEffects } = args
 
     if (hostEffects.length === 0) {
-        try {
-            let persisted = false
-            await exponentialBackoffWrapper(async () => {
-                const transactItems = buildTransactItemsFromHostEffects([], characterRowEffects)
-                if (transactItems.length === 0) {
-                    return
-                }
-                await (deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB))(transactItems)
-                persisted = true
-            }, { retryErrors: ['TransactionCanceledException'] })
-
-            if (!persisted) {
-                return { ok: true, persisted: false, changed: false }
-            }
-
-            return {
-                ok: true,
-                persisted: true,
-                changed: false,
-                postApplyGraphs: {},
-            }
-        }
-        catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            return {
-                ok: false,
-                errorCode: 'HOST_EFFECTS_TRANSACT_FAILED',
-                errorMessage: message,
-            }
-        }
+        return { ok: true, persisted: false, changed: false }
     }
 
     const getPositionGraph = deps?.getPositionGraph ?? defaultGetPositionGraph
@@ -353,7 +305,7 @@ export const applyHostEffects = async (
     try {
         let persisted = false
         await exponentialBackoffWrapper(async () => {
-            const transactItems = buildTransactItemsFromHostEffects(hostEffects, characterRowEffects)
+            const transactItems = buildTransactItemsFromHostEffects(hostEffects)
             if (transactItems.length === 0) {
                 return
             }

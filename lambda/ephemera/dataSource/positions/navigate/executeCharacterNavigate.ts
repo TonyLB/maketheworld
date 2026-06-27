@@ -5,7 +5,7 @@ import { applyCharacterRoomMembership } from '../membership/applyCharacterRoomMe
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import type { MembershipApplyResult } from '../membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
-import { orchestrateCharacterNavigate } from './orchestrateNavigate'
+import { afterCharacterMembershipNavigateChanged } from './afterCharacterMembershipNavigateChanged'
 
 export type ExecuteCharacterNavigateArgs = {
     characterId: EphemeraCharacterId;
@@ -16,7 +16,7 @@ export type ExecuteCharacterNavigateArgs = {
 
 /**
  * Shared navigate execution: membership persist via positions coordinator, then
- * post-persist presentation orchestration when endpoints changed.
+ * parallel navigate tail (ladder persist + presentation) when endpoints changed.
  */
 export const executeCharacterNavigate = async ({
     characterId,
@@ -30,16 +30,12 @@ export const executeCharacterNavigate = async ({
         { messageBus, streamEvent }
     )
 
-    if (result.ok && result.changed) {
-        await orchestrateCharacterNavigate({
-            characterId,
-            characterMeta,
-            froms: result.froms,
-            to: result.to,
-            beatAnchorTime: result.beatAnchorTime,
-            messageBus,
-        })
-    }
+    await afterCharacterMembershipNavigateChanged({
+        characterId,
+        characterMeta,
+        result,
+        messageBus,
+    })
 
     return result
 }

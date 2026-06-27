@@ -17,10 +17,10 @@ import {
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { orchestrateCharacterNavigate } from './navigate/orchestrateNavigate'
-import type { PositionsPublishedPayload } from './publishedEvents'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
+import { afterCharacterMembershipNavigateChanged } from './navigate/afterCharacterMembershipNavigateChanged'
+import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const handleCharacterConnected = async (
     event: ConnectionsCharactersConnectedEvent,
@@ -38,16 +38,12 @@ export const handleCharacterConnected = async (
         { messageBus, streamEvent }
     )
 
-    if (result.ok && result.changed) {
-        await orchestrateCharacterNavigate({
-            characterId: event.characterId,
-            characterMeta,
-            froms: result.froms,
-            to: result.to,
-            beatAnchorTime: result.beatAnchorTime,
-            messageBus,
-        })
-    }
+    await afterCharacterMembershipNavigateChanged({
+        characterId: event.characterId,
+        characterMeta,
+        result,
+        messageBus,
+    })
 }
 
 export const handleCharacterDisconnected = async (

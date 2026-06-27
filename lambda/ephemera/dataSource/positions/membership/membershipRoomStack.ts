@@ -170,17 +170,3 @@ export const buildProposedRoomStackForNavigate = (args: {
     )
 }
 
-export const applyRoomStackToCharacterDraft = (
-    draft: Record<string, unknown>,
-    args: {
-        targetRoomId: EphemeraRoomId;
-        destinationChain: string[];
-    }
-): void => {
-    const targetRoomShortId = splitType(args.targetRoomId)[1]
-    draft.RoomStack = applyLadderUpdateFromDestinationChain(
-        draft.RoomStack as RoomStackItem[] | undefined,
-        args.destinationChain,
-        targetRoomShortId
-    )
-}

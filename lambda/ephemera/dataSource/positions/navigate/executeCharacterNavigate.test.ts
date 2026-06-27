@@ -2,8 +2,8 @@ jest.mock('../membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
 }))
 
-jest.mock('./orchestrateNavigate', () => ({
-    orchestrateCharacterNavigate: jest.fn(),
+jest.mock('./afterCharacterMembershipNavigateChanged', () => ({
+    afterCharacterMembershipNavigateChanged: jest.fn(),
 }))
 
 jest.mock('../../../internalCache', () => ({
@@ -15,7 +15,7 @@ jest.mock('../../../internalCache', () => ({
 
 import internalCache from '../../../internalCache'
 import * as membership from '../membership/applyCharacterRoomMembership'
-import * as orchestrateNavigate from './orchestrateNavigate'
+import * as navigateTail from './afterCharacterMembershipNavigateChanged'
 import { executeCharacterNavigate } from './executeCharacterNavigate'
 import { MessageBus } from '../../../messageBus/baseClasses'
 
@@ -26,8 +26,8 @@ const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunct
 const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<
     typeof membership.applyCharacterRoomMembership
 >
-const orchestrateCharacterNavigateMock = orchestrateNavigate.orchestrateCharacterNavigate as jest.MockedFunction<
-    typeof orchestrateNavigate.orchestrateCharacterNavigate
+const afterCharacterMembershipNavigateChangedMock = navigateTail.afterCharacterMembershipNavigateChanged as jest.MockedFunction<
+    typeof navigateTail.afterCharacterMembershipNavigateChanged
 >
 
 describe('executeCharacterNavigate', () => {
@@ -52,10 +52,10 @@ describe('executeCharacterNavigate', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         })
-        orchestrateCharacterNavigateMock.mockResolvedValue(undefined)
+        afterCharacterMembershipNavigateChangedMock.mockResolvedValue(undefined)
     })
 
-    it('calls applyCharacterRoomMembership then orchestration when changed', async () => {
+    it('calls applyCharacterRoomMembership then navigate tail with pre-apply characterMeta', async () => {
         await executeCharacterNavigate({
             characterId: 'CHARACTER#Test',
             targetRoomId: 'ROOM#TestTwo',
@@ -70,16 +70,19 @@ describe('executeCharacterNavigate', () => {
                 streamEvent,
             })
         )
-        expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
+        expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalledWith({
             characterId: 'CHARACTER#Test',
-            froms: ['ROOM#VORTEX'],
-            to: 'ROOM#TestTwo',
-            beatAnchorTime: 1_700_000_000_000,
+            characterMeta: expect.objectContaining({ EphemeraId: 'CHARACTER#Test' }),
+            result: expect.objectContaining({
+                ok: true,
+                changed: true,
+                to: 'ROOM#TestTwo',
+            }),
             messageBus: messageBusMock,
-        }))
+        })
     })
 
-    it('skips orchestration when membership apply is a no-op', async () => {
+    it('still invokes tail helper when membership apply is a no-op', async () => {
         applyCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
             froms: ['ROOM#VORTEX'],
@@ -95,6 +98,6 @@ describe('executeCharacterNavigate', () => {
         })
 
         expect(applyCharacterRoomMembershipMock).toHaveBeenCalled()
-        expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalled()
     })
 })

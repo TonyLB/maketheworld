@@ -4,7 +4,7 @@ import {
 } from './handleConnectionsCharactersPresence'
 import * as membership from './membership/applyCharacterRoomMembership'
 import * as resolveConnect from './membership/resolveConnectTargetRoom'
-import * as orchestrateNavigate from './navigate/orchestrateNavigate'
+import * as navigateTail from './navigate/afterCharacterMembershipNavigateChanged'
 
 jest.mock('./membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
@@ -14,8 +14,8 @@ jest.mock('./membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
-jest.mock('./navigate/orchestrateNavigate', () => ({
-    orchestrateCharacterNavigate: jest.fn(),
+jest.mock('./navigate/afterCharacterMembershipNavigateChanged', () => ({
+    afterCharacterMembershipNavigateChanged: jest.fn(),
 }))
 
 const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<
@@ -24,8 +24,8 @@ const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership
 const resolveConnectTargetRoomMock = resolveConnect.resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnect.resolveConnectTargetRoom
 >
-const orchestrateCharacterNavigateMock = orchestrateNavigate.orchestrateCharacterNavigate as jest.MockedFunction<
-    typeof orchestrateNavigate.orchestrateCharacterNavigate
+const afterCharacterMembershipNavigateChangedMock = navigateTail.afterCharacterMembershipNavigateChanged as jest.MockedFunction<
+    typeof navigateTail.afterCharacterMembershipNavigateChanged
 >
 
 describe('handleConnectionsCharactersPresence', () => {
@@ -48,11 +48,11 @@ describe('handleConnectionsCharactersPresence', () => {
             characterMeta,
             trimmedRoomStack: characterMeta.RoomStack,
         })
-        orchestrateCharacterNavigateMock.mockResolvedValue(undefined)
+        afterCharacterMembershipNavigateChangedMock.mockResolvedValue(undefined)
     })
 
     describe('handleCharacterConnected', () => {
-        it('routes connect through membership apply and orchestration with suppressed world copy', async () => {
+        it('routes connect through membership apply and navigate tail with pre-apply characterMeta', async () => {
             applyCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
                 froms: [],
@@ -73,16 +73,20 @@ describe('handleConnectionsCharactersPresence', () => {
                 { characterId: 'CHARACTER#alpha', targetRoomId: 'ROOM#TownSquare' },
                 { messageBus, streamEvent }
             )
-            expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith(expect.objectContaining({
+            expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalledWith({
                 characterId: 'CHARACTER#alpha',
-                froms: [],
-                to: 'ROOM#TownSquare',
-                beatAnchorTime: 1_700_000_000_000,
-            }))
+                characterMeta,
+                result: expect.objectContaining({
+                    ok: true,
+                    changed: true,
+                    to: 'ROOM#TownSquare',
+                }),
+                messageBus,
+            })
             expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'CheckLocation' }))
         })
 
-        it('skips orchestration when membership apply is a no-op', async () => {
+        it('still invokes tail helper when membership apply is a no-op', async () => {
             applyCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
                 froms: [],
@@ -98,7 +102,7 @@ describe('handleConnectionsCharactersPresence', () => {
             }, { messageBus, streamEvent })
 
             expect(applyCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
-            expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
+            expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalled()
         })
     })
 

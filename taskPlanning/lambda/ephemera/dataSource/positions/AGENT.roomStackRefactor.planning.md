@@ -1,6 +1,6 @@
 # RoomStack unbundle + timestamp merge refactor
 
-**Status:** In progress (planning). **Next:** Phase 2 --- kernel unbundle + `persistRoomStackNavigate` + parallel navigate tail.
+**Status:** In progress (planning). **Next:** Phase 3 --- trim preserves per-frame timestamps.
 
 Task-scoped plan for unbundling eviction-ladder (`RoomStack`) maintenance from the manipulation kernel transact, running navigate ladder updates in parallel with post-navigate presentation orchestration, and mitigating out-of-order races with per-frame `timeWritten` merge semantics.
 
@@ -189,7 +189,7 @@ Decisions for upcoming slices. When a decision ships, record it in `AGENT.contra
 | --- | --- | --- |
 | 0 | Task plan (this doc) | Done |
 | 1 | `mergeRoomStack` + race unit tests | Done |
-| 2 | Kernel unbundle + persist + `Promise.all` navigate tail | Not started |
+| 2 | Kernel unbundle + persist + `Promise.all` navigate tail | Done |
 | 3 | Trim preserves per-frame timestamps | Not started |
 | 4 | Test migration + contract/implementation doc updates | Not started |
 | 5 | Delete this plan | Not started |
@@ -205,14 +205,14 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as you com
   - [X] Implement `mergeRoomStack` (pure) + tests: out-of-order navigate (C then D, stale C arrives last), fork truncate, stale resurrection blocked, legacy `timeWritten` missing.
   - [X] Implement `buildProposedRoomStackForNavigate` (wrap existing `computeRoomStackUpdate` + `applyLadderUpdateFromDestinationChain` without timestamps on proposed frames).
 
-- [ ] **Phase 2 --- Unbundle kernel + parallel navigate tail**
-  - [ ] Add `persistRoomStackNavigate` in [`persistRoomStackNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/persistRoomStackNavigate.ts): `optimisticUpdate` + merge reducer; capped exponential backoff (RS-3); catch/log at tail helper so navigate does not fail.
-  - [ ] Add shared [`afterCharacterMembershipNavigateChanged`](../../../../../lambda/ephemera/dataSource/positions/navigate/afterCharacterMembershipNavigateChanged.ts) (name as implemented): `Promise.all` persist + orchestrate when `changed && to !== null`.
-  - [ ] Wire [`executeCharacterNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/navigate/executeCharacterNavigate.ts) and [`handleConnectionsCharactersPresence.ts`](../../../../../lambda/ephemera/dataSource/positions/handleConnectionsCharactersPresence.ts) through tail helper (replace inline `orchestrateCharacterNavigate` await).
-  - [ ] Remove `CharacterRowEffect` / `characterRowEffects` from [`manipulation/types.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/types.ts), [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts).
-  - [ ] Update [`applyCharacterRoomMembership.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/applyCharacterRoomMembership.ts): graph-only kernel; no ladder write; **unchanged** `MembershipApplyResult` shape.
-  - [ ] Retire or narrow [`characterRoomStackTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomStackTransactItems.ts) (no kernel transact items).
-  - [ ] Update [`applyHostEffects.test.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.test.ts) (remove RoomStack bundle case); update navigate/connect/persist tests.
+- [X] **Phase 2 --- Unbundle kernel + parallel navigate tail**
+  - [X] Add `persistRoomStackNavigate` in [`persistRoomStackNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/persistRoomStackNavigate.ts): `optimisticUpdate` + merge reducer; capped exponential backoff (RS-3); catch/log at tail helper so navigate does not fail.
+  - [X] Add shared [`afterCharacterMembershipNavigateChanged`](../../../../../lambda/ephemera/dataSource/positions/navigate/afterCharacterMembershipNavigateChanged.ts) (name as implemented): `Promise.all` persist + orchestrate when `changed && to !== null`.
+  - [X] Wire [`executeCharacterNavigate.ts`](../../../../../lambda/ephemera/dataSource/positions/navigate/executeCharacterNavigate.ts) and [`handleConnectionsCharactersPresence.ts`](../../../../../lambda/ephemera/dataSource/positions/handleConnectionsCharactersPresence.ts) through tail helper (replace inline `orchestrateCharacterNavigate` await).
+  - [X] Remove `CharacterRowEffect` / `characterRowEffects` from [`manipulation/types.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/types.ts), [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts).
+  - [X] Update [`applyCharacterRoomMembership.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/applyCharacterRoomMembership.ts): graph-only kernel; no ladder write; **unchanged** `MembershipApplyResult` shape.
+  - [X] Retire or narrow [`characterRoomStackTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomStackTransactItems.ts) (no kernel transact items).
+  - [X] Update [`applyHostEffects.test.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.test.ts) (remove RoomStack bundle case); update navigate/connect/persist tests.
 
 - [ ] **Phase 3 --- Trim + defaults**
   - [ ] Update [`trimPersistCharacterRoomStack.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/trimPersistCharacterRoomStack.ts): filter-only persist; preserve `timeWritten` on surviving frames (RS-4).
