@@ -177,7 +177,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 
 **Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder-shipped).
 
-**Navigate persist:** after successful graph persist, callers run [`afterCharacterMembershipNavigateChanged`](navigate/afterCharacterMembershipNavigateChanged.ts) --- `Promise.all([persistRoomStackNavigate, orchestrateCharacterNavigate])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve (RS-3). **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack` (RS-4); no merge. Normative contract update deferred to Phase 4 ([`AGENT.roomStackRefactor.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.roomStackRefactor.planning.md)).
+**Navigate persist:** after successful graph persist, callers run [`afterCharacterMembershipNavigateChanged`](navigate/afterCharacterMembershipNavigateChanged.ts) --- `Promise.all([persistRoomStackNavigate, orchestrateCharacterNavigate])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve. **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack`; no merge. Normative rules: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ### Navigate ladder persist locking
 
