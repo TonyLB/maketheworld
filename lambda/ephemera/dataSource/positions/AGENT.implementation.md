@@ -23,7 +23,7 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan` |
 | [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff` |
 | [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**) |
-| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`; future `drop`) |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`, `drop`) |
 | [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
 
 #### Relational patch (slice 5+ stub)
@@ -63,7 +63,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | Operator | Host direction | Intent payload | Adapter + kernel | `RoomUpdate` / affordance scope |
 | --- | --- | --- | --- | --- |
 | **`takeHold`** (shipped) | room -> character | `objectId`, `roomId`, `characterId` | `planObjectTakeHoldTransfer` -> `applyHostEffects` | **`froms`** rooms only |
-| **`drop`** (deferred) | character -> room | `objectId`, `roomId`, `characterId` | `planObjectDropTransfer` (future) -> `applyHostEffects` | destination room (+ rooms in **`froms`** if any) |
+| **`drop`** (shipped) | character -> room | `objectId`, `roomId`, `characterId` | `planObjectDropTransfer` -> `applyHostEffects` | destination room |
 
 7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** describe block.
 

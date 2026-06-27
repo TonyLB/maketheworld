@@ -170,7 +170,7 @@ type MembershipTransferPlan = {
 | --- | --- | --- | --- |
 | `computeMembershipDiff` | [`adapters/computeEndStateRoomDiff.ts`](adapters/computeEndStateRoomDiff.ts) | end-state (room hosts) | Character room membership; object room placement reuses same diff |
 | `computeTakeHoldDiff` | [`adapters/computeTakeHoldDiff.ts`](adapters/computeTakeHoldDiff.ts) | bounded room + character end-state | **M2** reference; split `roomDiff` + `characterDiff` consumed by `hostEffectsFromObjectTakeHoldDiffs` |
-| `computeDropDiff` (deferred) | `adapters/computeDropDiff.ts` (future) | bounded room + character bounded | Symmetric inverse of **`takeHold`**; consumed by `planObjectDropTransfer` |
+| `computeDropDiff` | [`adapters/computeDropDiff.ts`](adapters/computeDropDiff.ts) | bounded room + character bounded | Symmetric inverse of **`takeHold`**; consumed by `planObjectDropTransfer` |
 
 Phase 4a adapter tests assert `planMembershipTransfer` / `planObjectTakeHoldTransfer` match these functions for equivalent inputs.
 
@@ -193,7 +193,7 @@ Cross-host **`drop`** (character inventory -> room) **must** reuse the shared ad
 | **Character** (source) | **bounded** | Remove from **only** trusted ingress `characterId` when object is on that character |
 | **Room** (destination) | **bounded** | Add at trusted ingress `roomId` when object is not already on that room; **do not** end-state scrub other room hosts |
 
-Future adapter entry: **`planObjectDropTransfer`** in [`adapters/`](adapters/) (calls deferred **`computeDropDiff`**). Reuse or generalize [`hostEffectsFromObjectTakeHoldDiffs`](adapters/hostEffectsFromDiffs.ts) for effect list assembly. Coordinator: **`applyObjectDrop`** under [`membership/`](membership/) (mirror [`applyObjectTakeHold.ts`](membership/applyObjectTakeHold.ts)). Ingress: **`executeObjectDrop`** + **`Object Drop`** stream from actions parse.
+Future adapter entry: **`planObjectDropTransfer`** in [`adapters/planObjectDropTransfer.ts`](adapters/planObjectDropTransfer.ts) (calls **`computeDropDiff`**). **`hostEffectsFromObjectDropDiffs`** in [`hostEffectsFromDiffs.ts`](adapters/hostEffectsFromDiffs.ts) for effect list assembly. Coordinator: **`applyObjectDrop`** under [`membership/applyObjectDrop.ts`](membership/applyObjectDrop.ts) (mirror [`applyObjectTakeHold.ts`](membership/applyObjectTakeHold.ts)). Ingress: **`executeObjectDrop`** + **`Object Drop`** stream (positions ingress shipped; actions egress Phase 3).
 
 Fact projection: `froms: [CHARACTER#...]`, `to: ROOM#...`. Actions held-catalog identity + egress: [`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
@@ -234,13 +234,13 @@ Matches today's expedient coordinators (facts from forward diff, not a second gr
 | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `{ objectId, targetRoomId }` | end-state | --- | `Object Moved` |
 | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) (objects spawn) | via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) after existence create | end-state | --- | `Object Moved` |
 | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `{ objectId, roomId, characterId }` | bounded (room) + character end-state | `[roomId]` | `Object Moved` (cross-host) |
-| **`applyObjectDrop`** (deferred) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | `Object Moved` (cross-host) |
+| [`applyObjectDrop`](membership/applyObjectDrop.ts) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | `Object Moved` (cross-host) |
 
 ### Future operators
 
 | Operator | Expected adapter mode | Notes |
 | --- | --- | --- |
-| **`drop`** (deferred) | bounded character remove + bounded room add | **`applyObjectDrop`** + **`planObjectDropTransfer`** only; **no** `updateDropPositionGraphs` |
+| **`drop`** (shipped) | bounded character remove + bounded room add | **`applyObjectDrop`** + **`planObjectDropTransfer`** only; **no** `updateDropPositionGraphs` |
 
 ### Anti-patterns
 
@@ -318,6 +318,7 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | Improvisational object spawn (objects lane) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | **`takeHold`** | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `planObjectTakeHoldTransfer` | `applyHostEffects` |
+| **`drop`** | [`applyObjectDrop`](membership/applyObjectDrop.ts) | `planObjectDropTransfer` | `applyHostEffects` |
 
 **Kernel invariant:** [`applyHostEffects.ts`](applyHostEffects.ts) does **not** call `getMembershipContainers`.
 
@@ -328,8 +329,6 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) / [`syncObjectMembershipAdjacency.ts`](../membership/syncObjectMembershipAdjacency.ts) | Adjacency-only sync when graph is correct but reverse index lags |
 
 **Removed:** `updatePositionGraphs`, `updateObjectPositionGraphs`, `updateTakeHoldPositionGraphs`, `postApplyGraphProjection` (redundant with coordinators / kernel). Spawn no longer bypasses kernel via cross-lane transact or `postApplyGraphProjection`.
-
-**Future `drop`:** `applyObjectDrop` -> `planObjectDropTransfer` -> `applyHostEffects` only --- see Section B deferred **`drop`**.
 
 ### Phase 5 relational hook (shipped 2026-06-26; doc stub only)
 

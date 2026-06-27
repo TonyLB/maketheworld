@@ -1,6 +1,6 @@
 # Atomic `drop` operator (cross-lane)
 
-**Status:** In progress. **Next:** Phase 1 positions adapter + coordinator (open decisions D1-D5 decided 2026-06-27).
+**Status:** In progress. **Next:** Phase 2 positions durable docs (graduate deferred clauses).
 
 **Delete criterion:** When **`drop`** is shipped end-to-end (parse egress, positions apply, perception transcript), durable docs are graduated, and verification passes --- delete this plan (git retains history).
 
@@ -56,7 +56,7 @@ Read in order before editing code. Command authority: [`lambda/ephemera/AGENT.te
 
 6. **Identify next task**
    - **Why:** Progress lives in **Recommended order** below.
-   - **Focus:** Phase 1 (positions persist). Open decisions D1-D5 are decided --- see **Open decisions** below.
+   - **Focus:** Phase 2 (graduate deferred `drop` clauses in durable docs). Phase 1 positions persist shipped 2026-06-27.
 
 7. **Baseline verification (before edits)**
 
@@ -78,7 +78,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- | --- | --- |
 | **D1** | Extend classify **`movementObjectLabels`** with held-inventory labels (union with in-room labels). **No new parse fetch** --- derive labels from **`heldInventoryCatalog`** already parallel-fetched on **`Parse Requested`**; move context upstream into classify rather than adding pipeline work. | Phase 3 (classify prompt) | **Decided** |
 | **D2** | **`drop`** identity resolves against **held inventory catalog only**. A character can only drop what they hold; span grounding to an in-room-only object (not in inventory) is **user error** at this stage --- not merged-catalog disambiguation. | Phase 3 (enrich identity) | **Decided** |
-| **D3** | Stream intent: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**) | Phase 1 ingress, Phase 3 egress | **Decided** |
 | **D4** | Transcript: **`${Player} drops ${Object}`**; same unknowns withhold as pick-up; reuse/adapt [`resolveTakeHoldPresentationLabels.ts`](../../../../lambda/ephemera/dataSource/perception/resolveTakeHoldPresentationLabels.ts) | Phase 4 (perception) | **Decided** |
 | **D5** | Complexity pre-gate: sole host is actor **`CHARACTER#`**, no edge-touch on character **`positionGraph`** -> atomic **`operationKind: drop`** without LLM (mirror room-host **`takeHold`**) | Phase 3 | **Decided** |
 
@@ -122,13 +121,14 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Decide D4 (transcript template + label resolver)
   - [X] Decide D5 (complexity pre-gate for held sole-host atomic `drop`)
 
-- [ ] **Phase 1 --- Positions persist (adapter + coordinator + ingress)**
-  - [ ] Add [`computeDropDiff.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/computeDropDiff.ts) + unit tests (mirror [`computeTakeHoldDiff.test.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/computeTakeHoldDiff.test.ts))
-  - [ ] Add [`planObjectDropTransfer.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) + tests (reuse or generalize [`hostEffectsFromDiffs.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/hostEffectsFromDiffs.ts))
-  - [ ] Add [`applyObjectDrop.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/applyObjectDrop.ts) + unit tests (mirror [`applyObjectTakeHold.test.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/applyObjectTakeHold.test.ts))
-  - [ ] Add [`executeObjectDrop.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeObjectDrop.ts) + unit tests
-  - [ ] Register **`Object Drop`** guard in [`subscribedEvents.ts`](../../../../lambda/ephemera/dataSource/positions/subscribedEvents.ts); route in [`positions/index.ts`](../../../../lambda/ephemera/dataSource/positions/index.ts)
-  - [ ] Add routing test in [`receivePaths.integration.test.ts`](../../../../lambda/ephemera/dataSource/positions/receivePaths.integration.test.ts) (`Object Drop` describe block)
+- [X] **Phase 1 --- Positions persist (adapter + coordinator + ingress)**
+  - [X] Add [`computeDropDiff.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/computeDropDiff.ts) + unit tests (mirror [`computeTakeHoldDiff.test.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/computeTakeHoldDiff.test.ts))
+  - [X] Add [`planObjectDropTransfer.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) + tests (reuse or generalize [`hostEffectsFromDiffs.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/adapters/hostEffectsFromDiffs.ts))
+  - [X] Add [`applyObjectDrop.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/applyObjectDrop.ts) + unit tests (mirror [`applyObjectTakeHold.test.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/applyObjectTakeHold.test.ts))
+  - [X] Add [`executeObjectDrop.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeObjectDrop.ts) + unit tests
+  - [X] Register **`Object Drop`** guard in [`subscribedEvents.ts`](../../../../lambda/ephemera/dataSource/positions/subscribedEvents.ts); route in [`positions/index.ts`](../../../../lambda/ephemera/dataSource/positions/index.ts)
+  - [X] Add routing test in [`receivePaths.integration.test.ts`](../../../../lambda/ephemera/dataSource/positions/receivePaths.integration.test.ts) (`Object Drop` describe block)
+  - [X] Ingress prerequisite: **`ObjectDropPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (actions egress wiring remains Phase 3)
 
 - [ ] **Phase 2 --- Positions durable docs (graduate deferred clauses)**
   - [ ] Promote deferred `drop` bundle in [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) from future tense to normative (mirror `takeHold` section)
@@ -222,7 +222,7 @@ npm run build
 | Phase | Status |
 | --- | --- |
 | Phase 0 --- Open decisions | **Done** (2026-06-27) |
-| Phase 1 --- Positions persist | Not started |
+| Phase 1 --- Positions persist | **Done** (2026-06-27) |
 | Phase 2 --- Positions durable docs | Not started |
 | Phase 3 --- Actions parse + egress | Not started |
 | Phase 4 --- Perception transcript | Not started |

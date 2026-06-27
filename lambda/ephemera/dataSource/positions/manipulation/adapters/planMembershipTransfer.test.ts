@@ -1,8 +1,10 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { computeMembershipDiff } from './computeEndStateRoomDiff'
+import { computeDropDiff } from '../adapters/computeDropDiff'
 import { computeTakeHoldDiff } from '../adapters/computeTakeHoldDiff'
 import { planMembershipTransfer } from './planMembershipTransfer'
+import { planObjectDropTransfer } from './planObjectDropTransfer'
 import { planObjectTakeHoldTransfer } from './planObjectTakeHoldTransfer'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
@@ -179,5 +181,84 @@ describe('planObjectTakeHoldTransfer', () => {
             { hostId: OTHER_CHARACTER, identityId: OBJECT_ID, op: 'remove' },
             { hostId: CHARACTER_ID_TAKE_HOLD, identityId: OBJECT_ID, op: 'add' },
         ])
+    })
+})
+
+describe('planObjectDropTransfer', () => {
+    it('detects drop from character to room', () => {
+        const { diff } = computeDropDiff({
+            priorContainers: [CHARACTER_ID_TAKE_HOLD],
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+        })
+
+        const plan = planObjectDropTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+            priorContainers: [CHARACTER_ID_TAKE_HOLD],
+        })
+
+        expect(plan.projection).toEqual(diff)
+        expect(plan.hostEffects).toEqual([
+            { hostId: CHARACTER_ID_TAKE_HOLD, identityId: OBJECT_ID, op: 'remove' },
+            { hostId: ROOM_ID, identityId: OBJECT_ID, op: 'add' },
+        ])
+    })
+
+    it('is idempotent when object is already solely in destination room', () => {
+        const { diff } = computeDropDiff({
+            priorContainers: [ROOM_ID],
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+        })
+
+        const plan = planObjectDropTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+            priorContainers: [ROOM_ID],
+        })
+
+        expect(plan.projection).toEqual(diff)
+        expect(plan.hostEffects).toEqual([])
+    })
+
+    it('removes from character when object is on source character and destination room (drift)', () => {
+        const { diff } = computeDropDiff({
+            priorContainers: [ROOM_ID, CHARACTER_ID_TAKE_HOLD],
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+        })
+
+        const plan = planObjectDropTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+            priorContainers: [ROOM_ID, CHARACTER_ID_TAKE_HOLD],
+        })
+
+        expect(plan.projection).toEqual(diff)
+        expect(plan.hostEffects).toEqual([
+            { hostId: CHARACTER_ID_TAKE_HOLD, identityId: OBJECT_ID, op: 'remove' },
+        ])
+    })
+
+    it('is unchanged when object is on another character in destination room', () => {
+        const { diff } = computeDropDiff({
+            priorContainers: [ROOM_ID, OTHER_CHARACTER],
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+        })
+
+        const plan = planObjectDropTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID_TAKE_HOLD,
+            priorContainers: [ROOM_ID, OTHER_CHARACTER],
+        })
+
+        expect(plan.projection).toEqual(diff)
+        expect(plan.hostEffects).toEqual([])
     })
 })

@@ -217,6 +217,7 @@ Positions **must** subscribe to:
 | `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
 | `Character Home` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
 | `Object Take Hold` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
+| `Object Drop` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) |
 
 ### `Object Take Hold` (positions-owned)
 
@@ -225,6 +226,14 @@ Positions **must** subscribe to:
 - **Must** call [`applyObjectTakeHold`](manipulation/membership/applyObjectTakeHold.ts) with `{ objectId, roomId, characterId }` --- atomic room-remove + character-add in one transact (**L9** / **D14**).
 - **Bounded room scrub (M2):** **must** remove object from room graph **only** when it is on trusted ingress `roomId` --- **must not** end-state scrub other room hosts.
 - **Character inventory:** **must** add at target `characterId`; **must** remove from other character inventory hosts when object is held elsewhere (`needsCharacterMove`).
+
+### `Object Drop` (positions-owned)
+
+- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**).
+- **Must** trust actions-resolved `objectId` and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
+- **Must** call [`applyObjectDrop`](manipulation/membership/applyObjectDrop.ts) with `{ objectId, roomId, characterId }` --- atomic character-remove + room-add in one transact.
+- **Bounded character remove:** **must** remove object from character graph **only** when it is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts.
+- **Bounded room add:** **must** add at trusted ingress `roomId` when object is not already on that room; **must not** end-state scrub other room hosts.
 
 ### `Character Home` (positions-owned)
 

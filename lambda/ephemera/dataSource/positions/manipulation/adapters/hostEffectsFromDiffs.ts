@@ -85,3 +85,24 @@ export const hostEffectsFromObjectTakeHoldDiffs = (args: {
 
     return effects
 }
+
+export const hostEffectsFromObjectDropDiffs = (args: {
+    objectId: EphemeraObjectId
+    roomDiff: MembershipDiff
+    characterDiff: CharacterInventoryDiff
+}): HostEffect[] => [
+    ...(args.characterDiff.changed
+        ? args.characterDiff.froms.map((departureCharacterId): HostEffect => ({
+            hostId: departureCharacterId,
+            identityId: args.objectId,
+            op: 'remove',
+        }))
+        : []),
+    ...(args.roomDiff.changed && args.roomDiff.to
+        ? [{
+            hostId: args.roomDiff.to,
+            identityId: args.objectId,
+            op: 'add',
+        } satisfies HostEffect]
+        : []),
+]
