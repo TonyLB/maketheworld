@@ -1,6 +1,6 @@
 # Atomic `drop` operator (cross-lane)
 
-**Status:** In progress. **Next:** Phase 2 positions durable docs (graduate deferred clauses).
+**Status:** In progress. **Next:** Phase 3 actions parse + egress.
 
 **Delete criterion:** When **`drop`** is shipped end-to-end (parse egress, positions apply, perception transcript), durable docs are graduated, and verification passes --- delete this plan (git retains history).
 
@@ -40,9 +40,9 @@ Read in order before editing code. Command authority: [`lambda/ephemera/AGENT.te
    - **Why:** End-to-end pipeline and which lane owns each step.
    - **Read:** [`diegeticLogic/AGENT.implementation.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.implementation.md), [`diegeticLogic/AGENT.operators.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) (`takeHold` shipped, `drop` deferred).
 
-3. **Persist + adapter spec (deferred `drop` detail)**
+3. **Persist + adapter spec (`drop` shipped)**
    - **Why:** Bounded apply modes, file names, anti-patterns (`update*PositionGraphs` fork).
-   - **Read:** [`manipulation/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Section B deferred **`drop`**; [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) cross-host bundle (deferred `drop`).
+   - **Read:** [`manipulation/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Section B **`drop`**; [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) cross-host bundle (v1 `drop`).
 
 4. **Reference implementation (`takeHold`)**
    - **Why:** Mirror files for adapter, coordinator, ingress, egress, fan-in.
@@ -56,7 +56,7 @@ Read in order before editing code. Command authority: [`lambda/ephemera/AGENT.te
 
 6. **Identify next task**
    - **Why:** Progress lives in **Recommended order** below.
-   - **Focus:** Phase 2 (graduate deferred `drop` clauses in durable docs). Phase 1 positions persist shipped 2026-06-27.
+   - **Focus:** Phase 3 (actions parse + egress). Phase 2 positions durable docs shipped 2026-06-27.
 
 7. **Baseline verification (before edits)**
 
@@ -130,10 +130,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Add routing test in [`receivePaths.integration.test.ts`](../../../../lambda/ephemera/dataSource/positions/receivePaths.integration.test.ts) (`Object Drop` describe block)
   - [X] Ingress prerequisite: **`ObjectDropPublishedPayload`** + guard in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (actions egress wiring remains Phase 3)
 
-- [ ] **Phase 2 --- Positions durable docs (graduate deferred clauses)**
-  - [ ] Promote deferred `drop` bundle in [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) from future tense to normative (mirror `takeHold` section)
-  - [ ] Update [`positions/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) per-operator table (`drop` shipped)
-  - [ ] Update [`manipulation/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Section B/E (remove deferred markers where code exists)
+- [X] **Phase 2 --- Positions durable docs (graduate deferred clauses)**
+  - [X] Promote deferred `drop` bundle in [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) from future tense to normative (mirror `takeHold` section)
+  - [X] Update [`positions/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) per-operator table (`drop` shipped)
+  - [X] Update [`manipulation/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) Section B/E (remove deferred markers where code exists)
 
 - [ ] **Phase 3 --- Actions parse + egress**
   - [ ] Extend **`operationKind`** union + guards in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts)
@@ -223,7 +223,7 @@ npm run build
 | --- | --- |
 | Phase 0 --- Open decisions | **Done** (2026-06-27) |
 | Phase 1 --- Positions persist | **Done** (2026-06-27) |
-| Phase 2 --- Positions durable docs | Not started |
+| Phase 2 --- Positions durable docs | **Done** (2026-06-27) |
 | Phase 3 --- Actions parse + egress | Not started |
 | Phase 4 --- Perception transcript | Not started |
 | Phase 5 --- Diegetic logic + cleanup | Not started |

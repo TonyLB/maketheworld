@@ -61,6 +61,7 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 | --- | --- | --- |
 | **end-state** | navigate, connect, disconnect, object room place | Remove from **every** prior membership host `!== target` |
 | **bounded** (room) + **end-state** (character hosts) | **`takeHold`** | Room: scrub **only** trusted ingress `roomId` when object is on that room; character: end-state on character inventory hosts |
+| **bounded** (character) + **bounded** (room) | **`drop`** | Character: scrub **only** trusted ingress `characterId` when object is on that character; room: add at trusted ingress `roomId` when object is not already on that room --- **must not** end-state scrub other room or character hosts |
 
 Module paths (Phase 4a shipped): [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) (kernel). Fact emission: adapter **`MembershipTransferProjection`** on successful persist (provisional; see [`manipulation/AGENT.implementation.md` --- Fact emission](manipulation/AGENT.implementation.md#fact-emission-projection-first-provisional)). Migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
 
@@ -146,7 +147,7 @@ All improvisational **object room-placement** mutations **must** go through [`ap
 Membership host transfer projection --- coordinators **must** derive fact fields from persist diff (or adapter projection), not from ingress args alone.
 
 - **Must** stream only when membership diff **`changed`** after successful object graph persist.
-- Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- membership-host endpoints (`ROOM#`, `CHARACTER#` in v1; **D8**). v1 **`takeHold`**: `froms: [ROOM#...]`, `to: CHARACTER#...`.
+- Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- membership-host endpoints (`ROOM#`, `CHARACTER#` in v1; **D8**). v1 **`takeHold`**: `froms: [ROOM#...]`, `to: CHARACTER#...`. v1 **`drop`**: `froms: [CHARACTER#...]`, `to: ROOM#...`.
 - **Must not** populate presentation fields on the fact.
 - Fan-in consumer for affordance refresh: **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts)).
 
@@ -174,18 +175,18 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 
 **Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts).
 
-### Cross-host object membership-changed bundle (deferred `drop`)
+### Cross-host object membership-changed bundle (v1 `drop`)
 
-Symmetric inverse of **`takeHold`**. Bounded apply: character remove **only** when object is on trusted ingress `characterId`; room add **only** at trusted ingress `roomId` --- **must not** end-state scrub other room or character hosts. Graph persist (future): coordinator -> [`planObjectDropTransfer`](manipulation/adapters/) (deferred) -> [`applyHostEffects`](manipulation/applyHostEffects.ts). **Must not** introduce `updateDropPositionGraphs` or any new `update*PositionGraphs` fork.
+Bounded apply: character remove **only** when object is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts. Room add at trusted ingress `roomId` when object is not already on that room; **must not** end-state scrub other room hosts. Graph persist: coordinator -> [`planObjectDropTransfer`](manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](manipulation/applyHostEffects.ts) ([`computeDropDiff`](manipulation/adapters/computeDropDiff.ts)). **Must not** introduce `updateDropPositionGraphs` or any new `update*PositionGraphs` fork.
 
 When **`ObjectMembershipDiff.changed`** after successful cross-host graph persist, the coordinator **must**:
 
 1. Stream **`Object Moved`** (when fact non-null) with `froms: [CHARACTER#...]`, `to: ROOM#...`.
 2. Seed **`Positions.set`** from **`postApplyCharacterGraphs`** (source character) and **`postApplyRoomGraphs`** (destination room); **`ComponentEphemeraMeta.invalidate`** / **`AffordanceRoomDeliverable.invalidate`** for destination room.
 3. **`setMembershipContainers(objectId)`** -> `[ROOM#...]`.
-4. Publish **`RoomUpdate`** for destination room (and source room in **`froms`** when room graph changed).
+4. Publish **`RoomUpdate`** for destination room only (character **`froms`** does not trigger room affordance refresh).
 
-**Must skip** the entire bundle when **`changed: false`**. Future code path: `applyObjectDrop.ts` under [`manipulation/membership/`](manipulation/membership/). Actions egress: **`Object Drop`** stream (deferred). Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) Section B deferred **`drop`**.
+**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts). Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
 
 ### Object placement drift repair
 
@@ -229,7 +230,7 @@ Positions **must** subscribe to:
 
 ### `Object Drop` (positions-owned)
 
-- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**).
+- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**). Payload type + guard shipped in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publish wiring remains Phase 3.
 - **Must** trust actions-resolved `objectId` and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
 - **Must** call [`applyObjectDrop`](manipulation/membership/applyObjectDrop.ts) with `{ objectId, roomId, characterId }` --- atomic character-remove + room-add in one transact.
 - **Bounded character remove:** **must** remove object from character graph **only** when it is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts.
