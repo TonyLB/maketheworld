@@ -12,7 +12,7 @@
 
 ### Adding manipulation transcript operators
 
-When adding a new atomic **`operationKind`** with transcript copy (e.g. **`drop`**):
+When adding a new atomic **`operationKind`** with transcript copy (e.g. relational attach):
 
 1. Extend [`objectManipulationPresentationLegAdapters.ts`](objectManipulationPresentationLegAdapters.ts) --- intent + fact leg guards and correlation keys.
 2. Extend [`objectManipulationPresentationFanIn.ts`](objectManipulationPresentationFanIn.ts) --- cluster endpoint checks (mirror **`takeHold`**: intent source/dest hosts must match fact **`froms` / `to`**).

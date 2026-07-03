@@ -55,21 +55,40 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 ---
 
-## `drop` (deferred)
+## `drop` (shipped)
 
-**Expected fiction:** Symmetric to **`takeHold`** --- object leaves character inventory and returns to the current room's membership graph.
+**Player fiction:** The character releases a held object. The object leaves the character's inventory graph and enters the current room's play membership graph in **one** atomic apply --- symmetric inverse of pick-up, not a separate "in plain sight" fiction with unchanged storage.
 
-**Expected graph delta:** Character-host remove + room-host add in one transact.
+**Graph delta:** Remove **`Object`** node from **`Meta::Character.positionGraph`**; add **`Object`** node to **`Meta::Room.positionGraph`**; update adjacency reverse index accordingly.
 
-**Expected persist path (deferred):** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B deferred **`drop`**.
+**Lane split:**
 
-**Open at implementation time:**
+| Stage | Artifact |
+| --- | --- |
+| Classify | **`ObjectManipulationIntent`** + raw object span(s); **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
+| Enrich | Held-catalog identity only; in-room-only span -> terminal **`Error`**; membership observation -> complexity pre-gates (optional LLM); atomic path yields **`operationKind: drop`** |
+| Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
+| Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) |
+| Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
+| Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-- Held-object label projection at classify (**`movementObjectLabels`** today is in-room only).
-- Enrich catalog source (held inventory vs room catalog).
-- Stream intent type (e.g. **`Object Drop`**) and transcript template.
+**Persist path:** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B **`drop`**.
 
-When implementing, follow [**Adding an atomic position-manipulation operator**](../dataSource/actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator) and [**Adding a cross-host manipulation apply coordinator**](../dataSource/positions/AGENT.implementation.md#adding-a-cross-host-manipulation-apply-coordinator).
+**Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
+
+### Transcript obligations (unknowns --- withhold)
+
+Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 drop copy states only the committed membership change in plain template form.
+
+| Concern | v1 drop |
+| --- | --- |
+| Where in room the object lands | **Do not** assert or elaborate |
+| How the object falls or comes to rest | **Do not** elaborate beyond "drops" |
+| Unstated object attributes | **Do not** invent in transcript |
+
+Copy is **deterministic template** at fan-in emit (no copy-generating LLM hop). Labels resolve at emit time via [`resolveTakeHoldPresentationLabels.ts`](../dataSource/perception/resolveTakeHoldPresentationLabels.ts) (shared for both operators; does not require object to remain in room graph post-apply); fallbacks **`Someone`** / **`something`** when names are unavailable.
+
+Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
 
 ---
 
@@ -92,5 +111,5 @@ Full processing requires a **separate follow-on task plan** for relational **ope
 | [`AGENT.implementation.md`](AGENT.implementation.md) | Four-lane hub + follow-on operators table |
 | [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) | Parse classify / enrich / egress playbook |
 | [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply coordinator playbook |
-| [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) | **`Object Moved`**, **`Object Take Hold`** ingress (normative) |
+| [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) | **`Object Moved`**, **`Object Take Hold`**, **`Object Drop`** ingress (normative) |
 | [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) | Object-manipulation fan-in steady-state |

@@ -2,7 +2,7 @@
 
 Design home for **in-fiction consistency**: how play-time operations assert, revise, or withhold claims so stored graphs and player-facing material stay coherent for storytelling.
 
-**Status:** v1 atomic **`takeHold`** operator graduated (2026). Runtime code lives in ephemera lanes; this folder holds operator semantics and cross-lane navigation.
+**Status:** v1 atomic **`takeHold`** and **`drop`** operators graduated (2026). Runtime code lives in ephemera lanes; this folder holds operator semantics and cross-lane navigation.
 
 ## Documentation
 
@@ -30,4 +30,4 @@ Operations proposed here are expected to **graduate** into existing lanes (`posi
 
 ## Graduation rule
 
-When an operator or rule ships in code and tests, move its description from concepts here into the owning package's **contract** and **implementation** docs. Add a short pointer back from this folder if the design rationale remains useful. Example: **`takeHold`** --- operator prose in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md); ingress/apply in [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) and lane playbooks linked from [`AGENT.implementation.md`](AGENT.implementation.md).
+When an operator or rule ships in code and tests, move its description from concepts here into the owning package's **contract** and **implementation** docs. Add a short pointer back from this folder if the design rationale remains useful. Examples: **`takeHold`** and **`drop`** --- operator prose in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md); ingress/apply in [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) and lane playbooks linked from [`AGENT.implementation.md`](AGENT.implementation.md).
