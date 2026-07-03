@@ -1,6 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { complexErrorMessage } from './complexityClasses'
 import type { ObjectManipulationCatalogScope } from './catalogMerge'
 import type { SpanGrounding } from './identityStage'
 import {
@@ -52,13 +51,6 @@ export function collapseUnaryGrounding(spanGroundings: readonly SpanGrounding[])
     }
 
     const sole = resolved[0]
-    if (sole.catalogScope === 'held') {
-        return {
-            type: 'error',
-            errorMessage: complexErrorMessage('unimplementedVerb'),
-        }
-    }
-
     return {
         type: 'resolved',
         objectId: sole.objectId,

@@ -94,13 +94,30 @@ describe('finalizeComplexityFromEnrich', () => {
         })
     })
 
-    it('returns Error for unimplemented atomic operationKind', () => {
+    it('finalizes atomic drop to grounded ObjectManipulation', () => {
         expect(finalizeComplexityFromEnrich(
             0.85,
             broomId,
             {
                 disposition: 'atomic',
                 operationKind: 'drop',
+            },
+            false
+        )).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: broomId,
+            confidence: 0.85,
+        })
+    })
+
+    it('returns Error for unimplemented atomic operationKind', () => {
+        expect(finalizeComplexityFromEnrich(
+            0.85,
+            broomId,
+            {
+                disposition: 'atomic',
+                operationKind: 'placeOn',
             },
             false
         )).toEqual({

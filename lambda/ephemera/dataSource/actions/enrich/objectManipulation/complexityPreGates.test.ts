@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
 import {
@@ -11,6 +11,8 @@ const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const otherRoomId = 'ROOM#Hall' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
+
+const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 
 describe('evaluateComplexityPreGates', () => {
     it('returns error when object has no membership hosts', () => {
@@ -33,6 +35,24 @@ describe('evaluateComplexityPreGates', () => {
             containers: [roomId],
             positionGraph: { nodes: [{ tag: 'Object', universalKey: broomId }], edges: [] },
         })).toEqual({ type: 'atomic', operationKind: 'takeHold' })
+    })
+
+    it('returns atomic drop for sole actor character host with no touching edges', () => {
+        expect(evaluateComplexityPreGates({
+            objectId: broomId,
+            containers: [characterId],
+            positionGraph: { nodes: [{ tag: 'Object', universalKey: broomId }], edges: [] },
+            actorCharacterId: characterId,
+        })).toEqual({ type: 'atomic', operationKind: 'drop' })
+    })
+
+    it('defers when sole character host is not the actor', () => {
+        expect(evaluateComplexityPreGates({
+            objectId: broomId,
+            containers: ['CHARACTER#Other' as EphemeraCharacterId],
+            positionGraph: { nodes: [], edges: [] },
+            actorCharacterId: characterId,
+        })).toEqual({ type: 'deferToComplexityLlm' })
     })
 
     it('defers to complexity LLM when exit edges touch the object', () => {
@@ -65,6 +85,7 @@ describe('preGateOutcomeToTerminalError', () => {
 
     it('returns null for atomic and defer outcomes', () => {
         expect(preGateOutcomeToTerminalError({ type: 'atomic', operationKind: 'takeHold' })).toBeNull()
+        expect(preGateOutcomeToTerminalError({ type: 'atomic', operationKind: 'drop' })).toBeNull()
         expect(preGateOutcomeToTerminalError({ type: 'deferToComplexityLlm' })).toBeNull()
     })
 })

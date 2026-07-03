@@ -6,7 +6,7 @@
  * `Meta::Room.positionGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`, `Character Home`, `Object Take Hold`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * (`Character Navigate`, `Character Home`, `Object Take Hold`, `Object Drop`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -23,10 +23,11 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isObjectDropPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
+    isEphemeraPositionsActionsObjectDropEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
@@ -39,6 +40,7 @@ import {
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
+import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
@@ -59,6 +61,20 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     return
                 }
                 await repairRoomOccupancyDrift({
+                    roomId: content.roomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectDropEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectDropPublishedPayload(content)) {
+                    return
+                }
+                await executeObjectDrop({
+                    characterId: content.characterId,
+                    objectId: content.objectId,
                     roomId: content.roomId,
                     messageBus,
                     streamEvent,

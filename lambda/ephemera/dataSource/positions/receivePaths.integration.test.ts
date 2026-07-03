@@ -22,12 +22,17 @@ jest.mock('./manipulation/membership/executeObjectTakeHold', () => ({
     executeObjectTakeHold: jest.fn(),
 }))
 
+jest.mock('./manipulation/membership/executeObjectDrop', () => ({
+    executeObjectDrop: jest.fn(),
+}))
+
 import messageBus from '../../messageBus'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
+import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
 
 import './index'
 
@@ -45,6 +50,9 @@ const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunc
 >
 const executeObjectTakeHoldMock = executeObjectTakeHold as jest.MockedFunction<
     typeof executeObjectTakeHold
+>
+const executeObjectDropMock = executeObjectDrop as jest.MockedFunction<
+    typeof executeObjectDrop
 >
 
 const CHARACTER_ID = 'CHARACTER#alpha' as const
@@ -103,6 +111,7 @@ describe('positions receive paths (integration)', () => {
             beatAnchorTime: 1_700_000_000_000,
         })
         executeObjectTakeHoldMock.mockResolvedValue(undefined)
+        executeObjectDropMock.mockResolvedValue(undefined)
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
     })
 
@@ -218,6 +227,34 @@ describe('positions receive paths (integration)', () => {
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Object Drop', () => {
+        it('routes mtw.ephemera.actions Object Drop through executeObjectDrop', async () => {
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Drop', {
+                type: 'Object Drop',
+                characterId: CHARACTER_ID,
+                objectId: 'OBJECT#Broom',
+                roomId: ROOM_A,
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeObjectDropMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    objectId: 'OBJECT#Broom',
+                    roomId: ROOM_A,
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
+            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+            expect(executeObjectTakeHoldMock).not.toHaveBeenCalled()
         })
     })
 

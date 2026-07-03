@@ -10,7 +10,7 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 | --- | --- |
 | [`../AGENT.concepts.md`](../AGENT.concepts.md) | Cross-cutting concepts index |
 | [`AGENT.implementation.md`](AGENT.implementation.md) | Four-lane hub + follow-on operators |
-| [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) | Operator fiction (`takeHold`, deferred `drop`) |
+| [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) | Operator fiction (`takeHold`, `drop`) |
 | [`../dataSource/positions/AGENT.md`](../dataSource/positions/AGENT.md) | Play manipulation truth (`mtw.ephemera.positions`) |
 | [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md) | Graph roles, membership, fractal graphs |
 | [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply coordinator playbook |
@@ -32,8 +32,10 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 
 ---
 
-## Shipped: object manipulation (`takeHold`)
+## Shipped: object manipulation (`takeHold`, `drop`)
 
-End-to-end path: **`ObjectManipulationIntent`** classify -> [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts) -> [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/) -> **`Object Take Hold`** -> [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) -> [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) -> single-line **`WorldMessage`**.
+**Pick up (`takeHold`):** **`ObjectManipulationIntent`** classify -> [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts) -> [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/) -> **`Object Take Hold`** -> [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) -> [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) -> single-line **`WorldMessage`**.
 
-**v1 operator:** **`takeHold`** --- atomic room-remove + character-add. See [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).
+**Drop (`drop`):** **`ObjectManipulationIntent`** classify (room + held labels) -> [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts) -> [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/) -> **`Object Drop`** -> [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) -> [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) -> single-line **`WorldMessage`**.
+
+**v1 operators:** **`takeHold`** --- atomic room-remove + character-add; **`drop`** --- atomic character-remove + room-add. See [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).

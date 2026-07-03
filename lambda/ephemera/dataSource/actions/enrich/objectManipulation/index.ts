@@ -1,3 +1,5 @@
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
 import type {
@@ -7,12 +9,13 @@ import type {
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import { evaluateCardinalityGate } from './cardinalityGate'
 import { buildObjectManipulationComplexityPrompt } from './buildPrompt'
-import { mergeObjectManipulationCatalogs } from './catalogMerge'
+import { catalogWithScope } from './catalogMerge'
 import { complexErrorMessage } from './complexityClasses'
 import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
 } from './complexityPreGates'
+import { inferObjectManipulationVerb } from './inferManipulationVerb'
 import { runIdentityStage } from './identityStage'
 import {
     finalizeComplexityFromEnrich,
@@ -23,11 +26,16 @@ import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
+import {
+    objectManipulationErrorMessages,
+    resolveObjectSpanToObjectId,
+} from './resolveObjectSpan'
 import { collapseUnaryGrounding } from './unaryCollapse'
 
 export type EnrichObjectManipulationInput = {
     command: string
     rawObjectSpans: readonly string[]
+    characterId?: EphemeraCharacterId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
@@ -46,6 +54,22 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getPositionGraph: (hostId) => internalCache.Positions.getPositionGraph(hostId),
 })
 
+function inRoomOnlyDropError(
+    rawObjectSpans: readonly string[],
+    roomObjectCatalog: readonly RoomInPlayObjectCatalogEntry[]
+): ParseCommandErrorResult | null {
+    for (const rawObjectSpan of rawObjectSpans) {
+        const resolution = resolveObjectSpanToObjectId(rawObjectSpan, roomObjectCatalog)
+        if (resolution.type === 'Resolved') {
+            return {
+                type: 'Error',
+                errorMessage: objectManipulationErrorMessages.notCarryingObject,
+            }
+        }
+    }
+    return null
+}
+
 export async function enrichObjectManipulation(
     input: EnrichObjectManipulationInput,
     intentConfidence: number,
@@ -59,15 +83,17 @@ export async function enrichObjectManipulation(
         }
     }
 
-    const mergedCatalog = mergeObjectManipulationCatalogs(
-        input.roomObjectCatalog ?? [],
-        input.heldInventoryCatalog ?? []
-    )
+    const manipulationVerb = inferObjectManipulationVerb(input.command)
+    const roomObjectCatalog = input.roomObjectCatalog ?? []
+    const heldInventoryCatalog = input.heldInventoryCatalog ?? []
+    const identityCatalog = manipulationVerb === 'drop'
+        ? catalogWithScope(heldInventoryCatalog, 'held')
+        : catalogWithScope(roomObjectCatalog, 'room')
 
     const identityResult = await runIdentityStage(
         input.command,
         input.rawObjectSpans,
-        mergedCatalog,
+        identityCatalog,
         {
             invokeBedrockObjectManipulationIdentityImpl:
                 deps.invokeBedrockObjectManipulationIdentityImpl
@@ -75,11 +101,23 @@ export async function enrichObjectManipulation(
         }
     )
     if (identityResult.type === 'error') {
+        if (manipulationVerb === 'drop') {
+            const inRoomOnly = inRoomOnlyDropError(input.rawObjectSpans, roomObjectCatalog)
+            if (inRoomOnly !== null) {
+                return inRoomOnly
+            }
+        }
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
     const collapseResult = collapseUnaryGrounding(identityResult.spanGroundings)
     if (collapseResult.type === 'error') {
+        if (manipulationVerb === 'drop') {
+            const inRoomOnly = inRoomOnlyDropError(input.rawObjectSpans, roomObjectCatalog)
+            if (inRoomOnly !== null) {
+                return inRoomOnly
+            }
+        }
         return { type: 'Error', errorMessage: collapseResult.errorMessage }
     }
 
@@ -90,6 +128,7 @@ export async function enrichObjectManipulation(
         objectId,
         containers: observation.containers,
         positionGraph: observation.positionGraph,
+        actorCharacterId: input.characterId,
     })
 
     const preGateError = preGateOutcomeToTerminalError(preGateOutcome)
@@ -100,7 +139,7 @@ export async function enrichObjectManipulation(
     if (preGateOutcome.type === 'atomic') {
         return {
             type: 'ObjectManipulation',
-            operationKind: 'takeHold',
+            operationKind: preGateOutcome.operationKind,
             objectId,
             confidence: intentConfidence,
         }

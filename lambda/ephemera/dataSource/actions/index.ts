@@ -119,6 +119,8 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return "You do not see that object here."
         case objectManipulationErrorMessages.ambiguousMatch:
             return "I can't tell which object you mean."
+        case objectManipulationErrorMessages.notCarryingObject:
+            return 'You are not carrying that.'
         case objectManipulationErrorMessages.complexRelational:
         case objectManipulationErrorMessages.complexMultiObject:
         case objectManipulationErrorMessages.complexUnimplementedVerb:
@@ -423,11 +425,27 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandObjectManipulationResult(parseResult)) {
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {
+            const noRoomMessage = parseResult.operationKind === 'drop'
+                ? 'You are not in a room, so you cannot drop that.'
+                : 'You are not in a room, so you cannot pick that up.'
             messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
                 displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot pick that up.'],
+                message: [noRoomMessage],
+            })
+        }
+        else if (parseResult.operationKind === 'drop') {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Drop' },
+                update: {
+                    type: 'Object Drop',
+                    characterId,
+                    objectId: parseResult.objectId,
+                    roomId: fromRoomId,
+                    confidence: parseResult.confidence,
+                },
             })
         }
         else {
@@ -491,10 +509,16 @@ const handleParseRequested = async (
         getRoomObjectCatalogForCharacter(content.characterId),
         getHeldInventoryCatalogForCharacter(content.characterId),
     ])
-    const roomObjectLabels = roomObjectLabelsFromCatalog(roomObjectCatalogResult.entries)
+    const roomObjectLabels = [
+        ...new Set([
+            ...roomObjectLabelsFromCatalog(roomObjectCatalogResult.entries),
+            ...roomObjectLabelsFromCatalog(heldInventoryCatalogResult.entries),
+        ]),
+    ]
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
     const parseResult = await parseCommand({
         command: content.command,
+        characterId: content.characterId,
         roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
             normalizedName,
             targetId: toRoomId,

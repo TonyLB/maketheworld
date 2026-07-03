@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
 import { enrichObjectManipulation } from './index'
@@ -7,6 +7,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
+const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 const catalog = [{ objectId: broomId, normalizedShortName: 'broom' }]
 
 const touchingEdge: StandardExitEdgeData = {
@@ -47,6 +48,40 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'takeHold',
             objectId: broomId,
             confidence: 0.92,
+        })
+        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns grounded drop without Bedrock on zero-hop eligible path', async () => {
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
+        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'drop the broom',
+                rawObjectSpans: ['broom'],
+                characterId,
+                heldInventoryCatalog: catalog,
+            },
+            0.91,
+            {
+                invokeBedrockObjectManipulationEnrichImpl,
+                invokeBedrockObjectManipulationIdentityImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: broomId,
+            confidence: 0.91,
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
@@ -171,19 +206,20 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
-    it('returns Error for unimplemented atomic from complexity LLM', async () => {
+    it('finalizes atomic drop from complexity LLM when exit edges touch object', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"disposition":"atomic","operationKind":"drop"}',
         })
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
         const getPositionGraph = jest.fn().mockResolvedValue(graphWithTouchingEdge)
 
         const result = await enrichObjectManipulation(
             {
                 command: 'drop the broom',
                 rawObjectSpans: ['broom'],
-                roomObjectCatalog: catalog,
+                characterId,
+                heldInventoryCatalog: catalog,
             },
             0.85,
             {
@@ -193,9 +229,12 @@ describe('enrichObjectManipulation', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.unimplementedAtomicOperation,
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: broomId,
+            confidence: 0.85,
         })
+        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
     it('returns parse failure Error when complexity body is invalid', async () => {

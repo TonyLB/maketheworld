@@ -71,8 +71,9 @@ const shortNameFromMergedAggregate = async (
 }
 
 /**
- * Resolve display labels for take-hold transcript copy at fan-in emit (D11).
- * Does not require the object to remain in the room position graph after apply.
+ * Resolve display labels for object manipulation transcript copy at fan-in emit
+ * (take-hold and drop; D11 / D4). Does not require the object to remain in the room
+ * position graph after apply.
  */
 export async function resolveTakeHoldPresentationLabels(
     args: {

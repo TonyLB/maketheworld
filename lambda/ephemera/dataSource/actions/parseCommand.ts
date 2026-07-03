@@ -24,6 +24,7 @@ async function parseCommandCore(
             {
                 command: input.command,
                 rawObjectSpans: intentResult.rawObjectSpans,
+                characterId: input.characterId,
                 roomObjectCatalog: input.roomObjectCatalog,
                 heldInventoryCatalog: input.heldInventoryCatalog,
             },

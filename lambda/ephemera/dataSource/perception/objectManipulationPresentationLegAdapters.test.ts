@@ -4,6 +4,7 @@ import {
 import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import {
+    isPerceptionActionsObjectDropEnvelope,
     isPerceptionActionsObjectTakeHoldEnvelope,
     isPerceptionObjectManipulationPresentationEnvelope,
     isPerceptionPositionsObjectMovedEnvelope,
@@ -40,6 +41,17 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 roomId: ROOM,
             })
             expect(isPerceptionActionsObjectTakeHoldEnvelope(env)).toBe(true)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
+        })
+
+        it('accepts Object Drop from actions', () => {
+            const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
+                type: 'Object Drop',
+                characterId: CHARACTER,
+                objectId: OBJECT,
+                roomId: ROOM,
+            })
+            expect(isPerceptionActionsObjectDropEnvelope(env)).toBe(true)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
         })
 
@@ -81,6 +93,26 @@ describe('objectManipulationPresentationLegAdapters', () => {
             )
             expect(leg).toEqual({
                 kind: 'intent',
+                operation: 'takeHold',
+                characterId: CHARACTER,
+                objectId: OBJECT,
+                roomId: ROOM,
+            })
+        })
+
+        it('maps Object Drop to intent leg', async () => {
+            const leg = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
+                    type: 'Object Drop',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    confidence: 0.9,
+                })
+            )
+            expect(leg).toEqual({
+                kind: 'intent',
+                operation: 'drop',
                 characterId: CHARACTER,
                 objectId: OBJECT,
                 roomId: ROOM,

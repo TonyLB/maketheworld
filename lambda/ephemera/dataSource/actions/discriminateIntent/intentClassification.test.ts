@@ -162,6 +162,13 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).not.toContain('No validated in-room object labels are currently available')
     })
 
+    it('embeds held inventory labels in movementObjectLabels union', () => {
+        const prompt = buildIntentClassificationPrompt('drop the rope', {
+            movementObjectLabels: ['broom', 'rope'],
+        })
+        expect(prompt).toContain('Objects currently in the room: broom, rope')
+    })
+
     it('includes no-object guidance when object labels are unavailable', () => {
         const prompt = buildIntentClassificationPrompt('pick up something', {
             movementObjectLabels: [],

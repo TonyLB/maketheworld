@@ -243,5 +243,21 @@ describe('perception subscribedEvents', () => {
         }
         expect(isPerceptionSubscribedEnvelope(takeHold as any)).toBe(true)
         expect(isPerceptionSubscribedEnvelope(objectMoved as any)).toBe(true)
+
+        const objectDrop = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#Alice',
+                timestamp: Date.now(),
+                type: 'Object Drop',
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Drop',
+                characterId: 'CHARACTER#Alice',
+                objectId: 'OBJECT#Broom',
+                roomId: 'ROOM#Cafe',
+            }),
+        }
+        expect(isPerceptionSubscribedEnvelope(objectDrop as any)).toBe(true)
     })
 })

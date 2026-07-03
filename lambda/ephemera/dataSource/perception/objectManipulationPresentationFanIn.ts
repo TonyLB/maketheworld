@@ -11,8 +11,11 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import { publishObjectManipulationPresentation } from './publishObjectManipulationPresentation'
 import { resolveTakeHoldPresentationLabels } from './resolveTakeHoldPresentationLabels'
 
+export type ObjectManipulationOperation = 'takeHold' | 'drop'
+
 export type ObjectManipulationIntentLeg = {
     kind: 'intent'
+    operation: ObjectManipulationOperation
     characterId: EphemeraCharacterId
     objectId: EphemeraObjectId
     roomId: EphemeraRoomId
@@ -29,6 +32,7 @@ export type ObjectManipulationFactLeg = {
 export type ObjectManipulationPresentationLeg = ObjectManipulationIntentLeg | ObjectManipulationFactLeg
 
 export type ObjectManipulationEmissionPlan = {
+    operation: ObjectManipulationOperation
     characterId: EphemeraCharacterId
     objectId: EphemeraObjectId
     roomId: EphemeraRoomId
@@ -51,6 +55,21 @@ const roomFromFactFroms = (froms: EphemeraMembershipHostId[]): EphemeraRoomId | 
     froms.find((entry): entry is EphemeraRoomId => isRoomId(entry))
 )
 
+const characterFromFactFroms = (froms: EphemeraMembershipHostId[]): EphemeraCharacterId | undefined => (
+    froms.find((entry): entry is EphemeraCharacterId => isCharacterId(entry))
+)
+
+const inferOperationFromFact = (fact: ObjectManipulationFactLeg): ObjectManipulationOperation | undefined => {
+    if (fact.to !== null && isCharacterId(fact.to)) {
+        return 'takeHold'
+    }
+    const characterId = characterFromFactFroms(fact.froms)
+    if (characterId && fact.to !== null && isRoomId(fact.to)) {
+        return 'drop'
+    }
+    return undefined
+}
+
 const intentEndpointsCompatibleWithFact = (
     intent: ObjectManipulationIntentLeg,
     fact: ObjectManipulationFactLeg
@@ -58,10 +77,19 @@ const intentEndpointsCompatibleWithFact = (
     if (intent.objectId !== fact.objectId) {
         return false
     }
-    if (!fact.froms.includes(intent.roomId)) {
+    if (intent.operation === 'takeHold') {
+        if (!fact.froms.includes(intent.roomId)) {
+            return false
+        }
+        if (fact.to !== intent.characterId) {
+            return false
+        }
+        return true
+    }
+    if (!fact.froms.includes(intent.characterId)) {
         return false
     }
-    if (fact.to !== intent.characterId) {
+    if (fact.to !== intent.roomId) {
         return false
     }
     return true
@@ -79,20 +107,33 @@ export const buildObjectManipulationEmissionPlan = (
     const intentLeg = legs.find((leg): leg is ObjectManipulationIntentLeg => leg.kind === 'intent')
     let characterId: EphemeraCharacterId | undefined
     let roomId: EphemeraRoomId | undefined
+    let operation: ObjectManipulationOperation | undefined
 
     if (intentLeg) {
         characterId = intentLeg.characterId
         roomId = intentLeg.roomId
-    } else if (options.deferralExecution && factLeg.to !== null && isCharacterId(factLeg.to)) {
-        characterId = factLeg.to
-        roomId = roomFromFactFroms(factLeg.froms)
+        operation = intentLeg.operation
+    } else if (options.deferralExecution) {
+        operation = inferOperationFromFact(factLeg)
+        if (operation === 'takeHold') {
+            if (factLeg.to !== null && isCharacterId(factLeg.to)) {
+                characterId = factLeg.to
+                roomId = roomFromFactFroms(factLeg.froms)
+            }
+        } else if (operation === 'drop') {
+            characterId = characterFromFactFroms(factLeg.froms)
+            if (factLeg.to !== null && isRoomId(factLeg.to)) {
+                roomId = factLeg.to
+            }
+        }
     }
 
-    if (!characterId || !roomId) {
+    if (!characterId || !roomId || !operation) {
         return null
     }
 
     return {
+        operation,
         characterId,
         objectId: factLeg.objectId,
         roomId,
@@ -172,7 +213,8 @@ export class ObjectManipulationPresentationFanInCluster extends FanInCluster<
         }
 
         if (myIntent && otherIntent) {
-            return myIntent.roomId === otherIntent.roomId
+            return myIntent.operation === otherIntent.operation
+                && myIntent.roomId === otherIntent.roomId
         }
 
         return true
@@ -234,6 +276,10 @@ export const objectManipulationPresentationClusterFromLeg = (
     }
     if (leg.to !== null && isCharacterId(leg.to)) {
         return new ObjectManipulationPresentationFanInCluster(leg.to, leg.objectId)
+    }
+    const characterId = characterFromFactFroms(leg.froms)
+    if (characterId && leg.to !== null && isRoomId(leg.to)) {
+        return new ObjectManipulationPresentationFanInCluster(characterId, leg.objectId)
     }
     return null
 }

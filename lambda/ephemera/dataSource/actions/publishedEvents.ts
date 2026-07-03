@@ -48,6 +48,14 @@ export type ObjectTakeHoldPublishedPayload = {
     confidence?: number;
 }
 
+export type ObjectDropPublishedPayload = {
+    type: 'Object Drop';
+    characterId: EphemeraCharacterId;
+    objectId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    confidence?: number;
+}
+
 export type AwaitRoadRunnerPublishedPayload = {
     type: 'Await RoadRunner';
     characterId: EphemeraCharacterId;
@@ -227,6 +235,33 @@ export const isObjectTakeHoldPublishedPayload = (
     return true
 }
 
+export const isObjectDropPublishedPayload = (
+    value: unknown
+): value is ObjectDropPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Drop') {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (typeof v.objectId !== 'string' || !isEphemeraObjectId(v.objectId)) {
+        return false
+    }
+    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
+        return false
+    }
+    if (v.confidence !== undefined) {
+        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    return true
+}
+
 export const isCharacterHomePublishedPayload = (
     value: unknown
 ): value is CharacterHomePublishedPayload => {
@@ -325,6 +360,7 @@ export type ActionsPublishedPayload =
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
     | ObjectTakeHoldPublishedPayload
+    | ObjectDropPublishedPayload
     | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload

@@ -24,7 +24,7 @@ import {
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
 import type { CharacterHomePublishedPayload } from '../actions/publishedEvents'
-import type { CharacterNavigatePublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import type { CharacterNavigatePublishedPayload, ObjectDropPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import type { ConnectionsCharactersEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterMovedPublishedPayload, ObjectMovedPublishedPayload } from '../positions/publishedEvents'
 import {
@@ -35,6 +35,7 @@ import {
     toMembershipPresentationLeg,
 } from './membershipPresentationLegAdapters'
 import {
+    isPerceptionActionsObjectDropEnvelope,
     isPerceptionActionsObjectTakeHoldEnvelope,
     isPerceptionPositionsObjectMovedEnvelope,
     toObjectManipulationPresentationLeg,
@@ -49,6 +50,7 @@ export {
 } from './membershipPresentationLegAdapters'
 
 export {
+    isPerceptionActionsObjectDropEnvelope,
     isPerceptionActionsObjectTakeHoldEnvelope,
     isPerceptionPositionsObjectMovedEnvelope,
     toObjectManipulationPresentationLeg,
@@ -109,6 +111,7 @@ export type PerceptionSubscribedContent =
     | ConnectionsCharactersEventUpdate
     | CharacterMovedPublishedPayload
     | ObjectTakeHoldPublishedPayload
+    | ObjectDropPublishedPayload
     | ObjectMovedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
@@ -145,6 +148,7 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionConnectionsCharactersEnvelope(envelope)
         || isPerceptionPositionsCharacterMovedEnvelope(envelope)
         || isPerceptionActionsObjectTakeHoldEnvelope(envelope)
+        || isPerceptionActionsObjectDropEnvelope(envelope)
         || isPerceptionPositionsObjectMovedEnvelope(envelope)
 )
 

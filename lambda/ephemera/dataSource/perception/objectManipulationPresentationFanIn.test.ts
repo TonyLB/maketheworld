@@ -22,6 +22,7 @@ const ANCHOR_TIME = 1_700_000_000_000
 
 const takeHoldIntent = (overrides: Partial<ObjectManipulationIntentLeg> = {}): ObjectManipulationIntentLeg => ({
     kind: 'intent',
+    operation: 'takeHold',
     characterId: CHARACTER,
     objectId: OBJECT,
     roomId: ROOM,
@@ -37,6 +38,24 @@ const takeHoldFact = (overrides: Partial<ObjectManipulationFactLeg> = {}): Objec
     ...overrides,
 })
 
+const dropIntent = (overrides: Partial<ObjectManipulationIntentLeg> = {}): ObjectManipulationIntentLeg => ({
+    kind: 'intent',
+    operation: 'drop',
+    characterId: CHARACTER,
+    objectId: OBJECT,
+    roomId: ROOM,
+    ...overrides,
+})
+
+const dropFact = (overrides: Partial<ObjectManipulationFactLeg> = {}): ObjectManipulationFactLeg => ({
+    kind: 'fact',
+    objectId: OBJECT,
+    froms: [CHARACTER],
+    to: ROOM,
+    beatAnchorTime: ANCHOR_TIME,
+    ...overrides,
+})
+
 describe('objectManipulationPresentationFanIn', () => {
     describe('objectManipulationClusterIdentity', () => {
         it('encodes character, object, and beat anchor time', () => {
@@ -46,40 +65,79 @@ describe('objectManipulationPresentationFanIn', () => {
     })
 
     describe('buildObjectManipulationEmissionPlan', () => {
-        it('returns structural plan when intent and fact are present', () => {
-            const plan = buildObjectManipulationEmissionPlan([
-                takeHoldIntent(),
-                takeHoldFact(),
-            ], { deferralExecution: false })
+        describe('takeHold', () => {
+            it('returns structural plan when intent and fact are present', () => {
+                const plan = buildObjectManipulationEmissionPlan([
+                    takeHoldIntent(),
+                    takeHoldFact(),
+                ], { deferralExecution: false })
 
-            expect(plan).toEqual({
-                characterId: CHARACTER,
-                objectId: OBJECT,
-                roomId: ROOM,
-                beatAnchorTime: ANCHOR_TIME,
+                expect(plan).toEqual({
+                    operation: 'takeHold',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    beatAnchorTime: ANCHOR_TIME,
+                })
+            })
+
+            it('derives actor and room from fact at deferral when intent is absent', () => {
+                const plan = buildObjectManipulationEmissionPlan([takeHoldFact()], { deferralExecution: true })
+
+                expect(plan).toEqual({
+                    operation: 'takeHold',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    beatAnchorTime: ANCHOR_TIME,
+                })
+            })
+
+            it('returns null when fact is absent', () => {
+                expect(buildObjectManipulationEmissionPlan([takeHoldIntent()], { deferralExecution: false }))
+                    .toBeNull()
+            })
+
+            it('returns null at deferral when fact has no character to host', () => {
+                expect(buildObjectManipulationEmissionPlan([
+                    takeHoldFact({ to: null }),
+                ], { deferralExecution: true })).toBeNull()
             })
         })
 
-        it('derives actor and room from fact at deferral when intent is absent', () => {
-            const plan = buildObjectManipulationEmissionPlan([takeHoldFact()], { deferralExecution: true })
+        describe('drop', () => {
+            it('returns structural plan when intent and fact are present', () => {
+                const plan = buildObjectManipulationEmissionPlan([
+                    dropIntent(),
+                    dropFact(),
+                ], { deferralExecution: false })
 
-            expect(plan).toEqual({
-                characterId: CHARACTER,
-                objectId: OBJECT,
-                roomId: ROOM,
-                beatAnchorTime: ANCHOR_TIME,
+                expect(plan).toEqual({
+                    operation: 'drop',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    beatAnchorTime: ANCHOR_TIME,
+                })
             })
-        })
 
-        it('returns null when fact is absent', () => {
-            expect(buildObjectManipulationEmissionPlan([takeHoldIntent()], { deferralExecution: false }))
-                .toBeNull()
-        })
+            it('derives actor and room from fact at deferral when intent is absent', () => {
+                const plan = buildObjectManipulationEmissionPlan([dropFact()], { deferralExecution: true })
 
-        it('returns null at deferral when fact has no character to host', () => {
-            expect(buildObjectManipulationEmissionPlan([
-                takeHoldFact({ to: null }),
-            ], { deferralExecution: true })).toBeNull()
+                expect(plan).toEqual({
+                    operation: 'drop',
+                    characterId: CHARACTER,
+                    objectId: OBJECT,
+                    roomId: ROOM,
+                    beatAnchorTime: ANCHOR_TIME,
+                })
+            })
+
+            it('returns null at deferral when fact has no room to host', () => {
+                expect(buildObjectManipulationEmissionPlan([
+                    dropFact({ to: null }),
+                ], { deferralExecution: true })).toBeNull()
+            })
         })
     })
 
@@ -92,67 +150,135 @@ describe('objectManipulationPresentationFanIn', () => {
                 .filter((message) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
         )
 
-        it('completes when intent arrives before fact', async () => {
-            const store = createObjectManipulationPresentationFanInStore()
-            const ctx = makeCtx()
-            store.setHandlerContext(ctx)
+        describe('takeHold', () => {
+            it('completes when intent arrives before fact', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
 
-            await store.route(takeHoldIntent())
-            expect(store.getOpenPartialCount()).toBe(1)
-            expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
+                await store.route(takeHoldIntent())
+                expect(store.getOpenPartialCount()).toBe(1)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
 
-            await store.route(takeHoldFact())
-            expect(store.getOpenPartialCount()).toBe(0)
-            expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
-            expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
-                message: ['Alice picks up broom'],
-                createdTime: ANCHOR_TIME,
-                targets: [ROOM, CHARACTER],
-                deliveryMode: 'deferred',
+                await store.route(takeHoldFact())
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice picks up broom'],
+                    createdTime: ANCHOR_TIME,
+                    targets: [ROOM, CHARACTER],
+                    deliveryMode: 'deferred',
+                })
+            })
+
+            it('completes when fact arrives before intent', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(takeHoldFact())
+                expect(store.getOpenPartialCount()).toBe(1)
+
+                await store.route(takeHoldIntent())
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice picks up broom'],
+                })
+            })
+
+            it('keeps endpoint mismatch as separate partials', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(takeHoldIntent({ roomId: 'ROOM#Other' as typeof ROOM }))
+                await store.route(takeHoldFact())
+                expect(store.getOpenPartialCount()).toBe(2)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
+            })
+
+            it('publishes at deferral settle when only fact remains', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(takeHoldFact())
+                expect(store.getOpenPartialCount()).toBe(1)
+
+                await store.settleDeferrals()
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice picks up broom'],
+                    createdTime: ANCHOR_TIME,
+                })
             })
         })
 
-        it('completes when fact arrives before intent', async () => {
-            const store = createObjectManipulationPresentationFanInStore()
-            const ctx = makeCtx()
-            store.setHandlerContext(ctx)
+        describe('drop', () => {
+            it('completes when intent arrives before fact', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
 
-            await store.route(takeHoldFact())
-            expect(store.getOpenPartialCount()).toBe(1)
+                await store.route(dropIntent())
+                expect(store.getOpenPartialCount()).toBe(1)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
 
-            await store.route(takeHoldIntent())
-            expect(store.getOpenPartialCount()).toBe(0)
-            expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
-            expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
-                message: ['Alice picks up broom'],
+                await store.route(dropFact())
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice drops broom'],
+                    createdTime: ANCHOR_TIME,
+                    targets: [ROOM, CHARACTER],
+                    deliveryMode: 'deferred',
+                })
             })
-        })
 
-        it('keeps endpoint mismatch as separate partials', async () => {
-            const store = createObjectManipulationPresentationFanInStore()
-            const ctx = makeCtx()
-            store.setHandlerContext(ctx)
+            it('completes when fact arrives before intent', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
 
-            await store.route(takeHoldIntent({ roomId: 'ROOM#Other' as typeof ROOM }))
-            await store.route(takeHoldFact())
-            expect(store.getOpenPartialCount()).toBe(2)
-            expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
-        })
+                await store.route(dropFact())
+                expect(store.getOpenPartialCount()).toBe(1)
 
-        it('publishes at deferral settle when only fact remains', async () => {
-            const store = createObjectManipulationPresentationFanInStore()
-            const ctx = makeCtx()
-            store.setHandlerContext(ctx)
+                await store.route(dropIntent())
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice drops broom'],
+                })
+            })
 
-            await store.route(takeHoldFact())
-            expect(store.getOpenPartialCount()).toBe(1)
+            it('keeps endpoint mismatch as separate partials', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
 
-            await store.settleDeferrals()
-            expect(store.getOpenPartialCount()).toBe(0)
-            expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
-            expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
-                message: ['Alice picks up broom'],
-                createdTime: ANCHOR_TIME,
+                await store.route(dropIntent({ roomId: 'ROOM#Other' as typeof ROOM }))
+                await store.route(dropFact())
+                expect(store.getOpenPartialCount()).toBe(2)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(0)
+            })
+
+            it('publishes at deferral settle when only fact remains', async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                await store.route(dropFact())
+                expect(store.getOpenPartialCount()).toBe(1)
+
+                await store.settleDeferrals()
+                expect(store.getOpenPartialCount()).toBe(0)
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice drops broom'],
+                    createdTime: ANCHOR_TIME,
+                })
             })
         })
     })

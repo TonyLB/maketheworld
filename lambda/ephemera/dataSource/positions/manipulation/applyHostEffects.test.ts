@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { produce } from 'immer'
 
+import { planObjectDropTransfer } from './adapters/planObjectDropTransfer'
 import { planObjectTakeHoldTransfer } from './adapters/planObjectTakeHoldTransfer'
 import { planMembershipTransfer } from './adapters/planMembershipTransfer'
 import { applyHostEffects } from './applyHostEffects'
@@ -69,6 +70,43 @@ describe('applyHostEffects', () => {
         expect(characterGraphDraft.positionGraph?.nodes).toEqual([
             { tag: 'Object', universalKey: OBJECT_ID },
         ])
+    })
+
+    it('persists drop-shaped hostEffects in one transact', async () => {
+        const plan = planObjectDropTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID,
+            priorContainers: [CHARACTER_ID],
+        })
+
+        const characterGraphWithObject = {
+            nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+            edges: [] as [],
+        }
+        const emptyRoomGraph = { nodes: [], edges: [] as [] }
+
+        const result = await applyHostEffects(
+            { hostEffects: plan.hostEffects },
+            {
+                getPositionGraph: async (hostId) =>
+                    hostId === CHARACTER_ID ? characterGraphWithObject : emptyRoomGraph,
+                transactWrite,
+            }
+        )
+
+        expect(result).toMatchObject({
+            ok: true,
+            persisted: true,
+            changed: true,
+        })
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        if (result.ok && result.persisted) {
+            expect(result.postApplyGraphs[CHARACTER_ID]?.nodes).toEqual([])
+            expect(result.postApplyGraphs[ROOM_ID]?.nodes).toEqual([
+                { tag: 'Object', universalKey: OBJECT_ID },
+            ])
+        }
     })
 
     it('returns validation error when remove target is absent', async () => {

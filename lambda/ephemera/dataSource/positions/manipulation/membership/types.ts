@@ -9,6 +9,13 @@ export type ObjectTakeHoldApplyArgs = {
     characterId: EphemeraCharacterId;
 }
 
+/** Cross-host object membership apply (v1 drop: character -> room). */
+export type ObjectDropApplyArgs = {
+    objectId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    characterId: EphemeraCharacterId;
+}
+
 /** Graph-diff semantics for Object Moved (D8): eligible membership host endpoints. */
 export type ObjectMembershipDiff = {
     froms: EphemeraMembershipHostId[];
@@ -41,3 +48,16 @@ export type TakeHoldApplyErrorResult = {
 }
 
 export type TakeHoldApplyResult = TakeHoldApplySuccessResult | TakeHoldApplyErrorResult
+
+export type DropApplySuccessResult = {
+    ok: true;
+    beatAnchorTime?: number;
+} & ObjectMembershipDiff
+
+export type DropApplyErrorResult = {
+    ok: false;
+    errorCode: string;
+    errorMessage: string;
+}
+
+export type DropApplyResult = DropApplySuccessResult | DropApplyErrorResult

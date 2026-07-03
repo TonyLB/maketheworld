@@ -33,23 +33,23 @@ The object id is already resolved. Do not re-resolve identity or supply objectSp
 
 Respond with a single JSON object only (no markdown fences, no commentary).
 
-## disposition: atomic (v1 implemented: takeHold only)
+## disposition: atomic (v1 implemented: takeHold, drop)
 
 Simple pick-up of the grounded object despite relational edges on its host:
 { "disposition": "atomic", "operationKind": "takeHold" }
+
+Simple drop / release of a held object to the room despite relational edges on its host:
+{ "disposition": "atomic", "operationKind": "drop" }
 
 ## disposition: complex (terminal stub only)
 
 Relational placement (put X on Y, tie A to B):
 { "disposition": "complex", "complexityClass": "relationalPlacement", "summary": "<optional>" }
 
-Recognized manipulation but no v1 atomic path (e.g. drop until later):
-{ "disposition": "complex", "complexityClass": "unimplementedVerb", "summary": "<optional>" }
-
 ## Rules
 
 - disposition is required: exactly "atomic" or "complex".
-- When disposition is atomic, operationKind is required (v1: use "takeHold" for pick-up).
+- When disposition is atomic, operationKind is required (v1: "takeHold" for pick-up, "drop" for release to room).
 - When disposition is complex, complexityClass is required; operationKind is forbidden.
 - Forbidden: objectId, objectSpan, targetId, host routing ids, graph deltas.
 - Prefer complex relationalPlacement when exit edges imply relational manipulation.
