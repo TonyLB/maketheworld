@@ -40,10 +40,9 @@ export class CacheCharacterMetaData {
             if (options?.check && !(characterData.EphemeraId.split('#').slice(1)[0])) {
                 return undefined
             }
-            const { player } = characterData
             this.CharacterMetaById[characterId] = {
                 ...characterData,
-                assets: [...(player ? [`draft[${player}]`] : []), ...(characterData.assets || [])],
+                assets: [...(characterData.assets || [])],
                 RoomId: `ROOM#${characterData.RoomId || characterData.HomeId || 'VORTEX'}`,
                 RoomStack: characterData.RoomStack ?? DEFAULT_ROOM_STACK,
                 HomeId: `ROOM#${characterData.HomeId || 'VORTEX'}`,
