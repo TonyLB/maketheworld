@@ -230,7 +230,7 @@ Positions **must** subscribe to:
 
 ### `Object Drop` (positions-owned)
 
-- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**). Payload type + guard shipped in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publish wiring remains Phase 3.
+- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes **`Object Drop`** when enrich yields `operationKind: drop`.
 - **Must** trust actions-resolved `objectId` and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
 - **Must** call [`applyObjectDrop`](manipulation/membership/applyObjectDrop.ts) with `{ objectId, roomId, characterId }` --- atomic character-remove + room-add in one transact.
 - **Bounded character remove:** **must** remove object from character graph **only** when it is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts.

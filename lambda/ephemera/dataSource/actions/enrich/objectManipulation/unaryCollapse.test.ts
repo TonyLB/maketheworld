@@ -20,17 +20,17 @@ describe('collapseUnaryGrounding', () => {
         })
     })
 
-    it('returns error for held-only grounding', () => {
+    it('returns single resolved grounding for held scope', () => {
         const groundings: SpanGrounding[] = [{
             type: 'resolved',
             objectId: broomId,
             catalogScope: 'held',
         }]
-        const result = collapseUnaryGrounding(groundings)
-        expect(result.type).toBe('error')
-        if (result.type === 'error') {
-            expect(result.errorMessage).toBe(objectManipulationErrorMessages.complexUnimplementedVerb)
-        }
+        expect(collapseUnaryGrounding(groundings)).toEqual({
+            type: 'resolved',
+            objectId: broomId,
+            catalogScope: 'held',
+        })
     })
 
     it('returns error when no resolved groundings', () => {

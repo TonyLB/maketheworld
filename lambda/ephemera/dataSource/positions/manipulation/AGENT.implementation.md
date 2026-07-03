@@ -179,7 +179,7 @@ Phase 4a adapter tests assert `planMembershipTransfer` / `planObjectTakeHoldTran
 Actions parse steady-state ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress)) guarantees:
 
 - Atomic **`takeHold`** egress supplies trusted `objectId` + ingress `roomId` (`fromRoomId`).
-- Atomic **`drop`** egress (Phase 3) will supply trusted `objectId`, `characterId`, and destination `roomId`.
+- Atomic **`drop`** egress supplies trusted `objectId`, `characterId`, and destination `roomId` from actions **`Parse Requested`** ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped----membership-aware-classify--enrich--egress)).
 - **`multiPresent`** (`containers.length > 1`) terminalizes before egress.
 - Zero-host objects terminalize before egress.
 

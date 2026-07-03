@@ -8,7 +8,7 @@ import {
     THINKING_RESULT_HEADER_TYPE,
     isThinkingResultEvent,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import * as apiEphemera from '../apiEphemera'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
@@ -34,6 +34,7 @@ import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from './publishedEvents'
 import { ACME_ORDER_ENRICH_SEGMENT } from './enrich/acmeOrder/acmeOrderThinkingPersistence'
 import {
     navigationIntentErrorMessages,
+    objectManipulationErrorMessages,
     parseCommand,
     parseCommandWithEnrichReasoning,
 } from './parseCommand'
@@ -54,6 +55,11 @@ const mockMessageBus = () => ({
 
 const objectManipulationPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
+    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+})
+
+const objectManipulationDropPositionsReadDepsForTests = () => ({
+    getMembershipContainers: jest.fn().mockResolvedValue(['CHARACTER#123' as EphemeraCharacterId]),
     getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
 })
 
@@ -1033,7 +1039,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for held-only object grounding (unimplementedVerb)', async () => {
+    it('returns grounded ObjectManipulation drop from classify + enrich for held object', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1043,23 +1049,53 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'drop the broom',
+                characterId: 'CHARACTER#123',
                 roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
             {
                 invokeBedrockParseCommandImpl,
-                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: broomId,
+            confidence: 0.9,
+        })
+    })
+
+    it('returns Error when drop targets in-room-only object', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'drop the broom',
+                characterId: 'CHARACTER#123',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                heldInventoryCatalog: [],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
             }
         )
 
         expect(result).toEqual({
             type: 'Error',
-            errorMessage: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
+            errorMessage: objectManipulationErrorMessages.notCarryingObject,
         })
     })
 
-    it('prefers room catalog scope when same objectId appears in room and held catalogs', async () => {
+    it('resolves pickUp from room catalog when same objectId appears in room and held catalogs', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

@@ -1065,6 +1065,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 {
                     command: 'order widget',
+                    characterId: 'CHARACTER#123',
                     roomExits: [],
                     roomObjectLabels: [],
                     roomObjectCatalog: [],
@@ -1555,6 +1556,55 @@ describe('ephemeraActionsDataSource', () => {
             )
         })
 
+        it('emits Object Drop streamEvent when drop is grounded', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'drop',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'drop the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Drop' },
+                update: {
+                    type: 'Object Drop',
+                    characterId: 'CHARACTER#123',
+                    objectId: 'OBJECT#Broom',
+                    roomId: from,
+                    confidence: 0.9,
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    displayProtocol: 'WorldOOCMessage',
+                })
+            )
+        })
+
         it('emits correlated ReturnValue when requestId is present', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
@@ -1632,6 +1682,46 @@ describe('ephemeraActionsDataSource', () => {
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
                 message: ['You are not in a room, so you cannot pick that up.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+
+        it('publishes WorldOOCMessage when drop is grounded but character has no room', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectManipulation',
+                operationKind: 'drop',
+                objectId: 'OBJECT#Broom',
+                confidence: 0.9,
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: null,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'drop the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot drop that.'],
             })
             expect(streamEvent).not.toHaveBeenCalled()
         })

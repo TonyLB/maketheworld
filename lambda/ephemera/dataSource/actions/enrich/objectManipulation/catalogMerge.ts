@@ -6,6 +6,13 @@ export type ObjectManipulationCatalogEntry = RoomInPlayObjectCatalogEntry & {
     catalogScope: ObjectManipulationCatalogScope
 }
 
+export function catalogWithScope(
+    entries: readonly RoomInPlayObjectCatalogEntry[],
+    catalogScope: ObjectManipulationCatalogScope
+): ObjectManipulationCatalogEntry[] {
+    return entries.map((entry) => ({ ...entry, catalogScope }))
+}
+
 export function mergeObjectManipulationCatalogs(
     room: readonly RoomInPlayObjectCatalogEntry[],
     held: readonly RoomInPlayObjectCatalogEntry[] = []

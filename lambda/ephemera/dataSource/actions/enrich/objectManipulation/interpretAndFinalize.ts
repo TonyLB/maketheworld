@@ -183,7 +183,7 @@ export function finalizeComplexityFromEnrich(
         }
     }
 
-    if (complexityResponse.operationKind !== 'takeHold') {
+    if (complexityResponse.operationKind !== 'takeHold' && complexityResponse.operationKind !== 'drop') {
         return {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.unimplementedAtomicOperation,
@@ -192,7 +192,7 @@ export function finalizeComplexityFromEnrich(
 
     return {
         type: 'ObjectManipulation',
-        operationKind: 'takeHold',
+        operationKind: complexityResponse.operationKind,
         objectId,
         confidence: intentConfidence,
     }

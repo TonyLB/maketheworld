@@ -1,10 +1,22 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { mergeObjectManipulationCatalogs } from './catalogMerge'
+import { catalogWithScope, mergeObjectManipulationCatalogs } from './catalogMerge'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+
+describe('catalogWithScope', () => {
+    it('tags each entry with the given catalog scope', () => {
+        const room = [{ objectId: 'OBJECT#Broom' as const, normalizedShortName: 'broom' }]
+        expect(catalogWithScope(room, 'room')).toEqual([
+            { objectId: 'OBJECT#Broom', normalizedShortName: 'broom', catalogScope: 'room' },
+        ])
+        expect(catalogWithScope(room, 'held')).toEqual([
+            { objectId: 'OBJECT#Broom', normalizedShortName: 'broom', catalogScope: 'held' },
+        ])
+    })
+})
 
 describe('mergeObjectManipulationCatalogs', () => {
     it('tags room entries with catalogScope room', () => {

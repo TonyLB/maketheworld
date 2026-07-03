@@ -1,4 +1,5 @@
 import {
+    EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraObjectId,
@@ -253,10 +254,10 @@ export type ParseCommandObjectManipulationIntentResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Grounded atomic object manipulation after enrich + resolve (v1: `takeHold` only). */
+/** Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`). */
 export type ParseCommandObjectManipulationResult = {
     type: 'ObjectManipulation'
-    operationKind: 'takeHold'
+    operationKind: 'takeHold' | 'drop'
     objectId: EphemeraObjectId
     confidence: ParseCommandConfidence
 }
@@ -523,11 +524,16 @@ export function isParseCommandObjectManipulationResult(
     if (result.type !== 'ObjectManipulation') {
         return false
     }
-    return result.operationKind === 'takeHold' && isParseConfidence(result.confidence)
+    return (
+        (result.operationKind === 'takeHold' || result.operationKind === 'drop')
+        && isParseConfidence(result.confidence)
+    )
 }
 
 export type ParseCommandInput = {
     command: string
+    /** Parse-request character; required for drop complexity pre-gates (actor host match). */
+    characterId?: EphemeraCharacterId
     roomExits?: {
         normalizedName: string
         targetId: EphemeraRoomId
