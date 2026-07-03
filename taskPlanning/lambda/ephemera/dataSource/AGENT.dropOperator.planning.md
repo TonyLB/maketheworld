@@ -1,6 +1,6 @@
 # Atomic `drop` operator (cross-lane)
 
-**Status:** In progress. **Next:** Phase 4 perception transcript.
+**Status:** In progress. **Next:** Phase 5 diegetic logic + cleanup.
 
 **Delete criterion:** When **`drop`** is shipped end-to-end (parse egress, positions apply, perception transcript), durable docs are graduated, and verification passes --- delete this plan (git retains history).
 
@@ -56,7 +56,7 @@ Read in order before editing code. Command authority: [`lambda/ephemera/AGENT.te
 
 6. **Identify next task**
    - **Why:** Progress lives in **Recommended order** below.
-   - **Focus:** Phase 3 (actions parse + egress). Phase 2 positions durable docs shipped 2026-06-27.
+   - **Focus:** Phase 5 (diegetic logic + cleanup). Phase 4 perception transcript shipped 2026-07-03.
 
 7. **Baseline verification (before edits)**
 
@@ -76,9 +76,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **D4** | Transcript: **`${Player} drops ${Object}`**; same unknowns withhold as pick-up; reuse/adapt [`resolveTakeHoldPresentationLabels.ts`](../../../../lambda/ephemera/dataSource/perception/resolveTakeHoldPresentationLabels.ts) | Phase 4 (perception) | **Decided** |
 
-**Decided 2026-06-27.** Remove rows from this table when corresponding rules ship in `AGENT.contract.md` / `AGENT.implementation.md`.
+**Decided 2026-06-27.** Remove rows from this table when corresponding rules ship in `AGENT.contract.md` / `AGENT.implementation.md`. **D4** shipped in [`perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) (2026-07-03).
 
 ---
 
@@ -142,12 +141,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as e
   - [X] Add **`Object Drop`** to [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts); wire **`Parse Requested`** branch in [`actions/index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts)
   - [X] Tests: [`enrich/objectManipulation/*.test.ts`](../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/), [`parseCommand.test.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`index.test.ts`](../../../../lambda/ephemera/dataSource/actions/index.test.ts)
 
-- [ ] **Phase 4 --- Perception transcript**
-  - [ ] Extend [`objectManipulationPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.ts) for **`Object Drop`** intent leg
-  - [ ] Extend [`objectManipulationPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.ts) endpoint checks (intent `characterId` in fact `froms`, fact `to` = intent `roomId`)
-  - [ ] Add drop template + label resolution per D4 in [`publishObjectManipulationPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishObjectManipulationPresentation.ts)
-  - [ ] Register envelopes in [`perception/subscribedEvents.ts`](../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts); route in [`perception/index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts)
-  - [ ] Tests: [`objectManipulationPresentationFanIn.test.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.test.ts), [`objectManipulationPresentationLegAdapters.test.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.test.ts)
+- [X] **Phase 4 --- Perception transcript**
+  - [X] Extend [`objectManipulationPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.ts) for **`Object Drop`** intent leg
+  - [X] Extend [`objectManipulationPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.ts) endpoint checks (intent `characterId` in fact `froms`, fact `to` = intent `roomId`)
+  - [X] Add drop template + label resolution per D4 in [`publishObjectManipulationPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishObjectManipulationPresentation.ts)
+  - [X] Register envelopes in [`perception/subscribedEvents.ts`](../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts); route in [`perception/index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts)
+  - [X] Tests: [`objectManipulationPresentationFanIn.test.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.test.ts), [`objectManipulationPresentationLegAdapters.test.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.test.ts)
 
 - [ ] **Phase 5 --- Diegetic logic + cleanup**
   - [ ] Graduate [`AGENT.operators.concepts.md`](../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) `drop` section from deferred to shipped
@@ -222,7 +221,7 @@ npm run build
 | Phase 1 --- Positions persist | **Done** (2026-06-27) |
 | Phase 2 --- Positions durable docs | **Done** (2026-06-27) |
 | Phase 3 --- Actions parse + egress | **Done** (2026-06-27) |
-| Phase 4 --- Perception transcript | Not started |
+| Phase 4 --- Perception transcript | **Done** (2026-07-03) |
 | Phase 5 --- Diegetic logic + cleanup | Not started |
 
 ---

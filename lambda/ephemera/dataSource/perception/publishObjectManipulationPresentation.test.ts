@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    buildDropWorldMessage,
     buildTakeHoldWorldMessage,
     publishObjectManipulationPresentation,
 } from './publishObjectManipulationPresentation'
@@ -11,6 +12,7 @@ const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const ANCHOR = 1_700_000_000_000
 
 const basePlan = (overrides: Partial<ObjectManipulationEmissionPlan> = {}): ObjectManipulationEmissionPlan => ({
+    operation: 'takeHold',
     characterId: CHARACTER_ID,
     objectId: OBJECT_ID,
     roomId: ROOM_ID,
@@ -25,7 +27,11 @@ describe('publishObjectManipulationPresentation', () => {
         expect(buildTakeHoldWorldMessage(basePlan())).toBe('Alice picks up broom')
     })
 
-    it('publishes single WorldMessage with Model A createdTime', () => {
+    it('builds drop world message copy', () => {
+        expect(buildDropWorldMessage(basePlan({ operation: 'drop' }))).toBe('Alice drops broom')
+    })
+
+    it('publishes single take-hold WorldMessage with Model A createdTime', () => {
         const messageBus = { publish: jest.fn() }
 
         publishObjectManipulationPresentation(messageBus as any, basePlan())
@@ -36,6 +42,22 @@ describe('publishObjectManipulationPresentation', () => {
             targets: [ROOM_ID, CHARACTER_ID],
             displayProtocol: 'WorldMessage',
             message: ['Alice picks up broom'],
+            createdTime: ANCHOR,
+            deliveryMode: 'deferred',
+        })
+    })
+
+    it('publishes single drop WorldMessage with Model A createdTime', () => {
+        const messageBus = { publish: jest.fn() }
+
+        publishObjectManipulationPresentation(messageBus as any, basePlan({ operation: 'drop' }))
+
+        expect(messageBus.publish).toHaveBeenCalledTimes(1)
+        expect(messageBus.publish).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: [ROOM_ID, CHARACTER_ID],
+            displayProtocol: 'WorldMessage',
+            message: ['Alice drops broom'],
             createdTime: ANCHOR,
             deliveryMode: 'deferred',
         })
