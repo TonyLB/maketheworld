@@ -4,7 +4,7 @@ import { ephemeraActionsDataSource } from './index'
 import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
-import { navigationIntentErrorMessages } from './parseCommand'
+import { navigationIntentErrorMessages, objectManipulationErrorMessages } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
@@ -1755,6 +1755,72 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['That kind of object manipulation is not implemented yet.'],
             })
+        })
+
+        it('publishes WorldOOCMessage for notCarryingObject agreement failure', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: objectManipulationErrorMessages.notCarryingObject,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'drop the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not carrying that.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+
+        it('publishes WorldOOCMessage for alreadyHoldingObject agreement failure', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: objectManipulationErrorMessages.alreadyHoldingObject,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'pick up the broom',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are already holding that.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
         })
     })
 

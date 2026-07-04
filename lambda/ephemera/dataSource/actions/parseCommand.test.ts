@@ -1204,6 +1204,33 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns Error for under preposition guard without complexity LLM', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["it"],"verbClass":"release","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'stash it under the bench',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
     it('returns Error for complex manipulation enrich disposition via edge-touch defer', async () => {
         const broomId = 'OBJECT#Broom'
         const roomId = 'ROOM#Bridge' as EphemeraRoomId

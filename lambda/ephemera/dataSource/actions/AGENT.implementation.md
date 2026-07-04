@@ -78,7 +78,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 6. **Egress** --- one stream type per atomic operator (**`Object Take Hold`** for **`takeHold`**; **`Object Drop`** for **`drop`**). Payload + guard in [`publishedEvents.ts`](publishedEvents.ts); wire **`Parse Requested`** branch in [`index.ts`](index.ts) only (no **`Action Assessed`** in v1).
 
-7. **Reference files (`takeHold`)** --- egress wiring mirrors existing **`Object Take Hold`** path; tests under **`dataSource/actions/enrich/objectManipulation/`**, **`parseCommand.test.ts`**, **`index.test.ts`**.
+7. **Reference files (`takeHold`)** --- egress wiring mirrors existing **`Object Take Hold`** path; tests under **`dataSource/actions/enrich/objectManipulation/`**, **`parseCommand.test.ts`** (mocked classify + enrich, agreement failures, **`on`**/**`under`** guard E2E), **`index.test.ts`** (stream egress + agreement OOC player copy).
 
 8. **Downstream** --- positions registers envelope guard in [`../positions/subscribedEvents.ts`](../positions/subscribedEvents.ts) and routes to **`executeObject*`** under [`../positions/manipulation/membership/`](../positions/manipulation/membership/); perception extends object-manipulation fan-in (see [`../perception/AGENT.md`](../perception/AGENT.md)).
 

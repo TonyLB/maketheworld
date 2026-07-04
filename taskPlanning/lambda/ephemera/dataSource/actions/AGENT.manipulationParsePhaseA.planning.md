@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phase A (verb frame + membership atomics)
 
-**Status:** In progress. Slices 1--4 shipped (`verbClass` classify contract, `MembershipManipulationFrame`, **`compileMembershipAtomic`**, PA-5 deterministic fast paths). Next step: end-to-end handler verification (slice 5).
+**Status:** Slice 5 complete (end-to-end handler verification). Next step: slice 6 plan retirement.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -139,10 +139,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Add minimal-verb **`take <object>`**, **`drop <object>`**, **`get <object>`** in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts): synthesize **`ObjectManipulationIntent`** with inferred **`verbClass`**; **`parseCommandCore`** routes to shared enrich/compiler --- **do not** duplicate pre-gates or membership reads in deterministicChecks.
   - [X] Tests: fast path hits same outcomes as mocked classify + enrich for equivalent commands.
 
-- [ ] **5. End-to-end and handler**
+- [X] **5. End-to-end and handler**
   - [X] Thread **`verbClass`** through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) enrich input.
-  - [ ] Confirm [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) egress unchanged for grounded **`ObjectManipulation`**.
-  - [ ] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) for mocked classify + enrich paths.
+  - [X] Confirm [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) egress unchanged for grounded **`ObjectManipulation`**.
+  - [X] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) for mocked classify + enrich paths.
 
 - [ ] **6. Durable doc updates + plan retirement prep**
   - [X] Update [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md): **`compileMembershipAtomic`**, remove verb inference / **`inRoomOnlyDropError`**; document preposition guard + agreement gate.
@@ -185,4 +185,5 @@ npm run build
 | **`compileMembershipAtomic`** (PA-6) | Done |
 | Legacy deletion (`inferManipulationVerb`, **`inRoomOnlyDropError`**) | Done |
 | Deterministic fast paths via compiler (PA-5) | Done |
-| Durable doc updates | Not started |
+| End-to-end handler verification (slice 5) | Done |
+| Durable doc updates | Done |
