@@ -169,4 +169,45 @@ describe('deterministicIntentChecks', () => {
         })).toBeNull()
         expect(deterministicIntentChecks({ command: 'go north' })).toBeNull()
     })
+
+    describe('manipulation fast paths', () => {
+        it('returns ObjectManipulationIntent for minimal take/drop/get verbs', () => {
+            expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
+                type: 'ObjectManipulationIntent',
+                rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
+                confidence: 1,
+            })
+            expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
+                type: 'ObjectManipulationIntent',
+                rawObjectSpans: ['rope'],
+                verbClass: 'release',
+                confidence: 1,
+            })
+            expect(deterministicIntentChecks({
+                command: 'get broom',
+                roomObjectLabels: ['broom'],
+            })).toEqual({
+                type: 'ObjectManipulationIntent',
+                rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
+                confidence: 1,
+            })
+        })
+
+        it('returns null for get when noun is not in object labels (Acme fall-through)', () => {
+            expect(deterministicIntentChecks({
+                command: 'get rocket skates',
+                roomObjectLabels: ['broom'],
+            })).toBeNull()
+        })
+
+        it('returns null for paraphrases and verb-only commands', () => {
+            expect(deterministicIntentChecks({ command: 'pick up the broom' })).toBeNull()
+            expect(deterministicIntentChecks({ command: 'take hold of the crate' })).toBeNull()
+            expect(deterministicIntentChecks({ command: 'take' })).toBeNull()
+            expect(deterministicIntentChecks({ command: 'drop' })).toBeNull()
+            expect(deterministicIntentChecks({ command: 'get' })).toBeNull()
+        })
+    })
 })

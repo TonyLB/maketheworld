@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phase A (verb frame + membership atomics)
 
-**Status:** In progress. Slices 1--3 shipped (`verbClass` classify contract, `MembershipManipulationFrame`, **`compileMembershipAtomic`**). Next step: deterministic fast paths (slice 4).
+**Status:** In progress. Slices 1--4 shipped (`verbClass` classify contract, `MembershipManipulationFrame`, **`compileMembershipAtomic`**, PA-5 deterministic fast paths). Next step: end-to-end handler verification (slice 5).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -108,7 +108,7 @@ Plan-only: decisions we are making in order to implement Phase A. When a decisio
 | PA-2 | **Agreement policy** --- `release` + room sole host -> existing **`notCarryingObject`**; `acquire` + actor character sole host -> new **already holding** error (fail closed) | Agreement gate + tests | Decided |
 | PA-3 | **Relational preposition guard** --- **`on`** and **`under`** only (word-boundary match); extend when Phase B hybrid **`relationKind`** enum adds shortcut prepositions | Enrich guard + tests | Decided |
 | PA-4 | **Confidence** --- on agreement success use classify confidence; on agreement failure use **`min(classify, agreementDowngrade)`** on terminal Error (and any early terminal path that carries confidence) | Terminal parse shape | Decided |
-| PA-5 | **Deterministic fast paths** --- bare **`take`** / **`drop`** / **`get <object>`** skip Bedrock classify only; **must** invoke **`compileMembershipAtomic`** (no duplicate membership/pre-gate logic in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)) | Fast paths + compiler | Decided |
+| PA-5 | **Deterministic fast paths** --- minimal-verb **`take <object>`** / **`drop <object>`** / **`get <object>`** skip Bedrock classify only (synthesize **`ObjectManipulationIntent`**; enrich routes to **`compileMembershipAtomic`**; no duplicate membership/pre-gate logic in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)); **`get`** label-gated for Acme tie-breaker | Fast paths + compiler | Shipped (slice 4) |
 | PA-6 | **`compileMembershipAtomic`** --- extract membership-atomic orchestrator from [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts); index thins to guard routing + compiler + complexity defer | Enrich refactor | Decided |
 
 ## Recommended order
@@ -135,9 +135,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Thin [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts): cardinality -> **`compileMembershipAtomic`** OR complexity LLM defer (unchanged tail).
   - [X] Unit tests on **`compileMembershipAtomic`**: held-only + release paraphrase; room + acquire; agreement failures; **`on`**/**`under`** guard; confidence downgrade; confirm **`inRoomOnlyDropError`** paths gone.
 
-- [ ] **4. Deterministic fast paths (PA-5) --- after step 3**
-  - [ ] Add bare **`take`**, **`drop`**, **`get <object>`** in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts): synthesize **`MembershipManipulationFrame`** with inferred **`verbClass`**, call shared enrich/compiler --- **do not** duplicate pre-gates or membership reads in deterministicChecks.
-  - [ ] Tests: fast path hits same outcomes as mocked classify + enrich for equivalent commands.
+- [X] **4. Deterministic fast paths (PA-5) --- after step 3**
+  - [X] Add minimal-verb **`take <object>`**, **`drop <object>`**, **`get <object>`** in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts): synthesize **`ObjectManipulationIntent`** with inferred **`verbClass`**; **`parseCommandCore`** routes to shared enrich/compiler --- **do not** duplicate pre-gates or membership reads in deterministicChecks.
+  - [X] Tests: fast path hits same outcomes as mocked classify + enrich for equivalent commands.
 
 - [ ] **5. End-to-end and handler**
   - [X] Thread **`verbClass`** through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) enrich input.
@@ -167,7 +167,9 @@ npm run build
 **Manual / fixture checks (mocked Bedrock):**
 
 - "grab the broom" (room) -> **`takeHold`**
+- "take broom" / "get broom" (room, fast path) -> **`takeHold`** without Bedrock classify
 - "toss the pouch" (held-only) -> **`drop`**
+- "drop broom" (held, fast path) -> **`drop`** without Bedrock classify
 - "drop the broom" (in room only) -> **`notCarryingObject`**
 - "pick up the broom" (already held) -> **already holding** error
 - "put the broom on the table" -> **`relationalPlacement`** Error via **`on`** guard (Phase B replaces with **`establishRelation`**)
@@ -182,5 +184,5 @@ npm run build
 | Types + classify **`verbClass`** | Done (slices 1--2) |
 | **`compileMembershipAtomic`** (PA-6) | Done |
 | Legacy deletion (`inferManipulationVerb`, **`inRoomOnlyDropError`**) | Done |
-| Deterministic fast paths via compiler (PA-5) | Not started |
+| Deterministic fast paths via compiler (PA-5) | Done |
 | Durable doc updates | Not started |

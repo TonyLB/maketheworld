@@ -61,7 +61,7 @@ async function parseCommandCore(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**: all without Bedrock.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectManipulationIntent`**: all without Bedrock classify.
  * Otherwise runs intent discrimination, then runs Acme order enrich when intent is **`AcmeOrderIntent`**
  * and object manipulation enrich when intent is **`ObjectManipulationIntent`**. Intent outcomes
  * **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without enrich.

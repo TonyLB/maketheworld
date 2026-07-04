@@ -1,4 +1,9 @@
-import type { ParseCommandInput, ParseCommandResult } from '../baseClasses'
+import type {
+    ParseCommandInput,
+    ParseCommandObjectManipulationIntentResult,
+    ParseCommandResult,
+} from '../baseClasses'
+import { normalizeExitName } from '../roomExitTargetsForCharacter'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
 import { ACME_ORDER_AFFINITIES_HARNESS_FIXTURES } from '../acmeOrderAffinitiesHarnessPhrases'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
@@ -25,6 +30,56 @@ function isBareHomeCommand(trimmed: string): boolean {
 /** After trim, case-insensitive predict as the whole line (no p alias). */
 function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
+}
+
+function stripLeadingArticle(rawSpan: string): string {
+    return rawSpan.trim().replace(/^the\s+/i, '').trim()
+}
+
+function maybeDeterministicManipulationIntent(
+    input: ParseCommandInput
+): ParseCommandObjectManipulationIntentResult | null {
+    const trimmed = input.command.trim()
+    if (!trimmed) {
+        return null
+    }
+
+    const acquireMatch = /^(take|get)\s+(.+)$/i.exec(trimmed)
+    const releaseMatch = /^drop\s+(.+)$/i.exec(trimmed)
+    const verbClass = acquireMatch ? 'acquire' as const : releaseMatch ? 'release' as const : undefined
+    const rawTail = acquireMatch?.[2] ?? releaseMatch?.[1]
+    if (!verbClass || !rawTail) {
+        return null
+    }
+
+    const tail = rawTail.trim()
+    if (!tail) {
+        return null
+    }
+
+    if (acquireMatch?.[1].toLowerCase() === 'take' && /^hold\b/i.test(tail)) {
+        return null
+    }
+
+    const rawObjectSpan = stripLeadingArticle(tail)
+    if (!rawObjectSpan) {
+        return null
+    }
+
+    if (acquireMatch?.[1].toLowerCase() === 'get') {
+        const normalizedSpan = normalizeExitName(rawObjectSpan)
+        const labels = input.roomObjectLabels ?? []
+        if (!normalizedSpan || !labels.includes(normalizedSpan)) {
+            return null
+        }
+    }
+
+    return {
+        type: 'ObjectManipulationIntent',
+        rawObjectSpans: [rawObjectSpan],
+        verbClass,
+        confidence: 1,
+    }
 }
 
 function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
@@ -87,6 +142,11 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
     }
     if (isBareHomeCommand(trimmedCommand)) {
         return { type: 'Home', confidence: 1 }
+    }
+
+    const manipulationIntent = maybeDeterministicManipulationIntent(input)
+    if (manipulationIntent) {
+        return manipulationIntent
     }
 
     return maybeDeterministicNavigationResult(input)

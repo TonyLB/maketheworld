@@ -109,6 +109,7 @@ Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../di
 ```text
 Parse Requested
   -> parallel: roomExitContext + roomObjectCatalog + heldInventoryCatalog
+  -> [optional] deterministic fast path: minimal-verb take/drop/get -> ObjectManipulationIntent (skip Bedrock classify only)
   -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[] + verbClass (acquire | release; movementObjectLabels = room + held)
   -> enrichObjectManipulation: cardinality gate -> compileMembershipAtomic
        -> relational preposition guard (on | under)
@@ -123,7 +124,7 @@ Parse Requested
 
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectCatalog`** on **`parseCommand`** input.
 2. **Held inventory catalog:** [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) --- character `positionGraph` + character asset-stack perspective merge; parallel fetch on **`Parse Requested`**; threaded as **`heldInventoryCatalog`** on **`parseCommand`**. Identity resolves against [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts) (room entries first; held-only entries appended; dedupe by `objectId` with room winning).
-3. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** = union of room + held labels (parallel to **`movementExitLabels`**). Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy.
+3. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** = union of room + held labels (parallel to **`movementExitLabels`**). Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy. **Deterministic classify skip:** minimal-verb **`take <object>`**, **`drop <object>`**, **`get <object>`** in [`deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts) synthesize **`ObjectManipulationIntent`** (`confidence: 1`); **`get`** is label-gated so unknown products still reach Bedrock classify -> **`AcmeOrder`**.
 4. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "verbClass": "acquire" | "release", "confidence": <number> }` -> **`rawObjectSpans`** + **`verbClass`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
 
 **Classify vs enrich ownership:**
