@@ -72,7 +72,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 3. **Enrich (split stages)** --- [`compileMembershipAtomic`](enrich/objectManipulation/compileMembershipAtomic.ts) orchestrates membership-atomic compile: relational preposition guard (`on` / `under`), merged-catalog identity, pre-gates, verb--membership agreement gate, and complexity LLM defer. Complex outcomes (`multiObject`, `multiPresent`, `relationalPlacement`, unsupported atomic **`operationKind`**) remain terminal **`Error`** stubs.
 
-4. **Identity resolve** --- deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + [`catalogWithScope`](enrich/objectManipulation/catalogMerge.ts)); optional identity LLM on NoMatch / AmbiguousMatch; fail closed on ambiguity. **`drop`**: held catalog only; in-room-only span -> **`notCarryingObject`** Error.
+4. **Identity resolve** --- deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + merged catalog via [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts)); optional identity LLM on NoMatch / AmbiguousMatch; fail closed on ambiguity. Agreement gate after pre-gates: **`release` + room host** -> **`notCarryingObject`**; **`acquire` + actor character host** -> **`alreadyHoldingObject`**.
 
 5. **Terminal parse** --- extend **`ParseCommandObjectManipulationResult`** / guards in [`baseClasses.ts`](baseClasses.ts) when adding **`operationKind`** values.
 

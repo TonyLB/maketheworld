@@ -31,7 +31,7 @@ Affordance refresh on placement change reuses the existing **`Object Moved`** ->
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectManipulationIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
-| Enrich | Identity -> membership observation -> complexity pre-gates (optional LLM); atomic path yields **`operationKind: takeHold`** |
+| Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
@@ -66,7 +66,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectManipulationIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
-| Enrich | Held-catalog identity only; in-room-only span -> terminal **`Error`**; membership observation -> complexity pre-gates (optional LLM); atomic path yields **`operationKind: drop`** |
+| Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |

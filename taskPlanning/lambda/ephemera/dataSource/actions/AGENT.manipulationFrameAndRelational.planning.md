@@ -1,10 +1,10 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Planning only --- blocked on Phase A shipping (or explicit parallel agreement). Next step: lock relation representation (hybrid enum + custom) and frame-extraction hop design.
+**Status:** Planning only --- Phase A shipped. Next step: lock relation representation (hybrid enum + custom) and frame-extraction hop design.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
-Prerequisite / companion: [`AGENT.manipulationParsePhaseA.planning.md`](./AGENT.manipulationParsePhaseA.planning.md) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity, legacy verb-inference deletion, relational preposition guard).
+Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity, relational preposition guard); module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
 ## Purpose
 
@@ -18,7 +18,7 @@ Retire this plan when relational vertical + plan IR steady-state docs land; git 
 
 | Phase | Focus | Outcome |
 | --- | --- | --- |
-| **A** (separate plan) | Membership atomics | **`verbClass`**, **`compileMembershipAtomic`** (compiler v0), legacy deletion, preposition guard |
+| **A** (shipped) | Membership atomics | **`verbClass`**, **`compileMembershipAtomic`** (compiler v0), legacy deletion, preposition guard |
 | **B** | **`establishRelation`** vertical | Frame slots, relation normalization, stream/apply/presentation |
 | **C** | Plan IR + composition | Deterministic compiler; optional multi-step (e.g. drop + relate) |
 | **D** | Advanced planning (optional) | LLM plan generation only where compiler cannot derive steps |
@@ -103,7 +103,7 @@ Lock exact enum members and presentation obligations in **Open decisions** befor
 ## Getting started
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
-2. Confirm Phase A status in [`AGENT.manipulationParsePhaseA.planning.md`](./AGENT.manipulationParsePhaseA.planning.md).
+2. Read Phase A steady-state in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (membership compiler shipped).
 3. Read positions relational stub: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
 4. Trace current relational rejection path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts), [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) (complexity LLM).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
