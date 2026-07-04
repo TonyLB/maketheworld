@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Planning only --- Phase A shipped. Next step: lock relation representation (hybrid enum + custom) and frame-extraction hop design.
+**Status:** Planning only --- Phase A shipped. BD-1--BD-10 locked (2026-07-04); next step: Phase B implementation (B1 frame schema + extraction).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -42,6 +42,7 @@ discriminateIntent (short intent list; verbClass acquire | release for membershi
 | `resolveComponent` | Map free-text span -> trusted `EphemeraId` via catalog |
 | `transferMembership` | **`takeHold`** / **`drop`** (existing membership kernel path) |
 | `establishRelation` | Add edge on host `positionGraph` (slice 5+ kernel) |
+| `dissolveRelation` | Remove edge on host `positionGraph` (BD-7; slice 5+ kernel) |
 | `look` / others | Reuse existing affordance streams where composition needs them |
 
 Phase B may compile to a **length-1 plan** internally without exposing a general executor API.
@@ -52,20 +53,20 @@ Product preference (from planning discussion): work deterministically with a **s
 
 | Bucket | Examples | Persist / compile |
 | --- | --- | --- |
-| **Enum: surface relations** | `on`, `under`, `against` (TBD exact set) | Canonical **`relationKind`** on edge; Phase A guard uses **`on`** + **`under`** only --- extend guard when enum members ship |
+| **Enum: surface relations** | `On`, `Under`, `Against` (BD-2 locked) | Canonical **`relationKind`** on edge |
 | **Deferred: containment** | `in`, `inside` | Not **`establishRelation`** v1; routes to future nesting operator |
 | **Custom** | `tied to`, `leaning against`, `wrapped around` | **`relationKind: Custom`** + **`relationLabel`** (player/normalized text) |
 
-Lock exact enum members and presentation obligations in **Open decisions** before Phase B implementation.
+Enum members and custom persist shape locked in **Open decisions** (BD-2, BD-3); presentation obligations ship with Phase B perception work.
 
 ## Scope
 
 ### Phase B --- in scope
 
 - **Manipulation frame** schema: role-tagged spans (`subject`, `target`), **`relationSpan`** (no **`verbClass=relational`** at classify --- relational entry is enrich-side frame extract).
-- Frame extraction hop (recommended: **dedicated enrich prompt**, not bloated main classifier) + JSON validation; replaces Phase A relational preposition guard for supported frames.
+- Frame extraction hop (**dedicated enrich prompt**, BD-4 --- not shared complexity LLM) + JSON validation; replaces Phase A relational preposition guard for supported frames.
 - **Relation normalizer**: map **`relationSpan`** -> **`relationKind`** (enum | `Custom`) + optional **`relationLabel`**.
-- Terminal parse + egress: **`establishRelation`** (or **`ObjectManipulation`** variant with **`operationKind: 'establishRelation'`** --- lock in PA/B contract).
+- Terminal parse + egress: new top-level result variant (BD-1) --- e.g. **`ParseCommandEstablishRelationResult`** (`type: 'EstablishRelation'`) with subject/target ids, **`relationKind`**, optional **`relationLabel`**, and **`operationKind: 'establishRelation' | 'dissolveRelation'`** (BD-7). Membership atomics keep **`ObjectManipulation`** + **`takeHold` | `drop`** unchanged.
 - Promote **`relationalPlacement`** from terminal-only Error to grounded success path when frame validates.
 - Positions: implement **`applyHostRelationalPatch`** per stub in [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
 - Perception: transcript template (withhold unstated geometry per [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md)).
@@ -74,13 +75,14 @@ Lock exact enum members and presentation obligations in **Open decisions** befor
 ### Phase C --- in scope
 
 - Explicit **Plan IR** types + deterministic **compiler** (frame + catalogs + membership -> ordered steps).
-- **Composition rules**: when single command implies membership change + relation (e.g. held object + "put X on Y").
+- **Composition rules (BD-8):** when single command implies membership change + relation (e.g. held object + "put X on Y"), compiler auto-inserts **`drop`** before **`establishRelation`** --- no require explicit drop language.
 - **`MultipleCommands`** policy: reject vs allow bounded multi-step from one line.
-- Executor invokes existing stream contracts per step; define failure partial-commit behavior.
+- **Multi-step failure (BD-9):** composed plans (**drop** + **`establishRelation`**, etc.) apply **atomically** --- positions kernel bundles membership **`HostEffect[]`** + relational patches in **one** `transactWrite` (same family as graph+adjacency bundling in **`applyHostEffects`**). **Not** sequential per-step streams with first-step commit; **not** RoomStack-style fail-tolerant tail.
 
 ### Phase D --- optional / deferrable
 
-- LLM emits step list when compiler returns **defer** (analogous to complexity LLM today).
+- **Defer vs hard Error (BD-10):** compiler **`defer`** only when non-trivial **existing in-host relational edges** on subject and/or target block a deterministic registry plan (interaction complexity --- analog to Phase A **`deferToComplexityLlm`**). **Phases B--C:** that bucket terminalizes as **hard Error** (complexity-style stub); Phase D plan LLM is the escalation path. See **BD-10** detail below.
+- LLM emits step list when compiler returns **`defer`** (constrained to registry primitives; validate + atomic apply per BD-9).
 - Reuse [`llm/pipeline/`](../../../../../lambda/ephemera/llm/pipeline/AGENT.md) if multi-hop frame+plan needs orchestration.
 
 ### Out of scope (unless plan updated)
@@ -122,16 +124,28 @@ Plan-only: decisions we are making in order to implement Phases B--D. When a dec
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| BD-1 | **Terminal parse shape** --- extend **`ParseCommandObjectManipulationResult.operationKind`** with **`establishRelation`** + relation fields vs new top-level result variant | Phase B contract | Open |
-| BD-2 | **Hybrid relation enum** --- lock v1 enum members (`On`, `Under`, ...); confirm **`In`** excluded and routed to future nesting | Normalizer + persist **`edge.kind`** | Open |
-| BD-3 | **Custom relation storage** --- `Custom` + `relationLabel` on edge vs presentation-only label with generic kind | Persist + transcript | Open |
-| BD-4 | **Frame extraction placement** --- dedicated enrich hop (decided: **not** expanded classify JSON; **`verbClass`** remains acquire/release only) vs shared complexity LLM | Prompt layout + Bedrock budget | Open |
-| BD-5 | **Target resolution** --- room object catalog only vs include features/surfaces; handle non-object targets ("floor", "wall") | Frame extract + resolve | Open |
-| BD-6 | **Host selection** --- v1 always actor's current room **`positionGraph`** vs derive from membership of subject/target | Positions ingress | Open |
-| BD-7 | **Inverse operator** --- **`dissolveRelation`** / `remove` in v1 vs establish-only | Phase B scope | Open |
-| BD-8 | **Composition (Phase C)** --- auto-insert **`drop`** before **`establishRelation`** when subject is held vs require explicit language | Compiler | Open |
-| BD-9 | **Multi-step failure** --- atomic all-or-nothing vs first-step commit | Executor + bus semantics | Open |
-| BD-10 | **LLM plan generation (Phase D)** --- criteria for defer vs hard Error | Phase D entry | Open |
+| BD-1 | **Terminal parse shape** --- **new top-level result variant** (e.g. **`ParseCommandEstablishRelationResult`**, `type: 'EstablishRelation'`), **not** extending **`ParseCommandObjectManipulationResult.operationKind`**. Membership atomics stay on **`ObjectManipulation`** + **`takeHold` | `drop`**. | Phase B contract | Decided |
+| BD-2 | **Hybrid relation enum** --- v1 members: **`On`**, **`Under`**, **`Against`**. **`In`** / **`inside`** excluded; route to future nesting operator with defer message (not **`establishRelation`**). | Normalizer + persist **`edge.kind`** | Decided |
+| BD-3 | **Custom relation storage** --- persist **`relationKind: Custom`** + **`relationLabel`** on edge (not presentation-only). | Persist + transcript | Decided |
+| BD-4 | **Frame extraction placement** --- **dedicated enrich hop** (new module under enrich); **not** shared complexity LLM. Relational formation is distinct from cross-graph membership movement. **`verbClass`** remains **`acquire` | `release`** only at classify. | Prompt layout + Bedrock budget | Decided |
+| BD-5 | **Target resolution** --- v1: **room object catalog only** for subject + target resolve. **Extend** to features/surfaces and nested **`positionGraph`** hierarchy targets when nested-host target matching ships (follow-on; not Phase B). Non-object targets ("floor", "wall") out of scope v1. | Frame extract + resolve | Decided |
+| BD-6 | **Host selection** --- v1: always actor's **current room** **`positionGraph`** (`roomExitContext.fromRoomId`). | Positions ingress | Decided |
+| BD-7 | **Inverse operator** --- include **`dissolveRelation`** in v1 (remove edge on host graph); pair with **`establishRelation`**. | Phase B scope | Decided |
+| BD-8 | **Composition (Phase C)** --- compiler **auto-inserts** **`drop`** before **`establishRelation`** when subject is held (no require explicit "drop then put" language). | Compiler | Decided |
+| BD-9 | **Multi-step failure** --- **atomic all-or-nothing** via positions **kernel bundling**: one compound apply / single `transactWrite` spanning membership **`HostEffect[]`** + relational **`HostRelationalPatch[]`** on affected hosts (mirror graph+adjacency in **`applyHostEffects`**). **Not** sequential stream-per-step with first-step commit; **not** RoomStack fail-tolerant tail. On apply failure: no partial graph change, player **Error**. | Executor + positions kernel (Phase C) | Decided |
+| BD-10 | **LLM plan generation (Phase D)** --- **`defer`** when compiler cannot derive a deterministic registry plan because **non-trivial existing in-host relational topology** on subject and/or target interacts with the proposed patch (conflicting edges, replace/coexist/dissolve-first ambiguity). **Hard Error** (all phases): grounding/catalog failure, **`in`**/nesting (BD-2), **`MultipleCommands`**, nodes not on host graph, **`dissolveRelation`** with no matching edge, plan-LLM invoke/parse/validation failure. **B--C interim:** defer bucket -> terminal **Error** stub (no plan LLM yet). **Deterministic allow:** idempotent duplicate edge (exact edge already present). | Phase D entry; B3 legality; C1 compiler | Decided |
+
+### BD-10: defer vs hard Error (litmus)
+
+| Outcome | When | Phases B--C | Phase D |
+| --- | --- | --- | --- |
+| **Success (deterministic plan)** | Clean host topology; compiler emits length-1 or BD-8 length-2 plan | Apply (atomic per BD-9) | Same |
+| **`defer`** | Existing relational edges on subject/target require interaction reasoning (not covered by deterministic legality rules) | **Error** stub --- "rules don't cover this complexity" | Plan LLM hop -> validate registry steps -> atomic apply |
+| **Hard Error** | Structural/policy (see BD-10 row) | Error | Error (no plan LLM) |
+
+**Primary defer case (only expected defer driver for relational vertical):** pre-existing **surface/custom** edges on subject or target on the room host when establishing or changing a relation --- e.g. already **`On`** table, player says **`Under`** table; subject **`Against`** wall plus new target relation; may need **`dissolveRelation`** + **`establishRelation`** plan the compiler cannot derive without interaction assessment.
+
+**Not defer:** frame extraction (Phase B dedicated hop); B2 paraphrase->enum LLM; membership exit-edge touch (Phase A **`deferToComplexityLlm`** path for atomics only).
 
 ## Recommended order
 
@@ -139,8 +153,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 ### Phase B --- establishRelation vertical
 
-- [ ] **B0. Decision lock**
-  - [ ] Close BD-1 -- BD-7 (minimum) in **Open decisions**; capture enum list and edge persist shape in positions contract draft.
+- [X] **B0. Decision lock**
+  - [X] Close BD-1 -- BD-10 in **Open decisions** (2026-07-04).
+  - [ ] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3).
 
 - [ ] **B1. Frame schema + extraction**
   - [ ] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
@@ -150,12 +165,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [ ] **B2. Relation normalizer**
   - [ ] Deterministic map: common prepositions -> enum; **`in`** -> explicit defer/nesting message; else **`Custom`** + label.
-  - [ ] Optional small LLM hop for paraphrase -> enum only if deterministic map insufficient (decide in BD-2).
+  - [ ] Optional small LLM hop for paraphrase -> enum only if deterministic map insufficient (BD-2 locked enum; defer LLM unless map gaps found in B2 tests).
   - [ ] Tests: enum paths, custom paths, excluded **`in`**.
 
 - [ ] **B3. Grounding + legality**
   - [ ] Resolve subject + target against catalogs; host selection per BD-6.
-  - [ ] Legality: both nodes on host graph; no duplicate conflicting edge (TBD); membership implications documented.
+  - [ ] Legality (BD-10): both nodes on host graph; **idempotent** duplicate edge -> allow/no-op; **conflicting** or non-trivial existing relational topology on subject/target -> **Error** stub in B--C (compiler **`defer`** bucket until Phase D).
   - [ ] Replace Phase A relational preposition guard and **`relationalPlacement`** terminal Error for supported frames with grounded terminal parse.
 
 - [ ] **B4. Positions persist + ingress**
@@ -178,12 +193,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [ ] **C1. Plan IR types + registry**
   - [ ] Define **`ParsePlanStep`** union and primitive registry (resolve, transferMembership, establishRelation).
-  - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+).
+  - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+) or **`defer`** / **Error** per BD-10.
 
-- [ ] **C2. Executor**
-  - [ ] Run plan steps in order; map each step to existing stream/events.
-  - [ ] Implement BD-8 composition rules (held + surface relation).
-  - [ ] Implement BD-9 failure semantics.
+- [ ] **C2. Executor + compound kernel apply**
+  - [ ] Compiler emits ordered plan; executor routes **length-1** plans to existing single-step streams (Phase B path).
+  - [ ] **Length-2+** composed plans (BD-8): **one** positions ingress / compound coordinator --- kernel **`transactWrite`** bundles all **`HostEffect[]`** + **`HostRelationalPatch[]`** (BD-9); **must not** emit sequential **`Object Drop`** then **`Object Establish Relation`** with independent partial commit.
+  - [ ] On compound apply failure: return **Error** to player; no membership-changed or relational fact streams.
+  - [ ] Perception/transcript: single composed outcome when compound apply succeeds (not separate drop + relate lines unless product decides otherwise at C2).
 
 - [ ] **C3. Classifier / MultipleCommands policy**
   - [ ] Document when composite single-line commands compile vs **`MultipleCommands`** Error.
@@ -195,8 +211,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 ### Phase D --- LLM plan generation (optional)
 
-- [ ] **D1. Defer criteria**
-  - [ ] Define when compiler returns **defer** (BD-10).
+- [X] **D1. Defer criteria**
+  - [X] Lock BD-10: **`defer`** = non-trivial existing in-host relational edges on subject/target; B--C -> Error stub.
 
 - [ ] **D2. Plan LLM hop**
   - [ ] Constrained JSON: steps must be valid primitives from registry only.
@@ -225,9 +241,12 @@ npm run build
 **Manual scenarios (post-B):**
 
 - "put the broom on the table" -> relation edge on room host; transcript asserts relation, not exact placement geometry.
-- "lean the ladder against the wall" -> **`Custom`** or enum **`Against`** per BD-2.
-- "put the coin in the jar" -> nesting defer message, not **`establishRelation`** ( **`in`** excluded).
-- Held object + surface relation -> composed plan per BD-8 (Phase C).
+- "put the broom on the table" (already on table, same edge) -> idempotent allow/no-op (BD-10).
+- "put the broom under the table" (already on table) -> **Error** stub in B--C; plan LLM candidate in Phase D (BD-10).
+- "lean the ladder against the wall" -> **`Custom`** or enum **`Against`** (BD-2).
+- "put the coin in the jar" -> nesting defer message, not **`establishRelation`** (**`In`** excluded per BD-2).
+- Held object + surface relation -> composed plan: auto **`drop`** then **`establishRelation`** in **one atomic apply** (BD-8 + BD-9, Phase C); failure leaves object held.
+- "take the rope off the crate" -> **`dissolveRelation`** on room host (BD-7).
 
 ## Progress
 
@@ -235,7 +254,7 @@ npm run build
 | --- | --- |
 | Phases B--D task plan | Done |
 | Phase A prerequisite | Not started (see companion plan) |
-| BD open decisions locked | Not started |
+| BD-1--BD-10 open decisions locked | Done (2026-07-04) |
 | Phase B establishRelation vertical | Not started |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
