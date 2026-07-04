@@ -121,6 +121,8 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return "I can't tell which object you mean."
         case objectManipulationErrorMessages.notCarryingObject:
             return 'You are not carrying that.'
+        case objectManipulationErrorMessages.alreadyHoldingObject:
+            return 'You are already holding that.'
         case objectManipulationErrorMessages.complexRelational:
         case objectManipulationErrorMessages.complexMultiObject:
         case objectManipulationErrorMessages.complexUnimplementedVerb:

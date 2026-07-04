@@ -1085,7 +1085,7 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
 
@@ -1123,13 +1123,96 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns Error for complex manipulation enrich disposition', async () => {
+    it('returns grounded ObjectManipulation drop for held-only release paraphrase (toss the pouch)', async () => {
+        const pouchId = 'OBJECT#Pouch'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["pouch"],"verbClass":"release","confidence":0.88}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'toss the pouch',
+                characterId: 'CHARACTER#123',
+                roomObjectLabels: [],
+                roomObjectCatalog: [],
+                heldInventoryCatalog: [{ objectId: pouchId, normalizedShortName: 'pouch' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: pouchId,
+            confidence: 0.88,
+        })
+    })
+
+    it('returns Error when acquire targets already-held object', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.9}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'pick up the broom',
+                characterId: 'CHARACTER#123',
+                roomObjectLabels: [],
+                roomObjectCatalog: [],
+                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.alreadyHoldingObject,
+        })
+    })
+
+    it('returns Error for relational preposition guard without complexity LLM', async () => {
+        const broomId = 'OBJECT#Broom'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+
+        const result = await parseCommand(
+            {
+                command: 'put the broom on the table',
+                roomObjectLabels: ['broom'],
+                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns Error for complex manipulation enrich disposition via edge-touch defer', async () => {
         const broomId = 'OBJECT#Broom'
         const roomId = 'ROOM#Bridge' as EphemeraRoomId
         const tableId = 'OBJECT#Table'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1138,7 +1221,7 @@ describe('parseCommand LLM path', () => {
 
         const result = await parseCommand(
             {
-                command: 'put the broom on the table',
+                command: 'pick up the broom',
                 roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },

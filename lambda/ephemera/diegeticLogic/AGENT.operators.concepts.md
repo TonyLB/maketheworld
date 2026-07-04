@@ -98,7 +98,7 @@ Commands that require relational edges (`On`, `In`, ...), multi-object coordinat
 
 - **`multiObject`**: the command names or resolves more than one object target (e.g. "pick up the broom and the anvil").
 - **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
-- **`relationalPlacement`**: the move depends on in-room relational edges (e.g. "put the broom on the table").
+- **`relationalPlacement`**: the move depends on in-room relational edges (e.g. "put the broom on the table"). Phase A enrich also short-circuits word-boundary **`on`** and **`under`** to this error before identity (replaced by frame extract in Phase B).
 
 Full processing requires a **separate follow-on task plan** for relational **operators** (parse, facts, presentation). Persist-layer hook (documented stub): [`../dataSource/positions/manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
 

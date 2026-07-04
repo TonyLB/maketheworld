@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phase A (verb frame + membership atomics)
 
-**Status:** In progress. Slices 1--2 shipped (`verbClass` classify contract + `MembershipManipulationFrame`). Next step: **`compileMembershipAtomic`** enrich refactor (slice 3).
+**Status:** In progress. Slices 1--3 shipped (`verbClass` classify contract, `MembershipManipulationFrame`, **`compileMembershipAtomic`**). Next step: deterministic fast paths (slice 4).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -8,7 +8,7 @@ Follow-on initiative (relational + plan IR): [`AGENT.manipulationFrameAndRelatio
 
 ## Purpose
 
-Fix the **takeHold / drop** parse path without waiting for generic relational operators. Today the classifier returns **`ObjectManipulationIntent`** + **`rawObjectSpans`** only; a brittle regex (**[`inferManipulationVerb.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/inferManipulationVerb.ts)**) chooses room vs held catalog for identity, while membership pre-gates derive **`operationKind`** from ground truth afterward. That split misroutes paraphrases (e.g. "toss the pouch" when the pouch is held-only) and will compound as operators grow.
+Fix the **takeHold / drop** parse path without waiting for generic relational operators. Classify emits **`verbClass`** (membership language direction); enrich **`compileMembershipAtomic`** resolves identity against the merged catalog, runs pre-gates, and applies an agreement gate so language direction matches membership ground truth.
 
 Phase A lands a **language frame slot at classify** (`verbClass`) and a **membership-driven compiler** at enrich for v1 membership atomics only. It **clears verb-gated identity** and establishes the frame hook Phase B extends --- it does **not** build Plan IR, **`ManipulationFrame`** role slots, or **`establishRelation`** (see [Phase A boundary](#phase-a-boundary-not-plan-ir)).
 
@@ -125,29 +125,29 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Parse and validate **`verbClass`** in [`intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts).
   - [X] Extend [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts) (acquire/release only, malformed, forbidden fields).
 
-- [ ] **3. Enrich refactor: compiler, deletion, guard (PA-6)**
-  - [ ] Extract **`compileMembershipAtomic`** (new module under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/)): preposition guard -> merged-catalog identity -> unary collapse -> membership observe -> pre-gates -> agreement gate.
-  - [ ] Add relational preposition guard inside compiler: word-boundary **`on`** and **`under`** only -> **`relationalPlacement`** Error (PA-3).
-  - [ ] Identity resolves against **`mergeObjectManipulationCatalogs(room, held)`** only --- no verb-gated catalog.
-  - [ ] Add agreement module: PA-2 copy mapping; PA-4 **`min`** confidence downgrade on agreement failure.
-  - [ ] Add **`alreadyHoldingObject`** to [`resolveObjectSpan.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts) error messages.
-  - [ ] **Delete legacy:** [`inferManipulationVerb.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/inferManipulationVerb.ts) + tests; **`inRoomOnlyDropError`** + both call sites in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts).
-  - [ ] Thin [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts): cardinality -> **`compileMembershipAtomic`** OR complexity LLM defer (unchanged tail).
-  - [ ] Unit tests on **`compileMembershipAtomic`**: held-only + release paraphrase; room + acquire; agreement failures; **`on`**/**`under`** guard; confidence downgrade; confirm **`inRoomOnlyDropError`** paths gone.
+- [X] **3. Enrich refactor: compiler, deletion, guard (PA-6)**
+  - [X] Extract **`compileMembershipAtomic`** (new module under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/)): preposition guard -> merged-catalog identity -> unary collapse -> membership observe -> pre-gates -> agreement gate.
+  - [X] Add relational preposition guard inside compiler: word-boundary **`on`** and **`under`** only -> **`relationalPlacement`** Error (PA-3).
+  - [X] Identity resolves against **`mergeObjectManipulationCatalogs(room, held)`** only --- no verb-gated catalog.
+  - [X] Add agreement module: PA-2 copy mapping; PA-4 **`min`** confidence downgrade on agreement failure.
+  - [X] Add **`alreadyHoldingObject`** to [`resolveObjectSpan.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts) error messages.
+  - [X] **Delete legacy:** [`inferManipulationVerb.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/inferManipulationVerb.ts) + tests; **`inRoomOnlyDropError`** + both call sites in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts).
+  - [X] Thin [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts): cardinality -> **`compileMembershipAtomic`** OR complexity LLM defer (unchanged tail).
+  - [X] Unit tests on **`compileMembershipAtomic`**: held-only + release paraphrase; room + acquire; agreement failures; **`on`**/**`under`** guard; confidence downgrade; confirm **`inRoomOnlyDropError`** paths gone.
 
 - [ ] **4. Deterministic fast paths (PA-5) --- after step 3**
   - [ ] Add bare **`take`**, **`drop`**, **`get <object>`** in [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts): synthesize **`MembershipManipulationFrame`** with inferred **`verbClass`**, call shared enrich/compiler --- **do not** duplicate pre-gates or membership reads in deterministicChecks.
   - [ ] Tests: fast path hits same outcomes as mocked classify + enrich for equivalent commands.
 
 - [ ] **5. End-to-end and handler**
-  - [ ] Thread **`verbClass`** through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) enrich input.
+  - [X] Thread **`verbClass`** through [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) enrich input.
   - [ ] Confirm [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) egress unchanged for grounded **`ObjectManipulation`**.
   - [ ] Extend [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) and [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) for mocked classify + enrich paths.
 
 - [ ] **6. Durable doc updates + plan retirement prep**
-  - [ ] Update [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md): **`compileMembershipAtomic`**, remove verb inference / **`inRoomOnlyDropError`**; document preposition guard + agreement gate.
-  - [ ] Update [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) classify row for **`takeHold`** / **`drop`**.
-  - [ ] Update [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md) sequence diagram.
+  - [X] Update [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md): **`compileMembershipAtomic`**, remove verb inference / **`inRoomOnlyDropError`**; document preposition guard + agreement gate.
+  - [X] Update [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) classify row for **`takeHold`** / **`drop`**.
+  - [X] Update [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md) sequence diagram.
   - [ ] Mark all checkboxes `[X]`; set **Status** to done; delete this plan when merged (optional: leave a one-line pointer in Phase B plan that Phase A shipped).
 
 ## Verification
@@ -180,7 +180,7 @@ npm run build
 | Phase A task plan | Done |
 | PA-1 through PA-6 open decisions | Decided |
 | Types + classify **`verbClass`** | Done (slices 1--2) |
-| **`compileMembershipAtomic`** (PA-6) | Not started |
-| Legacy deletion (`inferManipulationVerb`, **`inRoomOnlyDropError`**) | Not started |
+| **`compileMembershipAtomic`** (PA-6) | Done |
+| Legacy deletion (`inferManipulationVerb`, **`inRoomOnlyDropError`**) | Done |
 | Deterministic fast paths via compiler (PA-5) | Not started |
 | Durable doc updates | Not started |
