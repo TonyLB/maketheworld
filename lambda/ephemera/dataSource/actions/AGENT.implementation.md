@@ -68,9 +68,9 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 1. **When to use this path** --- atomic transfer between eligible membership hosts (room, character inventory in v1). Atomic eligibility is decided by cardinality gate + membership complexity pre-gates (not a single enrich disposition hop). Relational placement, multi-object deltas, and multi-host membership (`multiPresent`) terminalize as **`Error`** (no stream, no positions) until a follow-on planner ships.
 
-2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** only; thread **`movementObjectLabels`** (union of room + held labels from parallel fetch) into the classify prompt via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts).
+2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** + **`verbClass`** (`acquire` | `release`); thread **`movementObjectLabels`** (union of room + held labels from parallel fetch) into the classify prompt via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts).
 
-3. **Enrich (split stages)** --- extend [`enrich/objectManipulation/`](enrich/objectManipulation/): add **`operationKind`** enum + identity/complexity Bedrock prompts (separate JSON contracts). Verb inference ([`inferManipulationVerb.ts`](enrich/objectManipulation/inferManipulationVerb.ts)) selects scoped identity catalog: room for **`takeHold`**, held for **`drop`**. Complex outcomes (`multiObject`, `multiPresent`, `relationalPlacement`, unsupported atomic **`operationKind`**) remain terminal **`Error`** stubs.
+3. **Enrich (split stages)** --- extend [`enrich/objectManipulation/`](enrich/objectManipulation/): add **`operationKind`** enum + identity/complexity Bedrock prompts (separate JSON contracts). **Phase A in flight:** verb inference ([`inferManipulationVerb.ts`](enrich/objectManipulation/inferManipulationVerb.ts)) is superseded by classify **`verbClass`** + **`compileMembershipAtomic`** (slice 3); until then enrich still uses regex verb inference for catalog scoping. Complex outcomes (`multiObject`, `multiPresent`, `relationalPlacement`, unsupported atomic **`operationKind`**) remain terminal **`Error`** stubs.
 
 4. **Identity resolve** --- deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + [`catalogWithScope`](enrich/objectManipulation/catalogMerge.ts)); optional identity LLM on NoMatch / AmbiguousMatch; fail closed on ambiguity. **`drop`**: held catalog only; in-room-only span -> **`notCarryingObject`** Error.
 
@@ -109,8 +109,8 @@ Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../di
 ```text
 Parse Requested
   -> parallel: roomExitContext + roomObjectCatalog + heldInventoryCatalog
-  -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[] (movementObjectLabels = room + held)
-  -> verb inference: pickUp vs drop
+  -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[] + verbClass (acquire | release; movementObjectLabels = room + held)
+  -> verb inference: pickUp vs drop (superseded by verbClass + compileMembershipAtomic in Phase A slice 3)
   -> cardinality gate (deterministic)
   -> identity (stage 1): scoped catalog resolve + optional identity LLM (room for pickUp, held for drop)
   -> unary collapse
@@ -124,8 +124,16 @@ Parse Requested
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectCatalog`** on **`parseCommand`** input.
 2. **Held inventory catalog:** [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) --- character `positionGraph` + character asset-stack perspective merge; parallel fetch on **`Parse Requested`**; threaded as **`heldInventoryCatalog`** on **`parseCommand`**. Identity uses scoped catalogs via [`catalogWithScope`](enrich/objectManipulation/catalogMerge.ts) --- room for **`takeHold`**, held for **`drop`** ([`inferManipulationVerb.ts`](enrich/objectManipulation/inferManipulationVerb.ts)).
 3. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** = union of room + held labels (parallel to **`movementExitLabels`**). Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy.
-4. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
-5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- split stages: cardinality gate -> verb inference -> scoped identity -> unary collapse -> membership observation (`getMembershipContainers` + sole-host `getPositionGraph` for edge-touch) -> complexity pre-gates -> optional complexity LLM on edge-touch defer. v1 atomic **`takeHold`** and **`drop`**.
+4. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "verbClass": "acquire" | "release", "confidence": <number> }` -> **`rawObjectSpans`** + **`verbClass`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
+
+**Classify vs enrich ownership:**
+
+| Field | Lane | Meaning |
+| --- | --- | --- |
+| **`verbClass`** | Classify | Membership **language** direction (`acquire` \| `release`) |
+| **`operationKind`** | Enrich / compiler | Membership **ground truth** (`takeHold` \| `drop`) from pre-gates + agreement gate |
+
+5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- **`MembershipManipulationFrame`** ([`membershipFrame.ts`](enrich/objectManipulation/membershipFrame.ts)) is the compiler input seam for Phase A slice 3. Split stages today: cardinality gate -> verb inference -> scoped identity -> unary collapse -> membership observation (`getMembershipContainers` + sole-host `getPositionGraph` for edge-touch) -> complexity pre-gates -> optional complexity LLM on edge-touch defer. v1 atomic **`takeHold`** and **`drop`**.
 6. **Complexity pre-gates** (first decisive outcome wins; otherwise complexity LLM):
 
 | Order | Condition | Outcome (no Bedrock) |

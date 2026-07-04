@@ -7,7 +7,7 @@
 Current implementation:
 
 - [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
-- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** only) or **`ParseCommandErrorResult`** (complex disposition stub, unimplemented atomic **`operationKind`**, resolve failure, or enrich parse/invoke failure).
+- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ParseCommandErrorResult`** (complex disposition stub, unimplemented atomic **`operationKind`**, resolve failure, or enrich parse/invoke failure). **`MembershipManipulationFrame`** ([`membershipFrame.ts`](./objectManipulation/membershipFrame.ts)) is the Phase A compiler input seam (`compileMembershipAtomic`, slice 3).
 
 ## Boundary
 
@@ -32,6 +32,7 @@ Current implementation:
 - [`objectManipulation/resolveObjectSpan.ts`](./objectManipulation/resolveObjectSpan.ts) - deterministic catalog grounding (**D5** / **D7**).
 - [`objectManipulation/cardinalityGate.ts`](./objectManipulation/cardinalityGate.ts) - deterministic **`multiObject`** short-circuit when **`rawObjectSpans.length > 1`**.
 - [`objectManipulation/membershipObservation.ts`](./objectManipulation/membershipObservation.ts) - **`getMembershipContainers`** + sole-host **`getPositionGraph`**; edge-touch predicate.
+- [`objectManipulation/membershipFrame.ts`](./objectManipulation/membershipFrame.ts) - **`MembershipManipulationFrame`** type and builder (classify **`verbClass`** + enrich context; compiler input for slice 3).
 - [`objectManipulation/complexityPreGates.ts`](./objectManipulation/complexityPreGates.ts) - complexity pre-gate evaluator (rules 0--3).
 - [`objectManipulation/complexityClasses.ts`](./objectManipulation/complexityClasses.ts) - shared **`complexityClass`** guards and terminal Error copy (**`multiPresent`**, etc.).
 

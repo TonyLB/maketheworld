@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phase A (verb frame + membership atomics)
 
-**Status:** Not started. Next step: extend classify JSON with `verbClass`, then decouple identity catalog from verb inference.
+**Status:** In progress. Slices 1--2 shipped (`verbClass` classify contract + `MembershipManipulationFrame`). Next step: **`compileMembershipAtomic`** enrich refactor (slice 3).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -104,7 +104,7 @@ Plan-only: decisions we are making in order to implement Phase A. When a decisio
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| PA-1 | **`verbClass` enum** --- **`acquire` \| `release` only** at classify (no `relational`, no `unknown`; relational is Phase B frame extract) | Classify JSON + guards | Decided |
+| PA-1 | **`verbClass` enum** --- **`acquire` \| `release` only** at classify (no `relational`, no `unknown`; relational is Phase B frame extract) | Classify JSON + guards | Shipped (slices 1--2) |
 | PA-2 | **Agreement policy** --- `release` + room sole host -> existing **`notCarryingObject`**; `acquire` + actor character sole host -> new **already holding** error (fail closed) | Agreement gate + tests | Decided |
 | PA-3 | **Relational preposition guard** --- **`on`** and **`under`** only (word-boundary match); extend when Phase B hybrid **`relationKind`** enum adds shortcut prepositions | Enrich guard + tests | Decided |
 | PA-4 | **Confidence** --- on agreement success use classify confidence; on agreement failure use **`min(classify, agreementDowngrade)`** on terminal Error (and any early terminal path that carries confidence) | Terminal parse shape | Decided |
@@ -115,15 +115,15 @@ Plan-only: decisions we are making in order to implement Phase A. When a decisio
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step. **Deletion before new ingress:** land **`compileMembershipAtomic`** and legacy removal (step 3) before deterministic fast paths (step 4).
 
-- [ ] **1. Contract and types**
-  - [ ] Extend **`ParseCommandObjectManipulationIntentResult`** with **`verbClass`** in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); update intent guard in [`discriminateIntent/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/baseClasses.ts).
-  - [ ] Add minimal **`MembershipManipulationFrame`** (or extend enrich input): `{ command, rawObjectSpans, verbClass, ...catalogs, characterId }` --- frame slot for Phase B, no role tags yet.
-  - [ ] Document: classify emits language frame only; **`operationKind`** remains compiler-owned.
+- [X] **1. Contract and types**
+  - [X] Extend **`ParseCommandObjectManipulationIntentResult`** with **`verbClass`** in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); update intent guard in [`discriminateIntent/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/baseClasses.ts).
+  - [X] Add minimal **`MembershipManipulationFrame`** (or extend enrich input): `{ command, rawObjectSpans, verbClass, ...catalogs, characterId }` --- frame slot for Phase B, no role tags yet.
+  - [X] Document: classify emits language frame only; **`operationKind`** remains compiler-owned.
 
-- [ ] **2. Classify prompt + interpreter**
-  - [ ] Update Section A2 in [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts): membership-neutral object context; required **`verbClass`** in JSON; forbidden **`operationKind`**.
-  - [ ] Parse and validate **`verbClass`** in [`intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts).
-  - [ ] Extend [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts) (acquire/release only, malformed, forbidden fields).
+- [X] **2. Classify prompt + interpreter**
+  - [X] Update Section A2 in [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts): membership-neutral object context; required **`verbClass`** in JSON; forbidden **`operationKind`**.
+  - [X] Parse and validate **`verbClass`** in [`intentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.ts).
+  - [X] Extend [`intentClassification.test.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/intentClassification.test.ts) (acquire/release only, malformed, forbidden fields).
 
 - [ ] **3. Enrich refactor: compiler, deletion, guard (PA-6)**
   - [ ] Extract **`compileMembershipAtomic`** (new module under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/)): preposition guard -> merged-catalog identity -> unary collapse -> membership observe -> pre-gates -> agreement gate.
@@ -179,7 +179,7 @@ npm run build
 | --- | --- |
 | Phase A task plan | Done |
 | PA-1 through PA-6 open decisions | Decided |
-| Types + classify **`verbClass`** | Not started |
+| Types + classify **`verbClass`** | Done (slices 1--2) |
 | **`compileMembershipAtomic`** (PA-6) | Not started |
 | Legacy deletion (`inferManipulationVerb`, **`inRoomOnlyDropError`**) | Not started |
 | Deterministic fast paths via compiler (PA-5) | Not started |

@@ -47,6 +47,15 @@ export type CollectCoyoteOccupiedStableKeysDeps = {
  */
 export type ParseCommandConfidence = number
 
+/**
+ * Membership language direction from classify (PA-1). Not {@link ParseCommandObjectManipulationResult.operationKind}.
+ */
+export type ManipulationVerbClass = 'acquire' | 'release'
+
+export function isManipulationVerbClass(value: unknown): value is ManipulationVerbClass {
+    return value === 'acquire' || value === 'release'
+}
+
 const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
     typeof value === 'number'
     && Number.isFinite(value)
@@ -245,12 +254,16 @@ export type ParseCommandAcmeOrderIntentResult = {
 
 /**
  * Intent discrimination only: player intent is to manipulate a scene object (pick up, drop, etc.).
- * `operationKind` and graph proposals belong in enrich; terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
+ * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
+ * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
+ * Terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
  */
 export type ParseCommandObjectManipulationIntentResult = {
     type: 'ObjectManipulationIntent'
     /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
     rawObjectSpans: string[]
+    /** Membership language direction from classify. Mapped from JSON `verbClass`. */
+    verbClass: ManipulationVerbClass
     confidence: ParseCommandConfidence
 }
 

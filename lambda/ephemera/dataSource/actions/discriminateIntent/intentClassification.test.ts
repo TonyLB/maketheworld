@@ -75,33 +75,76 @@ describe('isParseCommandAcmeOrderIntentResult', () => {
 })
 
 describe('isParseCommandObjectManipulationIntentResult', () => {
-    it('accepts ObjectManipulationIntent with non-empty trimmed rawObjectSpans and valid confidence', () => {
+    it('accepts ObjectManipulationIntent with verbClass acquire or release, trimmed rawObjectSpans, and valid confidence', () => {
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
+            confidence: 0.9,
+        })).toBe(true)
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['rope'],
+            verbClass: 'release',
+            confidence: 0.85,
+        })).toBe(true)
+    })
+
+    it('rejects missing or invalid verbClass', () => {
         expect(isParseCommandObjectManipulationIntentResult({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['broom'],
             confidence: 0.9,
-        })).toBe(true)
+        } as unknown as Parameters<typeof isParseCommandObjectManipulationIntentResult>[0])).toBe(false)
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'relational',
+            confidence: 0.9,
+        } as unknown as Parameters<typeof isParseCommandObjectManipulationIntentResult>[0])).toBe(false)
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'unknown',
+            confidence: 0.9,
+        } as unknown as Parameters<typeof isParseCommandObjectManipulationIntentResult>[0])).toBe(false)
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'takeHold',
+            confidence: 0.9,
+        } as unknown as Parameters<typeof isParseCommandObjectManipulationIntentResult>[0])).toBe(false)
+        expect(isParseCommandObjectManipulationIntentResult({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: '',
+            confidence: 0.9,
+        } as unknown as Parameters<typeof isParseCommandObjectManipulationIntentResult>[0])).toBe(false)
     })
 
     it('rejects missing, empty, untrimmed, or invalid rawObjectSpans', () => {
         expect(isParseCommandObjectManipulationIntentResult({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: [],
+            verbClass: 'acquire',
             confidence: 0.9,
         })).toBe(false)
         expect(isParseCommandObjectManipulationIntentResult({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['  '],
+            verbClass: 'acquire',
             confidence: 0.9,
         })).toBe(false)
         expect(isParseCommandObjectManipulationIntentResult({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: [' ok ', 'x'],
+            verbClass: 'acquire',
             confidence: 0.9,
         })).toBe(false)
         expect(isParseCommandObjectManipulationIntentResult({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
             confidence: 2,
         })).toBe(false)
     })
@@ -152,28 +195,30 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('go east, after which look around')
         expect(prompt).toContain('"orders": ["<product span>", ...]')
         expect(prompt).toContain('"objectSpans": ["<object span>", ...]')
+        expect(prompt).toContain('"verbClass": "acquire" | "release"')
+        expect(prompt).toContain('verbClass')
     })
 
     it('embeds in-room object labels when movementObjectLabels are provided', () => {
         const prompt = buildIntentClassificationPrompt('get the broom', {
             movementObjectLabels: ['broom', 'anvil'],
         })
-        expect(prompt).toContain('Objects currently in the room: broom, anvil')
-        expect(prompt).not.toContain('No validated in-room object labels are currently available')
+        expect(prompt).toContain('Objects currently in the room or held by the character: broom, anvil')
+        expect(prompt).not.toContain('No validated in-room or held object labels are currently available')
     })
 
     it('embeds held inventory labels in movementObjectLabels union', () => {
         const prompt = buildIntentClassificationPrompt('drop the rope', {
             movementObjectLabels: ['broom', 'rope'],
         })
-        expect(prompt).toContain('Objects currently in the room: broom, rope')
+        expect(prompt).toContain('Objects currently in the room or held by the character: broom, rope')
     })
 
     it('includes no-object guidance when object labels are unavailable', () => {
         const prompt = buildIntentClassificationPrompt('pick up something', {
             movementObjectLabels: [],
         })
-        expect(prompt).toContain('No validated in-room object labels are currently available in parser context.')
+        expect(prompt).toContain('No validated in-room or held object labels are currently available in parser context.')
     })
 
     it('uses placeholder for empty or whitespace-only command', () => {
@@ -225,17 +270,19 @@ describe('interpretIntentClassificationBody', () => {
             confidence: 0.85,
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.92}'
+            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.92}'
         )).toEqual({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
             confidence: 0.92,
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","objectSpans":["  heavy anvil  "],"confidence":0.88}'
+            '{"type":"ObjectManipulationIntent","objectSpans":["  heavy anvil  "],"verbClass":"release","confidence":0.88}'
         )).toEqual({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['heavy anvil'],
+            verbClass: 'release',
             confidence: 0.88,
         })
         expect(interpretIntentClassificationBody(
@@ -276,22 +323,40 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"ObjectManipulationIntent","confidence":0.9}'
         ).type).toBe('Error')
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","objectSpans":[],"confidence":0.85}'
+            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}'
         ).type).toBe('Error')
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","objectSpans":["  "],"confidence":0.85}'
+            '{"type":"ObjectManipulationIntent","objectSpans":[],"verbClass":"acquire","confidence":0.85}'
         ).type).toBe('Error')
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectManipulationIntent","objectSpans":["  "],"verbClass":"acquire","confidence":0.85}'
+        ).type).toBe('Error')
+    })
+
+    it('rejects ObjectManipulationIntent when verbClass is missing or invalid', () => {
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"relational","confidence":0.9}'
+        )).toEqual({
+            type: 'Error',
+            errorMessage: 'ObjectManipulationIntent intent verbClass must be acquire or release',
+        })
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"takeHold","confidence":0.9}'
+        )).toEqual({
+            type: 'Error',
+            errorMessage: 'ObjectManipulationIntent intent verbClass must be acquire or release',
+        })
     })
 
     it('rejects ObjectManipulationIntent forbidden and legacy fields', () => {
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"operationKind":"takeHold","confidence":0.9}'
+            '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"operationKind":"takeHold","verbClass":"acquire","confidence":0.9}'
         )).toEqual({
             type: 'Error',
             errorMessage: 'ObjectManipulationIntent must not include operationKind, disposition, object ids, or routing fields',
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectManipulationIntent","rawObjectSpans":["broom"],"confidence":0.9}'
+            '{"type":"ObjectManipulationIntent","rawObjectSpans":["broom"],"verbClass":"acquire","confidence":0.9}'
         ).type).toBe('Error')
         expect(interpretIntentClassificationBody(
             '{"type":"ObjectManipulationIntent","orders":["broom"],"confidence":0.9}'
@@ -352,7 +417,7 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans and verbClass acquire or release), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -363,7 +428,7 @@ describe('interpretIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans and verbClass acquire or release), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 

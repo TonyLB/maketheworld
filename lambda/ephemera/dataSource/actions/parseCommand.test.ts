@@ -1006,7 +1006,7 @@ describe('parseCommand LLM path', () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.94}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
@@ -1043,7 +1043,7 @@ describe('parseCommand LLM path', () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
         })
 
         const result = await parseCommand(
@@ -1072,7 +1072,7 @@ describe('parseCommand LLM path', () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
         })
 
         const result = await parseCommand(
@@ -1099,7 +1099,7 @@ describe('parseCommand LLM path', () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.94}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.94}',
         })
 
         const result = await parseCommand(
@@ -1129,7 +1129,7 @@ describe('parseCommand LLM path', () => {
         const tableId = 'OBJECT#Table'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.9}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1169,7 +1169,7 @@ describe('parseCommand LLM path', () => {
         const anvilId = 'OBJECT#Anvil'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectManipulationIntent","objectSpans":["anvil"],"confidence":0.9}',
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["anvil"],"verbClass":"acquire","confidence":0.9}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
