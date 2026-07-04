@@ -184,7 +184,11 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('short-circuits relationalPlacement on on preposition via enrich entry', async () => {
+    it('routes relational commands through frame extract and compiler stub', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on"}',
+        })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
 
@@ -197,6 +201,7 @@ describe('enrichObjectManipulation', () => {
             },
             0.9,
             {
+                invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationIdentityImpl,
             }
@@ -206,8 +211,61 @@ describe('enrichObjectManipulation', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
         })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
+    })
+
+    it('frame-extracts lean rope against anvil fixture', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"rope","targetSpan":"anvil","relationSpan":"against"}',
+        })
+        const anvilCatalog = [
+            { objectId: 'OBJECT#Rope' as EphemeraObjectId, normalizedShortName: 'rope' },
+            { objectId: 'OBJECT#Anvil' as EphemeraObjectId, normalizedShortName: 'anvil' },
+        ]
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'lean rope against anvil',
+                rawObjectSpans: ['rope'],
+                verbClass: 'release',
+                roomObjectCatalog: anvilCatalog,
+            },
+            0.88,
+            { invokeBedrockObjectManipulationFrameExtractImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
+    })
+
+    it('frame-extracts tie cord around crate fixture', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"cord","targetSpan":"crate","relationSpan":"around"}',
+        })
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'tie cord around crate',
+                rawObjectSpans: ['cord'],
+                verbClass: 'release',
+                roomObjectCatalog: [{ objectId: 'OBJECT#Cord' as EphemeraObjectId, normalizedShortName: 'cord' }],
+            },
+            0.87,
+            { invokeBedrockObjectManipulationFrameExtractImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
     })
 
     it('invokes complexity LLM when exit edges touch object', async () => {

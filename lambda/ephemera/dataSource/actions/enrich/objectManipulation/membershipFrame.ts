@@ -9,7 +9,7 @@ import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCha
 
 /**
  * Phase A membership-atomic manipulation frame: classify language direction + enrich context.
- * Phase B extends with role-tagged spans (subject, target, relationSpan).
+ * Relational frames: {@link ManipulationFrame} in {@link ./manipulationFrame.ts}.
  */
 export type MembershipManipulationFrame = {
     command: string

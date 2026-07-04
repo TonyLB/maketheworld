@@ -48,7 +48,7 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 - Membership transfer persist **must** converge on one graph-grounded path: **shared membership adapter** plans -> **`applyHostEffects`** kernel transacts.
 - Kernel **must** accept explicit **`HostEffect[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
 - **Must not** add parallel persist paths (new `update*PositionGraphs` with bundled planner + transact; per-verb diff computers outside [`manipulation/adapters/`](manipulation/adapters/)).
-- **Deferred (M4):** kernel v1 = **`applyHostEffects`** (membership-node add/remove) only; host-local relational patch = future **`applyHostRelationalPatch`** ([`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5)).
+- **Deferred (M4):** kernel v1 = **`applyHostEffects`** (membership-node add/remove) only; host-local relational patch = future **`applyHostRelationalPatch`** ([Host-local relational patch](#host-local-relational-patch-phase-b-planning-contract) --- enum + edge persist shape locked; implementation Phase B).
 
 **Today (shipped behavior):**
 
@@ -193,6 +193,80 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 - **Steady state:** at most one room per **`OBJECT#`**; multi-room adjacency is drift.
 - **Graph-forward repair:** [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts) --- adjacency-only via [`syncObjectMembershipAdjacencyToRoom`](membership/syncObjectMembershipAdjacency.ts); multi-container scrub via **`applyObjectRoomMembership`** retaining the finding room. Applies when a graph **`Object`** node exists (adjacency lag); **not** for existence-without-placement orphans (pair + meta without graph node --- see **Orphan vs adjacency lag** above and [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep/)).
 - **Deferred:** `Object Placement Drift Finding` diagnostics sweep (character analog: [`roomOccupancyDriftSweep`](../../../diagnostics/roomOccupancyDriftSweep/)).
+
+---
+
+## Host-local relational patch (Phase B; planning contract)
+
+**Status:** Planning contract only (**BD-2**, **BD-3**, **BD-6**, **BD-7**, **BD-9**). Normative rules for Phase B **`establishRelation`** / **`dissolveRelation`** ingress; kernel and coordinators **not shipped** until Phase B positions work lands. Code map (stub): [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5). Task plan: [`taskPlanning/.../AGENT.manipulationFrameAndRelational.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md).
+
+Mental model: [**Host-local relational patch**](AGENT.concepts.md#manipulation-layering-membership-transfer) (in-host topology without membership-host change). Distinct from membership transfer (**`HostEffect[]`**) and from adjacency reverse index (**no** adjacency dual-write for relational edges).
+
+### Relation kind enum (BD-2)
+
+v1 **`HostRelationalEdgeKind`** on stored forward-graph edges **must** be one of:
+
+| Kind | Player language (examples) | Persist |
+| --- | --- | --- |
+| **`On`** | on, onto | **`kind: 'On'`** only |
+| **`Under`** | under, beneath | **`kind: 'Under'`** only |
+| **`Against`** | against, leaning against | **`kind: 'Against'`** only |
+| **`Custom`** | tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
+
+**Excluded from this operator (BD-2):** **`In`**, **`inside`**, and other containment language --- **must not** persist as **`establishRelation`** v1; actions routes to future **nested container** operator with player-facing defer copy (not positions ingress).
+
+Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optional label); positions **must** trust ingress **`kind`** / **`relationLabel`** at apply (same pattern as trusted **`objectId`** on **`Object Take Hold`**).
+
+### Edge persist shape (BD-3)
+
+Relational mutations **must** persist on a **fixed host** **`Meta::Room.positionGraph`** forward graph only (v1 host: actor's current room --- **BD-6**). **Must not** write adjacency rows for relational edges (forward-graph only; mirror [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5)).
+
+**`HostRelationalPatch`** (kernel input; one add or remove on one host):
+
+```typescript
+type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+
+type HostRelationalEdge = {
+    from: EphemeraId   // subject node on host graph (v1: EphemeraObjectId)
+    to: EphemeraId     // target node on host graph (v1: EphemeraObjectId)
+    kind: HostRelationalEdgeKind
+    /** Required when kind === 'Custom'; persisted on the stored edge (BD-3). */
+    relationLabel?: string
+}
+
+type HostRelationalPatch = {
+    hostId: EphemeraRoomId
+    edge: HostRelationalEdge
+    op: 'add' | 'remove'
+}
+```
+
+**BD-3 rules:**
+
+- **`Custom`** edges **must** persist **`relationLabel`** on the stored forward-graph edge --- **not** presentation-only copy in perception.
+- Enum kinds (**`On`**, **`Under`**, **`Against`**) **must not** require **`relationLabel`** at persist; transcript may still paraphrase per unknowns.
+- **`establishRelation`** ingress **must** map to **`op: 'add'`**; **`dissolveRelation`** **must** map to **`op: 'remove'`** matching **`from`**, **`to`**, **`kind`**, and **`relationLabel`** (when **`Custom`**) (**BD-7**).
+
+### Kernel and compound apply (BD-9)
+
+- All **`establishRelation`** / **`dissolveRelation`** applies **must** route through **`applyHostRelationalPatch`** (explicit **`HostRelationalPatch[]`** only --- **must not** extend **`applyHostEffects`** with edge mutations).
+- Phase C composed commands (**drop** + **`establishRelation`**, etc.) **must** bundle membership **`HostEffect[]`** + **`HostRelationalPatch[]`** in **one** **`transactWrite`** (atomic all-or-nothing --- **BD-9**); **must not** apply membership and relational patches as independent transacts with partial commit.
+- Kernel **must** validate edge presence/absence before transact; on conflict **`positionGraph` wins** (same authority as membership graph).
+
+### Legality (actions-owned pre-ingress; positions-owned at apply)
+
+| Case | Phase B--C (actions) | Positions apply |
+| --- | --- | --- |
+| Both **`from`** and **`to`** nodes on host graph | Required before egress | Re-validate; reject if absent |
+| Exact duplicate edge already present | Idempotent success / no-op | **`op: 'add'`** no-op when edge matches |
+| Conflicting or non-trivial existing relational topology on subject/target | **Error** stub (**BD-10** defer bucket until Phase D plan LLM) | **Must not** receive ingress until actions resolves |
+| **`dissolveRelation`** with no matching edge | **Error** before egress | Reject **`op: 'remove'`** when edge absent |
+
+### Ingress (Phase B; not subscribed until implementation)
+
+Actions **must** publish stream contract(s) for relational operators (exact header TBD at Phase B --- e.g. **`Object Establish Relation`** / **`Object Dissolve Relation`**). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinator under [`manipulation/relational/`](manipulation/relational/) (directory TBD). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`kind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
+
+**Must not** route relational patch through **`applyObjectRoomMembership`** or membership adapter **`planMembershipTransfer`**.
 
 ---
 

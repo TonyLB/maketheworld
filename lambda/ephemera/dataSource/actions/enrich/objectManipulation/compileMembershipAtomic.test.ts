@@ -118,7 +118,7 @@ describe('compileMembershipAtomic', () => {
         })
     })
 
-    it('short-circuits relationalPlacement on on preposition without Bedrock', async () => {
+    it('does not short-circuit relational commands (routing is at enrich entry)', async () => {
         const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
@@ -133,36 +133,19 @@ describe('compileMembershipAtomic', () => {
             {
                 invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: {
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
+                    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+                },
             }
         )
 
         expect(result).toEqual({
             type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexRelational,
+            errorMessage: objectManipulationErrorMessages.notCarryingObject,
         })
         expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
-
-    it('short-circuits relationalPlacement on under preposition without Bedrock', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
-
-        const result = await compileMembershipAtomic(
-            {
-                command: 'stash it under the bench',
-                rawObjectSpans: ['it'],
-                verbClass: 'release',
-                roomObjectCatalog: broomCatalog,
-            },
-            0.9,
-            { invokeBedrockObjectManipulationIdentityImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexRelational,
-        })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
     })
 
     it('downgrades agreement failure confidence via agreementFailureConfidence helper', () => {

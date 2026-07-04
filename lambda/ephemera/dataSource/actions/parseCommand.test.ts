@@ -1177,13 +1177,17 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns Error for relational preposition guard without complexity LLM', async () => {
+    it('returns Error for relational route via frame extract and compiler stub', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on"}',
+        })
 
         const result = await parseCommand(
             {
@@ -1194,6 +1198,7 @@ describe('parseCommand LLM path', () => {
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl,
             }
         )
 
@@ -1201,16 +1206,21 @@ describe('parseCommand LLM path', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
         })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for under preposition guard without complexity LLM', async () => {
+    it('returns Error for under relational route via frame extract', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectManipulationIntent","objectSpans":["it"],"verbClass":"release","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"it","targetSpan":"bench","relationSpan":"under"}',
+        })
 
         const result = await parseCommand(
             {
@@ -1221,6 +1231,7 @@ describe('parseCommand LLM path', () => {
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl,
             }
         )
 
@@ -1228,6 +1239,7 @@ describe('parseCommand LLM path', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
         })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 

@@ -19,6 +19,8 @@ export const objectManipulationErrorMessages = {
     enrichParseFailed: 'Object manipulation enrich response was not valid',
     identityInvokeFailed: 'Object manipulation identity failed',
     identityParseFailed: 'Object manipulation identity response was not valid',
+    frameExtractInvokeFailed: 'Object manipulation frame extract failed',
+    frameExtractParseFailed: 'Object manipulation frame extract response was not valid',
 } as const
 
 export type ObjectSpanResolutionResult =

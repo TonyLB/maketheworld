@@ -96,15 +96,22 @@ Relational ops **do not** route through the **shared membership adapter** (`plan
 | **Kernel entry (slice 5+)** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) *(file does not exist yet)* |
 | **Future coordinators** | [`relational/`](relational/) *(directory stub; sibling to `membership/`)* |
 | **Types (future)** | `HostRelationalPatch` in [`types.ts`](types.ts) --- distinct from v1 `HostEffect` (membership-node only) |
-| **Spec shape (sketch)** | `{ hostId; edge: { from; to; kind }; op: 'add' \| 'remove' }` on a **fixed host** `positionGraph` --- exact edge `kind` enum (`On`, `In`, ...) deferred to slice 5 diegetic design |
+| **Spec shape (locked BD-2, BD-3)** | `{ hostId; edge: { from; to; kind; relationLabel? }; op: 'add' \| 'remove' }` on fixed host **`positionGraph`**. **`kind`:** **`On` \| `Under` \| `Against` \| `Custom`**; **`relationLabel`** required on stored edge when **`Custom`**. **`In`** excluded (nesting operator). Normative: [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract). |
 | **Kernel contract (sketch)** | Same pattern as `applyHostEffects`: explicit patch list only, `getPositionGraph` on affected hosts only, validate edge presence/absence, single transact, `postApplyGraphs` output; **no** adjacency dual-write (edges are forward-graph only per gateway schema) |
 | **Design owner (pre-contract)** | [`../../diegeticLogic/AGENT.concepts.md`](../../diegeticLogic/AGENT.concepts.md#future-nested-containment-post-vertical) |
 
 ```typescript
-// Future slice 5+ --- not exported until implementation lands
+// Phase B contract --- see AGENT.contract.md Host-local relational patch
+type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+
 type HostRelationalPatch = {
     hostId: EphemeraMembershipHostId
-    edge: { from: EphemeraId; to: EphemeraId; kind: string } // kind TBD
+    edge: {
+        from: EphemeraId
+        to: EphemeraId
+        kind: HostRelationalEdgeKind
+        relationLabel?: string // required when kind === 'Custom' (BD-3)
+    }
     op: 'add' | 'remove'
 }
 ```

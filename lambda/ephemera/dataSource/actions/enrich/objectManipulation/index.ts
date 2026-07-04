@@ -1,33 +1,34 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-
 import type {
-    ManipulationVerbClass,
     ParseCommandErrorResult,
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
-import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import { evaluateCardinalityGate } from './cardinalityGate'
 import { compileMembershipAtomic, type CompileMembershipAtomicDeps } from './compileMembershipAtomic'
+import { compileRelationalStub } from './compileRelationalStub'
 import { complexErrorMessage } from './complexityClasses'
+import { runFrameExtractStage, type FrameExtractStageDeps } from './frameExtract/runFrameExtractStage'
+import type { ManipulationFrameBuildInput } from './manipulationFrame'
+import { evaluateRelationalRoute } from './relationalRoute'
 
-export type EnrichObjectManipulationInput = {
-    command: string
-    rawObjectSpans: readonly string[]
-    verbClass: ManipulationVerbClass
-    characterId?: EphemeraCharacterId
-    roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-}
+export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
 export type EnrichObjectManipulationResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
 
-export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps
+export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & FrameExtractStageDeps
 
 export async function enrichObjectManipulation(
     input: EnrichObjectManipulationInput,
     intentConfidence: number,
     deps: EnrichObjectManipulationDeps = {}
 ): Promise<EnrichObjectManipulationResult> {
+    if (evaluateRelationalRoute(input).type === 'relational') {
+        const extractResult = await runFrameExtractStage(input, deps)
+        if (extractResult.type === 'error') {
+            return { type: 'Error', errorMessage: extractResult.errorMessage }
+        }
+        return compileRelationalStub(extractResult.frame, intentConfidence)
+    }
+
     const cardinalityOutcome = evaluateCardinalityGate(input.rawObjectSpans)
     if (cardinalityOutcome.type === 'complex') {
         return {

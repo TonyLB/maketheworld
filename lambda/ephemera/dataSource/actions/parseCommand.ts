@@ -34,6 +34,7 @@ async function parseCommandCore(
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
             }
         )

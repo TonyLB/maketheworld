@@ -1,10 +1,10 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Planning only --- Phase A shipped. BD-1--BD-10 locked (2026-07-04); next step: Phase B implementation (B1 frame schema + extraction).
+**Status:** Phase B in progress --- B1 shipped (frame schema + extraction + compiler stub). BD-1--BD-10 locked (2026-07-04); next step: B2 relation normalizer.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
-Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity, relational preposition guard); module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
+Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity); B1 adds relational route + frame extract at enrich entry. Module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
 ## Purpose
 
@@ -57,7 +57,7 @@ Product preference (from planning discussion): work deterministically with a **s
 | **Deferred: containment** | `in`, `inside` | Not **`establishRelation`** v1; routes to future nesting operator |
 | **Custom** | `tied to`, `leaning against`, `wrapped around` | **`relationKind: Custom`** + **`relationLabel`** (player/normalized text) |
 
-Enum members and custom persist shape locked in **Open decisions** (BD-2, BD-3); presentation obligations ship with Phase B perception work.
+Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract) (BD-2, BD-3).
 
 ## Scope
 
@@ -107,7 +107,7 @@ Enum members and custom persist shape locked in **Open decisions** (BD-2, BD-3);
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read Phase A steady-state in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (membership compiler shipped).
 3. Read positions relational stub: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
-4. Trace current relational rejection path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts), [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) (complexity LLM).
+4. Trace relational enrich path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) (relational route -> frame extract), [`frameExtract/runFrameExtractStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/runFrameExtractStage.ts). Membership defer still uses complexity LLM in [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
 6. Baseline (includes positions manipulation tests when Phase B touches apply):
 
@@ -155,13 +155,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [X] **B0. Decision lock**
   - [X] Close BD-1 -- BD-10 in **Open decisions** (2026-07-04).
-  - [ ] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3).
+  - [X] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3) --- [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract).
 
-- [ ] **B1. Frame schema + extraction**
-  - [ ] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
-  - [ ] Add frame extraction prompt + interpreter (new module under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/) or sibling `enrich/manipulationFrame/`).
-  - [ ] Wire: relational route (preposition guard successor / multi-span) -> frame extract -> compiler stub; membership lines still use **`verbClass`** acquire/release path from Phase A.
-  - [ ] Tests: fixture commands ("put broom on table", "lean rope against anvil", "tie cord around crate").
+- [X] **B1. Frame schema + extraction**
+  - [X] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
+  - [X] Add frame extraction prompt + interpreter (new module under [`enrich/objectManipulation/frameExtract/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/)).
+  - [X] Wire: relational route (preposition guard successor / multi-span) -> frame extract -> compiler stub; membership lines still use **`verbClass`** acquire/release path from Phase A.
+  - [X] Tests: fixture commands ("put broom on table", "lean rope against anvil", "tie cord around crate").
 
 - [ ] **B2. Relation normalizer**
   - [ ] Deterministic map: common prepositions -> enum; **`in`** -> explicit defer/nesting message; else **`Custom`** + label.
@@ -186,7 +186,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [ ] **B6. Durable docs**
   - [ ] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** section.
-  - [ ] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) ingress + edge kind rules.
+  - [ ] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) --- promote planning contract to shipped when Phase B ingress lands; ingress stream rows + fact bundle TBD at B4.
   - [ ] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- replace relational stub prose.
 
 ### Phase C --- Plan IR and composition
@@ -255,7 +255,9 @@ npm run build
 | Phases B--D task plan | Done |
 | Phase A prerequisite | Not started (see companion plan) |
 | BD-1--BD-10 open decisions locked | Done (2026-07-04) |
-| Phase B establishRelation vertical | Not started |
+| B0 decision lock + positions contract draft (BD-2, BD-3) | Done (2026-07-04) |
+| B1 frame schema + extraction (stub terminal Error until B3) | Done (2026-07-04) |
+| Phase B establishRelation vertical | In progress (B2 next) |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 
