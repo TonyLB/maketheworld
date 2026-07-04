@@ -13,6 +13,7 @@ export const objectManipulationErrorMessages = {
     complexUnimplementedVerb: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
     noMembershipHost: 'ObjectManipulation resolution failed: object has no membership host',
     notCarryingObject: 'ObjectManipulation resolution failed: object is in room but not held',
+    alreadyHoldingObject: 'ObjectManipulation resolution failed: object is already held',
     unimplementedAtomicOperation: 'ObjectManipulation enrich: that atomic operation is not implemented yet',
     enrichInvokeFailed: 'Object manipulation enrich failed',
     enrichParseFailed: 'Object manipulation enrich response was not valid',

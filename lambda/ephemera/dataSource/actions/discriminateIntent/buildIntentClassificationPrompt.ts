@@ -30,15 +30,15 @@ export function buildIntentClassificationPrompt(
         ? [
             '### Object context',
             '',
-            `Objects currently in the room: ${movementObjectLabels.join(', ')}`,
-            'When manipulation intent is central and the named object matches a room object, return ObjectManipulationIntent.',
+            `Objects currently in the room or held by the character: ${movementObjectLabels.join(', ')}`,
+            'When manipulation intent is central and the named object matches a room or held object, return ObjectManipulationIntent.',
         ].join('\n')
         : [
             '### Object context',
             '',
-            'No validated in-room object labels are currently available in parser context.',
+            'No validated in-room or held object labels are currently available in parser context.',
             'You may still classify manipulation as ObjectManipulationIntent when manipulation intent is central.',
-            'Use AcmeOrder for get/order language when the product is not an in-room object.',
+            'Use AcmeOrder for get/order language when the product is not a room or held object.',
         ].join('\n')
 
     return `You are a parser for a text-based multiplayer game with a Coyote / Road Runner cartoon vibe.
@@ -140,17 +140,22 @@ strings only.
 ## Section A2 - ObjectManipulationIntent
 
 Choose **ObjectManipulationIntent** when the line is **primarily** about manipulating a scene
-object that is present in the current room - picking it up, grabbing it, taking hold of it,
-dropping it, putting it down, or similar physical interaction with an object already in the scene.
+object that is present in the room or held by the character - picking it up, grabbing it, taking
+hold of it, dropping it, putting it down, tossing it, or similar physical interaction with an
+object already in play.
 
 Examples (paraphrase, not an exhaustive verb list): "pick up the broom", "grab the anvil",
-"take hold of the crate", "drop the rope", "put down the hammer".
+"take hold of the crate", "drop the rope", "put down the hammer", "toss the pouch".
 
 For **ObjectManipulationIntent**, extract the object noun phrase(s) from the line and return them
 as an \`objectSpans\` array of raw strings. Strip leading articles (\`a\`, \`an\`, \`the\`, \`some\`);
 trim whitespace. These are unvalidated extractions - object id matching and operation details
 are handled downstream. Your job is only to identify the span(s) that name what the player is
 trying to manipulate.
+
+Also return \`verbClass\`: membership **language** direction only.
+- \`acquire\` --- pick-up / take-hold paraphrases (grab, pick up, take, get when manipulating an in-play object).
+- \`release\` --- drop / put-down / toss paraphrases (drop, put down, toss, release).
 
 **Do not** include \`operationKind\`, object ids, disposition, relational frames ("on", "in",
 "under"), or graph proposal fields at this step.
@@ -162,7 +167,7 @@ delivery). When the player wants Acme to deliver a second copy of something alre
 explicit order verbs (\`order <noun>\`, \`buy <noun>\`, etc.) remain **AcmeOrder**.
 
 Return:
-{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }
+{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
 
 ---
 
@@ -325,7 +330,7 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 ## Outcomes (choose exactly one)
 
 1. **AcmeOrder** - Section A. Respond with \`type\`, \`orders\` (non-empty string array of raw product spans), and \`confidence\`.
-2. **ObjectManipulationIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), and \`confidence\`.
+2. **ObjectManipulationIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), \`verbClass\` (\`acquire\` or \`release\`), and \`confidence\`.
 3. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
 4. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
 5. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
@@ -345,6 +350,7 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 - \`confidence\` is a number from 0 through 1.
 - \`orders\` entries are raw extracted strings - do not validate, enrich, or add catalog fields.
 - \`objectSpans\` entries are raw extracted strings - do not validate, enrich, or add object ids.
+- \`verbClass\` must be exactly \`acquire\` or \`release\` (membership language direction only; not \`operationKind\`).
 
 ## Required JSON shapes
 
@@ -352,7 +358,7 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 
 or
 
-{ "type": "ObjectManipulationIntent", "objectSpans": ["<object span>", ...], "confidence": <number> }
+{ "type": "ObjectManipulationIntent", "objectSpans": ["<object span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
 
 or
 

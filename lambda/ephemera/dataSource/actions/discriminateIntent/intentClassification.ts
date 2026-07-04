@@ -1,16 +1,12 @@
 import type {
     IntentClassificationResult,
+    ManipulationVerbClass,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandNavigationIntentResult,
     ParseCommandObjectManipulationIntentResult,
 } from '../baseClasses'
 import {
-    isParseCommandAcmeOrderIntentResult,
-    isParseCommandHomeIntentResult,
-    isParseCommandNavigationIntentResult,
-    isParseCommandObjectManipulationIntentResult,
-} from './baseClasses'
-import {
+    isManipulationVerbClass,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
@@ -20,6 +16,12 @@ import {
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from '../baseClasses'
+import {
+    isParseCommandAcmeOrderIntentResult,
+    isParseCommandHomeIntentResult,
+    isParseCommandNavigationIntentResult,
+    isParseCommandObjectManipulationIntentResult,
+} from './baseClasses'
 
 function isParseConfidence(value: unknown): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
@@ -138,6 +140,18 @@ function parseObjectManipulationIntentRawObjectSpans(
         return { error: 'ObjectManipulationIntent intent objectSpans array must be non-empty' }
     }
     return { rawObjectSpans }
+}
+
+function parseObjectManipulationIntentVerbClass(
+    obj: Record<string, unknown>
+): { verbClass: ManipulationVerbClass } | { error: string } {
+    if (!('verbClass' in obj)) {
+        return { error: 'ObjectManipulationIntent intent payload must include verbClass acquire or release' }
+    }
+    if (!isManipulationVerbClass(obj.verbClass)) {
+        return { error: 'ObjectManipulationIntent intent verbClass must be acquire or release' }
+    }
+    return { verbClass: obj.verbClass }
 }
 
 /** Strip markdown code fences and extract a JSON object from the model response. */
@@ -300,9 +314,14 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         if ('error' in parsedObjectSpans) {
             return { type: 'Error', errorMessage: parsedObjectSpans.error }
         }
+        const parsedVerbClass = parseObjectManipulationIntentVerbClass(obj)
+        if ('error' in parsedVerbClass) {
+            return { type: 'Error', errorMessage: parsedVerbClass.error }
+        }
         const candidate: ParseCommandObjectManipulationIntentResult = {
             type: 'ObjectManipulationIntent',
             rawObjectSpans: parsedObjectSpans.rawObjectSpans,
+            verbClass: parsedVerbClass.verbClass,
             confidence: obj.confidence as number,
         }
         if (isParseCommandObjectManipulationIntentResult(candidate)) {
@@ -343,6 +362,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans and verbClass acquire or release), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

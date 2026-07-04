@@ -1,11 +1,12 @@
-import type {
-    IntentClassificationResult,
-    ParseCommandAcmeOrderIntentResult,
-    ParseCommandConfidence,
-    ParseCommandHomeIntentResult,
-    ParseCommandNavigationIntentResult,
-    ParseCommandObjectManipulationIntentResult,
-    ParseCommandResult,
+import {
+    isManipulationVerbClass,
+    type IntentClassificationResult,
+    type ParseCommandAcmeOrderIntentResult,
+    type ParseCommandConfidence,
+    type ParseCommandHomeIntentResult,
+    type ParseCommandNavigationIntentResult,
+    type ParseCommandObjectManipulationIntentResult,
+    type ParseCommandResult,
 } from '../baseClasses'
 
 const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
@@ -63,6 +64,9 @@ export function isParseCommandObjectManipulationIntentResult(
         return false
     }
     if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (!isManipulationVerbClass(result.verbClass)) {
         return false
     }
     if (!Array.isArray(result.rawObjectSpans) || result.rawObjectSpans.length === 0) {

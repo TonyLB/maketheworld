@@ -32,6 +32,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.92,
@@ -65,6 +66,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'drop the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'release',
                 characterId,
                 heldInventoryCatalog: catalog,
             },
@@ -95,6 +97,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom and the anvil',
                 rawObjectSpans: ['broom', 'anvil'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.8,
@@ -115,6 +118,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom and the anvil',
                 rawObjectSpans: ['broom', 'anvil'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.8,
@@ -137,6 +141,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -163,6 +168,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -178,6 +184,32 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
+    it('short-circuits relationalPlacement on on preposition via enrich entry', async () => {
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'put the broom on the table',
+                rawObjectSpans: ['broom'],
+                verbClass: 'release',
+                roomObjectCatalog: catalog,
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationIdentityImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
+    })
+
     it('invokes complexity LLM when exit edges touch object', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -190,6 +222,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -218,6 +251,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'drop the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'release',
                 characterId,
                 heldInventoryCatalog: catalog,
             },
@@ -249,6 +283,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.85,
@@ -277,6 +312,7 @@ describe('enrichObjectManipulation', () => {
             {
                 command: 'pick up the sweeping tool',
                 rawObjectSpans: ['sweeping tool'],
+                verbClass: 'acquire',
                 roomObjectCatalog: catalog,
             },
             0.88,

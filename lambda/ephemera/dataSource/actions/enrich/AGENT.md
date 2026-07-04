@@ -7,7 +7,7 @@
 Current implementation:
 
 - [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
-- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** only) or **`ParseCommandErrorResult`** (complex disposition stub, unimplemented atomic **`operationKind`**, resolve failure, or enrich parse/invoke failure).
+- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ParseCommandErrorResult`** (complex disposition stub, unimplemented atomic **`operationKind`**, resolve failure, or enrich parse/invoke failure). **`compileMembershipAtomic`** ([`compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts)) is the membership-atomic orchestrator; **`MembershipManipulationFrame`** ([`membershipFrame.ts`](./objectManipulation/membershipFrame.ts)) is its input seam.
 
 ## Boundary
 
@@ -22,7 +22,10 @@ Current implementation:
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 - [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
 - [`acmeOrder/index.ts`](./acmeOrder/index.ts) - orchestrates thinking lifecycle when **`EnrichAcmeOrderDeps.messageBus`** is set (see **Thinking** below).
-- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - orchestrates identity -> membership -> complexity stages; cardinality gate; optional identity/complexity Bedrock hops.
+- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - cardinality gate then **`compileMembershipAtomic`**.
+- [`objectManipulation/compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts) - membership-atomic orchestrator: preposition guard, merged identity, pre-gates, agreement gate, complexity LLM defer.
+- [`objectManipulation/relationalPrepositionGuard.ts`](./objectManipulation/relationalPrepositionGuard.ts) - word-boundary **`on`** / **`under`** short-circuit to **`relationalPlacement`** Error.
+- [`objectManipulation/verbMembershipAgreement.ts`](./objectManipulation/verbMembershipAgreement.ts) - **`verbClass`** vs **`operationKind`** agreement gate and PA-4 confidence cap helper.
 - [`objectManipulation/catalogMerge.ts`](./objectManipulation/catalogMerge.ts) - merge room + held catalogs with **`catalogScope`** tagging.
 - [`objectManipulation/identityStage.ts`](./objectManipulation/identityStage.ts) - per-span deterministic resolve + optional identity LLM.
 - [`objectManipulation/interpretIdentity.ts`](./objectManipulation/interpretIdentity.ts) - identity LLM JSON parse (`objectId` allowed).
@@ -32,6 +35,7 @@ Current implementation:
 - [`objectManipulation/resolveObjectSpan.ts`](./objectManipulation/resolveObjectSpan.ts) - deterministic catalog grounding (**D5** / **D7**).
 - [`objectManipulation/cardinalityGate.ts`](./objectManipulation/cardinalityGate.ts) - deterministic **`multiObject`** short-circuit when **`rawObjectSpans.length > 1`**.
 - [`objectManipulation/membershipObservation.ts`](./objectManipulation/membershipObservation.ts) - **`getMembershipContainers`** + sole-host **`getPositionGraph`**; edge-touch predicate.
+- [`objectManipulation/membershipFrame.ts`](./objectManipulation/membershipFrame.ts) - **`MembershipManipulationFrame`** type and builder (classify **`verbClass`** + enrich context; compiler input for slice 3).
 - [`objectManipulation/complexityPreGates.ts`](./objectManipulation/complexityPreGates.ts) - complexity pre-gate evaluator (rules 0--3).
 - [`objectManipulation/complexityClasses.ts`](./objectManipulation/complexityClasses.ts) - shared **`complexityClass`** guards and terminal Error copy (**`multiPresent`**, etc.).
 
@@ -39,12 +43,15 @@ Current implementation:
 
 ```text
 cardinality gate
-  -> merge catalogs (room + held; held fetched at parse ingress, not classify)
-  -> identity stage (deterministic resolve; identity LLM on NoMatch/AmbiguousMatch)
-  -> unary collapse
-  -> membership observation
-  -> complexity pre-gates
-  -> atomic takeHold short-circuit OR complexity LLM + finalize
+  -> compileMembershipAtomic
+       -> relational preposition guard (on | under)
+       -> merge catalogs (room + held; held fetched at parse ingress, not classify)
+       -> identity stage (deterministic resolve; identity LLM on NoMatch/AmbiguousMatch)
+       -> unary collapse
+       -> membership observation
+       -> complexity pre-gates
+       -> agreement gate (verbClass vs operationKind) on atomic path
+       -> atomic takeHold/drop short-circuit OR complexity LLM + finalize
 ```
 
 ## Notes

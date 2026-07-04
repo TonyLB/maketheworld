@@ -17,6 +17,22 @@ describe('discriminateIntent', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
+    it('returns deterministic ObjectManipulationIntent for take without invoking Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const result = await discriminateIntent(
+            { command: 'take broom', roomObjectLabels: ['broom'] },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulationIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
+            confidence: 1,
+        })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
     it('returns Error when Bedrock invoke fails', async () => {
         const result = await discriminateIntent(
             { command: 'use teleporter' },
@@ -54,7 +70,7 @@ describe('discriminateIntent', () => {
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({
                     success: true,
-                    body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"confidence":0.93}',
+                    body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.93}',
                 }),
             }
         )
@@ -62,6 +78,7 @@ describe('discriminateIntent', () => {
         expect(result).toEqual({
             type: 'ObjectManipulationIntent',
             rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
             confidence: 0.93,
         })
     })
