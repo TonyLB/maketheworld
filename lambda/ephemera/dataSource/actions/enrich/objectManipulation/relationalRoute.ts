@@ -2,7 +2,7 @@ import { normalizeExitName } from '../../roomExitTargetsForCharacter'
 
 import type { ManipulationFrameBuildInput } from './manipulationFrame'
 
-const RELATIONAL_PREPOSITION_PATTERN = /\b(?:on|under|against|around|onto|over|beneath|beside)\b/
+const RELATIONAL_PREPOSITION_PATTERN = /\b(?:on|under|against|around|onto|over|beneath|beside|in|inside|into)\b/
 
 export type RelationalRouteOutcome =
     | { type: 'relational' }

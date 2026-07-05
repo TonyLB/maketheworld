@@ -31,8 +31,15 @@ describe('commandHasRelationalPreposition', () => {
         expect(commandHasRelationalPreposition('set it beside the chair')).toBe(true)
     })
 
+    it('blocks containment prepositions for nesting route', () => {
+        expect(commandHasRelationalPreposition('put the coin in the jar')).toBe(true)
+        expect(commandHasRelationalPreposition('stash it inside the chest')).toBe(true)
+        expect(commandHasRelationalPreposition('pour water into the bowl')).toBe(true)
+    })
+
     it('does not block onward or understand', () => {
         expect(commandHasRelationalPreposition('move onward')).toBe(false)
+        expect(commandHasRelationalPreposition('move inward')).toBe(false)
         expect(commandHasRelationalPreposition('help me understand')).toBe(false)
     })
 

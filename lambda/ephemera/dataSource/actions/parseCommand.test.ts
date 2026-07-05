@@ -1243,6 +1243,39 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns nesting Error for in relational route via frame extract', async () => {
+        const coinId = 'OBJECT#Coin'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"ObjectManipulationIntent","objectSpans":["coin"],"verbClass":"release","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"coin","targetSpan":"jar","relationSpan":"in"}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'put the coin in the jar',
+                roomObjectLabels: ['coin'],
+                roomObjectCatalog: [{ objectId: coinId, normalizedShortName: 'coin' }],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.nestingRelational,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
     it('returns Error for complex manipulation enrich disposition via edge-touch defer', async () => {
         const broomId = 'OBJECT#Broom'
         const roomId = 'ROOM#Bridge' as EphemeraRoomId

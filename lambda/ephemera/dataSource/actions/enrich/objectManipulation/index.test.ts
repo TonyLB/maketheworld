@@ -268,6 +268,35 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
     })
 
+    it('returns nesting Error for containment frame extract', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"coin","targetSpan":"jar","relationSpan":"in"}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+
+        const result = await enrichObjectManipulation(
+            {
+                command: 'put the coin in the jar',
+                rawObjectSpans: ['coin'],
+                verbClass: 'release',
+                roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationFrameExtractImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.nestingRelational,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
     it('invokes complexity LLM when exit edges touch object', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,

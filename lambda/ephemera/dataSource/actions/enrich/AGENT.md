@@ -26,7 +26,9 @@ Current implementation:
 - [`objectManipulation/relationalRoute.ts`](./objectManipulation/relationalRoute.ts) - expanded relational preposition detection; routes to frame extract vs membership path.
 - [`objectManipulation/manipulationFrame.ts`](./objectManipulation/manipulationFrame.ts) - **`ManipulationFrame`** + **`ManipulationFrameExtractModelResponse`**; builder from frame-extract LLM output.
 - [`objectManipulation/frameExtract/`](./objectManipulation/frameExtract/) - dedicated frame-extract Bedrock hop (BD-4): prompt, interpret, **`runFrameExtractStage`**.
-- [`objectManipulation/compileRelationalStub.ts`](./objectManipulation/compileRelationalStub.ts) - B1 compiler stub; terminal **`Error`** until B3 grounding (reuses **`complexRelational`** copy).
+- [`objectManipulation/compileRelationalStub.ts`](./objectManipulation/compileRelationalStub.ts) - B1 compiler stub; calls **`normalizeRelationSpan`** (B2); nesting defer -> **`nestingRelational`** Error; enum/custom still terminal **`complexRelational`** Error until B3 grounding.
+- [`objectManipulation/relationKind.ts`](./objectManipulation/relationKind.ts) - **`HostRelationalEdgeKind`**, **`NormalizedRelation`**, **`NormalizeRelationOutcome`** types (BD-2 / BD-3).
+- [`objectManipulation/normalizeRelationSpan.ts`](./objectManipulation/normalizeRelationSpan.ts) - deterministic **`relationSpan`** -> enum | **`Custom`** + label | nesting defer (B2).
 - [`objectManipulation/compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts) - membership-atomic orchestrator: merged identity, pre-gates, agreement gate, complexity LLM defer.
 - [`objectManipulation/verbMembershipAgreement.ts`](./objectManipulation/verbMembershipAgreement.ts) - **`verbClass`** vs **`operationKind`** agreement gate and PA-4 confidence cap helper.
 - [`objectManipulation/catalogMerge.ts`](./objectManipulation/catalogMerge.ts) - merge room + held catalogs with **`catalogScope`** tagging.
@@ -46,7 +48,7 @@ Current implementation:
 
 ```text
 relational route? (expanded prepositions in command)
-  -> yes: frame extract LLM -> compileRelationalStub -> Error (B1; B3+ grounded success)
+  -> yes: frame extract LLM -> normalizeRelationSpan -> compileRelationalStub -> Error (nesting defer or B3+ EstablishRelation)
   -> no: cardinality gate
        -> multiObject Error OR compileMembershipAtomic
             -> merge catalogs (room + held; held fetched at parse ingress, not classify)
