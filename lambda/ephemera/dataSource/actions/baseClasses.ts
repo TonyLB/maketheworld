@@ -253,17 +253,28 @@ export type ParseCommandAcmeOrderIntentResult = {
 }
 
 /**
- * Intent discrimination only: player intent is to manipulate a scene object (pick up, drop, etc.).
+ * Intent discrimination only: player intent is membership host transfer (which positionGraph hosts the object).
  * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
  * Terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
  */
-export type ParseCommandObjectManipulationIntentResult = {
-    type: 'ObjectManipulationIntent'
+export type ParseCommandObjectMembershipIntentResult = {
+    type: 'ObjectMembershipIntent'
     /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
     rawObjectSpans: string[]
     /** Membership language direction from classify. Mapped from JSON `verbClass`. */
     verbClass: ManipulationVerbClass
+    confidence: ParseCommandConfidence
+}
+
+/**
+ * Intent discrimination only: player intent is an in-host edge between objects on a host positionGraph.
+ * No `verbClass` at classify; operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
+ */
+export type ParseCommandObjectRelateIntentResult = {
+    type: 'ObjectRelateIntent'
+    /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
+    rawObjectSpans: string[]
     confidence: ParseCommandConfidence
 }
 
@@ -287,7 +298,8 @@ export type IntentClassificationResult =
     | ParseCommandPredictHypothesisResult
     | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
-    | ParseCommandObjectManipulationIntentResult
+    | ParseCommandObjectMembershipIntentResult
+    | ParseCommandObjectRelateIntentResult
     | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
@@ -308,7 +320,8 @@ export type ParseCommandResult =
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
-    | ParseCommandObjectManipulationIntentResult
+    | ParseCommandObjectMembershipIntentResult
+    | ParseCommandObjectRelateIntentResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult

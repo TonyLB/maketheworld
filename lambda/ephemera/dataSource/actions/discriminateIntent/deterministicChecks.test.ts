@@ -171,15 +171,15 @@ describe('deterministicIntentChecks', () => {
     })
 
     describe('manipulation fast paths', () => {
-        it('returns ObjectManipulationIntent for minimal take/drop/get verbs', () => {
+        it('returns ObjectMembershipIntent for minimal take/drop/get verbs', () => {
             expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
-                type: 'ObjectManipulationIntent',
+                type: 'ObjectMembershipIntent',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
-                type: 'ObjectManipulationIntent',
+                type: 'ObjectMembershipIntent',
                 rawObjectSpans: ['rope'],
                 verbClass: 'release',
                 confidence: 1,
@@ -188,7 +188,7 @@ describe('deterministicIntentChecks', () => {
                 command: 'get broom',
                 roomObjectLabels: ['broom'],
             })).toEqual({
-                type: 'ObjectManipulationIntent',
+                type: 'ObjectMembershipIntent',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
                 confidence: 1,

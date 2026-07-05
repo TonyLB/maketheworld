@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B in progress --- B2 shipped (relation normalizer). BD-1--BD-11 locked (2026-07-04); next step: B2.5 split classify intents (`ObjectMembershipIntent` + `ObjectRelateIntent`), then B3 grounding + legality.
+**Status:** Phase B in progress --- B2.5 shipped (split classify intents). Next step: B3 grounding + legality.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -26,8 +26,8 @@ Retire this plan when relational vertical + plan IR steady-state docs land; git 
 ## Target architecture (steady-state sketch)
 
 ```text
-discriminateIntent (ObjectMembershipIntent + verbClass acquire | release OR ObjectRelateIntent; replaces ObjectManipulationIntent umbrella)
-  -> parseCommand routes by intent type (interim: enrich relationalRoute preposition guard until B2.5)
+discriminateIntent (ObjectMembershipIntent + verbClass acquire | release OR ObjectRelateIntent)
+  -> parseCommand routes by intent type (enrichRoute from classify)
   -> membership enrich OR frame extract LLM hop -> manipulation frame (subject / target / relationSpan)
   -> plan compiler (deterministic: resolve spans, normalize relation, legality)
   -> plan executor -> stream event(s) -> positions -> perception
@@ -176,13 +176,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Optional small LLM hop for paraphrase -> enum only if deterministic map insufficient (BD-2 locked enum; defer LLM unless map gaps found in B2 tests).
   - [X] Tests: enum paths, custom paths, excluded **`in`**.
 
-- [ ] **B2.5. Split manipulation classify intents (BD-11)**
-  - [ ] Add **`ObjectMembershipIntent`** and **`ObjectRelateIntent`** to classify JSON, parser, guards, and **`IntentClassificationResult`** union in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); remove **`ObjectManipulationIntent`** when parity tests pass.
-  - [ ] Update [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts): Section A2 **`ObjectMembershipIntent`** (membership host transfer; **`verbClass`** required); Section A2b **`ObjectRelateIntent`** (in-host edge change; semantic relational examples without fixed preposition list; no **`verbClass`**). Shared tie-breakers vs AcmeOrder / NavigationIntent for manipulation family.
-  - [ ] Update deterministic fast path ([`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)): synthesize **`ObjectMembershipIntent`** for minimal take/drop/get (not **`ObjectRelateIntent`**).
-  - [ ] Wire [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): **`ObjectMembershipIntent`** -> **`enrichObjectManipulation`** membership path; **`ObjectRelateIntent`** -> relational frame-extract path. Demote [`relationalRoute.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalRoute.ts) from primary gate after parity tests.
-  - [ ] Tests: **`ObjectMembershipIntent`** lines (`pick up broom`); **`ObjectRelateIntent`** with and without listed prepositions; reject **`verbClass`** on **`ObjectRelateIntent`**; parseCommand E2E with mocked classify intent type.
-  - [ ] Durable docs: classify contract in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md); enrich sequence in [`enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
+- [X] **B2.5. Split manipulation classify intents (BD-11)**
+  - [X] Add **`ObjectMembershipIntent`** and **`ObjectRelateIntent`** to classify JSON, parser, guards, and **`IntentClassificationResult`** union in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); remove **`ObjectManipulationIntent`** when parity tests pass.
+  - [X] Update [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts): Section A2 **`ObjectMembershipIntent`** (membership host transfer; **`verbClass`** required); Section A2b **`ObjectRelateIntent`** (in-host edge change; semantic relational examples without fixed preposition list; no **`verbClass`**). Shared tie-breakers vs AcmeOrder / NavigationIntent for manipulation family.
+  - [X] Update deterministic fast path ([`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)): synthesize **`ObjectMembershipIntent`** for minimal take/drop/get (not **`ObjectRelateIntent`**).
+  - [X] Wire [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): **`ObjectMembershipIntent`** -> **`enrichObjectManipulation`** membership path; **`ObjectRelateIntent`** -> relational frame-extract path. Demote [`relationalRoute.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalRoute.ts) from primary gate after parity tests.
+  - [X] Tests: **`ObjectMembershipIntent`** lines (`pick up broom`); **`ObjectRelateIntent`** with and without listed prepositions; reject **`verbClass`** on **`ObjectRelateIntent`**; parseCommand E2E with mocked classify intent type.
+  - [X] Durable docs: classify contract in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md); enrich sequence in [`enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
 - [ ] **B3. Grounding + legality**
   - [ ] Resolve subject + target against catalogs; host selection per BD-6.
@@ -274,15 +274,15 @@ npm run build
 | B0 decision lock + positions contract draft (BD-2, BD-3) | Done (2026-07-04) |
 | B1 frame schema + extraction (stub terminal Error until B3) | Done (2026-07-04) |
 | B2 relation normalizer (deterministic map; nesting defer; no LLM hop) | Done (2026-07-04) |
-| B2.5 split classify intents (BD-11; ObjectMembershipIntent + ObjectRelateIntent) | Not started |
-| Phase B establishRelation vertical | In progress (B2.5 next, then B3) |
+| B2.5 split classify intents (BD-11; ObjectMembershipIntent + ObjectRelateIntent) | Done (2026-07-04) |
+| Phase B establishRelation vertical | In progress (B3 next) |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 
 ## Coordination notes
 
-- **Phase A** landed **`verbClass`** (`acquire` | `release`), merged-catalog identity, and the relational preposition guard before relational frame work. Classify still emits **`ObjectManipulationIntent`** until B2.5 ships.
-- **B2.5 (BD-11):** split **`ObjectMembershipIntent`** / **`ObjectRelateIntent`** replaces **`ObjectManipulationIntent`** at classify; **`parseCommand`** routes by intent **`type`**. Interim B1--B2 **`relationalRoute`** preposition regex remains until B2.5 parity tests pass. **`verbClass`** applies only to **`ObjectMembershipIntent`** --- not a third value on a shared type.
+- **Phase A** landed **`verbClass`** (`acquire` | `release`), merged-catalog identity, and the relational preposition guard before relational frame work. Classify emits **`ObjectMembershipIntent`** or **`ObjectRelateIntent`** (B2.5 shipped).
+- **B2.5 (BD-11):** split **`ObjectMembershipIntent`** / **`ObjectRelateIntent`** replaces **`ObjectManipulationIntent`** at classify; **`parseCommand`** routes by intent **`type`** via **`enrichRoute`**. **`relationalRoute`** preposition regex removed as primary enrich gate (module retained for unit tests). **`verbClass`** applies only to **`ObjectMembershipIntent`** --- not a third value on a shared type.
 - Phase B **replaces** the Phase A preposition guard with frame extract + **`establishRelation`**; split classify intents (**B2.5**) replace regex-as-primary-router.
 - Positions **M4** kernel work (edge mutations) is on the critical path for Phase B; actions parse can proceed with mocked apply until ingress contract is frozen.
 - **`in`** / nesting is an explicit **deferral** --- document player-facing copy when frame extract or relation normalizer detects containment language.

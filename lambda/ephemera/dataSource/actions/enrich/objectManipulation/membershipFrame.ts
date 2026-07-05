@@ -3,7 +3,7 @@ import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     ManipulationVerbClass,
     ParseCommandInput,
-    ParseCommandObjectManipulationIntentResult,
+    ParseCommandObjectMembershipIntentResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 
@@ -25,7 +25,7 @@ export function buildMembershipManipulationFrame(
         ParseCommandInput,
         'command' | 'characterId' | 'roomObjectCatalog' | 'heldInventoryCatalog'
     >,
-    intent: Pick<ParseCommandObjectManipulationIntentResult, 'rawObjectSpans' | 'verbClass'>
+    intent: Pick<ParseCommandObjectMembershipIntentResult, 'rawObjectSpans' | 'verbClass'>
 ): MembershipManipulationFrame {
     return {
         command: input.command,

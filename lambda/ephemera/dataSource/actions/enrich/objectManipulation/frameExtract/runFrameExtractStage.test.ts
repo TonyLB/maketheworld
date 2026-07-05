@@ -10,9 +10,9 @@ describe('runFrameExtractStage', () => {
 
         const result = await runFrameExtractStage(
             {
+                enrichRoute: 'relational',
                 command: 'put broom on table',
                 rawObjectSpans: ['broom'],
-                verbClass: 'release',
             },
             { invokeBedrockObjectManipulationFrameExtractImpl }
         )
@@ -24,7 +24,6 @@ describe('runFrameExtractStage', () => {
                 subjectSpan: 'broom',
                 targetSpan: 'table',
                 relationSpan: 'on',
-                verbClass: 'release',
                 rawObjectSpans: ['broom'],
             },
         })
@@ -38,9 +37,9 @@ describe('runFrameExtractStage', () => {
 
         const result = await runFrameExtractStage(
             {
+                enrichRoute: 'relational',
                 command: 'put broom on table',
                 rawObjectSpans: ['broom'],
-                verbClass: 'release',
             },
             { invokeBedrockObjectManipulationFrameExtractImpl }
         )
@@ -59,9 +58,9 @@ describe('runFrameExtractStage', () => {
 
         const result = await runFrameExtractStage(
             {
+                enrichRoute: 'relational',
                 command: 'put broom on table',
                 rawObjectSpans: ['broom'],
-                verbClass: 'release',
             },
             { invokeBedrockObjectManipulationFrameExtractImpl }
         )

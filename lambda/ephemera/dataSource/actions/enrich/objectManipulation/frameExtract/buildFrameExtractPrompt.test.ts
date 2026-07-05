@@ -3,9 +3,9 @@ import { buildManipulationFrameExtractPrompt } from './buildFrameExtractPrompt'
 describe('buildManipulationFrameExtractPrompt', () => {
     it('includes command, spans, and catalog in dynamic suffix', () => {
         const parts = buildManipulationFrameExtractPrompt({
+            enrichRoute: 'relational',
             command: 'put broom on table',
             rawObjectSpans: ['broom'],
-            verbClass: 'release',
             roomObjectCatalog: [{ objectId: 'OBJECT#Broom', normalizedShortName: 'broom' }],
         })
 

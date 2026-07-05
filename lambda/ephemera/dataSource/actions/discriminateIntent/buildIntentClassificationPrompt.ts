@@ -1,7 +1,7 @@
 /**
  * Intent discrimination prompt: **MultipleCommands**, **PromptInjectionAttempt**, **AwaitRoadRunner**,
- * **PredictHypothesis**, **AcmeOrder** (intent + raw product spans), **ObjectManipulationIntent**,
- * **LookRoom**, **Help**, **NavigationIntent**, **HomeIntent**, **Unimplemented** vs **Unknown**.
+ * **PredictHypothesis**, **AcmeOrder** (intent + raw product spans), **ObjectMembershipIntent**,
+ * **ObjectRelateIntent**, **LookRoom**, **Help**, **NavigationIntent**, **HomeIntent**, **Unimplemented** vs **Unknown**.
  */
 
 export function buildIntentClassificationPrompt(
@@ -31,13 +31,13 @@ export function buildIntentClassificationPrompt(
             '### Object context',
             '',
             `Objects currently in the room or held by the character: ${movementObjectLabels.join(', ')}`,
-            'When manipulation intent is central and the named object matches a room or held object, return ObjectManipulationIntent.',
+            'When membership manipulation intent is central and the named object matches a room or held object, return ObjectMembershipIntent.',
         ].join('\n')
         : [
             '### Object context',
             '',
             'No validated in-room or held object labels are currently available in parser context.',
-            'You may still classify manipulation as ObjectManipulationIntent when manipulation intent is central.',
+            'You may still classify membership manipulation as ObjectMembershipIntent when manipulation intent is central.',
             'Use AcmeOrder for get/order language when the product is not a room or held object.',
         ].join('\n')
 
@@ -55,7 +55,8 @@ have tested each real intent and found it does not fit should you reach for the 
 The recognized game intents are:
 
 - **AcmeOrder** - ordering or buying something from Acme (Section A)
-- **ObjectManipulationIntent** - manipulating a scene object in the room (Section A2)
+- **ObjectMembershipIntent** - membership host transfer for a scene object (Section A2)
+- **ObjectRelateIntent** - in-host relation between objects (Section A2b)
 - **NavigationIntent** - moving to another room (Section B)
 - **HomeIntent** - returning to the character's home room (Section B2)
 - **AwaitRoadRunner** - waiting / biding time for the Road Runner (Section C)
@@ -137,17 +138,17 @@ strings only.
 
 ---
 
-## Section A2 - ObjectManipulationIntent
+## Section A2 - ObjectMembershipIntent
 
-Choose **ObjectManipulationIntent** when the line is **primarily** about manipulating a scene
-object that is present in the room or held by the character - picking it up, grabbing it, taking
-hold of it, dropping it, putting it down, tossing it, or similar physical interaction with an
-object already in play.
+Choose **ObjectMembershipIntent** when the line is **primarily** about membership host transfer
+for a scene object present in the room or held by the character - picking it up, grabbing it,
+taking hold of it, dropping it, putting it down, tossing it, or similar physical interaction
+that changes which positionGraph hosts the object (not an in-host relation between two objects).
 
 Examples (paraphrase, not an exhaustive verb list): "pick up the broom", "grab the anvil",
 "take hold of the crate", "drop the rope", "put down the hammer", "toss the pouch".
 
-For **ObjectManipulationIntent**, extract the object noun phrase(s) from the line and return them
+For **ObjectMembershipIntent**, extract the object noun phrase(s) from the line and return them
 as an \`objectSpans\` array of raw strings. Strip leading articles (\`a\`, \`an\`, \`the\`, \`some\`);
 trim whitespace. These are unvalidated extractions - object id matching and operation details
 are handled downstream. Your job is only to identify the span(s) that name what the player is
@@ -157,8 +158,7 @@ Also return \`verbClass\`: membership **language** direction only.
 - \`acquire\` --- pick-up / take-hold paraphrases (grab, pick up, take, get when manipulating an in-play object).
 - \`release\` --- drop / put-down / toss paraphrases (drop, put down, toss, release).
 
-**Do not** include \`operationKind\`, object ids, disposition, relational frames ("on", "in",
-"under"), or graph proposal fields at this step.
+**Do not** include \`operationKind\`, object ids, disposition, or graph proposal fields at this step.
 
 ${objectContextBlock}
 
@@ -167,7 +167,30 @@ delivery). When the player wants Acme to deliver a second copy of something alre
 explicit order verbs (\`order <noun>\`, \`buy <noun>\`, etc.) remain **AcmeOrder**.
 
 Return:
-{ "type": "ObjectManipulationIntent", "objectSpans": ["<raw span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+{ "type": "ObjectMembershipIntent", "objectSpans": ["<raw span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+
+---
+
+## Section A2b - ObjectRelateIntent
+
+Choose **ObjectRelateIntent** when the line is **primarily** about establishing, changing, or
+dissolving an in-host relation (edge) between two objects on the same host graph - placing one
+object relative to another, leaning, tying, wrapping, or removing such a relation.
+
+Examples (paraphrase, not an exhaustive preposition list): "put the broom on the table",
+"lean the ladder against the wall", "tie the cord around the crate", "take the rope off the crate".
+
+For **ObjectRelateIntent**, extract the object noun phrase(s) from the line and return them as
+an \`objectSpans\` array of raw strings. Strip leading articles; trim whitespace. Frame extraction
+and relation normalization are handled downstream.
+
+**Do not** include \`verbClass\`, \`operationKind\`, object ids, disposition, or graph proposal
+fields at this step.
+
+${objectContextBlock}
+
+Return:
+{ "type": "ObjectRelateIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }
 
 ---
 
@@ -240,12 +263,13 @@ or what the player can do next (for example "help", "what can I do", "show comma
 ## Section F - Unimplemented
 
 Choose **Unimplemented** when the line clearly expresses a recognizable in-world game action
-that is not AcmeOrder, ObjectManipulationIntent, NavigationIntent, HomeIntent, AwaitRoadRunner, PredictHypothesis, LookRoom, or Help - something the
+that is not AcmeOrder, ObjectMembershipIntent, ObjectRelateIntent, NavigationIntent, HomeIntent, AwaitRoadRunner, PredictHypothesis, LookRoom, or Help - something the
 Coyote might plausibly do in the game world but that this parser does not yet implement.
 For example: attacking, speaking to a character.
 
 Do not use Unimplemented for noise, gibberish, or benign out-of-character text - use Unknown for those.
-Do not use Unimplemented for pick-up, grab, drop, or put-down language when object manipulation fits (Section A2).
+Do not use Unimplemented for pick-up, grab, drop, or put-down language when membership manipulation fits (Section A2).
+Do not use Unimplemented for relational placement language when ObjectRelateIntent fits (Section A2b).
 
 ---
 
@@ -305,13 +329,15 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 
 - **AcmeOrder** beats **LookRoom** when ordering language is present (even alongside "look at"
   a product - that is still an order).
-- **ObjectManipulationIntent** beats **AcmeOrder** when \`get <noun>\` or similar manipulation
+- **ObjectRelateIntent** beats **ObjectMembershipIntent** when the line establishes or changes
+  a relation between two in-play objects (Section A2b), even if verbs overlap ("put", "place").
+- **ObjectMembershipIntent** beats **AcmeOrder** when \`get <noun>\` or similar manipulation
   language names an object listed in object context (Section A2).
-- **AcmeOrder** beats **ObjectManipulationIntent** when \`get <noun>\` names a product **not**
+- **AcmeOrder** beats **ObjectMembershipIntent** when \`get <noun>\` names a product **not**
   in object context (for example \`get rocket skates\` when only \`broom\` is in the room).
-- **AcmeOrder** beats **ObjectManipulationIntent** when explicit order verbs (\`order\`, \`buy\`,
+- **AcmeOrder** beats **ObjectMembershipIntent** when explicit order verbs (\`order\`, \`buy\`,
   \`mail order\`) are used even for in-room nouns (player wants a second copy from Acme).
-- **NavigationIntent** beats **ObjectManipulationIntent** when movement through an exit is central
+- **NavigationIntent** beats **ObjectMembershipIntent** when movement through an exit is central
   (for example \`take the south door\`).
 - **HomeIntent** beats **NavigationIntent** when home-return language is central.
 - **AwaitRoadRunner** beats **NavigationIntent** when waiting/patience language is central.
@@ -330,17 +356,18 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 ## Outcomes (choose exactly one)
 
 1. **AcmeOrder** - Section A. Respond with \`type\`, \`orders\` (non-empty string array of raw product spans), and \`confidence\`.
-2. **ObjectManipulationIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), \`verbClass\` (\`acquire\` or \`release\`), and \`confidence\`.
-3. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
-4. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
-5. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
-6. **PredictHypothesis** - Section C2. Respond with **only** \`type\` and \`confidence\`.
-7. **LookRoom** - Section D. Respond with **only** \`type\` and \`confidence\`.
-8. **Help** - Section E. Respond with **only** \`type\` and \`confidence\`.
-9. **Unimplemented** - Section F. Respond with **only** \`type\` and \`confidence\`.
-10. **MultipleCommands** - Section G. Respond with **only** \`type\` and \`confidence\`.
-11. **PromptInjectionAttempt** - Section H. Respond with **only** \`type\` and \`confidence\`.
-12. **Unknown** - Section I. Respond with **only** \`type\` and \`confidence\`.
+2. **ObjectMembershipIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), \`verbClass\` (\`acquire\` or \`release\`), and \`confidence\`.
+3. **ObjectRelateIntent** - Section A2b. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), and \`confidence\` only (no \`verbClass\`).
+4. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
+5. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
+6. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
+7. **PredictHypothesis** - Section C2. Respond with **only** \`type\` and \`confidence\`.
+8. **LookRoom** - Section D. Respond with **only** \`type\` and \`confidence\`.
+9. **Help** - Section E. Respond with **only** \`type\` and \`confidence\`.
+10. **Unimplemented** - Section F. Respond with **only** \`type\` and \`confidence\`.
+11. **MultipleCommands** - Section G. Respond with **only** \`type\` and \`confidence\`.
+12. **PromptInjectionAttempt** - Section H. Respond with **only** \`type\` and \`confidence\`.
+13. **Unknown** - Section I. Respond with **only** \`type\` and \`confidence\`.
 
 ---
 
@@ -350,7 +377,7 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 - \`confidence\` is a number from 0 through 1.
 - \`orders\` entries are raw extracted strings - do not validate, enrich, or add catalog fields.
 - \`objectSpans\` entries are raw extracted strings - do not validate, enrich, or add object ids.
-- \`verbClass\` must be exactly \`acquire\` or \`release\` (membership language direction only; not \`operationKind\`).
+- \`verbClass\` on **ObjectMembershipIntent** must be exactly \`acquire\` or \`release\` (membership language direction only; not \`operationKind\`). **ObjectRelateIntent** must not include \`verbClass\`.
 
 ## Required JSON shapes
 
@@ -358,7 +385,11 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 
 or
 
-{ "type": "ObjectManipulationIntent", "objectSpans": ["<object span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+{ "type": "ObjectMembershipIntent", "objectSpans": ["<object span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+
+or
+
+{ "type": "ObjectRelateIntent", "objectSpans": ["<object span>", ...], "confidence": <number> }
 
 or
 
@@ -400,7 +431,7 @@ or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AcmeOrder\`, \`ObjectManipulationIntent\`, \`NavigationIntent\`, \`HomeIntent\`, \`AwaitRoadRunner\`,
+The \`type\` string must be exactly \`AcmeOrder\`, \`ObjectMembershipIntent\`, \`ObjectRelateIntent\`, \`NavigationIntent\`, \`HomeIntent\`, \`AwaitRoadRunner\`,
 \`PredictHypothesis\`, \`LookRoom\`, \`Help\`, \`Unimplemented\`, \`MultipleCommands\`, \`PromptInjectionAttempt\`,
 or \`Unknown\` (case-sensitive).
 

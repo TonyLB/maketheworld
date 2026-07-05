@@ -8,7 +8,6 @@ import { compileRelationalStub } from './compileRelationalStub'
 import { complexErrorMessage } from './complexityClasses'
 import { runFrameExtractStage, type FrameExtractStageDeps } from './frameExtract/runFrameExtractStage'
 import type { ManipulationFrameBuildInput } from './manipulationFrame'
-import { evaluateRelationalRoute } from './relationalRoute'
 
 export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
@@ -21,7 +20,7 @@ export async function enrichObjectManipulation(
     intentConfidence: number,
     deps: EnrichObjectManipulationDeps = {}
 ): Promise<EnrichObjectManipulationResult> {
-    if (evaluateRelationalRoute(input).type === 'relational') {
+    if (input.enrichRoute === 'relational') {
         const extractResult = await runFrameExtractStage(input, deps)
         if (extractResult.type === 'error') {
             return { type: 'Error', errorMessage: extractResult.errorMessage }
@@ -34,6 +33,13 @@ export async function enrichObjectManipulation(
         return {
             type: 'Error',
             errorMessage: complexErrorMessage(cardinalityOutcome.complexityClass),
+        }
+    }
+
+    if (input.verbClass === undefined) {
+        return {
+            type: 'Error',
+            errorMessage: 'Membership manipulation enrich requires verbClass from classify',
         }
     }
 

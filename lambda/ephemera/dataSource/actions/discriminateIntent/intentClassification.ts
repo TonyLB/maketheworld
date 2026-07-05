@@ -3,7 +3,8 @@ import type {
     ManipulationVerbClass,
     ParseCommandAcmeOrderIntentResult,
     ParseCommandNavigationIntentResult,
-    ParseCommandObjectManipulationIntentResult,
+    ParseCommandObjectMembershipIntentResult,
+    ParseCommandObjectRelateIntentResult,
 } from '../baseClasses'
 import {
     isManipulationVerbClass,
@@ -20,7 +21,8 @@ import {
     isParseCommandAcmeOrderIntentResult,
     isParseCommandHomeIntentResult,
     isParseCommandNavigationIntentResult,
-    isParseCommandObjectManipulationIntentResult,
+    isParseCommandObjectMembershipIntentResult,
+    isParseCommandObjectRelateIntentResult,
 } from './baseClasses'
 
 function isParseConfidence(value: unknown): boolean {
@@ -110,46 +112,47 @@ function parseAcmeOrderIntentRawOrders(obj: Record<string, unknown>): { rawOrder
     return { rawOrders }
 }
 
-function parseObjectManipulationIntentRawObjectSpans(
-    obj: Record<string, unknown>
+function parseObjectIntentRawObjectSpans(
+    obj: Record<string, unknown>,
+    intentTypeName: string
 ): { rawObjectSpans: string[] } | { error: string } {
     if ('rawObjectSpans' in obj) {
-        return { error: 'ObjectManipulationIntent intent payload must use objectSpans, not rawObjectSpans' }
+        return { error: `${intentTypeName} intent payload must use objectSpans, not rawObjectSpans` }
     }
     if ('orders' in obj) {
-        return { error: 'ObjectManipulationIntent intent payload must not use orders field' }
+        return { error: `${intentTypeName} intent payload must not use orders field` }
     }
     if (!('objectSpans' in obj)) {
-        return { error: 'ObjectManipulationIntent intent payload must include objectSpans array of raw object spans' }
+        return { error: `${intentTypeName} intent payload must include objectSpans array of raw object spans` }
     }
     if (!Array.isArray(obj.objectSpans)) {
-        return { error: 'ObjectManipulationIntent intent objectSpans must be a non-empty array of strings' }
+        return { error: `${intentTypeName} intent objectSpans must be a non-empty array of strings` }
     }
     const rawObjectSpans: string[] = []
     for (const element of obj.objectSpans) {
         if (typeof element !== 'string') {
-            return { error: 'ObjectManipulationIntent intent objectSpans must contain only non-empty strings' }
+            return { error: `${intentTypeName} intent objectSpans must contain only non-empty strings` }
         }
         const trimmed = element.trim()
         if (trimmed.length === 0) {
-            return { error: 'ObjectManipulationIntent intent objectSpans entries must be non-empty after trim' }
+            return { error: `${intentTypeName} intent objectSpans entries must be non-empty after trim` }
         }
         rawObjectSpans.push(trimmed)
     }
     if (rawObjectSpans.length === 0) {
-        return { error: 'ObjectManipulationIntent intent objectSpans array must be non-empty' }
+        return { error: `${intentTypeName} intent objectSpans array must be non-empty` }
     }
     return { rawObjectSpans }
 }
 
-function parseObjectManipulationIntentVerbClass(
+function parseMembershipIntentVerbClass(
     obj: Record<string, unknown>
 ): { verbClass: ManipulationVerbClass } | { error: string } {
     if (!('verbClass' in obj)) {
-        return { error: 'ObjectManipulationIntent intent payload must include verbClass acquire or release' }
+        return { error: 'ObjectMembershipIntent intent payload must include verbClass acquire or release' }
     }
     if (!isManipulationVerbClass(obj.verbClass)) {
-        return { error: 'ObjectManipulationIntent intent verbClass must be acquire or release' }
+        return { error: 'ObjectMembershipIntent intent verbClass must be acquire or release' }
     }
     return { verbClass: obj.verbClass }
 }
@@ -170,7 +173,8 @@ function extractJsonBody(raw: string): string {
 /**
  * Parses and validates LLM output for the intent-classification prompt.
  * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`PredictHypothesis`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
- * **`ObjectManipulationIntent`** (with **`objectSpans`**: raw object spans mapped to **`rawObjectSpans`**),
+ * **`ObjectMembershipIntent`** (with **`objectSpans`** + **`verbClass`**: raw object spans mapped to **`rawObjectSpans`**),
+ * **`ObjectRelateIntent`** (with **`objectSpans`** only: raw object spans mapped to **`rawObjectSpans`**),
  * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`HomeIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
@@ -304,27 +308,61 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     }
 
     if (type === 'ObjectManipulationIntent') {
+        return {
+            type: 'Error',
+            errorMessage: 'ObjectManipulationIntent is retired; use ObjectMembershipIntent or ObjectRelateIntent',
+        }
+    }
+
+    if (type === 'ObjectMembershipIntent') {
         if (hasForbiddenObjectManipulationIntentField(obj)) {
             return {
                 type: 'Error',
-                errorMessage: 'ObjectManipulationIntent must not include operationKind, disposition, object ids, or routing fields',
+                errorMessage: 'ObjectMembershipIntent must not include operationKind, disposition, object ids, or routing fields',
             }
         }
-        const parsedObjectSpans = parseObjectManipulationIntentRawObjectSpans(obj)
+        const parsedObjectSpans = parseObjectIntentRawObjectSpans(obj, 'ObjectMembershipIntent')
         if ('error' in parsedObjectSpans) {
             return { type: 'Error', errorMessage: parsedObjectSpans.error }
         }
-        const parsedVerbClass = parseObjectManipulationIntentVerbClass(obj)
+        const parsedVerbClass = parseMembershipIntentVerbClass(obj)
         if ('error' in parsedVerbClass) {
             return { type: 'Error', errorMessage: parsedVerbClass.error }
         }
-        const candidate: ParseCommandObjectManipulationIntentResult = {
-            type: 'ObjectManipulationIntent',
+        const candidate: ParseCommandObjectMembershipIntentResult = {
+            type: 'ObjectMembershipIntent',
             rawObjectSpans: parsedObjectSpans.rawObjectSpans,
             verbClass: parsedVerbClass.verbClass,
             confidence: obj.confidence as number,
         }
-        if (isParseCommandObjectManipulationIntentResult(candidate)) {
+        if (isParseCommandObjectMembershipIntentResult(candidate)) {
+            return candidate
+        }
+    }
+
+    if (type === 'ObjectRelateIntent') {
+        if ('verbClass' in obj) {
+            return {
+                type: 'Error',
+                errorMessage: 'ObjectRelateIntent must not include verbClass',
+            }
+        }
+        if (hasForbiddenObjectManipulationIntentField(obj)) {
+            return {
+                type: 'Error',
+                errorMessage: 'ObjectRelateIntent must not include operationKind, disposition, object ids, or routing fields',
+            }
+        }
+        const parsedObjectSpans = parseObjectIntentRawObjectSpans(obj, 'ObjectRelateIntent')
+        if ('error' in parsedObjectSpans) {
+            return { type: 'Error', errorMessage: parsedObjectSpans.error }
+        }
+        const candidate: ParseCommandObjectRelateIntentResult = {
+            type: 'ObjectRelateIntent',
+            rawObjectSpans: parsedObjectSpans.rawObjectSpans,
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandObjectRelateIntentResult(candidate)) {
             return candidate
         }
     }
@@ -362,6 +400,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectManipulationIntent (objectSpans array of raw spans and verbClass acquire or release), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (objectSpans array of raw spans and verbClass acquire or release), ObjectRelateIntent (objectSpans array of raw spans only), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

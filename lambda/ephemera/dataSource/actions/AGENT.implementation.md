@@ -68,9 +68,9 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 1. **When to use this path** --- atomic transfer between eligible membership hosts (room, character inventory in v1). Atomic eligibility is decided by cardinality gate + membership complexity pre-gates (not a single enrich disposition hop). Relational placement, multi-object deltas, and multi-host membership (`multiPresent`) terminalize as **`Error`** (no stream, no positions) until a follow-on planner ships.
 
-2. **Classify (usually unchanged for new atomics)** --- keep **`ObjectManipulationIntent`** + **`rawObjectSpans`** + **`verbClass`** (`acquire` | `release`); thread **`movementObjectLabels`** (union of room + held labels from parallel fetch) into the classify prompt via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts).
+2. **Classify (usually unchanged for new atomics)** --- **`ObjectMembershipIntent`** + **`rawObjectSpans`** + **`verbClass`** (`acquire` | `release`); thread **`movementObjectLabels`** (union of room + held labels from parallel fetch) into the classify prompt via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts).
 
-3. **Enrich (split stages)** --- enrich entry routes relational commands through frame extract (B1), **`normalizeRelationSpan`** (B2), and compiler stub; [`compileMembershipAtomic`](enrich/objectManipulation/compileMembershipAtomic.ts) orchestrates membership-atomic compile: merged-catalog identity, pre-gates, verb--membership agreement gate, and complexity LLM defer. Complex outcomes (`multiObject`, `multiPresent`, `relationalPlacement`, unsupported atomic **`operationKind`**) remain terminal **`Error`** stubs. Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error.
+3. **Enrich (split stages)** --- **`parseCommand`** routes **`ObjectMembershipIntent`** -> membership path (`compileMembershipAtomic`); **`ObjectRelateIntent`** -> frame extract (B1), **`normalizeRelationSpan`** (B2), compiler stub. Complex outcomes remain terminal **`Error`** stubs. Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error.
 
 4. **Identity resolve** --- deterministic **`shortName`** match in identity stage ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + merged catalog via [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts)); optional identity LLM on NoMatch / AmbiguousMatch; fail closed on ambiguity. Agreement gate after pre-gates: **`release` + room host** -> **`notCarryingObject`**; **`acquire` + actor character host** -> **`alreadyHoldingObject`**.
 
@@ -100,24 +100,31 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ## Affordance design notes
 
-### `ObjectManipulationIntent` steady-state (shipped --- membership-aware classify + enrich + egress)
+### Object manipulation classify + enrich steady-state (shipped --- B2.5 split intents)
 
 Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Manipulation kernel + adapter: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md#target-layering). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
+
+**Classify contract (BD-11):** two intent types replace the retired umbrella **`ObjectManipulationIntent`**:
+
+| Intent | Topology | Classify fields | Enrich path |
+| --- | --- | --- | --- |
+| **`ObjectMembershipIntent`** | Membership host transfer | **`objectSpans`**, **`verbClass`** (`acquire` \| `release`) | **`compileMembershipAtomic`** |
+| **`ObjectRelateIntent`** | In-host edge on host graph | **`objectSpans`** only (no **`verbClass`**) | frame extract -> **`normalizeRelationSpan`** -> **`compileRelationalStub`** |
 
 **Pipeline sequence:**
 
 ```text
 Parse Requested
   -> parallel: roomExitContext + roomObjectCatalog + heldInventoryCatalog
-  -> [optional] deterministic fast path: minimal-verb take/drop/get -> ObjectManipulationIntent (skip Bedrock classify only)
-  -> classify (LLM): ObjectManipulationIntent + rawObjectSpans[] + verbClass (acquire | release; movementObjectLabels = room + held)
-  -> enrichObjectManipulation:
-       relational route (expanded prepositions) -> frame extract LLM -> normalizeRelationSpan -> compileRelationalStub -> Error (nesting defer or B3+ EstablishRelation)
-       OR membership path: cardinality gate -> compileMembershipAtomic
+  -> [optional] deterministic fast path: minimal-verb take/drop/get -> ObjectMembershipIntent (skip Bedrock classify only)
+  -> classify (LLM): ObjectMembershipIntent OR ObjectRelateIntent (movementObjectLabels = room + held)
+  -> parseCommand branches by intent type -> enrichObjectManipulation(enrichRoute):
+       membership: cardinality gate -> compileMembershipAtomic
             -> merged-catalog identity + optional identity LLM
             -> unary collapse -> membership observation + complexity pre-gates
             -> agreement gate (verbClass vs operationKind) on atomic path
             -> complexity LLM only on pre-gate defer
+       relational: frame extract LLM -> normalizeRelationSpan -> compileRelationalStub -> Error (nesting defer or B3+ EstablishRelation)
   -> terminal parse / egress (Object Take Hold | Object Drop) or Error (complex stub)
 ```
 
@@ -125,17 +132,20 @@ Parse Requested
 
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectCatalog`** on **`parseCommand`** input.
 2. **Held inventory catalog:** [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) --- character `positionGraph` + character asset-stack perspective merge; parallel fetch on **`Parse Requested`**; threaded as **`heldInventoryCatalog`** on **`parseCommand`**. Identity resolves against [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts) (room entries first; held-only entries appended; dedupe by `objectId` with room winning).
-3. **Classify prompt:** Section A2 in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** = union of room + held labels (parallel to **`movementExitLabels`**). Tie-breakers: in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels; explicit **`order <noun>`** for Acme when player wants a second copy. **Deterministic classify skip:** minimal-verb **`take <object>`**, **`drop <object>`**, **`get <object>`** in [`deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts) synthesize **`ObjectManipulationIntent`** (`confidence: 1`); **`get`** is label-gated so unknown products still reach Bedrock classify -> **`AcmeOrder`**.
-4. **Model JSON (classify):** `{ "type": "ObjectManipulationIntent", "objectSpans": [...], "verbClass": "acquire" | "release", "confidence": <number> }` -> **`rawObjectSpans`** + **`verbClass`** ([`intentClassification.ts`](discriminateIntent/intentClassification.ts)).
+3. **Classify prompt:** Section A2 (**`ObjectMembershipIntent`**) and A2b (**`ObjectRelateIntent`**) in [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts); **`movementObjectLabels`** = union of room + held labels (parallel to **`movementExitLabels`**). Tie-breakers: **`ObjectRelateIntent`** beats **`ObjectMembershipIntent`** when line establishes an in-host relation; in-room **`get <noun>`** beats **`AcmeOrder`** when noun is in labels. **Deterministic classify skip:** minimal-verb **`take <object>`**, **`drop <object>`**, **`get <object>`** in [`deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts) synthesize **`ObjectMembershipIntent`** (`confidence: 1`); **`get`** is label-gated so unknown products still reach Bedrock classify -> **`AcmeOrder`**.
+4. **Model JSON (classify):**
+   - Membership: `{ "type": "ObjectMembershipIntent", "objectSpans": [...], "verbClass": "acquire" | "release", "confidence": <number> }` -> **`rawObjectSpans`** + **`verbClass`**
+   - Relate: `{ "type": "ObjectRelateIntent", "objectSpans": [...], "confidence": <number> }` -> **`rawObjectSpans`** only (legacy **`ObjectManipulationIntent`** rejected)
+   - Interpreter: [`intentClassification.ts`](discriminateIntent/intentClassification.ts)
 
 **Classify vs enrich ownership:**
 
 | Field | Lane | Meaning |
 | --- | --- | --- |
-| **`verbClass`** | Classify | Membership **language** direction (`acquire` \| `release`) |
+| **`verbClass`** | Classify (**`ObjectMembershipIntent` only**) | Membership **language** direction (`acquire` \| `release`) |
 | **`operationKind`** | Enrich / compiler | Membership **ground truth** (`takeHold` \| `drop`) from pre-gates + agreement gate |
 
-5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- enrich entry ([`index.ts`](enrich/objectManipulation/index.ts)) routes relational commands (expanded preposition detection via [`relationalRoute.ts`](enrich/objectManipulation/relationalRoute.ts)) through dedicated frame extract ([`frameExtract/runFrameExtractStage.ts`](enrich/objectManipulation/frameExtract/runFrameExtractStage.ts)), deterministic relation normalizer ([`normalizeRelationSpan.ts`](enrich/objectManipulation/normalizeRelationSpan.ts); B2), and compiler stub ([`compileRelationalStub.ts`](enrich/objectManipulation/compileRelationalStub.ts)); terminal **`Error`** until B3 grounding (nesting defer for containment). Membership atomics use **`compileMembershipAtomic`** ([`compileMembershipAtomic.ts`](enrich/objectManipulation/compileMembershipAtomic.ts)) with input **`MembershipManipulationFrame`** ([`membershipFrame.ts`](enrich/objectManipulation/membershipFrame.ts)). Relational frames: **`ManipulationFrame`** ([`manipulationFrame.ts`](enrich/objectManipulation/manipulationFrame.ts)). Membership stages: merged identity -> unary collapse -> membership observation -> complexity pre-gates -> agreement gate ([`verbMembershipAgreement.ts`](enrich/objectManipulation/verbMembershipAgreement.ts)) -> optional complexity LLM on defer. Agreement failures: **`release` + room host** -> **`notCarryingObject`**; **`acquire` + actor character host** -> **`alreadyHoldingObject`**. PA-4: **`AGREEMENT_FAILURE_CONFIDENCE_CAP`** (0.5) via **`agreementFailureConfidence`** helper (parse **`Error`** shape does not carry confidence yet). Injectable frame-extract Bedrock: **`invokeBedrockObjectManipulationFrameExtractImpl`** on **`ParseCommandDeps`**.
+5. **Enrich:** [`enrich/objectManipulation/`](enrich/objectManipulation/) --- **`parseCommand`** passes **`enrichRoute: 'membership' | 'relational'`** from classify intent type ([`index.ts`](enrich/objectManipulation/index.ts)); preposition regex in [`relationalRoute.ts`](enrich/objectManipulation/relationalRoute.ts) is **not** the primary router (retained for unit tests / documentation). Relational path: frame extract ([`frameExtract/runFrameExtractStage.ts`](enrich/objectManipulation/frameExtract/runFrameExtractStage.ts)), **`normalizeRelationSpan`** (B2), **`compileRelationalStub`** (terminal **`Error`** until B3). Membership path: **`compileMembershipAtomic`** with **`MembershipManipulationFrame`** ([`membershipFrame.ts`](enrich/objectManipulation/membershipFrame.ts)). Relational frames: **`ManipulationFrame`** ([`manipulationFrame.ts`](enrich/objectManipulation/manipulationFrame.ts); **`verbClass`** optional on relate path).
 6. **Complexity pre-gates** (first decisive outcome wins; otherwise complexity LLM):
 
 | Order | Condition | Outcome (no Bedrock) |

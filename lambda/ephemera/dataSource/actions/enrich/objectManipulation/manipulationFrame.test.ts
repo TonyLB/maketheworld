@@ -4,6 +4,7 @@ describe('buildManipulationFrameFromExtract', () => {
     it('merges enrich input and frame-extract response into a manipulation frame', () => {
         const frame = buildManipulationFrameFromExtract(
             {
+                enrichRoute: 'relational',
                 command: 'put broom on table',
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',

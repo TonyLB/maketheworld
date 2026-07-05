@@ -7,7 +7,7 @@
 Current implementation:
 
 - [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
-- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ParseCommandErrorResult`** (complex disposition stub, unimplemented atomic **`operationKind`**, resolve failure, or enrich parse/invoke failure). Relational commands route through dedicated frame extract (Phase B B1); membership atomics use **`compileMembershipAtomic`**.
+- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectMembershipIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ObjectRelateIntent`** through frame extract into **`ParseCommandErrorResult`** (relational compiler stub until B3, nesting defer, complex disposition stub, resolve failure, or enrich parse/invoke failure).
 
 ## Boundary
 
@@ -22,9 +22,9 @@ Current implementation:
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 - [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
 - [`acmeOrder/index.ts`](./acmeOrder/index.ts) - orchestrates thinking lifecycle when **`EnrichAcmeOrderDeps.messageBus`** is set (see **Thinking** below).
-- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - relational route at entry; membership path: cardinality gate then **`compileMembershipAtomic`**.
-- [`objectManipulation/relationalRoute.ts`](./objectManipulation/relationalRoute.ts) - expanded relational preposition detection; routes to frame extract vs membership path.
-- [`objectManipulation/manipulationFrame.ts`](./objectManipulation/manipulationFrame.ts) - **`ManipulationFrame`** + **`ManipulationFrameExtractModelResponse`**; builder from frame-extract LLM output.
+- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - routes by **`enrichRoute`** from classify intent type; membership path: cardinality gate then **`compileMembershipAtomic`**; relational path: frame extract -> **`normalizeRelationSpan`** -> **`compileRelationalStub`**.
+- [`objectManipulation/relationalRoute.ts`](./objectManipulation/relationalRoute.ts) - preposition detection helper (unit-tested; **not** primary enrich router after B2.5).
+- [`objectManipulation/manipulationFrame.ts`](./objectManipulation/manipulationFrame.ts) - **`ManipulationFrame`** + **`ManipulationFrameExtractModelResponse`**; builder from frame-extract LLM output; **`enrichRoute`** on build input.
 - [`objectManipulation/frameExtract/`](./objectManipulation/frameExtract/) - dedicated frame-extract Bedrock hop (BD-4): prompt, interpret, **`runFrameExtractStage`**.
 - [`objectManipulation/compileRelationalStub.ts`](./objectManipulation/compileRelationalStub.ts) - B1 compiler stub; calls **`normalizeRelationSpan`** (B2); nesting defer -> **`nestingRelational`** Error; enum/custom still terminal **`complexRelational`** Error until B3 grounding.
 - [`objectManipulation/relationKind.ts`](./objectManipulation/relationKind.ts) - **`HostRelationalEdgeKind`**, **`NormalizedRelation`**, **`NormalizeRelationOutcome`** types (BD-2 / BD-3).
@@ -47,9 +47,8 @@ Current implementation:
 ### Object manipulation enrich sequence
 
 ```text
-relational route? (expanded prepositions in command)
-  -> yes: frame extract LLM -> normalizeRelationSpan -> compileRelationalStub -> Error (nesting defer or B3+ EstablishRelation)
-  -> no: cardinality gate
+parseCommand passes enrichRoute from classify intent type
+  -> membership: cardinality gate
        -> multiObject Error OR compileMembershipAtomic
             -> merge catalogs (room + held; held fetched at parse ingress, not classify)
             -> identity stage (deterministic resolve; identity LLM on NoMatch/AmbiguousMatch)
@@ -58,9 +57,10 @@ relational route? (expanded prepositions in command)
             -> complexity pre-gates
             -> agreement gate (verbClass vs operationKind) on atomic path
             -> atomic takeHold/drop short-circuit OR complexity LLM + finalize
+  -> relational: frame extract LLM -> normalizeRelationSpan -> compileRelationalStub -> Error (nesting defer or B3+ EstablishRelation)
 ```
 
-**Distinction:** Relational preposition route uses **frame extract** (dedicated hop). Membership defer when exit edges touch the object still uses **complexity LLM** and may return **`relationalPlacement`** --- separate from the frame-extract path.
+**Distinction:** Relational path uses **frame extract** (dedicated hop), routed by **`ObjectRelateIntent`** at classify. Membership defer when exit edges touch the object still uses **complexity LLM** and may return **`relationalPlacement`** --- separate from the frame-extract path.
 
 ## Notes
 

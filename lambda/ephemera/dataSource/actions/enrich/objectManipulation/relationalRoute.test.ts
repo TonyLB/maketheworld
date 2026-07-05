@@ -3,9 +3,9 @@ import { commandHasRelationalPreposition, evaluateRelationalRoute } from './rela
 
 function relationalInput(overrides: Partial<ManipulationFrameBuildInput> = {}): ManipulationFrameBuildInput {
     return {
+        enrichRoute: 'relational',
         command: 'put the broom on the table',
         rawObjectSpans: ['broom'],
-        verbClass: 'release',
         ...overrides,
     }
 }

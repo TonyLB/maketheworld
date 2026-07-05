@@ -30,6 +30,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
@@ -64,6 +65,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'drop the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
@@ -95,6 +97,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom and the anvil',
                 rawObjectSpans: ['broom', 'anvil'],
                 verbClass: 'acquire',
@@ -116,6 +119,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom and the anvil',
                 rawObjectSpans: ['broom', 'anvil'],
                 verbClass: 'acquire',
@@ -139,6 +143,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
@@ -166,6 +171,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
@@ -194,9 +200,9 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'relational',
                 command: 'put the broom on the table',
                 rawObjectSpans: ['broom'],
-                verbClass: 'release',
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -228,9 +234,9 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'relational',
                 command: 'lean rope against anvil',
                 rawObjectSpans: ['rope'],
-                verbClass: 'release',
                 roomObjectCatalog: anvilCatalog,
             },
             0.88,
@@ -252,9 +258,9 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'relational',
                 command: 'tie cord around crate',
                 rawObjectSpans: ['cord'],
-                verbClass: 'release',
                 roomObjectCatalog: [{ objectId: 'OBJECT#Cord' as EphemeraObjectId, normalizedShortName: 'cord' }],
             },
             0.87,
@@ -277,9 +283,9 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'relational',
                 command: 'put the coin in the jar',
                 rawObjectSpans: ['coin'],
-                verbClass: 'release',
                 roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
             },
             0.9,
@@ -307,6 +313,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
@@ -336,6 +343,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'drop the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
@@ -368,6 +376,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
@@ -397,6 +406,7 @@ describe('enrichObjectManipulation', () => {
 
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: 'pick up the sweeping tool',
                 rawObjectSpans: ['sweeping tool'],
                 verbClass: 'acquire',
@@ -418,5 +428,64 @@ describe('enrichObjectManipulation', () => {
         })
         expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('routes relational enrichRoute without listed prepositions through frame extract', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"ladder","targetSpan":"wall","relationSpan":"leaning against"}',
+        })
+
+        const result = await enrichObjectManipulation(
+            {
+                enrichRoute: 'relational',
+                command: 'lean the ladder against the wall',
+                rawObjectSpans: ['ladder'],
+                roomObjectCatalog: catalog,
+            },
+            0.9,
+            { invokeBedrockObjectManipulationFrameExtractImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexRelational,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
+    })
+
+    it('membership enrichRoute skips frame extract even when command contains a preposition word', async () => {
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
+        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+
+        const result = await enrichObjectManipulation(
+            {
+                enrichRoute: 'membership',
+                command: 'take broom',
+                rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
+                roomObjectCatalog: catalog,
+            },
+            0.92,
+            {
+                invokeBedrockObjectManipulationFrameExtractImpl,
+                invokeBedrockObjectManipulationEnrichImpl,
+                invokeBedrockObjectManipulationIdentityImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectId: broomId,
+            confidence: 0.92,
+        })
+        expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()
     })
 })
