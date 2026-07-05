@@ -286,6 +286,21 @@ export type ParseCommandObjectManipulationResult = {
     confidence: ParseCommandConfidence
 }
 
+/** Relational operator direction from frame extract (BD-12). */
+export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
+
+/** Grounded relational manipulation after enrich + compiler (BD-1). */
+export type ParseCommandEstablishRelationResult = {
+    type: 'EstablishRelation'
+    operationKind: RelationalOperationKind
+    subjectId: EphemeraObjectId
+    targetId: EphemeraObjectId
+    relationKind: 'On' | 'Under' | 'Against' | 'Custom'
+    relationLabel?: string
+    hostRoomId: EphemeraRoomId
+    confidence: ParseCommandConfidence
+}
+
 /**
  * Outcome of intent discrimination only (includes Acme intent with **`rawOrders`** spans, and
  * `LookRoom` for full room description / examine-surroundings intent without Acme order enrich).
@@ -320,6 +335,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
+    | ParseCommandEstablishRelationResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandUnimplementedResult
@@ -556,10 +572,33 @@ export function isParseCommandObjectManipulationResult(
     )
 }
 
+const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['On', 'Under', 'Against', 'Custom'])
+
+export function isParseCommandEstablishRelationResult(
+    result: ParseCommandResult
+): result is ParseCommandEstablishRelationResult {
+    if (result.type !== 'EstablishRelation') {
+        return false
+    }
+    if (!RELATIONAL_OPERATION_KINDS.has(result.operationKind)) {
+        return false
+    }
+    if (!HOST_RELATIONAL_EDGE_KINDS.has(result.relationKind)) {
+        return false
+    }
+    if (result.relationKind === 'Custom' && typeof result.relationLabel !== 'string') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
 export type ParseCommandInput = {
     command: string
     /** Parse-request character; required for drop complexity pre-gates (actor host match). */
     characterId?: EphemeraCharacterId
+    /** Actor's current room positionGraph host (BD-6 relational compiler). */
+    hostRoomId?: EphemeraRoomId
     roomExits?: {
         normalizedName: string
         targetId: EphemeraRoomId

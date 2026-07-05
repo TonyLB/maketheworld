@@ -11,18 +11,26 @@ Respond with a single JSON object only (no markdown fences, no commentary).
 {
   "subjectSpan": "<object being manipulated>",
   "targetSpan": "<object or surface the relation applies to>",
-  "relationSpan": "<prepositional or relational phrase only>"
+  "relationSpan": "<prepositional or relational phrase only>",
+  "operationKind": "establishRelation" | "dissolveRelation"
 }
 
 - subjectSpan: the object the player is moving, placing, leaning, tying, etc.
 - targetSpan: the other object or surface in the relation.
-- relationSpan: the relation phrase only (examples: "on", "under", "against", "around").
+- relationSpan: the relation phrase only (examples: "on", "under", "against", "around", "off", "from").
+- operationKind: "establishRelation" when the player is creating or changing a relation (put, place, lean, tie, etc.); "dissolveRelation" when removing an existing relation (take off, remove from, detach, etc.).
 
 Use raw player-language spans. Do not return object ids or canonical names unless they appear in the command.
 
+## Examples
+
+Establish: "put broom on table" -> operationKind "establishRelation"
+Dissolve: "take rope off crate" -> operationKind "dissolveRelation"
+Dissolve: "remove cord from crate" -> operationKind "dissolveRelation"
+
 ## Forbidden fields
 
-objectId, subjectId, targetId, relationKind, operationKind, disposition, complexityClass, host routing ids, graph deltas.
+objectId, subjectId, targetId, relationKind, disposition, complexityClass, host routing ids, graph deltas.
 `
 
 export function buildManipulationFrameExtractPrompt(

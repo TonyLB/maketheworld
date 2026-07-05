@@ -41,6 +41,7 @@ import {
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
+    isParseCommandEstablishRelationResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -123,6 +124,14 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'You are not carrying that.'
         case objectManipulationErrorMessages.alreadyHoldingObject:
             return 'You are already holding that.'
+        case objectManipulationErrorMessages.noHostRoom:
+            return 'You are not in a room, so you cannot do that.'
+        case objectManipulationErrorMessages.notOnHostGraph:
+            return 'You do not see that object here.'
+        case objectManipulationErrorMessages.dissolveNoMatchingEdge:
+            return 'There is no such relation to remove.'
+        case objectManipulationErrorMessages.nestingRelational:
+            return 'Putting something inside another object is not supported yet.'
         case objectManipulationErrorMessages.complexRelational:
         case objectManipulationErrorMessages.complexMultiObject:
         case objectManipulationErrorMessages.complexUnimplementedVerb:
@@ -464,6 +473,10 @@ const publishStreamEventsForIntent = async (
             })
         }
     }
+    else if (isParseCommandEstablishRelationResult(parseResult)) {
+        // TODO(B5): stream Object Establish Relation / Object Dissolve Relation
+        void parseResult
+    }
 }
 
 type StreamEventFn = (event: {
@@ -521,6 +534,7 @@ const handleParseRequested = async (
     const parseResult = await parseCommand({
         command: content.command,
         characterId: content.characterId,
+        hostRoomId: roomExitContext.fromRoomId ?? undefined,
         roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
             normalizedName,
             targetId: toRoomId,

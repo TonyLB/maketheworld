@@ -1,7 +1,9 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ManipulationVerbClass } from '../../baseClasses'
+import type { ManipulationVerbClass, RelationalOperationKind } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+
+export type { RelationalOperationKind } from '../../baseClasses'
 
 export type ObjectManipulationEnrichRoute = 'membership' | 'relational'
 
@@ -11,6 +13,7 @@ export type ManipulationFrameBuildInput = {
     rawObjectSpans: readonly string[]
     verbClass?: ManipulationVerbClass
     characterId?: EphemeraCharacterId
+    hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
@@ -24,9 +27,11 @@ export type ManipulationFrame = {
     subjectSpan: string
     targetSpan: string
     relationSpan: string
+    operationKind: RelationalOperationKind
     verbClass?: ManipulationVerbClass
     rawObjectSpans: readonly string[]
     characterId?: EphemeraCharacterId
+    hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
@@ -35,6 +40,7 @@ export type ManipulationFrameExtractModelResponse = {
     subjectSpan: string
     targetSpan: string
     relationSpan: string
+    operationKind: RelationalOperationKind
 }
 
 export function buildManipulationFrameFromExtract(
@@ -46,9 +52,11 @@ export function buildManipulationFrameFromExtract(
         subjectSpan: extractResponse.subjectSpan,
         targetSpan: extractResponse.targetSpan,
         relationSpan: extractResponse.relationSpan,
+        operationKind: extractResponse.operationKind,
         ...(input.verbClass !== undefined ? { verbClass: input.verbClass } : {}),
         rawObjectSpans: input.rawObjectSpans,
         characterId: input.characterId,
+        hostRoomId: input.hostRoomId,
         roomObjectCatalog: input.roomObjectCatalog,
         heldInventoryCatalog: input.heldInventoryCatalog,
     }

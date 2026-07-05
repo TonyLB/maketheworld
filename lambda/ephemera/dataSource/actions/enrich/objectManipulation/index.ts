@@ -1,19 +1,23 @@
 import type {
     ParseCommandErrorResult,
+    ParseCommandEstablishRelationResult,
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
 import { evaluateCardinalityGate } from './cardinalityGate'
 import { compileMembershipAtomic, type CompileMembershipAtomicDeps } from './compileMembershipAtomic'
-import { compileRelationalStub } from './compileRelationalStub'
+import { compileRelational, type CompileRelationalDeps } from './compileRelational'
 import { complexErrorMessage } from './complexityClasses'
 import { runFrameExtractStage, type FrameExtractStageDeps } from './frameExtract/runFrameExtractStage'
 import type { ManipulationFrameBuildInput } from './manipulationFrame'
 
 export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
-export type EnrichObjectManipulationResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
+export type EnrichObjectManipulationResult =
+    | ParseCommandObjectManipulationResult
+    | ParseCommandEstablishRelationResult
+    | ParseCommandErrorResult
 
-export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & FrameExtractStageDeps
+export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & FrameExtractStageDeps & CompileRelationalDeps
 
 export async function enrichObjectManipulation(
     input: EnrichObjectManipulationInput,
@@ -25,7 +29,7 @@ export async function enrichObjectManipulation(
         if (extractResult.type === 'error') {
             return { type: 'Error', errorMessage: extractResult.errorMessage }
         }
-        return compileRelationalStub(extractResult.frame, intentConfidence)
+        return compileRelational(extractResult.frame, intentConfidence, deps)
     }
 
     const cardinalityOutcome = evaluateCardinalityGate(input.rawObjectSpans)

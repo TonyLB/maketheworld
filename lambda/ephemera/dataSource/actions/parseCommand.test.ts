@@ -63,6 +63,16 @@ const objectManipulationDropPositionsReadDepsForTests = () => ({
     getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
 })
 
+const relationalPositionsReadDepsForTests = (
+    objectIds: string[] = ['OBJECT#Broom', 'OBJECT#Table']
+) => ({
+    getMembershipContainers: jest.fn(),
+    getPositionGraph: jest.fn().mockResolvedValue({
+        nodes: objectIds.map((id) => ({ tag: 'Object' as const, universalKey: id })),
+        edges: [],
+    }),
+})
+
 const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
     publish.mock.calls
         .map((call) => call[0] as StreamingEventMessage)
@@ -1177,8 +1187,9 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns Error for relational route via frame extract and compiler stub', async () => {
+    it('returns EstablishRelation for relational route via frame extract and compiler', async () => {
         const broomId = 'OBJECT#Broom'
+        const tableId = 'OBJECT#Table'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectRelateIntent","objectSpans":["broom"],"confidence":0.9}',
@@ -1186,32 +1197,43 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on"}',
+            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on","operationKind":"establishRelation"}',
         })
 
         const result = await parseCommand(
             {
                 command: 'put the broom on the table',
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
                 roomObjectLabels: ['broom'],
-                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                ],
             },
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationFrameExtractImpl,
+                objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, tableId]),
             }
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexRelational,
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: broomId,
+            targetId: tableId,
+            relationKind: 'On',
+            hostRoomId: 'ROOM#Bridge',
+            confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for under relational route via frame extract', async () => {
+    it('returns EstablishRelation for under relational route via frame extract', async () => {
         const broomId = 'OBJECT#Broom'
+        const benchId = 'OBJECT#Bench'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"ObjectRelateIntent","objectSpans":["it"],"confidence":0.9}',
@@ -1219,25 +1241,40 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"subjectSpan":"it","targetSpan":"bench","relationSpan":"under"}',
+            body: '{"subjectSpan":"it","targetSpan":"bench","relationSpan":"under","operationKind":"establishRelation"}',
+        })
+        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"objectId":"OBJECT#Broom"}',
         })
 
         const result = await parseCommand(
             {
                 command: 'stash it under the bench',
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
                 roomObjectLabels: ['broom'],
-                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: benchId, normalizedShortName: 'bench' },
+                ],
             },
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationFrameExtractImpl,
+                invokeBedrockObjectManipulationIdentityImpl,
+                objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, benchId]),
             }
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexRelational,
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: broomId,
+            targetId: benchId,
+            relationKind: 'Under',
+            hostRoomId: 'ROOM#Bridge',
+            confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1252,7 +1289,7 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"subjectSpan":"coin","targetSpan":"jar","relationSpan":"in"}',
+            body: '{"subjectSpan":"coin","targetSpan":"jar","relationSpan":"in","operationKind":"establishRelation"}',
         })
 
         const result = await parseCommand(

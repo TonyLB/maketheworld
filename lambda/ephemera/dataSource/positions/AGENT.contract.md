@@ -215,7 +215,7 @@ v1 **`HostRelationalEdgeKind`** on stored forward-graph edges **must** be one of
 
 **Excluded from this operator (BD-2):** **`In`**, **`inside`**, and other containment language --- **must not** persist as **`establishRelation`** v1; actions routes to future **nested container** operator with player-facing defer copy (not positions ingress).
 
-Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optional label); positions **must** trust ingress **`kind`** / **`relationLabel`** at apply (same pattern as trusted **`objectId`** on **`Object Take Hold`**). Implementation: [`normalizeRelationSpan`](../actions/enrich/objectManipulation/normalizeRelationSpan.ts) + [`relationKind`](../actions/enrich/objectManipulation/relationKind.ts) types in actions enrich (B2 shipped).
+Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optional label); positions **must** trust ingress **`kind`** / **`relationLabel`** at apply (same pattern as trusted **`objectId`** on **`Object Take Hold`**). Implementation: [`normalizeRelationSpan`](../actions/enrich/objectManipulation/normalizeRelationSpan.ts) + [`relationKind`](../actions/enrich/objectManipulation/relationKind.ts) types in actions enrich (B2 shipped). B3 legality pre-ingress: [`evaluateRelationalLegality`](../actions/enrich/objectManipulation/evaluateRelationalLegality.ts) + provisional edge wire shape in [`relationalObservation`](../actions/enrich/objectManipulation/relationalObservation.ts) (`tag: 'Relational'` on host **`positionGraph.edges`**); B4 must align gateway projection with that envelope.
 
 ### Edge persist shape (BD-3)
 

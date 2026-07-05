@@ -10,6 +10,9 @@ describe('buildManipulationFrameExtractPrompt', () => {
         })
 
         expect(parts.invariantPrefix).toContain('subjectSpan')
+        expect(parts.invariantPrefix).toContain('operationKind')
+        expect(parts.invariantPrefix).toContain('establishRelation')
+        expect(parts.invariantPrefix).toContain('dissolveRelation')
         expect(parts.invariantPrefix).toContain('Forbidden fields')
         expect(parts.invariantPrefix).toContain('objectId')
         expect(parts.dynamicSuffix).toContain('put broom on table')

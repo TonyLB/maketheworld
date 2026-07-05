@@ -5,7 +5,7 @@ describe('runFrameExtractStage', () => {
     it('returns frame on successful Bedrock invoke and parse', async () => {
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on"}',
+            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on","operationKind":"establishRelation"}',
         })
 
         const result = await runFrameExtractStage(
@@ -24,6 +24,7 @@ describe('runFrameExtractStage', () => {
                 subjectSpan: 'broom',
                 targetSpan: 'table',
                 relationSpan: 'on',
+                operationKind: 'establishRelation',
                 rawObjectSpans: ['broom'],
             },
         })

@@ -9,12 +9,14 @@ describe('buildManipulationFrameFromExtract', () => {
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
                 characterId: 'CHARACTER#Player',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectCatalog: [{ objectId: 'OBJECT#Broom', normalizedShortName: 'broom' }],
             },
             {
                 subjectSpan: 'broom',
                 targetSpan: 'table',
                 relationSpan: 'on',
+                operationKind: 'establishRelation',
             }
         )
 
@@ -23,9 +25,11 @@ describe('buildManipulationFrameFromExtract', () => {
             subjectSpan: 'broom',
             targetSpan: 'table',
             relationSpan: 'on',
+            operationKind: 'establishRelation',
             verbClass: 'release',
             rawObjectSpans: ['broom'],
             characterId: 'CHARACTER#Player',
+            hostRoomId: 'ROOM#Bridge',
             roomObjectCatalog: [{ objectId: 'OBJECT#Broom', normalizedShortName: 'broom' }],
             heldInventoryCatalog: undefined,
         })
