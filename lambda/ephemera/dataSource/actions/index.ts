@@ -41,6 +41,7 @@ import {
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
+    isParseCommandEstablishRelationResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -123,6 +124,14 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'You are not carrying that.'
         case objectManipulationErrorMessages.alreadyHoldingObject:
             return 'You are already holding that.'
+        case objectManipulationErrorMessages.noHostRoom:
+            return 'You are not in a room, so you cannot do that.'
+        case objectManipulationErrorMessages.notOnHostGraph:
+            return 'You do not see that object here.'
+        case objectManipulationErrorMessages.dissolveNoMatchingEdge:
+            return 'There is no such relation to remove.'
+        case objectManipulationErrorMessages.nestingRelational:
+            return 'Putting something inside another object is not supported yet.'
         case objectManipulationErrorMessages.complexRelational:
         case objectManipulationErrorMessages.complexMultiObject:
         case objectManipulationErrorMessages.complexUnimplementedVerb:
@@ -464,6 +473,53 @@ const publishStreamEventsForIntent = async (
             })
         }
     }
+    else if (isParseCommandEstablishRelationResult(parseResult)) {
+        const { hostRoomId } = parseResult
+        if (!hostRoomId) {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot do that.'],
+            })
+        }
+        else if (parseResult.operationKind === 'dissolveRelation') {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Dissolve Relation' },
+                update: {
+                    type: 'Object Dissolve Relation',
+                    characterId,
+                    subjectId: parseResult.subjectId,
+                    targetId: parseResult.targetId,
+                    roomId: hostRoomId,
+                    relationKind: parseResult.relationKind,
+                    ...(parseResult.relationLabel !== undefined
+                        ? { relationLabel: parseResult.relationLabel }
+                        : {}),
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId,
+                    subjectId: parseResult.subjectId,
+                    targetId: parseResult.targetId,
+                    roomId: hostRoomId,
+                    relationKind: parseResult.relationKind,
+                    ...(parseResult.relationLabel !== undefined
+                        ? { relationLabel: parseResult.relationLabel }
+                        : {}),
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
+    }
 }
 
 type StreamEventFn = (event: {
@@ -521,6 +577,7 @@ const handleParseRequested = async (
     const parseResult = await parseCommand({
         command: content.command,
         characterId: content.characterId,
+        hostRoomId: roomExitContext.fromRoomId ?? undefined,
         roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
             normalizedName,
             targetId: toRoomId,

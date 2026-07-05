@@ -2,6 +2,8 @@
 
 `lambda/ephemera/llm/` holds **shared, Bedrock-facing primitives** that are not tied to a single feature: **transport** (Runtime `Converse`, text out) and **model-output parsing** (splitting chain-of-reasoning Markdown from final JSON, and normalizing a JSON object substring from messy assistant text). Feature code keeps **prompts, domain validation, and business types** elsewhere; this directory defines **reusable patterns** so new call sites do not re-implement fences, timeouts, or the "Markdown then JSON" response shape.
 
+**Read first for new pipelines:** [`AGENT.concepts.md`](AGENT.concepts.md) (design seams --- semantic reasoning vs deterministic computation), [`AGENT.contract.md`](AGENT.contract.md) (normative rules). Place **semantic reasoning** (judgment, ambiguity) in LLM hops; place **deterministic computation** (graph truth, legality, packaging) in code --- see concepts for hybrid hops and fast-path rules.
+
 ## Scope (key files)
 
 - [`invokeBedrockConverseText.ts`](invokeBedrockConverseText.ts) -- **Converse** call: messages, `maxTokens` / `temperature` / `timeoutMs`, aggregated text `body`, typed success or failure. Default client uses `AWS_REGION`. Thin wrappers (parse, room description, Acme enrich, hypothesis) import this and set model id and message shape. Optional **`extendedThinking`** (default **`false`**): when **`true`** and the model returns reasoning content blocks, success includes optional **`reasoningContent`** alongside **`body`** (assistant text only). Call sites that need chain-of-thought should prefer the reasoning channel over embedding scratch work in **`body`**.
@@ -25,6 +27,7 @@
 
 ## Navigation
 
-- Multi-call LLM flows that share evolving state use [`pipeline/`](pipeline/) rather than ad hoc sequences; read [`pipeline/AGENT.md`](pipeline/AGENT.md) for patterns. Keep transport/parsing imports from this `llm/` root and wire feature-specific prompts next to the feature.
+- **Pipeline design (product):** [`AGENT.concepts.md`](AGENT.concepts.md), [`AGENT.contract.md`](AGENT.contract.md)
+- Multi-call LLM flows that share evolving state use [`pipeline/`](pipeline/) rather than ad hoc sequences; read [`pipeline/AGENT.md`](pipeline/AGENT.md) for runner patterns. Keep transport/parsing imports from this `llm/` root and wire feature-specific prompts next to the feature.
 - Add a new **Converse**-level concern here; add **feature-specific** Bedrock wrappers next to the feature (for example `generateExample` or `dataSource/coyoteGame`) and import the shared pieces from `llm/`.
 - Parent: [`../AGENT.md`](../AGENT.md) (ephemera lambda), [`../../../AGENT.md`](../../../AGENT.md) (repo root documentation standards).

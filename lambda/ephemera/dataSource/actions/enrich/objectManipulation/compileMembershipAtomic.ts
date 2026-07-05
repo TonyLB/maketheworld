@@ -6,7 +6,6 @@ import type {
 } from '../../baseClasses'
 import { buildObjectManipulationComplexityPrompt } from './buildPrompt'
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
-import { complexErrorMessage } from './complexityClasses'
 import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
@@ -22,7 +21,6 @@ import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
-import { commandHasRelationalPreposition } from './relationalPrepositionGuard'
 import { collapseUnaryGrounding } from './unaryCollapse'
 import { evaluateVerbMembershipAgreement } from './verbMembershipAgreement'
 
@@ -45,13 +43,6 @@ export async function compileMembershipAtomic(
     intentConfidence: number,
     deps: CompileMembershipAtomicDeps = {}
 ): Promise<CompileMembershipAtomicResult> {
-    if (commandHasRelationalPreposition(frame.command)) {
-        return {
-            type: 'Error',
-            errorMessage: complexErrorMessage('relationalPlacement'),
-        }
-    }
-
     const roomObjectCatalog = frame.roomObjectCatalog ?? []
     const heldInventoryCatalog = frame.heldInventoryCatalog ?? []
     const identityCatalog = mergeObjectManipulationCatalogs(roomObjectCatalog, heldInventoryCatalog)

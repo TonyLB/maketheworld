@@ -10,9 +10,9 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | --- | --- |
 | [`index.ts`](index.ts) | `EphemeraDataSource` instance (`publisherStrategy: 'busOnly'`); `receiveEvents` dispatches by envelope type |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
-| [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** with **`froms[]`** + **`to`**) + stream helpers |
+| [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** + **`Object Relation Changed`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts); `Object Drop` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts); `Object Drop` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
 
 ### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
 
@@ -26,14 +26,16 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`, `drop`) |
 | [`membership/characterRoomMembershipTransactItems.ts`](membership/characterRoomMembershipTransactItems.ts) | Character-on-room graph + adjacency transact builders (kernel reuse) |
 
-#### Relational patch (slice 5+ stub)
+#### Relational patch (Phase B; shipped B4)
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove *(file does not exist yet)* |
-| [`manipulation/relational/`](manipulation/relational/) | Future per-operator relational coordinators *(directory does not exist yet)* |
+| [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove |
+| [`manipulation/relational/`](manipulation/relational/) | Relational coordinators (`establish` / `dissolve`) |
+| [`manipulation/relational/planHostRelationalPatch.ts`](manipulation/relational/planHostRelationalPatch.ts) | Ingress -> patch + changed gate |
+| [`manipulation/relational/applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts) | Relational-changed bundle (fact, cache memo, **`RoomUpdate`**) |
 
-Spec: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5). Relational operators will follow a **separate** coordinator playbook (to be written at slice 5) --- do not extend the membership coordinator checklist below.
+Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
 
 #### `manipulation/membership/` (cross-host object manipulation apply)
 

@@ -222,10 +222,9 @@ describe('character membership persist (adapter + kernel)', () => {
             persisted: true,
             diff: { froms: [ROOM_A], to: ROOM_B, changed: true },
             postApplyRoomGraphs: {
-                [ROOM_A]: { nodes: [], edges: [] },
+                [ROOM_A]: { nodes: [] },
                 [ROOM_B]: {
                     nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
-                    edges: [],
                 },
             },
         }))

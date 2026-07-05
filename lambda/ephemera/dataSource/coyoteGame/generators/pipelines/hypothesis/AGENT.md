@@ -6,6 +6,9 @@ Parent docs:
 
 - Package overview: [`../../../AGENT.md`](../../../AGENT.md)
 - LLM pipeline framework: [`../../../../../llm/pipeline/AGENT.md`](../../../../../llm/pipeline/AGENT.md)
+- LLM/deterministic design seams (general): [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md)
+
+Coyote hypothesis exemplifies semantic-reasoning handoffs plus deterministic context packaging (combine/cluster/render) between LLM hops.
 
 ## Pipeline architecture
 

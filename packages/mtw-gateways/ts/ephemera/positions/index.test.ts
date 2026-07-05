@@ -61,6 +61,31 @@ describe('positions project', () => {
         })
     })
 
+    it('projectComponentGraphFromStoredPositionGraph passes through relational edges', () => {
+        const graph = projectComponentGraphFromStoredPositionGraph({
+            nodes: [
+                { tag: 'Object', universalKey: objectId },
+                { tag: 'Object', universalKey: 'OBJECT#Table' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: objectId,
+                to: 'OBJECT#Table',
+                kind: 'On',
+            }],
+        })
+        expect(graph.nodes).toEqual([
+            { tag: 'Object', universalKey: objectId },
+            { tag: 'Object', universalKey: 'OBJECT#Table' },
+        ])
+        expect(graph.edges).toEqual([{
+            tag: 'Relational',
+            from: objectId,
+            to: 'OBJECT#Table',
+            kind: 'On',
+        }])
+    })
+
     it('projectComponentGraphFromStoredPositionGraph returns empty graph for absent nodes', () => {
         expect(projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })).toEqual({
             nodes: [],

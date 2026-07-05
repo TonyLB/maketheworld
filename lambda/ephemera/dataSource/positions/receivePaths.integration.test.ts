@@ -26,6 +26,14 @@ jest.mock('./manipulation/membership/executeObjectDrop', () => ({
     executeObjectDrop: jest.fn(),
 }))
 
+jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
+    executeObjectEstablishRelation: jest.fn(),
+}))
+
+jest.mock('./manipulation/relational/executeObjectDissolveRelation', () => ({
+    executeObjectDissolveRelation: jest.fn(),
+}))
+
 import messageBus from '../../messageBus'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
@@ -33,6 +41,8 @@ import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
 import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
+import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
+import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 
 import './index'
 
@@ -53,6 +63,12 @@ const executeObjectTakeHoldMock = executeObjectTakeHold as jest.MockedFunction<
 >
 const executeObjectDropMock = executeObjectDrop as jest.MockedFunction<
     typeof executeObjectDrop
+>
+const executeObjectEstablishRelationMock = executeObjectEstablishRelation as jest.MockedFunction<
+    typeof executeObjectEstablishRelation
+>
+const executeObjectDissolveRelationMock = executeObjectDissolveRelation as jest.MockedFunction<
+    typeof executeObjectDissolveRelation
 >
 
 const CHARACTER_ID = 'CHARACTER#alpha' as const
@@ -255,6 +271,63 @@ describe('positions receive paths (integration)', () => {
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
             expect(executeObjectTakeHoldMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Object Establish Relation', () => {
+        it('routes mtw.ephemera.actions Object Establish Relation through executeObjectEstablishRelation', async () => {
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Establish Relation', {
+                type: 'Object Establish Relation',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                roomId: ROOM_A,
+                relationKind: 'On',
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeObjectEstablishRelationMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    roomId: ROOM_A,
+                    relationKind: 'On',
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(executeObjectDissolveRelationMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Object Dissolve Relation', () => {
+        it('routes mtw.ephemera.actions Object Dissolve Relation through executeObjectDissolveRelation', async () => {
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Dissolve Relation', {
+                type: 'Object Dissolve Relation',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                roomId: ROOM_A,
+                relationKind: 'On',
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeObjectDissolveRelationMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    roomId: ROOM_A,
+                    relationKind: 'On',
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(executeObjectEstablishRelationMock).not.toHaveBeenCalled()
         })
     })
 

@@ -3,13 +3,13 @@ import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     ManipulationVerbClass,
     ParseCommandInput,
-    ParseCommandObjectManipulationIntentResult,
+    ParseCommandObjectMembershipIntentResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 
 /**
  * Phase A membership-atomic manipulation frame: classify language direction + enrich context.
- * Phase B extends with role-tagged spans (subject, target, relationSpan).
+ * Relational frames: {@link ManipulationFrame} in {@link ./manipulationFrame.ts}.
  */
 export type MembershipManipulationFrame = {
     command: string
@@ -25,7 +25,7 @@ export function buildMembershipManipulationFrame(
         ParseCommandInput,
         'command' | 'characterId' | 'roomObjectCatalog' | 'heldInventoryCatalog'
     >,
-    intent: Pick<ParseCommandObjectManipulationIntentResult, 'rawObjectSpans' | 'verbClass'>
+    intent: Pick<ParseCommandObjectMembershipIntentResult, 'rawObjectSpans' | 'verbClass'>
 ): MembershipManipulationFrame {
     return {
         command: input.command,

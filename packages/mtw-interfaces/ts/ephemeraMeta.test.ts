@@ -205,7 +205,37 @@ describe('isEphemeraPlayPositionGraph', () => {
         })).toBe(true)
     })
 
-    it('rejects non-empty edges in slice 2 v1', () => {
+    it('accepts relational edges on room host graph', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#broom' },
+                { tag: 'Object', universalKey: 'OBJECT#table' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#broom',
+                to: 'OBJECT#table',
+                kind: 'On',
+            }],
+        })).toBe(true)
+    })
+
+    it('rejects Custom relational edge without relationLabel', () => {
+        expect(isEphemeraPlayPositionGraph({
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#rope' },
+                { tag: 'Object', universalKey: 'OBJECT#crate' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#rope',
+                to: 'OBJECT#crate',
+                kind: 'Custom',
+            }],
+        })).toBe(false)
+    })
+
+    it('rejects invalid edge envelope', () => {
         expect(isEphemeraPlayPositionGraph({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],

@@ -151,7 +151,6 @@ describe('object room membership persist (adapter + kernel)', () => {
             postApplyRoomGraphs: {
                 [ROOM_A]: {
                     nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
-                    edges: [],
                 },
             },
         }))

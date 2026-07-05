@@ -19,13 +19,15 @@ async function parseCommandCore(
 ): Promise<ParseCommandWithEnrichReasoningResult> {
     const intentResult = await discriminateIntent(input, deps)
 
-    if (intentResult.type === 'ObjectManipulationIntent') {
+    if (intentResult.type === 'ObjectMembershipIntent') {
         const result = await enrichObjectManipulation(
             {
+                enrichRoute: 'membership',
                 command: input.command,
                 rawObjectSpans: intentResult.rawObjectSpans,
                 verbClass: intentResult.verbClass,
                 characterId: input.characterId,
+                hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,
                 heldInventoryCatalog: input.heldInventoryCatalog,
             },
@@ -34,6 +36,30 @@ async function parseCommandCore(
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
+                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+            }
+        )
+        return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+    }
+
+    if (intentResult.type === 'ObjectRelateIntent') {
+        const result = await enrichObjectManipulation(
+            {
+                enrichRoute: 'relational',
+                command: input.command,
+                rawObjectSpans: intentResult.rawObjectSpans,
+                characterId: input.characterId,
+                hostRoomId: input.hostRoomId,
+                roomObjectCatalog: input.roomObjectCatalog,
+                heldInventoryCatalog: input.heldInventoryCatalog,
+            },
+            intentResult.confidence,
+            {
+                invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
+                invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
+                invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
             }
         )
@@ -61,9 +87,9 @@ async function parseCommandCore(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectManipulationIntent`**: all without Bedrock classify.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectMembershipIntent`**: all without Bedrock classify.
  * Otherwise runs intent discrimination, then runs Acme order enrich when intent is **`AcmeOrderIntent`**
- * and object manipulation enrich when intent is **`ObjectManipulationIntent`**. Intent outcomes
+ * and object manipulation enrich when intent is **`ObjectMembershipIntent`** or **`ObjectRelateIntent`**. Intent outcomes
  * **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without enrich.
  * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
  */

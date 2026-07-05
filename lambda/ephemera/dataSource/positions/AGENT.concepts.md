@@ -56,7 +56,7 @@ Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via 
 
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes** (slice 2 character; Phase 4 object; no in-room edges yet).
+- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes** (slice 2 character; Phase 4 object) plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom` --- Phase B shipped).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row (**S2-6-H** / **S2-6**).
@@ -71,7 +71,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 - **Where** the object is in play: **`Object`** node on the delivery room **`positionGraph`** + **`OBJECT#`** adjacency row (**I5**).
 - **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
 - **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
-- Relational in-room edges (`On`, `In`, ...) remain deferred (slice 5+).
+- **In-host relational edges:** [`applyHostRelationalPatch`](manipulation/applyHostRelationalPatch.ts) via [`manipulation/relational/`](manipulation/relational/) coordinators; emits **`Object Relation Changed`** (Phase B shipped). Containment (`in` / inside) deferred to future nesting operator.
 - Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
 
 ### Character inventory graph (D16; object nodes only)
@@ -106,8 +106,8 @@ Per-operator coordinators       membership host transfer fact projection, stream
 | Term | Meaning |
 | --- | --- |
 | **Manipulation kernel** | Graph-grounded persist executor: accept **`HostEffect[]`**, read affected hosts' `positionGraph`, validate, transact, dual-write adjacency |
-| **Host effect** | One alteration on a fixed host: add/remove identity node on `positionGraph` + matching adjacency dual-write (v1); add/remove edge (future slice 5+) |
-| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host; second kernel primitive (slice 5+). Kernel stub: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) |
+| **Host effect** | One alteration on a fixed host: add/remove identity node on `positionGraph` + matching adjacency dual-write |
+| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host; second kernel primitive (shipped). [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4) |
 | **Shared membership adapter** | Reusable **transfer planner**: membership observation + apply mode (`end-state` / `bounded`) -> **`HostEffect[]`** + projected `froms`/`to` |
 | **Per-operator coordinator** | Verb-specific ingress wrapper: calls shared adapter, then kernel; owns fact/cache/bus bundle |
 | **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); planned by shared adapter; projected to bus facts as `froms[]` / `to` |

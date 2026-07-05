@@ -1,18 +1,18 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Planning only --- Phase A shipped. Next step: lock relation representation (hybrid enum + custom) and frame-extraction hop design.
+**Status:** Phase B complete (B6 durable docs shipped). Next step: Phase C (C1 Plan IR types + registry).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
-Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity, relational preposition guard); module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
+Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity); Phase B relational vertical shipped (frame extract, normalizer, compiler, egress, positions apply, perception). Module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
 ## Purpose
 
 Ship generic **`establishRelation`** --- one relational operator parameterized by relation kind (not per-preposition operators like **`placeOn`**). Player language ("on", "under", "leaning against", "tied around") becomes a **manipulation frame** (subject, target, relation), compiled deterministically into positions **host-local relational patches** and perception transcript.
 
-Phases B--D evolve parse from "single intent classification" toward **frame extraction + deterministic plan compilation + execution**, without requiring full LLM-authored multi-step plans on day one.
+Phases B--D evolve parse from coarse intent classification toward **split manipulation intents at classify (BD-11) + frame extraction + deterministic plan compilation + execution**, without requiring full LLM-authored multi-step plans on day one.
 
-Retire this plan when relational vertical + plan IR steady-state docs land; git retains history.
+Retire this plan when Phase C--D steady-state docs land (Phase B durable docs shipped in B6); git retains history.
 
 ## Phase map
 
@@ -26,14 +26,30 @@ Retire this plan when relational vertical + plan IR steady-state docs land; git 
 ## Target architecture (steady-state sketch)
 
 ```text
-discriminateIntent (short intent list; verbClass acquire | release for membership lines)
-  -> relational route (preposition guard or multi-span -> frame extract LLM hop)
-  -> manipulation frame (subject / target / relationSpan)
+discriminateIntent (ObjectMembershipIntent + verbClass acquire | release OR ObjectRelateIntent)
+  -> parseCommand routes by intent type (enrichRoute from classify)
+  -> membership enrich OR frame extract LLM hop -> manipulation frame (subject / target / relationSpan + operationKind)
   -> plan compiler (deterministic: resolve spans, normalize relation, legality)
   -> plan executor -> stream event(s) -> positions -> perception
 ```
 
-**Classify contract (Phase A, unchanged in Phase B):** **`verbClass`** stays **`acquire` | `release`** for membership atomics. Relational commands do **not** add a third classify value; Phase B routes them via enrich (replace Phase A preposition guard with frame extraction).
+**Classify contract (Phase A interim + B2.5):** Replace the undifferentiated **`ObjectManipulationIntent`** umbrella with two classify outcomes (**BD-11**):
+
+| Intent | Topology | Classify fields | Enrich path |
+| --- | --- | --- | --- |
+| **`ObjectMembershipIntent`** | Node / membership host --- which **`positionGraph`** hosts the object | **`objectSpans`**, **`verbClass`** (`acquire` \| `release`) | **`compileMembershipAtomic`** |
+| **`ObjectRelateIntent`** | Edge / in-host relation between objects on a host graph | **`objectSpans`** only (no **`verbClass`**) | frame extract -> normalizer -> relational compiler |
+
+Classify **must** own the membership vs relational distinction semantically (not enrich preposition regex once B2.5 ships). **`verbClass`** remains membership **language** direction only --- unchanged from Phase A, scoped to **`ObjectMembershipIntent`**. Frame extraction stays a dedicated enrich hop (**BD-4**) and owns relational **operator direction** via **`operationKind`** (**BD-12**).
+
+**Classify vs enrich ownership (relational):**
+
+| Field | Lane | Meaning |
+| --- | --- | --- |
+| Intent **`type`** (`ObjectRelateIntent`) | Classify | Membership vs in-host relational topology |
+| **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Frame extract LLM (**BD-12**) | Relational **operator** choice from player language |
+| **`relationKind`** / **`relationLabel`** | Deterministic normalizer (B2) | Map LLM **`relationSpan`** to closed enum or **`Custom`** |
+| Grounded ids, host, legality | Compiler | Catalog resolve, graph observation, BD-10 rules only |
 
 **Plan IR (Phase C)** --- primitives are validated, not model-invented:
 
@@ -42,6 +58,7 @@ discriminateIntent (short intent list; verbClass acquire | release for membershi
 | `resolveComponent` | Map free-text span -> trusted `EphemeraId` via catalog |
 | `transferMembership` | **`takeHold`** / **`drop`** (existing membership kernel path) |
 | `establishRelation` | Add edge on host `positionGraph` (slice 5+ kernel) |
+| `dissolveRelation` | Remove edge on host `positionGraph` (BD-7; slice 5+ kernel) |
 | `look` / others | Reuse existing affordance streams where composition needs them |
 
 Phase B may compile to a **length-1 plan** internally without exposing a general executor API.
@@ -52,42 +69,43 @@ Product preference (from planning discussion): work deterministically with a **s
 
 | Bucket | Examples | Persist / compile |
 | --- | --- | --- |
-| **Enum: surface relations** | `on`, `under`, `against` (TBD exact set) | Canonical **`relationKind`** on edge; Phase A guard uses **`on`** + **`under`** only --- extend guard when enum members ship |
+| **Enum: surface relations** | `On`, `Under`, `Against` (BD-2 locked) | Canonical **`relationKind`** on edge |
 | **Deferred: containment** | `in`, `inside` | Not **`establishRelation`** v1; routes to future nesting operator |
 | **Custom** | `tied to`, `leaning against`, `wrapped around` | **`relationKind: Custom`** + **`relationLabel`** (player/normalized text) |
 
-Lock exact enum members and presentation obligations in **Open decisions** before Phase B implementation.
+Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4) (BD-2, BD-3).
 
 ## Scope
 
 ### Phase B --- in scope
 
-- **Manipulation frame** schema: role-tagged spans (`subject`, `target`), **`relationSpan`** (no **`verbClass=relational`** at classify --- relational entry is enrich-side frame extract).
-- Frame extraction hop (recommended: **dedicated enrich prompt**, not bloated main classifier) + JSON validation; replaces Phase A relational preposition guard for supported frames.
+- **Manipulation frame** schema: role-tagged spans (`subject`, `target`), **`relationSpan`**, and **`operationKind`** (`establishRelation` \| `dissolveRelation`, **BD-12**). **`ObjectRelateIntent`** at classify (**BD-11**) replaces preposition-regex as primary enrich entry signal once B2.5 ships; interim B1--B2 routing via [`relationalRoute.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalRoute.ts).
+- Frame extraction hop (**dedicated enrich prompt**, BD-4 --- not shared complexity LLM) + JSON validation; emits **`operationKind`** alongside spans (**BD-12**); replaces Phase A relational preposition guard for supported frames. B1 shipped span-only extract; B3 extends the hop before relational compiler work.
 - **Relation normalizer**: map **`relationSpan`** -> **`relationKind`** (enum | `Custom`) + optional **`relationLabel`**.
-- Terminal parse + egress: **`establishRelation`** (or **`ObjectManipulation`** variant with **`operationKind: 'establishRelation'`** --- lock in PA/B contract).
+- Terminal parse + egress: new top-level result variant (BD-1) --- e.g. **`ParseCommandEstablishRelationResult`** (`type: 'EstablishRelation'`) with subject/target ids, **`relationKind`**, optional **`relationLabel`**, and **`operationKind: 'establishRelation' | 'dissolveRelation'`** (BD-7). Membership atomics keep **`ObjectManipulation`** + **`takeHold` | `drop`** unchanged.
 - Promote **`relationalPlacement`** from terminal-only Error to grounded success path when frame validates.
-- Positions: implement **`applyHostRelationalPatch`** per stub in [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
+- Positions: **`applyHostRelationalPatch`** shipped --- [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
 - Perception: transcript template (withhold unstated geometry per [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md)).
 - Four-lane doc updates: [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md), positions contract, actions implementation.
 
 ### Phase C --- in scope
 
 - Explicit **Plan IR** types + deterministic **compiler** (frame + catalogs + membership -> ordered steps).
-- **Composition rules**: when single command implies membership change + relation (e.g. held object + "put X on Y").
+- **Composition rules (BD-8):** when single command implies membership change + relation (e.g. held object + "put X on Y"), compiler auto-inserts **`drop`** before **`establishRelation`** --- no require explicit drop language.
 - **`MultipleCommands`** policy: reject vs allow bounded multi-step from one line.
-- Executor invokes existing stream contracts per step; define failure partial-commit behavior.
+- **Multi-step failure (BD-9):** composed plans (**drop** + **`establishRelation`**, etc.) apply **atomically** --- positions kernel bundles membership **`HostEffect[]`** + relational patches in **one** `transactWrite` (same family as graph+adjacency bundling in **`applyHostEffects`**). **Not** sequential per-step streams with first-step commit; **not** RoomStack-style fail-tolerant tail.
 
 ### Phase D --- optional / deferrable
 
-- LLM emits step list when compiler returns **defer** (analogous to complexity LLM today).
+- **Defer vs hard Error (BD-10):** compiler **`defer`** only when non-trivial **existing in-host relational edges** on subject and/or target block a deterministic registry plan (interaction complexity --- analog to Phase A **`deferToComplexityLlm`**). **Phases B--C:** that bucket terminalizes as **hard Error** (complexity-style stub); Phase D plan LLM is the escalation path. See **BD-10** detail below.
+- LLM emits step list when compiler returns **`defer`** (constrained to registry primitives; validate + atomic apply per BD-9).
 - Reuse [`llm/pipeline/`](../../../../../lambda/ephemera/llm/pipeline/AGENT.md) if multi-hop frame+plan needs orchestration.
 
 ### Out of scope (unless plan updated)
 
 - Full **`in`** / nested container host vertical (separate operator initiative).
 - Client UI for relation editing.
-- Removing **`ObjectManipulationIntent`** top-level classify bucket (keep short intent list).
+- Retaining **`ObjectManipulationIntent`** as the classify umbrella (superseded by **`ObjectMembershipIntent`** + **`ObjectRelateIntent`** per **BD-11**).
 - Arbitrary graph writes beyond registered primitives.
 
 ## Background (durable docs --- link, do not duplicate)
@@ -104,8 +122,8 @@ Lock exact enum members and presentation obligations in **Open decisions** befor
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read Phase A steady-state in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (membership compiler shipped).
-3. Read positions relational stub: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
-4. Trace current relational rejection path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts), [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) (complexity LLM).
+3. Read positions relational implementation: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
+4. Trace relational enrich path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) (interim **`relationalRoute`** -> frame extract; B2.5 routes **`ObjectRelateIntent`** at parse ingress), [`frameExtract/runFrameExtractStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/runFrameExtractStage.ts). Membership defer still uses complexity LLM in [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
 6. Baseline (includes positions manipulation tests when Phase B touches apply):
 
@@ -122,16 +140,34 @@ Plan-only: decisions we are making in order to implement Phases B--D. When a dec
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| BD-1 | **Terminal parse shape** --- extend **`ParseCommandObjectManipulationResult.operationKind`** with **`establishRelation`** + relation fields vs new top-level result variant | Phase B contract | Open |
-| BD-2 | **Hybrid relation enum** --- lock v1 enum members (`On`, `Under`, ...); confirm **`In`** excluded and routed to future nesting | Normalizer + persist **`edge.kind`** | Open |
-| BD-3 | **Custom relation storage** --- `Custom` + `relationLabel` on edge vs presentation-only label with generic kind | Persist + transcript | Open |
-| BD-4 | **Frame extraction placement** --- dedicated enrich hop (decided: **not** expanded classify JSON; **`verbClass`** remains acquire/release only) vs shared complexity LLM | Prompt layout + Bedrock budget | Open |
-| BD-5 | **Target resolution** --- room object catalog only vs include features/surfaces; handle non-object targets ("floor", "wall") | Frame extract + resolve | Open |
-| BD-6 | **Host selection** --- v1 always actor's current room **`positionGraph`** vs derive from membership of subject/target | Positions ingress | Open |
-| BD-7 | **Inverse operator** --- **`dissolveRelation`** / `remove` in v1 vs establish-only | Phase B scope | Open |
-| BD-8 | **Composition (Phase C)** --- auto-insert **`drop`** before **`establishRelation`** when subject is held vs require explicit language | Compiler | Open |
-| BD-9 | **Multi-step failure** --- atomic all-or-nothing vs first-step commit | Executor + bus semantics | Open |
-| BD-10 | **LLM plan generation (Phase D)** --- criteria for defer vs hard Error | Phase D entry | Open |
+| BD-1 | **Terminal parse shape** --- **new top-level result variant** (e.g. **`ParseCommandEstablishRelationResult`**, `type: 'EstablishRelation'`), **not** extending **`ParseCommandObjectManipulationResult.operationKind`**. Membership atomics stay on **`ObjectManipulation`** + **`takeHold` | `drop`**. | Phase B contract | Decided |
+| BD-2 | **Hybrid relation enum** --- v1 members: **`On`**, **`Under`**, **`Against`**. **`In`** / **`inside`** excluded; route to future nesting operator with defer message (not **`establishRelation`**). | Normalizer + persist **`edge.kind`** | Decided |
+| BD-3 | **Custom relation storage** --- persist **`relationKind: Custom`** + **`relationLabel`** on edge (not presentation-only). | Persist + transcript | Decided |
+| BD-4 | **Frame extraction placement** --- **dedicated enrich hop** (new module under enrich); **not** shared complexity LLM. Relational formation is distinct from cross-graph membership movement. Primary relational **routing** moves to classify **`ObjectRelateIntent`** (**BD-11**); frame extract remains enrich-side and emits relational **`operationKind`** per **BD-12**. | Prompt layout + Bedrock budget | Decided (revised 2026-07-05) |
+| BD-5 | **Target resolution** --- v1: **room object catalog only** for subject + target resolve. **Extend** to features/surfaces and nested **`positionGraph`** hierarchy targets when nested-host target matching ships (follow-on; not Phase B). Non-object targets ("floor", "wall") out of scope v1. | Frame extract + resolve | Decided |
+| BD-6 | **Host selection** --- v1: always actor's **current room** **`positionGraph`** (`roomExitContext.fromRoomId`). | Positions ingress | Decided |
+| BD-7 | **Inverse operator** --- include **`dissolveRelation`** in v1 (remove edge on host graph); pair with **`establishRelation`**. Frame extract classifies establish vs dissolve via **`operationKind`** (**BD-12**). | Phase B scope | Decided (revised 2026-07-05) |
+| BD-8 | **Composition (Phase C)** --- compiler **auto-inserts** **`drop`** before **`establishRelation`** when subject is held (no require explicit "drop then put" language). | Compiler | Decided |
+| BD-9 | **Multi-step failure** --- **atomic all-or-nothing** via positions **kernel bundling**: one compound apply / single `transactWrite` spanning membership **`HostEffect[]`** + relational **`HostRelationalPatch[]`** on affected hosts (mirror graph+adjacency in **`applyHostEffects`**). **Not** sequential stream-per-step with first-step commit; **not** RoomStack fail-tolerant tail. On apply failure: no partial graph change, player **Error**. | Executor + positions kernel (Phase C) | Decided |
+| BD-10 | **LLM plan generation (Phase D)** --- **`defer`** when compiler cannot derive a deterministic registry plan because **non-trivial existing in-host relational topology** on subject and/or target interacts with the proposed patch (conflicting edges, replace/coexist/dissolve-first ambiguity). **Hard Error** (all phases): grounding/catalog failure, **`in`**/nesting (BD-2), **`MultipleCommands`**, nodes not on host graph, **`dissolveRelation`** with no matching edge, plan-LLM invoke/parse/validation failure. **B--C interim:** defer bucket -> terminal **Error** stub (no plan LLM yet). **Deterministic allow:** idempotent duplicate edge (exact edge already present). | Phase D entry; B3 legality; C1 compiler | Decided |
+| BD-11 | **Split manipulation classify intents** --- replace undifferentiated **`ObjectManipulationIntent`** with **`ObjectMembershipIntent`** (object moves between membership hosts --- which **`positionGraph`** node hosts the object; **`objectSpans`** + **`verbClass`** `acquire` \| `release`; compiled via **`takeHold`** / **`drop`**) and **`ObjectRelateIntent`** (in-host edge between objects on a host graph --- **`objectSpans`** only, no **`verbClass`**; compiled via **`establishRelation`** / **`dissolveRelation`**). Classify owns semantic membership vs relational distinction via intent **`type`**, not a sub-field. **`parseCommand`** branches on intent type; enrich **`ObjectRelateIntent`** -> frame extract path, **`ObjectMembershipIntent`** -> **`compileMembershipAtomic`**. Retire **`relationalRoute`** preposition regex as primary gate after B2.5 parity tests (may keep as interim fallback one release). Remove **`ObjectManipulationIntent`** from classify prompt and parser when B2.5 ships. | B2.5 classify; B3+ parse/enrich entry | Decided (revised 2026-07-04) |
+| BD-12 | **Relational `operationKind` ownership** --- frame extract LLM (**BD-4**) emits required **`operationKind`**: `establishRelation` \| `dissolveRelation` (**BD-7**). Forbidden at classify (same as membership **`operationKind`**). Relational compiler **validates** and applies legality; **must not** infer operator choice from phrase buckets, prefix stripping, or command regex. Membership **`operationKind`** fast path remains graph-driven (**`complexityPreGates`**), not language-driven. | B3 frame extract + compiler | Decided (2026-07-05) |
+
+### Deterministic enrich boundary (BD-12)
+
+Graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) (**Deterministic enrich boundary**) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) (design seams, field ownership, fast-path closure).
+
+### BD-10: defer vs hard Error (litmus)
+
+| Outcome | When | Phases B--C | Phase D |
+| --- | --- | --- | --- |
+| **Success (deterministic plan)** | Clean host topology; compiler emits length-1 or BD-8 length-2 plan | Apply (atomic per BD-9) | Same |
+| **`defer`** | Existing relational edges on subject/target require interaction reasoning (not covered by deterministic legality rules) | **Error** stub --- "rules don't cover this complexity" | Plan LLM hop -> validate registry steps -> atomic apply |
+| **Hard Error** | Structural/policy (see BD-10 row) | Error | Error (no plan LLM) |
+
+**Primary defer case (only expected defer driver for relational vertical):** pre-existing **surface/custom** edges on subject or target on the room host when establishing or changing a relation --- e.g. already **`On`** table, player says **`Under`** table; subject **`Against`** wall plus new target relation; may need **`dissolveRelation`** + **`establishRelation`** plan the compiler cannot derive without interaction assessment.
+
+**Not defer:** frame extraction (Phase B dedicated hop); B2 paraphrase->enum LLM; membership exit-edge touch (Phase A **`deferToComplexityLlm`** path for atomics only). Split classify intents (**BD-11** / B2.5) is structural routing, not defer.
 
 ## Recommended order
 
@@ -139,64 +175,76 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 ### Phase B --- establishRelation vertical
 
-- [ ] **B0. Decision lock**
-  - [ ] Close BD-1 -- BD-7 (minimum) in **Open decisions**; capture enum list and edge persist shape in positions contract draft.
+- [X] **B0. Decision lock**
+  - [X] Close BD-1 -- BD-10 in **Open decisions** (2026-07-04); BD-11 added (2026-07-04).
+  - [X] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3) --- [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4).
 
-- [ ] **B1. Frame schema + extraction**
-  - [ ] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
-  - [ ] Add frame extraction prompt + interpreter (new module under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/) or sibling `enrich/manipulationFrame/`).
-  - [ ] Wire: relational route (preposition guard successor / multi-span) -> frame extract -> compiler stub; membership lines still use **`verbClass`** acquire/release path from Phase A.
-  - [ ] Tests: fixture commands ("put broom on table", "lean rope against anvil", "tie cord around crate").
+- [X] **B1. Frame schema + extraction**
+  - [X] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
+  - [X] Add frame extraction prompt + interpreter (new module under [`enrich/objectManipulation/frameExtract/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/)).
+  - [X] Wire: relational route (preposition guard successor / multi-span) -> frame extract -> compiler stub; membership lines still use **`verbClass`** acquire/release path from Phase A.
+  - [X] Tests: fixture commands ("put broom on table", "lean rope against anvil", "tie cord around crate").
 
-- [ ] **B2. Relation normalizer**
-  - [ ] Deterministic map: common prepositions -> enum; **`in`** -> explicit defer/nesting message; else **`Custom`** + label.
-  - [ ] Optional small LLM hop for paraphrase -> enum only if deterministic map insufficient (decide in BD-2).
-  - [ ] Tests: enum paths, custom paths, excluded **`in`**.
+- [X] **B2. Relation normalizer**
+  - [X] Deterministic map: common prepositions -> enum; **`in`** -> explicit defer/nesting message; else **`Custom`** + label.
+  - [X] Optional small LLM hop for paraphrase -> enum only if deterministic map insufficient (BD-2 locked enum; defer LLM unless map gaps found in B2 tests).
+  - [X] Tests: enum paths, custom paths, excluded **`in`**.
 
-- [ ] **B3. Grounding + legality**
-  - [ ] Resolve subject + target against catalogs; host selection per BD-6.
-  - [ ] Legality: both nodes on host graph; no duplicate conflicting edge (TBD); membership implications documented.
-  - [ ] Replace Phase A relational preposition guard and **`relationalPlacement`** terminal Error for supported frames with grounded terminal parse.
+- [X] **B2.5. Split manipulation classify intents (BD-11)**
+  - [X] Add **`ObjectMembershipIntent`** and **`ObjectRelateIntent`** to classify JSON, parser, guards, and **`IntentClassificationResult`** union in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); remove **`ObjectManipulationIntent`** when parity tests pass.
+  - [X] Update [`buildIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts): Section A2 **`ObjectMembershipIntent`** (membership host transfer; **`verbClass`** required); Section A2b **`ObjectRelateIntent`** (in-host edge change; semantic relational examples without fixed preposition list; no **`verbClass`**). Shared tie-breakers vs AcmeOrder / NavigationIntent for manipulation family.
+  - [X] Update deterministic fast path ([`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)): synthesize **`ObjectMembershipIntent`** for minimal take/drop/get (not **`ObjectRelateIntent`**).
+  - [X] Wire [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): **`ObjectMembershipIntent`** -> **`enrichObjectManipulation`** membership path; **`ObjectRelateIntent`** -> relational frame-extract path. Demote [`relationalRoute.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalRoute.ts) from primary gate after parity tests.
+  - [X] Tests: **`ObjectMembershipIntent`** lines (`pick up broom`); **`ObjectRelateIntent`** with and without listed prepositions; reject **`verbClass`** on **`ObjectRelateIntent`**; parseCommand E2E with mocked classify intent type.
+  - [X] Durable docs: classify contract in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md); enrich sequence in [`enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
-- [ ] **B4. Positions persist + ingress**
-  - [ ] Implement **`applyHostRelationalPatch`** + **`HostRelationalPatch`** types per stub.
-  - [ ] Stream contract + guard (e.g. **`Object Establish Relation`**) in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts).
-  - [ ] Coordinator under [`manipulation/relational/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/) (create tree).
-  - [ ] Tests: apply, idempotency, reject invalid patch.
+- [X] **B3. Grounding + legality**
+  - [X] **Frame extract extension (BD-12):** add required **`operationKind`** (`establishRelation` \| `dissolveRelation`) to frame extract prompt, interpreter, and **`ManipulationFrame`**; remove **`operationKind`** from frame-extract forbidden fields. Tests: establish fixtures (B1) plus dissolve ("take rope off crate", "remove cord from crate").
+  - [X] Resolve subject + target against catalogs; host selection per BD-6.
+  - [X] Relational compiler: pass through frame **`operationKind`**; run B2 **`normalizeRelationSpan`** on **`relationSpan`** only (no prefix stripping or dissolve phrase buckets).
+  - [X] Legality (BD-10): both nodes on host graph; **idempotent** duplicate edge -> allow/no-op; **conflicting** or non-trivial existing relational topology on subject/target -> **Error** stub in B--C (compiler **`defer`** bucket until Phase D).
+  - [X] Replace interim **`relationalRoute`** / **`relationalPlacement`** terminal Error stubs for supported frames with grounded terminal parse (requires B2.5 **`ObjectRelateIntent`** routing for production path).
 
-- [ ] **B5. Actions egress + perception**
-  - [ ] [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) publish stream on grounded relational parse.
-  - [ ] Perception fan-in: intent + fact -> **`WorldMessage`** (withhold geometry; assert relation per unknowns).
-  - [ ] End-to-end tests: parse -> stream -> apply -> transcript.
+- [X] **B4. Positions persist + ingress**
+  - [X] Implement **`applyHostRelationalPatch`** + **`HostRelationalPatch`** types per stub.
+  - [X] Stream contract + guard (**`Object Establish Relation`** / **`Object Dissolve Relation`**) in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts).
+  - [X] Coordinator under [`manipulation/relational/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/) (create tree).
+  - [X] Tests: apply, idempotency, reject invalid patch.
 
-- [ ] **B6. Durable docs**
-  - [ ] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** section.
-  - [ ] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) ingress + edge kind rules.
-  - [ ] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- replace relational stub prose.
+- [X] **B5. Actions egress + perception**
+  - [X] [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) publish stream on grounded relational parse.
+  - [X] Perception fan-in: intent + fact -> **`WorldMessage`** (withhold geometry; assert relation per unknowns).
+  - [X] End-to-end tests: parse -> stream -> apply -> transcript.
+
+- [X] **B6. Durable docs**
+  - [X] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** + **`dissolveRelation`** sections; refresh membership classify refs; replace out-of-scope stub.
+  - [X] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) --- promote planning contract to shipped; ingress subsections + relational-changed bundle.
+  - [X] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- replace relational stub prose; add relational operator playbook.
 
 ### Phase C --- Plan IR and composition
 
 - [ ] **C1. Plan IR types + registry**
   - [ ] Define **`ParsePlanStep`** union and primitive registry (resolve, transferMembership, establishRelation).
-  - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+).
+  - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+) or **`defer`** / **Error** per BD-10.
 
-- [ ] **C2. Executor**
-  - [ ] Run plan steps in order; map each step to existing stream/events.
-  - [ ] Implement BD-8 composition rules (held + surface relation).
-  - [ ] Implement BD-9 failure semantics.
+- [ ] **C2. Executor + compound kernel apply**
+  - [ ] Compiler emits ordered plan; executor routes **length-1** plans to existing single-step streams (Phase B path).
+  - [ ] **Length-2+** composed plans (BD-8): **one** positions ingress / compound coordinator --- kernel **`transactWrite`** bundles all **`HostEffect[]`** + **`HostRelationalPatch[]`** (BD-9); **must not** emit sequential **`Object Drop`** then **`Object Establish Relation`** with independent partial commit.
+  - [ ] On compound apply failure: return **Error** to player; no membership-changed or relational fact streams.
+  - [ ] Perception/transcript: single composed outcome when compound apply succeeds (not separate drop + relate lines unless product decides otherwise at C2).
 
 - [ ] **C3. Classifier / MultipleCommands policy**
   - [ ] Document when composite single-line commands compile vs **`MultipleCommands`** Error.
   - [ ] Tests: "pick up broom and go north" (likely reject); "toss pouch on floor" (compose if in scope).
 
 - [ ] **C4. Refactor enrich entry**
-  - [ ] Generalize **`compileMembershipAtomic`** (Phase A) into full plan compiler; route membership atomics and relational frames through it.
-  - [ ] Deprecate ad-hoc stage graph where compiler subsumes it.
+  - [ ] Generalize **`compileMembershipAtomic`** (Phase A) into full plan compiler; **`ObjectMembershipIntent`** and **`ObjectRelateIntent`** frames route through shared compiler surface (**BD-11**).
+  - [ ] Deprecate ad-hoc stage graph where compiler subsumes it; remove **`relationalRoute`** preposition gate when B2.5 intent routing is steady-state.
 
 ### Phase D --- LLM plan generation (optional)
 
-- [ ] **D1. Defer criteria**
-  - [ ] Define when compiler returns **defer** (BD-10).
+- [X] **D1. Defer criteria**
+  - [X] Lock BD-10: **`defer`** = non-trivial existing in-host relational edges on subject/target; B--C -> Error stub.
 
 - [ ] **D2. Plan LLM hop**
   - [ ] Constrained JSON: steps must be valid primitives from registry only.
@@ -225,9 +273,12 @@ npm run build
 **Manual scenarios (post-B):**
 
 - "put the broom on the table" -> relation edge on room host; transcript asserts relation, not exact placement geometry.
-- "lean the ladder against the wall" -> **`Custom`** or enum **`Against`** per BD-2.
-- "put the coin in the jar" -> nesting defer message, not **`establishRelation`** ( **`in`** excluded).
-- Held object + surface relation -> composed plan per BD-8 (Phase C).
+- "put the broom on the table" (already on table, same edge) -> idempotent allow/no-op (BD-10).
+- "put the broom under the table" (already on table) -> **Error** stub in B--C; plan LLM candidate in Phase D (BD-10).
+- "lean the ladder against the wall" -> **`Custom`** or enum **`Against`** (BD-2).
+- "put the coin in the jar" -> nesting defer message, not **`establishRelation`** (**`In`** excluded per BD-2).
+- Held object + surface relation -> composed plan: auto **`drop`** then **`establishRelation`** in **one atomic apply** (BD-8 + BD-9, Phase C); failure leaves object held.
+- "take the rope off the crate" -> frame extract **`operationKind: dissolveRelation`** (BD-12); legality requires matching edge on room host (BD-7, BD-10).
 
 ## Progress
 
@@ -235,14 +286,24 @@ npm run build
 | --- | --- |
 | Phases B--D task plan | Done |
 | Phase A prerequisite | Not started (see companion plan) |
-| BD open decisions locked | Not started |
-| Phase B establishRelation vertical | Not started |
+| BD-1--BD-11 open decisions locked | Done (2026-07-04) |
+| BD-12 relational operationKind via frame extract | Done (2026-07-05 decision; 2026-07-05 implementation) |
+| B0 decision lock + positions contract draft (BD-2, BD-3) | Done (2026-07-04) |
+| B1 frame schema + extraction | Done (2026-07-04) |
+| B2 relation normalizer (deterministic map; nesting defer; no LLM hop) | Done (2026-07-04) |
+| B2.5 split classify intents (BD-11; ObjectMembershipIntent + ObjectRelateIntent) | Done (2026-07-04) |
+| B3 grounding + legality | Done (2026-07-05) |
+| B4 positions persist + ingress | Done (2026-07-05) |
+| B5 actions egress + perception | Done (2026-07-05) |
+| B6 durable docs (four-lane steady-state) | Done (2026-07-05) |
+| Phase B establishRelation vertical | Done |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 
 ## Coordination notes
 
-- **Phase A** should land first so **`verbClass`** (`acquire` | `release`), merged-catalog identity, and the relational preposition guard are stable before relational frame work.
-- Phase B **replaces** the Phase A preposition guard with frame extract + **`establishRelation`**; do not add **`relational`** to classify **`verbClass`**.
-- Positions **M4** kernel work (edge mutations) is on the critical path for Phase B; actions parse can proceed with mocked apply until ingress contract is frozen.
-- **`in`** / nesting is an explicit **deferral** --- document player-facing copy when frame extract or relation normalizer detects containment language.
+- **Phase A** landed **`verbClass`** (`acquire` | `release`), merged-catalog identity, and the relational preposition guard before relational frame work. Classify emits **`ObjectMembershipIntent`** or **`ObjectRelateIntent`** (B2.5 shipped).
+- **B2.5 (BD-11):** split **`ObjectMembershipIntent`** / **`ObjectRelateIntent`** replaces **`ObjectManipulationIntent`** at classify; **`parseCommand`** routes by intent **`type`** via **`enrichRoute`**. **`relationalRoute`** preposition regex removed as primary enrich gate (module retained for unit tests). **`verbClass`** applies only to **`ObjectMembershipIntent`** --- not a third value on a shared type.
+- Phase B shipped frame extract + **`establishRelation`** / **`dissolveRelation`** end-to-end; durable docs in B6 ([`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4), [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)).
+- **`in`** / nesting is an explicit **deferral** --- player-facing copy when frame extract or relation normalizer detects containment language ([`AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) **Still out of scope**).
+- **BD-12 (2026-07-05):** B1 frame extract shipped span-only; forbidding **`operationKind`** at classify *and* frame extract left no owner and invited phrase-bucket compiler hacks. **`operationKind`** (`establishRelation` \| `dissolveRelation`) is now owned by the frame extract LLM (no extra Bedrock hop). Compiler stays deterministic for grounding + legality only. General seam rules graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md).

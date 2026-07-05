@@ -3,6 +3,8 @@ import {
     isCharacterHomePublishedPayload,
     isCharacterNavigatePublishedPayload,
     isLookCommandRequestedPublishedPayload,
+    isObjectDissolveRelationPublishedPayload,
+    isObjectEstablishRelationPublishedPayload,
     isObjectTakeHoldPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
@@ -300,6 +302,69 @@ describe('isObjectTakeHoldPublishedPayload', () => {
     it('rejects non-finite confidence', () => {
         expect(isObjectTakeHoldPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
         expect(isObjectTakeHoldPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
+    })
+})
+
+describe('isObjectEstablishRelationPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Establish Relation' as const,
+        characterId: 'CHARACTER#test',
+        subjectId: 'OBJECT#Broom',
+        targetId: 'OBJECT#Table',
+        roomId: 'ROOM#from',
+        relationKind: 'On' as const,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isObjectEstablishRelationPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts optional confidence', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
+    })
+
+    it('accepts Custom with relationLabel', () => {
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            relationKind: 'Custom',
+            relationLabel: 'tied to',
+        })).toBe(true)
+    })
+
+    it('rejects Custom without relationLabel', () => {
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            relationKind: 'Custom',
+        })).toBe(false)
+    })
+
+    it('rejects wrong type', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
+    })
+
+    it('rejects invalid ids', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+    })
+})
+
+describe('isObjectDissolveRelationPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Dissolve Relation' as const,
+        characterId: 'CHARACTER#test',
+        subjectId: 'OBJECT#Broom',
+        targetId: 'OBJECT#Table',
+        roomId: 'ROOM#from',
+        relationKind: 'On' as const,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isObjectDissolveRelationPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('rejects wrong type', () => {
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, type: 'Object Establish Relation' })).toBe(false)
     })
 })
 

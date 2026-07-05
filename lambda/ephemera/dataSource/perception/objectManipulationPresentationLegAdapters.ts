@@ -1,6 +1,7 @@
 /**
  * Object manipulation presentation fan-in ingress: envelope guards and leg mappers for
- * mtw.ephemera.actions Object Take Hold / Object Drop and mtw.ephemera.positions Object Moved.
+ * mtw.ephemera.actions Object Take Hold / Object Drop / Object Establish Relation /
+ * Object Dissolve Relation and mtw.ephemera.positions Object Moved / Object Relation Changed.
  */
 import {
     StreamingEventEnvelope,
@@ -8,16 +9,24 @@ import {
     HeaderGuard,
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import type { ObjectDropPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import type {
+    ObjectDissolveRelationPublishedPayload,
+    ObjectDropPublishedPayload,
+    ObjectEstablishRelationPublishedPayload,
+    ObjectTakeHoldPublishedPayload,
+} from '../actions/publishedEvents'
 import {
     EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+    isObjectDissolveRelationPublishedPayload,
     isObjectDropPublishedPayload,
+    isObjectEstablishRelationPublishedPayload,
     isObjectTakeHoldPublishedPayload,
 } from '../actions/publishedEvents'
-import type { ObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import type { ObjectMovedPublishedPayload, ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
     EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
     isObjectMovedPublishedPayload,
+    isObjectRelationChangedPublishedPayload,
 } from '../positions/publishedEvents'
 import type { ObjectManipulationPresentationLeg } from './objectManipulationPresentationFanIn'
 
@@ -27,13 +36,25 @@ export type PerceptionActionsObjectTakeHoldHeader =
 export type PerceptionActionsObjectDropHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Object Drop' }
 
+export type PerceptionActionsObjectEstablishRelationHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Object Establish Relation' }
+
+export type PerceptionActionsObjectDissolveRelationHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Object Dissolve Relation' }
+
 export type PerceptionPositionsObjectMovedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Moved' }
+
+export type PerceptionPositionsObjectRelationChangedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Relation Changed' }
 
 export type PerceptionObjectManipulationPresentationSubscribedContent =
     | ObjectTakeHoldPublishedPayload
     | ObjectDropPublishedPayload
+    | ObjectEstablishRelationPublishedPayload
+    | ObjectDissolveRelationPublishedPayload
     | ObjectMovedPublishedPayload
+    | ObjectRelationChangedPublishedPayload
 
 const isPerceptionActionsObjectTakeHoldHeader: HeaderGuard<PerceptionActionsObjectTakeHoldHeader> = (
     h
@@ -47,10 +68,28 @@ const isPerceptionActionsObjectDropHeader: HeaderGuard<PerceptionActionsObjectDr
     h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Object Drop'
 )
 
+const isPerceptionActionsObjectEstablishRelationHeader: HeaderGuard<PerceptionActionsObjectEstablishRelationHeader> = (
+    h
+): h is PerceptionActionsObjectEstablishRelationHeader => (
+    h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Object Establish Relation'
+)
+
+const isPerceptionActionsObjectDissolveRelationHeader: HeaderGuard<PerceptionActionsObjectDissolveRelationHeader> = (
+    h
+): h is PerceptionActionsObjectDissolveRelationHeader => (
+    h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Object Dissolve Relation'
+)
+
 const isPerceptionPositionsObjectMovedHeader: HeaderGuard<PerceptionPositionsObjectMovedHeader> = (
     h
 ): h is PerceptionPositionsObjectMovedHeader => (
     h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Moved'
+)
+
+const isPerceptionPositionsObjectRelationChangedHeader: HeaderGuard<PerceptionPositionsObjectRelationChangedHeader> = (
+    h
+): h is PerceptionPositionsObjectRelationChangedHeader => (
+    h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Relation Changed'
 )
 
 export const isPerceptionActionsObjectTakeHoldEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -63,17 +102,35 @@ export const isPerceptionActionsObjectDropEnvelope = makeStreamingEnvelopeGuardF
     PerceptionActionsObjectDropHeader
 >(isPerceptionActionsObjectDropHeader)
 
+export const isPerceptionActionsObjectEstablishRelationEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectEstablishRelationPublishedPayload,
+    PerceptionActionsObjectEstablishRelationHeader
+>(isPerceptionActionsObjectEstablishRelationHeader)
+
+export const isPerceptionActionsObjectDissolveRelationEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectDissolveRelationPublishedPayload,
+    PerceptionActionsObjectDissolveRelationHeader
+>(isPerceptionActionsObjectDissolveRelationHeader)
+
 export const isPerceptionPositionsObjectMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ObjectMovedPublishedPayload,
     PerceptionPositionsObjectMovedHeader
 >(isPerceptionPositionsObjectMovedHeader)
+
+export const isPerceptionPositionsObjectRelationChangedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectRelationChangedPublishedPayload,
+    PerceptionPositionsObjectRelationChangedHeader
+>(isPerceptionPositionsObjectRelationChangedHeader)
 
 export const isPerceptionObjectManipulationPresentationEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionObjectManipulationPresentationSubscribedContent> => (
     isPerceptionActionsObjectTakeHoldEnvelope(envelope)
     || isPerceptionActionsObjectDropEnvelope(envelope)
+    || isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
+    || isPerceptionActionsObjectDissolveRelationEnvelope(envelope)
     || isPerceptionPositionsObjectMovedEnvelope(envelope)
+    || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )
 
 export const toObjectManipulationPresentationLeg = async (
@@ -107,6 +164,40 @@ export const toObjectManipulationPresentationLeg = async (
         }
     }
 
+    if (isPerceptionActionsObjectEstablishRelationEnvelope(envelope)) {
+        const content = await envelope.getContent()
+        if (!isObjectEstablishRelationPublishedPayload(content)) {
+            return undefined
+        }
+        return {
+            kind: 'relationalIntent',
+            operation: 'establishRelation',
+            characterId: content.characterId,
+            subjectId: content.subjectId,
+            targetId: content.targetId,
+            roomId: content.roomId,
+            relationKind: content.relationKind,
+            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+        }
+    }
+
+    if (isPerceptionActionsObjectDissolveRelationEnvelope(envelope)) {
+        const content = await envelope.getContent()
+        if (!isObjectDissolveRelationPublishedPayload(content)) {
+            return undefined
+        }
+        return {
+            kind: 'relationalIntent',
+            operation: 'dissolveRelation',
+            characterId: content.characterId,
+            subjectId: content.subjectId,
+            targetId: content.targetId,
+            roomId: content.roomId,
+            relationKind: content.relationKind,
+            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+        }
+    }
+
     if (isPerceptionPositionsObjectMovedEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectMovedPublishedPayload(content)) {
@@ -117,6 +208,23 @@ export const toObjectManipulationPresentationLeg = async (
             objectId: content.objectId,
             froms: content.froms,
             to: content.to,
+            beatAnchorTime: content.beatAnchorTime,
+        }
+    }
+
+    if (isPerceptionPositionsObjectRelationChangedEnvelope(envelope)) {
+        const content = await envelope.getContent()
+        if (!isObjectRelationChangedPublishedPayload(content)) {
+            return undefined
+        }
+        return {
+            kind: 'relationalFact',
+            subjectId: content.subjectId,
+            targetId: content.targetId,
+            hostRoomId: content.hostRoomId,
+            relationKind: content.relationKind,
+            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+            operation: content.operation,
             beatAnchorTime: content.beatAnchorTime,
         }
     }

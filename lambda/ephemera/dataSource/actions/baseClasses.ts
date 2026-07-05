@@ -253,17 +253,28 @@ export type ParseCommandAcmeOrderIntentResult = {
 }
 
 /**
- * Intent discrimination only: player intent is to manipulate a scene object (pick up, drop, etc.).
+ * Intent discrimination only: player intent is membership host transfer (which positionGraph hosts the object).
  * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
  * Terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
  */
-export type ParseCommandObjectManipulationIntentResult = {
-    type: 'ObjectManipulationIntent'
+export type ParseCommandObjectMembershipIntentResult = {
+    type: 'ObjectMembershipIntent'
     /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
     rawObjectSpans: string[]
     /** Membership language direction from classify. Mapped from JSON `verbClass`. */
     verbClass: ManipulationVerbClass
+    confidence: ParseCommandConfidence
+}
+
+/**
+ * Intent discrimination only: player intent is an in-host edge between objects on a host positionGraph.
+ * No `verbClass` at classify; operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
+ */
+export type ParseCommandObjectRelateIntentResult = {
+    type: 'ObjectRelateIntent'
+    /** Unvalidated classifier-extracted object noun phrase strings (trimmed). Mapped from JSON `objectSpans`. */
+    rawObjectSpans: string[]
     confidence: ParseCommandConfidence
 }
 
@@ -272,6 +283,21 @@ export type ParseCommandObjectManipulationResult = {
     type: 'ObjectManipulation'
     operationKind: 'takeHold' | 'drop'
     objectId: EphemeraObjectId
+    confidence: ParseCommandConfidence
+}
+
+/** Relational operator direction from frame extract (BD-12). */
+export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
+
+/** Grounded relational manipulation after enrich + compiler (BD-1). */
+export type ParseCommandEstablishRelationResult = {
+    type: 'EstablishRelation'
+    operationKind: RelationalOperationKind
+    subjectId: EphemeraObjectId
+    targetId: EphemeraObjectId
+    relationKind: 'On' | 'Under' | 'Against' | 'Custom'
+    relationLabel?: string
+    hostRoomId: EphemeraRoomId
     confidence: ParseCommandConfidence
 }
 
@@ -287,7 +313,8 @@ export type IntentClassificationResult =
     | ParseCommandPredictHypothesisResult
     | ParseCommandHelpResult
     | ParseCommandAcmeOrderIntentResult
-    | ParseCommandObjectManipulationIntentResult
+    | ParseCommandObjectMembershipIntentResult
+    | ParseCommandObjectRelateIntentResult
     | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
@@ -308,7 +335,9 @@ export type ParseCommandResult =
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
-    | ParseCommandObjectManipulationIntentResult
+    | ParseCommandEstablishRelationResult
+    | ParseCommandObjectMembershipIntentResult
+    | ParseCommandObjectRelateIntentResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
     | ParseCommandPromptInjectionAttemptResult
@@ -543,10 +572,33 @@ export function isParseCommandObjectManipulationResult(
     )
 }
 
+const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['On', 'Under', 'Against', 'Custom'])
+
+export function isParseCommandEstablishRelationResult(
+    result: ParseCommandResult
+): result is ParseCommandEstablishRelationResult {
+    if (result.type !== 'EstablishRelation') {
+        return false
+    }
+    if (!RELATIONAL_OPERATION_KINDS.has(result.operationKind)) {
+        return false
+    }
+    if (!HOST_RELATIONAL_EDGE_KINDS.has(result.relationKind)) {
+        return false
+    }
+    if (result.relationKind === 'Custom' && typeof result.relationLabel !== 'string') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
 export type ParseCommandInput = {
     command: string
     /** Parse-request character; required for drop complexity pre-gates (actor host match). */
     characterId?: EphemeraCharacterId
+    /** Actor's current room positionGraph host (BD-6 relational compiler). */
+    hostRoomId?: EphemeraRoomId
     roomExits?: {
         normalizedName: string
         targetId: EphemeraRoomId
@@ -572,6 +624,8 @@ export type ParseCommandDeps = {
     invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
     invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich;
+    /** Bedrock frame-extract stage for relational object manipulation; tests may inject a mock. */
+    invokeBedrockObjectManipulationFrameExtractImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Injectable Positions reads for object manipulation membership pre-gates. */
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */

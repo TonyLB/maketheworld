@@ -17,7 +17,7 @@ describe('discriminateIntent', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic ObjectManipulationIntent for take without invoking Bedrock', async () => {
+    it('returns deterministic ObjectMembershipIntent for take without invoking Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const result = await discriminateIntent(
             { command: 'take broom', roomObjectLabels: ['broom'] },
@@ -25,7 +25,7 @@ describe('discriminateIntent', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectManipulationIntent',
+            type: 'ObjectMembershipIntent',
             rawObjectSpans: ['broom'],
             verbClass: 'acquire',
             confidence: 1,
@@ -61,7 +61,7 @@ describe('discriminateIntent', () => {
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.7 })
     })
 
-    it('passes through ObjectManipulationIntent without exit resolution', async () => {
+    it('passes through ObjectMembershipIntent without exit resolution', async () => {
         const result = await discriminateIntent(
             {
                 command: 'pick up the broom',
@@ -70,13 +70,13 @@ describe('discriminateIntent', () => {
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({
                     success: true,
-                    body: '{"type":"ObjectManipulationIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.93}',
+                    body: '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.93}',
                 }),
             }
         )
 
         expect(result).toEqual({
-            type: 'ObjectManipulationIntent',
+            type: 'ObjectMembershipIntent',
             rawObjectSpans: ['broom'],
             verbClass: 'acquire',
             confidence: 0.93,

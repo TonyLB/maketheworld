@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPlayPositionGraph, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** One graph-grounded membership-node add/remove on a fixed host (M4 v1). */
 export type HostEffect =
@@ -34,5 +34,35 @@ export type ApplyHostEffectsSuccess = {
 
 export type ApplyHostEffectsResult =
     | ApplyHostEffectsSuccess
+    | { ok: true; persisted: false; changed: false }
+    | { ok: false; errorCode: string; errorMessage: string }
+
+export type HostRelationalEdge = {
+    from: EphemeraObjectId
+    to: EphemeraObjectId
+    kind: HostRelationalEdgeKind
+    relationLabel?: string
+}
+
+/** One add/remove of an in-host relational edge on a fixed room host graph. */
+export type HostRelationalPatch = {
+    hostId: EphemeraRoomId
+    edge: HostRelationalEdge
+    op: 'add' | 'remove'
+}
+
+export type ApplyHostRelationalPatchArgs = {
+    patches: HostRelationalPatch[]
+}
+
+export type ApplyHostRelationalPatchSuccess = {
+    ok: true
+    persisted: true
+    changed: boolean
+    postApplyGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+}
+
+export type ApplyHostRelationalPatchResult =
+    | ApplyHostRelationalPatchSuccess
     | { ok: true; persisted: false; changed: false }
     | { ok: false; errorCode: string; errorMessage: string }

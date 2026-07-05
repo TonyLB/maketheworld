@@ -1,6 +1,6 @@
 import type {
     ParseCommandInput,
-    ParseCommandObjectManipulationIntentResult,
+    ParseCommandObjectMembershipIntentResult,
     ParseCommandResult,
 } from '../baseClasses'
 import { normalizeExitName } from '../roomExitTargetsForCharacter'
@@ -38,7 +38,7 @@ function stripLeadingArticle(rawSpan: string): string {
 
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
-): ParseCommandObjectManipulationIntentResult | null {
+): ParseCommandObjectMembershipIntentResult | null {
     const trimmed = input.command.trim()
     if (!trimmed) {
         return null
@@ -75,7 +75,7 @@ function maybeDeterministicManipulationIntent(
     }
 
     return {
-        type: 'ObjectManipulationIntent',
+        type: 'ObjectMembershipIntent',
         rawObjectSpans: [rawObjectSpan],
         verbClass,
         confidence: 1,

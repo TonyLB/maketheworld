@@ -8,6 +8,11 @@ export const objectManipulationErrorMessages = {
     noMatch: 'ObjectManipulation resolution failed: no such object in the room',
     ambiguousMatch: 'ObjectManipulation resolution failed: ambiguous object',
     complexRelational: 'ObjectManipulation enrich: relational placement is not implemented yet',
+    nestingRelational: 'ObjectManipulation enrich: putting something inside another object is not supported yet',
+    noHostRoom: 'ObjectManipulation resolution failed: you are not in a room',
+    notOnHostGraph: 'ObjectManipulation resolution failed: object is not in the room',
+    dissolveNoMatchingEdge: 'ObjectManipulation enrich: no matching relation to remove',
+    sameSubjectAndTarget: 'ObjectManipulation resolution failed: subject and target must be different objects',
     complexMultiObject: 'ObjectManipulation enrich: multi-object manipulation is not implemented yet',
     complexMultiPresent: 'ObjectManipulation enrich: object is present in more than one place',
     complexUnimplementedVerb: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
@@ -19,6 +24,8 @@ export const objectManipulationErrorMessages = {
     enrichParseFailed: 'Object manipulation enrich response was not valid',
     identityInvokeFailed: 'Object manipulation identity failed',
     identityParseFailed: 'Object manipulation identity response was not valid',
+    frameExtractInvokeFailed: 'Object manipulation frame extract failed',
+    frameExtractParseFailed: 'Object manipulation frame extract response was not valid',
 } as const
 
 export type ObjectSpanResolutionResult =

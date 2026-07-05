@@ -30,9 +30,9 @@ Concept extension of [`../AGENT.concepts.md`](../AGENT.concepts.md). Normative r
 
 ## Relation to positions (today)
 
-Shipped play graphs hold **membership** (character and object **nodes** in rooms; adjacency reverse index). Relational in-room **edges** remain future work ([`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges)).
+Shipped play graphs hold **membership** (character and object **nodes** in rooms; adjacency reverse index) and **in-host relational edges** on room **`positionGraph`** (`On`, `Under`, `Against`, `Custom` + label --- Phase B). Nested containment (`in` / inside) remains future work ([`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges)).
 
-Diegetic logic is where we design **those** mutations and their unknowns **before** they become positions contract obligations.
+Operator fiction and transcript obligations for shipped manipulation verbs: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md). Normative persist and ingress rules: [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md).
 
 ---
 
@@ -40,6 +40,4 @@ Diegetic logic is where we design **those** mutations and their unknowns **befor
 
 v1 in-room objects are **top-level nodes** on **`Meta::Room.positionGraph`**, sufficient for **`takeHold`** on loose objects. Later slices may add nested portable containment, non-local extent via relational claims, and derived scene closures --- without dual-authority membership or monolithic room indexes.
 
-Design direction when relational / container-host manipulation ships: fractal hosts in [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md). Shipped atomic operators: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).
-
-**Positions persist hook (documented stub; no implementation):** host-local relational patch --- second manipulation kernel primitive at [`../dataSource/positions/manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5). Relational **operator** verticals (parse egress, facts, presentation) still need a separate follow-on plan; this hook is persist-layer only.
+Design direction when nested container-host manipulation ships: fractal hosts in [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md). Shipped operators: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).
