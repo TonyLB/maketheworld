@@ -55,7 +55,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 | --- | --- | --- | --- |
 | **`takeHold`** | Shipped | room -> character | v1 reference vertical |
 | **`drop`** | Shipped | character -> room | Symmetric delta; held-catalog at classify/enrich |
-| Relational attach (`put X on Y`, nested hosts) | Out of scope | varies | Terminal **`Error`** / **`relationalPlacement`** at complexity stage; no stream in v1. Persist stub: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) |
+| Relational attach (`establishRelation` / `dissolveRelation`) | Shipped (Phase B) | in-host edge on room **`positionGraph`** | Parse -> actions stream -> positions apply -> perception fan-in; operator fiction in B6 |
 
 ---
 

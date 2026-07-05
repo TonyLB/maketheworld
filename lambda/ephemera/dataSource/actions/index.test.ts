@@ -1824,6 +1824,189 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    describe('ParseCommandEstablishRelationResult', () => {
+        const hostRoom = 'ROOM#from' as EphemeraRoomId
+
+        it('emits Object Establish Relation streamEvent when establishRelation is grounded', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'establishRelation',
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                relationKind: 'On',
+                hostRoomId: hostRoom,
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'put the broom on the table',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    roomId: hostRoom,
+                    relationKind: 'On',
+                    confidence: 0.9,
+                },
+            })
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    displayProtocol: 'WorldOOCMessage',
+                })
+            )
+        })
+
+        it('emits Object Establish Relation with Custom relationLabel', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'establishRelation',
+                subjectId: 'OBJECT#Rope',
+                targetId: 'OBJECT#Crate',
+                relationKind: 'Custom',
+                relationLabel: 'tied around',
+                hostRoomId: hostRoom,
+                confidence: 0.85,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'tie the rope around the crate',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    roomId: hostRoom,
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    confidence: 0.85,
+                },
+            })
+        })
+
+        it('emits Object Dissolve Relation streamEvent when dissolveRelation is grounded', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'dissolveRelation',
+                subjectId: 'OBJECT#Rope',
+                targetId: 'OBJECT#Crate',
+                relationKind: 'Custom',
+                relationLabel: 'tied around',
+                hostRoomId: hostRoom,
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'take the rope off the crate',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Dissolve Relation' },
+                update: {
+                    type: 'Object Dissolve Relation',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    roomId: hostRoom,
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    confidence: 0.9,
+                },
+            })
+        })
+
+        it('publishes WorldOOCMessage when establishRelation has no host room', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'establishRelation',
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                relationKind: 'On',
+                hostRoomId: null as unknown as EphemeraRoomId,
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'put the broom on the table',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot do that.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+    })
+
     describe('ParseCommandUnimplementedResult', () => {
         it('publishes WorldOOCMessage for unimplemented intent', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'Unimplemented', confidence: 0.9 })

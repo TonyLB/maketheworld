@@ -1183,9 +1183,13 @@ describe('mtw.ephemera.perception DataSource', () => {
                 Name: 'Alice',
                 assets: ['ASSET#Test'],
             } as any)
-            jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
-                { merged: new StandardObject({ tag: 'Object', shortName: 'broom' }) },
-            ] as any)
+            jest.spyOn(internalCache.ComponentAggregate, 'get').mockImplementation(async (perspectives: any[]) => {
+                const key = perspectives[0]?.universalKey
+                if (key === 'OBJECT#Table') {
+                    return [{ merged: new StandardObject({ tag: 'Object', shortName: 'table' }) }] as any
+                }
+                return [{ merged: new StandardObject({ tag: 'Object', shortName: 'broom' }) }] as any
+            })
             jest.spyOn(internalCache.ImprovisationComponentData, 'get').mockResolvedValue({} as any)
             jest.spyOn(roomHeaderBroadcastModule, 'resolveCharacterRoomPerspectiveForRoom').mockResolvedValue({
                 perspective: { assetStack: ['ASSET#Test'] },
@@ -1352,6 +1356,97 @@ describe('mtw.ephemera.perception DataSource', () => {
 
             expect(orchestrateSpy).not.toHaveBeenCalled()
             orchestrateSpy.mockRestore()
+        })
+
+        it('intent + fact batch publishes single establish-relation WorldMessage', async () => {
+            const publishSpy = spyPublish()
+
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                'Object Establish Relation',
+                {
+                    type: 'Object Establish Relation',
+                    characterId: TAKE_HOLD_CHARACTER,
+                    subjectId: TAKE_HOLD_OBJECT,
+                    targetId: 'OBJECT#Table',
+                    roomId: TAKE_HOLD_ROOM,
+                    relationKind: 'On',
+                },
+                TAKE_HOLD_CHARACTER
+            )
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+                'Object Relation Changed',
+                {
+                    type: 'Object Relation Changed',
+                    subjectId: TAKE_HOLD_OBJECT,
+                    targetId: 'OBJECT#Table',
+                    hostRoomId: TAKE_HOLD_ROOM,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
+                },
+                TAKE_HOLD_OBJECT
+            )
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            expect(worldPublishes[0][0]).toMatchObject({
+                targets: [TAKE_HOLD_ROOM, TAKE_HOLD_CHARACTER],
+                displayProtocol: 'WorldMessage',
+                message: ['Alice puts broom on table'],
+                createdTime: TAKE_HOLD_ANCHOR_TIME,
+                deliveryMode: 'deferred',
+            })
+            publishSpy.mockRestore()
+        })
+
+        it('intent + fact batch publishes single dissolve-relation WorldMessage', async () => {
+            const publishSpy = spyPublish()
+
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
+                'Object Dissolve Relation',
+                {
+                    type: 'Object Dissolve Relation',
+                    characterId: TAKE_HOLD_CHARACTER,
+                    subjectId: TAKE_HOLD_OBJECT,
+                    targetId: 'OBJECT#Table',
+                    roomId: TAKE_HOLD_ROOM,
+                    relationKind: 'On',
+                },
+                TAKE_HOLD_CHARACTER
+            )
+            publishObjectManipulationStreamingEvent(
+                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+                'Object Relation Changed',
+                {
+                    type: 'Object Relation Changed',
+                    subjectId: TAKE_HOLD_OBJECT,
+                    targetId: 'OBJECT#Table',
+                    hostRoomId: TAKE_HOLD_ROOM,
+                    relationKind: 'On',
+                    operation: 'dissolve',
+                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
+                },
+                TAKE_HOLD_OBJECT
+            )
+            await messageBus.flushAndSettle()
+
+            const worldPublishes = publishSpy.mock.calls.filter((c) => {
+                const m = c[0] as { type?: string; displayProtocol?: string }
+                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
+            })
+            expect(worldPublishes).toHaveLength(1)
+            expect(worldPublishes[0][0]).toMatchObject({
+                message: ['Alice takes broom off table'],
+                createdTime: TAKE_HOLD_ANCHOR_TIME,
+            })
+            publishSpy.mockRestore()
         })
     })
 })

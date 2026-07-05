@@ -474,8 +474,51 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        // TODO(B5): stream Object Establish Relation / Object Dissolve Relation
-        void parseResult
+        const { hostRoomId } = parseResult
+        if (!hostRoomId) {
+            messageBus.publish({
+                type: 'PublishMessage',
+                targets: [characterId],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot do that.'],
+            })
+        }
+        else if (parseResult.operationKind === 'dissolveRelation') {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Dissolve Relation' },
+                update: {
+                    type: 'Object Dissolve Relation',
+                    characterId,
+                    subjectId: parseResult.subjectId,
+                    targetId: parseResult.targetId,
+                    roomId: hostRoomId,
+                    relationKind: parseResult.relationKind,
+                    ...(parseResult.relationLabel !== undefined
+                        ? { relationLabel: parseResult.relationLabel }
+                        : {}),
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId,
+                    subjectId: parseResult.subjectId,
+                    targetId: parseResult.targetId,
+                    roomId: hostRoomId,
+                    relationKind: parseResult.relationKind,
+                    ...(parseResult.relationLabel !== undefined
+                        ? { relationLabel: parseResult.relationLabel }
+                        : {}),
+                    confidence: parseResult.confidence,
+                },
+            })
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B in progress --- B4 shipped (positions persist + ingress). Next step: B5 actions egress + perception.
+**Status:** Phase B in progress --- B5 shipped (actions egress + perception). Next step: B6 durable docs.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -211,10 +211,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Coordinator under [`manipulation/relational/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/) (create tree).
   - [X] Tests: apply, idempotency, reject invalid patch.
 
-- [ ] **B5. Actions egress + perception**
-  - [ ] [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) publish stream on grounded relational parse.
-  - [ ] Perception fan-in: intent + fact -> **`WorldMessage`** (withhold geometry; assert relation per unknowns).
-  - [ ] End-to-end tests: parse -> stream -> apply -> transcript.
+- [X] **B5. Actions egress + perception**
+  - [X] [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) publish stream on grounded relational parse.
+  - [X] Perception fan-in: intent + fact -> **`WorldMessage`** (withhold geometry; assert relation per unknowns).
+  - [X] End-to-end tests: parse -> stream -> apply -> transcript.
 
 - [ ] **B6. Durable docs**
   - [ ] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** section.
@@ -294,7 +294,8 @@ npm run build
 | B2.5 split classify intents (BD-11; ObjectMembershipIntent + ObjectRelateIntent) | Done (2026-07-04) |
 | B3 grounding + legality | Done (2026-07-05) |
 | B4 positions persist + ingress | Done (2026-07-05) |
-| Phase B establishRelation vertical | In progress (B5 next) |
+| B5 actions egress + perception | Done (2026-07-05) |
+| Phase B establishRelation vertical | In progress (B6 next) |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 

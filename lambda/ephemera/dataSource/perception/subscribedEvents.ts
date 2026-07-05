@@ -24,9 +24,9 @@ import {
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
 import type { CharacterHomePublishedPayload } from '../actions/publishedEvents'
-import type { CharacterNavigatePublishedPayload, ObjectDropPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import type { CharacterNavigatePublishedPayload, ObjectDissolveRelationPublishedPayload, ObjectDropPublishedPayload, ObjectEstablishRelationPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import type { ConnectionsCharactersEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterMovedPublishedPayload, ObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import type { CharacterMovedPublishedPayload, ObjectMovedPublishedPayload, ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
     isPerceptionActionsCharacterHomeEnvelope,
     isPerceptionActionsCharacterNavigateEnvelope,
@@ -35,9 +35,12 @@ import {
     toMembershipPresentationLeg,
 } from './membershipPresentationLegAdapters'
 import {
+    isPerceptionActionsObjectDissolveRelationEnvelope,
     isPerceptionActionsObjectDropEnvelope,
+    isPerceptionActionsObjectEstablishRelationEnvelope,
     isPerceptionActionsObjectTakeHoldEnvelope,
     isPerceptionPositionsObjectMovedEnvelope,
+    isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
@@ -50,9 +53,12 @@ export {
 } from './membershipPresentationLegAdapters'
 
 export {
+    isPerceptionActionsObjectDissolveRelationEnvelope,
     isPerceptionActionsObjectDropEnvelope,
+    isPerceptionActionsObjectEstablishRelationEnvelope,
     isPerceptionActionsObjectTakeHoldEnvelope,
     isPerceptionPositionsObjectMovedEnvelope,
+    isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
@@ -112,7 +118,10 @@ export type PerceptionSubscribedContent =
     | CharacterMovedPublishedPayload
     | ObjectTakeHoldPublishedPayload
     | ObjectDropPublishedPayload
+    | ObjectEstablishRelationPublishedPayload
+    | ObjectDissolveRelationPublishedPayload
     | ObjectMovedPublishedPayload
+    | ObjectRelationChangedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -149,7 +158,10 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionPositionsCharacterMovedEnvelope(envelope)
         || isPerceptionActionsObjectTakeHoldEnvelope(envelope)
         || isPerceptionActionsObjectDropEnvelope(envelope)
+        || isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
+        || isPerceptionActionsObjectDissolveRelationEnvelope(envelope)
         || isPerceptionPositionsObjectMovedEnvelope(envelope)
+        || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>

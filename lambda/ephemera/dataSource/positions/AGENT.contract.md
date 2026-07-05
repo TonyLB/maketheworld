@@ -264,9 +264,7 @@ type HostRelationalPatch = {
 
 ### Ingress (Phase B; shipped B4)
 
-Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** (payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`kind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
-
-**Actions egress (B5):** [`actions/index.ts`](../actions/index.ts) **`Parse Requested`** publish on grounded **`EstablishRelation`** parse is **not** wired until B5; stream contracts and positions ingress are shipped at B4.
+Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`kind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
 
 ### `Object Establish Relation` / `Object Dissolve Relation` (positions-owned)
 
@@ -277,7 +275,7 @@ Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve 
 ### `Object Relation Changed` fact (B4)
 
 - Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostRoomId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
-- Streamed from coordinator on successful persist; perception fan-in wiring is B5.
+- Streamed from coordinator on successful persist; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
 - On **`changed: true`**: stream fact, seed **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** for **`hostRoomId`** (mirror membership bundle).
 
 **Must not** route relational patch through **`applyObjectRoomMembership`** or membership adapter **`planMembershipTransfer`**.
