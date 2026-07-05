@@ -1,10 +1,10 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B in progress --- B5 shipped (actions egress + perception). Next step: B6 durable docs.
+**Status:** Phase B complete (B6 durable docs shipped). Next step: Phase C (C1 Plan IR types + registry).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
-Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity); B1 adds relational route + frame extract at enrich entry. Module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
+Prerequisite (shipped): Phase A membership compiler --- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents) (**`verbClass`**, **`compileMembershipAtomic`**, merged-catalog identity); Phase B relational vertical shipped (frame extract, normalizer, compiler, egress, positions apply, perception). Module inventory: [`actions/enrich/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/AGENT.md).
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Ship generic **`establishRelation`** --- one relational operator parameterized b
 
 Phases B--D evolve parse from coarse intent classification toward **split manipulation intents at classify (BD-11) + frame extraction + deterministic plan compilation + execution**, without requiring full LLM-authored multi-step plans on day one.
 
-Retire this plan when relational vertical + plan IR steady-state docs land; git retains history.
+Retire this plan when Phase C--D steady-state docs land (Phase B durable docs shipped in B6); git retains history.
 
 ## Phase map
 
@@ -73,7 +73,7 @@ Product preference (from planning discussion): work deterministically with a **s
 | **Deferred: containment** | `in`, `inside` | Not **`establishRelation`** v1; routes to future nesting operator |
 | **Custom** | `tied to`, `leaning against`, `wrapped around` | **`relationKind: Custom`** + **`relationLabel`** (player/normalized text) |
 
-Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract) (BD-2, BD-3).
+Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4) (BD-2, BD-3).
 
 ## Scope
 
@@ -177,7 +177,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [X] **B0. Decision lock**
   - [X] Close BD-1 -- BD-10 in **Open decisions** (2026-07-04); BD-11 added (2026-07-04).
-  - [X] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3) --- [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract).
+  - [X] Capture enum list and edge persist shape in positions contract draft (BD-2, BD-3) --- [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4).
 
 - [X] **B1. Frame schema + extraction**
   - [X] Define **`ManipulationFrame`** types (subject/target/relation spans; role tags) in actions enrich layer.
@@ -216,10 +216,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Perception fan-in: intent + fact -> **`WorldMessage`** (withhold geometry; assert relation per unknowns).
   - [X] End-to-end tests: parse -> stream -> apply -> transcript.
 
-- [ ] **B6. Durable docs**
-  - [ ] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** section.
-  - [ ] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) --- promote planning contract to shipped when Phase B ingress lands; ingress stream rows + fact bundle TBD at B4.
-  - [ ] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- replace relational stub prose.
+- [X] **B6. Durable docs**
+  - [X] [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) --- **`establishRelation`** + **`dissolveRelation`** sections; refresh membership classify refs; replace out-of-scope stub.
+  - [X] [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) --- promote planning contract to shipped; ingress subsections + relational-changed bundle.
+  - [X] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- replace relational stub prose; add relational operator playbook.
 
 ### Phase C --- Plan IR and composition
 
@@ -295,7 +295,8 @@ npm run build
 | B3 grounding + legality | Done (2026-07-05) |
 | B4 positions persist + ingress | Done (2026-07-05) |
 | B5 actions egress + perception | Done (2026-07-05) |
-| Phase B establishRelation vertical | In progress (B6 next) |
+| B6 durable docs (four-lane steady-state) | Done (2026-07-05) |
+| Phase B establishRelation vertical | Done |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 
@@ -303,7 +304,6 @@ npm run build
 
 - **Phase A** landed **`verbClass`** (`acquire` | `release`), merged-catalog identity, and the relational preposition guard before relational frame work. Classify emits **`ObjectMembershipIntent`** or **`ObjectRelateIntent`** (B2.5 shipped).
 - **B2.5 (BD-11):** split **`ObjectMembershipIntent`** / **`ObjectRelateIntent`** replaces **`ObjectManipulationIntent`** at classify; **`parseCommand`** routes by intent **`type`** via **`enrichRoute`**. **`relationalRoute`** preposition regex removed as primary enrich gate (module retained for unit tests). **`verbClass`** applies only to **`ObjectMembershipIntent`** --- not a third value on a shared type.
-- Phase B **replaces** the Phase A preposition guard with frame extract + **`establishRelation`**; split classify intents (**B2.5**) replace regex-as-primary-router.
-- Positions **M4** kernel work (edge mutations) is on the critical path for Phase B; actions parse can proceed with mocked apply until ingress contract is frozen.
-- **`in`** / nesting is an explicit **deferral** --- document player-facing copy when frame extract or relation normalizer detects containment language.
+- Phase B shipped frame extract + **`establishRelation`** / **`dissolveRelation`** end-to-end; durable docs in B6 ([`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4), [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)).
+- **`in`** / nesting is an explicit **deferral** --- player-facing copy when frame extract or relation normalizer detects containment language ([`AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) **Still out of scope**).
 - **BD-12 (2026-07-05):** B1 frame extract shipped span-only; forbidding **`operationKind`** at classify *and* frame extract left no owner and invited phrase-bucket compiler hacks. **`operationKind`** (`establishRelation` \| `dissolveRelation`) is now owned by the frame extract LLM (no extra Bedrock hop). Compiler stays deterministic for grounding + legality only. General seam rules graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md).

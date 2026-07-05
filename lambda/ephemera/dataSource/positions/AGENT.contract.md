@@ -48,7 +48,7 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 - Membership transfer persist **must** converge on one graph-grounded path: **shared membership adapter** plans -> **`applyHostEffects`** kernel transacts.
 - Kernel **must** accept explicit **`HostEffect[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
 - **Must not** add parallel persist paths (new `update*PositionGraphs` with bundled planner + transact; per-verb diff computers outside [`manipulation/adapters/`](manipulation/adapters/)).
-- **Deferred (M4):** kernel v1 = **`applyHostEffects`** (membership-node add/remove); host-local relational patch = **`applyHostRelationalPatch`** ([Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4) --- shipped B4).
+- **Shipped kernels:** membership-node add/remove via **`applyHostEffects`** (**`HostEffect[]`**); in-host relational edge add/remove via **`applyHostRelationalPatch`** (**`HostRelationalPatch[]`**) --- [Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).
 
 **Today (shipped behavior):**
 
@@ -188,6 +188,19 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 
 **Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts). Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
 
+### Host-local relational-changed bundle (v1 `establishRelation` / `dissolveRelation`)
+
+Graph persist: coordinator -> [`planHostRelationalPatch`](manipulation/relational/planHostRelationalPatch.ts) -> [`applyHostRelationalPatch`](manipulation/applyHostRelationalPatch.ts). Code path: [`applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts).
+
+When relational apply **`changed: true`** after successful graph persist, the coordinator **must**:
+
+1. Stream **`Object Relation Changed`** (when fact non-null).
+2. Seed **`internalCache.Positions`** from kernel **`postApplyGraphs`** for **`hostRoomId`**.
+3. **`ComponentEphemeraMeta.invalidate`** / **`AffordanceRoomDeliverable.invalidate`** for **`hostRoomId`**.
+4. Publish internal **`RoomUpdate`** for **`hostRoomId`** (affordance refresh via orchestration).
+
+**Must skip** the entire bundle when **`changed: false`** (idempotent duplicate edge on **`op: 'add'`**). Relational fan-in **requires** actions intent leg; perception does not defer on fact-only settle for relational clusters.
+
 ### Object placement drift repair
 
 - **Steady state:** at most one room per **`OBJECT#`**; multi-room adjacency is drift.
@@ -262,21 +275,15 @@ type HostRelationalPatch = {
 | Conflicting or non-trivial existing relational topology on subject/target | **Error** stub (**BD-10** defer bucket until Phase D plan LLM) | **Must not** receive ingress until actions resolves |
 | **`dissolveRelation`** with no matching edge | **Error** before egress | Reject **`op: 'remove'`** when edge absent |
 
-### Ingress (Phase B; shipped B4)
+### Ingress summary
 
-Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`kind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
+Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Normative handler rules: [Ingress --- `Object Establish Relation`](#object-establish-relation-positions-owned), [Ingress --- `Object Dissolve Relation`](#object-dissolve-relation-positions-owned). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`relationKind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
 
-### `Object Establish Relation` / `Object Dissolve Relation` (positions-owned)
-
-- **Ingress:** typed relational commands via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contracts: **`Object Establish Relation`**, **`Object Dissolve Relation`** --- payload `{ characterId, subjectId, targetId, roomId, relationKind, relationLabel?, confidence? }`.
-- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](manipulation/relational/executeObjectEstablishRelation.ts) or [`executeObjectDissolveRelation`](manipulation/relational/executeObjectDissolveRelation.ts).
-- **`establishRelation`** maps to kernel **`op: 'add'`**; **`dissolveRelation`** maps to **`op: 'remove'`** (**BD-7**).
-
-### `Object Relation Changed` fact (B4)
+### `Object Relation Changed` fact (shipped)
 
 - Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostRoomId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
-- Streamed from coordinator on successful persist; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
-- On **`changed: true`**: stream fact, seed **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** for **`hostRoomId`** (mirror membership bundle).
+- Streamed from coordinator on successful persist when **`changed: true`**; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
+- Post-persist bundle detail: [Host-local relational-changed bundle](#host-local-relational-changed-bundle-v1-establishrelation--dissolverelation).
 
 **Must not** route relational patch through **`applyObjectRoomMembership`** or membership adapter **`planMembershipTransfer`**.
 
@@ -323,6 +330,20 @@ Positions **must** subscribe to:
 - **Must** call [`applyObjectDrop`](manipulation/membership/applyObjectDrop.ts) with `{ objectId, roomId, characterId }` --- atomic character-remove + room-add in one transact.
 - **Bounded character remove:** **must** remove object from character graph **only** when it is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts.
 - **Bounded room add:** **must** add at trusted ingress `roomId` when object is not already on that room; **must not** end-state scrub other room hosts.
+
+### `Object Establish Relation` (positions-owned)
+
+- **Ingress:** typed establish via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Establish Relation`**, payload `{ characterId, subjectId, targetId, roomId, relationKind, relationLabel?, confidence? }`. Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes when enrich yields grounded **`EstablishRelation`** with **`operationKind: establishRelation`**.
+- **Must** trust actions-resolved `subjectId`, `targetId`, `roomId` (host), `relationKind`, and optional `relationLabel` at apply --- no re-read of in-room catalog in positions.
+- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](manipulation/relational/executeObjectEstablishRelation.ts) with `{ subjectId, targetId, roomId, relationKind, relationLabel?, operation: 'establish' }` --- kernel **`op: 'add'`** in one transact.
+- **Idempotency:** duplicate establish when exact edge already present (`changed: false`) **must** be a no-op (no bundle).
+
+### `Object Dissolve Relation` (positions-owned)
+
+- **Ingress:** typed dissolve via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Dissolve Relation`**, same payload shape as establish. Actions **`Parse Requested`** publishes when enrich yields grounded **`EstablishRelation`** with **`operationKind: dissolveRelation`**.
+- **Must** trust actions-resolved ids and relation fields at apply --- no catalog re-resolve in positions.
+- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectDissolveRelation`](manipulation/relational/executeObjectDissolveRelation.ts) with `{ subjectId, targetId, roomId, relationKind, relationLabel?, operation: 'dissolve' }` --- kernel **`op: 'remove'`** matching edge **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
+- **Must** reject apply when matching edge absent on host graph.
 
 ### `Character Home` (positions-owned)
 
@@ -412,4 +433,4 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 
 ## Consumer expectations
 
-Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. After a **successful** object membership apply with `changed: true`, downstream **may** assume affordance memo reflects updated **`StandardRoom.objects`** for affected rooms. Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).
+Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. After a **successful** object membership apply with `changed: true`, downstream **may** assume affordance memo reflects updated **`StandardRoom.objects`** for affected rooms. After a **successful** relational apply with `changed: true`, downstream **may** assume **`Positions`** memo and affordance deliverable for **`hostRoomId`** reflect updated room **`positionGraph`** topology including stored relational edges (gateway read projection passes through relational edges per [`packages/mtw-gateways/ts/ephemera/positions/project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)). Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).

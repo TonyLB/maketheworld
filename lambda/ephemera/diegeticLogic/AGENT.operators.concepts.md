@@ -13,10 +13,10 @@ Atomic manipulation operators follow the same three-leg pattern as navigate:
 | Leg | Lane | Role |
 | --- | --- | --- |
 | **Intent** | `mtw.ephemera.actions` | Grounded proposal after classify + split-stage enrich (trusted ids post-parse) |
-| **Fact** | `mtw.ephemera.positions` | Graph persist + **`Object Moved`** membership-host endpoints |
+| **Fact** | `mtw.ephemera.positions` | Graph persist + descriptive fact stream (**`Object Moved`** for membership-host transfer; **`Object Relation Changed`** for in-host relational edges) |
 | **Presentation** | `mtw.ephemera.perception` | Fan-in intent + fact -> single **`WorldMessage`** transcript line |
 
-Affordance refresh on placement change reuses the existing **`Object Moved`** -> affordance orchestration path.
+Affordance refresh on membership placement change reuses the existing **`Object Moved`** -> affordance orchestration path. Relational apply publishes internal **`RoomUpdate`** for affordance refresh on the host room.
 
 ---
 
@@ -30,7 +30,7 @@ Affordance refresh on placement change reuses the existing **`Object Moved`** ->
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectManipulationIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
+| Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) |
@@ -65,7 +65,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectManipulationIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
+| Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) |
@@ -92,15 +92,78 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 ---
 
-## Complex / relational manipulation (out of scope)
+## `establishRelation` (shipped)
 
-Commands that require relational edges (`On`, `In`, ...), multi-object coordinated deltas, or nested container hosts finalize to a terminal parse **`Error`** in v1 --- no stream, no positions ingress. Player-facing rejections include:
+**Player fiction:** The character places or arranges one in-room object relative to another on the **room host graph** without changing membership host --- e.g. putting a broom on a table or leaning a ladder against a wall.
+
+**Graph delta:** Add directed edge on **`Meta::Room.positionGraph`**: `from` = subject, `to` = target, `kind` (`On` | `Under` | `Against` | `Custom`), optional **`relationLabel`** when `kind === 'Custom'` (BD-3). No adjacency dual-write for relational edges.
+
+**Lane split:**
+
+| Stage | Artifact |
+| --- | --- |
+| Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
+| Enrich | Frame extract LLM (**`operationKind: establishRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
+| Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
+| Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
+| Transcript | Fan-in -> enum templates (`puts ... on`, `under`, `leans ... against`) or **`Custom`** label line |
+
+**Pre-flight legality:** Actions-owned before egress: both subject and target nodes on host graph; idempotent duplicate edge -> allow/no-op; conflicting or non-trivial existing relational topology on subject/target -> **Error** stub (BD-10 defer bucket until Phase D plan LLM). Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error (future nesting operator, not **`establishRelation`**). Positions re-validates at apply.
+
+### Transcript obligations (unknowns --- withhold)
+
+Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 relational copy asserts the committed relation in plain template form only.
+
+| Concern | v1 establish |
+| --- | --- |
+| Exact placement geometry (position, orientation, offset) | **Do not** assert or elaborate |
+| How the relation physically holds (friction, balance, tension) | **Do not** elaborate beyond template verb |
+| Unstated object attributes | **Do not** invent in transcript |
+
+Copy is **deterministic template** at fan-in emit (no copy-generating LLM hop). Labels resolve at emit time via [`resolveRelationalPresentationLabels.ts`](../dataSource/perception/resolveRelationalPresentationLabels.ts); fallbacks **`Someone`** / **`something`**.
+
+Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
+
+---
+
+## `dissolveRelation` (shipped)
+
+**Player fiction:** The character removes an existing in-host relational link between two objects on the room graph --- e.g. taking a rope off a crate. Membership hosts are unchanged.
+
+**Graph delta:** Remove matching directed edge on **`Meta::Room.positionGraph`** (`op: 'remove'`); edge match includes **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
+
+**Lane split:**
+
+| Stage | Artifact |
+| --- | --- |
+| Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
+| Enrich | Frame extract LLM (**`operationKind: dissolveRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
+| Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectDissolveRelation`](../dataSource/positions/manipulation/relational/executeObjectDissolveRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'remove'`) |
+| Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
+| Transcript | Fan-in -> **`${Player} takes ${Subject} off ${Target}`** |
+
+**Pre-flight legality:** Matching edge on host graph required; no-match -> **Error** before egress (BD-10). Positions re-validates at apply.
+
+### Transcript obligations (unknowns --- withhold)
+
+Same **Withhold** rules as **`establishRelation`**: state only the committed relation removal; do not invent geometry or unstated physical detail.
+
+Implementation: same fan-in modules as **`establishRelation`**.
+
+---
+
+## Still out of scope (Phase B)
+
+These finalize to terminal parse **`Error`** --- no stream, no positions ingress:
 
 - **`multiObject`**: the command names or resolves more than one object target (e.g. "pick up the broom and the anvil").
 - **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
-- **`relationalPlacement`**: the move depends on in-room relational edges (e.g. "put the broom on the table"). Phase A enrich also short-circuits word-boundary **`on`** and **`under`** to this error before identity (replaced by frame extract in Phase B).
-
-Full processing requires a **separate follow-on task plan** for relational **operators** (parse, facts, presentation). Persist-layer hook (documented stub): [`../dataSource/positions/manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
+- **`complexRelational`**: non-trivial existing in-host relational topology on subject/target blocks a deterministic plan (BD-10 defer bucket; Phase D plan LLM candidate).
+- **`nestingRelational`**: containment language (`in`, `inside`, `into`) --- future **nested container** operator, not **`establishRelation`** v1.
+- **`relationalPlacement`**: membership-path complexity LLM defer only (exit-edge-implied relational move on **`ObjectMembershipIntent`**); supported relational commands route via **`ObjectRelateIntent`**, not this error class.
+- Held object + surface relation without explicit drop language (Phase C BD-8 composition: auto-**`drop`** then **`establishRelation`** in one atomic apply).
 
 ---
 
@@ -110,6 +173,6 @@ Full processing requires a **separate follow-on task plan** for relational **ope
 | --- | --- |
 | [`AGENT.implementation.md`](AGENT.implementation.md) | Four-lane hub + follow-on operators table |
 | [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) | Parse classify / enrich / egress playbook |
-| [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply coordinator playbook |
-| [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) | **`Object Moved`**, **`Object Take Hold`**, **`Object Drop`** ingress (normative) |
+| [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply + relational patch playbooks |
+| [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) | **`Object Moved`**, **`Object Take Hold`**, **`Object Drop`**, **`Object Establish Relation`**, **`Object Dissolve Relation`**, **`Object Relation Changed`** ingress (normative) |
 | [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) | Object-manipulation fan-in steady-state |

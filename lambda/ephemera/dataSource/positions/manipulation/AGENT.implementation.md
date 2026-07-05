@@ -1,6 +1,6 @@
 # Positions manipulation --- implementation map and kernel spec
 
-**Status:** Membership transfer shipped. Coordinators route through shared adapter + **`applyHostEffects`** kernel. Host-local relational patch documented as slice 5+ stub (no implementation yet).
+**Status:** Membership transfer and host-local relational patch shipped. Coordinators route through shared membership adapter + **`applyHostEffects`** kernel, or relational planner + **`applyHostRelationalPatch`** kernel.
 
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 
@@ -49,7 +49,7 @@ type HostEffect =
 | Graph | Update via [`positionGraphMerge`](../membership/positionGraphMerge.ts) helpers (`addCharacterToGraph`, `removeCharacterFromGraph`, `addObjectToGraph`, `removeObjectFromGraph`) |
 | Adjacency | Each `add` emits adjacency **Put**; each `remove` emits adjacency **Delete** (`buildPositionAdjacencyDataCategory`) |
 | Host row | Room hosts: `Meta::Room`; character inventory hosts: `Meta::Character` |
-| Edges | **None** in v1 --- relational patch is a separate future primitive |
+| Edges | Membership-node effects only in **`applyHostEffects`** --- relational edges use **`applyHostRelationalPatch`** (shipped) |
 
 **Reference transact builders today:** [`objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts) (room + object), [`characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) (character + object). Phase 4a kernel should reuse or wrap these builders rather than duplicating reducers.
 
@@ -249,7 +249,7 @@ Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.cont
 | --- | --- | --- |
 | **M1** | Kernel accepts explicit `HostEffect[]` only; no independent prior discovery | Section A `applyHostEffects` |
 | **M2** | Bounded **`takeHold`**: scrub **only** trusted ingress `roomId` on room hosts | Section B apply modes |
-| **M4** | Kernel v1 = membership-node add/remove only; relational patch stub | Section A future primitive |
+| **M4** | Two kernels shipped: **`applyHostEffects`** (membership nodes) + **`applyHostRelationalPatch`** (host-local edges) | Section A kernels |
 | **M5** | Kernel at `manipulation/` top-level (`applyHostEffects.ts`) | Section A module path |
 | **M8** | Shared adapter at `manipulation/adapters/` | Section B module location |
 | **M7** | Incremental migration order (Phase 4b) | Table below |
@@ -321,15 +321,15 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 **Removed:** `updatePositionGraphs`, `updateObjectPositionGraphs`, `updateTakeHoldPositionGraphs`, `postApplyGraphProjection` (redundant with coordinators / kernel). Spawn no longer bypasses kernel via cross-lane transact or `postApplyGraphProjection`.
 
-### Phase 5 relational hook (shipped 2026-06-26; doc stub only)
+### Relational patch verification (shipped Phase B)
 
 ```bash
-rg -n "applyHostRelationalPatch|Host-local relational patch|host-local relational" \
-  lambda/ephemera/dataSource/positions/ \
-  lambda/ephemera/diegeticLogic/AGENT.concepts.md
+npm --prefix lambda/ephemera run test -- --watchAll=false \
+  dataSource/positions/manipulation/relational/ \
+  dataSource/positions/manipulation/applyHostRelationalPatch.test.ts
 ```
 
-Acceptance: stub paths documented in implementation maps; diegetic logic links to this section; **no** new `.ts` under `manipulation/` until slice 5.
+Acceptance: kernel idempotency, dissolve edge match, coordinator fact bundle; diegetic logic and positions contract link to [Section A --- Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).
 
 ---
 
