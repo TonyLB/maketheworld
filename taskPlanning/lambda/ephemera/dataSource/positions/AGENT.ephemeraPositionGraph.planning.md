@@ -1,6 +1,6 @@
 # EphemeraPositionGraph --- play graph model and primitive consolidation
 
-**Status:** P0 decision lock complete. Next step: land **EPG-8** interface renames, sketch class API stub, then **P1** core class + unit tests.
+**Status:** P0 complete (EPG-8/9 interface renames + class API stub). Next step: **P1** core `EphemeraPositionGraph` class + unit tests.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -195,8 +195,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 ### Phase P0 --- Decision lock
 
 - [X] **P0. Close EPG-2 through EPG-9** in **Open decisions** (EPG-1 decided).
-- [ ] **P0. Interfaces renames + field payload types (EPG-8, EPG-9)** in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) + all import sites; `mtw-interfaces` + `mtw-gateways` + `lambda/ephemera` + `lambda/diagnostics` tests green.
-- [ ] **P0. Sketch class API** in [`positionGraph/AGENT.md`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/AGENT.md) stub (implementation map only --- full authority text lands in P4).
+- [X] **P0. Interfaces renames + field payload types (EPG-8, EPG-9)** in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) + all import sites; `mtw-interfaces` + `mtw-gateways` + `lambda/ephemera` + `lambda/diagnostics` tests green.
+- [X] **P0. Sketch class API** in [`positionGraph/AGENT.md`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/AGENT.md) stub (implementation map only --- full authority text lands in P4).
 
 ### Phase P1 --- Core `EphemeraPositionGraph` + tests
 
@@ -301,7 +301,8 @@ Second command should stay clean (no transact in actions enrich).
 | --- | --- |
 | Task plan authored | Done |
 | P0 decision lock | Done (EPG-1--9 decided) |
-| P0 interfaces renames + field payload (EPG-8, EPG-9) | Not started |
+| P0 interfaces renames + field payload (EPG-8, EPG-9) | Done |
+| P0 class API stub | Done |
 | P1 core class + tests | Not started |
 | P2 positions refactor | Not started |
 | P3 actions dedup | Not started |

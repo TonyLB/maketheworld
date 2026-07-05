@@ -41,8 +41,9 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 
 | Type | Layer | Carries |
 | --- | --- | --- |
-| **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character + Object **identity** nodes (`CHARACTER#...`, `OBJECT#...`); no roster display fields |
-| **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored `EphemeraPlayPositionGraph` nodes/edges to WML graph shape; no roster display or reverse-membership fields |
+| **`EphemeraPositionGraphFieldPayload`** | Dynamo `Meta::*.positionGraph` attribute | Character + Object **identity** nodes (`CHARACTER#...`, `OBJECT#...`); no roster display fields; `hostId` omitted (row `EphemeraId` is authoritative) |
+| **`EphemeraPositionGraphData`** | `@tonylb/mtw-interfaces` manipulation JSON | Field payload + **`hostId`** --- assemble at Dynamo read boundary; class `toJSON()` shape (P1) |
+| **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored field payload nodes/edges to WML graph shape; no roster display or reverse-membership fields |
 
 Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
 
@@ -78,7 +79,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 
 Held-object inventory is **positions-owned** play manipulation on the character host:
 
-- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPlayPositionGraph`** shape as room hosts; v1 **Object** nodes only.
+- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPositionGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.

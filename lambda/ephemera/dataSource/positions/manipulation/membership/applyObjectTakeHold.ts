@@ -3,7 +3,7 @@ import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gatewa
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -27,9 +27,9 @@ const defaultGetMembershipContainers = async (
     internalCache.Positions.getMembershipContainers(objectId)
 
 const seedRoomGraphMemos = (
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
 ): void => {
-    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPlayPositionGraph][]) {
+    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPositionGraphFieldPayload][]) {
         internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
         internalCache.Positions.set({
@@ -40,9 +40,9 @@ const seedRoomGraphMemos = (
 }
 
 const seedCharacterGraphMemos = (
-    postApplyCharacterGraphs: Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>>
+    postApplyCharacterGraphs: Partial<Record<EphemeraCharacterId, EphemeraPositionGraphFieldPayload>>
 ): void => {
-    for (const [characterId, storedGraph] of Object.entries(postApplyCharacterGraphs) as [EphemeraCharacterId, EphemeraPlayPositionGraph][]) {
+    for (const [characterId, storedGraph] of Object.entries(postApplyCharacterGraphs) as [EphemeraCharacterId, EphemeraPositionGraphFieldPayload][]) {
         internalCache.Positions.set({
             componentId: characterId,
             graph: projectComponentGraphFromStoredPositionGraph(storedGraph),
@@ -64,9 +64,9 @@ const objectMembershipDiffFromProjection = (projection: {
 })
 
 const roomGraphsFromKernelResult = (
-    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
-): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> => {
-    const result: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> = {}
+    postApplyGraphs: Partial<Record<string, EphemeraPositionGraphFieldPayload>>
+): Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> => {
+    const result: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> = {}
     for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
         if (isEphemeraRoomId(hostId)) {
             result[hostId] = graph
@@ -76,9 +76,9 @@ const roomGraphsFromKernelResult = (
 }
 
 const characterGraphsFromKernelResult = (
-    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
-): Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>> => {
-    const result: Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>> = {}
+    postApplyGraphs: Partial<Record<string, EphemeraPositionGraphFieldPayload>>
+): Partial<Record<EphemeraCharacterId, EphemeraPositionGraphFieldPayload>> => {
+    const result: Partial<Record<EphemeraCharacterId, EphemeraPositionGraphFieldPayload>> = {}
     for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
         if (isEphemeraCharacterId(hostId)) {
             result[hostId] = graph

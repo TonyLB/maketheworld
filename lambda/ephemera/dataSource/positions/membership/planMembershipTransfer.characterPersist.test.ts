@@ -29,7 +29,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { computeMembershipDiff } from '../manipulation/adapters/computeEndStateRoomDiff'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
@@ -109,7 +109,7 @@ const persistCharacterRoomGraphViaKernel = async (
     }
 
     const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
-        Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+        Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
     >((result, [hostId, graph]) => {
         if (isEphemeraRoomId(hostId)) {
             result[hostId] = graph

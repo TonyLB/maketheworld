@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPlayRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
 import type { PlayPositionGraph } from './types'
@@ -11,7 +11,7 @@ import type { PlayPositionGraph } from './types'
  * Roster display metadata is hydrated at read time in ephemera internalCache (S2-6-H).
  */
 export const projectComponentGraphFromStoredPositionGraph = (
-    stored: EphemeraPlayPositionGraph
+    stored: EphemeraPositionGraphFieldPayload
 ): PlayPositionGraph => {
     const nodes: StandardReferenceData[] = stored.nodes.flatMap((node): StandardReferenceData[] => {
         if (node.tag === 'Character') {
@@ -22,7 +22,7 @@ export const projectComponentGraphFromStoredPositionGraph = (
         }
         return []
     })
-    const relationalEdges = (stored.edges ?? []).filter(isEphemeraPlayRelationalEdgeData)
+    const relationalEdges = (stored.edges ?? []).filter(isEphemeraPositionRelationalEdgeData)
     return {
         nodes,
         edges: relationalEdges.length > 0

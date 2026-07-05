@@ -1,7 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import { playPositionGraphToStoredTopology } from '../membership/positionGraphMerge'
@@ -40,7 +40,7 @@ const toObservedEdge = (patch: HostRelationalPatch): ObservedHostRelationalEdge 
 
 const validatePatches = (
     patches: HostRelationalPatch[],
-    graphsByHost: Map<EphemeraRoomId, EphemeraPlayPositionGraph>
+    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>
 ): { ok: true; changed: boolean } | { ok: false; errorCode: string; errorMessage: string } => {
     let anyChanged = false
 
@@ -105,9 +105,9 @@ const validatePatches = (
 
 const computePostApplyGraphs = (
     patches: HostRelationalPatch[],
-    graphsByHost: Map<EphemeraRoomId, EphemeraPlayPositionGraph>
-): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> => {
-    const workingGraphs = new Map<EphemeraRoomId, EphemeraPlayPositionGraph>()
+    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>
+): Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> => {
+    const workingGraphs = new Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>()
 
     for (const patch of patches) {
         const prior = workingGraphs.get(patch.hostId) ?? graphsByHost.get(patch.hostId)
@@ -123,7 +123,7 @@ const computePostApplyGraphs = (
         )
     }
 
-    return Object.fromEntries(workingGraphs) as Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+    return Object.fromEntries(workingGraphs) as Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
 }
 
 export const applyHostRelationalPatch = async (
@@ -140,7 +140,7 @@ export const applyHostRelationalPatch = async (
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const hostIds = affectedHostIds(patches)
-    const graphsByHost = new Map<EphemeraRoomId, EphemeraPlayPositionGraph>()
+    const graphsByHost = new Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>()
 
     await Promise.all(
         hostIds.map(async (hostId) => {

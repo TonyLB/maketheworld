@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import { buildCharacterRoomMembershipTransactItems } from '../membership/characterRoomMembershipTransactItems'
@@ -34,7 +34,7 @@ const affectedHostIds = (hostEffects: HostEffect[]): EphemeraMembershipHostId[] 
 
 const validateHostEffects = (
     hostEffects: HostEffect[],
-    graphsByHost: Map<EphemeraMembershipHostId, EphemeraPlayPositionGraph>
+    graphsByHost: Map<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>
 ): { ok: true } | { ok: false; errorCode: string; errorMessage: string } => {
     for (const effect of hostEffects) {
         const graph = graphsByHost.get(effect.hostId)
@@ -236,9 +236,9 @@ const buildTransactItemsFromHostEffects = (
 }
 
 const applyEffectToGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     effect: HostEffect
-): EphemeraPlayPositionGraph => {
+): EphemeraPositionGraphFieldPayload => {
     if (isEphemeraRoomId(effect.hostId)) {
         if (effect.identityId.startsWith('CHARACTER#')) {
             return effect.op === 'remove'
@@ -257,9 +257,9 @@ const applyEffectToGraph = (
 
 const computePostApplyGraphsFromEffects = (
     hostEffects: HostEffect[],
-    graphsByHost: Map<EphemeraMembershipHostId, EphemeraPlayPositionGraph>
-): Partial<Record<EphemeraMembershipHostId, EphemeraPlayPositionGraph>> => {
-    const workingGraphs = new Map<EphemeraMembershipHostId, EphemeraPlayPositionGraph>()
+    graphsByHost: Map<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>
+): Partial<Record<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>> => {
+    const workingGraphs = new Map<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>()
 
     for (const effect of hostEffects) {
         const prior = workingGraphs.get(effect.hostId) ?? graphsByHost.get(effect.hostId)
@@ -269,7 +269,7 @@ const computePostApplyGraphsFromEffects = (
         workingGraphs.set(effect.hostId, applyEffectToGraph(prior, effect))
     }
 
-    return Object.fromEntries(workingGraphs) as Partial<Record<EphemeraMembershipHostId, EphemeraPlayPositionGraph>>
+    return Object.fromEntries(workingGraphs) as Partial<Record<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>>
 }
 
 export const applyHostEffects = async (
@@ -286,7 +286,7 @@ export const applyHostEffects = async (
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const hostIds = affectedHostIds(hostEffects)
-    const graphsByHost = new Map<EphemeraMembershipHostId, EphemeraPlayPositionGraph>()
+    const graphsByHost = new Map<EphemeraMembershipHostId, EphemeraPositionGraphFieldPayload>()
 
     await Promise.all(
         hostIds.map(async (hostId) => {

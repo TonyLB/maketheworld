@@ -2,7 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
 import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
@@ -30,9 +30,9 @@ const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId):
 }
 
 const seedPositionsGraphMemos = (
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
+    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
 ): void => {
-    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPlayPositionGraph][]) {
+    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPositionGraphFieldPayload][]) {
         internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
         internalCache.Positions.set({
@@ -65,9 +65,9 @@ const membershipDiffFromProjection = (projection: {
 })
 
 const roomGraphsFromKernelResult = (
-    postApplyGraphs: Partial<Record<string, EphemeraPlayPositionGraph>>
-): Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> => {
-    const result: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>> = {}
+    postApplyGraphs: Partial<Record<string, EphemeraPositionGraphFieldPayload>>
+): Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> => {
+    const result: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> = {}
     for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
         if (isEphemeraRoomId(hostId)) {
             result[hostId] = graph

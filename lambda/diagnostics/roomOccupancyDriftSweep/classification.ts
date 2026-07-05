@@ -1,5 +1,5 @@
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     extractCharacterIdsFromPlayPositionGraph,
     projectComponentGraphFromStoredPositionGraph,
@@ -22,7 +22,7 @@ export const normalizeRoomId = (value: unknown): string | undefined => {
 }
 
 export const listGraphCharacterIds = (positionGraph: unknown): string[] => {
-    if (!isEphemeraPlayPositionGraph(positionGraph)) {
+    if (!isEphemeraPositionGraphFieldPayload(positionGraph)) {
         return []
     }
     return extractCharacterIdsFromPlayPositionGraph(

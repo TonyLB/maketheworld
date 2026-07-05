@@ -5,37 +5,37 @@ import {
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
-    EphemeraPlayPositionGraph,
-    EphemeraPlayPositionGraphNode,
+    EphemeraPositionGraphFieldPayload,
+    EphemeraPositionGraphNode,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { extractRelationalEdgesFromGraph, toStoredRelationalEdge } from '../manipulation/relational/relationalEdges'
 
-export const characterNode = (universalKey: EphemeraCharacterId): EphemeraPlayPositionGraphNode => ({
+export const characterNode = (universalKey: EphemeraCharacterId): EphemeraPositionGraphNode => ({
     tag: 'Character',
     universalKey,
 })
 
-export const objectNode = (universalKey: EphemeraObjectId): EphemeraPlayPositionGraphNode => ({
+export const objectNode = (universalKey: EphemeraObjectId): EphemeraPositionGraphNode => ({
     tag: 'Object',
     universalKey,
 })
 
 export const seedGraphFromActiveCharacters = (
     activeCharacters: EphemeraRoomActiveCharacter[]
-): EphemeraPlayPositionGraph => ({
+): EphemeraPositionGraphFieldPayload => ({
     nodes: activeCharacters.map(({ EphemeraId }) => characterNode(EphemeraId)),
     edges: [],
 })
 
-export const graphCharacterIds = (graph: EphemeraPlayPositionGraph): Set<EphemeraCharacterId> =>
+export const graphCharacterIds = (graph: EphemeraPositionGraphFieldPayload): Set<EphemeraCharacterId> =>
     new Set(
         graph.nodes
             .filter((node): node is { tag: 'Character'; universalKey: EphemeraCharacterId } => node.tag === 'Character')
             .map((node) => node.universalKey)
     )
 
-export const graphObjectIds = (graph: EphemeraPlayPositionGraph): Set<EphemeraObjectId> =>
+export const graphObjectIds = (graph: EphemeraPositionGraphFieldPayload): Set<EphemeraObjectId> =>
     new Set(
         graph.nodes
             .filter((node): node is { tag: 'Object'; universalKey: EphemeraObjectId } => node.tag === 'Object')
@@ -43,25 +43,25 @@ export const graphObjectIds = (graph: EphemeraPlayPositionGraph): Set<EphemeraOb
     )
 
 export const removeCharacterFromGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     characterId: EphemeraCharacterId
-): EphemeraPlayPositionGraph => ({
+): EphemeraPositionGraphFieldPayload => ({
     ...graph,
     nodes: graph.nodes.filter((node) => !(node.tag === 'Character' && node.universalKey === characterId)),
 })
 
 export const removeObjectFromGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     objectId: EphemeraObjectId
-): EphemeraPlayPositionGraph => ({
+): EphemeraPositionGraphFieldPayload => ({
     ...graph,
     nodes: graph.nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId)),
 })
 
 export const addCharacterToGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     characterId: EphemeraCharacterId
-): EphemeraPlayPositionGraph => {
+): EphemeraPositionGraphFieldPayload => {
     if (graphCharacterIds(graph).has(characterId)) {
         return graph
     }
@@ -72,9 +72,9 @@ export const addCharacterToGraph = (
 }
 
 export const addObjectToGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     objectId: EphemeraObjectId
-): EphemeraPlayPositionGraph => {
+): EphemeraPositionGraphFieldPayload => {
     if (graphObjectIds(graph).has(objectId)) {
         return graph
     }
@@ -87,7 +87,7 @@ export const addObjectToGraph = (
 /** Topology-only stored graph from a play position graph read (no roster meta). */
 export const playPositionGraphToStoredTopology = (
     graph: PlayPositionGraph
-): EphemeraPlayPositionGraph => {
+): EphemeraPositionGraphFieldPayload => {
     const relationalEdges = extractRelationalEdgesFromGraph(graph).map(toStoredRelationalEdge)
     return {
         nodes: [
@@ -99,11 +99,11 @@ export const playPositionGraphToStoredTopology = (
 }
 
 export const effectiveRoomPositionGraph = (meta: {
-    positionGraph?: EphemeraPlayPositionGraph;
+    positionGraph?: EphemeraPositionGraphFieldPayload;
     activeCharacters?: EphemeraRoomActiveCharacter[];
-} | Record<string, unknown>): EphemeraPlayPositionGraph => {
+} | Record<string, unknown>): EphemeraPositionGraphFieldPayload => {
     const record = meta as {
-        positionGraph?: EphemeraPlayPositionGraph;
+        positionGraph?: EphemeraPositionGraphFieldPayload;
         activeCharacters?: EphemeraRoomActiveCharacter[];
     }
     if (record.positionGraph) {
@@ -113,8 +113,8 @@ export const effectiveRoomPositionGraph = (meta: {
 }
 
 export const effectiveCharacterPositionGraph = (meta: {
-    positionGraph?: EphemeraPlayPositionGraph;
-} | Record<string, unknown>): EphemeraPlayPositionGraph => {
-    const record = meta as { positionGraph?: EphemeraPlayPositionGraph }
+    positionGraph?: EphemeraPositionGraphFieldPayload;
+} | Record<string, unknown>): EphemeraPositionGraphFieldPayload => {
+    const record = meta as { positionGraph?: EphemeraPositionGraphFieldPayload }
     return record.positionGraph ?? { nodes: [], edges: [] }
 }

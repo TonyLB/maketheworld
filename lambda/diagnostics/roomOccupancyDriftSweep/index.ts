@@ -2,7 +2,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { queryMembershipContainersFromDynamo } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
@@ -23,7 +23,7 @@ type MetaSessionRow = {
 type RoomMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraPlayPositionGraph
+    positionGraph?: EphemeraPositionGraphFieldPayload
 }
 
 const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {

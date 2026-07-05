@@ -61,7 +61,7 @@ type HostEffect =
 | **Reads** | `getPositionGraph` (or row fetch for transact reducers) **only** on hosts appearing in the effect list |
 | **Validate** | Before transact: for each effect, confirm expected node presence/absence on that host's graph; fail fast on impossible plans |
 | **Transact** | Single `transactWrite` bundling all host graph + adjacency items; exponential backoff on `TransactionCanceledException` (same pattern as expedient modules) |
-| **Output** | `{ changed: boolean; postApplyGraphs: Partial<Record<hostId, EphemeraPlayPositionGraph>> }` for memo seeding |
+| **Output** | `{ changed: boolean; postApplyGraphs: Partial<Record<hostId, EphemeraPositionGraphFieldPayload>> }` for memo seeding |
 | **Module path** | Top-level [`manipulation/`](./) --- sibling to `adapters/` and `membership/` (**M5**); entry: `applyHostEffects.ts` |
 | **v1 scope** | Membership-node add/remove only (**M4**) |
 | **Conflict** | On conflict between graph and adjacency, **`positionGraph` wins** (unchanged positions authority) |

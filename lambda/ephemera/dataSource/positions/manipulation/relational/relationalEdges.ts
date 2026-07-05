@@ -1,11 +1,11 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
-    EphemeraPlayPositionGraph,
-    EphemeraPlayRelationalEdgeData,
+    EphemeraPositionGraphFieldPayload,
+    EphemeraPositionRelationalEdgeData,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPlayRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
@@ -22,7 +22,7 @@ const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under
 
 export const toStoredRelationalEdge = (
     edge: ObservedHostRelationalEdge
-): EphemeraPlayRelationalEdgeData => ({
+): EphemeraPositionRelationalEdgeData => ({
     tag: 'Relational',
     from: edge.from,
     to: edge.to,
@@ -33,13 +33,13 @@ export const toStoredRelationalEdge = (
 })
 
 export function extractRelationalEdgesFromGraph(
-    graph: EphemeraPlayPositionGraph | PlayPositionGraph
+    graph: EphemeraPositionGraphFieldPayload | PlayPositionGraph
 ): ObservedHostRelationalEdge[] {
     const edges = graph.edges ?? []
     const relationalEdges: ObservedHostRelationalEdge[] = []
 
     for (const rawEdge of edges) {
-        if (isEphemeraPlayRelationalEdgeData(rawEdge)) {
+        if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
             relationalEdges.push({
                 from: rawEdge.from,
                 to: rawEdge.to,
@@ -96,7 +96,7 @@ export function edgesMatch(
 }
 
 export const bothNodesOnHostGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     from: EphemeraObjectId,
     to: EphemeraObjectId
 ): boolean => {
@@ -105,17 +105,17 @@ export const bothNodesOnHostGraph = (
 }
 
 export const addRelationalEdgeToGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     edge: ObservedHostRelationalEdge
-): EphemeraPlayPositionGraph => ({
+): EphemeraPositionGraphFieldPayload => ({
     ...graph,
     edges: [...extractRelationalEdgesFromGraph(graph).map(toStoredRelationalEdge), toStoredRelationalEdge(edge)],
 })
 
 export const removeRelationalEdgeFromGraph = (
-    graph: EphemeraPlayPositionGraph,
+    graph: EphemeraPositionGraphFieldPayload,
     edge: ObservedHostRelationalEdge
-): EphemeraPlayPositionGraph => ({
+): EphemeraPositionGraphFieldPayload => ({
     ...graph,
     edges: extractRelationalEdgesFromGraph(graph)
         .filter((existing) => !edgesMatch(existing, edge))
