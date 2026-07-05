@@ -1,0 +1,123 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type {
+    EphemeraPlayPositionGraph,
+    EphemeraPlayRelationalEdgeData,
+    HostRelationalEdgeKind,
+} from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPlayRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+
+import { graphObjectIds } from '../../membership/positionGraphMerge'
+
+export type ObservedHostRelationalEdge = {
+    from: EphemeraObjectId
+    to: EphemeraObjectId
+    kind: HostRelationalEdgeKind
+    relationLabel?: string
+}
+
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+
+export const toStoredRelationalEdge = (
+    edge: ObservedHostRelationalEdge
+): EphemeraPlayRelationalEdgeData => ({
+    tag: 'Relational',
+    from: edge.from,
+    to: edge.to,
+    kind: edge.kind,
+    ...(edge.kind === 'Custom' && edge.relationLabel !== undefined
+        ? { relationLabel: edge.relationLabel }
+        : {}),
+})
+
+export function extractRelationalEdgesFromGraph(
+    graph: EphemeraPlayPositionGraph | PlayPositionGraph
+): ObservedHostRelationalEdge[] {
+    const edges = graph.edges ?? []
+    const relationalEdges: ObservedHostRelationalEdge[] = []
+
+    for (const rawEdge of edges) {
+        if (isEphemeraPlayRelationalEdgeData(rawEdge)) {
+            relationalEdges.push({
+                from: rawEdge.from,
+                to: rawEdge.to,
+                kind: rawEdge.kind,
+                ...(rawEdge.relationLabel !== undefined ? { relationLabel: rawEdge.relationLabel } : {}),
+            })
+            continue
+        }
+
+        try {
+            const exitEdge = new StandardExitEdge(rawEdge)
+            void exitEdge
+        } catch {
+            if (
+                rawEdge !== null
+                && typeof rawEdge === 'object'
+                && !Array.isArray(rawEdge)
+                && (rawEdge as { tag?: string }).tag === 'Relational'
+            ) {
+                const obj = rawEdge as Record<string, unknown>
+                if (
+                    typeof obj.from === 'string'
+                    && isEphemeraObjectId(obj.from)
+                    && typeof obj.to === 'string'
+                    && isEphemeraObjectId(obj.to)
+                    && typeof obj.kind === 'string'
+                    && HOST_RELATIONAL_EDGE_KINDS.has(obj.kind as HostRelationalEdgeKind)
+                ) {
+                    relationalEdges.push({
+                        from: obj.from,
+                        to: obj.to,
+                        kind: obj.kind as HostRelationalEdgeKind,
+                        ...(typeof obj.relationLabel === 'string' ? { relationLabel: obj.relationLabel } : {}),
+                    })
+                }
+            }
+        }
+    }
+
+    return relationalEdges
+}
+
+export function edgesMatch(
+    a: ObservedHostRelationalEdge,
+    b: ObservedHostRelationalEdge
+): boolean {
+    if (a.from !== b.from || a.to !== b.to || a.kind !== b.kind) {
+        return false
+    }
+    if (a.kind === 'Custom') {
+        return a.relationLabel === b.relationLabel
+    }
+    return true
+}
+
+export const bothNodesOnHostGraph = (
+    graph: EphemeraPlayPositionGraph,
+    from: EphemeraObjectId,
+    to: EphemeraObjectId
+): boolean => {
+    const objectIds = graphObjectIds(graph)
+    return objectIds.has(from) && objectIds.has(to)
+}
+
+export const addRelationalEdgeToGraph = (
+    graph: EphemeraPlayPositionGraph,
+    edge: ObservedHostRelationalEdge
+): EphemeraPlayPositionGraph => ({
+    ...graph,
+    edges: [...extractRelationalEdgesFromGraph(graph).map(toStoredRelationalEdge), toStoredRelationalEdge(edge)],
+})
+
+export const removeRelationalEdgeFromGraph = (
+    graph: EphemeraPlayPositionGraph,
+    edge: ObservedHostRelationalEdge
+): EphemeraPlayPositionGraph => ({
+    ...graph,
+    edges: extractRelationalEdgesFromGraph(graph)
+        .filter((existing) => !edgesMatch(existing, edge))
+        .map(toStoredRelationalEdge),
+})

@@ -6,7 +6,8 @@
  * `Meta::Room.positionGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`, `Character Home`, `Object Take Hold`, `Object Drop`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * (`Character Navigate`, `Character Home`, `Object Take Hold`, `Object Drop`,
+ * `Object Establish Relation`, `Object Dissolve Relation`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -23,11 +24,13 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload, isObjectDropPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isObjectDissolveRelationPublishedPayload, isObjectDropPublishedPayload, isObjectEstablishRelationPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
+    isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsActionsObjectDropEnvelope,
+    isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
@@ -41,6 +44,8 @@ import {
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
 import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
+import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
+import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
@@ -76,6 +81,40 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     characterId: content.characterId,
                     objectId: content.objectId,
                     roomId: content.roomId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectDissolveRelationEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectDissolveRelationPublishedPayload(content)) {
+                    return
+                }
+                await executeObjectDissolveRelation({
+                    characterId: content.characterId,
+                    subjectId: content.subjectId,
+                    targetId: content.targetId,
+                    roomId: content.roomId,
+                    relationKind: content.relationKind,
+                    relationLabel: content.relationLabel,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectEstablishRelationEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectEstablishRelationPublishedPayload(content)) {
+                    return
+                }
+                await executeObjectEstablishRelation({
+                    characterId: content.characterId,
+                    subjectId: content.subjectId,
+                    targetId: content.targetId,
+                    roomId: content.roomId,
+                    relationKind: content.relationKind,
+                    relationLabel: content.relationLabel,
                     messageBus,
                     streamEvent,
                 })

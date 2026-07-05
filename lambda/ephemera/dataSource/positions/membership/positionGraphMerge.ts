@@ -9,6 +9,7 @@ import type {
     EphemeraPlayPositionGraphNode,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { extractRelationalEdgesFromGraph, toStoredRelationalEdge } from '../manipulation/relational/relationalEdges'
 
 export const characterNode = (universalKey: EphemeraCharacterId): EphemeraPlayPositionGraphNode => ({
     tag: 'Character',
@@ -86,13 +87,16 @@ export const addObjectToGraph = (
 /** Topology-only stored graph from a play position graph read (no roster meta). */
 export const playPositionGraphToStoredTopology = (
     graph: PlayPositionGraph
-): EphemeraPlayPositionGraph => ({
-    nodes: [
-        ...extractCharacterIdsFromPlayPositionGraph(graph).map(characterNode),
-        ...extractObjectIdsFromPlayPositionGraph(graph).map(objectNode),
-    ],
-    edges: [],
-})
+): EphemeraPlayPositionGraph => {
+    const relationalEdges = extractRelationalEdgesFromGraph(graph).map(toStoredRelationalEdge)
+    return {
+        nodes: [
+            ...extractCharacterIdsFromPlayPositionGraph(graph).map(characterNode),
+            ...extractObjectIdsFromPlayPositionGraph(graph).map(objectNode),
+        ],
+        ...(relationalEdges.length > 0 ? { edges: relationalEdges } : {}),
+    }
+}
 
 export const effectiveRoomPositionGraph = (meta: {
     positionGraph?: EphemeraPlayPositionGraph;

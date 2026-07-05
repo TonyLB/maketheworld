@@ -279,6 +279,7 @@ For complete testing pattern documentation including dependency injection, real-
 
 ## Related Documentation
 
+- **[LLM utilities](llm/AGENT.md)**: Bedrock transport, parsers, pipeline runner; **design seams** ([`llm/AGENT.concepts.md`](llm/AGENT.concepts.md), [`llm/AGENT.contract.md`](llm/AGENT.contract.md))
 - **[Cross-cutting concepts](AGENT.concepts.md)**: Narrative transcript, multi-channel room UI, diegetic logic (concepts at ephemera root and [`diegeticLogic/`](diegeticLogic/))
 - **[Event Flow Documentation](AGENT.event.md)**: Comprehensive event processing patterns, WebSocket handling, and migration planning
 - **[Testing Patterns](AGENT.testing.md)**: Dependency injection patterns, real-time system testing, and migration testing strategy

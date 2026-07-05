@@ -156,11 +156,47 @@ export type EphemeraPlayPositionGraphNode =
         universalKey: EphemeraObjectId;
     }
 
+export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+
+/** In-host relational edge on room positionGraph (Phase B establishRelation / dissolveRelation). */
+export type EphemeraPlayRelationalEdgeData = {
+    tag: 'Relational';
+    from: EphemeraObjectId;
+    to: EphemeraObjectId;
+    kind: HostRelationalEdgeKind;
+    relationLabel?: string;
+}
+
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+
+export const isEphemeraPlayRelationalEdgeData = (value: unknown): value is EphemeraPlayRelationalEdgeData => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const edge = value as EphemeraPlayRelationalEdgeData
+    if (edge.tag !== 'Relational') {
+        return false
+    }
+    if (!isEphemeraObjectId(edge.from) || !isEphemeraObjectId(edge.to)) {
+        return false
+    }
+    if (!HOST_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
+        return false
+    }
+    if (edge.kind === 'Custom') {
+        return typeof edge.relationLabel === 'string' && edge.relationLabel.length > 0
+    }
+    if (edge.relationLabel !== undefined && typeof edge.relationLabel !== 'string') {
+        return false
+    }
+    return true
+}
+
 /** Play-time membership graph stored on Meta::Room (topology only; roster display hydrated at read time -- S2-6-H). */
 export type EphemeraPlayPositionGraph = {
     nodes: EphemeraPlayPositionGraphNode[];
-    /** Slice 2 v1: must be absent or []. In-room edges deferred. */
-    edges?: [];
+    /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
+    edges?: EphemeraPlayRelationalEdgeData[];
 }
 
 export const isEphemeraPlayPositionGraphNode = (value: unknown): value is EphemeraPlayPositionGraphNode => {
@@ -193,7 +229,7 @@ export const isEphemeraPlayPositionGraph = (value: unknown): value is EphemeraPl
     }
     if ('edges' in graph) {
         const edges = graph.edges
-        if (!Array.isArray(edges) || edges.length > 0) {
+        if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraPlayRelationalEdgeData(entry))) {
             return false
         }
     }

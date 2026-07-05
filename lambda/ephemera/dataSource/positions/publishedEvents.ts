@@ -6,6 +6,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 /**
@@ -31,7 +32,23 @@ export type ObjectMovedPublishedPayload = {
     beatAnchorTime: number;
 }
 
-export type PositionsPublishedPayload = CharacterMovedPublishedPayload | ObjectMovedPublishedPayload
+export type ObjectRelationChangedPublishedPayload = {
+    type: 'Object Relation Changed';
+    subjectId: EphemeraObjectId;
+    targetId: EphemeraObjectId;
+    hostRoomId: EphemeraRoomId;
+    relationKind: HostRelationalEdgeKind;
+    relationLabel?: string;
+    operation: 'establish' | 'dissolve';
+    beatAnchorTime: number;
+}
+
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+
+export type PositionsPublishedPayload =
+    | CharacterMovedPublishedPayload
+    | ObjectMovedPublishedPayload
+    | ObjectRelationChangedPublishedPayload
 
 const isRoomMembershipEndpoint = (value: unknown): value is EphemeraRoomId | null => (
     value === null || (typeof value === 'string' && isEphemeraRoomId(value))
@@ -105,13 +122,57 @@ export const isObjectMovedPublishedPayload = (
     return true
 }
 
+export const isObjectRelationChangedPublishedPayload = (
+    value: unknown
+): value is ObjectRelationChangedPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Relation Changed') {
+        return false
+    }
+    if (typeof v.subjectId !== 'string' || !isEphemeraObjectId(v.subjectId)) {
+        return false
+    }
+    if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
+        return false
+    }
+    if (typeof v.hostRoomId !== 'string' || !isEphemeraRoomId(v.hostRoomId)) {
+        return false
+    }
+    if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(v.relationKind as HostRelationalEdgeKind)) {
+        return false
+    }
+    if (v.relationKind === 'Custom') {
+        if (typeof v.relationLabel !== 'string' || v.relationLabel.length === 0) {
+            return false
+        }
+    }
+    else if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
+        return false
+    }
+    if (v.operation !== 'establish' && v.operation !== 'dissolve') {
+        return false
+    }
+    if (typeof v.beatAnchorTime !== 'number' || !Number.isFinite(v.beatAnchorTime)) {
+        return false
+    }
+    return true
+}
+
 export const isPositionsPublishedPayload = (
     value: unknown
 ): value is PositionsPublishedPayload =>
-    isCharacterMovedPublishedPayload(value) || isObjectMovedPublishedPayload(value)
+    isCharacterMovedPublishedPayload(value)
+    || isObjectMovedPublishedPayload(value)
+    || isObjectRelationChangedPublishedPayload(value)
 
 export type EphemeraPositionsObjectMovedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Moved' }
+
+export type EphemeraPositionsObjectRelationChangedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Relation Changed' }
 
 const isEphemeraPositionsObjectMovedHeader: HeaderGuard<EphemeraPositionsObjectMovedHeader> = (
     h
@@ -119,15 +180,27 @@ const isEphemeraPositionsObjectMovedHeader: HeaderGuard<EphemeraPositionsObjectM
     h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Moved'
 )
 
+const isEphemeraPositionsObjectRelationChangedHeader: HeaderGuard<EphemeraPositionsObjectRelationChangedHeader> = (
+    h
+): h is EphemeraPositionsObjectRelationChangedHeader => (
+    h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Relation Changed'
+)
+
 export const isEphemeraPositionsObjectMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ObjectMovedPublishedPayload,
     EphemeraPositionsObjectMovedHeader
 >(isEphemeraPositionsObjectMovedHeader)
 
+export const isEphemeraPositionsObjectRelationChangedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectRelationChangedPublishedPayload,
+    EphemeraPositionsObjectRelationChangedHeader
+>(isEphemeraPositionsObjectRelationChangedHeader)
+
 export const isEphemeraPositionsOutboundEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PositionsPublishedPayload> => (
     isEphemeraPositionsObjectMovedEnvelope(envelope)
+    || isEphemeraPositionsObjectRelationChangedEnvelope(envelope)
     || (envelope.header.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY
         && envelope.header.type === 'Character Moved')
 )
@@ -153,6 +226,18 @@ export async function publishObjectMovedStreamEvent(
     })
 }
 
+export async function publishObjectRelationChangedStreamEvent(
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>,
+    streamKey: string,
+    content: ObjectRelationChangedPublishedPayload,
+): Promise<void> {
+    await streamEvent({
+        update: content,
+        streamKey,
+        header: { type: 'Object Relation Changed' },
+    })
+}
+
 export async function publishCharacterMovedStreamEvent(
     streamEvent: StreamEventFunction<PositionsPublishedPayload>,
     streamKey: string,
@@ -173,6 +258,10 @@ export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<
     return async (params) => {
         if (params.update.type === 'Object Moved') {
             sendObjectMovedPublish(bus, params.streamKey, params.update)
+            return
+        }
+        if (params.update.type === 'Object Relation Changed') {
+            sendObjectRelationChangedPublish(bus, params.streamKey, params.update)
             return
         }
         sendCharacterMovedPublish(bus, params.streamKey, params.update)
@@ -214,6 +303,30 @@ export function sendObjectMovedPublish(
         streamKey,
         timestamp,
         type: 'Object Moved',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, positionsPublishSerializer)
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    }
+    bus.publish(message)
+}
+
+export function sendObjectRelationChangedPublish(
+    bus: PublishBus,
+    streamKey: string,
+    content: ObjectRelationChangedPublishedPayload,
+): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        timestamp,
+        type: 'Object Relation Changed',
     }
     const envelope = createInternalOriginEnvelope(header, content, positionsPublishSerializer)
     const message: StreamingEventMessage = {

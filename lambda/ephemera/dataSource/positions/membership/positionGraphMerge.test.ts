@@ -111,7 +111,6 @@ describe('positionGraphMerge', () => {
             edges: [],
         })).toEqual({
             nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
-            edges: [],
         })
     })
 })

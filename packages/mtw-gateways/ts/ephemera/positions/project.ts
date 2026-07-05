@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPlayRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
 import type { PlayPositionGraph } from './types'
@@ -21,9 +22,12 @@ export const projectComponentGraphFromStoredPositionGraph = (
         }
         return []
     })
+    const relationalEdges = (stored.edges ?? []).filter(isEphemeraPlayRelationalEdgeData)
     return {
         nodes,
-        edges: [],
+        edges: relationalEdges.length > 0
+            ? relationalEdges as unknown as PlayPositionGraph['edges']
+            : [],
     }
 }
 

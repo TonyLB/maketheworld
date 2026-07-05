@@ -12,6 +12,15 @@ The goal is to **deduplicate glue** (invoke wiring, extract/validate, metrics, f
 
 Parent scope (transport, parsers, and where this fits): [`../AGENT.md`](../AGENT.md).
 
+## Product design vs framework mechanics
+
+This folder documents the **runner** (ordering, step kinds, side effects, abort). **Product design** --- which work belongs in semantic-reasoning vs deterministic computation, field ownership, fast paths, context packaging --- lives in [`../AGENT.concepts.md`](../AGENT.concepts.md) with normative rules in [`../AGENT.contract.md`](../AGENT.contract.md).
+
+- **Framework:** `createPipelineContext`, `runPipeline`, `defineOrchestrationStep`, `defineLlmStep`, telemetry on `meta*` slots.
+- **Product:** seam placement per hop, handoff contracts, minimal scoped slices before LLM judgment.
+
+[`coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts) is the reference **framework consumer**. [`parseCommand`](../../dataSource/actions/parseCommand.ts) enrich paths are ad hoc but **must** obey the same seam rules ([`../../dataSource/actions/AGENT.implementation.md`](../../dataSource/actions/AGENT.implementation.md)). When adding orchestration vs LLM steps, use the contract checklist in [`../AGENT.contract.md`](../AGENT.contract.md).
+
 ## Non-goals
 
 This framework is **in-process** within Ephemera Lambda handlers unless a future task explicitly adds cross-Lambda orchestration.

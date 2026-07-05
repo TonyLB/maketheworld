@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B in progress --- B3 shipped (grounding + legality). Next step: B4 positions persist + ingress.
+**Status:** Phase B in progress --- B4 shipped (positions persist + ingress). Next step: B5 actions egress + perception.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -84,7 +84,7 @@ Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-l
 - **Relation normalizer**: map **`relationSpan`** -> **`relationKind`** (enum | `Custom`) + optional **`relationLabel`**.
 - Terminal parse + egress: new top-level result variant (BD-1) --- e.g. **`ParseCommandEstablishRelationResult`** (`type: 'EstablishRelation'`) with subject/target ids, **`relationKind`**, optional **`relationLabel`**, and **`operationKind: 'establishRelation' | 'dissolveRelation'`** (BD-7). Membership atomics keep **`ObjectManipulation`** + **`takeHold` | `drop`** unchanged.
 - Promote **`relationalPlacement`** from terminal-only Error to grounded success path when frame validates.
-- Positions: implement **`applyHostRelationalPatch`** per stub in [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
+- Positions: **`applyHostRelationalPatch`** shipped --- [`manipulation/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
 - Perception: transcript template (withhold unstated geometry per [`diegeticLogic/AGENT.unknowns.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.unknowns.concepts.md)).
 - Four-lane doc updates: [`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md), positions contract, actions implementation.
 
@@ -122,7 +122,7 @@ Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-l
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read Phase A steady-state in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress) (membership compiler shipped).
-3. Read positions relational stub: [`manipulation/AGENT.implementation.md` --- Future: host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5).
+3. Read positions relational implementation: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](../../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
 4. Trace relational enrich path: [`enrich/objectManipulation/index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) (interim **`relationalRoute`** -> frame extract; B2.5 routes **`ObjectRelateIntent`** at parse ingress), [`frameExtract/runFrameExtractStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/runFrameExtractStage.ts). Membership defer still uses complexity LLM in [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
 6. Baseline (includes positions manipulation tests when Phase B touches apply):
@@ -155,15 +155,7 @@ Plan-only: decisions we are making in order to implement Phases B--D. When a dec
 
 ### Deterministic enrich boundary (BD-12)
 
-Post-classify deterministic code may close only over **trusted inputs**:
-
-| Allowed | Examples |
-| --- | --- |
-| Graph / catalog state | Membership pre-gates (`ROOM#` vs actor `CHARACTER#` host); catalog exact-name resolve; node-on-graph checks |
-| Frozen syntactic templates | Classify skip for `take` / `drop` / `get` + noun |
-| Normalization of LLM-extracted spans | B2 **`relationSpan`** -> **`relationKind`** enum or **`Custom`** |
-
-**Forbidden:** inferring open-ended semantic operator or intent direction from natural-language phrase lists when that field is owned by an LLM stage. If classify and earlier enrich hops forbid a semantic field, the **next committed LLM hop that sees the command** must emit it (frame extract for relational **`operationKind`**). Do not fill the gap with regex.
+Graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) (**Deterministic enrich boundary**) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) (design seams, field ownership, fast-path closure).
 
 ### BD-10: defer vs hard Error (litmus)
 
@@ -213,11 +205,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Legality (BD-10): both nodes on host graph; **idempotent** duplicate edge -> allow/no-op; **conflicting** or non-trivial existing relational topology on subject/target -> **Error** stub in B--C (compiler **`defer`** bucket until Phase D).
   - [X] Replace interim **`relationalRoute`** / **`relationalPlacement`** terminal Error stubs for supported frames with grounded terminal parse (requires B2.5 **`ObjectRelateIntent`** routing for production path).
 
-- [ ] **B4. Positions persist + ingress**
-  - [ ] Implement **`applyHostRelationalPatch`** + **`HostRelationalPatch`** types per stub.
-  - [ ] Stream contract + guard (e.g. **`Object Establish Relation`**) in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts).
-  - [ ] Coordinator under [`manipulation/relational/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/) (create tree).
-  - [ ] Tests: apply, idempotency, reject invalid patch.
+- [X] **B4. Positions persist + ingress**
+  - [X] Implement **`applyHostRelationalPatch`** + **`HostRelationalPatch`** types per stub.
+  - [X] Stream contract + guard (**`Object Establish Relation`** / **`Object Dissolve Relation`**) in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts).
+  - [X] Coordinator under [`manipulation/relational/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/) (create tree).
+  - [X] Tests: apply, idempotency, reject invalid patch.
 
 - [ ] **B5. Actions egress + perception**
   - [ ] [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) publish stream on grounded relational parse.
@@ -301,7 +293,8 @@ npm run build
 | B2 relation normalizer (deterministic map; nesting defer; no LLM hop) | Done (2026-07-04) |
 | B2.5 split classify intents (BD-11; ObjectMembershipIntent + ObjectRelateIntent) | Done (2026-07-04) |
 | B3 grounding + legality | Done (2026-07-05) |
-| Phase B establishRelation vertical | In progress (B4 next) |
+| B4 positions persist + ingress | Done (2026-07-05) |
+| Phase B establishRelation vertical | In progress (B5 next) |
 | Phase C Plan IR | Not started |
 | Phase D LLM plans | Not started |
 
@@ -312,4 +305,4 @@ npm run build
 - Phase B **replaces** the Phase A preposition guard with frame extract + **`establishRelation`**; split classify intents (**B2.5**) replace regex-as-primary-router.
 - Positions **M4** kernel work (edge mutations) is on the critical path for Phase B; actions parse can proceed with mocked apply until ingress contract is frozen.
 - **`in`** / nesting is an explicit **deferral** --- document player-facing copy when frame extract or relation normalizer detects containment language.
-- **BD-12 (2026-07-05):** B1 frame extract shipped span-only; forbidding **`operationKind`** at classify *and* frame extract left no owner and invited phrase-bucket compiler hacks. **`operationKind`** (`establishRelation` \| `dissolveRelation`) is now owned by the frame extract LLM (no extra Bedrock hop). Compiler stays deterministic for grounding + legality only. See **Deterministic enrich boundary** above.
+- **BD-12 (2026-07-05):** B1 frame extract shipped span-only; forbidding **`operationKind`** at classify *and* frame extract left no owner and invited phrase-bucket compiler hacks. **`operationKind`** (`establishRelation` \| `dissolveRelation`) is now owned by the frame extract LLM (no extra Bedrock hop). Compiler stays deterministic for grounding + legality only. General seam rules graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md).

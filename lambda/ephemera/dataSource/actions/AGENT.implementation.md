@@ -7,6 +7,8 @@ For architecture and normative contract boundaries, see [`AGENT.md`](./AGENT.md)
 
 ## Adding a new command affordance
 
+**Pipeline design:** Before adding deterministic shortcuts or LLM hops, read [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) and [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). Deterministic short-circuits are allowed only at the **owning stage** when **closure-trusted inputs** suffice (frozen syntactic template or state-derived facts) --- not as phrase-bucket semantics in downstream compilers.
+
 Use this checklist when adding a parse affordance (for example, `help`).
 
 ### 1) Extend parse result contracts
@@ -17,7 +19,7 @@ Use this checklist when adding a parse affordance (for example, `help`).
 
 ### 2) Wire parse pipeline behavior
 
-1. In [`parseCommand.ts`](parseCommand.ts), prefer deterministic short-circuit logic first when possible (no Bedrock call).
+1. In [`parseCommand.ts`](parseCommand.ts), prefer deterministic short-circuit logic first when possible (no Bedrock call) **only when the owning stage can close over closure-trusted inputs** per [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) (syntactic template or state-derived facts). Do not skip Bedrock to approximate semantic reasoning.
 2. Keep discriminate-intent classification and interpretation aligned:
    - [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)
    - [`discriminateIntent/intentClassification.ts`](discriminateIntent/intentClassification.ts)
@@ -102,6 +104,8 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ### Object manipulation classify + enrich steady-state (shipped --- B2.5 split intents)
 
+**Pipeline design (general):** [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md), [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). This section documents the **instance** (field ownership table below).
+
 Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbook for new atomics: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Manipulation kernel + adapter: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md#target-layering). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
 
 **Classify contract (BD-11):** two intent types replace the retired umbrella **`ObjectManipulationIntent`**:
@@ -161,7 +165,7 @@ Parse Requested
 7. **`complexityClass` taxonomy** (all terminal **`Error`**, no stream, no positions): **`multiObject`** (multiple spans or multiple grounded targets in one command); **`multiPresent`** (one object, multiple membership hosts); **`relationalPlacement`** (edge-implied or LLM-classified relational move); unsupported atomic **`operationKind`**.
 8. **Terminal parse outcomes:** **`ObjectManipulation`** (`operationKind: takeHold` | `drop`, grounded **`objectId`**); **`EstablishRelation`** (`operationKind: establishRelation` | `dissolveRelation`, grounded **`subjectId`** / **`targetId`**, **`relationKind`**, optional **`relationLabel`**, **`hostRoomId`** --- BD-1); or **`Error`** (complex classes, resolve/enrich failure, legality failures, no membership host, agreement failures **`notCarryingObject`** / **`alreadyHoldingObject`**).
 9. **Receive path:** [`index.ts`](index.ts) --- **`Error`** -> **`WorldOOCMessage`** (player-mapped copy); grounded **`ObjectManipulation`** -> silent success (no OOC); grounded **`EstablishRelation`** -> no-op until B5 stream egress.
-10. **Egress:** **`streamEvent`** **`Object Take Hold`** or **`Object Drop`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Relational **`EstablishRelation`** parse success does **not** stream until B5. Subscribers: **`mtw.ephemera.positions`** [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts), [`executeObjectDrop`](../positions/manipulation/membership/executeObjectDrop.ts). Parse must reject **`multiPresent`** and relational complexity before egress so bounded apply never receives ambiguous multi-host targets.
+10. **Egress:** **`streamEvent`** **`Object Take Hold`** or **`Object Drop`** (`characterId`, `objectId`, `roomId`, optional `confidence`) from **`Parse Requested`** only (no **`Action Assessed`** branch in v1). **`roomId`** from **`roomExitContext.fromRoomId`**; defensive OOC when character has no current room. Relational stream contracts **`Object Establish Relation`** / **`Object Dissolve Relation`** shipped in [`publishedEvents.ts`](publishedEvents.ts) (B4); **`Parse Requested`** publish on grounded **`EstablishRelation`** parse is B5. Positions subscribers: [`executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts), [`executeObjectDrop`](../positions/manipulation/membership/executeObjectDrop.ts), [`executeObjectEstablishRelation`](../positions/manipulation/relational/executeObjectEstablishRelation.ts), [`executeObjectDissolveRelation`](../positions/manipulation/relational/executeObjectDissolveRelation.ts). Parse must reject **`multiPresent`** and relational complexity before egress so bounded apply never receives ambiguous multi-host targets.
 
 ### `PromptInjectionAttempt` steady-state
 

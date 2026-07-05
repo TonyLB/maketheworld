@@ -70,51 +70,39 @@ type HostEffect =
 
 **RoomStack (eviction ladder):** **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](../membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
-### Future: host-local relational patch (M4 stub; slice 5+)
+### Host-local relational patch (Phase B; shipped B4)
 
-Second kernel primitive: add/remove **edges** on a fixed host **`positionGraph`** without changing membership host. **Documented stub only** --- no implementation until relational operator slice. Kernel v1 **`applyHostEffects`** does **not** accept edge mutations (**M4**).
+Second kernel primitive: add/remove **edges** on a fixed host **`positionGraph`** without changing membership host. Distinct from membership transfer (**`applyHostEffects`** / **`HostEffect[]`**).
 
-**Target layering (slice 5+; distinct from membership transfer):**
+**Layering:**
 
 ```text
-Per-operator ingress (relational)     verb-specific args, trusted ids (put on, in, ...)
+Per-operator ingress (relational)     Object Establish Relation | Object Dissolve Relation
         |
         v
-Relational planner (TBD)              edge observation + legality -> HostRelationalPatch[]
+planHostRelationalPatch               graph observation -> HostRelationalPatch + changed gate
         |
         v
 applyHostRelationalPatch (kernel)     validate + apply patches on affected hosts only
         |
         v
-Per-operator coordinators (TBD)       relational fact projection, stream/cache/bus bundles
+applyObjectRelationalChange           Object Relation Changed fact, cache seed, RoomUpdate
 ```
 
-Relational ops **do not** route through the **shared membership adapter** (`planMembershipTransfer` / `froms`/`to`). They change **in-host topology** without changing membership host. Membership transfer and relational patch may **compose** in a future multi-step operator (e.g. pick up then place on table), but each primitive keeps its own kernel entry --- **no** `update*PositionGraphs` fork.
+Relational ops **do not** route through the **shared membership adapter**. Membership transfer and relational patch may **compose** in Phase C (**BD-9** compound transact); each primitive keeps its own kernel entry.
 
-| Item | Documented value |
+| Item | Shipped value |
 | --- | --- |
-| **Kernel entry (slice 5+)** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) *(file does not exist yet)* |
-| **Future coordinators** | [`relational/`](relational/) *(directory stub; sibling to `membership/`)* |
-| **Types (future)** | `HostRelationalPatch` in [`types.ts`](types.ts) --- distinct from v1 `HostEffect` (membership-node only) |
-| **Spec shape (locked BD-2, BD-3)** | `{ hostId; edge: { from; to; kind; relationLabel? }; op: 'add' \| 'remove' }` on fixed host **`positionGraph`**. **`kind`:** **`On` \| `Under` \| `Against` \| `Custom`**; **`relationLabel`** required on stored edge when **`Custom`**. **`In`** excluded (nesting operator). Normative: [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch-phase-b-planning-contract). |
-| **Kernel contract (sketch)** | Same pattern as `applyHostEffects`: explicit patch list only, `getPositionGraph` on affected hosts only, validate edge presence/absence, single transact, `postApplyGraphs` output; **no** adjacency dual-write (edges are forward-graph only per gateway schema) |
-| **Design owner (pre-contract)** | [`../../diegeticLogic/AGENT.concepts.md`](../../diegeticLogic/AGENT.concepts.md#future-nested-containment-post-vertical) |
+| **Kernel entry** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) |
+| **Transact builder** | [`relational/hostRelationalPatchTransactItems.ts`](relational/hostRelationalPatchTransactItems.ts) |
+| **Edge helpers** | [`relational/relationalEdges.ts`](relational/relationalEdges.ts) |
+| **Planner** | [`relational/planHostRelationalPatch.ts`](relational/planHostRelationalPatch.ts) |
+| **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
+| **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
+| **Types** | `HostRelationalPatch` in [`types.ts`](types.ts) |
+| **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4) |
 
-```typescript
-// Phase B contract --- see AGENT.contract.md Host-local relational patch
-type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
-
-type HostRelationalPatch = {
-    hostId: EphemeraMembershipHostId
-    edge: {
-        from: EphemeraId
-        to: EphemeraId
-        kind: HostRelationalEdgeKind
-        relationLabel?: string // required when kind === 'Custom' (BD-3)
-    }
-    op: 'add' | 'remove'
-}
-```
+**Kernel contract:** explicit **`HostRelationalPatch[]`** only; `getPositionGraph` on affected room hosts; validate nodes on graph; **`op: 'add'`** idempotent when exact edge present; reject **`op: 'remove'`** when absent; single transact; **`postApplyGraphs`** output; **no** adjacency dual-write.
 
 ---
 
@@ -368,14 +356,14 @@ Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](..
 | [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) | Character-host graph + adjacency transact builders (kernel reuse) |
 | [`membership/types.ts`](membership/types.ts) | Cross-host diff + apply result types |
 
-### Relational patch (slice 5+ stub)
+### Relational patch (Phase B; shipped B4)
 
 | Path | Role |
 | --- | --- |
-| [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove *(file does not exist yet)* |
-| [`relational/`](relational/) | Future per-operator relational coordinators *(directory does not exist yet)* |
+| [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove |
+| [`relational/`](relational/) | Per-operator relational coordinators + planner + fact builders |
 
-Spec: [Section A --- Future: host-local relational patch](#future-host-local-relational-patch-m4-stub-slice-5).
+Spec: [Section A --- Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).
 
 ---
 

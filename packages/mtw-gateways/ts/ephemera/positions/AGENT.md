@@ -1,6 +1,6 @@
 # Positions read surfaces (`ts/ephemera/positions`)
 
-Play position graph read handler for ephemera. **Authoritative writer:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)); graph-grounded persist routes through shared membership adapter -> **`applyHostEffects`** kernel per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering). Future **`positionGraph.edges`** writers: [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md#future-host-local-relational-patch-m4-stub-slice-5) (slice 5+ stub).
+Play position graph read handler for ephemera. **Authoritative writers:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)) via **`applyHostEffects`**; relational edge writers via [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering).
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
 
@@ -46,7 +46,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 | Field | Shape |
 | --- | --- |
 | **`positionGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
-| **`positionGraph.edges`** | Absent or `[]` until in-host / in-room edges land (slice 5+). |
+| **`positionGraph.edges`** | In-host relational edges on room host graphs (`tag: 'Relational'`, BD-2/BD-3); projected on gateway read. Exit edges remain out of scope for v1 room graphs. |
 
 **Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) and [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 

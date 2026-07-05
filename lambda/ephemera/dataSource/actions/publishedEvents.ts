@@ -56,6 +56,93 @@ export type ObjectDropPublishedPayload = {
     confidence?: number;
 }
 
+export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
+
+const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([
+    'On',
+    'Under',
+    'Against',
+    'Custom',
+])
+
+export type ObjectEstablishRelationPublishedPayload = {
+    type: 'Object Establish Relation';
+    characterId: EphemeraCharacterId;
+    subjectId: EphemeraObjectId;
+    targetId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    relationKind: HostRelationalEdgeKindPublished;
+    relationLabel?: string;
+    confidence?: number;
+}
+
+export type ObjectDissolveRelationPublishedPayload = {
+    type: 'Object Dissolve Relation';
+    characterId: EphemeraCharacterId;
+    subjectId: EphemeraObjectId;
+    targetId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    relationKind: HostRelationalEdgeKindPublished;
+    relationLabel?: string;
+    confidence?: number;
+}
+
+const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (typeof v.subjectId !== 'string' || !isEphemeraObjectId(v.subjectId)) {
+        return false
+    }
+    if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
+        return false
+    }
+    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
+        return false
+    }
+    if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS_PUBLISHED.has(v.relationKind as HostRelationalEdgeKindPublished)) {
+        return false
+    }
+    if (v.relationKind === 'Custom') {
+        return typeof v.relationLabel === 'string' && v.relationLabel.length > 0
+    }
+    if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
+        return false
+    }
+    if (v.confidence !== undefined) {
+        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    return true
+}
+
+export const isObjectEstablishRelationPublishedPayload = (
+    value: unknown
+): value is ObjectEstablishRelationPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Establish Relation') {
+        return false
+    }
+    return isHostRelationalIngressFieldsValid(v)
+}
+
+export const isObjectDissolveRelationPublishedPayload = (
+    value: unknown
+): value is ObjectDissolveRelationPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Dissolve Relation') {
+        return false
+    }
+    return isHostRelationalIngressFieldsValid(v)
+}
+
 export type AwaitRoadRunnerPublishedPayload = {
     type: 'Await RoadRunner';
     characterId: EphemeraCharacterId;
@@ -361,6 +448,8 @@ export type ActionsPublishedPayload =
     | CharacterHomePublishedPayload
     | ObjectTakeHoldPublishedPayload
     | ObjectDropPublishedPayload
+    | ObjectEstablishRelationPublishedPayload
+    | ObjectDissolveRelationPublishedPayload
     | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload

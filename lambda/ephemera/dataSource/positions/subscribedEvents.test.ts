@@ -5,6 +5,8 @@ import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsActionsObjectDropEnvelope,
+    isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
+    isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
 } from './subscribedEvents'
 
@@ -157,6 +159,50 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsActionsObjectDropEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts mtw.ephemera.actions Object Establish Relation envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Object Establish Relation' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Establish Relation' as const,
+                characterId: 'CHARACTER#alpha' as const,
+                subjectId: 'OBJECT#Broom' as const,
+                targetId: 'OBJECT#Table' as const,
+                roomId: 'ROOM#from' as const,
+                relationKind: 'On' as const,
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsObjectEstablishRelationEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts mtw.ephemera.actions Object Dissolve Relation envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Object Dissolve Relation' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Dissolve Relation' as const,
+                characterId: 'CHARACTER#alpha' as const,
+                subjectId: 'OBJECT#Broom' as const,
+                targetId: 'OBJECT#Table' as const,
+                roomId: 'ROOM#from' as const,
+                relationKind: 'On' as const,
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsObjectDissolveRelationEnvelope(envelope as any)).toBe(true)
     })
 
     it('rejects unrelated event type on mtw.ephemera.actions', () => {
