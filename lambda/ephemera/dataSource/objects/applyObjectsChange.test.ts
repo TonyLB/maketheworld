@@ -1,9 +1,37 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import {
+    SEMANTIC_EMBEDDING_V1_DIMENSIONS,
+    SemanticEmbedding,
+} from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
+import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
 import { applyObjectsChange } from './applyObjectsChange'
-import type { spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
+import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
+import {
+    persistSpawnImprovisationObject,
+} from './persistImprovisationObject'
+import {
+    spawnOneImprovisationObject,
+    type spawnOneImprovisationObject as SpawnOneType,
+} from './spawnImprovisationObjectsBatch'
+
+jest.mock('./persistImprovisationObject', () => ({
+    persistSpawnImprovisationObject: jest.fn(),
+    persistDeleteImprovisationObject: jest.fn(),
+}))
+
+jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
+    applyObjectRoomMembership: jest.fn(),
+}))
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
+const TEST_MODEL_ID = 'amazon.titan-embed-text-v2:0'
+
+const makeTestEmbedding = () => {
+    const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
+    values[0] = 1
+    return SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
+}
 
 const obj = (suffix: string, shortName: string, extras: Partial<EphemeraMetaRoomObject> = {}): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
@@ -230,5 +258,80 @@ describe('applyObjectsChange', () => {
             { object: 'cactus', roles: ['Disadvantage'] },
             { object: 'boulder', roles: ['Contraption'] },
         ])
+    })
+})
+
+describe('applyObjectsChange embed wiring', () => {
+    const messageBus = { publish: jest.fn() }
+    const positionsStreamEvent = jest.fn().mockResolvedValue(undefined)
+    const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
+    const mockPlace = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
+
+    const spawnOneImpl: typeof SpawnOneType = (row, innerDeps) =>
+        spawnOneImprovisationObject(row, {
+            ...innerDeps,
+            buildEmbedImpl: mockBuildEmbed,
+            spawnImpl: mockPersist,
+            applyMembershipImpl: mockPlace,
+        })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockPersist.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
+        mockPlace.mockResolvedValue({
+            ok: true,
+            froms: [],
+            to: ROOM_ID,
+            changed: true,
+        })
+    })
+
+    it('includes object in createdIds when embed fails but persist and placement succeed (OE-3)', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        mockBuildEmbed.mockResolvedValue({ success: false, errorMessage: 'Bedrock timeout' })
+
+        const result = await applyObjectsChange(
+            { roomId: ROOM_ID, add: [obj('a', 'Anvil')], remove: [] },
+            { messageBus: messageBus as any, positionsStreamEvent, spawnOneImpl }
+        )
+
+        expect(result).toEqual({
+            ok: true,
+            persisted: true,
+            createdIds: ['OBJECT#a'],
+            destroyedIds: [],
+        })
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.objects] shortName embed failed; spawning without embedding',
+            expect.objectContaining({
+                objectId: 'OBJECT#a',
+                shortName: 'Anvil',
+                errorMessage: 'Bedrock timeout',
+            })
+        )
+        expect(mockPersist).toHaveBeenCalledWith({
+            objectId: 'OBJECT#a',
+            shortName: 'Anvil',
+            stableKey: 'a',
+        })
+        consoleSpy.mockRestore()
+    })
+
+    it('passes embedding to persist when embed succeeds', async () => {
+        const embedding = makeTestEmbedding()
+        mockBuildEmbed.mockResolvedValue({ success: true, embedding })
+
+        await applyObjectsChange(
+            { roomId: ROOM_ID, add: [obj('a', 'Anvil')], remove: [] },
+            { messageBus: messageBus as any, positionsStreamEvent, spawnOneImpl }
+        )
+
+        expect(mockPersist).toHaveBeenCalledWith({
+            objectId: 'OBJECT#a',
+            shortName: 'Anvil',
+            stableKey: 'a',
+            embedding,
+        })
     })
 })

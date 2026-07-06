@@ -1,12 +1,19 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
+    SEMANTIC_EMBEDDING_V1_DIMENSIONS,
+    SemanticEmbedding,
+} from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
+import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import {
     handleAcmeOrderAddObjects,
     handleApiObjectsChangeCommand,
     handleAwaitRoadRunnerClearObjects,
 } from './handleApiObjectsChange'
 import { applyObjectsChange } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
+import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
+import { persistSpawnImprovisationObject } from './persistImprovisationObject'
 import { spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 
 jest.mock('./applyObjectsChange', () => ({
@@ -17,10 +24,31 @@ jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
     clearCoyoteGameImprovisationObjects: jest.fn(),
 }))
 
+jest.mock('./persistImprovisationObject', () => ({
+    persistSpawnImprovisationObject: jest.fn(),
+    persistDeleteImprovisationObject: jest.fn(),
+}))
+
+jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
+    applyObjectRoomMembership: jest.fn(),
+}))
+
 jest.mock('./spawnImprovisationObjectsBatch', () => ({
     ...jest.requireActual('./spawnImprovisationObjectsBatch'),
     spawnOneImprovisationObject: jest.fn(),
 }))
+
+const { spawnOneImprovisationObject: spawnOneActual } = jest.requireActual<typeof import('./spawnImprovisationObjectsBatch')>(
+    './spawnImprovisationObjectsBatch'
+)
+
+const TEST_MODEL_ID = 'amazon.titan-embed-text-v2:0'
+
+const makeTestEmbedding = () => {
+    const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
+    values[0] = 1
+    return SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
+}
 
 const applyObjectsChangeMock = applyObjectsChange as jest.MockedFunction<typeof applyObjectsChange>
 const clearCoyoteGameImprovisationObjectsMock = clearCoyoteGameImprovisationObjects as jest.MockedFunction<typeof clearCoyoteGameImprovisationObjects>
@@ -434,5 +462,96 @@ describe('handleAcmeOrderAddObjects', () => {
             stableKey: 'anvil',
         }))
         consoleSpy.mockRestore()
+    })
+})
+
+describe('handleAcmeOrderAddObjects embed wiring', () => {
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+    const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
+    const mockPlace = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
+
+    const spawnOneImpl = (row: Parameters<typeof spawnOneActual>[0], innerDeps: Parameters<typeof spawnOneActual>[1]) =>
+        spawnOneActual(row, {
+            ...innerDeps,
+            buildEmbedImpl: mockBuildEmbed,
+            spawnImpl: mockPersist,
+            applyMembershipImpl: mockPlace,
+        })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockPersist.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
+        mockPlace.mockResolvedValue({
+            ok: true,
+            froms: [],
+            to: 'ROOM#VORTEX' as EphemeraRoomId,
+            changed: true,
+        })
+    })
+
+    it('includes object in createdIds when embed fails but persist and placement succeed (OE-3)', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        mockBuildEmbed.mockResolvedValue({ success: false, errorMessage: 'Bedrock timeout' })
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl,
+        })
+
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                createdIds: ['OBJECT#u1'],
+            }),
+        }))
+        expect(consoleSpy).toHaveBeenCalledWith(
+            '[mtw.ephemera.objects] shortName embed failed; spawning without embedding',
+            expect.objectContaining({
+                objectId: 'OBJECT#u1',
+                shortName: 'anvil',
+                errorMessage: 'Bedrock timeout',
+            })
+        )
+        expect(mockPersist).toHaveBeenCalledWith({
+            objectId: 'OBJECT#u1',
+            shortName: 'anvil',
+            stableKey: 'anvil',
+        })
+        consoleSpy.mockRestore()
+    })
+
+    it('passes embedding to persist when embed succeeds', async () => {
+        const embedding = makeTestEmbedding()
+        mockBuildEmbed.mockResolvedValue({ success: true, embedding })
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl,
+        })
+
+        expect(mockPersist).toHaveBeenCalledWith({
+            objectId: 'OBJECT#u1',
+            shortName: 'anvil',
+            stableKey: 'anvil',
+            embedding,
+        })
     })
 })

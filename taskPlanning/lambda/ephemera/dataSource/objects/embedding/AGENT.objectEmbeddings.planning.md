@@ -1,6 +1,6 @@
 # Object embeddings (`EMBEDDING#IMPROMPTU`)
 
-**Status:** Decisions locked (OE-1 -- OE-8). Next step: Bedrock embed invoke + row types, then spawn-coordinator wiring.
+**Status:** Decisions locked (OE-1 -- OE-8). Next step: IAM (`template.yaml`), then durable doc pass.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../../AGENT.md).
 
@@ -118,7 +118,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | `invokeBedrockTitanEmbed` (or equivalent) under `lambda/ephemera/llm/` | Done |
 | `buildShortNameSemanticEmbedding` helper under `objects/embedding/` | Done |
 | Persist: optional embedding `Put` + delete item | Done |
-| Spawn coordinator wiring (embed before existence transact; best-effort) | |
+| Spawn coordinator wiring (embed before existence transact; best-effort) | Done |
 | IAM (`template.yaml`) | |
 | Unit / integration tests | |
 | Durable docs (`objects/AGENT.md`, optional `objects/embedding/AGENT.md`) | |
@@ -151,11 +151,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Extend `deleteTransactItemsForObject` with **`Delete`** for `DataCategory: 'EMBEDDING#IMPROMPTU'` (all delete/clear/repair paths inherit via existing helpers).
   - [X] Update [`persistImprovisationObject.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.test.ts): spawn with embedding (3 puts), delete (3 deletes). Keep existing two-row tests for spawns without embedding.
 
-- [ ] **5. Spawn coordinator wiring**
-  - [ ] In [`spawnOneImprovisationObject`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts): call `buildShortNameSemanticEmbedding` **before** `persistSpawnImprovisationObject` for every spawn (OE-1). On success, pass embedding into persist for 3-item transact; on failure, `console.error` and call persist without embedding (2-item transact; OE-3).
-  - [ ] No Acme-only fork --- [`handleAcmeOrderAddObjects`](../../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) and [`applyObjectsChange`](../../../../../../lambda/ephemera/dataSource/objects/applyObjectsChange.ts) both use the same batch coordinator unchanged at the call site.
-  - [ ] Batch parallelism: [`spawnImprovisationObjectsBatch`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) already uses `Promise.all` per row --- embed + spawn per row stays isolated (**S3** partial success unchanged).
-  - [ ] Update [`spawnImprovisationObjectsBatch.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.test.ts), [`applyObjectsChange.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/applyObjectsChange.test.ts), and [`handleApiObjectsChange.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.test.ts): mock embed helper; assert 3 puts when embed succeeds; assert 2 puts + `console.error` when embed fails but object still lands in `createdIds`.
+- [X] **5. Spawn coordinator wiring**
+  - [X] In [`spawnOneImprovisationObject`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts): call `buildShortNameSemanticEmbedding` **before** `persistSpawnImprovisationObject` for every spawn (OE-1). On success, pass embedding into persist for 3-item transact; on failure, `console.error` and call persist without embedding (2-item transact; OE-3).
+  - [X] No Acme-only fork --- [`handleAcmeOrderAddObjects`](../../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) and [`applyObjectsChange`](../../../../../../lambda/ephemera/dataSource/objects/applyObjectsChange.ts) both use the same batch coordinator unchanged at the call site.
+  - [X] Batch parallelism: [`spawnImprovisationObjectsBatch`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) already uses `Promise.all` per row --- embed + spawn per row stays isolated (**S3** partial success unchanged).
+  - [X] Update [`spawnImprovisationObjectsBatch.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.test.ts), [`applyObjectsChange.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/applyObjectsChange.test.ts), and [`handleApiObjectsChange.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.test.ts): mock embed helper; assert 3 puts when embed succeeds; assert 2 puts + `console.error` when embed fails but object still lands in `createdIds`.
 
 - [ ] **6. Infrastructure**
   - [ ] Add Titan Embed v2 foundation model ARN to **`EphemeraFunction`** Bedrock policy in [`template.yaml`](../../../../../../template.yaml) (OE-6).
