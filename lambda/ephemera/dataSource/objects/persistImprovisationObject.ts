@@ -1,20 +1,26 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import {
+    EMBEDDING_IMPROMPTU_DATA_CATEGORY,
+    isEphemeraObjectEmbedding,
+} from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
 import type { EphemeraMetaObject, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
 import { collectObjectIdsFromPositionGraph } from './collectObjectIdsFromRoomPositionGraphs'
+import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
 import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
 
 const META_OBJECT_DATA_CATEGORY = 'Meta::Object' as const
 
-/** Dynamo transact limit; each object delete uses two Delete items. */
-const MAX_OBJECTS_PER_DELETE_TRANSACT = 12
+/** Dynamo transact limit; each object delete uses three Delete items. */
+const MAX_OBJECTS_PER_DELETE_TRANSACT = 8
 
 export type SpawnImprovisationObjectArgs = {
     objectId: EphemeraObjectId;
@@ -23,6 +29,7 @@ export type SpawnImprovisationObjectArgs = {
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
     affectedRoomIds?: EphemeraRoomId[];
+    embedding?: SemanticEmbedding;
 }
 
 export type UpdateImprovisationObjectArgs = {
@@ -96,6 +103,12 @@ const deleteTransactItemsForObject = (objectId: EphemeraObjectId) => [
             DataCategory: META_OBJECT_DATA_CATEGORY,
         },
     },
+    {
+        Delete: {
+            EphemeraId: objectId,
+            DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
+        },
+    },
 ]
 
 const defaultGetMetaObject = async (objectId: EphemeraObjectId): Promise<EphemeraMetaObject | undefined> =>
@@ -108,6 +121,7 @@ const defaultGetImprovisationPair = async (objectId: EphemeraObjectId): Promise<
 
 /**
  * Atomically create improvisation pair + Meta::Object rows for a new OBJECT#.
+ * When embedding is present, includes EMBEDDING#IMPROMPTU in the same transact.
  */
 export const persistSpawnImprovisationObject = async (
     args: SpawnImprovisationObjectArgs,
@@ -120,11 +134,28 @@ export const persistSpawnImprovisationObject = async (
         return { ok: false, errorMessage: `Invalid Meta::Object payload for ${args.objectId}` }
     }
 
+    const transactItems: Array<
+        ReturnType<typeof improvisationPairPutItem> |
+        ReturnType<typeof metaObjectPutItem> |
+        ReturnType<typeof objectEmbeddingPutItem>
+    > = [
+        improvisationPairPutItem(args.objectId, args.shortName),
+        metaObjectPutItem(args),
+    ]
+
+    if (args.embedding) {
+        const embeddingItem = objectEmbeddingPutItem({
+            objectId: args.objectId,
+            embedding: args.embedding,
+        })
+        if (!isEphemeraObjectEmbedding(embeddingItem.Put)) {
+            return { ok: false, errorMessage: `Invalid EMBEDDING#IMPROMPTU payload for ${args.objectId}` }
+        }
+        transactItems.push(embeddingItem)
+    }
+
     try {
-        await transactWrite([
-            improvisationPairPutItem(args.objectId, args.shortName),
-            metaObjectPutItem(args),
-        ])
+        await transactWrite(transactItems)
 
         const component = new StandardObject({
             tag: 'Object',
@@ -205,7 +236,7 @@ export const persistUpdateImprovisationObject = async (
 }
 
 /**
- * Delete both improvisation rows for one OBJECT#.
+ * Delete improvisation pair, Meta::Object, and EMBEDDING#IMPROMPTU rows for one OBJECT#.
  */
 export const persistDeleteImprovisationObject = async (
     args: DeleteImprovisationObjectArgs,
@@ -232,7 +263,7 @@ const defaultGetRoomPositionGraph = async (roomId: EphemeraRoomId) =>
 
 /**
  * Coyote-scoped bulk delete: enumerate OBJECT# ids from stored positionGraph on game rooms,
- * then delete pair + Meta::Object rows. Does not mutate graphs (Phase 4 placement).
+ * then delete pair + Meta::Object + EMBEDDING#IMPROMPTU rows. Does not mutate graphs (Phase 4 placement).
  */
 export const persistClearCoyoteGameImprovisationObjects = async (
     args: ClearCoyoteGameImprovisationObjectsArgs = {},

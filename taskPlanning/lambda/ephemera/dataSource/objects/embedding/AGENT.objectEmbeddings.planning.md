@@ -117,7 +117,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | `EphemeraObjectEmbedding` type + guard in `mtw-interfaces` | Done |
 | `invokeBedrockTitanEmbed` (or equivalent) under `lambda/ephemera/llm/` | Done |
 | `buildShortNameSemanticEmbedding` helper under `objects/embedding/` | Done |
-| Persist: optional embedding `Put` + delete item | |
+| Persist: optional embedding `Put` + delete item | Done |
 | Spawn coordinator wiring (embed before existence transact; best-effort) | |
 | IAM (`template.yaml`) | |
 | Unit / integration tests | |
@@ -145,11 +145,11 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Use `SemanticEmbedding.fromFloat32` with `modelId: 'amazon.titan-embed-text-v2:0'`; never persist raw floats.
   - [X] Tests: mocked Bedrock returns known floats; assert `toDynamoRecord()` shape (dimensions, encoding, `Uint8Array` vector).
 
-- [ ] **4. Persist layer**
-  - [ ] Extend `SpawnImprovisationObjectArgs` with optional `embedding?: SemanticEmbedding` (or pre-serialized Dynamo record).
-  - [ ] When present, append `objectEmbeddingPutItem({ objectId, embedding })` as third transact **`Put`** in [`persistSpawnImprovisationObject`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts).
-  - [ ] Extend `deleteTransactItemsForObject` with **`Delete`** for `DataCategory: 'EMBEDDING#IMPROMPTU'` (all delete/clear/repair paths inherit via existing helpers).
-  - [ ] Update [`persistImprovisationObject.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.test.ts): spawn with embedding (3 puts), delete (3 deletes). Keep existing two-row tests for spawns without embedding.
+- [X] **4. Persist layer**
+  - [X] Extend `SpawnImprovisationObjectArgs` with optional `embedding?: SemanticEmbedding` (or pre-serialized Dynamo record).
+  - [X] When present, append `objectEmbeddingPutItem({ objectId, embedding })` as third transact **`Put`** in [`persistSpawnImprovisationObject`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts).
+  - [X] Extend `deleteTransactItemsForObject` with **`Delete`** for `DataCategory: 'EMBEDDING#IMPROMPTU'` (all delete/clear/repair paths inherit via existing helpers).
+  - [X] Update [`persistImprovisationObject.test.ts`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.test.ts): spawn with embedding (3 puts), delete (3 deletes). Keep existing two-row tests for spawns without embedding.
 
 - [ ] **5. Spawn coordinator wiring**
   - [ ] In [`spawnOneImprovisationObject`](../../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts): call `buildShortNameSemanticEmbedding` **before** `persistSpawnImprovisationObject` for every spawn (OE-1). On success, pass embedding into persist for 3-item transact; on failure, `console.error` and call persist without embedding (2-item transact; OE-3).

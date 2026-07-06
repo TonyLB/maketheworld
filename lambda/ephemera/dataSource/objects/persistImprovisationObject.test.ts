@@ -45,6 +45,10 @@ jest.mock('../../internalCache', () => ({
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import {
+    SemanticEmbedding,
+    SEMANTIC_EMBEDDING_V1_DIMENSIONS,
+} from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import {
@@ -55,6 +59,8 @@ import {
 } from './persistImprovisationObject'
 
 const transactWriteMock = ephemeraDB.transactWrite as jest.Mock
+
+const TEST_MODEL_ID = 'amazon.titan-embed-text-v2:0'
 
 describe('persistImprovisationObject', () => {
     const objectId = 'OBJECT#Anvil' as const
@@ -94,13 +100,59 @@ describe('persistImprovisationObject', () => {
         expect(objectMetaSetMock).toHaveBeenCalledWith(objectId, expect.objectContaining({ stableKey: 'anvil' }))
     })
 
-    it('persistDeleteImprovisationObject deletes both rows', async () => {
+    it('persistSpawnImprovisationObject writes pair + Meta::Object + EMBEDDING#IMPROMPTU when embedding present', async () => {
+        const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
+        values[0] = 1
+        const embedding = SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
+
+        const result = await persistSpawnImprovisationObject({
+            objectId,
+            shortName: 'Anvil',
+            stableKey: 'anvil',
+            embedding,
+        })
+
+        expect(result).toEqual({ ok: true, objectId })
+        expect(transactWriteMock).toHaveBeenCalledWith([
+            {
+                Put: {
+                    EphemeraId: objectId,
+                    DataCategory: 'ASSET#IMPROVISATION',
+                    tag: 'Object',
+                    shortName: 'Anvil',
+                },
+            },
+            {
+                Put: {
+                    EphemeraId: objectId,
+                    DataCategory: 'Meta::Object',
+                    stableKey: 'anvil',
+                },
+            },
+            {
+                Put: {
+                    EphemeraId: objectId,
+                    DataCategory: 'EMBEDDING#IMPROMPTU',
+                    embedding: expect.objectContaining({
+                        modelId: TEST_MODEL_ID,
+                        dimensions: SEMANTIC_EMBEDDING_V1_DIMENSIONS,
+                        vector: expect.any(Uint8Array),
+                    }),
+                },
+            },
+        ])
+        expect(transactWriteMock.mock.calls[0][0][2].Put.embedding.vector.byteLength)
+            .toBe(SEMANTIC_EMBEDDING_V1_DIMENSIONS)
+    })
+
+    it('persistDeleteImprovisationObject deletes pair, Meta::Object, and EMBEDDING#IMPROMPTU rows', async () => {
         const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
 
         expect(result).toEqual({ ok: true, objectId })
         expect(transactWriteMock).toHaveBeenCalledWith([
             { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
             { Delete: { EphemeraId: objectId, DataCategory: 'Meta::Object' } },
+            { Delete: { EphemeraId: objectId, DataCategory: 'EMBEDDING#IMPROMPTU' } },
         ])
         expect(improvisationInvalidateMock).toHaveBeenCalledWith(objectId, 'ASSET#IMPROVISATION')
         expect(objectMetaInvalidateMock).toHaveBeenCalledWith(objectId)
@@ -116,6 +168,7 @@ describe('persistImprovisationObject', () => {
         expect(transactWriteMock).toHaveBeenCalledWith([
             { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
             { Delete: { EphemeraId: objectId, DataCategory: 'Meta::Object' } },
+            { Delete: { EphemeraId: objectId, DataCategory: 'EMBEDDING#IMPROMPTU' } },
         ])
     })
 
@@ -193,7 +246,7 @@ describe('persistImprovisationObject', () => {
             affectedRoomIds: ['ROOM#VORTEX', 'ROOM#CORNER'],
         })
         expect(transactWriteMock).toHaveBeenCalledTimes(1)
-        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(4)
+        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(6)
         expect(improvisationInvalidateMock).toHaveBeenCalledTimes(2)
     })
 
