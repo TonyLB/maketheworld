@@ -116,7 +116,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | Open decisions locked (OE-1 -- OE-8) | Done |
 | `EphemeraObjectEmbedding` type + guard in `mtw-interfaces` | Done |
 | `invokeBedrockTitanEmbed` (or equivalent) under `lambda/ephemera/llm/` | Done |
-| `buildShortNameSemanticEmbedding` helper under `objects/embedding/` | |
+| `buildShortNameSemanticEmbedding` helper under `objects/embedding/` | Done |
 | Persist: optional embedding `Put` + delete item | |
 | Spawn coordinator wiring (embed before existence transact; best-effort) | |
 | IAM (`template.yaml`) | |
@@ -140,10 +140,10 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Unit tests with mocked `client.send` (no live Bedrock in CI).
   - [X] Document model id and request body in [`llm/AGENT.md`](../../../../../../lambda/ephemera/llm/AGENT.md) integration row (one line; no duplicate of implementation guide).
 
-- [ ] **3. Embed helper (objects lane)**
-  - [ ] Implement `buildShortNameSemanticEmbedding(shortName, deps?)` in [`objects/embedding/buildShortNameSemanticEmbedding.ts`](../../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts): trim input, normalize via `normalizeExitName`, compute `sourceTextHash` from normalized text (OE-4), call embed transport, return `SemanticEmbedding` or typed failure.
-  - [ ] Use `SemanticEmbedding.fromFloat32` with `modelId: 'amazon.titan-embed-text-v2:0'`; never persist raw floats.
-  - [ ] Tests: mocked Bedrock returns known floats; assert `toDynamoRecord()` shape (dimensions, encoding, `Uint8Array` vector).
+- [X] **3. Embed helper (objects lane)**
+  - [X] Implement `buildShortNameSemanticEmbedding(shortName, deps?)` in [`objects/embedding/buildShortNameSemanticEmbedding.ts`](../../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts): trim input, normalize via `normalizeExitName`, compute `sourceTextHash` from normalized text (OE-4), call embed transport, return `SemanticEmbedding` or typed failure.
+  - [X] Use `SemanticEmbedding.fromFloat32` with `modelId: 'amazon.titan-embed-text-v2:0'`; never persist raw floats.
+  - [X] Tests: mocked Bedrock returns known floats; assert `toDynamoRecord()` shape (dimensions, encoding, `Uint8Array` vector).
 
 - [ ] **4. Persist layer**
   - [ ] Extend `SpawnImprovisationObjectArgs` with optional `embedding?: SemanticEmbedding` (or pre-serialized Dynamo record).
