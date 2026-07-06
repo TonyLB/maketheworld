@@ -124,7 +124,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ### Object manipulation classify + enrich steady-state (shipped --- B2.5 split intents)
 
-**Pipeline design (general):** [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md), [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). This section documents the **instance** (field ownership table below).
+**Pipeline design (general):** [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md), [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). **Hop-purpose narrative (Coyote-style):** [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md). This section documents the **instance** (field ownership table below).
 
 Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Playbooks: [Adding an atomic position-manipulation operator](#adding-an-atomic-position-manipulation-operator) (membership), [Adding a host-local relational operator](#adding-a-host-local-relational-operator) (relational). Positions ingress + apply: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md). Manipulation kernel + adapter: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md#target-layering). Module inventory: [`enrich/AGENT.md`](enrich/AGENT.md).
 

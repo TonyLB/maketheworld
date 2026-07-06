@@ -54,3 +54,4 @@ Post-classify deterministic code may close only over **closure-trusted inputs** 
 
 - Concepts and vocabulary: [`AGENT.concepts.md`](AGENT.concepts.md)
 - Actions parse steady-state (instances): [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)
+- Object manipulation hop purposes: [`../dataSource/actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)

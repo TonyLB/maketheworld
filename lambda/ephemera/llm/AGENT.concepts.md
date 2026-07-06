@@ -121,8 +121,9 @@ Short pointers --- feature docs hold instance detail.
 | Exemplar | What it teaches |
 | --- | --- |
 | **Coyote hypothesis** ([`hypothesis/AGENT.md`](../dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) | Multi-hop semantic reasoning; **deterministic context packaging** (combine/cluster/render before plan-select); handoff contracts (`selectedCandidate` required before narrative beat) |
-| **Membership parse** ([`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)) | `verbClass` (language at classify) vs `operationKind` (graph truth at enrich pre-gates); agreement gate; legitimate zero-hop paths |
-| **Relational parse** ([`enrich/AGENT.md`](../dataSource/actions/enrich/AGENT.md)) | Frame extract owns `operationKind` (BD-12); compiler validates and applies legality only |
+| **Object manipulation** ([`actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)) | Full classify-through-enrich hop purposes; `verbClass` vs membership `operationKind`; frame extract owns relational `operationKind` (BD-12); exit-edge defer to complexity LLM |
+| **Membership parse** ([`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)) | Field tables, egress, playbooks (links to object manipulation AGENT for hop narrative) |
+| **Relational parse** ([`actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)) | Frame extract + compiler chain; legality stub vs Phase D plan LLM |
 | **Acme order** ([`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)) | LLM proposes `stableKey`; deterministic finalize guarantees uniqueness before publish |
 
 **Canonical incident (relational):** phrase-bucket `operationKind` inference --- negative closure from absent dissolve phrases defaulting to `establishRelation`. See [`AGENT.contract.md`](AGENT.contract.md).
@@ -137,3 +138,4 @@ Short pointers --- feature docs hold instance detail.
 - Transport and parsers: [`AGENT.md`](AGENT.md)
 - Pipeline runner: [`pipeline/AGENT.md`](pipeline/AGENT.md)
 - Actions parse instances: [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)
+- Object manipulation hop purposes: [`../dataSource/actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)

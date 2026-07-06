@@ -7,7 +7,7 @@
 Current implementation:
 
 - [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
-- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectMembershipIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ObjectRelateIntent`** through frame extract into terminal **`EstablishRelation`** (B3) or **`ParseCommandErrorResult`** (nesting defer, BD-10 legality defer stub, resolve failure, or enrich parse/invoke failure).
+- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectMembershipIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ObjectRelateIntent`** through frame extract into terminal **`EstablishRelation`** (B3) or **`ParseCommandErrorResult`** (nesting defer, BD-10 legality defer stub, resolve failure, or enrich parse/invoke failure). **Hop-purpose narrative:** [`objectManipulation/AGENT.md`](./objectManipulation/AGENT.md).
 
 ## Boundary
 
@@ -49,25 +49,7 @@ Current implementation:
 
 ### Object manipulation enrich sequence
 
-```text
-parseCommand passes enrichRoute + hostRoomId from classify intent type
-  -> membership: cardinality gate
-       -> multiObject Error OR compileMembershipAtomic
-            -> merge catalogs (room + held; held fetched at parse ingress, not classify)
-            -> identity stage (deterministic resolve; identity LLM on NoMatch/AmbiguousMatch)
-            -> unary collapse
-            -> membership observation
-            -> complexity pre-gates
-            -> agreement gate (verbClass vs operationKind) on atomic path
-            -> atomic takeHold/drop short-circuit OR complexity LLM + finalize
-  -> relational: frame extract LLM (operationKind BD-12)
-       -> normalizeRelationSpan
-       -> resolveRelationalGrounding (room catalog only)
-       -> evaluateRelationalLegality (EphemeraPositionGraph observation)
-       -> EstablishRelation | Error
-```
-
-**Distinction:** Relational path uses **frame extract** (dedicated hop), routed by **`ObjectRelateIntent`** at classify. Membership defer when exit edges touch the object still uses **complexity LLM** and may return **`relationalPlacement`** --- separate from the frame-extract path.
+Module-level flow and **what each hop is for** (Coyote-style): [`objectManipulation/AGENT.md`](./objectManipulation/AGENT.md). This file keeps the file inventory above; do not duplicate the conceptual flow here.
 
 ## Notes
 
