@@ -27,5 +27,5 @@ import {
 
 ## Related Work
 
-- **Dynamo binary proof tests** (planned in `mtw-utilities`): verify existing handlers round-trip `Uint8Array` fields without code changes
+- **Dynamo binary proof tests**: [`binaryRoundTrip.test.ts`](../../../../mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts) in `mtw-utilities` verifies existing handlers round-trip nested `Uint8Array` fields through `putItem`, `getItem`, and `transactWrite` without handler changes
 - **Ephemera object-span identity** (follow-up): first prototype consumer for embedding-backed resolve

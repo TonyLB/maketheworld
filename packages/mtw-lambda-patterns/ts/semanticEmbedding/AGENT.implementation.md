@@ -45,6 +45,16 @@ Optional `sourceTextHash` is reserved for future invalidation; included in `equa
 
 Pass `toDynamoRecord()` output (or nested `semanticEmbedding` field with `vector: Uint8Array`) to existing `marshall` paths. Do **not** use `number[]` or base64 strings for `vector`.
 
+**Reads:** use `getAllFields: true` on `getItem` / `getItems` when loading nested `semanticEmbedding` --- default projection returns only the primary key.
+
+## Dynamo handler proof
+
+Existing `mtw-utilities` Dynamo mixin handlers round-trip `Uint8Array` via AWS SDK `marshall` / `unmarshall` with no handler changes. Proof tests: [`binaryRoundTrip.test.ts`](../../../../mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts). Run:
+
+```bash
+cd packages/mtw-utilities && npm test -- binaryRoundTrip
+```
+
 ## Testing
 
 Unit tests: [`index.test.ts`](./index.test.ts). Run:

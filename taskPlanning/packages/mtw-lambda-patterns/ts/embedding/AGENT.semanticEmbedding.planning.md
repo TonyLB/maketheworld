@@ -1,6 +1,6 @@
 # Semantic embedding value type (`mtw-lambda-patterns`) + Dynamo binary round-trip tests
 
-**Status:** In progress. Next step: Dynamo binary round-trip proof tests in `mtw-utilities`.
+**Status:** Complete. All foundations slices shipped; ready for follow-up ephemera task plan.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -113,7 +113,7 @@ cd packages/mtw-utilities && npm test
 | Design decisions SE-1 -- SE-4 locked | Done |
 | `SemanticEmbedding` implementation | Done |
 | `mtw-lambda-patterns` unit tests | Done |
-| Dynamo binary round-trip tests (`mtw-utilities`) | |
+| Dynamo binary round-trip tests (`mtw-utilities`) | Done |
 | `mtw-lambda-patterns/AGENT.md` pattern entry | Done |
 
 ## Recommended order
@@ -126,16 +126,16 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Assert instance holds int8 bytes only after construction (no retained float32 field).
   - [X] Lock `int8-v1` / scale-127 encoding and 256-dimension guard with unit tests (known float vectors, edge values -1/0/1, wrong-length rejection).
   - [X] Test cosine: identical embeddings -> ~1; orthogonal unit vectors -> ~0; round-trip float ingest -> int storage -> transient dequant within tolerance.
-- [ ] **Dynamo proof tests --- `mtw-utilities`**
-  - [ ] Add test file (e.g. `packages/mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts`) using **mock client** (same style as existing mixin tests).
-  - [ ] `putItem` + `getItem` round-trip with nested `semanticEmbedding.vector: Uint8Array`.
-  - [ ] `transactWrite` Put with same shape; verify bytes after read path.
-  - [ ] Document in test file comment: handlers require `Uint8Array`, not `number[]` or base64 strings.
+- [X] **Dynamo proof tests --- `mtw-utilities`**
+  - [X] Add test file (e.g. `packages/mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts`) using **mock client** (same style as existing mixin tests).
+  - [X] `putItem` + `getItem` round-trip with nested `semanticEmbedding.vector: Uint8Array`.
+  - [X] `transactWrite` Put with same shape; verify bytes after read path.
+  - [X] Document in test file comment: handlers require `Uint8Array`, not `number[]` or base64 strings.
 - [X] **Durable doc touch-up**
   - [X] Add **Semantic embedding** entry to [`packages/mtw-lambda-patterns/AGENT.md`](../../../../../packages/mtw-lambda-patterns/AGENT.md) (overview + link to implementation directory).
-- [ ] **Close plan slice**
-  - [ ] Run verification commands below.
-  - [ ] Update Progress table and Recommended order checkboxes in this document.
+- [X] **Close plan slice**
+  - [X] Run verification commands below.
+  - [X] Update Progress table and Recommended order checkboxes in this document.
 
 ## Verification
 

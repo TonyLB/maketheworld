@@ -36,7 +36,7 @@ Comprehensive caching layer providing deferred loading of asynchronous data sour
 
 ### Semantic Embedding (`ts/semanticEmbedding/`)
 
-Immutable value type for Titan Text Embedding v2 vectors: quantize normalized floats to `int8-v1` bytes at construction, expose Dynamo-safe `Uint8Array` serde, and compare via cosine similarity or byte-wise equality. Deep import: `@tonylb/mtw-lambda-patterns/ts/semanticEmbedding`.
+Immutable value type for Titan Text Embedding v2 vectors: quantize normalized floats to `int8-v1` bytes at construction, expose Dynamo-safe `Uint8Array` serde, and compare via cosine similarity or byte-wise equality. Deep import: `@tonylb/mtw-lambda-patterns/ts/semanticEmbedding`. Dynamo handler round-trip proof tests live in `mtw-utilities` (`ts/dynamoDB/mixins/binaryRoundTrip.test.ts`).
 
 **Documentation:**
 - **[Semantic Embedding Guide](./ts/semanticEmbedding/AGENT.md)** - Navigation and import path
