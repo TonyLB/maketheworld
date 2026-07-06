@@ -4,6 +4,7 @@ import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAf
 import {
     EMBEDDING_IMPROMPTU_DATA_CATEGORY,
     isEphemeraObjectEmbedding,
+    type EphemeraObjectEmbedding,
 } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
 import type { EphemeraMetaObject, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -14,6 +15,8 @@ import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
 import { collectObjectIdsFromPositionGraph } from './collectObjectIdsFromRoomPositionGraphs'
+import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
+import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
 import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
 
@@ -55,6 +58,8 @@ export type PersistImprovisationObjectDependencies = {
     transactWrite?: typeof ephemeraDB.transactWrite;
     getMetaObject?: (objectId: EphemeraObjectId) => Promise<EphemeraMetaObject | undefined>;
     getImprovisationPair?: (objectId: EphemeraObjectId) => Promise<StandardObject | undefined>;
+    getImprovisationEmbedding?: (objectId: EphemeraObjectId) => Promise<EphemeraObjectEmbedding | undefined>;
+    buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
 }
 
 const pairRowFromShortName = (objectId: EphemeraObjectId, shortName: string) => ({
@@ -119,6 +124,16 @@ const defaultGetImprovisationPair = async (objectId: EphemeraObjectId): Promise<
     return row.component instanceof StandardObject ? row.component : undefined
 }
 
+const defaultGetImprovisationEmbedding = async (
+    objectId: EphemeraObjectId
+): Promise<EphemeraObjectEmbedding | undefined> => {
+    const row = await ephemeraDB.getItem<EphemeraObjectEmbedding>({
+        Key: { EphemeraId: objectId, DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY },
+        getAllFields: true,
+    })
+    return row && isEphemeraObjectEmbedding(row) ? row : undefined
+}
+
 /**
  * Atomically create improvisation pair + Meta::Object rows for a new OBJECT#.
  * When embedding is present, includes EMBEDDING#IMPROMPTU in the same transact.
@@ -179,6 +194,7 @@ export const persistSpawnImprovisationObject = async (
 
 /**
  * Update improvisation pair body and/or Meta::Object fields in one transact.
+ * Hash-checks EMBEDDING#IMPROMPTU on every call; best-effort re-embed when stale or absent.
  */
 export const persistUpdateImprovisationObject = async (
     args: UpdateImprovisationObjectArgs,
@@ -187,6 +203,8 @@ export const persistUpdateImprovisationObject = async (
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
     const getMetaObject = deps?.getMetaObject ?? defaultGetMetaObject
     const getImprovisationPair = deps?.getImprovisationPair ?? defaultGetImprovisationPair
+    const getImprovisationEmbedding = deps?.getImprovisationEmbedding ?? defaultGetImprovisationEmbedding
+    const buildEmbed = deps?.buildEmbedImpl ?? buildShortNameSemanticEmbedding
 
     const priorMeta = await getMetaObject(args.objectId)
     const priorPair = await getImprovisationPair(args.objectId)
@@ -209,11 +227,45 @@ export const persistUpdateImprovisationObject = async (
         return { ok: false, errorMessage: `Invalid Meta::Object payload for ${args.objectId}` }
     }
 
+    const priorEmbedding = await getImprovisationEmbedding(args.objectId)
+    let embedding: SemanticEmbedding | undefined
+
+    if (impromptuEmbeddingNeedsRefresh(nextShortName, priorEmbedding)) {
+        const embedResult = await buildEmbed(nextShortName)
+        if (embedResult.success) {
+            embedding = embedResult.embedding
+        }
+        else {
+            console.error('[mtw.ephemera.objects] shortName embed failed; updating without embedding', {
+                objectId: args.objectId,
+                shortName: nextShortName,
+                errorMessage: embedResult.errorMessage,
+            })
+        }
+    }
+
+    const transactItems: Array<
+        { Put: ReturnType<typeof pairRowFromShortName> } |
+        { Put: EphemeraMetaObject } |
+        ReturnType<typeof objectEmbeddingPutItem>
+    > = [
+        { Put: pairRowFromShortName(args.objectId, nextShortName) },
+        { Put: nextMeta },
+    ]
+
+    if (embedding) {
+        const embeddingItem = objectEmbeddingPutItem({
+            objectId: args.objectId,
+            embedding,
+        })
+        if (!isEphemeraObjectEmbedding(embeddingItem.Put)) {
+            return { ok: false, errorMessage: `Invalid EMBEDDING#IMPROMPTU payload for ${args.objectId}` }
+        }
+        transactItems.push(embeddingItem)
+    }
+
     try {
-        await transactWrite([
-            { Put: pairRowFromShortName(args.objectId, nextShortName) },
-            { Put: nextMeta },
-        ])
+        await transactWrite(transactItems)
 
         const component = new StandardObject({
             tag: 'Object',
