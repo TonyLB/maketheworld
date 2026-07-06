@@ -54,13 +54,13 @@ Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.
 ### Membership nodes
 
 - Getters: `characterIds`, `objectIds` (`Set`)
-- Mutators (immutable, return new instance): `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add returns `this`)
+- Mutators (immutable, return new instance): `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add returns `this`; **`removeObject`** also prunes incident **Relational** and **Exit** edges on the same host that reference the removed `OBJECT#`, including edge-only references when the node is already absent)
 
 ### Relational edges
 
 - `relationalEdges` getter returns **`HostRelationalEdge[]`** (Exit-tolerant parse from raw `edges`)
 - `addRelationalEdge`, `removeRelationalEdge`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
-- Module helpers in `baseClasses.ts`: `edgesMatch`, `toStoredRelationalEdge`, `extractRelationalEdgesFromStored`, `nodeHasRelationalEdge`
+- Module helpers in `baseClasses.ts`: `edgesMatch`, `toStoredRelationalEdge`, `extractRelationalEdgesFromStored`, `nodeHasRelationalEdge`, `edgeReferencesObjectId`
 
 Stored JSON remains **`EphemeraPositionRelationalEdgeData`** on `positionGraph.edges`.
 
@@ -85,6 +85,10 @@ Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and 
 Class does **not** own: adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge.
 
 Production reads stay on `internalCache.Positions.get` per workspace gateways rule.
+
+## Known limitation (deferred)
+
+**Same-host incident edges only:** `removeObject` prunes Relational and Exit edges on **the host graph where the removal runs**. Membership adjacency indexes **node** placement (`getMembershipContainers`), not **edge-only** references on other hosts. A different host may still store an edge mentioning an `OBJECT#` after removal if that host was not updated in the removal transaction (for example a stale room Exit edge after take-hold). **Deferred:** post-clear sweep of Coyote `gameRooms` graphs for edges referencing destroyed ids, or a reverse edge-reference index. See [`../../objects/AGENT.md`](../../objects/AGENT.md) **Coyote bulk clear**.
 
 ## Documentation
 

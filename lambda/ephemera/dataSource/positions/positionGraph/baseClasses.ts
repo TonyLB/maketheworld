@@ -7,6 +7,7 @@ import type {
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 export type HostRelationalEdge = {
@@ -98,4 +99,26 @@ export function nodeHasRelationalEdge(
     edges: readonly HostRelationalEdge[]
 ): boolean {
     return edges.some((edge) => edge.from === nodeId || edge.to === nodeId)
+}
+
+/** True when a stored or play envelope edge references objectId as a relational or Exit endpoint. */
+export function edgeReferencesObjectId(
+    rawEdge: unknown,
+    objectId: EphemeraObjectId
+): boolean {
+    if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
+        return rawEdge.from === objectId || rawEdge.to === objectId
+    }
+
+    try {
+        const exitEdge = new StandardExitEdge(rawEdge)
+        const endpointRefs = [
+            ...referencesFromExitEndpoint(exitEdge.from),
+            ...referencesFromExitEndpoint(exitEdge.to),
+        ]
+        return endpointRefs.some((ref) => ref.universalKey === objectId)
+    }
+    catch {
+        return false
+    }
 }

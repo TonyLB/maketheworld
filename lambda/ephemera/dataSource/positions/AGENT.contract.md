@@ -37,6 +37,8 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 - **`PlayPositionGraph`** **must** be topology only (alias of `StandardPositionGraphData`); **must not** carry roster display fields or reverse-membership encodings on the forward graph.
 - Forward **`getPositionGraph`** **must** return stored topology only on Dynamo load; **`Positions.set`** **must** accept topology-only graphs.
 
+**Deferred (edge-reference cleanup):** object removal prunes incident edges on hosts participating in the removal transaction only. Cross-host or edge-only references without a node-removal path are not swept by membership adjacency today. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)** and [`../objects/AGENT.md`](../objects/AGENT.md) **Deferred (cross-host edge references)**.
+
 ---
 
 ## Manipulation persist layering
