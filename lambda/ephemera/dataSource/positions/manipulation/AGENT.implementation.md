@@ -2,7 +2,7 @@
 
 **Status:** Membership transfer and host-local relational patch shipped. Coordinators route through shared membership adapter + **`applyHostEffects`** kernel, or relational planner + **`applyHostRelationalPatch`** kernel.
 
-**Play graph model (P2):** [`../positionGraph/`](../positionGraph/) is the shared in-memory primitive. Kernels load via **`EphemeraPositionGraph.fromPlayEnvelope`**, simulate with **`applyMembershipEffect`** / **`applyRelationalPatch`**, and return **`postApplyGraphs: EphemeraPositionGraph[]`**. Transact reducers assemble host-bound graphs at the Dynamo read boundary (`fromRoomMeta` / `fromCharacterMeta`) and persist via **`toStored()`**. Legacy [`positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`relational/relationalEdges.ts`](relational/relationalEdges.ts) remain only until **EPG-5** delete. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
+**Play graph model (P2):** [`../positionGraph/`](../positionGraph/) is the shared in-memory primitive. Kernels load via **`EphemeraPositionGraph.fromPlayEnvelope`**, simulate with **`applyMembershipEffect`** / **`applyRelationalPatch`**, and return **`postApplyGraphs: EphemeraPositionGraph[]`**. Transact reducers assemble host-bound graphs at the Dynamo read boundary (`fromRoomMeta` / `fromCharacterMeta`) and persist via **`toStored()`**. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
 
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 

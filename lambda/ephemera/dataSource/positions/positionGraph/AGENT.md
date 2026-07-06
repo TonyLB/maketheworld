@@ -1,8 +1,8 @@
 # EphemeraPositionGraph (play manipulation model)
 
-Host-bound in-memory model for play manipulation `positionGraph` truth. Consolidates primitives currently in [`membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`manipulation/relational/relationalEdges.ts`](../manipulation/relational/relationalEdges.ts) (legacy modules deleted in P2).
+Host-bound in-memory model for play manipulation `positionGraph` truth. Sole positions-lane primitive for membership node and relational edge simulation (EPG-5 legacy delete complete).
 
-**Status:** P2 kernel + transact reducers migrated. Legacy [`positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`relationalEdges.ts`](../manipulation/relational/relationalEdges.ts) pending **EPG-5** delete. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
+**Status:** P2 positions lane complete. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
 
 ## Data / class seam
 

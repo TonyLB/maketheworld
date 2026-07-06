@@ -85,7 +85,6 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
 | [`positionGraph/`](positionGraph/) | Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulation; kernel and transact reducers (P2) |
-| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Legacy pure graph helpers --- pending **EPG-5** delete |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) | Navigate follow-up: `optimisticUpdate` + `mergeRoomStack` at `beatAnchorTime` |
 | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) | Pure timestamp merge for navigate ladder races |
@@ -134,7 +133,7 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
 | [`membership/repairRoomOccupancyDrift.test.ts`](membership/repairRoomOccupancyDrift.test.ts) | Occupancy drift repair (ghost purge, adjacency sync, idempotency) |
 | [`membership/syncMembershipAdjacency.test.ts`](membership/syncMembershipAdjacency.test.ts) | Adjacency-only sync transact + memo |
-| [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
+| [`positionGraph/index.test.ts`](positionGraph/index.test.ts) | **`EphemeraPositionGraph`** class: membership nodes, relational edges, factories, serialization |
 | [`membership/planMembershipTransfer.characterPersist.test.ts`](membership/planMembershipTransfer.characterPersist.test.ts) | Character navigate persist: adapter + kernel transact (graph + adjacency only) |
 | [`membership/planMembershipTransfer.objectPersist.test.ts`](membership/planMembershipTransfer.objectPersist.test.ts) | Object room placement persist: adapter + kernel transact |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |

@@ -1,6 +1,6 @@
 # EphemeraPositionGraph --- play graph model and primitive consolidation
 
-**Status:** P2 kernel + transact reducers done. Next step: **EPG-5** legacy module delete, then **P3** actions dedup.
+**Status:** P2 positions lane complete (EPG-5 legacy delete done). Next step: **P3** actions dedup.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -48,9 +48,7 @@ Coordinators + adjacency             transact reducers assign toStored() payload
 
 - New module tree: [`lambda/ephemera/dataSource/positions/positionGraph/`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/)
 - **`EphemeraPositionGraph`** class + focused unit tests
-- Consolidate primitives currently in:
-  - [`membership/positionGraphMerge.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts)
-  - [`manipulation/relational/relationalEdges.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/relationalEdges.ts)
+- Consolidate primitives formerly in `membership/positionGraphMerge.ts` and `manipulation/relational/relationalEdges.ts` (deleted P2 / EPG-5)
 - Deduplicate actions copy: [`actions/enrich/objectManipulation/relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) --- actions imports positions model; delete duplicate extraction/match logic
 - Refactor kernel + planners + transact reducers to use the class for in-memory graph work (behavior-preserving)
 - Durable doc updates: authority boundary between **`EphemeraPositionGraph`** (play manipulation class), **`EphemeraPositionGraphData`** (interfaces JSON), and WML **`StandardPositionGraph`** (authored blueprint)
@@ -79,14 +77,15 @@ Coordinators + adjacency             transact reducers assign toStored() payload
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read graph roles + type boundary in [`positions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md).
-3. Read current primitive modules (full file): [`positionGraphMerge.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts), [`relationalEdges.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/relationalEdges.ts), [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) --- note duplicated `ObservedHostRelationalEdge` (rename to **`HostRelationalEdge`** per EPG-3) / extraction.
+3. Read [`positionGraph/index.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/index.ts) + [`positionGraph/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/baseClasses.ts) (positions primitive); for P3, also read [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) --- note duplicated `ObservedHostRelationalEdge` (rename to **`HostRelationalEdge`** per EPG-3) / extraction.
 4. Trace kernel usage: [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts), [`applyHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md) --- Jest; run from **`lambda/ephemera/`**.
 6. Baseline (must pass before edits):
 
 ```bash
 cd lambda/ephemera && npm run test -- --watchAll=false \
-  dataSource/positions/membership/positionGraphMerge.test.ts \
+  dataSource/positions/positionGraph/ \
+  dataSource/positions/membership/ \
   dataSource/positions/manipulation/ \
   dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.test.ts \
   dataSource/actions/enrich/objectManipulation/compileRelational.test.ts
@@ -230,10 +229,10 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
   - [X] [`planHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/planHostRelationalPatch.ts)
   - [X] [`hostRelationalPatchTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/hostRelationalPatchTransactItems.ts)
   - [X] Membership transact builders importing merge helpers: [`objectPlacementTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/objectPlacementTransactItems.ts), [`characterRoomMembershipTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomMembershipTransactItems.ts), [`characterInventoryTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/characterInventoryTransactItems.ts)
-- [ ] **P2. Delete legacy modules** (EPG-5 --- no shims)
-  - [ ] Update all imports from [`positionGraphMerge.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts) to `positionGraph/`; delete file
-  - [ ] Update all imports from [`relationalEdges.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/relationalEdges.ts) to `positionGraph/`; delete file
-- [ ] **P2. Regression tests** --- full positions manipulation + membership suite passes (no behavior change).
+- [X] **P2. Delete legacy modules** (EPG-5 --- no shims)
+  - [X] Update all imports from `positionGraphMerge.ts` to `positionGraph/`; delete file
+  - [X] Update all imports from `relationalEdges.ts` to `positionGraph/`; delete file
+- [X] **P2. Regression tests** --- full positions manipulation + membership suite passes (no behavior change).
 
 ### Phase P3 --- Actions lane dedup
 
@@ -304,7 +303,7 @@ Second command should stay clean (no transact in actions enrich).
 | P0 class API stub | Done |
 | P1 core class + tests | Done |
 | P2 kernel + transact reducers | Done |
-| P2 positions refactor | In progress (legacy delete pending) |
+| P2 positions refactor | Done |
 | P3 actions dedup | Not started |
 | P4 durable docs | Not started |
 
