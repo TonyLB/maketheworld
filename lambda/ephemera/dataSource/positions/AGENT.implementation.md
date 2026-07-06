@@ -16,7 +16,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
 
-Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Shared play graph primitive: [`positionGraph/`](#positiongraph-play-manipulation-model) below. Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
 
 | Path | Role |
 | --- | --- |
@@ -71,6 +71,25 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
 
+### `positionGraph/` (play manipulation model)
+
+Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulation; sole in-memory primitive for kernel, transact reducers, and read-only actions observation. Spec: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+
+| File | Role |
+| --- | --- |
+| [`positionGraph/index.ts`](positionGraph/index.ts) | **`EphemeraPositionGraph` class** + factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) |
+| [`positionGraph/baseClasses.ts`](positionGraph/baseClasses.ts) | **`HostRelationalEdge`** parsed view; relational parse/match/serialize helpers |
+| [`positionGraph/index.test.ts`](positionGraph/index.test.ts) | Unit tests |
+
+**Import map:**
+
+```text
+positionGraph/  <-- shared primitive
+  ^-- manipulation/applyHostEffects, applyHostRelationalPatch, relational/planHostRelationalPatch
+  ^-- membership/*TransactItems (fromRoomMeta/fromCharacterMeta + toStored)
+  ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelational (read-only)
+```
+
 ### `navigate/` (shared execution + post-persist orchestration)
 
 | File | Role |
@@ -84,7 +103,6 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | File | Role |
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
-| [`positionGraph/`](positionGraph/) | Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulation; kernel and transact reducers (P2) |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) | Navigate follow-up: `optimisticUpdate` + `mergeRoomStack` at `beatAnchorTime` |
 | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) | Pure timestamp merge for navigate ladder races |

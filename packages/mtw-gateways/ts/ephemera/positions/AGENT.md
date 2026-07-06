@@ -24,6 +24,8 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 
 **`PlayPositionGraph`** is a topology-only type (alias of `StandardPositionGraphData`); see type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope). Normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-s1-5-s1-15-slice-2).
 
+This package owns **read projection** (`PlayPositionGraph`, [`project.ts`](project.ts)); it does **not** own play manipulation simulation. After cache read, ephemera manipulation uses **`EphemeraPositionGraph`** --- see [`lambda/ephemera/dataSource/positions/positionGraph/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/positionGraph/AGENT.md).
+
 Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)) --- topology from **`internalCache.Positions.getPositionGraph`**, display fields from **`CharacterMeta`** + **`CharacterSessions`**.
 
 ## Slice 2 backing (shipped; **S2-6** storage retirement)

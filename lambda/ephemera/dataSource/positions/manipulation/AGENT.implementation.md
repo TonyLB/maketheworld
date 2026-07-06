@@ -31,6 +31,17 @@ Per-operator coordinators       membership fact projection, stream/cache/bus bun
 
 ## Section A --- Manipulation kernel (M4, M5)
 
+### Read / simulate / persist (`EphemeraPositionGraph`)
+
+Kernels and transact reducers share one boundary through [`../positionGraph/`](../positionGraph/). Type vocabulary: [`../AGENT.concepts.md`](../AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope).
+
+| Phase | Boundary | API |
+| --- | --- | --- |
+| **Read** | Cache or row fetch | `EphemeraPositionGraph.fromPlayEnvelope(hostId, await getPositionGraph(hostId))` or `fromFieldPayload` / `fromRoomMeta` / `fromCharacterMeta` in transact reducers |
+| **Simulate** | In-memory only | `applyMembershipEffect` / `applyRelationalPatch` on host-bound instance; multi-host -> **`EphemeraPositionGraph[]`** upserted by `hostId` |
+| **Persist** | Dynamo attribute | `graph.toStored()` assigned to `draft.positionGraph`; row `EphemeraId` = `graph.hostId` |
+| **Memo seed** | Gateway cache | Coordinators call `graph.toPlayEnvelope()` on `postApplyGraphs` |
+
 ### `HostEffect` (v1 membership-node only)
 
 A **host effect** is one graph-grounded alteration on a fixed membership host: add or remove an identity node on that host's **`positionGraph`**, with matching adjacency dual-write. v1 covers **Character** and **Object** identity nodes only --- no in-room edges (slice 5+).

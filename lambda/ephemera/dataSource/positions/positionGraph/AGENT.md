@@ -2,19 +2,21 @@
 
 Host-bound in-memory model for play manipulation `positionGraph` truth. Sole positions-lane primitive for membership node and relational edge simulation (EPG-5 legacy delete complete).
 
-**Status:** P3 actions dedup complete. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
+**Status:** P4 authority documentation complete. Initiative shipped; task plan retired (git history).
 
 ## Data / class seam
 
-| Type | Layer | Role |
-| --- | --- | --- |
-| **`EphemeraPositionGraphData`** | `@tonylb/mtw-interfaces` | Host-bound manipulation JSON (`hostId` + nodes + edges) |
-| **`EphemeraPositionGraphFieldPayload`** | `@tonylb/mtw-interfaces` | Dynamo `Meta::*.positionGraph` attribute (`Omit<Data, 'hostId'>`) |
-| **`PlayPositionGraph`** | `@tonylb/mtw-gateways` | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) |
-| **`StandardPositionGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only; asset merge) |
-| **`EphemeraPositionGraph`** | this module | Host-bound manipulation **class** |
+Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope).
 
-Mental model: [`../AGENT.concepts.md`](../AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope).
+**This module** owns the host-bound manipulation **class** --- `EphemeraPositionGraph` --- with immutable simulation API. Canonical JSON lives in `@tonylb/mtw-interfaces`; gateway read envelope in `@tonylb/mtw-gateways`; authored blueprint in `@tonylb/mtw-wml`.
+
+### Relational edge names (EPG-3)
+
+| Name | Layer | Role |
+| --- | --- | --- |
+| **`EphemeraPositionRelationalEdgeData`** | `mtw-interfaces` JSON | Stored/wire envelope (`tag: 'Relational'`, ...) on `positionGraph.edges` |
+| **`HostRelationalEdge`** | `baseClasses.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`) --- class API, legality, kernel simulation |
+| **`HostRelationalEdgeKind`** | `mtw-interfaces` | Enum of allowed kinds |
 
 ## Module map
 
@@ -71,12 +73,15 @@ Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and 
 
 ## Import boundaries
 
-| Consumer | Rule |
-| --- | --- |
-| Positions kernel / planners / transact reducers | Primary --- simulate on `EphemeraPositionGraph` / `EphemeraPositionGraph[]` (P2) |
-| Actions legality / observation | Read-only import for graph observation (P3 dedup) |
-| Gateways | Read projection only --- `fromPlayEnvelope` / `toPlayEnvelope` delegate to gateway `project.ts` (EPG-4) |
-| Class does **not** own | Adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge |
+| Consumer | Import | Rule |
+| --- | --- | --- |
+| `applyHostEffects`, `applyHostRelationalPatch` | class + simulation methods | Primary writers |
+| Transact reducers (`*TransactItems.ts`) | `fromRoomMeta` / `fromCharacterMeta`, `toStored()` | Dynamo read/write boundary |
+| `planHostRelationalPatch` | `fromPlayEnvelope`, `edgesMatch` | Planner observation |
+| `evaluateRelationalLegality`, `compileRelational` | read-only class methods | Actions lane; no persist |
+| Gateways | via `fromPlayEnvelope` / `toPlayEnvelope` only | EPG-4 --- no duplicated projection |
+
+Class does **not** own: adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge.
 
 Production reads stay on `internalCache.Positions.get` per workspace gateways rule.
 
@@ -86,5 +91,4 @@ Production reads stay on `internalCache.Positions.get` per workspace gateways ru
 | --- | --- |
 | [`../manipulation/AGENT.implementation.md`](../manipulation/AGENT.implementation.md) | Kernel spec; links here as shared primitive |
 | [`../AGENT.concepts.md`](../AGENT.concepts.md) | Graph roles, type boundary vocabulary |
-| [`../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md) | Initiative ordering and verification |
 | [`../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Gateway read surfaces |

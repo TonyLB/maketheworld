@@ -49,6 +49,8 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 - Kernel **must** accept explicit **`HostEffect[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
 - **Must not** add parallel persist paths (new `update*PositionGraphs` with bundled planner + transact; per-verb diff computers outside [`manipulation/adapters/`](manipulation/adapters/)).
 - **Shipped kernels:** membership-node add/remove via **`applyHostEffects`** (**`HostEffect[]`**); in-host relational edge add/remove via **`applyHostRelationalPatch`** (**`HostRelationalPatch[]`**) --- [Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).
+- Positions kernel in-memory graph simulation **must** use **`EphemeraPositionGraph`** / **`EphemeraPositionGraph[]`** --- **must not** reintroduce bare **`EphemeraPositionGraphFieldPayload`** simulation or ad-hoc merge helpers outside [`positionGraph/`](positionGraph/). Mental model: [`AGENT.concepts.md`](AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope); module spec: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+- Actions **may** import **`EphemeraPositionGraph`** read-only for observation/legality; actions **must not** persist graphs or build transact items.
 
 **Today (shipped behavior):**
 
