@@ -28,4 +28,4 @@ import {
 ## Related Work
 
 - **Dynamo binary proof tests**: [`binaryRoundTrip.test.ts`](../../../../mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts) in `mtw-utilities` verifies existing handlers round-trip nested `Uint8Array` fields through `putItem`, `getItem`, and `transactWrite` without handler changes
-- **Ephemera object-span identity** (follow-up): first prototype consumer for embedding-backed resolve
+- **Ephemera object-span identity** (follow-up, not implemented): first prototype consumer --- embedding-backed resolve when normalized `shortName` match fails ([`resolveObjectSpan.ts`](../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts), [`identityStage.ts`](../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts)); Object row shape in [`objects/AGENT.md`](../../../../lambda/ephemera/dataSource/objects/AGENT.md). Expected follow-up covers Bedrock Titan embed invoke, Object row storage, and identity-stage integration.
