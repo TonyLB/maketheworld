@@ -1,5 +1,4 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
 import { EphemeraPositionGraph } from '../positionGraph'
@@ -11,11 +10,11 @@ import type {
 import { buildHostRelationalPatchTransactItems } from './relational/hostRelationalPatchTransactItems'
 
 export type ApplyHostRelationalPatchDependencies = {
-    getPositionGraph?: (hostId: EphemeraRoomId) => Promise<PlayPositionGraph>
+    getPositionGraph?: (hostId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
     transactWrite?: typeof ephemeraDB.transactWrite
 }
 
-const defaultGetPositionGraph = async (hostId: EphemeraRoomId): Promise<PlayPositionGraph> =>
+const defaultGetPositionGraph = async (hostId: EphemeraRoomId): Promise<EphemeraPositionGraph> =>
     internalCache.Positions.getPositionGraph(hostId)
 
 const affectedHostIds = (patches: HostRelationalPatch[]): EphemeraRoomId[] =>
@@ -82,7 +81,7 @@ export const applyHostRelationalPatch = async (
 
     await Promise.all(
         hostIds.map(async (hostId) => {
-            const graph = EphemeraPositionGraph.fromPlayEnvelope(hostId, await getPositionGraph(hostId))
+            const graph = await getPositionGraph(hostId)
             graphsByHost.set(hostId, graph)
         })
     )

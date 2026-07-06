@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { produce } from 'immer'
 
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import { applyHostRelationalPatch } from './applyHostRelationalPatch'
 import type { HostRelationalPatch } from './types'
 
@@ -9,12 +9,12 @@ const BROOM_ID = 'OBJECT#Broom' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-const roomGraphWithObjects = {
+const roomGraphWithObjects = testPositionGraph(ROOM_ID, {
     nodes: [
         { tag: 'Object' as const, universalKey: BROOM_ID },
         { tag: 'Object' as const, universalKey: TABLE_ID },
     ],
-} as unknown as PlayPositionGraph
+})
 
 const onTablePatch: HostRelationalPatch = {
     hostId: ROOM_ID,
@@ -54,7 +54,7 @@ describe('applyHostRelationalPatch', () => {
         const items = transactWrite.mock.calls[0][0] as any[]
         expect(items).toHaveLength(1)
 
-        const roomGraphDraft = produce({ positionGraph: { ...roomGraphWithObjects, edges: [] } }, (draft) => {
+        const roomGraphDraft = produce({ positionGraph: roomGraphWithObjects.toPlayEnvelope() }, (draft) => {
             items[0].Update.updateReducer(draft)
         })
         expect(roomGraphDraft.positionGraph?.edges).toEqual([{
@@ -69,15 +69,18 @@ describe('applyHostRelationalPatch', () => {
         const result = await applyHostRelationalPatch(
             { patches: [onTablePatch] },
             {
-                getPositionGraph: async () => ({
-                    ...roomGraphWithObjects,
+                getPositionGraph: async () => testPositionGraph(ROOM_ID, {
+                    nodes: [
+                        { tag: 'Object' as const, universalKey: BROOM_ID },
+                        { tag: 'Object' as const, universalKey: TABLE_ID },
+                    ],
                     edges: [{
                         tag: 'Relational' as const,
                         from: BROOM_ID,
                         to: TABLE_ID,
                         kind: 'On' as const,
                     }],
-                } as unknown as PlayPositionGraph),
+                }),
                 transactWrite,
             }
         )
@@ -90,15 +93,18 @@ describe('applyHostRelationalPatch', () => {
         const result = await applyHostRelationalPatch(
             { patches: [{ ...onTablePatch, op: 'remove' }] },
             {
-                getPositionGraph: async () => ({
-                    ...roomGraphWithObjects,
+                getPositionGraph: async () => testPositionGraph(ROOM_ID, {
+                    nodes: [
+                        { tag: 'Object' as const, universalKey: BROOM_ID },
+                        { tag: 'Object' as const, universalKey: TABLE_ID },
+                    ],
                     edges: [{
                         tag: 'Relational' as const,
                         from: BROOM_ID,
                         to: TABLE_ID,
                         kind: 'On' as const,
                     }],
-                } as unknown as PlayPositionGraph),
+                }),
                 transactWrite,
             }
         )
@@ -106,15 +112,18 @@ describe('applyHostRelationalPatch', () => {
         expect(result).toMatchObject({ ok: true, persisted: true, changed: true })
         const items = transactWrite.mock.calls[0][0] as any[]
         const roomGraphDraft = produce({
-            positionGraph: {
-                ...roomGraphWithObjects,
+            positionGraph: testPositionGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: BROOM_ID },
+                    { tag: 'Object' as const, universalKey: TABLE_ID },
+                ],
                 edges: [{
                     tag: 'Relational' as const,
                     from: BROOM_ID,
                     to: TABLE_ID,
                     kind: 'On' as const,
                 }],
-            },
+            }).toPlayEnvelope(),
         }, (draft) => {
             items[0].Update.updateReducer(draft)
         })
@@ -141,7 +150,9 @@ describe('applyHostRelationalPatch', () => {
         const result = await applyHostRelationalPatch(
             { patches: [onTablePatch] },
             {
-                getPositionGraph: async () => ({ nodes: [{ tag: 'Object' as const, universalKey: BROOM_ID }] } as unknown as PlayPositionGraph),
+                getPositionGraph: async () => testPositionGraph(ROOM_ID, {
+                    nodes: [{ tag: 'Object' as const, universalKey: BROOM_ID }],
+                }),
                 transactWrite,
             }
         )

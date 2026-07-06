@@ -146,18 +146,15 @@ describe('applyCharacterRoomMembership', () => {
         expect(internalCache.ComponentEphemeraMeta.invalidate).toHaveBeenCalledWith(TO_ROOM)
         expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith(FROM_ROOM)
         expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith(TO_ROOM)
-        expect(internalCache.Positions.set).toHaveBeenCalledWith({
-            componentId: FROM_ROOM,
-            graph: expect.objectContaining({ nodes: [], edges: [] }),
-        })
-        expect(internalCache.Positions.set).toHaveBeenCalledWith({
-            componentId: TO_ROOM,
-            graph: expect.objectContaining({
-                nodes: expect.arrayContaining([
-                    expect.objectContaining({ tag: 'Character', universalKey: CHARACTER_ID }),
-                ]),
-            }),
-        })
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({ hostId: FROM_ROOM })
+        )
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({
+                hostId: TO_ROOM,
+                toStored: expect.any(Function),
+            })
+        )
         expect(getRoomCharacterListMock).toHaveBeenCalledWith(FROM_ROOM)
         expect(getRoomCharacterListMock).toHaveBeenCalledWith(TO_ROOM)
         expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({

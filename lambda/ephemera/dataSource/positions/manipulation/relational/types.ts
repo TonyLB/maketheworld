@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
+import type { EphemeraPositionGraph } from '../../positionGraph'
 import type { HostRelationalPatch } from '../types'
 
 export type RelationalIngressOperation = 'establish' | 'dissolve'
@@ -21,7 +21,7 @@ export type RelationalPatchPlan = {
 }
 
 export type PlanHostRelationalPatchDependencies = {
-    getPositionGraph?: (hostId: EphemeraRoomId) => Promise<PlayPositionGraph>
+    getPositionGraph?: (hostId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
 }
 
 export type RelationalApplyResult =

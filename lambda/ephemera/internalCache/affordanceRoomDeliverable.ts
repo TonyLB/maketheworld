@@ -4,7 +4,6 @@
  */
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { EphemeraObjectId, EphemeraRoomId, IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -18,7 +17,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import type { EphemeraPositionGraph } from '../dataSource/positions/positionGraph'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -34,7 +33,7 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 }
 
 export type AffordanceRoomDeliverableObjectReads = {
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>
+    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 
@@ -103,7 +102,7 @@ export class AffordanceRoomDeliverableData {
             )
         }
 
-        const objectIds = extractObjectIdsFromPlayPositionGraph(positionGraph)
+        const objectIds = [...positionGraph.objectIds]
         const mergeParticipationOrder = appendImprovisationToPerspective(
             affordanceRow.assetStack,
             objectIds

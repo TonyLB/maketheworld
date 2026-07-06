@@ -1,7 +1,7 @@
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
+import { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 
@@ -80,11 +80,15 @@ export function buildObjectManipulationIdentityPrompt(
     }
 }
 
-function summarizeTouchingEdges(graph: PlayPositionGraph, objectId: EphemeraObjectId): string[] {
-    const edges = graph.edges ?? []
+function summarizeTouchingEdges(graph: EphemeraPositionGraph, objectId: EphemeraObjectId): string[] {
+    const envelope = graph.toPlayEnvelope()
+    const edges = envelope.edges ?? []
     const summaries: string[] = []
     for (let i = 0; i < edges.length; i++) {
-        if (objectTouchesExitEdgeOnGraph({ nodes: graph.nodes, edges: [edges[i]] }, objectId)) {
+        if (objectTouchesExitEdgeOnGraph(
+            EphemeraPositionGraph.fromPlayEnvelope(graph.hostId, { nodes: envelope.nodes, edges: [edges[i]] }),
+            objectId
+        )) {
             summaries.push(`edge[${i}]`)
         }
     }
@@ -96,7 +100,7 @@ export function buildObjectManipulationComplexityPrompt(
     options: {
         objectId: EphemeraObjectId
         containers: readonly EphemeraMembershipHostId[]
-        positionGraph?: PlayPositionGraph
+        positionGraph?: EphemeraPositionGraph
     }
 ): ParseObjectManipulationEnrichPromptParts {
     const touchingEdges = options.positionGraph !== undefined

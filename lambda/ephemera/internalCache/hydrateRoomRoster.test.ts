@@ -3,6 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
 import internalCache from './index'
 import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 
@@ -178,13 +179,11 @@ describe('getRoomCharacterList', () => {
     })
 
     it('uses memo-patched graph without Dynamo read', async () => {
-        internalCache.Positions.set({
-            componentId: TOWN_SQUARE,
-            graph: {
+        internalCache.Positions.set(
+            testPositionGraph(TOWN_SQUARE, {
                 nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
-                edges: [],
-            },
-        })
+            })
+        )
 
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: CHARACTER_A,

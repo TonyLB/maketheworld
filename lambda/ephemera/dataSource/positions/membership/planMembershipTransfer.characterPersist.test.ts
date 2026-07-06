@@ -33,6 +33,7 @@ import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/t
 import { computeMembershipDiff } from '../manipulation/adapters/computeEndStateRoomDiff'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import type { MembershipApplyArgs, MembershipDiff } from './types'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
@@ -61,7 +62,11 @@ const emptyGraph = { nodes: [], edges: [] as [] }
 const getPositionGraphForCharacterRooms = async (
     hostId: EphemeraMembershipHostId,
     presentOn: EphemeraRoomId[]
-) => (isEphemeraRoomId(hostId) && presentOn.includes(hostId) ? characterPresentGraph : emptyGraph)
+) => (
+    isEphemeraRoomId(hostId) && presentOn.includes(hostId)
+        ? testPositionGraph(hostId, characterPresentGraph)
+        : testPositionGraph(hostId, emptyGraph)
+)
 
 type PersistCharacterDeps = {
     getCharacterMeta?: () => Promise<CharacterMetaItem>;
@@ -222,9 +227,10 @@ describe('character membership persist (adapter + kernel)', () => {
             persisted: true,
             diff: { froms: [ROOM_A], to: ROOM_B, changed: true },
             postApplyRoomGraphs: {
-                [ROOM_A]: { nodes: [] },
+                [ROOM_A]: { nodes: [], edges: [] },
                 [ROOM_B]: {
                     nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
                 },
             },
         }))

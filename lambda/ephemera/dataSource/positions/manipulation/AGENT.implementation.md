@@ -37,10 +37,10 @@ Kernels and transact reducers share one boundary through [`../positionGraph/`](.
 
 | Phase | Boundary | API |
 | --- | --- | --- |
-| **Read** | Cache or row fetch | `EphemeraPositionGraph.fromPlayEnvelope(hostId, await getPositionGraph(hostId))` or `fromFieldPayload` / `fromRoomMeta` / `fromCharacterMeta` in transact reducers |
+| **Read** | Cache or row fetch | `await getPositionGraph(hostId)` (already **`EphemeraPositionGraph`** on ephemera cache) or `fromFieldPayload` / `fromRoomMeta` / `fromCharacterMeta` in transact reducers |
 | **Simulate** | In-memory only | `applyMembershipEffect` / `applyRelationalPatch` on host-bound instance; multi-host -> **`EphemeraPositionGraph[]`** upserted by `hostId` |
 | **Persist** | Dynamo attribute | `graph.toStored()` assigned to `draft.positionGraph`; row `EphemeraId` = `graph.hostId` |
-| **Memo seed** | Gateway cache | Coordinators call `graph.toPlayEnvelope()` on `postApplyGraphs` |
+| **Memo seed** | Ephemera cache wrapper | Coordinators call **`internalCache.Positions.set(graph)`** on **`postApplyGraphs`** |
 
 ### `HostEffect` (v1 membership-node only)
 

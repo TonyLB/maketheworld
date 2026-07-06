@@ -33,9 +33,9 @@ import {
     ThinkingScheduleReadCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking';
 import {
-    createPositionsCacheHandler,
-    type PositionsCacheHandler,
-} from '@tonylb/mtw-gateways/ts/ephemera/positions';
+    createEphemeraPositionsCacheData,
+    EphemeraPositionsCacheData,
+} from './positionsCache';
 import {
     createImprovisationComponentDataCacheHandler,
     type ImprovisationComponentDataCache,
@@ -88,7 +88,7 @@ export class InternalCache {
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
     AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
-    Positions: PositionsCacheHandler = createPositionsCacheHandler(ephemeraDB)
+    Positions: EphemeraPositionsCacheData = createEphemeraPositionsCacheData(ephemeraDB)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()

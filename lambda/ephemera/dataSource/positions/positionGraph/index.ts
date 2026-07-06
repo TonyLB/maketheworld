@@ -14,6 +14,8 @@ import type {
     EphemeraPositionRelationalEdgeData,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 import type { HostEffect, HostRelationalPatch } from '../manipulation/types'
 import {
@@ -37,20 +39,40 @@ export const objectNode = (universalKey: EphemeraObjectId): EphemeraPositionGrap
     universalKey,
 })
 
+const extractPlayOnlyEdges = (envelope: PlayPositionGraph): PlayPositionGraph['edges'] => {
+    const edges = envelope.edges ?? []
+    const playOnly: NonNullable<PlayPositionGraph['edges']> = []
+    for (const rawEdge of edges) {
+        if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
+            continue
+        }
+        try {
+            void new StandardExitEdge(rawEdge)
+            playOnly.push(rawEdge)
+        } catch {
+            // ignore unknown edge shapes
+        }
+    }
+    return playOnly.length > 0 ? playOnly : undefined
+}
+
 export class EphemeraPositionGraph {
     readonly hostId: EphemeraMembershipHostId
 
     private readonly _nodes: EphemeraPositionGraphNode[]
     private readonly _edges: EphemeraPositionRelationalEdgeData[] | undefined
+    private readonly _playOnlyEdges: PlayPositionGraph['edges'] | undefined
 
     private constructor(
         hostId: EphemeraMembershipHostId,
         nodes: EphemeraPositionGraphNode[],
-        edges: EphemeraPositionRelationalEdgeData[] | undefined
+        edges: EphemeraPositionRelationalEdgeData[] | undefined,
+        playOnlyEdges: PlayPositionGraph['edges'] | undefined = undefined
     ) {
         this.hostId = hostId
         this._nodes = nodes
         this._edges = edges
+        this._playOnlyEdges = playOnlyEdges
     }
 
     static empty(hostId: EphemeraMembershipHostId): EphemeraPositionGraph {
@@ -80,13 +102,16 @@ export class EphemeraPositionGraph {
         envelope: PlayPositionGraph
     ): EphemeraPositionGraph {
         const relationalEdges = extractRelationalEdgesFromStored(envelope).map(toStoredRelationalEdge)
-        return EphemeraPositionGraph.fromFieldPayload(hostId, {
-            nodes: [
+        const playOnlyEdges = extractPlayOnlyEdges(envelope)
+        return new EphemeraPositionGraph(
+            hostId,
+            [
                 ...extractCharacterIdsFromPlayPositionGraph(envelope).map(characterNode),
                 ...extractObjectIdsFromPlayPositionGraph(envelope).map(objectNode),
             ],
-            ...(relationalEdges.length > 0 ? { edges: relationalEdges } : {}),
-        })
+            relationalEdges.length > 0 ? relationalEdges : undefined,
+            playOnlyEdges
+        )
     }
 
     get characterIds(): Set<EphemeraCharacterId> {
@@ -126,21 +151,34 @@ export class EphemeraPositionGraph {
     }
 
     toPlayEnvelope(): PlayPositionGraph {
-        return projectComponentGraphFromStoredPositionGraph(this.toStored())
+        const projected = projectComponentGraphFromStoredPositionGraph(this.toStored())
+        const playOnly = this._playOnlyEdges ?? []
+        if (playOnly.length === 0) {
+            return projected
+        }
+        return {
+            ...projected,
+            edges: [...(projected.edges ?? []), ...playOnly],
+        }
     }
 
     clone(): EphemeraPositionGraph {
         return this
             .withNodes([...this._nodes])
             .withEdges(this._edges !== undefined ? [...this._edges] : undefined)
+            .withPlayOnlyEdges(this._playOnlyEdges !== undefined ? [...this._playOnlyEdges] : undefined)
     }
 
     private withNodes(nodes: EphemeraPositionGraphNode[]): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(this.hostId, nodes, this._edges)
+        return new EphemeraPositionGraph(this.hostId, nodes, this._edges, this._playOnlyEdges)
     }
 
     private withEdges(edges: EphemeraPositionRelationalEdgeData[] | undefined): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(this.hostId, this._nodes, edges)
+        return new EphemeraPositionGraph(this.hostId, this._nodes, edges, this._playOnlyEdges)
+    }
+
+    private withPlayOnlyEdges(edges: PlayPositionGraph['edges'] | undefined): EphemeraPositionGraph {
+        return new EphemeraPositionGraph(this.hostId, this._nodes, this._edges, edges)
     }
 
     private storedRelationalEdges(): HostRelationalEdge[] {

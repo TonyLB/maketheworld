@@ -4,8 +4,6 @@ import type {
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 
-import { EphemeraPositionGraph } from '../../../positions/positionGraph'
-
 import type { ManipulationFrame } from './manipulationFrame'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
@@ -56,8 +54,7 @@ export async function compileRelational(
     }
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const positionGraphEnvelope = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
-    const graph = EphemeraPositionGraph.fromPlayEnvelope(frame.hostRoomId, positionGraphEnvelope)
+    const graph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
 
     const legality = evaluateRelationalLegality({
         operationKind: frame.operationKind,

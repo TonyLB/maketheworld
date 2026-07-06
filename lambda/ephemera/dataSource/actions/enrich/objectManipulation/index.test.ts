@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import { enrichObjectManipulation } from './index'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
@@ -14,13 +15,12 @@ const relationalCatalog = [
     { objectId: tableId, normalizedShortName: 'table' },
 ]
 
-const roomGraphWithBroomAndTable = {
+const roomGraphWithBroomAndTable = testPositionGraph(roomId, {
     nodes: [
         { tag: 'Object' as const, universalKey: broomId },
         { tag: 'Object' as const, universalKey: tableId },
     ],
-    edges: [] as unknown[],
-}
+})
 
 const relationalPositionsReadDeps = () => ({
     getMembershipContainers: jest.fn(),
@@ -35,7 +35,9 @@ const touchingEdge: StandardExitEdgeData = {
     payload: {},
 }
 
-const graphWithTouchingEdge = { nodes: [], edges: [touchingEdge] }
+const graphWithTouchingEdge = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [touchingEdge] })
+const emptyRoomGraph = testPositionGraph(roomId)
+const emptyCharacterGraph = testPositionGraph(characterId)
 
 describe('enrichObjectManipulation', () => {
     it('returns grounded takeHold without Bedrock on zero-hop eligible path', async () => {
@@ -43,7 +45,7 @@ describe('enrichObjectManipulation', () => {
         const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await enrichObjectManipulation(
             {
@@ -78,7 +80,7 @@ describe('enrichObjectManipulation', () => {
         const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyCharacterGraph)
 
         const result = await enrichObjectManipulation(
             {
@@ -255,13 +257,12 @@ describe('enrichObjectManipulation', () => {
             { objectId: 'OBJECT#Rope' as EphemeraObjectId, normalizedShortName: 'rope' },
             { objectId: 'OBJECT#Anvil' as EphemeraObjectId, normalizedShortName: 'anvil' },
         ]
-        const anvilGraph = {
+        const anvilGraph = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: 'OBJECT#Rope' as EphemeraObjectId },
                 { tag: 'Object' as const, universalKey: 'OBJECT#Anvil' as EphemeraObjectId },
             ],
-            edges: [],
-        }
+        })
 
         const result = await enrichObjectManipulation(
             {
@@ -317,13 +318,12 @@ describe('enrichObjectManipulation', () => {
                 invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
-                    getPositionGraph: jest.fn().mockResolvedValue({
+                    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: cordId },
                             { tag: 'Object' as const, universalKey: crateId },
                         ],
-                        edges: [],
-                    }),
+                    })),
                 },
             }
         )
@@ -365,7 +365,7 @@ describe('enrichObjectManipulation', () => {
                 invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
-                    getPositionGraph: jest.fn().mockResolvedValue({
+                    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: ropeId },
                             { tag: 'Object' as const, universalKey: crateId },
@@ -377,7 +377,7 @@ describe('enrichObjectManipulation', () => {
                             kind: 'Custom',
                             relationLabel: 'off',
                         }],
-                    }),
+                    })),
                 },
             }
         )
@@ -522,7 +522,7 @@ describe('enrichObjectManipulation', () => {
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await enrichObjectManipulation(
             {
@@ -574,13 +574,12 @@ describe('enrichObjectManipulation', () => {
                 invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
-                    getPositionGraph: jest.fn().mockResolvedValue({
+                    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: ladderId },
                             { tag: 'Object' as const, universalKey: wallId },
                         ],
-                        edges: [],
-                    }),
+                    })),
                 },
             }
         )
@@ -603,7 +602,7 @@ describe('enrichObjectManipulation', () => {
         const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await enrichObjectManipulation(
             {

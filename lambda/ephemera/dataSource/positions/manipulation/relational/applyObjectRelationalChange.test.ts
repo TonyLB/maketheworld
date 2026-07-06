@@ -1,4 +1,5 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { testPositionGraph } from '../../positionGraph/testFixtures'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 import { EphemeraPositionGraph } from '../../positionGraph'
 import * as kernelPersist from '../applyHostRelationalPatch'
@@ -34,13 +35,12 @@ const BROOM_ID = 'OBJECT#Broom' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-const roomGraphWithObjects = {
+const roomGraphWithObjects = testPositionGraph(ROOM_ID, {
     nodes: [
         { tag: 'Object' as const, universalKey: BROOM_ID },
         { tag: 'Object' as const, universalKey: TABLE_ID },
     ],
-    edges: [],
-}
+})
 
 describe('applyObjectRelationalChange', () => {
     const messageBus = { publish: jest.fn() }
@@ -52,15 +52,17 @@ describe('applyObjectRelationalChange', () => {
     })
 
     it('skips side-effect bundle when relation is unchanged', async () => {
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue({
-            ...roomGraphWithObjects,
-            edges: [{
-                tag: 'Relational' as const,
-                from: BROOM_ID,
-                to: TABLE_ID,
-                kind: 'On' as const,
-            }],
-        })
+        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(
+            testPositionGraph(ROOM_ID, {
+                nodes: roomGraphWithObjects.toStored().nodes,
+                edges: [{
+                    tag: 'Relational' as const,
+                    from: BROOM_ID,
+                    to: TABLE_ID,
+                    kind: 'On' as const,
+                }],
+            })
+        )
 
         const result = await applyObjectRelationalChange(
             {
@@ -86,7 +88,7 @@ describe('applyObjectRelationalChange', () => {
             changed: true,
             postApplyGraphs: [
                 EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
-                    nodes: roomGraphWithObjects.nodes,
+                    nodes: roomGraphWithObjects.toStored().nodes,
                     edges: [{
                         tag: 'Relational' as const,
                         from: BROOM_ID,
@@ -123,9 +125,9 @@ describe('applyObjectRelationalChange', () => {
                 operation: 'establish',
             }),
         }))
-        expect(internalCache.Positions.set).toHaveBeenCalledWith(expect.objectContaining({
-            componentId: ROOM_ID,
-        }))
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({ hostId: ROOM_ID })
+        )
         expect(messageBus.publish).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: ROOM_ID,

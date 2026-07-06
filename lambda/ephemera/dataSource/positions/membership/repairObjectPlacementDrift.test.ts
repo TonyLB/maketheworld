@@ -7,6 +7,7 @@ jest.mock('./syncObjectMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
 import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
@@ -35,10 +36,9 @@ describe('repairObjectPlacementDrift', () => {
     )
 
     it('syncs adjacency when graph lists object but index omits room', async () => {
-        getPositionGraph.mockResolvedValue({
+        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_A }],
-            edges: [],
-        })
+        }))
         getMembershipContainers.mockResolvedValue([])
 
         const result = await runRepair()
@@ -49,10 +49,9 @@ describe('repairObjectPlacementDrift', () => {
     })
 
     it('scrubs multi-room drift via end-state apply keeping finding room', async () => {
-        getPositionGraph.mockResolvedValue({
+        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_B }],
-            edges: [],
-        })
+        }))
         getMembershipContainers.mockResolvedValue(['ROOM#Other', ROOM_ID])
 
         const result = await runRepair()

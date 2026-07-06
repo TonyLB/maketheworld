@@ -1,7 +1,6 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
@@ -27,8 +26,7 @@ const listGraphObjectIds = async (
 ): Promise<EphemeraObjectId[]> => {
     const loader = getPositionGraph ?? ((id) => internalCache.Positions.getPositionGraph(id))
     const positionGraph = await loader(roomId)
-    return extractObjectIdsFromPlayPositionGraph(positionGraph)
-        .filter(isEphemeraObjectId)
+    return [...positionGraph.objectIds].filter(isEphemeraObjectId)
 }
 
 const containersIncludeRoom = (containers: EphemeraRoomId[], roomId: EphemeraRoomId): boolean =>

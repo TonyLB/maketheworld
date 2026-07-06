@@ -2,7 +2,6 @@
  * Total Coyote Game graph-placed objects across demo rooms (count sum, not **`stableKey`** dedup).
  * Used for Acme order enrich pre-checks; room set matches **`collectCoyoteOccupiedStableKeys`**.
  */
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import type { CollectCoyoteOccupiedStableKeysDeps } from '../baseClasses'
@@ -12,9 +11,7 @@ export async function countCoyotePlacedObjectsAcrossRooms(
 ): Promise<number> {
     const getGameRooms = deps?.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
     const getObjectIdsInRoom = deps?.getObjectIdsInRoom
-        ?? (async (roomId: EphemeraRoomId) => extractObjectIdsFromPlayPositionGraph(
-            await internalCache.Positions.getPositionGraph(roomId)
-        ))
+        ?? (async (roomId: EphemeraRoomId) => [...(await internalCache.Positions.getPositionGraph(roomId)).objectIds])
 
     const roomKeys = await getGameRooms()
     const roomIds = roomKeys.map((roomKey): EphemeraRoomId => `ROOM#${roomKey}`)

@@ -8,8 +8,9 @@ import {
     THINKING_RESULT_HEADER_TYPE,
     isThinkingResultEvent,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../positions/positionGraph/testFixtures'
 import * as apiEphemera from '../apiEphemera'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 
@@ -55,22 +56,21 @@ const mockMessageBus = () => ({
 
 const objectManipulationPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
-    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('ROOM#Bridge' as EphemeraRoomId)),
 })
 
 const objectManipulationDropPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['CHARACTER#123' as EphemeraCharacterId]),
-    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('CHARACTER#123' as EphemeraCharacterId)),
 })
 
 const relationalPositionsReadDepsForTests = (
-    objectIds: string[] = ['OBJECT#Broom', 'OBJECT#Table']
+    objectIds: EphemeraObjectId[] = ['OBJECT#Broom' as EphemeraObjectId, 'OBJECT#Table' as EphemeraObjectId]
 ) => ({
     getMembershipContainers: jest.fn(),
-    getPositionGraph: jest.fn().mockResolvedValue({
+    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('ROOM#Bridge' as EphemeraRoomId, {
         nodes: objectIds.map((id) => ({ tag: 'Object' as const, universalKey: id })),
-        edges: [],
-    }),
+    })),
 })
 
 const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
@@ -1337,7 +1337,7 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockObjectManipulationComplexityImpl,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getPositionGraph: jest.fn().mockResolvedValue({
+                    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraphFromEnvelope(roomId, {
                         nodes: [],
                         edges: [{
                             tag: 'Exit',
@@ -1346,7 +1346,7 @@ describe('parseCommand LLM path', () => {
                             to: tableId,
                             payload: {},
                         }],
-                    }),
+                    })),
                 },
             }
         )

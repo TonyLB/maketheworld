@@ -240,7 +240,7 @@ Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside 
 | `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` | Room forward position graph memo from **`postApplyRoomGraphs`** (**S2-6-H**) |
+| `internalCache.Positions.set` | Forward position graph memo from **`postApplyGraphs`** (**`EphemeraPositionGraph`**, **S2-6-H**) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents`) | `Character Moved` when `changed` |
@@ -253,9 +253,9 @@ Manipulation truth (`positionGraph`, adjacency) vs presentation compose (hydrate
 
 | System | Role |
 | --- | --- |
-| [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`createPositionsCacheHandler(ephemeraDB)`** (topology + adjacency memo) |
+| [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`EphemeraPositionsCacheData`** ([`../../internalCache/positionsCache.ts`](../../internalCache/positionsCache.ts)) --- class in/out memo over gateway handler |
 | [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts) | **`hydrateRoomRosterFromCharacterIds`**, **`getRoomCharacterList`** --- derive-on-call roster assembler (**S2-6-H**) |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room + character `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency only) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Underlying **`PlayPositionGraph`** load/persist; ephemera callers use wrapper only |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`getRoomCharacterList`** |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |

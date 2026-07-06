@@ -50,9 +50,9 @@ Five names, five roles --- same `{ nodes, edges }` shape, different **authority*
 | **`PlayPositionGraph`** | `@tonylb/mtw-gateways` | Topology-only **read envelope** (alias of `StandardPositionGraphData`) |
 | **`StandardPositionGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only v1; asset merge authority) |
 
-**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraPositionGraph`** -> simulate -> `toStored()` persist; gateway cache read -> `fromPlayEnvelope` -> class. Module detail: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraPositionGraph`** -> simulate -> `toStored()` persist; **`internalCache.Positions.getPositionGraph`** -> wrapper **`fromPlayEnvelope`** -> class. Module detail: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
 
 #### WML convergence (future)
 

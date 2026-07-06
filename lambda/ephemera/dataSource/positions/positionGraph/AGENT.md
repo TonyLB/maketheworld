@@ -79,6 +79,7 @@ Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and 
 | Transact reducers (`*TransactItems.ts`) | `fromRoomMeta` / `fromCharacterMeta`, `toStored()` | Dynamo read/write boundary |
 | `planHostRelationalPatch` | `fromPlayEnvelope`, `edgesMatch` | Planner observation |
 | `evaluateRelationalLegality`, `compileRelational` | read-only class methods | Actions lane; no persist |
+| `internalCache.Positions` | wrapper `get` / `set` | Ephemera read/write boundary; `fromPlayEnvelope` / `toPlayEnvelope` inside [`positionsCache.ts`](../../../../internalCache/positionsCache.ts) |
 | Gateways | via `fromPlayEnvelope` / `toPlayEnvelope` only | EPG-4 --- no duplicated projection |
 
 Class does **not** own: adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge.

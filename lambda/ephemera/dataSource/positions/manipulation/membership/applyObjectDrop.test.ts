@@ -97,12 +97,12 @@ describe('applyObjectDrop', () => {
                 to: ROOM_ID,
             }),
         }))
-        expect(internalCache.Positions.set).toHaveBeenCalledWith(expect.objectContaining({
-            componentId: ROOM_ID,
-        }))
-        expect(internalCache.Positions.set).toHaveBeenCalledWith(expect.objectContaining({
-            componentId: CHARACTER_ID,
-        }))
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({ hostId: ROOM_ID })
+        )
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({ hostId: CHARACTER_ID })
+        )
         expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
             componentId: OBJECT_ID,
             containers: [ROOM_ID],

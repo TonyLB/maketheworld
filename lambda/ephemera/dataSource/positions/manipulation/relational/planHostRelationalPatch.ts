@@ -15,7 +15,7 @@ export const planHostRelationalPatch = async (
     deps?: PlanHostRelationalPatchDependencies
 ): Promise<RelationalPatchPlan> => {
     const getPositionGraph = deps?.getPositionGraph ?? defaultGetPositionGraph
-    const graph = EphemeraPositionGraph.fromPlayEnvelope(args.roomId, await getPositionGraph(args.roomId))
+    const graph = await getPositionGraph(args.roomId)
     const observedEdge = {
         from: args.subjectId,
         to: args.targetId,

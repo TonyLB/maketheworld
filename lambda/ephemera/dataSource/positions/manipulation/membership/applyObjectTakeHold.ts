@@ -32,10 +32,7 @@ const seedRoomGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
         }
         internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
         internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
-        internalCache.Positions.set({
-            componentId: graph.hostId,
-            graph: graph.toPlayEnvelope(),
-        })
+        internalCache.Positions.set(graph)
     }
 }
 
@@ -44,10 +41,7 @@ const seedCharacterGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void
         if (!isEphemeraCharacterId(graph.hostId)) {
             continue
         }
-        internalCache.Positions.set({
-            componentId: graph.hostId,
-            graph: graph.toPlayEnvelope(),
-        })
+        internalCache.Positions.set(graph)
     }
 }
 

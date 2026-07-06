@@ -31,10 +31,7 @@ const seedPositionsGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void
         }
         internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
         internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
-        internalCache.Positions.set({
-            componentId: graph.hostId,
-            graph: graph.toPlayEnvelope(),
-        })
+        internalCache.Positions.set(graph)
     }
 }
 
