@@ -2,11 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
-import {
-    addObjectToGraph,
-    effectiveCharacterPositionGraph,
-    removeObjectFromGraph,
-} from '../../membership/positionGraphMerge'
+import { fromCharacterMeta } from '../../positionGraph'
 
 export type CharacterInventoryDiff = {
     /** Prior character inventory hosts removed from. */
@@ -33,8 +29,9 @@ export const buildCharacterInventoryTransactItems = (args: {
                 },
                 updateKeys: ['positionGraph'],
                 updateReducer: (draft) => {
-                    const graph = effectiveCharacterPositionGraph(draft)
-                    draft.positionGraph = removeObjectFromGraph(graph, args.objectId)
+                    draft.positionGraph = fromCharacterMeta(draft, departureCharacterId)
+                        .removeObject(args.objectId)
+                        .toStored()
                 },
             },
         })
@@ -55,8 +52,9 @@ export const buildCharacterInventoryTransactItems = (args: {
                 },
                 updateKeys: ['positionGraph'],
                 updateReducer: (draft) => {
-                    const graph = effectiveCharacterPositionGraph(draft)
-                    draft.positionGraph = addObjectToGraph(graph, args.objectId)
+                    draft.positionGraph = fromCharacterMeta(draft, args.diff.to as EphemeraCharacterId)
+                        .addObject(args.objectId)
+                        .toStored()
                 },
             },
         })

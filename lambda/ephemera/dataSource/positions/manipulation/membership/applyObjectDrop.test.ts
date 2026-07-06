@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectDrop } from './applyObjectDrop'
+import { EphemeraPositionGraph } from '../../positionGraph'
 import * as kernelPersist from '../applyHostEffects'
 
 jest.mock('../applyHostEffects', () => ({
@@ -67,13 +68,13 @@ describe('applyObjectDrop', () => {
             ok: true,
             persisted: true,
             changed: true,
-            postApplyGraphs: {
-                [ROOM_ID]: {
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
                     nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
-                    edges: [] as [],
-                },
-                [CHARACTER_ID]: { nodes: [], edges: [] as [] },
-            },
+                    edges: [],
+                }),
+                EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, { nodes: [], edges: [] }),
+            ],
         })
 
         const result = await applyObjectDrop(

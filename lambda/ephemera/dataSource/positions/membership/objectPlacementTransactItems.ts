@@ -2,11 +2,7 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
-import {
-    addObjectToGraph,
-    effectiveRoomPositionGraph,
-    removeObjectFromGraph,
-} from './positionGraphMerge'
+import { fromRoomMeta } from '../positionGraph'
 import type { MembershipDiff } from './types'
 
 export type ObjectPlacementTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -26,8 +22,9 @@ export const buildObjectPlacementTransactItems = (args: {
                 },
                 updateKeys: ['positionGraph'],
                 updateReducer: (draft) => {
-                    const graph = effectiveRoomPositionGraph(draft)
-                    draft.positionGraph = removeObjectFromGraph(graph, args.objectId)
+                    draft.positionGraph = fromRoomMeta(draft, departureRoomId)
+                        .removeObject(args.objectId)
+                        .toStored()
                 },
             },
         })
@@ -48,8 +45,9 @@ export const buildObjectPlacementTransactItems = (args: {
                 },
                 updateKeys: ['positionGraph'],
                 updateReducer: (draft) => {
-                    const graph = effectiveRoomPositionGraph(draft)
-                    draft.positionGraph = addObjectToGraph(graph, args.objectId)
+                    draft.positionGraph = fromRoomMeta(draft, args.diff.to as EphemeraRoomId)
+                        .addObject(args.objectId)
+                        .toStored()
                 },
             },
         })

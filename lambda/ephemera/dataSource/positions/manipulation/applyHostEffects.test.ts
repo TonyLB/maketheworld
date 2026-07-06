@@ -102,8 +102,8 @@ describe('applyHostEffects', () => {
         })
         expect(transactWrite).toHaveBeenCalledTimes(1)
         if (result.ok && result.persisted) {
-            expect(result.postApplyGraphs[CHARACTER_ID]?.nodes).toEqual([])
-            expect(result.postApplyGraphs[ROOM_ID]?.nodes).toEqual([
+            expect(result.postApplyGraphs.find((g) => g.hostId === CHARACTER_ID)?.toStored().nodes).toEqual([])
+            expect(result.postApplyGraphs.find((g) => g.hostId === ROOM_ID)?.toStored().nodes).toEqual([
                 { tag: 'Object', universalKey: OBJECT_ID },
             ])
         }
@@ -157,8 +157,8 @@ describe('applyHostEffects', () => {
 
         expect(result).toMatchObject({ ok: true, persisted: true })
         if (result.ok && result.persisted) {
-            expect(result.postApplyGraphs[ROOM_ID]?.nodes).toEqual([])
-            expect(result.postApplyGraphs[CHARACTER_ID]?.nodes).toEqual([
+            expect(result.postApplyGraphs.find((g) => g.hostId === ROOM_ID)?.toStored().nodes).toEqual([])
+            expect(result.postApplyGraphs.find((g) => g.hostId === CHARACTER_ID)?.toStored().nodes).toEqual([
                 { tag: 'Object', universalKey: OBJECT_ID },
             ])
         }

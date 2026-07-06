@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
+import { EphemeraPositionGraph } from '../positionGraph'
 import * as kernelPersist from '../manipulation/applyHostEffects'
 
 jest.mock('../manipulation/applyHostEffects', () => ({
@@ -67,13 +68,13 @@ describe('applyObjectRoomMembership', () => {
             ok: true,
             persisted: true,
             changed: true,
-            postApplyGraphs: {
-                [FROM_ROOM]: { nodes: [], edges: [] as [] },
-                [TO_ROOM]: {
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(FROM_ROOM, { nodes: [], edges: [] }),
+                EphemeraPositionGraph.fromFieldPayload(TO_ROOM, {
                     nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
-                    edges: [] as [],
-                },
-            },
+                    edges: [],
+                }),
+            ],
         })
 
         const result = await applyObjectRoomMembership(

@@ -1,15 +1,16 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
-import { effectiveRoomPositionGraph } from '../../membership/positionGraphMerge'
+import { fromRoomMeta, type HostRelationalEdge } from '../../positionGraph'
 import type { HostRelationalPatch } from '../types'
-import {
-    addRelationalEdgeToGraph,
-    type ObservedHostRelationalEdge,
-    removeRelationalEdgeFromGraph,
-} from './relationalEdges'
 
 export type HostRelationalPatchTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
+
+const toHostRelationalEdge = (patch: HostRelationalPatch): HostRelationalEdge => ({
+    from: patch.edge.from,
+    to: patch.edge.to,
+    kind: patch.edge.kind,
+    ...(patch.edge.relationLabel !== undefined ? { relationLabel: patch.edge.relationLabel } : {}),
+})
 
 export const buildHostRelationalPatchTransactItems = (
     patches: HostRelationalPatch[]
@@ -17,12 +18,7 @@ export const buildHostRelationalPatchTransactItems = (
     const transactItems: HostRelationalPatchTransactItem[] = []
 
     for (const patch of patches) {
-        const observedEdge: ObservedHostRelationalEdge = {
-            from: patch.edge.from,
-            to: patch.edge.to,
-            kind: patch.edge.kind,
-            ...(patch.edge.relationLabel !== undefined ? { relationLabel: patch.edge.relationLabel } : {}),
-        }
+        const edge = toHostRelationalEdge(patch)
 
         transactItems.push({
             Update: {
@@ -32,10 +28,10 @@ export const buildHostRelationalPatchTransactItems = (
                 },
                 updateKeys: ['positionGraph'],
                 updateReducer: (draft) => {
-                    const graph = effectiveRoomPositionGraph(draft)
+                    const graph = fromRoomMeta(draft, patch.hostId)
                     draft.positionGraph = patch.op === 'add'
-                        ? addRelationalEdgeToGraph(graph, observedEdge)
-                        : removeRelationalEdgeFromGraph(graph, observedEdge)
+                        ? graph.addRelationalEdge(edge).toStored()
+                        : graph.removeRelationalEdge(edge).toStored()
                 },
             },
         })

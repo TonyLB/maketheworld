@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
+import { EphemeraPositionGraph } from '../positionGraph'
 import * as kernelPersist from '../manipulation/applyHostEffects'
 
 jest.mock('../manipulation/applyHostEffects', () => ({
@@ -47,13 +48,13 @@ const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 
-const postApplyNavigateGraphs = {
-    [FROM_ROOM]: { nodes: [], edges: [] as [] },
-    [TO_ROOM]: {
+const postApplyNavigateGraphs = [
+    EphemeraPositionGraph.fromFieldPayload(FROM_ROOM, { nodes: [], edges: [] }),
+    EphemeraPositionGraph.fromFieldPayload(TO_ROOM, {
         nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
-        edges: [] as [],
-    },
-}
+        edges: [],
+    }),
+]
 
 describe('applyCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -182,14 +183,14 @@ describe('applyCharacterRoomMembership', () => {
             ok: true,
             persisted: true,
             changed: true,
-            postApplyGraphs: {
-                [FROM_ROOM]: { nodes: [], edges: [] as [] },
-                [ROOM_C]: { nodes: [], edges: [] as [] },
-                [TO_ROOM]: {
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(FROM_ROOM, { nodes: [], edges: [] }),
+                EphemeraPositionGraph.fromFieldPayload(ROOM_C, { nodes: [], edges: [] }),
+                EphemeraPositionGraph.fromFieldPayload(TO_ROOM, {
                     nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
-                    edges: [] as [],
-                },
-            },
+                    edges: [],
+                }),
+            ],
         })
 
         await applyCharacterRoomMembership(

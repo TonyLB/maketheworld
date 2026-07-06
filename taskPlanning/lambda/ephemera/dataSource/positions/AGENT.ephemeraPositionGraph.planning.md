@@ -1,6 +1,6 @@
 # EphemeraPositionGraph --- play graph model and primitive consolidation
 
-**Status:** P1 complete. Next step: **P2** positions lane refactor (kernel + transact reducers migrate to `EphemeraPositionGraph`).
+**Status:** P2 kernel + transact reducers done. Next step: **EPG-5** legacy module delete, then **P3** actions dedup.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -223,13 +223,13 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 
 ### Phase P2 --- Positions lane refactor
 
-- [ ] **P2. Kernel**
-  - [ ] [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts) --- load host-bound graphs (`fromFieldPayload` / `fromPlayEnvelope`), simulate on **`EphemeraPositionGraph[]`**, persist via **`toStored()`** per graph (EPG-9)
-  - [ ] [`applyHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) --- same pattern; **`postApplyGraphs`** returns **`EphemeraPositionGraph[]`**
-- [ ] **P2. Planners + transact reducers**
-  - [ ] [`planHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/planHostRelationalPatch.ts)
-  - [ ] [`hostRelationalPatchTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/hostRelationalPatchTransactItems.ts)
-  - [ ] Membership transact builders importing merge helpers: [`objectPlacementTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/objectPlacementTransactItems.ts), [`characterRoomMembershipTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomMembershipTransactItems.ts), [`characterInventoryTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/characterInventoryTransactItems.ts)
+- [X] **P2. Kernel**
+  - [X] [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts) --- load host-bound graphs (`fromFieldPayload` / `fromPlayEnvelope`), simulate on **`EphemeraPositionGraph[]`**, persist via **`toStored()`** per graph (EPG-9)
+  - [X] [`applyHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) --- same pattern; **`postApplyGraphs`** returns **`EphemeraPositionGraph[]`**
+- [X] **P2. Planners + transact reducers**
+  - [X] [`planHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/planHostRelationalPatch.ts)
+  - [X] [`hostRelationalPatchTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/hostRelationalPatchTransactItems.ts)
+  - [X] Membership transact builders importing merge helpers: [`objectPlacementTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/objectPlacementTransactItems.ts), [`characterRoomMembershipTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/characterRoomMembershipTransactItems.ts), [`characterInventoryTransactItems.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/characterInventoryTransactItems.ts)
 - [ ] **P2. Delete legacy modules** (EPG-5 --- no shims)
   - [ ] Update all imports from [`positionGraphMerge.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.ts) to `positionGraph/`; delete file
   - [ ] Update all imports from [`relationalEdges.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/relational/relationalEdges.ts) to `positionGraph/`; delete file
@@ -303,7 +303,8 @@ Second command should stay clean (no transact in actions enrich).
 | P0 interfaces renames + field payload (EPG-8, EPG-9) | Done |
 | P0 class API stub | Done |
 | P1 core class + tests | Done |
-| P2 positions refactor | Not started |
+| P2 kernel + transact reducers | Done |
+| P2 positions refactor | In progress (legacy delete pending) |
 | P3 actions dedup | Not started |
 | P4 durable docs | Not started |
 

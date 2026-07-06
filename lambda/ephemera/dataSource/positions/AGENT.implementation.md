@@ -52,7 +52,7 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 Use when an atomic operator transfers an **`Object`** node between **membership hosts** (v1: room <-> character inventory). Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Actions egress playbook: [**Adding an atomic position-manipulation operator**](../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
-1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**`positionGraphMerge`**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
+1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**[`positionGraph/`](positionGraph/)**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
 
@@ -84,7 +84,8 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | File | Role |
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
-| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character and object nodes, seed from roster; **`effectiveCharacterPositionGraph`**) |
+| [`positionGraph/`](positionGraph/) | Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulation; kernel and transact reducers (P2) |
+| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Legacy pure graph helpers --- pending **EPG-5** delete |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) | Navigate follow-up: `optimisticUpdate` + `mergeRoomStack` at `beatAnchorTime` |
 | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) | Pure timestamp merge for navigate ladder races |

@@ -108,11 +108,11 @@ const persistCharacterRoomGraphViaKernel = async (
         return { ok: true as const, persisted: false, diff }
     }
 
-    const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
+    const postApplyRoomGraphs = kernelResult.postApplyGraphs.reduce<
         Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
-    >((result, [hostId, graph]) => {
-        if (isEphemeraRoomId(hostId)) {
-            result[hostId] = graph
+    >((result, graph) => {
+        if (isEphemeraRoomId(graph.hostId)) {
+            result[graph.hostId] = graph.toStored()
         }
         return result
     }, {})

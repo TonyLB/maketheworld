@@ -2,7 +2,7 @@
 
 **Status:** Membership transfer and host-local relational patch shipped. Coordinators route through shared membership adapter + **`applyHostEffects`** kernel, or relational planner + **`applyHostRelationalPatch`** kernel.
 
-**Play graph model (P1):** [`../positionGraph/`](../positionGraph/) ships host-bound **`EphemeraPositionGraph`** with membership + relational simulation helpers (`applyMembershipEffect`, `applyRelationalPatch`). Kernels and transact reducers still call legacy [`positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`relational/relationalEdges.ts`](relational/relationalEdges.ts) until **P2** migrates in-memory simulation to the class. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
+**Play graph model (P2):** [`../positionGraph/`](../positionGraph/) is the shared in-memory primitive. Kernels load via **`EphemeraPositionGraph.fromPlayEnvelope`**, simulate with **`applyMembershipEffect`** / **`applyRelationalPatch`**, and return **`postApplyGraphs: EphemeraPositionGraph[]`**. Transact reducers assemble host-bound graphs at the Dynamo read boundary (`fromRoomMeta` / `fromCharacterMeta`) and persist via **`toStored()`**. Legacy [`positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`relational/relationalEdges.ts`](relational/relationalEdges.ts) remain only until **EPG-5** delete. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
 
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 
@@ -48,7 +48,7 @@ type HostEffect =
 
 | Concern | Rule |
 | --- | --- |
-| Graph | Update via [`positionGraphMerge`](../membership/positionGraphMerge.ts) helpers (`addCharacterToGraph`, `removeCharacterFromGraph`, `addObjectToGraph`, `removeObjectFromGraph`) |
+| Graph | Update via [`EphemeraPositionGraph`](../positionGraph/) (`applyMembershipEffect` in kernel; transact reducers use `fromRoomMeta` / `fromCharacterMeta` + `toStored()`) |
 | Adjacency | Each `add` emits adjacency **Put**; each `remove` emits adjacency **Delete** (`buildPositionAdjacencyDataCategory`) |
 | Host row | Room hosts: `Meta::Room`; character inventory hosts: `Meta::Character` |
 | Edges | Membership-node effects only in **`applyHostEffects`** --- relational edges use **`applyHostRelationalPatch`** (shipped) |
@@ -63,7 +63,7 @@ type HostEffect =
 | **Reads** | `getPositionGraph` (or row fetch for transact reducers) **only** on hosts appearing in the effect list |
 | **Validate** | Before transact: for each effect, confirm expected node presence/absence on that host's graph; fail fast on impossible plans |
 | **Transact** | Single `transactWrite` bundling all host graph + adjacency items; exponential backoff on `TransactionCanceledException` (same pattern as expedient modules) |
-| **Output** | `{ changed: boolean; postApplyGraphs: Partial<Record<hostId, EphemeraPositionGraphFieldPayload>> }` for memo seeding |
+| **Output** | `{ changed: boolean; postApplyGraphs: EphemeraPositionGraph[] }` for memo seeding (coordinators seed cache via `graph.toPlayEnvelope()`) |
 | **Module path** | Top-level [`manipulation/`](./) --- sibling to `adapters/` and `membership/` (**M5**); entry: `applyHostEffects.ts` |
 | **v1 scope** | Membership-node add/remove only (**M4**) |
 | **Conflict** | On conflict between graph and adjacency, **`positionGraph` wins** (unchanged positions authority) |
@@ -97,7 +97,7 @@ Relational ops **do not** route through the **shared membership adapter**. Membe
 | --- | --- |
 | **Kernel entry** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) |
 | **Transact builder** | [`relational/hostRelationalPatchTransactItems.ts`](relational/hostRelationalPatchTransactItems.ts) |
-| **Edge helpers** | [`relational/relationalEdges.ts`](relational/relationalEdges.ts) |
+| **Edge helpers** | [`../positionGraph/`](../positionGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators) |
 | **Planner** | [`relational/planHostRelationalPatch.ts`](relational/planHostRelationalPatch.ts) |
 | **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
 | **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
@@ -345,7 +345,7 @@ Acceptance: kernel idempotency, dissolve edge match, coordinator fact bundle; di
 | [`adapters/`](adapters/) | Shared membership transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `planObjectDropTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff`, `computeDropDiff`, `hostEffectsFromDiffs` |
 | [`applyHostEffects.ts`](applyHostEffects.ts) | Manipulation kernel (**M5**, **M4**): validate + transact graph + adjacency only |
 
-Shared primitives consumed by kernel: [`../membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts), [`../membership/characterRoomMembershipTransactItems.ts`](../membership/characterRoomMembershipTransactItems.ts), [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts).
+Shared primitives consumed by kernel: [`../positionGraph/`](../positionGraph/), [`../membership/objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts), [`../membership/characterRoomMembershipTransactItems.ts`](../membership/characterRoomMembershipTransactItems.ts), [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts).
 
 ### Shipped coordinators (adapter + kernel)
 

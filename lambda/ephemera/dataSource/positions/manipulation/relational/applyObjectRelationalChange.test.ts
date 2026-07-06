@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
+import { EphemeraPositionGraph } from '../../positionGraph'
 import * as kernelPersist from '../applyHostRelationalPatch'
 
 jest.mock('../applyHostRelationalPatch', () => ({
@@ -83,17 +84,17 @@ describe('applyObjectRelationalChange', () => {
             ok: true,
             persisted: true,
             changed: true,
-            postApplyGraphs: {
-                [ROOM_ID]: {
-                    ...roomGraphWithObjects,
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
+                    nodes: roomGraphWithObjects.nodes,
                     edges: [{
                         tag: 'Relational' as const,
                         from: BROOM_ID,
                         to: TABLE_ID,
                         kind: 'On' as const,
                     }],
-                },
-            },
+                }),
+            ],
         })
 
         const result = await applyObjectRelationalChange(

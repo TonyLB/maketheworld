@@ -1,24 +1,14 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
-import { playPositionGraphToStoredTopology } from '../membership/positionGraphMerge'
+import { EphemeraPositionGraph } from '../positionGraph'
 import type {
     ApplyHostRelationalPatchArgs,
     ApplyHostRelationalPatchResult,
     HostRelationalPatch,
 } from './types'
 import { buildHostRelationalPatchTransactItems } from './relational/hostRelationalPatchTransactItems'
-import {
-    bothNodesOnHostGraph,
-    edgesMatch,
-    extractRelationalEdgesFromGraph,
-    type ObservedHostRelationalEdge,
-    addRelationalEdgeToGraph,
-    removeRelationalEdgeFromGraph,
-} from './relational/relationalEdges'
 
 export type ApplyHostRelationalPatchDependencies = {
     getPositionGraph?: (hostId: EphemeraRoomId) => Promise<PlayPositionGraph>
@@ -31,22 +21,18 @@ const defaultGetPositionGraph = async (hostId: EphemeraRoomId): Promise<PlayPosi
 const affectedHostIds = (patches: HostRelationalPatch[]): EphemeraRoomId[] =>
     [...new Set(patches.map((patch) => patch.hostId))]
 
-const toObservedEdge = (patch: HostRelationalPatch): ObservedHostRelationalEdge => ({
-    from: patch.edge.from,
-    to: patch.edge.to,
-    kind: patch.edge.kind,
-    ...(patch.edge.relationLabel !== undefined ? { relationLabel: patch.edge.relationLabel } : {}),
-})
-
-const validatePatches = (
+const validateAndSimulatePatches = (
     patches: HostRelationalPatch[],
-    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>
-): { ok: true; changed: boolean } | { ok: false; errorCode: string; errorMessage: string } => {
+    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraph>
+):
+    | { ok: true; changed: boolean; postApplyGraphs: EphemeraPositionGraph[] }
+    | { ok: false; errorCode: string; errorMessage: string } => {
     let anyChanged = false
+    const workingGraphs = new Map<EphemeraRoomId, EphemeraPositionGraph>()
 
     for (const patch of patches) {
-        const graph = graphsByHost.get(patch.hostId)
-        if (!graph) {
+        const prior = workingGraphs.get(patch.hostId) ?? graphsByHost.get(patch.hostId)
+        if (!prior) {
             return {
                 ok: false,
                 errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
@@ -54,76 +40,28 @@ const validatePatches = (
             }
         }
 
-        if (!isEphemeraRoomId(patch.hostId)) {
+        try {
+            const next = prior.applyRelationalPatch(patch)
+            if (!next.equals(prior)) {
+                anyChanged = true
+            }
+            workingGraphs.set(patch.hostId, next)
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
             return {
                 ok: false,
                 errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: `Relational patch host must be a room: ${patch.hostId}`,
+                errorMessage: message,
             }
-        }
-
-        if (patch.edge.kind === 'Custom' && typeof patch.edge.relationLabel !== 'string') {
-            return {
-                ok: false,
-                errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: 'Custom relational edge requires relationLabel',
-            }
-        }
-
-        if (!bothNodesOnHostGraph(graph, patch.edge.from, patch.edge.to)) {
-            return {
-                ok: false,
-                errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: `Nodes ${patch.edge.from} and/or ${patch.edge.to} not on host ${patch.hostId}`,
-            }
-        }
-
-        const observedEdge = toObservedEdge(patch)
-        const existingEdges = extractRelationalEdgesFromGraph(graph)
-        const matchingEdge = existingEdges.find((edge) => edgesMatch(edge, observedEdge))
-
-        if (patch.op === 'add') {
-            if (matchingEdge) {
-                continue
-            }
-            anyChanged = true
-        }
-        else if (!matchingEdge) {
-            return {
-                ok: false,
-                errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: `Cannot remove relational edge ${patch.edge.from} -> ${patch.edge.to} on ${patch.hostId}: not present`,
-            }
-        }
-        else {
-            anyChanged = true
         }
     }
 
-    return { ok: true, changed: anyChanged }
-}
-
-const computePostApplyGraphs = (
-    patches: HostRelationalPatch[],
-    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>
-): Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> => {
-    const workingGraphs = new Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>()
-
-    for (const patch of patches) {
-        const prior = workingGraphs.get(patch.hostId) ?? graphsByHost.get(patch.hostId)
-        if (!prior) {
-            continue
-        }
-        const observedEdge = toObservedEdge(patch)
-        workingGraphs.set(
-            patch.hostId,
-            patch.op === 'add'
-                ? addRelationalEdgeToGraph(prior, observedEdge)
-                : removeRelationalEdgeFromGraph(prior, observedEdge)
-        )
+    return {
+        ok: true,
+        changed: anyChanged,
+        postApplyGraphs: [...workingGraphs.values()],
     }
-
-    return Object.fromEntries(workingGraphs) as Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
 }
 
 export const applyHostRelationalPatch = async (
@@ -140,25 +78,25 @@ export const applyHostRelationalPatch = async (
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const hostIds = affectedHostIds(patches)
-    const graphsByHost = new Map<EphemeraRoomId, EphemeraPositionGraphFieldPayload>()
+    const graphsByHost = new Map<EphemeraRoomId, EphemeraPositionGraph>()
 
     await Promise.all(
         hostIds.map(async (hostId) => {
-            const graph = playPositionGraphToStoredTopology(await getPositionGraph(hostId))
+            const graph = EphemeraPositionGraph.fromPlayEnvelope(hostId, await getPositionGraph(hostId))
             graphsByHost.set(hostId, graph)
         })
     )
 
-    const validation = validatePatches(patches, graphsByHost)
-    if (!validation.ok) {
-        return validation
+    const simulation = validateAndSimulatePatches(patches, graphsByHost)
+    if (!simulation.ok) {
+        return simulation
     }
 
-    if (!validation.changed) {
+    if (!simulation.changed) {
         return { ok: true, persisted: false, changed: false }
     }
 
-    const postApplyGraphs = computePostApplyGraphs(patches, graphsByHost)
+    const { postApplyGraphs } = simulation
 
     try {
         let persisted = false

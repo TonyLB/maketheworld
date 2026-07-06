@@ -1,14 +1,13 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
 import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
+import type { EphemeraPositionGraph } from '../positionGraph'
 import { buildObjectMovedFact } from './buildObjectMovedFact'
 import { streamObjectMembershipFact } from './streamObjectMembershipFact'
 import type { MembershipApplyResult, MembershipDiff, ObjectMembershipApplyArgs } from './types'
@@ -25,15 +24,16 @@ const defaultGetMembershipContainers = async (objectId: EphemeraObjectId): Promi
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
 }
 
-const seedPositionsGraphMemos = (
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
-): void => {
-    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPositionGraphFieldPayload][]) {
-        internalCache.ComponentEphemeraMeta.invalidate(roomId)
-        internalCache.AffordanceRoomDeliverable.invalidate(roomId)
+const seedPositionsGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
+    for (const graph of postApplyGraphs) {
+        if (!isEphemeraRoomId(graph.hostId)) {
+            continue
+        }
+        internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
+        internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
         internalCache.Positions.set({
-            componentId: roomId,
-            graph: projectComponentGraphFromStoredPositionGraph(storedGraph),
+            componentId: graph.hostId,
+            graph: graph.toPlayEnvelope(),
         })
     }
 }
@@ -50,18 +50,6 @@ const membershipDiffFromProjection = (projection: {
     to: projection.to,
     changed: projection.changed,
 })
-
-const roomGraphsFromKernelResult = (
-    postApplyGraphs: Partial<Record<string, EphemeraPositionGraphFieldPayload>>
-): Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> => {
-    const result: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>> = {}
-    for (const [hostId, graph] of Object.entries(postApplyGraphs)) {
-        if (isEphemeraRoomId(hostId)) {
-            result[hostId] = graph
-        }
-    }
-    return result
-}
 
 export const applyObjectRoomMembership = async (
     args: ObjectMembershipApplyArgs,
@@ -107,7 +95,6 @@ export const applyObjectRoomMembership = async (
     }
 
     const beatAnchorTime = getCurrentTimestamp()
-    const postApplyRoomGraphs = roomGraphsFromKernelResult(kernelResult.postApplyGraphs)
 
     const fact = buildObjectMovedFact({
         objectId: args.objectId,
@@ -119,7 +106,7 @@ export const applyObjectRoomMembership = async (
     }
 
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
-    seedPositionsGraphMemos(postApplyRoomGraphs)
+    seedPositionsGraphMemos(kernelResult.postApplyGraphs)
     internalCache.Positions.setMembershipContainers({
         componentId: args.objectId,
         containers: diff.to ? [diff.to] : [],
