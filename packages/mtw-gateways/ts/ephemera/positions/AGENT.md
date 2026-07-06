@@ -24,6 +24,8 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 
 **`PlayPositionGraph`** is a topology-only type (alias of `StandardPositionGraphData`); see type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope). Normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-s1-5-s1-15-slice-2).
 
+This package owns **read projection** (`PlayPositionGraph`, [`project.ts`](project.ts)); it does **not** own play manipulation simulation. After cache read, ephemera manipulation uses **`EphemeraPositionGraph`** --- see [`lambda/ephemera/dataSource/positions/positionGraph/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/positionGraph/AGENT.md).
+
 Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)) --- topology from **`internalCache.Positions.getPositionGraph`**, display fields from **`CharacterMeta`** + **`CharacterSessions`**.
 
 ## Slice 2 backing (shipped; **S2-6** storage retirement)
@@ -48,7 +50,7 @@ Play membership persistence converges on two authoritative structures (**S2-5**)
 | **`positionGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
 | **`positionGraph.edges`** | In-host relational edges on room host graphs (`tag: 'Relational'`, BD-2/BD-3); projected on gateway read. Exit edges remain out of scope for v1 room graphs. |
 
-**Types:** [`EphemeraPlayPositionGraph`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) and [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
+**Types:** [`EphemeraPositionGraphFieldPayload`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) and [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts). Host-bound manipulation JSON: [`EphemeraPositionGraphData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
 **Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load (**S2-6-H**). Roster compose is ephemera-only: **`getRoomCharacterList`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
 

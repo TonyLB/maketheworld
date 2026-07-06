@@ -1,4 +1,3 @@
-import { extractCharacterIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { RoomCharacterListItem } from './baseClasses'
@@ -36,6 +35,6 @@ export async function getRoomCharacterList(
     roomId: EphemeraRoomId
 ): Promise<RoomCharacterListItem[]> {
     const graph = await internalCache.Positions.getPositionGraph(roomId)
-    const characterIds = extractCharacterIdsFromPlayPositionGraph(graph)
+    const characterIds = [...graph.characterIds]
     return hydrateRoomRosterFromCharacterIds(characterIds)
 }

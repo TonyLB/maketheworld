@@ -21,6 +21,7 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index** (**S2-6**). Roster display hydrates at read time (**S2-6-H**). |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
+| **`EphemeraPositionGraph`** | Host-bound in-memory play manipulation model (class in [`positionGraph/`](positionGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
 
 ---
 
@@ -31,7 +32,7 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 | Graph role | Question | Authoritative writer | Steady-state example |
 | --- | --- | --- | --- |
 | **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `positionGraph` (Exit edges, macro layout) |
-| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.positionGraph` + adjacency index |
+| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.positionGraph` + adjacency index; simulated via **`EphemeraPositionGraph`** |
 | **Materialized presentation** | What does this **consumer** see at this perspective? | Consumer-specific materialization (e.g. affordanceCache) | `Affordance::` row `topology.exits` |
 | **Ephemeral presentation** | What is the **wire-ready** view at read time? | Ephemera compose (cross-cache) | Hydrated roster in `AffordanceRoomDeliverable` |
 
@@ -39,12 +40,23 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 
 ### Type boundary (storage vs gateway read envelope)
 
-| Type | Layer | Carries |
-| --- | --- | --- |
-| **`EphemeraPlayPositionGraph`** | Dynamo manipulation truth | Character + Object **identity** nodes (`CHARACTER#...`, `OBJECT#...`); no roster display fields |
-| **`PlayPositionGraph`** | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) | Structural projection of stored `EphemeraPlayPositionGraph` nodes/edges to WML graph shape; no roster display or reverse-membership fields |
+Five names, five roles --- same `{ nodes, edges }` shape, different **authority** and **layer**:
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Gateway memo (**`Positions.set`**) seeds **topology only** after membership apply; roster is never cached on the graph envelope.
+| Type | Layer | Role |
+| --- | --- | --- |
+| **`EphemeraPositionGraphFieldPayload`** | Dynamo `Meta::*.positionGraph` attribute | Stored attribute; Character + Object **identity** nodes; `hostId` omitted (row `EphemeraId` is authoritative) |
+| **`EphemeraPositionGraphData`** | `@tonylb/mtw-interfaces` | Manipulation JSON with **`hostId`**; `toJSON()` / read-boundary assemble shape |
+| **`EphemeraPositionGraph`** | [`lambda/ephemera/.../positionGraph/`](positionGraph/) | Host-bound manipulation **class**; immutable simulation API |
+| **`PlayPositionGraph`** | `@tonylb/mtw-gateways` | Topology-only **read envelope** (alias of `StandardPositionGraphData`) |
+| **`StandardPositionGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only v1; asset merge authority) |
+
+**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraPositionGraph`** -> simulate -> `toStored()` persist; **`internalCache.Positions.getPositionGraph`** -> wrapper **`fromPlayEnvelope`** -> class. Module detail: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
+
+#### WML convergence (future)
+
+Relational edge **wire types** should stay aligned between **`EphemeraPositionRelationalEdgeData`** (stored play JSON) and future WML **`Relational`** tag members (BD-2/BD-3). **Authority** stays separate: WML **`StandardPositionGraph`** owns authored blueprint and seed/snapshot import; **`EphemeraPositionGraph`** owns live play mutation. Adapters (`fromPlayEnvelope`, future `fromWML`) are the seam --- do not merge classes or Dynamo write paths. Future WML **`EdgeList`** consolidation is deferred until heterogeneous room/container edge lists ship in mtw-wml.
 
 **Cross-links:** gateway handler scope --- [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
 
@@ -78,7 +90,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 
 Held-object inventory is **positions-owned** play manipulation on the character host:
 
-- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPlayPositionGraph`** shape as room hosts; v1 **Object** nodes only.
+- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPositionGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.

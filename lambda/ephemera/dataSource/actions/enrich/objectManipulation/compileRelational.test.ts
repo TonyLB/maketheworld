@@ -1,23 +1,22 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
+import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
 import { compileRelational } from './compileRelational'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import type { ProvisionalRelationalEdgeData } from './relationalObservation'
+import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 
-const roomGraphWithObjects = {
+const roomGraphWithObjects = testPositionGraph(roomId, {
     nodes: [
         { tag: 'Object' as const, universalKey: broomId },
         { tag: 'Object' as const, universalKey: tableId },
     ],
-    edges: [],
-} as unknown as PlayPositionGraph
+})
 
-const onTableEdge: ProvisionalRelationalEdgeData = {
+const onTableEdge: EphemeraPositionRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
@@ -97,10 +96,15 @@ describe('compileRelational', () => {
     })
 
     it('allows idempotent establish when exact edge already present', async () => {
-        const getPositionGraph = jest.fn().mockResolvedValue({
-            ...roomGraphWithObjects,
-            edges: [onTableEdge],
-        } as unknown as PlayPositionGraph)
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: broomId },
+                    { tag: 'Object' as const, universalKey: tableId },
+                ],
+                edges: [onTableEdge],
+            })
+        )
 
         const result = await compileRelational(
             {
@@ -124,10 +128,15 @@ describe('compileRelational', () => {
     })
 
     it('returns complexRelational Error when conflicting topology exists', async () => {
-        const getPositionGraph = jest.fn().mockResolvedValue({
-            ...roomGraphWithObjects,
-            edges: [onTableEdge],
-        } as unknown as PlayPositionGraph)
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: broomId },
+                    { tag: 'Object' as const, universalKey: tableId },
+                ],
+                edges: [onTableEdge],
+            })
+        )
 
         const result = await compileRelational(
             {
@@ -156,13 +165,14 @@ describe('compileRelational', () => {
     it('returns dissolveNoMatchingEdge when dissolve has no matching edge', async () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
-        const getPositionGraph = jest.fn().mockResolvedValue({
-            nodes: [
-                { tag: 'Object' as const, universalKey: ropeId },
-                { tag: 'Object' as const, universalKey: crateId },
-            ],
-            edges: [],
-        } as unknown as PlayPositionGraph)
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: ropeId },
+                    { tag: 'Object' as const, universalKey: crateId },
+                ],
+            })
+        )
 
         const result = await compileRelational(
             {

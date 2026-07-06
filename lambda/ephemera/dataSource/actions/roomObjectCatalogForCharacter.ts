@@ -1,8 +1,6 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import {
     EphemeraCharacterId,
     EphemeraObjectId,
@@ -16,6 +14,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import internalCache from '../../internalCache'
+import type { EphemeraPositionGraph } from '../positions/positionGraph'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 
@@ -31,7 +30,7 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<PlayPositionGraph>
+    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     resolvePerspective: (
         roomId: EphemeraRoomId,
@@ -96,7 +95,7 @@ export async function getRoomObjectCatalogForCharacter(
     }
 
     const positionGraph = await deps.getPositionGraph(roomId)
-    const objectIds = extractObjectIdsFromPlayPositionGraph(positionGraph)
+    const objectIds = [...positionGraph.objectIds]
     if (objectIds.length === 0) {
         return { roomId, entries: [] }
     }

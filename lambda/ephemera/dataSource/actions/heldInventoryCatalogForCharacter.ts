@@ -1,8 +1,6 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import {
     EphemeraCharacterId,
     EphemeraObjectId,
@@ -14,6 +12,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import internalCache from '../../internalCache'
+import type { EphemeraPositionGraph } from '../positions/positionGraph'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 
@@ -22,7 +21,7 @@ export type HeldInventoryCatalogForCharacter = {
 }
 
 export type HeldInventoryCatalogDeps = {
-    getPositionGraph: (characterId: EphemeraCharacterId) => Promise<PlayPositionGraph>
+    getPositionGraph: (characterId: EphemeraCharacterId) => Promise<EphemeraPositionGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     getComponentAggregate: ComponentAggregateMergedCache['get']
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
@@ -69,7 +68,7 @@ export async function getHeldInventoryCatalogForCharacter(
 ): Promise<HeldInventoryCatalogForCharacter> {
     const deps: HeldInventoryCatalogDeps = { ...defaultDeps(), ...partialDeps }
     const positionGraph = await deps.getPositionGraph(characterId)
-    const objectIds = extractObjectIdsFromPlayPositionGraph(positionGraph)
+    const objectIds = [...positionGraph.objectIds]
     if (objectIds.length === 0) {
         return { entries: [] }
     }

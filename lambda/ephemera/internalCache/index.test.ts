@@ -1,6 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
+import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
 import internalCache from "."
 import { getRoomCharacterList } from './hydrateRoomRoster'
 
@@ -67,13 +68,12 @@ describe('InternalCache', () => {
             },
         ]
         const getPositionGraphSpy = jest.spyOn(internalCache.Positions, 'getPositionGraph')
-            .mockResolvedValue({
+            .mockResolvedValue(testPositionGraph('ROOM#1234', {
                 nodes: [
                     { tag: 'Character', universalKey: 'CHARACTER#123' },
                     { tag: 'Character', universalKey: 'CHARACTER#456' },
                 ],
-                edges: [],
-            })
+            }))
         jest.spyOn(internalCache.CharacterMeta, 'get').mockImplementation(async (characterId) => {
             if (characterId === 'CHARACTER#123') {
                 return {

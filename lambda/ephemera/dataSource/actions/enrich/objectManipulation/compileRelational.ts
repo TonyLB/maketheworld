@@ -54,14 +54,14 @@ export async function compileRelational(
     }
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const positionGraph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
+    const graph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
 
     const legality = evaluateRelationalLegality({
         operationKind: frame.operationKind,
         subjectId: grounding.subjectId,
         targetId: grounding.targetId,
         normalizedRelation: norm.relation,
-        positionGraph,
+        graph,
     })
     if (legality.type === 'error') {
         return { type: 'Error', errorMessage: legality.errorMessage }

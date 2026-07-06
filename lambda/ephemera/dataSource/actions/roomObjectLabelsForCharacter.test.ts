@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
+import { testPositionGraph } from '../positions/positionGraph/testFixtures'
 import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
@@ -24,7 +25,7 @@ describe('getRoomObjectLabelsForCharacter', () => {
     it('returns empty array when character has no room', async () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
             getMembershipContainers: async () => [],
-            getPositionGraph: async () => ({ nodes: [], edges: [] }),
+            getPositionGraph: async () => testPositionGraph(roomId),
             getImprovisationObject: async () => ({}),
         })
 
@@ -35,12 +36,11 @@ describe('getRoomObjectLabelsForCharacter', () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => ({
+            getPositionGraph: async () => testPositionGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: broomId },
                     { tag: 'Object', universalKey: anvilId },
                 ],
-                edges: [],
             }),
             getImprovisationObject: async (objectId) => {
                 if (objectId === broomId) {
@@ -60,9 +60,8 @@ describe('getRoomObjectLabelsForCharacter', () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => ({
+            getPositionGraph: async () => testPositionGraph(roomId, {
                 nodes: [{ tag: 'Object', universalKey: noNameId }],
-                edges: [],
             }),
             getImprovisationObject: async () => ({ component: new StandardObject({ tag: 'Object' }) }),
         })
@@ -74,7 +73,7 @@ describe('getRoomObjectLabelsForCharacter', () => {
         const result = await getRoomObjectLabelsForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => ({ nodes: [], edges: [] }),
+            getPositionGraph: async () => testPositionGraph(roomId),
             getImprovisationObject: async () => ({}),
         })
 

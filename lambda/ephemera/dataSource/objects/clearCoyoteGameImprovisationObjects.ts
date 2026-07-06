@@ -3,8 +3,6 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
-import { extractObjectIdsFromPlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
@@ -54,7 +52,7 @@ export const clearCoyoteGameImprovisationObjects = async (
     const objectIdSet = new Set<EphemeraObjectId>()
     for (const roomId of affectedRoomIds) {
         const graph = await getRoomPositionGraph(roomId)
-        for (const objectId of extractObjectIdsFromPlayPositionGraph(graph)) {
+        for (const objectId of graph.objectIds) {
             objectIdSet.add(objectId)
         }
     }

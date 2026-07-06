@@ -16,7 +16,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
 
-Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Shared play graph primitive: [`positionGraph/`](#positiongraph-play-manipulation-model) below. Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
 
 | Path | Role |
 | --- | --- |
@@ -52,7 +52,7 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 Use when an atomic operator transfers an **`Object`** node between **membership hosts** (v1: room <-> character inventory). Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Actions egress playbook: [**Adding an atomic position-manipulation operator**](../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
-1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**`positionGraphMerge`**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
+1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**[`positionGraph/`](positionGraph/)**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
 
@@ -71,6 +71,25 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
 
+### `positionGraph/` (play manipulation model)
+
+Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulation; sole in-memory primitive for kernel, transact reducers, and read-only actions observation. Spec: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+
+| File | Role |
+| --- | --- |
+| [`positionGraph/index.ts`](positionGraph/index.ts) | **`EphemeraPositionGraph` class** + factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) |
+| [`positionGraph/baseClasses.ts`](positionGraph/baseClasses.ts) | **`HostRelationalEdge`** parsed view; relational parse/match/serialize helpers |
+| [`positionGraph/index.test.ts`](positionGraph/index.test.ts) | Unit tests |
+
+**Import map:**
+
+```text
+positionGraph/  <-- shared primitive
+  ^-- manipulation/applyHostEffects, applyHostRelationalPatch, relational/planHostRelationalPatch
+  ^-- membership/*TransactItems (fromRoomMeta/fromCharacterMeta + toStored)
+  ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelational (read-only)
+```
+
 ### `navigate/` (shared execution + post-persist orchestration)
 
 | File | Role |
@@ -84,7 +103,6 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 | File | Role |
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
-| [`membership/positionGraphMerge.ts`](membership/positionGraphMerge.ts) | Pure graph merge helpers (add/remove character and object nodes, seed from roster; **`effectiveCharacterPositionGraph`**) |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) | Navigate follow-up: `optimisticUpdate` + `mergeRoomStack` at `beatAnchorTime` |
 | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) | Pure timestamp merge for navigate ladder races |
@@ -133,7 +151,7 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
 | [`membership/repairRoomOccupancyDrift.test.ts`](membership/repairRoomOccupancyDrift.test.ts) | Occupancy drift repair (ghost purge, adjacency sync, idempotency) |
 | [`membership/syncMembershipAdjacency.test.ts`](membership/syncMembershipAdjacency.test.ts) | Adjacency-only sync transact + memo |
-| [`membership/positionGraphMerge.test.ts`](membership/positionGraphMerge.test.ts) | Pure graph merge helpers |
+| [`positionGraph/index.test.ts`](positionGraph/index.test.ts) | **`EphemeraPositionGraph`** class: membership nodes, relational edges, factories, serialization |
 | [`membership/planMembershipTransfer.characterPersist.test.ts`](membership/planMembershipTransfer.characterPersist.test.ts) | Character navigate persist: adapter + kernel transact (graph + adjacency only) |
 | [`membership/planMembershipTransfer.objectPersist.test.ts`](membership/planMembershipTransfer.objectPersist.test.ts) | Object room placement persist: adapter + kernel transact |
 | [`membership/membershipContainersSharedMemo.test.ts`](membership/membershipContainersSharedMemo.test.ts) | Parse + apply share `getMembershipContainers` memo (slice 1c) |
@@ -222,7 +240,7 @@ Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside 
 | `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` | Room forward position graph memo from **`postApplyRoomGraphs`** (**S2-6-H**) |
+| `internalCache.Positions.set` | Forward position graph memo from **`postApplyGraphs`** (**`EphemeraPositionGraph`**, **S2-6-H**) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo (S1-15) |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents`) | `Character Moved` when `changed` |
@@ -235,9 +253,9 @@ Manipulation truth (`positionGraph`, adjacency) vs presentation compose (hydrate
 
 | System | Role |
 | --- | --- |
-| [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`createPositionsCacheHandler(ephemeraDB)`** (topology + adjacency memo) |
+| [`../../internalCache/index.ts`](../../internalCache/index.ts) | **`internalCache.Positions`** via **`EphemeraPositionsCacheData`** ([`../../internalCache/positionsCache.ts`](../../internalCache/positionsCache.ts)) --- class in/out memo over gateway handler |
 | [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts) | **`hydrateRoomRosterFromCharacterIds`**, **`getRoomCharacterList`** --- derive-on-call roster assembler (**S2-6-H**) |
-| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Room + character `getPositionGraph` (stored topology); `getMembershipContainers` (adjacency only) |
+| [`../../../../packages/mtw-gateways/ts/ephemera/positions/`](../../../../packages/mtw-gateways/ts/ephemera/positions/) | Underlying **`PlayPositionGraph`** load/persist; ephemera callers use wrapper only |
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`getRoomCharacterList`** |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |

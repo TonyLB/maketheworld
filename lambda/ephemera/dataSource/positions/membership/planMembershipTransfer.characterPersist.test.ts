@@ -29,10 +29,11 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { computeMembershipDiff } from '../manipulation/adapters/computeEndStateRoomDiff'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import type { MembershipApplyArgs, MembershipDiff } from './types'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
@@ -61,7 +62,11 @@ const emptyGraph = { nodes: [], edges: [] as [] }
 const getPositionGraphForCharacterRooms = async (
     hostId: EphemeraMembershipHostId,
     presentOn: EphemeraRoomId[]
-) => (isEphemeraRoomId(hostId) && presentOn.includes(hostId) ? characterPresentGraph : emptyGraph)
+) => (
+    isEphemeraRoomId(hostId) && presentOn.includes(hostId)
+        ? testPositionGraph(hostId, characterPresentGraph)
+        : testPositionGraph(hostId, emptyGraph)
+)
 
 type PersistCharacterDeps = {
     getCharacterMeta?: () => Promise<CharacterMetaItem>;
@@ -108,11 +113,11 @@ const persistCharacterRoomGraphViaKernel = async (
         return { ok: true as const, persisted: false, diff }
     }
 
-    const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
-        Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
-    >((result, [hostId, graph]) => {
-        if (isEphemeraRoomId(hostId)) {
-            result[hostId] = graph
+    const postApplyRoomGraphs = kernelResult.postApplyGraphs.reduce<
+        Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
+    >((result, graph) => {
+        if (isEphemeraRoomId(graph.hostId)) {
+            result[graph.hostId] = graph.toStored()
         }
         return result
     }, {})
@@ -222,9 +227,10 @@ describe('character membership persist (adapter + kernel)', () => {
             persisted: true,
             diff: { froms: [ROOM_A], to: ROOM_B, changed: true },
             postApplyRoomGraphs: {
-                [ROOM_A]: { nodes: [] },
+                [ROOM_A]: { nodes: [], edges: [] },
                 [ROOM_B]: {
                     nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }],
+                    edges: [],
                 },
             },
         }))

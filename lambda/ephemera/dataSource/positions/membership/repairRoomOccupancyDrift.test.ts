@@ -7,6 +7,7 @@ jest.mock('./syncMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 import { repairRoomOccupancyDrift } from './repairRoomOccupancyDrift'
@@ -15,10 +16,9 @@ const ROOM_ID = 'ROOM#alpha' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#one' as EphemeraCharacterId
 const OTHER_ROOM = 'ROOM#other' as EphemeraRoomId
 
-const graphWithCharacter = {
+const graphWithCharacter = testPositionGraph(ROOM_ID, {
     nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
-    edges: [],
-}
+})
 
 describe('repairRoomOccupancyDrift', () => {
     const messageBus = { publish: jest.fn() }
@@ -113,7 +113,7 @@ describe('repairRoomOccupancyDrift', () => {
     })
 
     it('does nothing when room graph has no character nodes', async () => {
-        getPositionGraph.mockResolvedValue({ nodes: [], edges: [] })
+        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID))
 
         const result = await runRepair()
 

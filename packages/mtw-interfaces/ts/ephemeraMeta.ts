@@ -8,6 +8,10 @@ import {
     type EphemeraObjectId,
 } from './baseClasses'
 import { areCoyoteObjectTropeFieldsValid, type CoyoteTropeAffinity } from './coyotePlanAffinities'
+import {
+    isEphemeraMembershipHostId,
+    type EphemeraMembershipHostId,
+} from './ephemeraPositionAdjacency'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -146,7 +150,7 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
 }
 
 /** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes (nodes only). */
-export type EphemeraPlayPositionGraphNode =
+export type EphemeraPositionGraphNode =
     | {
         tag: 'Character';
         universalKey: EphemeraCharacterId;
@@ -159,7 +163,7 @@ export type EphemeraPlayPositionGraphNode =
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
 /** In-host relational edge on room positionGraph (Phase B establishRelation / dissolveRelation). */
-export type EphemeraPlayRelationalEdgeData = {
+export type EphemeraPositionRelationalEdgeData = {
     tag: 'Relational';
     from: EphemeraObjectId;
     to: EphemeraObjectId;
@@ -169,11 +173,11 @@ export type EphemeraPlayRelationalEdgeData = {
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
 
-export const isEphemeraPlayRelationalEdgeData = (value: unknown): value is EphemeraPlayRelationalEdgeData => {
+export const isEphemeraPositionRelationalEdgeData = (value: unknown): value is EphemeraPositionRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
     }
-    const edge = value as EphemeraPlayRelationalEdgeData
+    const edge = value as EphemeraPositionRelationalEdgeData
     if (edge.tag !== 'Relational') {
         return false
     }
@@ -192,18 +196,22 @@ export const isEphemeraPlayRelationalEdgeData = (value: unknown): value is Ephem
     return true
 }
 
-/** Play-time membership graph stored on Meta::Room (topology only; roster display hydrated at read time -- S2-6-H). */
-export type EphemeraPlayPositionGraph = {
-    nodes: EphemeraPlayPositionGraphNode[];
+/** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
+export type EphemeraPositionGraphData = {
+    hostId: EphemeraMembershipHostId;
+    nodes: EphemeraPositionGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
-    edges?: EphemeraPlayRelationalEdgeData[];
+    edges?: EphemeraPositionRelationalEdgeData[];
 }
 
-export const isEphemeraPlayPositionGraphNode = (value: unknown): value is EphemeraPlayPositionGraphNode => {
+/** Value of Meta::*.positionGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
+export type EphemeraPositionGraphFieldPayload = Omit<EphemeraPositionGraphData, 'hostId'>
+
+export const isEphemeraPositionGraphNode = (value: unknown): value is EphemeraPositionGraphNode => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const entry = value as EphemeraPlayPositionGraphNode
+    const entry = value as EphemeraPositionGraphNode
     if ('key' in entry) {
         return false
     }
@@ -216,24 +224,35 @@ export const isEphemeraPlayPositionGraphNode = (value: unknown): value is Epheme
     return false
 }
 
-export const isEphemeraPlayPositionGraph = (value: unknown): value is EphemeraPlayPositionGraph => {
+export const isEphemeraPositionGraphFieldPayload = (value: unknown): value is EphemeraPositionGraphFieldPayload => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const graph = value as EphemeraPlayPositionGraph
+    const graph = value as EphemeraPositionGraphFieldPayload
     if (!Array.isArray(graph.nodes)) {
         return false
     }
-    if (!graph.nodes.every((entry) => isEphemeraPlayPositionGraphNode(entry))) {
+    if (!graph.nodes.every((entry) => isEphemeraPositionGraphNode(entry))) {
         return false
     }
     if ('edges' in graph) {
         const edges = graph.edges
-        if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraPlayRelationalEdgeData(entry))) {
+        if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraPositionRelationalEdgeData(entry))) {
             return false
         }
     }
     return true
+}
+
+export const isEphemeraPositionGraphData = (value: unknown): value is EphemeraPositionGraphData => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const graph = value as EphemeraPositionGraphData
+    if (typeof graph.hostId !== 'string' || !isEphemeraMembershipHostId(graph.hostId)) {
+        return false
+    }
+    return isEphemeraPositionGraphFieldPayload(graph)
 }
 
 export type EphemeraMetaRoom = {
@@ -248,7 +267,7 @@ export type EphemeraMetaRoom = {
     //
     // Play-time membership graph (slice 2+ authority). Character + Object nodes shipped (Object: nodes only).
     //
-    positionGraph?: EphemeraPlayPositionGraph;
+    positionGraph?: EphemeraPositionGraphFieldPayload;
 
     //
     // v1 world-state fields for state-driven, cache-backed Room rendering.
@@ -330,7 +349,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
     if ('objects' in value) {
         return false
     }
-    if ('positionGraph' in value && !isEphemeraPlayPositionGraph(value.positionGraph)) {
+    if ('positionGraph' in value && !isEphemeraPositionGraphFieldPayload(value.positionGraph)) {
         return false
     }
     return true
@@ -352,7 +371,7 @@ export type EphemeraMetaCharacter = {
     //
     // Play-time inventory graph (D16 / character host). v1: Object membership nodes only.
     //
-    positionGraph?: EphemeraPlayPositionGraph;
+    positionGraph?: EphemeraPositionGraphFieldPayload;
 }
 
 /** Validates the positions slice of a `Meta::Character` row; does not assert presentation / ladder fields. */
@@ -368,7 +387,7 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
     }
     if ('positionGraph' in value) {
         const positionGraph = value.positionGraph
-        if (!isEphemeraPlayPositionGraph(positionGraph)) {
+        if (!isEphemeraPositionGraphFieldPayload(positionGraph)) {
             return false
         }
         const hasCharacterNode = positionGraph.nodes.some((node) => node.tag === 'Character')

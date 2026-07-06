@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
@@ -33,7 +34,9 @@ describe('evaluateComplexityPreGates', () => {
         expect(evaluateComplexityPreGates({
             objectId: broomId,
             containers: [roomId],
-            positionGraph: { nodes: [{ tag: 'Object', universalKey: broomId }], edges: [] },
+            positionGraph: testPositionGraph(roomId, {
+                nodes: [{ tag: 'Object', universalKey: broomId }],
+            }),
         })).toEqual({ type: 'atomic', operationKind: 'takeHold' })
     })
 
@@ -41,7 +44,9 @@ describe('evaluateComplexityPreGates', () => {
         expect(evaluateComplexityPreGates({
             objectId: broomId,
             containers: [characterId],
-            positionGraph: { nodes: [{ tag: 'Object', universalKey: broomId }], edges: [] },
+            positionGraph: testPositionGraph(characterId, {
+                nodes: [{ tag: 'Object', universalKey: broomId }],
+            }),
             actorCharacterId: characterId,
         })).toEqual({ type: 'atomic', operationKind: 'drop' })
     })
@@ -50,7 +55,7 @@ describe('evaluateComplexityPreGates', () => {
         expect(evaluateComplexityPreGates({
             objectId: broomId,
             containers: ['CHARACTER#Other' as EphemeraCharacterId],
-            positionGraph: { nodes: [], edges: [] },
+            positionGraph: testPositionGraph('CHARACTER#Other' as EphemeraCharacterId),
             actorCharacterId: characterId,
         })).toEqual({ type: 'deferToComplexityLlm' })
     })
@@ -67,7 +72,7 @@ describe('evaluateComplexityPreGates', () => {
         expect(evaluateComplexityPreGates({
             objectId: broomId,
             containers: [roomId],
-            positionGraph: { edges: [edge] },
+            positionGraph: testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] }),
         })).toEqual({ type: 'deferToComplexityLlm' })
     })
 })

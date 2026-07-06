@@ -1,6 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
+import { testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import {
     buildObjectManipulationComplexityPrompt,
     buildObjectManipulationIdentityPrompt,
@@ -34,7 +35,7 @@ describe('buildObjectManipulationComplexityPrompt', () => {
         const { invariantPrefix, dynamicSuffix } = buildObjectManipulationComplexityPrompt('pick up broom', {
             objectId: broomId,
             containers: [roomId],
-            positionGraph: { nodes: [], edges: [touchingEdge] },
+            positionGraph: testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [touchingEdge] }),
         })
         expect(invariantPrefix).toContain('Do not re-resolve identity')
         expect(dynamicSuffix).toContain(broomId)

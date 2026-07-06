@@ -21,9 +21,10 @@ import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 import type { MembershipDiff, ObjectMembershipApplyArgs } from './types'
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
@@ -75,11 +76,11 @@ const persistObjectRoomGraphViaKernel = async (
         return { ok: true as const, persisted: false, diff }
     }
 
-    const postApplyRoomGraphs = Object.entries(kernelResult.postApplyGraphs).reduce<
-        Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
-    >((result, [hostId, graph]) => {
-        if (isEphemeraRoomId(hostId)) {
-            result[hostId] = graph
+    const postApplyRoomGraphs = kernelResult.postApplyGraphs.reduce<
+        Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>
+    >((result, graph) => {
+        if (isEphemeraRoomId(graph.hostId)) {
+            result[graph.hostId] = graph.toStored()
         }
         return result
     }, {})
@@ -137,7 +138,7 @@ describe('object room membership persist (adapter + kernel)', () => {
 
     it('places object in room with graph update and adjacency put', async () => {
         getMembershipContainers.mockResolvedValue([])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(testPositionGraph(ROOM_A))
 
         const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: ROOM_A },
@@ -168,12 +169,11 @@ describe('object room membership persist (adapter + kernel)', () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
         const getPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
             if (roomId === ROOM_A) {
-                return {
+                return testPositionGraph(ROOM_A, {
                     nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
-                    edges: [],
-                }
+                })
             }
-            return { nodes: [], edges: [] }
+            return testPositionGraph(roomId)
         })
 
         const result = await persistObjectRoomGraphViaKernel(
@@ -211,10 +211,11 @@ describe('object room membership persist (adapter + kernel)', () => {
 
     it('remove from room deletes graph node and adjacency without target put', async () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
-        const getPositionGraph = jest.fn().mockResolvedValue({
-            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
-            edges: [],
-        })
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(ROOM_A, {
+                nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
+            })
+        )
 
         const result = await persistObjectRoomGraphViaKernel(
             { objectId: OBJECT_ID, targetRoomId: null },
@@ -237,12 +238,11 @@ describe('object room membership persist (adapter + kernel)', () => {
         getMembershipContainers.mockResolvedValue([ROOM_A, ROOM_C])
         const getPositionGraph = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => {
             if (roomId === ROOM_A || roomId === ROOM_C) {
-                return {
+                return testPositionGraph(roomId, {
                     nodes: [{ tag: 'Object', universalKey: OBJECT_ID }],
-                    edges: [],
-                }
+                })
             }
-            return { nodes: [], edges: [] }
+            return testPositionGraph(roomId)
         })
 
         const result = await persistObjectRoomGraphViaKernel(

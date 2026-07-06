@@ -1,11 +1,10 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { projectComponentGraphFromStoredPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
+import type { EphemeraPositionGraph } from '../../positionGraph'
 import { applyHostRelationalPatch, type ApplyHostRelationalPatchDependencies } from '../applyHostRelationalPatch'
 import { buildObjectRelationalFact } from './buildObjectRelationalFact'
 import { planHostRelationalPatch } from './planHostRelationalPatch'
@@ -18,16 +17,14 @@ export type ApplyObjectRelationalChangeDependencies = {
     kernelPersist?: ApplyHostRelationalPatchDependencies
 }
 
-const seedRoomGraphMemos = (
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>
-): void => {
-    for (const [roomId, storedGraph] of Object.entries(postApplyRoomGraphs) as [EphemeraRoomId, EphemeraPlayPositionGraph][]) {
-        internalCache.ComponentEphemeraMeta.invalidate(roomId)
-        internalCache.AffordanceRoomDeliverable.invalidate(roomId)
-        internalCache.Positions.set({
-            componentId: roomId,
-            graph: projectComponentGraphFromStoredPositionGraph(storedGraph),
-        })
+const seedRoomGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
+    for (const graph of postApplyGraphs) {
+        if (!isEphemeraRoomId(graph.hostId)) {
+            continue
+        }
+        internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
+        internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
+        internalCache.Positions.set(graph)
     }
 }
 

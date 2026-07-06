@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { createPositionsCacheHandler } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { createEphemeraPositionsCacheData } from '../../../internalCache/positionsCache'
 
 import { getRoomExitTargetsForCharacter } from '../../actions/roomExitTargetsForCharacter'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
@@ -50,10 +50,10 @@ describe('membership containers shared memo (slice 1c)', () => {
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_ID),
         }])
         const getItemSpy = jest.fn()
-        internalCache.Positions = createPositionsCacheHandler({
+        internalCache.Positions = createEphemeraPositionsCacheData({
             getItem: getItemSpy,
             query: querySpy,
-        }) as typeof internalCache.Positions
+        })
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
         await applyCharacterRoomMembership(

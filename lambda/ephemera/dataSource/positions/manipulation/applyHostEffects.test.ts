@@ -5,6 +5,7 @@ import { planObjectDropTransfer } from './adapters/planObjectDropTransfer'
 import { planObjectTakeHoldTransfer } from './adapters/planObjectTakeHoldTransfer'
 import { planMembershipTransfer } from './adapters/planMembershipTransfer'
 import { applyHostEffects } from './applyHostEffects'
+import { testPositionGraph } from '../positionGraph/testFixtures'
 
 const OBJECT_ID = 'OBJECT#Broom' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -45,7 +46,9 @@ describe('applyHostEffects', () => {
             { hostEffects: plan.hostEffects },
             {
                 getPositionGraph: async (hostId) =>
-                    hostId === ROOM_ID ? roomGraphWithObject : emptyCharacterGraph,
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID, emptyCharacterGraph),
                 transactWrite,
             }
         )
@@ -90,7 +93,9 @@ describe('applyHostEffects', () => {
             { hostEffects: plan.hostEffects },
             {
                 getPositionGraph: async (hostId) =>
-                    hostId === CHARACTER_ID ? characterGraphWithObject : emptyRoomGraph,
+                    hostId === CHARACTER_ID
+                        ? testPositionGraph(CHARACTER_ID, characterGraphWithObject)
+                        : testPositionGraph(ROOM_ID, emptyRoomGraph),
                 transactWrite,
             }
         )
@@ -102,8 +107,8 @@ describe('applyHostEffects', () => {
         })
         expect(transactWrite).toHaveBeenCalledTimes(1)
         if (result.ok && result.persisted) {
-            expect(result.postApplyGraphs[CHARACTER_ID]?.nodes).toEqual([])
-            expect(result.postApplyGraphs[ROOM_ID]?.nodes).toEqual([
+            expect(result.postApplyGraphs.find((g) => g.hostId === CHARACTER_ID)?.toStored().nodes).toEqual([])
+            expect(result.postApplyGraphs.find((g) => g.hostId === ROOM_ID)?.toStored().nodes).toEqual([
                 { tag: 'Object', universalKey: OBJECT_ID },
             ])
         }
@@ -120,7 +125,7 @@ describe('applyHostEffects', () => {
         const result = await applyHostEffects(
             { hostEffects: plan.hostEffects },
             {
-                getPositionGraph: async () => ({ nodes: [], edges: [] }),
+                getPositionGraph: async () => testPositionGraph(ROOM_ID),
                 transactWrite,
             }
         )
@@ -150,15 +155,17 @@ describe('applyHostEffects', () => {
             { hostEffects: plan.hostEffects },
             {
                 getPositionGraph: async (hostId) =>
-                    hostId === ROOM_ID ? roomGraphWithObject : emptyCharacterGraph,
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID, emptyCharacterGraph),
                 transactWrite,
             }
         )
 
         expect(result).toMatchObject({ ok: true, persisted: true })
         if (result.ok && result.persisted) {
-            expect(result.postApplyGraphs[ROOM_ID]?.nodes).toEqual([])
-            expect(result.postApplyGraphs[CHARACTER_ID]?.nodes).toEqual([
+            expect(result.postApplyGraphs.find((g) => g.hostId === ROOM_ID)?.toStored().nodes).toEqual([])
+            expect(result.postApplyGraphs.find((g) => g.hostId === CHARACTER_ID)?.toStored().nodes).toEqual([
                 { tag: 'Object', universalKey: OBJECT_ID },
             ])
         }
@@ -182,7 +189,10 @@ describe('applyHostEffects', () => {
         const result = await applyHostEffects(
             { hostEffects: plan.hostEffects },
             {
-                getPositionGraph: async (hostId) => (hostId === ROOM_FROM ? fromGraph : toGraph),
+                getPositionGraph: async (hostId) =>
+                    hostId === ROOM_FROM
+                        ? testPositionGraph(ROOM_FROM, fromGraph)
+                        : testPositionGraph(ROOM_TO, toGraph),
                 transactWrite,
             }
         )
@@ -212,7 +222,9 @@ describe('applyHostEffects', () => {
             { hostEffects: plan.hostEffects },
             {
                 getPositionGraph: async (hostId) =>
-                    hostId === ROOM_ID ? roomGraphWithObject : { nodes: [], edges: [] },
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID),
                 transactWrite,
             }
         )

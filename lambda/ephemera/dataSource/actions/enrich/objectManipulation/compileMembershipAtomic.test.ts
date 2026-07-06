@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import { compileMembershipAtomic } from './compileMembershipAtomic'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { agreementFailureConfidence } from './verbMembershipAgreement'
@@ -21,12 +22,13 @@ const touchingEdge: StandardExitEdgeData = {
     payload: {},
 }
 
-const graphWithTouchingEdge = { nodes: [], edges: [touchingEdge] }
+const graphWithTouchingEdge = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [touchingEdge] })
+const emptyRoomGraph = testPositionGraph(roomId)
 
 describe('compileMembershipAtomic', () => {
     it('returns takeHold for room object with acquire verbClass', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await compileMembershipAtomic(
             {
@@ -49,7 +51,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns drop for held-only release paraphrase (toss the pouch)', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await compileMembershipAtomic(
             {
@@ -74,7 +76,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns notCarryingObject when release disagrees with room sole host', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await compileMembershipAtomic(
             {
@@ -97,7 +99,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns alreadyHoldingObject when acquire disagrees with actor character sole host', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue({ nodes: [], edges: [] })
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
         const result = await compileMembershipAtomic(
             {
@@ -135,7 +137,7 @@ describe('compileMembershipAtomic', () => {
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getPositionGraph: jest.fn().mockResolvedValue({ nodes: [], edges: [] }),
+                    getPositionGraph: jest.fn().mockResolvedValue(emptyRoomGraph),
                 },
             }
         )

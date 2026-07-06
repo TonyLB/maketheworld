@@ -1,7 +1,8 @@
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+
+import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
 
 import { complexErrorMessage } from './complexityClasses'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
@@ -16,7 +17,7 @@ export type ComplexityPreGateOutcome =
 export function evaluateComplexityPreGates(input: {
     objectId: EphemeraObjectId
     containers: readonly EphemeraMembershipHostId[]
-    positionGraph?: PlayPositionGraph
+    positionGraph?: EphemeraPositionGraph
     actorCharacterId?: EphemeraCharacterId
 }): ComplexityPreGateOutcome {
     if (input.containers.length === 0) {

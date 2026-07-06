@@ -1,7 +1,7 @@
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import {
     observeMembershipForObject,
     objectTouchesExitEdgeOnGraph,
@@ -27,7 +27,9 @@ describe('observeMembershipForObject', () => {
     })
 
     it('fetches positionGraph for sole host', async () => {
-        const graph: PlayPositionGraph = { nodes: [{ tag: 'Object', universalKey: broomId }] }
+        const graph = testPositionGraph(roomId, {
+            nodes: [{ tag: 'Object', universalKey: broomId }],
+        })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
         const getPositionGraph = jest.fn().mockResolvedValue(graph)
 
@@ -43,7 +45,7 @@ describe('observeMembershipForObject', () => {
 
 describe('objectTouchesExitEdgeOnGraph', () => {
     it('returns false when graph has no edges', () => {
-        expect(objectTouchesExitEdgeOnGraph({ nodes: [], edges: [] }, broomId)).toBe(false)
+        expect(objectTouchesExitEdgeOnGraph(testPositionGraph(roomId), broomId)).toBe(false)
     })
 
     it('returns true when an exit edge references the object', () => {
@@ -54,7 +56,7 @@ describe('objectTouchesExitEdgeOnGraph', () => {
             to: tableId,
             payload: {},
         }
-        const graph: PlayPositionGraph = { edges: [edge] }
+        const graph = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
 
         expect(objectTouchesExitEdgeOnGraph(graph, broomId)).toBe(true)
         expect(objectTouchesExitEdgeOnGraph(graph, vaseId)).toBe(false)
@@ -68,7 +70,8 @@ describe('objectTouchesExitEdgeOnGraph', () => {
             to: broomId,
             payload: {},
         }
+        const graph = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
 
-        expect(objectTouchesExitEdgeOnGraph({ edges: [edge] }, broomId)).toBe(true)
+        expect(objectTouchesExitEdgeOnGraph(graph, broomId)).toBe(true)
     })
 })

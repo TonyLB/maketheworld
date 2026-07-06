@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPlayPositionGraph } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** Cross-host object membership apply (v1 takeHold: room -> character). */
 export type ObjectTakeHoldApplyArgs = {
@@ -27,8 +27,8 @@ export type TakeHoldGraphPersistSuccess = {
     ok: true;
     persisted: true;
     diff: ObjectMembershipDiff;
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPlayPositionGraph>>;
-    postApplyCharacterGraphs: Partial<Record<EphemeraCharacterId, EphemeraPlayPositionGraph>>;
+    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>;
+    postApplyCharacterGraphs: Partial<Record<EphemeraCharacterId, EphemeraPositionGraphFieldPayload>>;
 }
 
 export type UpdateTakeHoldPositionGraphsResult =
