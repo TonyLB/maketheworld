@@ -2,6 +2,8 @@
 
 **Status:** Membership transfer and host-local relational patch shipped. Coordinators route through shared membership adapter + **`applyHostEffects`** kernel, or relational planner + **`applyHostRelationalPatch`** kernel.
 
+**Play graph model (P1):** [`../positionGraph/`](../positionGraph/) ships host-bound **`EphemeraPositionGraph`** with membership + relational simulation helpers (`applyMembershipEffect`, `applyRelationalPatch`). Kernels and transact reducers still call legacy [`positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`relational/relationalEdges.ts`](relational/relationalEdges.ts) until **P2** migrates in-memory simulation to the class. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
+
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 
 **Vocabulary:** Layered terms (host effect, membership host transfer, graph-grounded persist) live in [`../AGENT.concepts.md` --- Manipulation layering](../AGENT.concepts.md#manipulation-layering-membership-transfer) and [`../AGENT.contract.md` --- Manipulation persist layering](../AGENT.contract.md#manipulation-persist-layering).

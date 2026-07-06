@@ -2,7 +2,7 @@
 
 Host-bound in-memory model for play manipulation `positionGraph` truth. Consolidates primitives currently in [`membership/positionGraphMerge.ts`](../membership/positionGraphMerge.ts) and [`manipulation/relational/relationalEdges.ts`](../manipulation/relational/relationalEdges.ts) (legacy modules deleted in P2).
 
-**Status:** P0 stub (implementation map only). Class + unit tests land in **P1**; full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
+**Status:** P1 implemented (class + unit tests in this module). Kernel and transact reducers still use legacy functional modules until **P2**. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
 
 ## Data / class seam
 
@@ -12,20 +12,19 @@ Host-bound in-memory model for play manipulation `positionGraph` truth. Consolid
 | **`EphemeraPositionGraphFieldPayload`** | `@tonylb/mtw-interfaces` | Dynamo `Meta::*.positionGraph` attribute (`Omit<Data, 'hostId'>`) |
 | **`PlayPositionGraph`** | `@tonylb/mtw-gateways` | Gateway read envelope (topology-only alias of `StandardPositionGraphData`) |
 | **`StandardPositionGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only; asset merge) |
-| **`EphemeraPositionGraph`** | this module (P1) | Host-bound manipulation **class** |
+| **`EphemeraPositionGraph`** | this module | Host-bound manipulation **class** |
 
 Mental model: [`../AGENT.concepts.md`](../AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope).
 
-## Planned module map (P1)
+## Module map
 
 | File | Role |
 | --- | --- |
-| `EphemeraPositionGraph.ts` | Class (immutable instance methods) |
-| `types.ts` | **`HostRelationalEdge`** parsed in-memory view (EPG-3) |
-| `index.ts` | Public exports |
-| `EphemeraPositionGraph.test.ts` | Unit tests (port from `positionGraphMerge.test.ts` + relational cases) |
+| `index.ts` | **`EphemeraPositionGraph` class** (immutable instance methods) + module-level factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) + node builders |
+| `baseClasses.ts` | **`HostRelationalEdge`** parsed in-memory view (EPG-3); relational parse/match/serialize helpers |
+| `index.test.ts` | Unit tests |
 
-## Planned public API (sketch)
+## Public API
 
 ### Construction / serialization
 
@@ -48,23 +47,24 @@ class EphemeraPositionGraph {
 
 Factory helpers on module boundary (EPG-6, not class methods): `fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`.
 
-Host alignment: `applyHostEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`.
+Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`.
 
 ### Membership nodes
 
-- Getters: `characterIds`, `objectIds`
-- Mutators (immutable, return new instance): `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add)
+- Getters: `characterIds`, `objectIds` (`Set`)
+- Mutators (immutable, return new instance): `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add returns `this`)
 
 ### Relational edges
 
 - `relationalEdges` getter returns **`HostRelationalEdge[]`** (Exit-tolerant parse from raw `edges`)
-- `addRelationalEdge`, `removeRelationalEdge`, `edgesMatch`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
+- `addRelationalEdge`, `removeRelationalEdge`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
+- Module helpers in `baseClasses.ts`: `edgesMatch`, `toStoredRelationalEdge`, `extractRelationalEdgesFromStored`, `nodeHasRelationalEdge`
 
 Stored JSON remains **`EphemeraPositionRelationalEdgeData`** on `positionGraph.edges`.
 
 ### Kernel simulation (no Dynamo)
 
-- `applyMembershipEffect(effect: HostEffect)` or narrow helpers matching kernel `applyEffectToGraph`
+- `applyMembershipEffect(effect: HostEffect)` matching kernel `applyEffectToGraph`
 - `applyRelationalPatch(patch: HostRelationalPatch)` mirroring kernel validate/apply semantics
 
 Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and upserts by `graph.hostId`.
@@ -84,7 +84,7 @@ Production reads stay on `internalCache.Positions.get` per workspace gateways ru
 
 | Doc | Role |
 | --- | --- |
-| [`../manipulation/AGENT.implementation.md`](../manipulation/AGENT.implementation.md) | Kernel spec; will link here as shared primitive (P4) |
+| [`../manipulation/AGENT.implementation.md`](../manipulation/AGENT.implementation.md) | Kernel spec; links here as shared primitive |
 | [`../AGENT.concepts.md`](../AGENT.concepts.md) | Graph roles, type boundary vocabulary |
 | [`../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md) | Initiative ordering and verification |
 | [`../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md) | Gateway read surfaces |

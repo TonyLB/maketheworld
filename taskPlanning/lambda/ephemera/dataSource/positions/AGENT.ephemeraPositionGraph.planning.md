@@ -1,6 +1,6 @@
 # EphemeraPositionGraph --- play graph model and primitive consolidation
 
-**Status:** P0 complete (EPG-8/9 interface renames + class API stub). Next step: **P1** core `EphemeraPositionGraph` class + unit tests.
+**Status:** P1 complete. Next step: **P2** positions lane refactor (kernel + transact reducers migrate to `EphemeraPositionGraph`).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -100,7 +100,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | --- | --- | --- | --- |
 | EPG-1 | **Class name** --- **`EphemeraPositionGraph`** (not `StandardPositionGraph`, not `PlayPositionGraph`) to mark play-manipulation authority | P1 module path | Decided |
 | EPG-2 | **Mutation style** --- **immutable** instance methods return new `EphemeraPositionGraph` (match `StandardComponent` + current functional reducers); `clone()` + `equals()` for simulation loops | P1 API | Decided |
-| EPG-3 | **Relational edge view type** --- **`HostRelationalEdge`** (parsed in-memory view) exported from `positionGraph/types.ts`; replaces **`ObservedHostRelationalEdge`** everywhere; stored JSON remains **`EphemeraPositionRelationalEdgeData`**; **`HostRelationalEdgeKind`** stays on `@tonylb/mtw-interfaces` | P1 types | Decided |
+| EPG-3 | **Relational edge view type** --- **`HostRelationalEdge`** (parsed in-memory view) exported from `positionGraph/baseClasses.ts`; replaces **`ObservedHostRelationalEdge`** everywhere; stored JSON remains **`EphemeraPositionRelationalEdgeData`**; **`HostRelationalEdgeKind`** stays on `@tonylb/mtw-interfaces` | P1 types | Decided |
 | EPG-4 | **Play envelope ingest** --- `fromPlayEnvelope(hostId, PlayPositionGraph)` normalizes gateway read via gateway extract helpers; `toPlayEnvelope()` delegates to `projectComponentGraphFromStoredPositionGraph(toStored())` --- **do not** duplicate projection logic inside the class long-term | P1 adapters | Decided |
 | EPG-5 | **Legacy module fate** --- delete **`positionGraphMerge.ts`** and **`relationalEdges.ts`** immediately after refactor; update all import paths to `positionGraph/` (no re-export shims) | P2 migration | Decided |
 | EPG-6 | **`effectiveRoomPositionGraph` / seed helpers** --- stay as factory functions on module boundary (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) wrapping class constructors, not methods on the class | P1 factories | Decided |
@@ -110,7 +110,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 ### EPG-2 note (decided: immutable)
 
-Immutable aligns with `StandardComponent`, current `addObjectToGraph` / kernel `computePostApplyGraphsFromEffects` patterns, and makes compound simulation (Phase C) safer. Instance methods return new instances; callers chain without mutating shared state.
+Immutable aligns with `StandardComponent`, current `addObjectToGraph` / kernel `computePostApplyGraphsFromEffects` patterns, and makes compound simulation (Phase C) safer. Instance methods return new instances; callers chain without mutating shared state. **`characterIds` / `objectIds`** return **`Set`** (matches legacy `graphCharacterIds` / `graphObjectIds`).
 
 ### EPG-3 note (decided: `HostRelationalEdge`)
 
@@ -119,7 +119,7 @@ Three relational edge names, three roles:
 | Name | Layer | Role |
 | --- | --- | --- |
 | **`EphemeraPositionRelationalEdgeData`** | `mtw-interfaces` JSON | Stored/wire envelope (`tag: 'Relational'`, ...) on `positionGraph.edges` |
-| **`HostRelationalEdge`** | `positionGraph/types.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`) --- class API, legality, kernel simulation |
+| **`HostRelationalEdge`** | `positionGraph/baseClasses.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`) --- class API, legality, kernel simulation |
 | **`HostRelationalEdgeKind`** | `mtw-interfaces` | Enum of allowed kinds |
 
 Retire **`ObservedHostRelationalEdge`** (positions + actions duplicates) during P1/P3 consolidation --- no deprecated alias.
@@ -200,27 +200,26 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 
 ### Phase P1 --- Core `EphemeraPositionGraph` + tests
 
-- [ ] **P1. Module scaffold** under [`positionGraph/`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/):
-  - [ ] `EphemeraPositionGraph.ts` --- class
-  - [ ] `types.ts` --- **`HostRelationalEdge`** (EPG-3), re-exports as needed
-  - [ ] `index.ts` --- public exports
-  - [ ] `EphemeraPositionGraph.test.ts` --- unit tests (port cases from [`positionGraphMerge.test.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.test.ts) + relational edge cases)
-- [ ] **P1. Construction / serialization**
-  - [ ] `empty(hostId)`, `fromJSON(EphemeraPositionGraphData)`, `fromFieldPayload(hostId, payload)` (EPG-9)
-  - [ ] `fromPlayEnvelope(hostId, PlayPositionGraph)` via gateway normalize (EPG-4); `toPlayEnvelope()` via gateway project
-  - [ ] `toJSON(): EphemeraPositionGraphData`, `toStored(): EphemeraPositionGraphFieldPayload`, `clone()`, `equals()`
-  - [ ] `applyHostEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`
-  - [ ] Factory helpers (EPG-6): `fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters` (assemble host + field at boundary)
-- [ ] **P1. Membership nodes**
-  - [ ] `characterIds`, `objectIds` (Set or readonly arrays --- pick one in EPG-2 lock)
-  - [ ] `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add)
-- [ ] **P1. Relational edges**
-  - [ ] `relationalEdges` getter returns **`HostRelationalEdge[]`**; extract from raw `edges` (Exit-tolerant parse --- port from `relationalEdges.ts`)
-  - [ ] `addRelationalEdge(edge: HostRelationalEdge)`, `removeRelationalEdge`, `edgesMatch`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
-- [ ] **P1. Simulation helpers** (kernel-facing, no Dynamo)
-  - [ ] `applyMembershipEffect(effect: HostEffect)` or narrow helpers matching kernel `applyEffectToGraph`
-  - [ ] `applyRelationalPatch(patch: HostRelationalPatch)` mirroring kernel validate/apply semantics
-- [ ] **P1. Tests green** for new module in isolation.
+- [X] **P1. Module scaffold** under [`positionGraph/`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/):
+  - [X] `index.ts` --- class + module-level factories
+  - [X] `baseClasses.ts` --- **`HostRelationalEdge`** (EPG-3), relational parse/match helpers
+  - [X] `index.test.ts` --- unit tests (port cases from [`positionGraphMerge.test.ts`](../../../../../lambda/ephemera/dataSource/positions/membership/positionGraphMerge.test.ts) + relational edge cases)
+- [X] **P1. Construction / serialization**
+  - [X] `empty(hostId)`, `fromJSON(EphemeraPositionGraphData)`, `fromFieldPayload(hostId, payload)` (EPG-9)
+  - [X] `fromPlayEnvelope(hostId, PlayPositionGraph)` via gateway normalize (EPG-4); `toPlayEnvelope()` via gateway project
+  - [X] `toJSON(): EphemeraPositionGraphData`, `toStored(): EphemeraPositionGraphFieldPayload`, `clone()`, `equals()`
+  - [X] `applyMembershipEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`
+  - [X] Factory helpers (EPG-6): `fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters` (assemble host + field at boundary)
+- [X] **P1. Membership nodes**
+  - [X] `characterIds`, `objectIds` (`Set` per EPG-2 lock)
+  - [X] `addCharacter`, `removeCharacter`, `addObject`, `removeObject` (idempotent add)
+- [X] **P1. Relational edges**
+  - [X] `relationalEdges` getter returns **`HostRelationalEdge[]`**; extract from raw `edges` (Exit-tolerant parse --- port from `relationalEdges.ts`)
+  - [X] `addRelationalEdge(edge: HostRelationalEdge)`, `removeRelationalEdge`, `edgesMatch`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
+- [X] **P1. Simulation helpers** (kernel-facing, no Dynamo)
+  - [X] `applyMembershipEffect(effect: HostEffect)` matching kernel `applyEffectToGraph`
+  - [X] `applyRelationalPatch(patch: HostRelationalPatch)` mirroring kernel validate/apply semantics
+- [X] **P1. Tests green** for new module in isolation.
 
 ### Phase P2 --- Positions lane refactor
 
@@ -303,7 +302,7 @@ Second command should stay clean (no transact in actions enrich).
 | P0 decision lock | Done (EPG-1--9 decided) |
 | P0 interfaces renames + field payload (EPG-8, EPG-9) | Done |
 | P0 class API stub | Done |
-| P1 core class + tests | Not started |
+| P1 core class + tests | Done |
 | P2 positions refactor | Not started |
 | P3 actions dedup | Not started |
 | P4 durable docs | Not started |
