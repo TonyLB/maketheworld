@@ -27,7 +27,7 @@ EphemeraDB rows per **`OBJECT#`**:
 | --- | --- | --- |
 | Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** (2- or 3-item transact) / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** (3 deletes) |
 | Play meta | `(OBJECT#, Meta::Object)` | same coordinators (`stableKey`, trope fields only) |
-| Semantic embedding (impromptu scope) | `(OBJECT#, EMBEDDING#IMPROMPTU)` | optional third **`Put`** on spawn when embedding present ([`embedding/objectEmbeddingPutItem.ts`](embedding/objectEmbeddingPutItem.ts)); always deleted with pair + meta |
+| Semantic embedding (impromptu scope) | `(OBJECT#, EMBEDDING#IMPROMPTU)` | optional third **`Put`** on spawn or update when embed succeeds ([`embedding/objectEmbeddingPutItem.ts`](embedding/objectEmbeddingPutItem.ts)); always deleted with pair + meta |
 
 **Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** room graphs **and** from **`positionGraph`** nodes on **active characters** in those rooms ([`collectActiveCharactersInCoyoteRooms`](../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms.ts)), removes membership from all hosts via [`applyObjectClearMembership`](../positions/manipulation/membership/applyObjectClearMembership.ts) (room + character inventory; incident edges pruned by [`removeObject`](../positions/positionGraph/index.ts)), then [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) deletes pair + **`Meta::Object`** + **`EMBEDDING#IMPROMPTU`** rows.
 
@@ -108,7 +108,6 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 
 - **`renderOrchestration`:** May subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out --- **not** required for the shipped objects/perception slice; add when product needs it.
 - **Embedding read gateway + `internalCache` handler:** when identity-stage embedding resolve ships.
-- **Re-embed on `shortName` update:** when product needs stale-vector detection via `sourceTextHash` ([`semanticEmbedding/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/semanticEmbedding/AGENT.implementation.md)).
 - **`EMBEDDING#PERSPECTIVE#...` rows:** when perspective-scoped similarity is needed.
 - **Non-room `componentId`**, additional **`Meta::*`** shapes, **replay** / external contract for **`mtw.ephemera.objects`**, **authorization**, **client correlation** --- future task plans or product decisions.
 
@@ -121,7 +120,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **Impromptu embedding (spawn)** | Best-effort **`EMBEDDING#IMPROMPTU`** on every improvisational spawn; absence is valid; embed failure **must not** block object creation or placement. |
 | **Existence transact (spawn)** | 2-item (pair + **`Meta::Object`**) when embed fails or is skipped; 3-item (+ **`EMBEDDING#IMPROMPTU`**) when embed succeeds --- single `transactWrite`, Bedrock runs before transact. |
 | **Delete transact** | Always 3 unconditional **`Delete`** items (pair, **`Meta::Object`**, **`EMBEDDING#IMPROMPTU`**) --- idempotent when embedding row absent. |
-| **Embedding update path** | v1 does **not** re-embed when **`shortName`** changes via **`persistUpdateImprovisationObject`**. |
+| **Embedding update path** | Hash-check on **every** `persistUpdateImprovisationObject` call (including trope-only updates). Re-embed when row absent, `sourceTextHash` missing/mismatched, or model/encoding/dimensions stale ([`embedding/impromptuEmbeddingNeedsRefresh.ts`](embedding/impromptuEmbeddingNeedsRefresh.ts)). Best-effort Bedrock; failure **must not** block update; 2- vs 3-item transact mirrors spawn. |
 | **Embedding read path** | v1 is write-only persistence; no **`internalCache`** handler or gateway read surface. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`applyObjectRoomMembership`); not a cross-lane single transact. |
@@ -149,12 +148,13 @@ npm run test -- --watchAll=false
 | File | Policies |
 | --- | --- |
 | [`embedding/buildShortNameSemanticEmbedding.test.ts`](embedding/buildShortNameSemanticEmbedding.test.ts) | Normalized input, mocked Bedrock, `SemanticEmbedding` Dynamo record shape |
+| [`embedding/impromptuEmbeddingNeedsRefresh.test.ts`](embedding/impromptuEmbeddingNeedsRefresh.test.ts) | `sourceTextHash` + model metadata refresh decision |
 | [`embedding/objectEmbeddingPutItem.test.ts`](embedding/objectEmbeddingPutItem.test.ts) | `EMBEDDING#IMPROMPTU` transact **`Put`** item builder |
 | [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds`; embed success (3 puts) vs failure (2 puts + log) |
 | [`handleOrphanedImprovisedObjectFinding.test.ts`](handleOrphanedImprovisedObjectFinding.test.ts) | Orphan finding triggers delete; invalid payload skipped; delete failure logged |
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | **`Orphaned Improvised Object Finding`** envelope guard from `mtw.diagnostics` |
 | [`index.test.ts`](index.test.ts) | `receiveEvents` dispatches orphan finding to repair handler |
-| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete transact helpers (2- vs 3-item spawn; 3 deletes) |
+| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete/update transact helpers (2- vs 3-item spawn/update; 3 deletes; hash-gated re-embed on update) |
 | [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove; embed mock assertions |
 | [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream; embed mock assertions |
 

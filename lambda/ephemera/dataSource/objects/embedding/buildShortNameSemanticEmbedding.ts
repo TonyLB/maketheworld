@@ -1,13 +1,14 @@
-import { createHash } from 'node:crypto'
-
 import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
 import { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
-import { normalizeExitName } from '../../actions/roomExitTargetsForCharacter'
 import {
     BEDROCK_TITAN_EMBED_MODEL_ID,
     invokeBedrockTitanEmbed,
 } from '../../../llm/invokeBedrockTitanEmbed'
+import {
+    hashShortNameForEmbedding,
+    normalizeShortNameForEmbedding,
+} from './impromptuEmbeddingNeedsRefresh'
 
 export const BEDROCK_OBJECT_SHORTNAME_EMBED_TIMEOUT_MS = 10_000
 
@@ -31,9 +32,6 @@ export type BuildShortNameSemanticEmbeddingDeps = {
     client?: BedrockRuntimeClient;
 }
 
-const hashEmbeddingSourceText = (normalizedText: string): string =>
-    createHash('sha256').update(normalizedText, 'utf8').digest('hex')
-
 /**
  * Best-effort embed for improvisational object shortName: normalize, hash, Bedrock Titan v2, quantize.
  * Caller (spawn coordinator) decides whether absence blocks object creation (OE-3: it must not).
@@ -42,12 +40,12 @@ export async function buildShortNameSemanticEmbedding(
     shortName: string,
     deps: BuildShortNameSemanticEmbeddingDeps = {}
 ): Promise<BuildShortNameSemanticEmbeddingResult> {
-    const normalized = normalizeExitName(shortName.trim())
+    const normalized = normalizeShortNameForEmbedding(shortName)
     if (normalized.length === 0) {
         return { success: false, errorMessage: 'shortName must be non-empty after normalization' }
     }
 
-    const sourceTextHash = hashEmbeddingSourceText(normalized)
+    const sourceTextHash = hashShortNameForEmbedding(normalized)
     const invokeEmbed = deps.invokeEmbed ?? invokeBedrockTitanEmbed
     const timeoutMs = deps.timeoutMs ?? BEDROCK_OBJECT_SHORTNAME_EMBED_TIMEOUT_MS
 
