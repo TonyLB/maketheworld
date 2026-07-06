@@ -2,36 +2,38 @@
 
 ## Overview
 
-This package owns **runtime improvisational objects** for play: dual ephemeraDB rows per **`OBJECT#`** (component pair under **`ASSET#IMPROVISATION`** + **`Meta::Object`** play meta) and **`positionGraph`** **`Object`** nodes for room placement. Human-facing labels come from the improvisation pair; Coyote correlation uses **`stableKey`** on **`Meta::Object`** (see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**). Optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich live on **`Meta::Object`** ([`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object existence and ingress, **not** nested under a room aggregate.
+This package owns **runtime improvisational objects** for play: ephemeraDB rows per **`OBJECT#`** (component pair under **`ASSET#IMPROVISATION`** + **`Meta::Object`** play meta, plus optional **`EMBEDDING#IMPROMPTU`** semantic adjacency) and **`positionGraph`** **`Object`** nodes for room placement. Human-facing labels come from the improvisation pair; Coyote correlation uses **`stableKey`** on **`Meta::Object`** (see [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) and **`mtw.ephemera.actions`**). Optional trope fields **`tropeAffinities`** / **`tropeAffinitiesFailed`** from Acme enrich live on **`Meta::Object`** ([`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), trope shapes in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). It uses a dedicated **`dataSourceKey`** (**`mtw.ephemera.objects`**) in **symmetry** with **`mtw.ephemera.state`**: a **semantic domain** for object existence and ingress, **not** nested under a room aggregate.
 
 **Steady state:** writers **must not** touch **`Meta::Room.objects`** (removed from room meta type).
 
-## Three-way split (body / play meta / placement)
+## Four-way split (body / play meta / embedding / placement)
 
-Each improvisational **`OBJECT#`** splits across three authorities (mirrors Character: blueprint pair vs **`Meta::Character`** vs graph membership):
+Each improvisational **`OBJECT#`** splits across four authorities (mirrors Character: blueprint pair vs **`Meta::Character`** vs graph membership, plus semantic adjacency on the objects lane):
 
 | Concern | Storage | Owner |
 | --- | --- | --- |
 | **Merge body** (`shortName`, future WML fields) | `(OBJECT#, ASSET#IMPROVISATION)` pair row | This lane ([`persistImprovisationObject.ts`](persistImprovisationObject.ts)) |
 | **Play meta** (`stableKey`, trope fields) | `(OBJECT#, Meta::Object)` | This lane; read via **`internalCache.ObjectEphemeraMeta`** ([`objectEphemeraMeta.AGENT.md`](../../internalCache/objectEphemeraMeta.AGENT.md)) |
+| **Short-name semantic vector** (impromptu scope) | `(OBJECT#, EMBEDDING#IMPROMPTU)` | This lane ([`embedding/`](embedding/)) |
 | **Placement** (which host holds the object) | **`Object`** node on room or character **`positionGraph`** + **`OBJECT#`** adjacency | **`mtw.ephemera.positions`** ([`../positions/AGENT.concepts.md`](../positions/AGENT.concepts.md#object-room-placement-phase-4-nodes-only)) |
 
-**Invariants:** one pair row and one **`Meta::Object`** row per spawned object; spawn/clear coordinators write or delete both in one transact; **`shortName`** never on **`Meta::Object`**. Type authority: [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) ADR comment block.
+**Invariants:** one pair row and one **`Meta::Object`** row per spawned object; spawn/clear coordinators write or delete both in one transact (plus optional **`EMBEDDING#IMPROMPTU`** when embedding is supplied on spawn); delete paths always issue three unconditional **`Delete`** items (pair, **`Meta::Object`**, **`EMBEDDING#IMPROMPTU`**) --- idempotent when embedding row absent; **`shortName`** never on **`Meta::Object`**. Type authority: [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) ADR comment block; embedding row: [`ephemeraEmbedding.ts`](../../../../packages/mtw-interfaces/ts/ephemeraEmbedding.ts).
 
 ## Improvisation storage
 
-Dual ephemeraDB rows per **`OBJECT#`**:
+EphemeraDB rows per **`OBJECT#`**:
 
 | Row | Key | Module |
 | --- | --- | --- |
-| Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** |
+| Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** (2- or 3-item transact) / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** (3 deletes) |
 | Play meta | `(OBJECT#, Meta::Object)` | same coordinators (`stableKey`, trope fields only) |
+| Semantic embedding (impromptu scope) | `(OBJECT#, EMBEDDING#IMPROMPTU)` | optional third **`Put`** on spawn when embedding present ([`embedding/objectEmbeddingPutItem.ts`](embedding/objectEmbeddingPutItem.ts)); always deleted with pair + meta |
 
-**Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** room graphs **and** from **`positionGraph`** nodes on **active characters** in those rooms ([`collectActiveCharactersInCoyoteRooms`](../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms.ts)), removes membership from all hosts via [`applyObjectClearMembership`](../positions/manipulation/membership/applyObjectClearMembership.ts) (room + character inventory; incident edges pruned by [`removeObject`](../positions/positionGraph/index.ts)), then [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) deletes pair + **`Meta::Object`** rows.
+**Coyote bulk clear (existence + graph):** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) enumerates **`OBJECT#`** ids from Coyote **`gameRooms`** room graphs **and** from **`positionGraph`** nodes on **active characters** in those rooms ([`collectActiveCharactersInCoyoteRooms`](../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms.ts)), removes membership from all hosts via [`applyObjectClearMembership`](../positions/manipulation/membership/applyObjectClearMembership.ts) (room + character inventory; incident edges pruned by [`removeObject`](../positions/positionGraph/index.ts)), then [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) deletes pair + **`Meta::Object`** + **`EMBEDDING#IMPROMPTU`** rows.
 
 **Deferred (cross-host edge references):** adjacency does not index which graphs mention an `OBJECT#` only in an edge endpoint. After clear, another host may retain a stale edge referencing a destroyed id until a future sweep or edge-reference index ships. See [`../positions/positionGraph/AGENT.md`](../positions/positionGraph/AGENT.md) **Known limitation (deferred)**.
 
-**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) sequences [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence) then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel; **S1** compensating delete on placement failure). On **S1 double-fail** (compensation delete also fails), **`console.error`** **and** [`streamSpawnCompensationProblem`](problemReports.ts) emit **`Spawn Compensation Problem`** on EventBridge (see **Operational diagnostics** below). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
+**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) runs best-effort [`buildShortNameSemanticEmbedding`](embedding/buildShortNameSemanticEmbedding.ts) **before** [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence; 2- or 3-item transact), then [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) (placement via manipulation kernel; **S1** compensating delete on placement failure). Embed failure logs and proceeds with 2-row transact only; object creation and placement are unaffected. On **S1 double-fail** (compensation delete also fails), **`console.error`** **and** [`streamSpawnCompensationProblem`](problemReports.ts) emit **`Spawn Compensation Problem`** on EventBridge (see **Operational diagnostics** below). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
 
 **Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> **`spawnImprovisationObjectsBatch`**; **`remove`** -> [`applyObjectClearMembership`](../positions/manipulation/membership/applyObjectClearMembership.ts) (all membership hosts) + row delete; returns **`createdIds`** / **`destroyedIds`** (and optional **`addFailures`**) for outbound **`Objects Changed`**.
 
@@ -51,7 +53,7 @@ Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** a
 
 ## Operational diagnostics (S1 double-fail)
 
-When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds at existence create but [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) fails, **S1** runs [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) as compensation. If compensation also fails, durable pair + **`Meta::Object`** rows can remain with no graph placement (existence-without-placement).
+When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds at existence create but [`applyObjectRoomMembership`](../positions/membership/applyObjectRoomMembership.ts) fails, **S1** runs [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) as compensation. If compensation also fails, durable pair + **`Meta::Object`** (+ optional embedding) rows can remain with no graph placement (existence-without-placement).
 
 **Emission:** [`streamSpawnCompensationProblem`](problemReports.ts) on **`mtw.ephemera.objects`** (EventBridge via **`publishStreamEvent`**), **in addition to** `console.error` until ops confirms EventBridge delivery. Wire shape: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts) (`objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp`).
 
@@ -65,7 +67,7 @@ When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds
 | --- | --- |
 | `Orphaned Improvised Object Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`handleOrphanedImprovisedObjectFinding`](handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) |
 
-**Repair model (Coyote Game v1):** delete-only --- remove `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows. **Must not** retry placement on finding; non-Coyote orphan contexts may need different repair later (product fork). **Idempotency:** at-least-once finding delivery **must** be safe (unconditional Dynamo deletes; no-op when rows already absent). On delete failure, **must** `console.error` with `objectId`, `diagnosticRunId`, and delete error.
+**Repair model (Coyote Game v1):** delete-only --- remove `(OBJECT#, ASSET#IMPROVISATION)` pair, `Meta::Object`, and `EMBEDDING#IMPROMPTU` rows. **Must not** retry placement on finding; non-Coyote orphan contexts may need different repair later (product fork). **Idempotency:** at-least-once finding delivery **must** be safe (unconditional Dynamo deletes; no-op when rows already absent). On delete failure, **must** `console.error` with `objectId`, `diagnosticRunId`, and delete error.
 
 **Trust the finding:** handler does not re-run orphan classification; diagnostics sweep already confirmed litmus before emission.
 
@@ -105,6 +107,9 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 ## Follow-ups (not part of v1 scope)
 
 - **`renderOrchestration`:** May subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out --- **not** required for the shipped objects/perception slice; add when product needs it.
+- **Embedding read gateway + `internalCache` handler:** when identity-stage embedding resolve ships.
+- **Re-embed on `shortName` update:** when product needs stale-vector detection via `sourceTextHash` ([`semanticEmbedding/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/semanticEmbedding/AGENT.implementation.md)).
+- **`EMBEDDING#PERSPECTIVE#...` rows:** when perspective-scoped similarity is needed.
 - **Non-room `componentId`**, additional **`Meta::*`** shapes, **replay** / external contract for **`mtw.ephemera.objects`**, **authorization**, **client correlation** --- future task plans or product decisions.
 
 ## Normative decisions (summary)
@@ -112,7 +117,12 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | Topic | Decision |
 | --- | --- |
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
-| **v1 storage** | Improvisation pair + **`Meta::Object`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type. |
+| **v1 storage** | Improvisation pair + **`Meta::Object`** + optional **`EMBEDDING#IMPROMPTU`** + **`positionGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type. |
+| **Impromptu embedding (spawn)** | Best-effort **`EMBEDDING#IMPROMPTU`** on every improvisational spawn; absence is valid; embed failure **must not** block object creation or placement. |
+| **Existence transact (spawn)** | 2-item (pair + **`Meta::Object`**) when embed fails or is skipped; 3-item (+ **`EMBEDDING#IMPROMPTU`**) when embed succeeds --- single `transactWrite`, Bedrock runs before transact. |
+| **Delete transact** | Always 3 unconditional **`Delete`** items (pair, **`Meta::Object`**, **`EMBEDDING#IMPROMPTU`**) --- idempotent when embedding row absent. |
+| **Embedding update path** | v1 does **not** re-embed when **`shortName`** changes via **`persistUpdateImprovisationObject`**. |
+| **Embedding read path** | v1 is write-only persistence; no **`internalCache`** handler or gateway read surface. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`applyObjectRoomMembership`); not a cross-lane single transact. |
 | **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |
@@ -134,17 +144,19 @@ npm run test -- --watchAll=false
 # npm run test dataSource/objects
 ```
 
-**Spawn refactor test inventory (S1--S3):**
+**Spawn refactor test inventory (S1--S3 + embeddings):**
 
 | File | Policies |
 | --- | --- |
-| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds` |
+| [`embedding/buildShortNameSemanticEmbedding.test.ts`](embedding/buildShortNameSemanticEmbedding.test.ts) | Normalized input, mocked Bedrock, `SemanticEmbedding` Dynamo record shape |
+| [`embedding/objectEmbeddingPutItem.test.ts`](embedding/objectEmbeddingPutItem.test.ts) | `EMBEDDING#IMPROMPTU` transact **`Put`** item builder |
+| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds`; embed success (3 puts) vs failure (2 puts + log) |
 | [`handleOrphanedImprovisedObjectFinding.test.ts`](handleOrphanedImprovisedObjectFinding.test.ts) | Orphan finding triggers delete; invalid payload skipped; delete failure logged |
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | **`Orphaned Improvised Object Finding`** envelope guard from `mtw.diagnostics` |
 | [`index.test.ts`](index.test.ts) | `receiveEvents` dispatches orphan finding to repair handler |
-| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete transact helpers used by spawn and repair |
-| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove |
-| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream |
+| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete transact helpers (2- vs 3-item spawn; 3 deletes) |
+| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove; embed mock assertions |
+| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream; embed mock assertions |
 
 **Regression checks:**
 

@@ -5,6 +5,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
+import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import {
     persistDeleteImprovisationObject,
     persistSpawnImprovisationObject,
@@ -23,6 +24,7 @@ export type SpawnImprovisationObjectRow = {
 export type SpawnOneImprovisationObjectDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
+    buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
     spawnImpl?: typeof persistSpawnImprovisationObject;
     applyMembershipImpl?: typeof applyObjectRoomMembership;
     deleteImpl?: typeof persistDeleteImprovisationObject;
@@ -36,18 +38,30 @@ export const spawnOneImprovisationObject = async (
     args: SpawnImprovisationObjectRow,
     deps: SpawnOneImprovisationObjectDependencies
 ): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
+    const buildEmbed = deps.buildEmbedImpl ?? buildShortNameSemanticEmbedding
     const spawnImpl = deps.spawnImpl ?? persistSpawnImprovisationObject
     const applyMembershipImpl = deps.applyMembershipImpl ?? applyObjectRoomMembership
     const deleteImpl = deps.deleteImpl ?? persistDeleteImprovisationObject
     const streamProblemReport = deps.streamProblemReport ?? streamSpawnCompensationProblem
 
-    const spawnResult = await spawnImpl({
+    const embedResult = await buildEmbed(args.shortName)
+    const spawnArgs = {
         objectId: args.objectId,
         shortName: args.shortName,
         stableKey: args.stableKey,
         tropeAffinities: args.tropeAffinities,
         tropeAffinitiesFailed: args.tropeAffinitiesFailed,
-    })
+        ...(embedResult.success ? { embedding: embedResult.embedding } : {}),
+    }
+    if (!embedResult.success) {
+        console.error('[mtw.ephemera.objects] shortName embed failed; spawning without embedding', {
+            objectId: args.objectId,
+            shortName: args.shortName,
+            errorMessage: embedResult.errorMessage,
+        })
+    }
+
+    const spawnResult = await spawnImpl(spawnArgs)
     if (!spawnResult.ok) {
         return spawnResult
     }
