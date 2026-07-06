@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
 import {
     edgesMatch,
@@ -18,6 +19,7 @@ const CHARACTER_A = 'CHARACTER#Alpha' as EphemeraCharacterId
 const CHARACTER_B = 'CHARACTER#Beta' as EphemeraCharacterId
 const OBJECT_A = 'OBJECT#Skates' as EphemeraObjectId
 const OBJECT_B = 'OBJECT#Table' as EphemeraObjectId
+const OBJECT_C = 'OBJECT#Chair' as EphemeraObjectId
 
 describe('EphemeraPositionGraph', () => {
     describe('node builders', () => {
@@ -96,12 +98,62 @@ describe('EphemeraPositionGraph', () => {
             expect(graph.addObject(OBJECT_A)).toBe(graph)
         })
 
-        it('removeObject removes matching node only', () => {
+        it('removeObject removes matching node and incident edges', () => {
             const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
                 edges: [],
             })
             expect(graph.removeObject(OBJECT_A).toStored().nodes).toEqual([characterNode(CHARACTER_A)])
+        })
+
+        it('removeObject prunes relational edges touching the object', () => {
+            const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
+                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+            })
+            expect(graph.removeObject(OBJECT_A).toStored()).toEqual({
+                nodes: [objectNode(OBJECT_B)],
+                edges: [],
+            })
+        })
+
+        it('removeObject prunes exit edges touching the object', () => {
+            const exitEdge: StandardExitEdgeData = {
+                tag: 'Exit',
+                uuid: 'edge-1',
+                from: OBJECT_A,
+                to: OBJECT_B,
+                payload: {},
+            }
+            const graph = EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, {
+                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
+                edges: [exitEdge],
+            })
+            expect(graph.removeObject(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
+        })
+
+        it('removeObject prunes dangling exit edges when node already absent', () => {
+            const exitEdge: StandardExitEdgeData = {
+                tag: 'Exit',
+                uuid: 'edge-2',
+                from: OBJECT_B,
+                to: OBJECT_A,
+                payload: {},
+            }
+            const graph = EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, {
+                nodes: [objectNode(OBJECT_B)],
+                edges: [exitEdge],
+            })
+            expect(graph.removeObject(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
+        })
+
+        it('removeObject preserves unrelated edges', () => {
+            const relational = { tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_C, kind: 'On' as const }
+            const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
+                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
+                edges: [relational],
+            })
+            expect(graph.removeObject(OBJECT_B).toStored().edges).toEqual([relational])
         })
 
         it('objectIds returns set of object universal keys', () => {

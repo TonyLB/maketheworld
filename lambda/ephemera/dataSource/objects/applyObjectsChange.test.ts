@@ -16,13 +16,13 @@ describe('applyObjectsChange', () => {
     const messageBus = { publish: jest.fn() }
     const positionsStreamEvent = jest.fn().mockResolvedValue(undefined)
     const spawnOneImpl = jest.fn<ReturnType<typeof spawnOneImprovisationObject>, Parameters<typeof spawnOneImprovisationObject>>()
-    const applyMembershipImpl = jest.fn()
+    const applyClearMembershipImpl = jest.fn()
     const deleteObjectImpl = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
         spawnOneImpl.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
-        applyMembershipImpl.mockResolvedValue({
+        applyClearMembershipImpl.mockResolvedValue({
             ok: true,
             froms: [ROOM_ID],
             to: null,
@@ -172,7 +172,7 @@ describe('applyObjectsChange', () => {
                 messageBus: messageBus as any,
                 positionsStreamEvent,
                 spawnOneImpl,
-                applyMembershipImpl,
+                applyClearMembershipImpl,
                 deleteObjectImpl,
             }
         )
@@ -188,8 +188,8 @@ describe('applyObjectsChange', () => {
                 errorMessage: 'placement failed',
             }],
         })
-        expect(applyMembershipImpl).toHaveBeenCalledWith(
-            { objectId: 'OBJECT#removed', targetRoomId: null },
+        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
+            { objectId: 'OBJECT#removed' },
             { messageBus, streamEvent: positionsStreamEvent }
         )
         expect(deleteObjectImpl).toHaveBeenCalledWith({

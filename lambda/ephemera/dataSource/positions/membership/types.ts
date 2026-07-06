@@ -19,7 +19,7 @@ export type MembershipApplyArgs = {
 /** Object room placement apply (Phase 4). */
 export type ObjectMembershipApplyArgs = {
     objectId: EphemeraObjectId;
-    /** null = removed from all rooms. */
+    /** Target room host; null is not used here --- use applyObjectClearMembership for destruction. */
     targetRoomId: EphemeraRoomId | null;
 }
 

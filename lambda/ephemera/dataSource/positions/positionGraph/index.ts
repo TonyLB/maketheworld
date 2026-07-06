@@ -21,13 +21,14 @@ import type { HostEffect, HostRelationalPatch } from '../manipulation/types'
 import {
     edgesMatch,
     extractRelationalEdgesFromStored,
+    edgeReferencesObjectId,
     nodeHasRelationalEdge,
     toStoredRelationalEdge,
     type HostRelationalEdge,
 } from './baseClasses'
 
 export type { HostRelationalEdge } from './baseClasses'
-export { edgesMatch, nodeHasRelationalEdge, toStoredRelationalEdge } from './baseClasses'
+export { edgesMatch, nodeHasRelationalEdge, toStoredRelationalEdge, edgeReferencesObjectId } from './baseClasses'
 
 export const characterNode = (universalKey: EphemeraCharacterId): EphemeraPositionGraphNode => ({
     tag: 'Character',
@@ -245,9 +246,23 @@ export class EphemeraPositionGraph {
     }
 
     removeObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
-        return this.withNodes(
+        const withoutNode = this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId))
         )
+        return withoutNode.withoutEdgesReferencingObject(objectId)
+    }
+
+    private withoutEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+        let graph: EphemeraPositionGraph = this
+        if (this._edges !== undefined) {
+            const filtered = this._edges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
+            graph = graph.withEdges(filtered)
+        }
+        if (this._playOnlyEdges !== undefined) {
+            const filtered = this._playOnlyEdges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
+            graph = graph.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
+        }
+        return graph
     }
 
     addRelationalEdge(edge: HostRelationalEdge): EphemeraPositionGraph {
