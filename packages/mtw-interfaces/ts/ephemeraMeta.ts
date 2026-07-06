@@ -108,6 +108,7 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 //
 // ADR: three-way split mirrors Character --- merge body on component pair row,
 // play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
+// Optional fourth adjacency row (EMBEDDING#IMPROMPTU): see ephemeraEmbedding.ts.
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
 //   v1 writes use ASSET#IMPROVISATION as DataCategory; type does not hard-code that layer.

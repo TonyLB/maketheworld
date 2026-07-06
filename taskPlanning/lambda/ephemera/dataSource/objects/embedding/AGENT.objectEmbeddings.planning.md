@@ -114,8 +114,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | --- | --- |
 | Task plan scaffold | Done |
 | Open decisions locked (OE-1 -- OE-8) | Done |
-| `EphemeraObjectEmbedding` type + guard in `mtw-interfaces` | |
-| `invokeBedrockTitanEmbed` (or equivalent) under `lambda/ephemera/llm/` | |
+| `EphemeraObjectEmbedding` type + guard in `mtw-interfaces` | Done |
+| `invokeBedrockTitanEmbed` (or equivalent) under `lambda/ephemera/llm/` | Done |
 | `buildShortNameSemanticEmbedding` helper under `objects/embedding/` | |
 | Persist: optional embedding `Put` + delete item | |
 | Spawn coordinator wiring (embed before existence transact; best-effort) | |
@@ -130,15 +130,15 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 - [X] **0. Decision lock**
   - [X] Close OE-1 -- OE-8 in **Open decisions** (2026-07-06).
 
-- [ ] **1. Types and constants**
-  - [ ] Add `EMBEDDING_IMPROMPTU_DATA_CATEGORY = 'EMBEDDING#IMPROMPTU'` and `EphemeraObjectEmbedding` row type in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (or a sibling `ephemeraEmbedding.ts` if the meta file is already crowded): `EphemeraId`, `DataCategory`, `embedding: SemanticEmbeddingDynamoRecord` (import type from `@tonylb/mtw-lambda-patterns/ts/semanticEmbedding`).
-  - [ ] Add `isEphemeraObjectEmbedding` guard mirroring other ephemera meta guards.
-  - [ ] Export `objectEmbeddingPutItem` / row builder from [`objects/embedding/`](../../../../../../lambda/ephemera/dataSource/objects/embedding/) (new module; keep [`persistImprovisationObject.ts`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts) as coordinator).
+- [X] **1. Types and constants**
+  - [X] Add `EMBEDDING_IMPROMPTU_DATA_CATEGORY = 'EMBEDDING#IMPROMPTU'` and `EphemeraObjectEmbedding` row type in [`packages/mtw-interfaces/ts/ephemeraEmbedding.ts`](../../../../../../packages/mtw-interfaces/ts/ephemeraEmbedding.ts) (sibling of [`ephemeraMeta.ts`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)): `EphemeraId`, `DataCategory`, `embedding: SemanticEmbeddingDynamoRecord` (import type from `@tonylb/mtw-lambda-patterns/ts/semanticEmbedding`).
+  - [X] Add `isEphemeraObjectEmbedding` guard mirroring other ephemera meta guards.
+  - [X] Export `objectEmbeddingPutItem` / row builder from [`objects/embedding/`](../../../../../../lambda/ephemera/dataSource/objects/embedding/) (new module; keep [`persistImprovisationObject.ts`](../../../../../../lambda/ephemera/dataSource/objects/persistImprovisationObject.ts) as coordinator).
 
-- [ ] **2. Bedrock embed transport**
-  - [ ] Add [`lambda/ephemera/llm/invokeBedrockTitanEmbed.ts`](../../../../../../lambda/ephemera/llm/invokeBedrockTitanEmbed.ts): `InvokeModelCommand` on `BedrockRuntimeClient`, typed success (`float[]` length 256) / failure, timeout, injectable client (mirror [`invokeBedrockConverseText.ts`](../../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts)).
-  - [ ] Unit tests with mocked `client.send` (no live Bedrock in CI).
-  - [ ] Document model id and request body in [`llm/AGENT.md`](../../../../../../lambda/ephemera/llm/AGENT.md) integration row (one line; no duplicate of implementation guide).
+- [X] **2. Bedrock embed transport**
+  - [X] Add [`lambda/ephemera/llm/invokeBedrockTitanEmbed.ts`](../../../../../../lambda/ephemera/llm/invokeBedrockTitanEmbed.ts): `InvokeModelCommand` on `BedrockRuntimeClient`, typed success (`float[]` length 256) / failure, timeout, injectable client (mirror [`invokeBedrockConverseText.ts`](../../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts)).
+  - [X] Unit tests with mocked `client.send` (no live Bedrock in CI).
+  - [X] Document model id and request body in [`llm/AGENT.md`](../../../../../../lambda/ephemera/llm/AGENT.md) integration row (one line; no duplicate of implementation guide).
 
 - [ ] **3. Embed helper (objects lane)**
   - [ ] Implement `buildShortNameSemanticEmbedding(shortName, deps?)` in [`objects/embedding/buildShortNameSemanticEmbedding.ts`](../../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts): trim input, normalize via `normalizeExitName`, compute `sourceTextHash` from normalized text (OE-4), call embed transport, return `SemanticEmbedding` or typed failure.
