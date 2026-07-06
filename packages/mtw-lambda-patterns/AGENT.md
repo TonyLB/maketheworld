@@ -34,6 +34,14 @@ Comprehensive caching layer providing deferred loading of asynchronous data sour
 - **[Internal Cache Guide](./ts/internalCache/AGENT.md)** - Navigation and concepts
 - **[Implementation Guide](./ts/internalCache/AGENT.implementation.md)** - Code examples and patterns
 
+### Semantic Embedding (`ts/semanticEmbedding/`)
+
+Immutable value type for Titan Text Embedding v2 vectors: quantize normalized floats to `int8-v1` bytes at construction, expose Dynamo-safe `Uint8Array` serde, and compare via cosine similarity or byte-wise equality. Deep import: `@tonylb/mtw-lambda-patterns/ts/semanticEmbedding`.
+
+**Documentation:**
+- **[Semantic Embedding Guide](./ts/semanticEmbedding/AGENT.md)** - Navigation and import path
+- **[Implementation Guide](./ts/semanticEmbedding/AGENT.implementation.md)** - Quantization rules and API invariants
+
 ## Integration Points
 
 ### Dependencies

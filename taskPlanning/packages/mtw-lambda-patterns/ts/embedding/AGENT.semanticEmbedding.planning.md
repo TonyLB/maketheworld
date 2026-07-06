@@ -1,6 +1,6 @@
 # Semantic embedding value type (`mtw-lambda-patterns`) + Dynamo binary round-trip tests
 
-**Status:** Not started. Next step: implement `SemanticEmbedding` class and unit tests in `packages/mtw-lambda-patterns/ts/semanticEmbedding/`.
+**Status:** In progress. Next step: Dynamo binary round-trip proof tests in `mtw-utilities`.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and recommended-order checkbox conventions.
 
@@ -111,28 +111,28 @@ cd packages/mtw-utilities && npm test
 | --- | --- |
 | Task plan scaffold | Done |
 | Design decisions SE-1 -- SE-4 locked | Done |
-| `SemanticEmbedding` implementation | |
-| `mtw-lambda-patterns` unit tests | |
+| `SemanticEmbedding` implementation | Done |
+| `mtw-lambda-patterns` unit tests | Done |
 | Dynamo binary round-trip tests (`mtw-utilities`) | |
-| `mtw-lambda-patterns/AGENT.md` pattern entry | |
+| `mtw-lambda-patterns/AGENT.md` pattern entry | Done |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] **SE foundations --- `SemanticEmbedding`**
-  - [ ] Add [`packages/mtw-lambda-patterns/ts/semanticEmbedding/index.ts`](../../../../../packages/mtw-lambda-patterns/ts/semanticEmbedding/index.ts) (and supporting modules if needed).
-  - [ ] Implement immutable class: `fromFloat32` (quantize-on-construct), `fromBinary` / `fromDynamoRecord`, `toBinary` / `toDynamoRecord`, `cosineSimilarity`, `equals`; export `SemanticEmbeddingDynamoRecord`.
-  - [ ] Assert instance holds int8 bytes only after construction (no retained float32 field).
-  - [ ] Lock `int8-v1` / scale-127 encoding and 256-dimension guard with unit tests (known float vectors, edge values -1/0/1, wrong-length rejection).
-  - [ ] Test cosine: identical embeddings -> ~1; orthogonal unit vectors -> ~0; round-trip float ingest -> int storage -> transient dequant within tolerance.
+- [X] **SE foundations --- `SemanticEmbedding`**
+  - [X] Add [`packages/mtw-lambda-patterns/ts/semanticEmbedding/index.ts`](../../../../../packages/mtw-lambda-patterns/ts/semanticEmbedding/index.ts) (and supporting modules if needed).
+  - [X] Implement immutable class: `fromFloat32` (quantize-on-construct), `fromBinary` / `fromDynamoRecord`, `toBinary` / `toDynamoRecord`, `cosineSimilarity`, `equals`; export `SemanticEmbeddingDynamoRecord`.
+  - [X] Assert instance holds int8 bytes only after construction (no retained float32 field).
+  - [X] Lock `int8-v1` / scale-127 encoding and 256-dimension guard with unit tests (known float vectors, edge values -1/0/1, wrong-length rejection).
+  - [X] Test cosine: identical embeddings -> ~1; orthogonal unit vectors -> ~0; round-trip float ingest -> int storage -> transient dequant within tolerance.
 - [ ] **Dynamo proof tests --- `mtw-utilities`**
   - [ ] Add test file (e.g. `packages/mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts`) using **mock client** (same style as existing mixin tests).
   - [ ] `putItem` + `getItem` round-trip with nested `semanticEmbedding.vector: Uint8Array`.
   - [ ] `transactWrite` Put with same shape; verify bytes after read path.
   - [ ] Document in test file comment: handlers require `Uint8Array`, not `number[]` or base64 strings.
-- [ ] **Durable doc touch-up**
-  - [ ] Add **Semantic embedding** entry to [`packages/mtw-lambda-patterns/AGENT.md`](../../../../../packages/mtw-lambda-patterns/AGENT.md) (overview + link to implementation directory).
+- [X] **Durable doc touch-up**
+  - [X] Add **Semantic embedding** entry to [`packages/mtw-lambda-patterns/AGENT.md`](../../../../../packages/mtw-lambda-patterns/AGENT.md) (overview + link to implementation directory).
 - [ ] **Close plan slice**
   - [ ] Run verification commands below.
   - [ ] Update Progress table and Recommended order checkboxes in this document.
