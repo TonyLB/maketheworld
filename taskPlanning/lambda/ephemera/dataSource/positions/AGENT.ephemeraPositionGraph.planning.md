@@ -1,6 +1,6 @@
 # EphemeraPositionGraph --- play graph model and primitive consolidation
 
-**Status:** P2 positions lane complete (EPG-5 legacy delete done). Next step: **P3** actions dedup.
+**Status:** P3 actions dedup complete. Next step: **P4** authority documentation.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -49,7 +49,7 @@ Coordinators + adjacency             transact reducers assign toStored() payload
 - New module tree: [`lambda/ephemera/dataSource/positions/positionGraph/`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/)
 - **`EphemeraPositionGraph`** class + focused unit tests
 - Consolidate primitives formerly in `membership/positionGraphMerge.ts` and `manipulation/relational/relationalEdges.ts` (deleted P2 / EPG-5)
-- Deduplicate actions copy: [`actions/enrich/objectManipulation/relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) --- actions imports positions model; delete duplicate extraction/match logic
+- Deduplicate actions copy (P3 shipped): actions legality imports **`EphemeraPositionGraph`** from [`positionGraph/`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/); duplicate [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) deleted
 - Refactor kernel + planners + transact reducers to use the class for in-memory graph work (behavior-preserving)
 - Durable doc updates: authority boundary between **`EphemeraPositionGraph`** (play manipulation class), **`EphemeraPositionGraphData`** (interfaces JSON), and WML **`StandardPositionGraph`** (authored blueprint)
 - **`mtw-interfaces` renames + host binding (EPG-8, EPG-9):** rename types per EPG-8; add **`hostId`** to **`EphemeraPositionGraphData`**; introduce **`EphemeraPositionGraphFieldPayload`** (`Omit<EphemeraPositionGraphData, 'hostId'>`) for `Meta::*.positionGraph` attribute + row validators --- **no new field written to Dynamo** (attribute shape unchanged)
@@ -77,7 +77,7 @@ Coordinators + adjacency             transact reducers assign toStored() payload
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read graph roles + type boundary in [`positions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md).
-3. Read [`positionGraph/index.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/index.ts) + [`positionGraph/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/baseClasses.ts) (positions primitive); for P3, also read [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) --- note duplicated `ObservedHostRelationalEdge` (rename to **`HostRelationalEdge`** per EPG-3) / extraction.
+3. Read [`positionGraph/index.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/index.ts) + [`positionGraph/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/baseClasses.ts) (positions primitive); for actions legality, trace [`evaluateRelationalLegality.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.ts) read-only import of **`EphemeraPositionGraph`**.
 4. Trace kernel usage: [`applyHostEffects.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts), [`applyHostRelationalPatch.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts).
 5. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md) --- Jest; run from **`lambda/ephemera/`**.
 6. Baseline (must pass before edits):
@@ -236,11 +236,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 
 ### Phase P3 --- Actions lane dedup
 
-- [ ] **P3. Legality + compiler observation**
-  - [ ] Refactor [`evaluateRelationalLegality.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.ts) to import `EphemeraPositionGraph` from positions package path (not duplicate observation module)
-  - [ ] Remove [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) after imports updated; fix tests using `ProvisionalRelationalEdgeData` (move test fixtures to positions test helpers or inline in test files)
-- [ ] **P3. Boundary rule** --- actions **may read** `EphemeraPositionGraph` for observation/legality; actions **must not** persist graphs or build transact items (unchanged --- positions kernel only)
-- [ ] **P3. Tests** --- `evaluateRelationalLegality.test.ts`, `compileRelational.test.ts`, parse/objectManipulation slice if touched.
+- [X] **P3. Legality + compiler observation**
+  - [X] Refactor [`evaluateRelationalLegality.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.ts) to import `EphemeraPositionGraph` from positions package path (not duplicate observation module)
+  - [X] Remove [`relationalObservation.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/relationalObservation.ts) after imports updated; fix tests using `ProvisionalRelationalEdgeData` (move test fixtures to positions test helpers or inline in test files)
+- [X] **P3. Boundary rule** --- actions **may read** `EphemeraPositionGraph` for observation/legality; actions **must not** persist graphs or build transact items (unchanged --- positions kernel only)
+- [X] **P3. Tests** --- `evaluateRelationalLegality.test.ts`, `compileRelational.test.ts`, parse/objectManipulation slice if touched.
 
 ### Phase P4 --- Authority documentation (prevent drift)
 
@@ -304,7 +304,7 @@ Second command should stay clean (no transact in actions enrich).
 | P1 core class + tests | Done |
 | P2 kernel + transact reducers | Done |
 | P2 positions refactor | Done |
-| P3 actions dedup | Not started |
+| P3 actions dedup | Done |
 | P4 durable docs | Not started |
 
 ## Coordination notes

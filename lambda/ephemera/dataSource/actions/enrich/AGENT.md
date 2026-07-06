@@ -27,10 +27,9 @@ Current implementation:
 - [`objectManipulation/relationalRoute.ts`](./objectManipulation/relationalRoute.ts) - preposition detection helper (unit-tested; **not** primary enrich router after B2.5).
 - [`objectManipulation/manipulationFrame.ts`](./objectManipulation/manipulationFrame.ts) - **`ManipulationFrame`** + **`ManipulationFrameExtractModelResponse`** (includes **`operationKind`** BD-12); builder from frame-extract LLM output; **`enrichRoute`** + **`hostRoomId`** on build input.
 - [`objectManipulation/frameExtract/`](./objectManipulation/frameExtract/) - dedicated frame-extract Bedrock hop (BD-4 / BD-12): prompt, interpret, **`runFrameExtractStage`**.
-- [`objectManipulation/compileRelational.ts`](./objectManipulation/compileRelational.ts) - relational compiler (B3): **`normalizeRelationSpan`**, **`resolveRelationalGrounding`**, **`evaluateRelationalLegality`**, terminal **`EstablishRelation`** or **`Error`**.
+- [`objectManipulation/compileRelational.ts`](./objectManipulation/compileRelational.ts) - relational compiler (B3): **`normalizeRelationSpan`**, **`resolveRelationalGrounding`**, **`evaluateRelationalLegality`**, terminal **`EstablishRelation`** or **`Error`**; assembles host-bound graph via **`EphemeraPositionGraph.fromPlayEnvelope`** at cache read boundary.
 - [`objectManipulation/resolveRelationalGrounding.ts`](./objectManipulation/resolveRelationalGrounding.ts) - subject/target span resolve against room catalog only (BD-5); optional identity LLM per span.
-- [`objectManipulation/relationalObservation.ts`](./objectManipulation/relationalObservation.ts) - provisional relational edge extraction from host **`positionGraph`** (B4 must align gateway projection).
-- [`objectManipulation/evaluateRelationalLegality.ts`](./objectManipulation/evaluateRelationalLegality.ts) - BD-10 legality: node-on-graph, idempotent duplicate, conflicting topology -> **`complexRelational`** Error stub.
+- [`objectManipulation/evaluateRelationalLegality.ts`](./objectManipulation/evaluateRelationalLegality.ts) - BD-10 legality: observes host graph via read-only **`EphemeraPositionGraph`** import from [`positions/positionGraph/`](../../positions/positionGraph/); node-on-graph, idempotent duplicate, conflicting topology -> **`complexRelational`** Error stub.
 - [`objectManipulation/relationKind.ts`](./objectManipulation/relationKind.ts) - **`HostRelationalEdgeKind`**, **`NormalizedRelation`**, **`NormalizeRelationOutcome`** types (BD-2 / BD-3).
 - [`objectManipulation/normalizeRelationSpan.ts`](./objectManipulation/normalizeRelationSpan.ts) - deterministic **`relationSpan`** -> enum | **`Custom`** + label | nesting defer (B2).
 - [`objectManipulation/compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts) - membership-atomic orchestrator: merged identity, pre-gates, agreement gate, complexity LLM defer.
@@ -64,7 +63,7 @@ parseCommand passes enrichRoute + hostRoomId from classify intent type
   -> relational: frame extract LLM (operationKind BD-12)
        -> normalizeRelationSpan
        -> resolveRelationalGrounding (room catalog only)
-       -> evaluateRelationalLegality (host positionGraph)
+       -> evaluateRelationalLegality (EphemeraPositionGraph observation)
        -> EstablishRelation | Error
 ```
 

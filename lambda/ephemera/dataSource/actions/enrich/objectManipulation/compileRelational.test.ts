@@ -3,7 +3,7 @@ import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positio
 
 import { compileRelational } from './compileRelational'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import type { ProvisionalRelationalEdgeData } from './relationalObservation'
+import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
@@ -17,7 +17,7 @@ const roomGraphWithObjects = {
     edges: [],
 } as unknown as PlayPositionGraph
 
-const onTableEdge: ProvisionalRelationalEdgeData = {
+const onTableEdge: EphemeraPositionRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,

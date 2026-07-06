@@ -2,7 +2,7 @@
 
 Host-bound in-memory model for play manipulation `positionGraph` truth. Sole positions-lane primitive for membership node and relational edge simulation (EPG-5 legacy delete complete).
 
-**Status:** P2 positions lane complete. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
+**Status:** P3 actions dedup complete. Full authority text in **P4**. Task plan: [`AGENT.ephemeraPositionGraph.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ephemeraPositionGraph.planning.md).
 
 ## Data / class seam
 

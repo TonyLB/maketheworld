@@ -1,12 +1,14 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
+import { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import type { ProvisionalRelationalEdgeData } from './relationalObservation'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
+const HOST_ID = 'ROOM#Bridge' as EphemeraRoomId
 
 const roomGraphWithObjects = {
     nodes: [
@@ -16,12 +18,15 @@ const roomGraphWithObjects = {
     edges: [],
 } as unknown as PlayPositionGraph
 
-const onTableEdge: ProvisionalRelationalEdgeData = {
+const onTableEdge: EphemeraPositionRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
     kind: 'On',
 }
+
+const graphFromEnvelope = (envelope: PlayPositionGraph) =>
+    EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, envelope)
 
 describe('evaluateRelationalLegality', () => {
     it('allows establish when both nodes are on graph with clean topology', () => {
@@ -30,7 +35,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            positionGraph: roomGraphWithObjects,
+            graph: graphFromEnvelope(roomGraphWithObjects),
         })).toEqual({ type: 'allow' })
     })
 
@@ -40,7 +45,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            positionGraph: { ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph,
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
         })).toEqual({ type: 'allow' })
     })
 
@@ -50,7 +55,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'Under' },
-            positionGraph: { ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph,
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
@@ -63,10 +68,10 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            positionGraph: {
+            graph: graphFromEnvelope({
                 nodes: [{ tag: 'Object' as const, universalKey: tableId }],
                 edges: [],
-            } as unknown as PlayPositionGraph,
+            } as unknown as PlayPositionGraph),
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.notOnHostGraph,
@@ -79,7 +84,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            positionGraph: { ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph,
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
         })).toEqual({ type: 'allow' })
     })
 
@@ -89,7 +94,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            positionGraph: roomGraphWithObjects,
+            graph: graphFromEnvelope(roomGraphWithObjects),
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.dissolveNoMatchingEdge,

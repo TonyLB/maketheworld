@@ -4,6 +4,8 @@ import type {
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 
+import { EphemeraPositionGraph } from '../../../positions/positionGraph'
+
 import type { ManipulationFrame } from './manipulationFrame'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
@@ -54,14 +56,15 @@ export async function compileRelational(
     }
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const positionGraph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
+    const positionGraphEnvelope = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
+    const graph = EphemeraPositionGraph.fromPlayEnvelope(frame.hostRoomId, positionGraphEnvelope)
 
     const legality = evaluateRelationalLegality({
         operationKind: frame.operationKind,
         subjectId: grounding.subjectId,
         targetId: grounding.targetId,
         normalizedRelation: norm.relation,
-        positionGraph,
+        graph,
     })
     if (legality.type === 'error') {
         return { type: 'Error', errorMessage: legality.errorMessage }
