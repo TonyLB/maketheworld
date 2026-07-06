@@ -527,6 +527,12 @@ Resources:
             Resource:
               - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-micro-v1:0'
               - 'arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0'
+        # Titan Embed Text v2 (object impromptu embeddings; direct foundation model invoke).
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: 'arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v2:0'
         - Statement:
           - Effect: Allow
             Action:
