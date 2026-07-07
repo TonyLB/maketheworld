@@ -1,0 +1,44 @@
+{
+  "corpusId": "embedding-identity-v1",
+  "modelId": "amazon.titan-embed-text-v2:0",
+  "dimensions": 256,
+  "calibratedAt": "2026-07-07T16:13:34.148Z",
+  "lockedThresholds": {
+    "T_ABS": 0.14,
+    "T_ABS_UNARY": 0.18,
+    "T_MARGIN": 0.008,
+    "marginRule": "absolute-gap"
+  },
+  "identityVerdictsAtLockedThresholds": {
+    "identity-001-absent-sword": "abstain (ambiguous_margin)",
+    "identity-002-unary-trap": "abstain (below_floor)",
+    "identity-003-broom-paraphrase": "resolve",
+    "identity-004-duplicate-shortname": "abstain (ambiguous_margin)",
+    "identity-005-hard-negative-span": "abstain (below_floor)",
+    "identity-006-synonym-unary": "abstain (below_floor)"
+  },
+  "pairSimilarities": {
+    "pair-001-broom-paraphrase": 0.1583,
+    "pair-002-sword-rapier": 0.1662,
+    "pair-003-broom-lantern": 0.0199,
+    "pair-004-anvil-hammer": 0.1931
+  },
+  "identityBestSimilarities": {
+    "identity-001-absent-sword": 0.2532,
+    "identity-002-unary-trap": 0.1662,
+    "identity-003-broom-paraphrase": 0.1583,
+    "identity-004-duplicate-shortname": 1.0,
+    "identity-005-hard-negative-span": 0.0829,
+    "identity-006-synonym-unary": 0.1754
+  },
+  "identityMargins": {
+    "identity-001-absent-sword": 0.0075,
+    "identity-003-broom-paraphrase": 0.0754,
+    "identity-005-hard-negative-span": 0.0251
+  },
+  "marginRatioComparison": {
+    "absoluteGap": { "min": 0, "median": 0.0163, "max": 0.0754 },
+    "ratio": { "min": 1.0, "median": 1.233, "max": 1.91 }
+  },
+  "notes": "Titan v2 quantized cosines on short phrases are ~0.05-0.25. Absent-object best sim exceeds paraphrase best; margin gate separates identity-001 from identity-003."
+}

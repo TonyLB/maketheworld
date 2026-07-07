@@ -1,7 +1,7 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../calibration/objectMatch/corpus'
 
 import { simulateEmbeddingIdentity } from './simulateEmbeddingIdentity'
-import { T_ABS, T_ABS_UNARY } from './thresholds'
+import { T_ABS, T_ABS_UNARY, T_MARGIN } from './thresholds'
 import {
     buildCandidatesFromIdentityCase,
     type IdentityCaseVectorPlan,
@@ -22,7 +22,7 @@ const vectorPlansByCaseId: Record<string, IdentityCaseVectorPlan> = {
     'identity-004-duplicate-shortname': { kind: 'duplicate-shortname' },
     'identity-005-hard-negative-span': {
         kind: 'below-multi-floor',
-        similarities: [0.3, 0.2],
+        similarities: [T_ABS - 0.03, T_ABS - 0.05],
     },
     'identity-006-synonym-unary': {
         kind: 'unary-below-floor',
@@ -35,6 +35,52 @@ const expectedAbstainReasonByCaseId: Record<string, string> = {
     'identity-004-duplicate-shortname': 'ambiguous_margin',
     'identity-006-synonym-unary': 'below_floor',
 }
+
+describe('embeddingMatch corpus threshold boundaries (mocked vectors)', () => {
+    it('abstains absent-object analog when best clears T_ABS but margin is below T_MARGIN', () => {
+        const bestSim = T_ABS + 0.11
+        const secondSim = bestSim - (T_MARGIN - 0.001)
+        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
+            {
+                id: 'test-absent-margin',
+                bucket: 'absent-object',
+                span: 'sword',
+                catalog: ['broom', 'anvil', 'lantern'],
+            },
+            {
+                kind: 'below-multi-floor',
+                similarities: [secondSim, bestSim, T_ABS - 0.05],
+            }
+        )
+        const decision = simulateEmbeddingIdentity(spanEmbedding, candidates)
+        expect(decision).toEqual({ type: 'Abstain', reason: 'ambiguous_margin' })
+    })
+
+    it('resolves paraphrase analog when best clears T_ABS and margin clears T_MARGIN', () => {
+        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
+            {
+                id: 'test-paraphrase-margin',
+                bucket: 'positive-paraphrase',
+                span: 'sweeping tool',
+                catalog: ['broom', 'anvil', 'lantern'],
+                expectedVerdict: 'resolve',
+                expectedObjectIndex: 0,
+            },
+            {
+                kind: 'resolve-index',
+                targetIndex: 0,
+                targetSimilarity: T_ABS + 0.018,
+                otherSimilarity: T_ABS - 0.06,
+            }
+        )
+        const decision = simulateEmbeddingIdentity(spanEmbedding, candidates)
+        expect(decision).toEqual({
+            type: 'Resolved',
+            objectId: candidates[0]!.objectId,
+            catalogScope: 'room',
+        })
+    })
+})
 
 describe('embeddingMatch corpus (mocked vectors)', () => {
     for (const identityCase of EMBEDDING_CALIBRATION_IDENTITY_CASES) {

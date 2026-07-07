@@ -40,6 +40,7 @@ import { sendActionAssessed, sendParseRequested, sendStateChange } from './dataS
 import { routeTrustedUiAction } from './dataSource/routeTrustedUiAction'
 import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
+import { isCalibrationEventType, routeCalibrationEvent } from './calibration/routeCalibrationEvent'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -77,6 +78,13 @@ export const handler = async (event: any, context: any) => {
         internalCache.Global.set({ key: 'RequestId', value: request.RequestId })
     }
     messageBus.clear()
+
+    //
+    // Embedding calibration (direct Lambda invoke only; IAM-gated operator tooling)
+    //
+    if (isCalibrationEventType(event?.type)) {
+        return routeCalibrationEvent(event)
+    }
 
     //
     // Handle direct calls (not by way of API, probably by way of Step Functions)
