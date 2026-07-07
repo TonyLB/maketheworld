@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** EM-4 complete. Next step: **EM-5** --- wire `identityStage` + `resolveRelationalGrounding`.
+**Status:** EM-5 complete. Next step: **EM-6** --- catalog ingress batch load (`ObjectEmbedding.get` at `parseCommand`).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -198,7 +198,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Complete |
 | **EM-3** | Span embed helper | Complete |
 | **EM-4** | Calibration corpus + live tooling + lock thresholds | Complete |
-| **EM-5** | Wire `identityStage` + `resolveRelationalGrounding` | Not started |
+| **EM-5** | Wire `identityStage` + `resolveRelationalGrounding` | Complete |
 | **EM-6** | Catalog ingress batch load (parallel with catalog fetches) | Not started |
 | **EM-7** | Durable docs + verification | Not started |
 
@@ -238,12 +238,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Extend EM-2 unit tests to assert abstain/resolve at locked thresholds.
   - [X] Snapshot JSON under `calibration/objectMatch/snapshots/`.
 
-- [ ] **EM-5. Identity integration**
-  - [ ] Add `resolveObjectSpanByEmbedding` orchestrator: embed span -> score pre-attached catalog vectors -> decide (no catalog load in identity stage).
-  - [ ] [`identityStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts): after deterministic `noMatch`, before identity LLM; skip embedding tier on `ambiguous`; span embed failure -> fall through (EM-D5).
-  - [ ] [`resolveRelationalGrounding.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveRelationalGrounding.ts): same tier order per span.
-  - [ ] Span embed dedupe per invocation (EM-D7).
-  - [ ] Tests: paraphrase resolves without identity mock; absent-object abstains -> identity LLM still called; exact match never embeds; embed invoke failure -> identity LLM, not Error.
+- [X] **EM-5. Identity integration**
+  - [X] Add `resolveObjectSpanByEmbedding` orchestrator: embed span -> score pre-attached catalog vectors -> decide (no catalog load in identity stage).
+  - [X] [`identityStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts): after deterministic `noMatch`, before identity LLM; skip embedding tier on `ambiguous`; span embed failure -> fall through (EM-D5).
+  - [X] [`resolveRelationalGrounding.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveRelationalGrounding.ts): same tier order per span.
+  - [X] Span embed dedupe per invocation (EM-D7).
+  - [X] Tests: paraphrase resolves without identity mock; absent-object abstains -> identity LLM still called; exact match never embeds; embed invoke failure -> identity LLM, not Error.
 
 - [ ] **EM-6. Catalog vector load (ingress)**
   - [ ] Extend catalog fetch in [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): **`Promise.all`** (or equivalent) parallel batch --- room catalog, held catalog, **`ObjectEmbedding.get`** for union of catalog `objectId`s (EM-D6).

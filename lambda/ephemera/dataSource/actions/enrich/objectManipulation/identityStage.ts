@@ -3,6 +3,11 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from './catalogMerge'
 import { buildObjectManipulationIdentityPrompt } from './buildPrompt'
+import { createSpanEmbedCache } from './embeddingMatch/spanEmbedCache'
+import {
+    resolveObjectSpanByEmbedding,
+    type ResolveObjectSpanByEmbeddingDeps,
+} from './embeddingMatch/resolveObjectSpanByEmbedding'
 import { interpretObjectManipulationIdentityBody } from './interpretIdentity'
 import {
     objectManipulationErrorMessageForResolution,
@@ -22,7 +27,8 @@ export type IdentityStageResult =
 
 export type IdentityStageDeps = {
     invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
-}
+    resolveObjectSpanByEmbeddingImpl?: typeof resolveObjectSpanByEmbedding
+} & Pick<ResolveObjectSpanByEmbeddingDeps, 'embedSpan'>
 
 function deterministicSpanGrounding(
     rawObjectSpan: string,
@@ -46,8 +52,39 @@ function deterministicSpanGrounding(
     return { type: 'ambiguous' }
 }
 
-function needsIdentityLlm(grounding: SpanGrounding): boolean {
-    return grounding.type === 'noMatch' || grounding.type === 'ambiguous'
+async function invokeIdentityLlmForSpan(
+    command: string,
+    rawObjectSpan: string,
+    catalog: readonly ObjectManipulationCatalogEntry[],
+    invokeIdentity: typeof invokeBedrockObjectManipulationEnrich,
+    allowedObjectIds: Set<EphemeraObjectId>
+): Promise<
+    | { type: 'resolved'; objectId: EphemeraObjectId; catalogScope: ObjectManipulationCatalogScope }
+    | { type: 'error'; errorMessage: string }
+> {
+    const promptParts = buildObjectManipulationIdentityPrompt(command, {
+        rawObjectSpan,
+        catalog,
+    })
+    const invokeResult = await invokeIdentity(promptParts)
+    if (!invokeResult.success) {
+        return {
+            type: 'error',
+            errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
+        }
+    }
+
+    const parsed = interpretObjectManipulationIdentityBody(invokeResult.body, allowedObjectIds)
+    if (!parsed.success) {
+        return { type: 'error', errorMessage: parsed.errorMessage }
+    }
+
+    const entry = catalog.find(({ objectId }) => objectId === parsed.response.objectId)
+    return {
+        type: 'resolved',
+        objectId: parsed.response.objectId,
+        catalogScope: entry?.catalogScope ?? 'room',
+    }
 }
 
 export async function runIdentityStage(
@@ -57,13 +94,36 @@ export async function runIdentityStage(
     deps: IdentityStageDeps = {}
 ): Promise<IdentityStageResult> {
     const invokeIdentity = deps.invokeBedrockObjectManipulationIdentityImpl ?? invokeBedrockObjectManipulationEnrich
+    const resolveByEmbedding = deps.resolveObjectSpanByEmbeddingImpl ?? resolveObjectSpanByEmbedding
     const allowedObjectIds = new Set(catalog.map(({ objectId }) => objectId))
+    const spanEmbedCache = createSpanEmbedCache()
     const spanGroundings: SpanGrounding[] = []
 
     for (const rawObjectSpan of rawObjectSpans) {
         let grounding = deterministicSpanGrounding(rawObjectSpan, catalog)
 
-        if (needsIdentityLlm(grounding)) {
+        if (grounding.type === 'noCatalog') {
+            return {
+                type: 'error',
+                errorMessage: objectManipulationErrorMessageForResolution({ type: 'NoCatalog' }),
+            }
+        }
+
+        if (grounding.type === 'noMatch') {
+            const embeddingDecision = await resolveByEmbedding(rawObjectSpan, catalog, {
+                embedSpan: deps.embedSpan,
+                spanEmbedCache,
+            })
+            if (embeddingDecision.type === 'Resolved') {
+                grounding = {
+                    type: 'resolved',
+                    objectId: embeddingDecision.objectId,
+                    catalogScope: embeddingDecision.catalogScope,
+                }
+            }
+        }
+
+        if (grounding.type === 'noMatch' || grounding.type === 'ambiguous') {
             if (catalog.length === 0) {
                 return {
                     type: 'error',
@@ -71,33 +131,21 @@ export async function runIdentityStage(
                 }
             }
 
-            const promptParts = buildObjectManipulationIdentityPrompt(command, {
+            const llmResult = await invokeIdentityLlmForSpan(
+                command,
                 rawObjectSpan,
                 catalog,
-            })
-            const invokeResult = await invokeIdentity(promptParts)
-            if (!invokeResult.success) {
-                return {
-                    type: 'error',
-                    errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
-                }
+                invokeIdentity,
+                allowedObjectIds
+            )
+            if (llmResult.type === 'error') {
+                return llmResult
             }
 
-            const parsed = interpretObjectManipulationIdentityBody(invokeResult.body, allowedObjectIds)
-            if (!parsed.success) {
-                return { type: 'error', errorMessage: parsed.errorMessage }
-            }
-
-            const entry = catalog.find(({ objectId }) => objectId === parsed.response.objectId)
             grounding = {
                 type: 'resolved',
-                objectId: parsed.response.objectId,
-                catalogScope: entry?.catalogScope ?? 'room',
-            }
-        } else if (grounding.type === 'noCatalog') {
-            return {
-                type: 'error',
-                errorMessage: objectManipulationErrorMessageForResolution({ type: 'NoCatalog' }),
+                objectId: llmResult.objectId,
+                catalogScope: llmResult.catalogScope,
             }
         }
 

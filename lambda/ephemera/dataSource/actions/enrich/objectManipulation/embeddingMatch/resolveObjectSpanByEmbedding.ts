@@ -1,18 +1,28 @@
 import type { EmbedObjectSpanResult } from '../../../../objects/embedding/embedObjectSpan'
+import { createSpanEmbedCache, getOrEmbedSpan } from './spanEmbedCache'
+import { simulateEmbeddingIdentity } from './simulateEmbeddingIdentity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
 
 export type ResolveObjectSpanByEmbeddingDeps = {
     embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>
+    spanEmbedCache?: ReturnType<typeof createSpanEmbedCache>
 }
 
 /**
- * EM-5 orchestrator: embed span -> rank pre-attached catalog vectors -> decide.
- * Not wired into identity stage until EM-5.
+ * Embed span -> rank pre-attached catalog vectors -> decide.
+ * No catalog load; identity stage consumes pre-attached embeddings only.
  */
 export async function resolveObjectSpanByEmbedding(
-    _rawObjectSpan: string,
-    _candidates: readonly EmbeddingMatchCandidate[],
-    _deps: ResolveObjectSpanByEmbeddingDeps = {}
+    rawObjectSpan: string,
+    candidates: readonly EmbeddingMatchCandidate[],
+    deps: ResolveObjectSpanByEmbeddingDeps = {}
 ): Promise<EmbeddingMatchDecision> {
-    throw new Error('resolveObjectSpanByEmbedding is not implemented until EM-5')
+    const cache = deps.spanEmbedCache ?? createSpanEmbedCache()
+    const embedResult = await getOrEmbedSpan(rawObjectSpan, cache, deps)
+
+    if (!embedResult.success) {
+        return { type: 'Abstain', reason: 'embed_invoke_failed' }
+    }
+
+    return simulateEmbeddingIdentity(embedResult.embedding, candidates)
 }

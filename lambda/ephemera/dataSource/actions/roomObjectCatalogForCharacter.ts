@@ -13,6 +13,8 @@ import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/short
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
+import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
+
 import internalCache from '../../internalCache'
 import type { EphemeraPositionGraph } from '../positions/positionGraph'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
@@ -21,6 +23,8 @@ import { normalizeExitName } from './roomExitTargetsForCharacter'
 export type RoomInPlayObjectCatalogEntry = {
     objectId: EphemeraObjectId
     normalizedShortName: string
+    /** Pre-attached at parseCommand ingress (EM-6); optional until batch load ships. */
+    embedding?: SemanticEmbedding
 }
 
 export type RoomObjectCatalogForCharacter = {

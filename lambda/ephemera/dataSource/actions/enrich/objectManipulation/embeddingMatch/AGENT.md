@@ -17,10 +17,13 @@ Cosine-similarity tier between exact `shortName` resolve and the identity LLM. *
 | [`rankCatalogByCosineSimilarity`](rankCatalogByCosineSimilarity.ts) | Linear scan; ranked scores |
 | [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` |
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | Rank + decide (calibration + tests) |
-| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate (EM-5) |
+| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate (wired EM-5) |
+| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation (EM-D7) |
 | [`thresholds.ts`](thresholds.ts) | Locked constants (`T_ABS`, `T_ABS_UNARY`, `T_MARGIN`) |
 
-**Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)).
+**Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`parseCommand` ingress batch load (EM-6)** attaches vectors before identity stage runs. Until EM-6 ships, production exact misses abstain with `no_eligible_embeddings` and fall through to identity LLM.
+
+**Wiring (EM-5):** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error (EM-D5).
 
 ---
 

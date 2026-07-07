@@ -42,8 +42,8 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to exactly one catalog **`objectId`** for a unary membership command.
 
 - **Deterministic slice:** exact **`shortName`** match against merged room + held catalog ([`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`catalogMerge.ts`](catalogMerge.ts)).
-- **Embedding tier (EM-4 thresholds locked, EM-5 wiring):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts), [`simulateEmbeddingIdentity`](embeddingMatch/simulateEmbeddingIdentity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); calibration tooling under [`../../../../calibration/`](../../../../calibration/AGENT.md); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts). **Calibration findings, asymmetric index experiments, and deferred closed-loop recommender architecture:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md). Task plan: [`AGENT.objectEmbeddingMatch.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md).
-- **Semantic hop (conditional):** when deterministic resolve returns **NoMatch** or **AmbiguousMatch**, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
+- **Embedding tier (EM-5 wired; ingress vectors EM-6):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`resolveObjectSpanByEmbedding`](embeddingMatch/resolveObjectSpanByEmbedding.ts), [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)). **Calibration findings, asymmetric index experiments, and deferred closed-loop recommender architecture:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md). Task plan: [`AGENT.objectEmbeddingMatch.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md).
+- **Semantic hop (conditional):** when embedding abstains, deterministic resolve returns **AmbiguousMatch**, or span embed invoke fails, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
 
 **Handoff:** one grounded **`objectId`** or terminal resolve Error.
 
@@ -87,7 +87,7 @@ The hop receives grounded **`objectId`**, membership containers, and which **exi
 Map **`relationSpan`** -> **`relationKind`** enum (`On` | `Under` | `Against`) or **`Custom`** + **`relationLabel`**; **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error ([`normalizeRelationSpan.ts`](normalizeRelationSpan.ts)).
 
 **11. Relational grounding (hybrid)**  
-Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same identity pattern as membership: deterministic resolve first, identity LLM on NoMatch/AmbiguousMatch (**optimistic best-effort**).
+Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same three-tier identity pattern as membership: exact resolve, embedding fast path on **NoMatch** (skip on **AmbiguousMatch**), identity LLM on abstain / ambiguous / embed failure.
 
 **12. Relational legality (deterministic)**  
 Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)): both nodes on graph; **`dissolveRelation`** requires a matching edge; **`establishRelation`** allows idempotent duplicate; **conflicting existing relational topology** on subject/target -> **`complexRelational`** Error stub (Phase D plan LLM is the future escalation --- see planning doc).
@@ -109,7 +109,7 @@ Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluate
 | Membership **`operationKind`** (`takeHold` \| `drop`) | Enrich pre-gates + agreement (atomic path); complexity LLM when deferred | Deterministic + semantic defer |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Frame extract (**BD-12**) | Semantic |
 | **`relationKind`** / **`relationLabel`** | Relation normalizer | Deterministic |
-| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity + grounding stages | Deterministic + conditional identity LLM |
+| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity + grounding stages | Deterministic + embedding tier + conditional identity LLM |
 
 Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**Deterministic enrich boundary**).
 
@@ -117,8 +117,8 @@ Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**De
 
 | Path | Typical hops |
 | --- | --- |
-| Membership | **0** when deterministic identity + atomic pre-gates succeed; **1** identity LLM and/or **1** complexity LLM when those stages defer |
-| Relational | **+1** frame extract; **0--2** identity LLM calls (per span) when grounding defers |
+| Membership | **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss (skipped when embedding resolves); **1** identity LLM and/or **1** complexity LLM when those stages defer |
+| Relational | **+1** frame extract; **0--2** Titan embeds (per distinct span on exact miss); **0--2** identity LLM calls (per span) when embedding abstains or resolve is ambiguous |
 
 Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / **`drop`** may need **zero** post-classify Bedrock calls.
 
@@ -128,7 +128,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | --- | --- |
 | Entry + route | [`index.ts`](index.ts), [`cardinalityGate.ts`](cardinalityGate.ts) |
 | Membership compiler | [`compileMembershipAtomic.ts`](compileMembershipAtomic.ts), [`membershipFrame.ts`](membershipFrame.ts), [`complexityPreGates.ts`](complexityPreGates.ts), [`membershipObservation.ts`](membershipObservation.ts) |
-| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) (EM-2 pure policy; EM-5 wiring) |
+| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) (policy + EM-5 wiring) |
 | Complexity finalize | [`interpretAndFinalize.ts`](interpretAndFinalize.ts), [`complexityClasses.ts`](complexityClasses.ts) |
 | Relational | [`frameExtract/runFrameExtractStage.ts`](frameExtract/runFrameExtractStage.ts), [`frameExtract/buildFrameExtractPrompt.ts`](frameExtract/buildFrameExtractPrompt.ts), [`compileRelational.ts`](compileRelational.ts), [`resolveRelationalGrounding.ts`](resolveRelationalGrounding.ts), [`normalizeRelationSpan.ts`](normalizeRelationSpan.ts), [`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts) |
 | Frames | [`manipulationFrame.ts`](manipulationFrame.ts) |
