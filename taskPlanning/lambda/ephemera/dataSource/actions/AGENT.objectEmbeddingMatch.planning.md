@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** EM-1 complete. Next step: **EM-2** --- pure match policy + calibration fixture (mocked vectors).
+**Status:** EM-2 complete. Next step: **EM-3** --- span embed helper.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -202,7 +202,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | --- | --- | --- |
 | **EM-0** | Pre-calibration lock + module layout scaffold | Complete |
 | **EM-1** | Read gateway + `internalCache` + cache invalidation | Complete |
-| **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Not started |
+| **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Complete |
 | **EM-3** | Span embed helper | Not started |
 | **EM-4** | Calibration corpus + live tooling + lock thresholds | Not started |
 | **EM-5** | Wire `identityStage` + `resolveRelationalGrounding` | Not started |
@@ -225,11 +225,11 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Package tests: batch get, missing row, invalid row rejected.
   - [X] Add ownership row to [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md).
 
-- [ ] **EM-2. Pure match policy (no Bedrock)**
-  - [ ] `decideEmbeddingMatch(scores)` -> `Resolved` | `Abstain` with reason enum.
-  - [ ] `rankCatalogByCosineSimilarity(spanEmbedding, candidates)` using `SemanticEmbedding.cosineSimilarity`.
-  - [ ] Consume labeled cases from [`calibration/objectMatch/corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) (scaffolded in **EM-0**) with **mocked** vectors for unit tests.
-  - [ ] Unit tests: gates pass/fail independently; identical-shortName duplicate catalog excluded from auto-resolve path. Threshold assertions against locked constants wait for **EM-4**.
+- [X] **EM-2. Pure match policy (no Bedrock)**
+  - [X] `decideEmbeddingMatch(scores)` -> `Resolved` | `Abstain` with reason enum.
+  - [X] `rankCatalogByCosineSimilarity(spanEmbedding, candidates)` using `SemanticEmbedding.cosineSimilarity`.
+  - [X] Consume labeled cases from [`calibration/objectMatch/corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) (scaffolded in **EM-0**) with **mocked** vectors for unit tests.
+  - [X] Unit tests: gates pass/fail independently; identical-shortName duplicate catalog excluded from auto-resolve path. Threshold assertions against locked constants wait for **EM-4**.
 
 - [ ] **EM-3. Span embed helper**
   - [ ] Extract or share embed path with [`buildShortNameSemanticEmbedding.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts) (normalize + `invokeBedrockTitanEmbed` + `SemanticEmbedding.fromFloat32`).
