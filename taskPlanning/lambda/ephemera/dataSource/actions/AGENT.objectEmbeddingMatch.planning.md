@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** EM-5 complete. Next step: **EM-6** --- catalog ingress batch load (`ObjectEmbedding.get` at `parseCommand`).
+**Status:** EM-6 complete. Next step: **EM-7** --- durable docs + verification + plan retirement.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -199,7 +199,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | **EM-3** | Span embed helper | Complete |
 | **EM-4** | Calibration corpus + live tooling + lock thresholds | Complete |
 | **EM-5** | Wire `identityStage` + `resolveRelationalGrounding` | Complete |
-| **EM-6** | Catalog ingress batch load (parallel with catalog fetches) | Not started |
+| **EM-6** | Catalog ingress batch load (parallel with catalog fetches) | Complete |
 | **EM-7** | Durable docs + verification | Not started |
 
 ## Recommended order
@@ -245,10 +245,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Span embed dedupe per invocation (EM-D7).
   - [X] Tests: paraphrase resolves without identity mock; absent-object abstains -> identity LLM still called; exact match never embeds; embed invoke failure -> identity LLM, not Error.
 
-- [ ] **EM-6. Catalog vector load (ingress)**
-  - [ ] Extend catalog fetch in [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): **`Promise.all`** (or equivalent) parallel batch --- room catalog, held catalog, **`ObjectEmbedding.get`** for union of catalog `objectId`s (EM-D6).
-  - [ ] Type extension: `ObjectManipulationCatalogEntry` optional `embedding?: SemanticEmbedding`.
-  - [ ] Tests: ingress passes embeddings to identity stage mocks.
+- [X] **EM-6. Catalog vector load (ingress)**
+  - [X] Extend catalog fetch in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) **`handleParseRequested`**: after parallel room/held catalog `Promise.all`, union `objectId`s and batch **`internalCache.ObjectEmbedding.get`** (EM-D6); attach via [`attachEmbeddingsToCatalogEntries`](../../../../../lambda/ephemera/dataSource/actions/attachEmbeddingsToCatalogEntries.ts) before `parseCommand`.
+  - [X] Type extension: `ObjectManipulationCatalogEntry` optional `embedding?: SemanticEmbedding` (via `RoomInPlayObjectCatalogEntry`, shipped pre-EM-6).
+  - [X] Tests: ingress passes embeddings to `parseCommand` (`index.test.ts`); helper unit tests (`attachEmbeddingsToCatalogEntries.test.ts`).
 
 - [ ] **EM-7. Durable docs + ship**
   - [ ] Update [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) step 4 (three-tier identity).

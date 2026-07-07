@@ -23,7 +23,7 @@ import { normalizeExitName } from './roomExitTargetsForCharacter'
 export type RoomInPlayObjectCatalogEntry = {
     objectId: EphemeraObjectId
     normalizedShortName: string
-    /** Pre-attached at parseCommand ingress (EM-6); optional until batch load ships. */
+    /** Pre-attached at parse ingress via handleParseRequested (EM-6). */
     embedding?: SemanticEmbedding
 }
 

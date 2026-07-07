@@ -107,7 +107,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 ## Follow-ups (not part of v1 scope)
 
 - **`renderOrchestration`:** May subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out --- **not** required for the shipped objects/perception slice; add when product needs it.
-- **Embedding read gateway + `internalCache` handler:** when identity-stage embedding resolve ships.
+- **Embedding read gateway + `internalCache` handler:** shipped --- [`createObjectEmbeddingCacheHandler`](../../../../../packages/mtw-gateways/ts/ephemera/objectEmbedding/); identity ingress batch read in [`handleParseRequested`](../../actions/index.ts).
 - **`EMBEDDING#PERSPECTIVE#...` rows:** when perspective-scoped similarity is needed.
 - **Non-room `componentId`**, additional **`Meta::*`** shapes, **replay** / external contract for **`mtw.ephemera.objects`**, **authorization**, **client correlation** --- future task plans or product decisions.
 
@@ -121,7 +121,7 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **Existence transact (spawn)** | 2-item (pair + **`Meta::Object`**) when embed fails or is skipped; 3-item (+ **`EMBEDDING#IMPROMPTU`**) when embed succeeds --- single `transactWrite`, Bedrock runs before transact. |
 | **Delete transact** | Always 3 unconditional **`Delete`** items (pair, **`Meta::Object`**, **`EMBEDDING#IMPROMPTU`**) --- idempotent when embedding row absent. |
 | **Embedding update path** | Hash-check on **every** `persistUpdateImprovisationObject` call (including trope-only updates). Re-embed when row absent, `sourceTextHash` missing/mismatched, or model/encoding/dimensions stale ([`embedding/impromptuEmbeddingNeedsRefresh.ts`](embedding/impromptuEmbeddingNeedsRefresh.ts)). Best-effort Bedrock; failure **must not** block update; 2- vs 3-item transact mirrors spawn. |
-| **Embedding read path** | v1 is write-only persistence; no **`internalCache`** handler or gateway read surface. |
+| **Embedding read path** | **`createObjectEmbeddingCacheHandler`** + **`internalCache.ObjectEmbedding`**; batch **`get(objectIds[])`** at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../actions/attachEmbeddingsToCatalogEntries.ts)); memo invalidate on object writes. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
 | **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`applyObjectRoomMembership`); not a cross-lane single transact. |
 | **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |

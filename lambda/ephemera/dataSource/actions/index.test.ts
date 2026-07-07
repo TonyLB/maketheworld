@@ -1,4 +1,8 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    SemanticEmbedding,
+    SEMANTIC_EMBEDDING_V1_DIMENSIONS,
+} from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { ephemeraActionsDataSource } from './index'
 import { MULTIPLE_COMMANDS_PLAYER_MESSAGE } from './multipleCommandsPlayerMessage'
@@ -101,6 +105,7 @@ describe('ephemeraActionsDataSource', () => {
         mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [] })
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
+        internalCacheMock.ObjectEmbedding.get.mockResolvedValue({})
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -1104,10 +1109,105 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockedGetHeldInventoryCatalogForCharacter).toHaveBeenCalledWith('CHARACTER#123')
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    heldInventoryCatalog: [heldEntry],
+                    heldInventoryCatalog: [{ ...heldEntry, embedding: undefined }],
                 }),
                 { messageBus: mockMessageBus }
             )
+        })
+
+        it('batch-loads ObjectEmbedding rows and attaches embeddings to catalog entries for parseCommand', async () => {
+            const broomId = 'OBJECT#Broom' as EphemeraObjectId
+            const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
+            const pouchId = 'OBJECT#Pouch' as EphemeraObjectId
+            const broomEmbedding = SemanticEmbedding.fromFloat32(
+                Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, (_, index) => (index === 0 ? 1 : 0)),
+                { modelId: 'amazon.titan-embed-text-v2:0' }
+            )
+            const pouchEmbedding = SemanticEmbedding.fromFloat32(
+                Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, (_, index) => (index === 1 ? 1 : 0)),
+                { modelId: 'amazon.titan-embed-text-v2:0' }
+            )
+            mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({
+                roomId: 'ROOM#Bridge' as EphemeraRoomId,
+                entries: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: anvilId, normalizedShortName: 'anvil' },
+                ],
+            })
+            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({
+                entries: [
+                    { objectId: broomId, normalizedShortName: 'held broom' },
+                    { objectId: pouchId, normalizedShortName: 'pouch' },
+                ],
+            })
+            internalCacheMock.ObjectEmbedding.get.mockResolvedValue({
+                [broomId]: broomEmbedding,
+                [pouchId]: pouchEmbedding,
+            })
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: 'embedding ingress',
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'take broom',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(internalCacheMock.ObjectEmbedding.get).toHaveBeenCalledWith([broomId, anvilId, pouchId])
+            expect(mockedParseCommand).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roomObjectCatalog: [
+                        { objectId: broomId, normalizedShortName: 'broom', embedding: broomEmbedding },
+                        { objectId: anvilId, normalizedShortName: 'anvil', embedding: undefined },
+                    ],
+                    heldInventoryCatalog: [
+                        { objectId: broomId, normalizedShortName: 'held broom', embedding: broomEmbedding },
+                        { objectId: pouchId, normalizedShortName: 'pouch', embedding: pouchEmbedding },
+                    ],
+                }),
+                { messageBus: mockMessageBus }
+            )
+        })
+
+        it('skips ObjectEmbedding.get when both catalogs are empty', async () => {
+            mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({ roomId: null, entries: [] })
+            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [] })
+            mockedParseCommand.mockResolvedValue({
+                type: 'Error',
+                errorMessage: 'empty catalogs',
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'look',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(internalCacheMock.ObjectEmbedding.get).not.toHaveBeenCalled()
         })
 
         it('publishes Acme Order streamEvent and WorldMessage delivery line when valid orders exist', async () => {
