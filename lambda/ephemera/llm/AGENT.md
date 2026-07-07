@@ -2,7 +2,7 @@
 
 `lambda/ephemera/llm/` holds **shared, Bedrock-facing primitives** that are not tied to a single feature: **transport** (Runtime `Converse` text out; Runtime `InvokeModel` embed vectors) and **model-output parsing** (splitting chain-of-reasoning Markdown from final JSON, and normalizing a JSON object substring from messy assistant text). Feature code keeps **prompts, domain validation, and business types** elsewhere; this directory defines **reusable patterns** so new call sites do not re-implement fences, timeouts, or the "Markdown then JSON" response shape.
 
-**Read first for new pipelines:** [`AGENT.concepts.md`](AGENT.concepts.md) (design seams --- semantic reasoning vs deterministic computation), [`AGENT.contract.md`](AGENT.contract.md) (normative rules). Place **semantic reasoning** (judgment, ambiguity) in LLM hops; place **deterministic computation** (graph truth, legality, packaging) in code --- see concepts for hybrid hops and fast-path rules.
+**Read first for new pipelines:** [`AGENT.concepts.md`](AGENT.concepts.md) (two design axes: **design seams** --- semantic reasoning vs deterministic computation; **output trust** --- trusted-output vs fault-tolerant commit posture), [`AGENT.contract.md`](AGENT.contract.md) (normative rules). Place **semantic reasoning** in LLM hops and **deterministic computation** in code; declare **trust posture** per hop and at commit boundaries --- see concepts for hybrid hops, fast-path rules, and how the axes compose.
 
 ## Scope (key files)
 

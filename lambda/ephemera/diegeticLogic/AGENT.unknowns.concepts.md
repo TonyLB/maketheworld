@@ -31,5 +31,6 @@ Extension of [`AGENT.concepts.md`](AGENT.concepts.md). How the system treats **u
 | Doc | Role |
 | --- | --- |
 | [`AGENT.concepts.md`](AGENT.concepts.md) | Known vs unknown summary |
+| [`../llm/AGENT.concepts.md`](../llm/AGENT.concepts.md) | Output trust, survivable wrongness vs manipulation truth |
 | [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md) | What play graphs commit to today |
 | [`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md) | Transcript position vs correlation (orthogonal) |

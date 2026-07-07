@@ -155,7 +155,7 @@ Plan-only: decisions we are making in order to implement Phases B--D. When a dec
 
 ### Deterministic enrich boundary (BD-12)
 
-Graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) (**Deterministic enrich boundary**) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) (design seams, field ownership, fast-path closure).
+Graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) (**Deterministic enrich boundary**) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) (design seams, field ownership, fast-path closure). Output trust models (trusted-output vs fault-tolerant) are documented separately in the same concepts file.
 
 ### BD-10: defer vs hard Error (litmus)
 

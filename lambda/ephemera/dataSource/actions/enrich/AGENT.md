@@ -14,7 +14,7 @@ Current implementation:
 - **Input:** an intent-level outcome from `discriminateIntent` plus original command/context (for example **`occupiedStableKeys`**, **`hostRoomId`**, and enrich-model responses).
 - **Output:** terminal parse payloads (for example **`AcmeOrder`**, **`EstablishRelation`**, or **`Error`** when the placement cap rejects enrich) or pass-through behavior handled by **`parseCommand`** orchestration.
 - **Ownership:** enrich modules should stay focused on enrichment/normalization logic; `parseCommand` remains the orchestrator deciding when enrichment runs.
-- **Lane:** enrich is primarily **deterministic computation** (resolve, legality, compile) after classify and frame-extract **semantic-reasoning** hops. See [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md).
+- **Lane:** enrich is primarily **deterministic computation** (resolve, legality, compile) after classify and frame-extract **semantic-reasoning** hops. **Trust:** shipped parse paths use **trusted-output** through terminal compile. See [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md).
 
 ## Current files
 

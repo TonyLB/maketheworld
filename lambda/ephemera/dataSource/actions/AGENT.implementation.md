@@ -7,7 +7,7 @@ For architecture and normative contract boundaries, see [`AGENT.md`](./AGENT.md)
 
 ## Adding a new command affordance
 
-**Pipeline design:** Before adding deterministic shortcuts or LLM hops, read [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) and [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). Deterministic short-circuits are allowed only at the **owning stage** when **closure-trusted inputs** suffice (frozen syntactic template or state-derived facts) --- not as phrase-bucket semantics in downstream compilers.
+**Pipeline design:** Before adding deterministic shortcuts or LLM hops, read [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) (design seams **and** output trust) and [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). Deterministic short-circuits are allowed only at the **owning stage** when **closed-world inputs** suffice (frozen syntactic template or state-derived facts) --- not as phrase-bucket semantics in downstream compilers.
 
 Use this checklist when adding a parse affordance (for example, `help`).
 
@@ -19,7 +19,7 @@ Use this checklist when adding a parse affordance (for example, `help`).
 
 ### 2) Wire parse pipeline behavior
 
-1. In [`parseCommand.ts`](parseCommand.ts), prefer deterministic short-circuit logic first when possible (no Bedrock call) **only when the owning stage can close over closure-trusted inputs** per [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) (syntactic template or state-derived facts). Do not skip Bedrock to approximate semantic reasoning.
+1. In [`parseCommand.ts`](parseCommand.ts), prefer deterministic short-circuit logic first when possible (no Bedrock call) **only when the owning stage can close over closed-world inputs** per [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md) (syntactic template or state-derived facts). Do not skip Bedrock to approximate semantic reasoning.
 2. Keep discriminate-intent classification and interpretation aligned:
    - [`discriminateIntent/buildIntentClassificationPrompt.ts`](discriminateIntent/buildIntentClassificationPrompt.ts)
    - [`discriminateIntent/intentClassification.ts`](discriminateIntent/intentClassification.ts)

@@ -2,6 +2,8 @@
 
 **Status: shipped (v1).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. v1 is an **open-loop terminal fast path** (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)); calibration and asymmetric experiments below inform **follow-on closed-loop rearchitecture** (candidate recommender + downstream correction).
 
+**Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
+
 **Pipeline context:** [`../AGENT.md`](../AGENT.md) step 4 (identity).
 
 **Calibration tooling:** [`../../../../../calibration/AGENT.md`](../../../../../calibration/AGENT.md).
@@ -67,6 +69,8 @@ Live corpus on isolated short phrases:
 
 ### Open-loop terminal resolve vs closed-loop recommender
 
+Vocabulary: **open-loop** / **closed-loop** here map to **trusted-output** / **fault-tolerant** in [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md).
+
 **v1 architecture** treats embedding as **pick-one-or-abstain** when conjunctive gates pass. Downstream enrich stages are **intolerant of false positives** (wrong `objectId` is costly).
 
 Under that success criterion, asymmetric results are **only somewhat encouraging**: paraphrase improves but absent-object and unary-trap still breach absolute floors if auto-resolved.
@@ -83,15 +87,17 @@ This module's v1 `Resolved` outcome is a **shipping compromise**, not the long-t
 
 ## Deferred follow-on (out of v1 scope)
 
-| Initiative | Intent |
-| --- | --- |
-| **Identity LLM abstain / `noMatch`** | When nothing in catalog fits, identity LLM returns abstain instead of optimistic best-effort pick. Does not change v1 [`buildPrompt.ts`](../buildPrompt.ts) / [`interpretIdentity.ts`](../interpretIdentity.ts). |
-| **Lexical backstop on unary catalog** | Token overlap / edit distance --- **rejected for v1**; unary uses `T_abs_unary > T_abs` only. |
-| **Closed-loop identity** | Upstream stages emit **best-guess + confidence**; downstream equipped with low-cost correction (never assume upstream is final). |
-| **Embedding as candidate recommender** | Replace or narrow terminal `Resolved`; expose ranked shortlist; identity LLM adjudicates 1-N candidates. |
-| **Enriched `EMBEDDING#IMPROMPTU`** | Store `shortNamePlusDescription` (or equivalent) when spawn/update has prose; refresh policy extends beyond shortName hash. |
-| **Post-identity validation LLM** | Judge span + command vs grounded `objectId`; trigger correction. |
-| **Identification retry loop** | On validation failure, broader / more expensive pass (e.g. identity LLM when fast path won, wider catalog context, abstain-capable prompt). |
+Recovery pattern vocabulary: [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Fault recovery patterns**).
+
+| Initiative | Recovery pattern | Intent |
+| --- | --- | --- |
+| **Identity LLM abstain / `noMatch`** | Backtrack (owner) | When nothing in catalog fits, identity LLM returns abstain instead of optimistic best-effort pick. Does not change v1 [`buildPrompt.ts`](../buildPrompt.ts) / [`interpretIdentity.ts`](../interpretIdentity.ts). |
+| **Lexical backstop on unary catalog** | --- | Token overlap / edit distance --- **rejected for v1**; unary uses `T_abs_unary > T_abs` only. |
+| **Closed-loop identity** | Correct + backtrack | Upstream stages emit **best-guess + confidence**; downstream equipped with low-cost correction (never assume upstream is final). |
+| **Embedding as candidate recommender** | Supplement (rank) + backtrack | Replace or narrow terminal `Resolved`; expose ranked shortlist; identity LLM adjudicates 1-N candidates. |
+| **Enriched `EMBEDDING#IMPROMPTU`** | Supplement | Store `shortNamePlusDescription` (or equivalent) when spawn/update has prose; refresh policy extends beyond shortName hash. |
+| **Post-identity validation LLM** | Correct | Judge span + command vs grounded `objectId`; trigger correction or backtrack. |
+| **Identification retry loop** | Backtrack (+ supplement) | On validation failure, broader / more expensive pass (e.g. identity LLM when fast path won, wider catalog context, abstain-capable prompt). |
 
 **When starting closed-loop work:** re-read this file and asymmetric snapshot; re-run `EmbeddingAsymmetricLadder` + `EmbeddingSimulateIdentity` (rich catalog fixtures) before changing storage or gates.
 
