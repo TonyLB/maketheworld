@@ -12,6 +12,9 @@ const improvisationInvalidateMock = jest.fn()
 const objectMetaSetMock = jest.fn()
 const objectMetaInvalidateMock = jest.fn()
 const objectMetaGetMock = jest.fn()
+const objectEmbeddingSetMock = jest.fn()
+const objectEmbeddingInvalidateMock = jest.fn()
+const objectEmbeddingGetMock = jest.fn()
 const affordanceInvalidateMock = jest.fn()
 const componentEphemeraMetaInvalidateMock = jest.fn()
 const positionsInvalidateMock = jest.fn()
@@ -28,6 +31,11 @@ jest.mock('../../internalCache', () => ({
             set: (...args: unknown[]) => objectMetaSetMock(...args),
             invalidate: (...args: unknown[]) => objectMetaInvalidateMock(...args),
             get: (...args: unknown[]) => objectMetaGetMock(...args),
+        },
+        ObjectEmbedding: {
+            set: (...args: unknown[]) => objectEmbeddingSetMock(...args),
+            invalidate: (...args: unknown[]) => objectEmbeddingInvalidateMock(...args),
+            get: (...args: unknown[]) => objectEmbeddingGetMock(...args),
         },
         AffordanceRoomDeliverable: {
             invalidate: (...args: unknown[]) => affordanceInvalidateMock(...args),
@@ -136,6 +144,8 @@ describe('persistImprovisationObject', () => {
         ])
         expect(improvisationSetMock).toHaveBeenCalled()
         expect(objectMetaSetMock).toHaveBeenCalledWith(objectId, expect.objectContaining({ stableKey: 'anvil' }))
+        expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
+        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
     })
 
     it('persistSpawnImprovisationObject writes pair + Meta::Object + EMBEDDING#IMPROMPTU when embedding present', async () => {
@@ -181,6 +191,8 @@ describe('persistImprovisationObject', () => {
         ])
         expect(transactWriteMock.mock.calls[0][0][2].Put.embedding.vector.byteLength)
             .toBe(SEMANTIC_EMBEDDING_V1_DIMENSIONS)
+        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
+        expect(objectEmbeddingInvalidateMock).not.toHaveBeenCalled()
     })
 
     it('persistDeleteImprovisationObject deletes pair, Meta::Object, and EMBEDDING#IMPROMPTU rows', async () => {
@@ -194,6 +206,7 @@ describe('persistImprovisationObject', () => {
         ])
         expect(improvisationInvalidateMock).toHaveBeenCalledWith(objectId, 'ASSET#IMPROVISATION')
         expect(objectMetaInvalidateMock).toHaveBeenCalledWith(objectId)
+        expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
         expect(componentEphemeraMetaInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(affordanceInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(positionsInvalidateMock).toHaveBeenCalledWith(roomId)
@@ -256,6 +269,7 @@ describe('persistImprovisationObject', () => {
                 },
             },
         ])
+        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
     })
 
     it('persistUpdateImprovisationObject skips embed when hash matches on trope-only update', async () => {
@@ -292,6 +306,8 @@ describe('persistImprovisationObject', () => {
                 },
             },
         ])
+        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
+        expect(objectEmbeddingInvalidateMock).not.toHaveBeenCalled()
     })
 
     it('persistUpdateImprovisationObject backfills embedding when row absent on trope-only update', async () => {
@@ -313,6 +329,7 @@ describe('persistImprovisationObject', () => {
         expect(result).toEqual({ ok: true, objectId })
         expect(buildEmbedImpl).toHaveBeenCalledWith('Anvil')
         expect(transactWriteMock.mock.calls[0][0]).toHaveLength(3)
+        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
     })
 
     it('persistUpdateImprovisationObject proceeds without embedding when embed fails', async () => {
@@ -341,6 +358,8 @@ describe('persistImprovisationObject', () => {
                 errorMessage: 'ThrottlingException',
             })
         )
+        expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
+        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
         consoleErrorSpy.mockRestore()
     })
 

@@ -22,6 +22,10 @@ import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import {
+    attachEmbeddingsToCatalogEntries,
+    catalogObjectIdsUnion,
+} from './attachEmbeddingsToCatalogEntries'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
 import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
@@ -567,10 +571,25 @@ const handleParseRequested = async (
         getRoomObjectCatalogForCharacter(content.characterId),
         getHeldInventoryCatalogForCharacter(content.characterId),
     ])
+    const catalogObjectIds = catalogObjectIdsUnion(
+        roomObjectCatalogResult.entries,
+        heldInventoryCatalogResult.entries
+    )
+    const embeddingMap = catalogObjectIds.length > 0
+        ? await internalCache.ObjectEmbedding.get(catalogObjectIds)
+        : {}
+    const roomObjectCatalog = attachEmbeddingsToCatalogEntries(
+        roomObjectCatalogResult.entries,
+        embeddingMap
+    )
+    const heldInventoryCatalog = attachEmbeddingsToCatalogEntries(
+        heldInventoryCatalogResult.entries,
+        embeddingMap
+    )
     const roomObjectLabels = [
         ...new Set([
-            ...roomObjectLabelsFromCatalog(roomObjectCatalogResult.entries),
-            ...roomObjectLabelsFromCatalog(heldInventoryCatalogResult.entries),
+            ...roomObjectLabelsFromCatalog(roomObjectCatalog),
+            ...roomObjectLabelsFromCatalog(heldInventoryCatalog),
         ]),
     ]
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
@@ -583,8 +602,8 @@ const handleParseRequested = async (
             targetId: toRoomId,
         })),
         roomObjectLabels,
-        roomObjectCatalog: roomObjectCatalogResult.entries,
-        heldInventoryCatalog: heldInventoryCatalogResult.entries,
+        roomObjectCatalog,
+        heldInventoryCatalog,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
     }, { messageBus })
     const responseContext: ResponseContext = {

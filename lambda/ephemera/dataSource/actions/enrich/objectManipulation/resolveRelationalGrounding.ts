@@ -3,6 +3,11 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import { buildObjectManipulationIdentityPrompt } from './buildPrompt'
 import { catalogWithScope } from './catalogMerge'
+import { createSpanEmbedCache } from './embeddingMatch/spanEmbedCache'
+import {
+    resolveObjectSpanByEmbedding,
+    type ResolveObjectSpanByEmbeddingDeps,
+} from './embeddingMatch/resolveObjectSpanByEmbedding'
 import { interpretObjectManipulationIdentityBody } from './interpretIdentity'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import {
@@ -13,11 +18,42 @@ import {
 
 export type RelationalGroundingDeps = {
     invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
-}
+    resolveObjectSpanByEmbeddingImpl?: typeof resolveObjectSpanByEmbedding
+} & Pick<ResolveObjectSpanByEmbeddingDeps, 'embedSpan' | 'spanEmbedCache'>
 
 export type RelationalGroundingResult =
     | { type: 'success'; subjectId: EphemeraObjectId; targetId: EphemeraObjectId }
     | { type: 'error'; errorMessage: string }
+
+async function invokeIdentityLlmForSpan(
+    command: string,
+    span: string,
+    catalog: readonly RoomInPlayObjectCatalogEntry[],
+    invokeIdentity: typeof invokeBedrockObjectManipulationEnrich
+): Promise<
+    | { type: 'resolved'; objectId: EphemeraObjectId }
+    | { type: 'error'; errorMessage: string }
+> {
+    const allowedObjectIds = new Set(catalog.map(({ objectId }) => objectId))
+    const promptParts = buildObjectManipulationIdentityPrompt(command, {
+        rawObjectSpan: span,
+        catalog: catalogWithScope(catalog, 'room'),
+    })
+    const invokeResult = await invokeIdentity(promptParts)
+    if (!invokeResult.success) {
+        return {
+            type: 'error',
+            errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
+        }
+    }
+
+    const parsed = interpretObjectManipulationIdentityBody(invokeResult.body, allowedObjectIds)
+    if (!parsed.success) {
+        return { type: 'error', errorMessage: parsed.errorMessage }
+    }
+
+    return { type: 'resolved', objectId: parsed.response.objectId }
+}
 
 async function resolveSpanToObjectId(
     command: string,
@@ -40,6 +76,21 @@ async function resolveSpanToObjectId(
         }
     }
 
+    if (resolution.type === 'NoMatch') {
+        const resolveByEmbedding = deps.resolveObjectSpanByEmbeddingImpl ?? resolveObjectSpanByEmbedding
+        const embeddingDecision = await resolveByEmbedding(
+            span,
+            catalogWithScope(catalog, 'room'),
+            {
+                embedSpan: deps.embedSpan,
+                spanEmbedCache: deps.spanEmbedCache,
+            }
+        )
+        if (embeddingDecision.type === 'Resolved') {
+            return { type: 'resolved', objectId: embeddingDecision.objectId }
+        }
+    }
+
     if (resolution.type === 'NoMatch' || resolution.type === 'AmbiguousMatch') {
         if (catalog.length === 0) {
             return {
@@ -48,27 +99,12 @@ async function resolveSpanToObjectId(
             }
         }
 
-        const invokeIdentity = deps.invokeBedrockObjectManipulationIdentityImpl
-            ?? invokeBedrockObjectManipulationEnrich
-        const allowedObjectIds = new Set(catalog.map(({ objectId }) => objectId))
-        const promptParts = buildObjectManipulationIdentityPrompt(command, {
-            rawObjectSpan: span,
-            catalog: catalogWithScope(catalog, 'room'),
-        })
-        const invokeResult = await invokeIdentity(promptParts)
-        if (!invokeResult.success) {
-            return {
-                type: 'error',
-                errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
-            }
-        }
-
-        const parsed = interpretObjectManipulationIdentityBody(invokeResult.body, allowedObjectIds)
-        if (!parsed.success) {
-            return { type: 'error', errorMessage: parsed.errorMessage }
-        }
-
-        return { type: 'resolved', objectId: parsed.response.objectId }
+        return invokeIdentityLlmForSpan(
+            command,
+            span,
+            catalog,
+            deps.invokeBedrockObjectManipulationIdentityImpl ?? invokeBedrockObjectManipulationEnrich
+        )
     }
 
     return {
@@ -85,13 +121,15 @@ export async function resolveRelationalGrounding(
     deps: RelationalGroundingDeps = {}
 ): Promise<RelationalGroundingResult> {
     const catalog = roomObjectCatalog ?? []
+    const spanEmbedCache = deps.spanEmbedCache ?? createSpanEmbedCache()
+    const groundingDeps: RelationalGroundingDeps = { ...deps, spanEmbedCache }
 
-    const subjectResult = await resolveSpanToObjectId(command, subjectSpan, catalog, deps)
+    const subjectResult = await resolveSpanToObjectId(command, subjectSpan, catalog, groundingDeps)
     if (subjectResult.type === 'error') {
         return subjectResult
     }
 
-    const targetResult = await resolveSpanToObjectId(command, targetSpan, catalog, deps)
+    const targetResult = await resolveSpanToObjectId(command, targetSpan, catalog, groundingDeps)
     if (targetResult.type === 'error') {
         return targetResult
     }

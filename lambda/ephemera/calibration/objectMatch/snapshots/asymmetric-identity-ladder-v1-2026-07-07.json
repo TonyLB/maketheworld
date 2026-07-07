@@ -1,0 +1,66 @@
+{
+  "ladderId": "asymmetric-identity-ladder-v1",
+  "modelId": "amazon.titan-embed-text-v2:0",
+  "dimensions": 256,
+  "calibratedAt": "2026-07-07T17:15:05.839Z",
+  "composition": "shortNamePlusDescription",
+  "keyCases": {
+    "asym-010-paraphrase-broom": {
+      "span": "sweeping tool",
+      "catalogShortName": "broom",
+      "symmetricSimilarity": 0.1583,
+      "asymmetricSimilarity": 0.2814,
+      "delta": 0.1231
+    },
+    "asym-050-absent-sword-vs-broom": {
+      "span": "sword",
+      "catalogShortName": "broom",
+      "symmetricSimilarity": 0.1840,
+      "asymmetricSimilarity": 0.0632,
+      "delta": -0.1208
+    },
+    "asym-051-absent-sword-vs-anvil": {
+      "span": "sword",
+      "catalogShortName": "anvil",
+      "symmetricSimilarity": 0.2457,
+      "asymmetricSimilarity": 0.1965,
+      "delta": -0.0492
+    },
+    "asym-020-synonym-blade-rapier": {
+      "span": "blade",
+      "catalogShortName": "ornate rapier",
+      "symmetricSimilarity": 0.1754,
+      "asymmetricSimilarity": 0.2217,
+      "delta": 0.0463
+    }
+  },
+  "compositionStudy": {
+    "asym-010-paraphrase-broom": {
+      "shortName": 0.1583,
+      "shortNamePlusDescription": 0.2814,
+      "descriptionOnly": 0.6302
+    },
+    "asym-050-absent-sword-vs-broom": {
+      "shortName": 0.1840,
+      "shortNamePlusDescription": 0.0632,
+      "descriptionOnly": 0.2385
+    },
+    "asym-030-neighbor-anvil-hammer": {
+      "shortName": 0.1931,
+      "shortNamePlusDescription": 0.1019,
+      "descriptionOnly": 0.1393
+    }
+  },
+  "tierMedians": {
+    "identity-positive-exact": { "asymmetric": 0.841, "symmetric": 1.0, "delta": -0.159 },
+    "identity-positive-paraphrase": { "asymmetric": 0.378, "symmetric": 0.264, "delta": 0.114 },
+    "identity-absent-object": { "asymmetric": 0.130, "symmetric": 0.215, "delta": -0.085 },
+    "hard-negative": { "asymmetric": 0.065, "symmetric": 0.039, "delta": 0.026 }
+  },
+  "conclusions": [
+    "shortNamePlusDescription improves paraphrase tier median (+0.11) and lowers absent-object tier median (-0.09) vs symmetric shortName index.",
+    "descriptionOnly boosts paraphrase but increases absent-object false-positive risk; do not use as index shape.",
+    "Asymmetric enrichment is plausible as a closed-loop candidate reranker; open-loop terminal resolve still fails absent-object and unary-trap at locked T_ABS / T_ABS_UNARY.",
+    "Durable write-up: lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md"
+  ]
+}
