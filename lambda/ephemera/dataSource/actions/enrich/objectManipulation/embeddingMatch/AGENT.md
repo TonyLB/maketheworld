@@ -1,8 +1,6 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **v1 ships as an open-loop terminal fast path** (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)); calibration and asymmetric experiments below inform **follow-on closed-loop rearchitecture** (candidate recommender + downstream correction).
-
-**Task plan (in flight):** [`AGENT.objectEmbeddingMatch.planning.md`](../../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md).
+**Status: shipped (v1).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. v1 is an **open-loop terminal fast path** (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)); calibration and asymmetric experiments below inform **follow-on closed-loop rearchitecture** (candidate recommender + downstream correction).
 
 **Pipeline context:** [`../AGENT.md`](../AGENT.md) step 4 (identity).
 
@@ -17,13 +15,13 @@ Cosine-similarity tier between exact `shortName` resolve and the identity LLM. *
 | [`rankCatalogByCosineSimilarity`](rankCatalogByCosineSimilarity.ts) | Linear scan; ranked scores |
 | [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` |
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | Rank + decide (calibration + tests) |
-| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate (wired EM-5) |
-| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation (EM-D7) |
+| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate |
+| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
 | [`thresholds.ts`](thresholds.ts) | Locked constants (`T_ABS`, `T_ABS_UNARY`, `T_MARGIN`) |
 
 **Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
 
-**Wiring (EM-5 + EM-6):** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error (EM-D5).
+**Wiring:** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error.
 
 ---
 
@@ -83,17 +81,17 @@ This module's v1 `Resolved` outcome is a **shipping compromise**, not the long-t
 
 ---
 
-## Deferred follow-on (out of EM v1 scope)
-
-Documented in [`AGENT.objectEmbeddingMatch.planning.md`](../../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md) **Explicitly deferred**:
+## Deferred follow-on (out of v1 scope)
 
 | Initiative | Intent |
 | --- | --- |
+| **Identity LLM abstain / `noMatch`** | When nothing in catalog fits, identity LLM returns abstain instead of optimistic best-effort pick. Does not change v1 [`buildPrompt.ts`](../buildPrompt.ts) / [`interpretIdentity.ts`](../interpretIdentity.ts). |
+| **Lexical backstop on unary catalog** | Token overlap / edit distance --- **rejected for v1**; unary uses `T_abs_unary > T_abs` only. |
 | **Closed-loop identity** | Upstream stages emit **best-guess + confidence**; downstream equipped with low-cost correction (never assume upstream is final). |
 | **Embedding as candidate recommender** | Replace or narrow terminal `Resolved`; expose ranked shortlist; identity LLM adjudicates 1-N candidates. |
 | **Enriched `EMBEDDING#IMPROMPTU`** | Store `shortNamePlusDescription` (or equivalent) when spawn/update has prose; refresh policy extends beyond shortName hash. |
 | **Post-identity validation LLM** | Judge span + command vs grounded `objectId`; trigger correction. |
-| **Identification retry loop** | On validation failure, broader / more expensive pass. |
+| **Identification retry loop** | On validation failure, broader / more expensive pass (e.g. identity LLM when fast path won, wider catalog context, abstain-capable prompt). |
 
 **When starting closed-loop work:** re-read this file and asymmetric snapshot; re-run `EmbeddingAsymmetricLadder` + `EmbeddingSimulateIdentity` (rich catalog fixtures) before changing storage or gates.
 

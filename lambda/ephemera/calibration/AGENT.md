@@ -2,7 +2,7 @@
 
 Dev-only **read-only** tooling for tuning object-identity embedding thresholds. Lives under [`objectMatch/`](objectMatch/); production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
-Task context: [`taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md).
+Production context: [`../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md).
 
 ## Access
 

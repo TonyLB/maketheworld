@@ -107,7 +107,6 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 ## Follow-ups (not part of v1 scope)
 
 - **`renderOrchestration`:** May subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out --- **not** required for the shipped objects/perception slice; add when product needs it.
-- **Embedding read gateway + `internalCache` handler:** shipped --- [`createObjectEmbeddingCacheHandler`](../../../../../packages/mtw-gateways/ts/ephemera/objectEmbedding/); identity ingress batch read in [`handleParseRequested`](../../actions/index.ts).
 - **`EMBEDDING#PERSPECTIVE#...` rows:** when perspective-scoped similarity is needed.
 - **Non-room `componentId`**, additional **`Meta::*`** shapes, **replay** / external contract for **`mtw.ephemera.objects`**, **authorization**, **client correlation** --- future task plans or product decisions.
 
