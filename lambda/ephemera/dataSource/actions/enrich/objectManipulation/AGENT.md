@@ -42,6 +42,7 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to exactly one catalog **`objectId`** for a unary membership command.
 
 - **Deterministic slice:** exact **`shortName`** match against merged room + held catalog ([`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`catalogMerge.ts`](catalogMerge.ts)).
+- **Planned embedding tier (EM-0 scaffold, wiring in EM-5):** cosine-similarity fast path between exact match and identity LLM when gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- see [`embeddingMatch/`](embeddingMatch/) and [`AGENT.objectEmbeddingMatch.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbeddingMatch.planning.md).
 - **Semantic hop (conditional):** when deterministic resolve returns **NoMatch** or **AmbiguousMatch**, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
 
 **Handoff:** one grounded **`objectId`** or terminal resolve Error.
@@ -127,7 +128,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | --- | --- |
 | Entry + route | [`index.ts`](index.ts), [`cardinalityGate.ts`](cardinalityGate.ts) |
 | Membership compiler | [`compileMembershipAtomic.ts`](compileMembershipAtomic.ts), [`membershipFrame.ts`](membershipFrame.ts), [`complexityPreGates.ts`](complexityPreGates.ts), [`membershipObservation.ts`](membershipObservation.ts) |
-| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts) |
+| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) (EM-0 scaffold) |
 | Complexity finalize | [`interpretAndFinalize.ts`](interpretAndFinalize.ts), [`complexityClasses.ts`](complexityClasses.ts) |
 | Relational | [`frameExtract/runFrameExtractStage.ts`](frameExtract/runFrameExtractStage.ts), [`frameExtract/buildFrameExtractPrompt.ts`](frameExtract/buildFrameExtractPrompt.ts), [`compileRelational.ts`](compileRelational.ts), [`resolveRelationalGrounding.ts`](resolveRelationalGrounding.ts), [`normalizeRelationSpan.ts`](normalizeRelationSpan.ts), [`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts) |
 | Frames | [`manipulationFrame.ts`](manipulationFrame.ts) |

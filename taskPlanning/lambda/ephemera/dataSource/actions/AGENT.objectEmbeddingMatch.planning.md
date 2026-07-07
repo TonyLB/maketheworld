@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** Not started. Next step: **EM-0** --- close remaining **EM-D*** open decisions, then **EM-1** read gateway + `internalCache.ObjectEmbedding`.
+**Status:** EM-0 complete. Next step: **EM-1** --- read gateway + `internalCache.ObjectEmbedding`.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -115,18 +115,20 @@ Live threshold tuning needs **real Bedrock embeds** scored through the **product
 
 ```text
 lambda/ephemera/calibration/
-  AGENT.md                 # Console payloads, env gate, when to re-run
-  corpus.ts                # labeled calibration cases (source of truth)
-  runEmbeddingCalibration.ts   # pure: embed texts, pairwise / catalog simulate, stats
-  routeCalibrationEvent.ts     # dispatch event.type -> handler; env gate
-  handlers/
-    comparePair.ts         # two strings -> similarity (+ model metadata)
-    runCorpus.ts           # full corpus -> matrix + bucket stats
-    simulateIdentity.ts    # span + catalog shortNames -> ranked list + gate verdict
-  runLocal.ts              # optional: local runner (dev AWS profile); same scorer as lambda
+  AGENT.md                      # Console payloads, env gate, when to re-run (EM-4)
+  routeCalibrationEvent.ts      # dispatch event.type -> framework handler (EM-4)
+  runLocal.ts                   # optional shared local runner entry (EM-4)
+  objectMatch/
+    corpus.ts                   # labeled calibration cases (source of truth; EM-0)
+    runEmbeddingCalibration.ts  # pure: embed texts, pairwise / catalog simulate, stats (EM-4)
+    handlers/
+      comparePair.ts            # two strings -> similarity (+ model metadata) (EM-4)
+      runCorpus.ts              # full corpus -> matrix + bucket stats (EM-4)
+      simulateIdentity.ts       # span + catalog shortNames -> ranked list + gate verdict (EM-4)
+    snapshots/                  # optional JSON after live run (EM-4)
 ```
 
-**Import rule:** calibration modules **may** import shared embed helpers (`invokeBedrockTitanEmbed`, normalization, `SemanticEmbedding`). Production **`embeddingMatch/`** imports calibration **corpus types only** if needed --- not handler wiring.
+**Import rule:** calibration modules **may** import shared embed helpers (`invokeBedrockTitanEmbed`, normalization, `SemanticEmbedding`). Production **`embeddingMatch/`** imports **`calibration/objectMatch/corpus`** types only if needed --- not handler wiring.
 
 ### Direct lambda invoke (AWS Console)
 
@@ -156,7 +158,7 @@ Add `ENABLE_EMBEDDING_CALIBRATION` to dev **`template.yaml`** only when wiring h
 - Corpus definitions + bucket labels (not necessarily numeric thresholds forever).
 - Pure scorer + handler dispatch + env gate.
 - Conservative initial `thresholds.ts` with comment: `// Calibrated against corpus <id> on <modelId> at <date>`.
-- Optional: snapshot JSON under `calibration/snapshots/` after a live run (diff when model changes).
+- Optional: snapshot JSON under `calibration/objectMatch/snapshots/` after a live run (diff when model changes).
 
 **Anti-pattern:** Console-only numbers with no corpus in git --- not reproducible on model migration.
 
@@ -181,6 +183,8 @@ cd lambda/ephemera && npm run test -- --watchAll=false \
 
 Plan-only: decisions we are making in order to implement the next slice(s). When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
+**Decision timeline:** Structural forks lock at **EM-0** (or are already **Decided**). **EM-D2** and **EM-D4** are **calibration outputs** --- they stay **Open** through **EM-1--EM-3** and close in **EM-4** (live corpus run). **EM-D4** must be **Decided** before **EM-5** ships production identity wiring with real thresholds.
+
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
 | EM-D1 | **Gateway shape** --- **`createObjectEmbeddingCacheHandler(ephemeraDB)`** with `get(objectIds[])` batch read; v1 fetches `EMBEDDING#IMPROMPTU`; writer = objects lane; reader = ephemera `internalCache`; memo invalidate on object delete/update. Scope-neutral name so authored-object embedding rows can share the handler later without renames. | Phase EM-1, ingress | Decided |
@@ -196,7 +200,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 | Phase | Focus | Status |
 | --- | --- | --- |
-| **EM-0** | Decision lock + module layout | Not started |
+| **EM-0** | Pre-calibration lock + module layout scaffold | Complete |
 | **EM-1** | Read gateway + `internalCache` + cache invalidation | Not started |
 | **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Not started |
 | **EM-3** | Span embed helper | Not started |
@@ -209,10 +213,10 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step.
 
-- [ ] **EM-0. Decision lock + layout**
-  - [ ] Close remaining **EM-D*** rows in **Open decisions** (or mark N/A with one-line rationale).
-  - [ ] Production match policy under [`enrich/objectManipulation/embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/).
-  - [ ] Calibration tooling under [`lambda/ephemera/calibration/`](../../../../../lambda/ephemera/calibration/) (EM-D8).
+- [X] **EM-0. Pre-calibration lock + module layout scaffold**
+  - [X] Audit **Open decisions**: every row **Decided** except **EM-D2** and **EM-D4** (remain Open until **EM-4** live calibration; do not block **EM-1--EM-3**). Audit passed at EM-0: only EM-D2 and EM-D4 are Open.
+  - [X] Scaffold [`enrich/objectManipulation/embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/) --- package boundary and module stubs only; `decideEmbeddingMatch` may use **placeholder** thresholds until **EM-4** locks constants.
+  - [X] Scaffold [`lambda/ephemera/calibration/objectMatch/`](../../../../../lambda/ephemera/calibration/objectMatch/) --- [`corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) **types and labeled static cases** (no Bedrock). **Not** handlers, `app.ts` routes, or live scorer (**EM-4** owns calibration tooling implementation per **EM-D8**).
 
 - [ ] **EM-1. Read gateway + cache**
   - [ ] Add `packages/mtw-gateways/ts/ephemera/objectEmbedding/`: `fetch`, keys, **`createObjectEmbeddingCacheHandler`**, `AGENT.md` (v1 reads `EMBEDDING#IMPROMPTU`).
@@ -224,23 +228,23 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [ ] **EM-2. Pure match policy (no Bedrock)**
   - [ ] `decideEmbeddingMatch(scores)` -> `Resolved` | `Abstain` with reason enum.
   - [ ] `rankCatalogByCosineSimilarity(spanEmbedding, candidates)` using `SemanticEmbedding.cosineSimilarity`.
-  - [ ] Import or re-export corpus buckets from [`calibration/corpus.ts`](../../../../../lambda/ephemera/calibration/corpus.ts) for mocked-vector unit tests.
-  - [ ] Unit tests: gates pass/fail independently; identical-shortName duplicate catalog excluded from auto-resolve path.
+  - [ ] Consume labeled cases from [`calibration/objectMatch/corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) (scaffolded in **EM-0**) with **mocked** vectors for unit tests.
+  - [ ] Unit tests: gates pass/fail independently; identical-shortName duplicate catalog excluded from auto-resolve path. Threshold assertions against locked constants wait for **EM-4**.
 
 - [ ] **EM-3. Span embed helper**
   - [ ] Extract or share embed path with [`buildShortNameSemanticEmbedding.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts) (normalize + `invokeBedrockTitanEmbed` + `SemanticEmbedding.fromFloat32`).
   - [ ] Injectable deps for tests (mock embed); shared by calibration scorer and identity stage.
   - [ ] Empty normalized span -> abstain without Bedrock.
 
-- [ ] **EM-4. Threshold calibration tooling + lock constants**
-  - [ ] Add [`lambda/ephemera/calibration/`](../../../../../lambda/ephemera/calibration/): `corpus.ts`, `runEmbeddingCalibration.ts`, `routeCalibrationEvent.ts`, `handlers/*`, `AGENT.md`.
+- [ ] **EM-4. Threshold calibration tooling + lock constants** (implements **EM-D8**; closes **EM-D2**, **EM-D4**)
+  - [ ] Add live tooling under [`lambda/ephemera/calibration/`](../../../../../lambda/ephemera/calibration/): top-level `routeCalibrationEvent.ts`, `AGENT.md`, optional `runLocal.ts`; object-match `runEmbeddingCalibration.ts`, `handlers/*` under [`objectMatch/`](../../../../../lambda/ephemera/calibration/objectMatch/) (extends **EM-0** `corpus.ts` scaffold).
   - [ ] Wire `event.type` routes in [`app.ts`](../../../../../lambda/ephemera/app.ts) behind **`ENABLE_EMBEDDING_CALIBRATION`** (EM-D8).
   - [ ] Handlers: `EmbeddingCompare`, `EmbeddingCalibrationCorpus`, `EmbeddingSimulateIdentity` (see **Threshold calibration tooling**).
   - [ ] Optional `runLocal.ts` + npm script for local corpus runs (same scorer as lambda).
-  - [ ] Run live corpus (local or Console); pick **EM-D2** margin rule; calibrate **`T_abs_unary > T_abs`** per **EM-D3** (unary-trap bucket).
-  - [ ] Lock `T_abs`, `T_abs_unary`, `T_margin` in `embeddingMatch/thresholds.ts`; comment links to corpus + model + date.
+  - [ ] Run live corpus (local or Console); **close EM-D2** (margin rule); calibrate **`T_abs_unary > T_abs`** per **EM-D3** (unary-trap bucket).
+  - [ ] **Close EM-D4:** lock `T_abs`, `T_abs_unary`, `T_margin` (or `R_margin`) in `embeddingMatch/thresholds.ts`; comment links to corpus + model + date.
   - [ ] Extend EM-2 unit tests to assert abstain/resolve at locked thresholds.
-  - [ ] Optional: commit snapshot JSON under `calibration/snapshots/` for model migration diffs.
+  - [ ] Optional: commit snapshot JSON under `calibration/objectMatch/snapshots/` for model migration diffs.
 
 - [ ] **EM-5. Identity integration**
   - [ ] Add `resolveObjectSpanByEmbedding` orchestrator: embed span -> score pre-attached catalog vectors -> decide (no catalog load in identity stage).
