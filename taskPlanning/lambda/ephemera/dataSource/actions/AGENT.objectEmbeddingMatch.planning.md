@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** EM-0 complete. Next step: **EM-1** --- read gateway + `internalCache.ObjectEmbedding`.
+**Status:** EM-1 complete. Next step: **EM-2** --- pure match policy + calibration fixture (mocked vectors).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -201,7 +201,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | Phase | Focus | Status |
 | --- | --- | --- |
 | **EM-0** | Pre-calibration lock + module layout scaffold | Complete |
-| **EM-1** | Read gateway + `internalCache` + cache invalidation | Not started |
+| **EM-1** | Read gateway + `internalCache` + cache invalidation | Complete |
 | **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Not started |
 | **EM-3** | Span embed helper | Not started |
 | **EM-4** | Calibration corpus + live tooling + lock thresholds | Not started |
@@ -218,12 +218,12 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Scaffold [`enrich/objectManipulation/embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/) --- package boundary and module stubs only; `decideEmbeddingMatch` may use **placeholder** thresholds until **EM-4** locks constants.
   - [X] Scaffold [`lambda/ephemera/calibration/objectMatch/`](../../../../../lambda/ephemera/calibration/objectMatch/) --- [`corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) **types and labeled static cases** (no Bedrock). **Not** handlers, `app.ts` routes, or live scorer (**EM-4** owns calibration tooling implementation per **EM-D8**).
 
-- [ ] **EM-1. Read gateway + cache**
-  - [ ] Add `packages/mtw-gateways/ts/ephemera/objectEmbedding/`: `fetch`, keys, **`createObjectEmbeddingCacheHandler`**, `AGENT.md` (v1 reads `EMBEDDING#IMPROMPTU`).
-  - [ ] Register as **`internalCache.ObjectEmbedding`** on [`lambda/ephemera/internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts).
-  - [ ] Wire [`invalidateImprovisationObjectCaches.ts`](../../../../../lambda/ephemera/dataSource/objects/invalidateImprovisationObjectCaches.ts) memo invalidation for affected `objectId`s.
-  - [ ] Package tests: batch get, missing row, invalid row rejected.
-  - [ ] Add ownership row to [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md).
+- [X] **EM-1. Read gateway + cache**
+  - [X] Add `packages/mtw-gateways/ts/ephemera/objectEmbedding/`: `fetch`, keys, **`createObjectEmbeddingCacheHandler`**, `AGENT.md` (v1 reads `EMBEDDING#IMPROMPTU`).
+  - [X] Register as **`internalCache.ObjectEmbedding`** on [`lambda/ephemera/internalCache/index.ts`](../../../../../lambda/ephemera/internalCache/index.ts).
+  - [X] Wire [`invalidateImprovisationObjectCaches.ts`](../../../../../lambda/ephemera/dataSource/objects/invalidateImprovisationObjectCaches.ts) memo invalidation for affected `objectId`s.
+  - [X] Package tests: batch get, missing row, invalid row rejected.
+  - [X] Add ownership row to [`packages/mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md).
 
 - [ ] **EM-2. Pure match policy (no Bedrock)**
   - [ ] `decideEmbeddingMatch(scores)` -> `Resolved` | `Abstain` with reason enum.

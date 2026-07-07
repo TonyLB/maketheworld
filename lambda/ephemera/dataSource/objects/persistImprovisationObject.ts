@@ -127,11 +127,15 @@ const defaultGetImprovisationPair = async (objectId: EphemeraObjectId): Promise<
 const defaultGetImprovisationEmbedding = async (
     objectId: EphemeraObjectId
 ): Promise<EphemeraObjectEmbedding | undefined> => {
-    const row = await ephemeraDB.getItem<EphemeraObjectEmbedding>({
-        Key: { EphemeraId: objectId, DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY },
-        getAllFields: true,
-    })
-    return row && isEphemeraObjectEmbedding(row) ? row : undefined
+    const map = await internalCache.ObjectEmbedding.get([objectId])
+    const semantic = map[objectId]
+    return semantic
+        ? {
+            EphemeraId: objectId,
+            DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
+            embedding: semantic.toDynamoRecord(),
+        }
+        : undefined
 }
 
 /**
@@ -182,6 +186,7 @@ export const persistSpawnImprovisationObject = async (
             affectedRoomIds: args.affectedRoomIds,
             pairComponent: component,
             metaRow,
+            ...(args.embedding ? { embedding: args.embedding } : { clearEmbedding: true }),
         })
 
         return { ok: true, objectId: args.objectId }
@@ -229,13 +234,16 @@ export const persistUpdateImprovisationObject = async (
 
     const priorEmbedding = await getImprovisationEmbedding(args.objectId)
     let embedding: SemanticEmbedding | undefined
+    let clearEmbedding = false
 
-    if (impromptuEmbeddingNeedsRefresh(nextShortName, priorEmbedding)) {
+    const embeddingRefreshNeeded = impromptuEmbeddingNeedsRefresh(nextShortName, priorEmbedding)
+    if (embeddingRefreshNeeded) {
         const embedResult = await buildEmbed(nextShortName)
         if (embedResult.success) {
             embedding = embedResult.embedding
         }
         else {
+            clearEmbedding = true
             console.error('[mtw.ephemera.objects] shortName embed failed; updating without embedding', {
                 objectId: args.objectId,
                 shortName: nextShortName,
@@ -277,6 +285,7 @@ export const persistUpdateImprovisationObject = async (
             affectedRoomIds: args.affectedRoomIds,
             pairComponent: component,
             metaRow: nextMeta,
+            ...(embedding ? { embedding } : clearEmbedding ? { clearEmbedding: true } : {}),
         })
 
         return { ok: true, objectId: args.objectId }
@@ -301,6 +310,7 @@ export const persistDeleteImprovisationObject = async (
         invalidateImprovisationObjectCaches({
             objectId: args.objectId,
             affectedRoomIds: args.affectedRoomIds,
+            clearEmbedding: true,
         })
         return { ok: true, objectId: args.objectId }
     }
@@ -354,6 +364,7 @@ export const persistClearCoyoteGameImprovisationObjects = async (
             invalidateImprovisationObjectCaches({
                 objectId,
                 affectedRoomIds,
+                clearEmbedding: true,
             })
         }
 

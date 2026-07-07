@@ -41,6 +41,10 @@ import {
     type ImprovisationComponentDataCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/improvisation';
 import {
+    createObjectEmbeddingCacheHandler,
+    type ObjectEmbeddingCacheHandler,
+} from '@tonylb/mtw-gateways/ts/ephemera/objectEmbedding';
+import {
     createEphemeraComponentDataCompositeCacheHandler,
     type EphemeraComponentDataCompositeCache,
 } from './componentDataComposite';
@@ -106,6 +110,7 @@ export class InternalCache {
     
     private _assetComponentData: ComponentDataCache = createComponentDataCacheHandler(assetDB);
     ImprovisationComponentData: ImprovisationComponentDataCache = createImprovisationComponentDataCacheHandler(ephemeraDB);
+    ObjectEmbedding: ObjectEmbeddingCacheHandler = createObjectEmbeddingCacheHandler(ephemeraDB);
     ComponentData: EphemeraComponentDataCompositeCache = createEphemeraComponentDataCompositeCacheHandler({
         assetComponentData: this._assetComponentData,
         improvisationComponentData: this.ImprovisationComponentData,
@@ -201,6 +206,7 @@ export class InternalCache {
         this.ComponentEphemeraMeta.clear()
         this.ObjectEphemeraMeta.clear()
         this.ImprovisationComponentData.clear()
+        this.ObjectEmbedding.clear()
         this.AssetMetaData.clear()
 
         this.AffordanceRoomDeliverable.clear()
@@ -216,6 +222,7 @@ export class InternalCache {
             this._graphCache.flush(),
             this.ComponentData.flush(),
             this.ImprovisationComponentData.flush(),
+            this.ObjectEmbedding.flush(),
             this.ComponentVerticals.flush(),
             this.ComponentTopology.flush(),
             this.ComponentExamples.flush(),
