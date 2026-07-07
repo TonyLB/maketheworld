@@ -1,7 +1,8 @@
+import type { EmbedObjectSpanResult } from '../../../../objects/embedding/embedObjectSpan'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
 
 export type ResolveObjectSpanByEmbeddingDeps = {
-    embedSpan?: (rawObjectSpan: string) => Promise<{ success: true; embedding: import('@tonylb/mtw-lambda-patterns/ts/semanticEmbedding').SemanticEmbedding } | { success: false }>
+    embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>
 }
 
 /**

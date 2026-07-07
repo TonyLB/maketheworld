@@ -1,6 +1,6 @@
 # Object identity --- embedding fast path (EMBEDDING#IMPROMPTU)
 
-**Status:** EM-2 complete. Next step: **EM-3** --- span embed helper.
+**Status:** EM-3 complete. Next step: **EM-4** --- threshold calibration tooling + lock constants.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -203,7 +203,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). When
 | **EM-0** | Pre-calibration lock + module layout scaffold | Complete |
 | **EM-1** | Read gateway + `internalCache` + cache invalidation | Complete |
 | **EM-2** | Pure match policy + calibration fixture (mocked vectors) | Complete |
-| **EM-3** | Span embed helper | Not started |
+| **EM-3** | Span embed helper | Complete |
 | **EM-4** | Calibration corpus + live tooling + lock thresholds | Not started |
 | **EM-5** | Wire `identityStage` + `resolveRelationalGrounding` | Not started |
 | **EM-6** | Catalog ingress batch load (parallel with catalog fetches) | Not started |
@@ -231,10 +231,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Consume labeled cases from [`calibration/objectMatch/corpus.ts`](../../../../../lambda/ephemera/calibration/objectMatch/corpus.ts) (scaffolded in **EM-0**) with **mocked** vectors for unit tests.
   - [X] Unit tests: gates pass/fail independently; identical-shortName duplicate catalog excluded from auto-resolve path. Threshold assertions against locked constants wait for **EM-4**.
 
-- [ ] **EM-3. Span embed helper**
-  - [ ] Extract or share embed path with [`buildShortNameSemanticEmbedding.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts) (normalize + `invokeBedrockTitanEmbed` + `SemanticEmbedding.fromFloat32`).
-  - [ ] Injectable deps for tests (mock embed); shared by calibration scorer and identity stage.
-  - [ ] Empty normalized span -> abstain without Bedrock.
+- [X] **EM-3. Span embed helper**
+  - [X] Extract or share embed path with [`buildShortNameSemanticEmbedding.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/buildShortNameSemanticEmbedding.ts) via [`embedNormalizedSemanticText.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/embedNormalizedSemanticText.ts) (normalize + `invokeBedrockTitanEmbed` + `SemanticEmbedding.fromFloat32`).
+  - [X] Injectable deps for tests (mock embed); shared by calibration scorer and identity stage --- [`embedObjectSpan.ts`](../../../../../lambda/ephemera/dataSource/objects/embedding/embedObjectSpan.ts).
+  - [X] Empty normalized span -> abstain without Bedrock.
 
 - [ ] **EM-4. Threshold calibration tooling + lock constants** (implements **EM-D8**; closes **EM-D2**, **EM-D4**)
   - [ ] Add live tooling under [`lambda/ephemera/calibration/`](../../../../../lambda/ephemera/calibration/): top-level `routeCalibrationEvent.ts`, `AGENT.md`, optional `runLocal.ts`; object-match `runEmbeddingCalibration.ts`, `handlers/*` under [`objectMatch/`](../../../../../lambda/ephemera/calibration/objectMatch/) (extends **EM-0** `corpus.ts` scaffold).
