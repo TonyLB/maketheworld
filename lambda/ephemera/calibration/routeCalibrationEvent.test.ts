@@ -4,6 +4,30 @@ import {
     routeCalibrationEvent,
 } from './routeCalibrationEvent'
 
+jest.mock('./objectMatch/runAsymmetricIdentityLadder', () => {
+    const actual = jest.requireActual('./objectMatch/runAsymmetricIdentityLadder')
+    return {
+        ...actual,
+        runAsymmetricIdentityLadder: jest.fn(actual.runAsymmetricIdentityLadder),
+    }
+})
+
+jest.mock('./objectMatch/runSemanticDistanceLadder', () => {
+    const actual = jest.requireActual('./objectMatch/runSemanticDistanceLadder')
+    return {
+        ...actual,
+        runSemanticDistanceLadder: jest.fn(actual.runSemanticDistanceLadder),
+    }
+})
+
+jest.mock('./objectMatch/verifyRepeatBedrockEmbed', () => {
+    const actual = jest.requireActual('./objectMatch/verifyRepeatBedrockEmbed')
+    return {
+        ...actual,
+        verifyRepeatBedrockEmbed: jest.fn(actual.verifyRepeatBedrockEmbed),
+    }
+})
+
 jest.mock('./objectMatch/runEmbeddingCalibration', () => {
     const actual = jest.requireActual('./objectMatch/runEmbeddingCalibration')
     return {
@@ -19,10 +43,18 @@ import {
     runFullEmbeddingCalibration,
     simulateIdentityCalibration,
 } from './objectMatch/runEmbeddingCalibration'
+import { verifyRepeatBedrockEmbed } from './objectMatch/verifyRepeatBedrockEmbed'
+import { runAsymmetricIdentityLadder } from './objectMatch/runAsymmetricIdentityLadder'
+import { runSemanticDistanceLadder } from './objectMatch/runSemanticDistanceLadder'
 
 const mockedCompare = compareEmbeddingPair as jest.MockedFunction<typeof compareEmbeddingPair>
 const mockedCorpus = runFullEmbeddingCalibration as jest.MockedFunction<typeof runFullEmbeddingCalibration>
 const mockedSimulate = simulateIdentityCalibration as jest.MockedFunction<typeof simulateIdentityCalibration>
+const mockedVerifyRepeat = verifyRepeatBedrockEmbed as jest.MockedFunction<typeof verifyRepeatBedrockEmbed>
+const mockedLadder = runSemanticDistanceLadder as jest.MockedFunction<typeof runSemanticDistanceLadder>
+const mockedAsymmetricLadder = runAsymmetricIdentityLadder as jest.MockedFunction<
+    typeof runAsymmetricIdentityLadder
+>
 
 describe('routeCalibrationEvent', () => {
     beforeEach(() => {
@@ -34,11 +66,15 @@ describe('routeCalibrationEvent', () => {
             'EmbeddingCompare',
             'EmbeddingCalibrationCorpus',
             'EmbeddingSimulateIdentity',
+            'EmbeddingVerifyRepeat',
+            'EmbeddingDistanceLadder',
+            'EmbeddingAsymmetricLadder',
         ])
     })
 
     it('isCalibrationEventType narrows supported types', () => {
         expect(isCalibrationEventType('EmbeddingCompare')).toBe(true)
+        expect(isCalibrationEventType('EmbeddingVerifyRepeat')).toBe(true)
         expect(isCalibrationEventType('Command')).toBe(false)
     })
 
@@ -127,5 +163,71 @@ describe('routeCalibrationEvent', () => {
             right: 'broom',
         } as unknown as { type: string })
         expect(response.statusCode).toBe(400)
+    })
+
+    it('dispatches EmbeddingVerifyRepeat', async () => {
+        mockedVerifyRepeat.mockResolvedValue({
+            text: 'lantern',
+            normalized: 'lantern',
+            modelId: 'amazon.titan-embed-text-v2:0',
+            bedrockInvokeCount: 2,
+            sourceTextHash: 'abc',
+            float32: { maxAbsDiff: 0, cosineSimilarity: 1 },
+            quantized: { cosineSimilarity: 1, vectorsEqual: true },
+            productionPath: {
+                crossInvokeCosineSimilarity: 1,
+                vectorsEqual: true,
+            },
+        })
+
+        const response = await routeCalibrationEvent({
+            type: 'EmbeddingVerifyRepeat',
+            text: 'lantern',
+        })
+
+        expect(response.statusCode).toBe(200)
+        expect(JSON.parse(response.body).quantized.vectorsEqual).toBe(true)
+        expect(mockedVerifyRepeat).toHaveBeenCalledWith('lantern')
+    })
+
+    it('dispatches EmbeddingDistanceLadder', async () => {
+        mockedLadder.mockResolvedValue({
+            ladderId: 'semantic-distance-ladder-v1',
+            modelId: 'amazon.titan-embed-text-v2:0',
+            cases: [],
+            sortedBySimilarity: [],
+            tierSummaries: [],
+            monotonicityViolations: [],
+            note: 'test',
+        })
+
+        const response = await routeCalibrationEvent({ type: 'EmbeddingDistanceLadder' })
+        expect(response.statusCode).toBe(200)
+        expect(mockedLadder).toHaveBeenCalledWith(undefined)
+    })
+
+    it('dispatches EmbeddingAsymmetricLadder', async () => {
+        mockedAsymmetricLadder.mockResolvedValue({
+            ladderId: 'asymmetric-identity-ladder-v1',
+            modelId: 'amazon.titan-embed-text-v2:0',
+            composition: 'shortNamePlusDescription',
+            cases: [],
+            sortedBySimilarity: [],
+            sortedByDelta: [],
+            tierSummaries: [],
+            monotonicityViolations: [],
+            note: 'test',
+        })
+
+        const response = await routeCalibrationEvent({
+            type: 'EmbeddingAsymmetricLadder',
+            tier: 'identity-positive-paraphrase',
+            composition: 'descriptionOnly',
+        })
+        expect(response.statusCode).toBe(200)
+        expect(mockedAsymmetricLadder).toHaveBeenCalledWith({
+            tier: 'identity-positive-paraphrase',
+            composition: 'descriptionOnly',
+        })
     })
 })

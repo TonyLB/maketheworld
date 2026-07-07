@@ -1,12 +1,18 @@
+import { handleEmbeddingAsymmetricLadder } from './objectMatch/handlers/runAsymmetricLadder'
+import { handleEmbeddingDistanceLadder } from './objectMatch/handlers/runDistanceLadder'
 import { handleEmbeddingCompare } from './objectMatch/handlers/comparePair'
 import { handleEmbeddingCalibrationCorpus } from './objectMatch/handlers/runCorpus'
 import { handleEmbeddingSimulateIdentity } from './objectMatch/handlers/simulateIdentity'
+import { handleEmbeddingVerifyRepeat } from './objectMatch/handlers/verifyRepeatEmbed'
 import { calibrationJsonResponse, type CalibrationRouteResponse } from './calibrationResponse'
 
 export const CALIBRATION_EVENT_TYPES = [
     'EmbeddingCompare',
     'EmbeddingCalibrationCorpus',
     'EmbeddingSimulateIdentity',
+    'EmbeddingVerifyRepeat',
+    'EmbeddingDistanceLadder',
+    'EmbeddingAsymmetricLadder',
 ] as const
 
 export type CalibrationEventType = (typeof CALIBRATION_EVENT_TYPES)[number]
@@ -31,6 +37,18 @@ export async function routeCalibrationEvent(event: {
         case 'EmbeddingSimulateIdentity':
             return handleEmbeddingSimulateIdentity(
                 event as Parameters<typeof handleEmbeddingSimulateIdentity>[0]
+            )
+        case 'EmbeddingVerifyRepeat':
+            return handleEmbeddingVerifyRepeat(
+                event as Parameters<typeof handleEmbeddingVerifyRepeat>[0]
+            )
+        case 'EmbeddingDistanceLadder':
+            return handleEmbeddingDistanceLadder(
+                event as Parameters<typeof handleEmbeddingDistanceLadder>[0]
+            )
+        case 'EmbeddingAsymmetricLadder':
+            return handleEmbeddingAsymmetricLadder(
+                event as Parameters<typeof handleEmbeddingAsymmetricLadder>[0]
             )
         default:
             return calibrationJsonResponse(400, {

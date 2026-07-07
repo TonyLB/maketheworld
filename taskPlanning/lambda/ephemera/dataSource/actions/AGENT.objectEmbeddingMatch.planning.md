@@ -92,6 +92,7 @@ Plan-only until calibration ships; then promote thresholds to code constants + c
 | Object manipulation identity hop | [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) |
 | Exact resolve | [`resolveObjectSpan.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts) |
 | Impromptu embed write path | [`objects/embedding/`](../../../../../lambda/ephemera/dataSource/objects/embedding/) |
+| Embedding calibration findings + closed-loop deferred | [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) |
 | `SemanticEmbedding` API | [`semanticEmbedding/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/semanticEmbedding/AGENT.implementation.md) |
 | LLM fast-path closure | [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) |
 | Gateway + `internalCache` norm | [`mtw-gateways/AGENT.md`](../../../../../packages/mtw-gateways/AGENT.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) |
@@ -251,6 +252,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [ ] **EM-7. Durable docs + ship**
   - [ ] Update [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) step 4 (three-tier identity).
+  - [ ] Keep [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) current (calibration findings, asymmetric experiments, closed-loop deferred) --- **survives retirement of this plan**.
   - [ ] Update [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md): read path shipped; remove follow-up bullet when done.
   - [ ] Update [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) Bedrock budget table if present.
   - [ ] Delete or archive this task plan.
@@ -294,6 +296,20 @@ rg -n "routeCalibrationEvent" lambda/ephemera/
 ```
 
 **Manual smoke (optional):** Coyote room with known objects; paraphrase take command should skip identity LLM in logs/mocks; nonsense noun with non-empty catalog should still invoke identity LLM. Re-run **`EmbeddingCalibrationCorpus`** after embedding model changes.
+
+## Calibration findings (promoted to durable docs)
+
+**Authoritative long-lived write-up:** [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) (do not duplicate here; update that file when re-running ladders).
+
+**Snapshots:** [`embedding-identity-v1-2026-07-07.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-v1-2026-07-07.json), [`asymmetric-identity-ladder-v1-2026-07-07.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json).
+
+**Headlines (2026-07-07):**
+
+- Symmetric shortName Titan scores are low and distributional; margin gate is essential; terminal paraphrase resolve is fragile.
+- Asymmetric `shortNamePlusDescription` index improves paraphrase rank separation and lowers key absent-object false-positive pairs vs symmetric; `descriptionOnly` is unsafe.
+- v1 open-loop `Resolved` is a shipping compromise; **closed-loop candidate recommender + validation** is the intended correction architecture (see **Explicitly deferred** and `embeddingMatch/AGENT.md`).
+
+**Post-EM tooling shipped:** `EmbeddingAsymmetricLadder` ([`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md)).
 
 ## Coordination notes
 

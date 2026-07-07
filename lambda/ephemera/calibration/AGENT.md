@@ -10,7 +10,7 @@ Task context: [`taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectEmbe
 
 Not exposed via API Gateway or WebSocket. Player sessions cannot reach these `event.type` payloads.
 
-Handlers are read-only: Bedrock embed + cosine compare. No Dynamo writes, no `messageBus` publish, no game-state side effects. Worst case is Bedrock cost (same trust boundary as diagnostics sweeps).
+Handlers are read-only: Bedrock embed + compare. No Dynamo writes, no `messageBus` publish, no game-state side effects. Worst case is Bedrock cost (same trust boundary as diagnostics sweeps).
 
 Routing: early return in [`app.ts`](../app.ts) via [`routeCalibrationEvent.ts`](routeCalibrationEvent.ts).
 
@@ -42,7 +42,49 @@ Buckets: `positive-paraphrase`, `hard-negative`, `absent-object`, `unary-trap`, 
 { "type": "EmbeddingSimulateIdentity", "span": "sword", "catalog": ["broom", "anvil", "lantern"] }
 ```
 
-Responses include `corpusId`, `modelId`, `dimensions`, and `calibratedAt` so saved Console output stays interpretable after model changes.
+**Repeat-invoke sanity check** (two independent Bedrock calls for the same text, no embed cache):
+
+```json
+{ "type": "EmbeddingVerifyRepeat", "text": "lantern" }
+```
+
+Reports `float32.maxAbsDiff`, `float32.cosineSimilarity`, `quantized.vectorsEqual`, and `productionPath.crossInvokeCosineSimilarity`. Expect ~1.0 and `vectorsEqual: true` if Titan and the quantize path are deterministic. Use when calibration similarities look unexpectedly low and you want to rule out pipeline bugs.
+
+**Semantic distance ladder** (exploration only; not used to lock identity thresholds):
+
+```json
+{ "type": "EmbeddingDistanceLadder" }
+```
+
+Optional tier filter: `exact`, `inflection`, `tight-paraphrase`, `loose-synonym`, `hypernym-hyponym`, `thematic-neighbor`, `unrelated`.
+
+```json
+{ "type": "EmbeddingDistanceLadder", "tier": "loose-synonym" }
+```
+
+Returns all ladder pairs, `sortedBySimilarity` (descending), per-tier min/median/max, and `monotonicityViolations` when a farther tier's median exceeds a closer tier's. Pairs defined in [`objectMatch/semanticDistanceLadder.ts`](objectMatch/semanticDistanceLadder.ts). Save Console output under `objectMatch/snapshots/` when exploring model behavior.
+
+**Asymmetric identity ladder** (exploration only; probes span vs enriched catalog index text):
+
+```json
+{ "type": "EmbeddingAsymmetricLadder" }
+```
+
+Optional tier filter: `identity-positive-exact`, `identity-positive-paraphrase`, `synonym-without-shared-tokens`, `thematic-neighbor`, `hard-negative`, `identity-absent-object`, `unrelated`.
+
+```json
+{ "type": "EmbeddingAsymmetricLadder", "tier": "identity-positive-paraphrase" }
+```
+
+Optional composition override (default `shortNamePlusDescription`): `shortName`, `shortNamePlusDescription`, `descriptionOnly`.
+
+```json
+{ "type": "EmbeddingAsymmetricLadder", "composition": "descriptionOnly" }
+```
+
+Returns per-case `similarity` (asymmetric), `symmetricSimilarity` (span vs catalog shortName only), `delta`, `sortedByDelta`, tier summaries with `symmetricMedian` and `deltaMedian`, and `compositionStudyResults` on three flagged cases when `composition` is omitted. Fixtures in [`objectMatch/asymmetricIdentityLadder.ts`](objectMatch/asymmetricIdentityLadder.ts). Span side uses `normalizeShortNameForEmbedding`; catalog index text is trim-only (no exit-name normalization on prose).
+
+Responses include `corpusId`, `modelId`, `dimensions`, and `calibratedAt` so saved Console results stay interpretable after model changes.
 
 ## Scoring path (must match production)
 
@@ -52,7 +94,7 @@ Responses include `corpusId`, `modelId`, `dimensions`, and `calibratedAt` so sav
 4. `SemanticEmbedding.cosineSimilarity`
 5. `simulateEmbeddingIdentity` / `decideEmbeddingMatch` for identity verdicts
 
-Corpus definitions: [`objectMatch/corpus.ts`](objectMatch/corpus.ts). Pure scorer: [`objectMatch/runEmbeddingCalibration.ts`](objectMatch/runEmbeddingCalibration.ts).
+Corpus definitions: [`objectMatch/corpus.ts`](objectMatch/corpus.ts). Pure scorer: [`objectMatch/runEmbeddingCalibration.ts`](objectMatch/runEmbeddingCalibration.ts). Repeat-invoke diagnostic: [`objectMatch/verifyRepeatBedrockEmbed.ts`](objectMatch/verifyRepeatBedrockEmbed.ts). Distance ladder: [`objectMatch/semanticDistanceLadder.ts`](objectMatch/semanticDistanceLadder.ts), [`objectMatch/runSemanticDistanceLadder.ts`](objectMatch/runSemanticDistanceLadder.ts). Asymmetric ladder: [`objectMatch/asymmetricIdentityLadder.ts`](objectMatch/asymmetricIdentityLadder.ts), [`objectMatch/runAsymmetricIdentityLadder.ts`](objectMatch/runAsymmetricIdentityLadder.ts).
 
 ## Interpreting output
 
@@ -81,6 +123,14 @@ When `|eligible| >= 2`, compare:
 ### Duplicate shortNames
 
 `duplicate-shortName` cases must **always** abstain (`ambiguous_margin`). Embedding must never auto-resolve identical normalized shortNames.
+
+### Semantic distance ladder (exploration)
+
+Use `EmbeddingDistanceLadder` to see whether Titan preserves semantic ordering at low absolute scores. Healthy falloff: tier medians decrease from `exact` through `unrelated`. `monotonicityViolations` flags inversions (e.g. unrelated median above tight-paraphrase). A flat or inverted curve suggests threshold gating on isolated shortNames will be fragile.
+
+### Asymmetric identity ladder (exploration)
+
+Use `EmbeddingAsymmetricLadder` before changing `EMBEDDING#IMPROMPTU` index semantics. Compare `delta` on `asym-010-paraphrase-broom` (target uplift) against `asym-050-absent-sword-vs-broom` and hard-negative tiers (false-positive risk). `compositionStudyResults` on flagged cases shows whether `shortName`, `shortNamePlusDescription`, or `descriptionOnly` is the best index shape. **Do not** use this ladder to lock current shortName-only `thresholds.ts` constants without also changing production embed storage. **Durable findings and closed-loop follow-on:** [`../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Snapshot: [`asymmetric-identity-ladder-v1-2026-07-07.json`](objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json).
 
 ## When to re-run
 
