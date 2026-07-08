@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B complete (B6 durable docs shipped). Next step: Phase C (C1 Plan IR types + registry).
+**Status:** Phase B complete (B6 durable docs shipped). **Phase C blocked** on fault-tolerant gateway --- [`AGENT.faultTolerantObjectManipulation.planning.md`](AGENT.faultTolerantObjectManipulation.planning.md) (**Gateway exit** must be complete before C1).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -223,6 +223,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 ### Phase C --- Plan IR and composition
 
+**Prerequisite:** [`AGENT.faultTolerantObjectManipulation.planning.md`](AGENT.faultTolerantObjectManipulation.planning.md) **Gateway exit** complete (span resolution artifacts, FT-1--FT-3 decided, Abstain/Consult contract). Plan IR **`resolveComponent`** should consume provisional **`SpanResolution`** handoffs, not trusted-output-only identity output.
+
 - [ ] **C1. Plan IR types + registry**
   - [ ] Define **`ParsePlanStep`** union and primitive registry (resolve, transferMembership, establishRelation).
   - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+) or **`defer`** / **Error** per BD-10.
@@ -297,7 +299,8 @@ npm run build
 | B5 actions egress + perception | Done (2026-07-05) |
 | B6 durable docs (four-lane steady-state) | Done (2026-07-05) |
 | Phase B establishRelation vertical | Done |
-| Phase C Plan IR | Not started |
+| Fault-tolerant gateway ([`AGENT.faultTolerantObjectManipulation.planning.md`](AGENT.faultTolerantObjectManipulation.planning.md)) | Not started |
+| Phase C Plan IR | Blocked (gateway) |
 | Phase D LLM plans | Not started |
 
 ## Coordination notes
@@ -307,3 +310,4 @@ npm run build
 - Phase B shipped frame extract + **`establishRelation`** / **`dissolveRelation`** end-to-end; durable docs in B6 ([`diegeticLogic/AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md), [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4), [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)).
 - **`in`** / nesting is an explicit **deferral** --- player-facing copy when frame extract or relation normalizer detects containment language ([`AGENT.operators.concepts.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.operators.concepts.md) **Still out of scope**).
 - **BD-12 (2026-07-05):** B1 frame extract shipped span-only; forbidding **`operationKind`** at classify *and* frame extract left no owner and invited phrase-bucket compiler hacks. **`operationKind`** (`establishRelation` \| `dissolveRelation`) is now owned by the frame extract LLM (no extra Bedrock hop). Compiler stays deterministic for grounding + legality only. General seam rules graduated to [`llm/AGENT.contract.md`](../../../../../lambda/ephemera/llm/AGENT.contract.md) and [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md).
+- **Fault-tolerant gateway (2026-07-07):** Phase C blocked until [`AGENT.faultTolerantObjectManipulation.planning.md`](AGENT.faultTolerantObjectManipulation.planning.md) completes **Gateway exit** --- Plan IR **`resolveComponent`** needs provisional span artifacts + Abstain/Consult contract, not trusted-output-only identity.
