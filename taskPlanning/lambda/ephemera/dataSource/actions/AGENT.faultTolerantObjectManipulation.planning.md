@@ -37,7 +37,7 @@ classify (trusted-output or provisional intent --- TBD at FT-4)
        -> span resolution tier (exact | lexical+embed rank | optional adjudication)
             -> SpanResolution artifact per span (candidates + confidence + status)
        -> recovery loop as needed (supplement -> correct | backtrack)
-       -> frame extract / complexity hops (Abstain | Consult | proceed)
+       -> proposer (deterministic frame template | general joint hop; frame extract + complexity LLM retired --- FT-3) (Abstain | Consult | proceed)
        -> plan compiler (deterministic; closed-world legality)
             -> resolveComponent commits ONE id per span at compile time OR emits Consult / Error
        -> executor -> trusted ids on bus (commit boundary unchanged)
@@ -45,7 +45,7 @@ classify (trusted-output or provisional intent --- TBD at FT-4)
 
 **Commit boundary unchanged:** positions ingress and atomic apply (BD-9) still require **trusted-output** ids. Fault tolerance lives **before** terminal parse / stream publish.
 
-**Seam unchanged:** classify owns intent topology; frame extract owns relational **`operationKind`**; identity tier owns referential grounding **job** --- only the **trust posture** and **handoff shape** change.
+**Seam unchanged:** classify owns intent topology; the **proposer** (deterministic frame template or general joint hop --- successor to frame extract, **FT-3**) owns relational **`operationKind`**; identity tier owns referential grounding **job** --- only the **trust posture** and **handoff shape** change.
 
 ## Scope
 
@@ -54,7 +54,7 @@ classify (trusted-output or provisional intent --- TBD at FT-4)
 - Provisional **span resolution** types and guards (candidate pool, confidence, resolution status).
 - Identity tier refactor: embedding as **recommender** (not terminal **`Resolved`**), optional lexical rank merge, documented recovery patterns.
 - Product-facing **Abstention** vs **Consulting** parse outcomes (wire + handler contract --- at minimum design + types; client UX may follow).
-- Downstream hop prompt/parser review: complexity LLM, frame extract --- when to abstain vs consult vs proceed.
+- Legacy-hop redistribution (**FT-3**): retire **complexity LLM** and **frame extract** as distinct LLM steps; relocate their work to the deterministic fast-path (sandbox legality; net-new relational frame templating) + the general joint proposer; Abstain / Consult owned by the proposer, defer by the shared validator.
 - Plan IR **foundation** types: **`resolveComponent`** input = **`SpanResolution`**, output = committed id | consult | error (feeds C1 in sibling plan).
 - Calibration + tests for candidate-pool behavior; update [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) steady-state when shipped.
 - Durable doc updates: [`objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md), [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) (trust posture + handoff tables).
@@ -103,7 +103,7 @@ Plan-only: decisions we are making in order to implement this initiative and unb
 | --- | --- | --- | --- |
 | **FT-1** | **Candidate pool construction** --- How do **embeddings** (cosine rank on **`EMBEDDING#IMPROMPTU`**, optional enriched index) combine with a tunable **`lexicalRelevance`** function to produce a **ranked candidate pool** per span with **relevance ratings** (absolute score, margin, eligible count, source tags)? Merge strategy + joint-score shape settled in **FT-1 decisions so far** below (**no admission floor**; rank-all + full ranked list + **gap-trim shortlist under a Top-N ceiling**; **weighted RMS** joint score; strict conjunctive gate deferred to FT-5). Depends on **FT-8** (per-signal normalization to `[0,1]`, which must be **absolute** not within-set --- see decisions). No architectural fork remains. **Calibration-owned (not decisions), fit in FT-1.3:** Top-N ceiling, gap-trim threshold, RMS weights `w_l`/`w_e`. **Delegated:** embedding index shape -> FT-8; [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts) floor migration -> FT-5 confidence stage (no longer pool-admission floors). | FT-2, FT-3, FT-8, gateway | Decided (pending calibration) |
 | **FT-2** | **Identity LLM necessity** --- If we no longer require a **trusted-output single `objectId`** per span at the identity tier, do we still need a dedicated **identity LLM** hop? Rejected: (a) pool + deterministic adjudication only; (b) pool + lightweight validator LLM; (c) pool + identity LLM only on **backtrack** when pool ambiguous; (d) retain identity LLM but change output to **rank/reason** not pick-one. **Chosen: (e) merge identity into a joint `(identity, plan)` adjudicator** over the FT-1 pool, with an **unchanged deterministic legality/commit tail** --- see **FT-2 decisions so far** + **Instruction compiler + validator architecture**. Bedrock-bypass for common cases is answered by **staged fast-path composition** (mechanism documented; enabling capabilities relocated to their own build threads, not decision blockers). | FT-3, FT-7, gateway | **Decided (e) (2026-07-08)**; enablers + validation pending (in-memory sandbox, per-enum transfer semantics, tiered fast-path coverage, prototype + calibration) |
-| **FT-3** | **Abstention vs Consulting downstream** --- How do **frame extract**, **complexity LLM**, and the **compiler** prompt/observe outcomes so the pipeline cleanly distinguishes **Abstain** ("I can't parse that" --- terminal or soft stop) vs **Consult** ("Player, do you mean X or Y?" --- provisional, resumable)? Wire shape: new **`ParseCommandResult`** variants vs enriched **`Error`** with structured **`consultCandidates`**? Who owns Consult copy (actions vs perception)? | FT-4, gateway, client | Open |
+| **FT-3** | **Abstention vs Consulting downstream** --- **Direction set (2026-07-08, see FT-3 decisions so far):** **complexity LLM** and **frame extract** do **not** survive as distinct LLM steps (complexity LLM -> deterministic sandbox legality + shared validator; frame extract -> **net-new** deterministic frame templating + general joint proposer); no narrow-scope "tier-2" LLM (the untemplated-simple-language case is a **classify** concern). **Abstain / Consult** owned by the **proposer / joint hop**, **defer -> Error** by the **shared validator**, **commit vs Consult** by the **FT-5 gate** --- never the deterministic compiler (BD-12). **Wire shape decided (2026-07-08, see Consult wire shape):** Consult is a **new `ParseCommandResult` variant** (not enriched `Error`); **actions** emits structured **alternate proposed commands** (X / Y), **perception** assembles copy; **not resumable this iteration** (terminates with no graph change + a terminal prompt inviting a re-entered scanning command). Variant **types land with FT-4.** | FT-4, gateway, client | Decided (2026-07-08); types pending FT-4 |
 | FT-4 | **`SpanResolution` artifact** --- Canonical type for provisional span grounding (span text, candidates[], status: `resolved` \| `ambiguous` \| `noMatch` \| `consult`, confidence fields). Shared by membership + relational paths and Plan IR **`resolveComponent`**. | FT-1--3, C1 | Open |
 | FT-5 | **Auto-resolve / commit-gate policy** --- When may selection **commit** a candidate without Consult (absolute confidence **floor** + **margin** over runner-up)? Owns the floor/margin the deterministic **selector** applies to the N-candidate rubric (**legality gates, confidence ranks**; decline -> Consult) --- see **Instruction compiler + validator architecture**. The floor is set by the **recoverability gradient** (see **Recoverability gradient + optimistic proposal**): commit on modest confidence when wrongness is **illegal-if-wrong** (deterministically catchable), hold floor + Consult when **legal-but-wrong**. Align with FT-1 relevance / FT-8 absolute scale; document vs identity-tier auto-resolve (prefer **one** commit point). | C1, gateway | Open |
 | FT-6 | **Recovery orchestration owner** --- Inline in [`identityStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts) vs dedicated orchestrator module vs [`llm/pipeline/`](../../../../../lambda/ephemera/llm/pipeline/AGENT.md) wrapper for identity+validation loop. | FT-2, FT-3 | Open |
@@ -163,19 +163,18 @@ Plan-only; graduate to durable docs when FT-2 ships. **Status: Decided (e) 2026-
 
 **Direction: joint `(identity, plan)` adjudication --- FT-2 option (e).** Fold the identity tier and the front half of the Phase C compiler into one **fault-tolerant hybrid adjudicator** that ranks **`(identity, plan-candidate)` tuples** over the FT-1 candidate pools, backed by an **unchanged deterministic legality/commit tail**. Membership state + language direction become **evidence for identity**, not a downstream consequence of an already-committed id (today's membership observation can only veto). This **relocates and broadens** the identity LLM rather than deleting it (so FT-2's literal question resolves to "merge scope", not "remove"); the joint hop remains the semantic **backtrack** owner the exploration notes require.
 
-**Membership `operationKind` stays a deterministic fallout.** The joint hop adjudicates **identity** using **`verbClass`** (when present) + deterministically-packaged membership facts as **evidence**; once identity + host-instance are pinned, membership **`operationKind`** (`takeHold`/`drop`) still resolves **deterministically** from graph position. The joint hop does **not** emit membership `operationKind`. Relational **`operationKind`** (`establishRelation`/`dissolveRelation`) remains **semantic** (frame extract, BD-12); the joint hop may own it on the relational path.
+**Membership `operationKind` stays a deterministic fallout.** The joint hop adjudicates **identity** using **`verbClass`** (when present) + deterministically-packaged membership facts as **evidence**; once identity + host-instance are pinned, membership **`operationKind`** (`takeHold`/`drop`) still resolves **deterministically** from graph position. The joint hop does **not** emit membership `operationKind`. Relational **`operationKind`** (`establishRelation`/`dissolveRelation`) remains **semantic** (BD-12); with frame extract retired as a distinct hop (**FT-3**), the **proposer / joint hop** owns it on the relational path (deterministic template on closed-grammar frames; general joint hop otherwise).
 
 **`verbClass` becomes an optional hint, owned downstream.** Today **`verbClass`** is a **required** enrich input ([`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) errors if absent) whose only semantic consumer is the reject-only agreement gate. Move ownership of **operation-direction** to the **joint hop** (consume `verbClass` as evidence when present; derive from language when absent); demote **classify + deterministic lexical templates + specialized prompts** to fast-path **producers** of the same artifact --- sanctioned by "**Fast paths are not a second owner**" ([`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md)). Satisfies the vacuum test (no un-owned field).
 
 **Load-bearing invariant = the closed primitive registry, not the enum.** Relaxing `verbClass` (and, per FT-7, the intra-manipulation sub-topology) is safe **because the commit tail still expresses only a closed set of Plan IR primitives** (`transferMembership`, `establishRelation`, `dissolveRelation`, ...). The joint hop **selects from that fixed menu** (BD-10 / Phase D "registry primitives only" constraint pulled forward and fused with identity); it never **invents** operations. The real design frontier is therefore where **open language meets the closed vocabulary**: some intents (e.g. "hold the marshmallow stick just on the edge of the campfire" --- sustained-hold + a `Custom`/manner relation) may **not fit** the registry. Out-of-registry intents must **Abstain / Consult / defer** (FT-3; analog to the BD-2 `in`/nesting defer), **not** be force-projected onto the nearest primitive.
 
-**Tiered ladder to preserve cheap paths (open thread).** To keep the common case off the general compiler:
+**Cheap paths: per-stage fast-path / fallback, not a tiered ladder (updated 2026-07-08 --- see FT-3 decisions so far).** Originally framed as a 3-tier ladder; the **narrow-scope middle LLM ("tier-2") dissolves.** It earned its keep only for structurally-simple-but-untemplated language ("seize the sword!"), which is a **classify** concern already owned by two-level classify, and a speculative narrow hop that *feeds* the general proposer (rather than *terminating*) is double-pay. Two real rungs remain **per decision point**:
 
-1. **Deterministic template** (`get`/`take`/`drop` + noun) --- emits `verbClass` + often a committed plan; **zero** post-classify Bedrock (preserve today's fast path).
-2. **Specialized narrow prompt** for common-but-inexact shapes --- cheap, tightly scoped; still emits the hint fields.
-3. **General joint compiler** for open language --- no required `verbClass`; reasons from language + evidence; selects from the registry; **Abstain/Consult** on out-of-registry.
+1. **Deterministic fast-path** (closed-world): classify `get` / `take` / `drop` + noun today; **net-new** relational frame templating (`put` / `lean` / `take off` + known prepositions) as the relational analog. Generates a proposal *because* the shape is closed-world; emits `verbClass` + often a committed plan; **zero** post-classify Bedrock.
+2. **General joint proposer** for open language --- no required `verbClass`; reasons from language + evidence; selects from the registry; **Abstain / Consult** on out-of-registry.
 
-`verbClass` / sub-topology are outputs of tiers 1--2 that tier 3 does **not** require. **Coverage of tiers 1--2 is a calibration target** (budget risk: today's zero/one-hop traffic must not all fall through to the expensive tier 3). **Resolved (2026-07-08):** the Bedrock-bypass mechanism is **staged fast-path composition** (**Instruction compiler + validator architecture** below) --- Bedrock cost = count of stages whose closed-world predicate fails; the golden path is zero. Tier coverage is now a **build/calibration target**, no longer a decision blocker; FT-2 is **Decided (e)**.
+Lexical openness is mitigated by templating the **lexicon + grammar** (bounded, slow-growing), **not** full commands (infinite); the **negative-closure** rule keeps an LLM fallback as a **permanent floor** (an untemplated verb licenses no deterministic conclusion). `verbClass` / sub-topology are outputs of the deterministic fast-path that the general proposer does **not** require. **Fast-path coverage is a calibration target** (budget risk: today's zero/one-hop traffic must not all fall through to the general hop). **Resolved (2026-07-08):** the Bedrock-bypass mechanism is **staged fast-path composition** (**Instruction compiler + validator architecture** below) --- Bedrock cost = count of stages whose closed-world predicate fails; the golden path is zero. Coverage is a **build / calibration target**, no longer a decision blocker; FT-2 is **Decided (e)**.
 
 **Couples FT-2 to Phase C compiler shape.** Option (e) makes **`resolveComponent`** the deterministic **tail** of a joint semantic hop, **not** a standalone primitive --- confirm the sibling Phase C plan is comfortable. Ownership split: registry **expressiveness** (new primitives / manner slots for intents like "just on the edge") is **sibling-plan-owned** (Phase C/D, BD-2/BD-10); **graceful out-of-registry Abstain/Consult** is **FT-3** here.
 
@@ -252,15 +251,56 @@ Plan-only; trust-posture principle spanning FT-2 (optimistic proposal), FT-5 (co
 
 **Future tier (out of this iteration):** player-as-final-authority rollback of published manipulation truth makes a commit **provisional-until-unchallenged**, extending *survivable wrongness* (today: presentation only) **into manipulation truth**. Enablers: **compensatable operations** + a bounded **retro window** (post-commit the world evolves *on top of* the possibly-wrong state, so rollback entanglement grows with elapsed time + dependency). Tracked as **future trust-axis** ([`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) --- **Survivable wrongness**), not this initiative; the current-iteration scoping ("fault tolerance is pre-commit only") stands.
 
+### FT-3 decisions so far (2026-07-08)
+
+Plan-only; graduate to durable docs when FT-3 ships. Resolves the "legacy hops" question: **the membership complexity LLM and the relational frame extract do not survive as distinct LLM steps.** Their semantic work redistributes across a **deterministic fast-path** and the **general joint proposer**, and Abstain / Consult / defer ownership moves with them. No new field owner is invented (seam preserved).
+
+**Complexity LLM --- retired as a hop.** Its single judgment (given exit-edge / host topology, is a plain `transferMembership` still legal, or is the command too complex?) factors cleanly along the new seam:
+
+- **Deterministic half** -> the **dry-run legality evaluator over the in-memory sandbox** (modeled / enum relations); `deferToComplexityLlm` becomes `decidable: true -> fast-approve`, zero Bedrock on the golden path.
+- **Semantic residue** (a `Custom` / unmodeled interaction blocks the move) -> the **shared LLM validator** = the BD-10 `defer` bucket, *not* a membership-specific prompt. Its current terminal-only `relationalPlacement` output already is defer behavior.
+- The documented known gap (complexity path skips the `verbClass` agreement gate --- [`objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md)) **dissolves**: `verbClass` is evidence, membership `operationKind` is deterministic fallout once identity + host are pinned.
+
+**Frame extract --- retired as an always-on LLM hop; work splits down and up.** It does two irreducible semantic jobs (role decomposition + relational `operationKind`, BD-12). Those keep a semantic owner, but not a standalone trusted-output decomposer:
+
+- **Down (net-new, deterministic fast-path):** closed-grammar relational frames (`put` / `place` / `lean` / `take off` + known prepositions) are **closed-world** --- the relation phrase is an enum lookup, `operationKind` is positive-closure on the verb template, and roles fall out of the `V NP prep NP` grammar. This deterministic relational proposer **does not exist today** (classify only templates membership `take` / `drop` / `get`; [`runFrameExtractStage`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/frameExtract/runFrameExtractStage.ts) always calls Bedrock) --- it is **work to build**, the relational analog of the membership fast path.
+- **Up (general joint hop):** open relational language falls to the **general joint `(identity, plan)` proposer** (FT-2 (e)), which owns role decomposition + operator selection + identity jointly, selecting from the registry.
+- Downstream deterministic stages --- **relation normalizer** ([`normalizeRelationSpan.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/normalizeRelationSpan.ts)), grounding / FT-1 pools, **relational legality** ([`evaluateRelationalLegality.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.ts)) --- are unchanged and run regardless of proposer source.
+
+**No narrow-scope LLM middle tier ("tier-2" dissolves).** A dedicated cheap relational LLM sitting between the deterministic template and the general proposer is rejected. Its only real value case is **structurally simple commands in untemplated language** ("seize the sword!"), but:
+
+- On the **membership** path that is a **classify** miss, already owned by the existing **two-level classify** (deterministic template *or* classify LLM, then deterministic tail); it does not justify a new relational hop.
+- The **negative-closure** seam rule ([`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) --- fast-path positive vs negative closure) makes an LLM fallback a **permanent floor**: an untemplated verb licenses *no* deterministic conclusion, so it must fall through --- the only choice is *which* LLM it lands on, and a speculative narrow hop that **feeds** the general one (rather than **terminating**) is double-pay.
+- The tractable mitigation is templating the **lexicon + grammar** (a bounded, slow-growing set), **not** full commands (infinite); this shrinks the residual to the creative tail, which is exactly where the general proposer belongs.
+
+**Mental model: per-stage fast-path / fallback, not a tiered ladder.** Drop the linear tier-1/2/3 framing (it is what manufactured the phantom tier-2). Each **decision point** (classify, frame / identity, compile, validate) has a deterministic fast-path and, on failure, an LLM fallback; **Bedrock cost = number of stages whose closed-world predicate fails** (the **Staged fast-path composition** model). "Tier-2 dissolved" just means the frame / proposal decision has a deterministic fast-path and a general-LLM fallback with no distinct middle option.
+
+**FT-3 owner map (Abstain / Consult / defer).** No longer owned by complexity LLM or frame extract:
+
+| Concern | Owner |
+| --- | --- |
+| **Abstain** (unparseable) / **Consult** (ambiguous, catalog-backed) | Proposer / joint hop (out-of-registry -> Abstain / Consult; ambiguous FT-1 pool -> Consult) |
+| **Defer -> Error** (unmodeled `Custom` interaction) | Shared dry-run validator (BD-10 `defer`) |
+| **Commit vs Consult** (legal-but-uncertain) | FT-5 selector gate (recoverability gradient) |
+| Role decomposition + relational `operationKind` (seam owner, BD-12) | Proposer (deterministic template / general joint hop) --- **never** the deterministic compiler |
+
+**Consult wire shape (decided 2026-07-08).**
+
+- **New `ParseCommandResult` variant.** Consult is a **first-class terminal parse outcome** (e.g. `ParseCommandConsultResult`), **not** an enriched **`Error`** carrying `consultCandidates`. Guards distinguish it from **`Error`** and from success variants.
+- **Actions emits alternatives; perception assembles copy.** **Actions** produces the structured **alternate proposed commands** --- the catalog-backed candidate re-phrasings that *would* scan (the "X" and "Y"), as data, **not** prose. **Perception** turns them into the player-facing copy ("I don't understand. Did you mean X or Y?"). This mirrors the existing intent/fact -> **`WorldMessage`** fan-in split (actions owns structured facts, perception owns wording).
+- **Not resumable this iteration.** Consult does **not** await or correlate a follow-up reply. It **terminates** the parse with **no graph change** and surfaces a **terminal prompt** encouraging the player to re-enter a command that will scan (typically one of the proposed alternatives, or a clearer phrasing). Reply correlation / resumable Consult is **deferred** (future trust-axis --- same family as the post-commit player-authority tier in **Recoverability gradient + optimistic proposal**; out of scope per coordination notes).
+
+Feeds FT-4 `SpanResolution.status` (`consult`); the variant types land with **FT-4**.
+
 ### FT-3 exploration notes (non-normative)
 
 | Outcome | Player experience | Commit? |
 | --- | --- | --- |
 | **Abstain** | "I couldn't understand that command" (or in-franchise equivalent) | No graph change |
-| **Consult** | "Did you mean the broom or the mop?" | No graph change; await follow-up (future: correlate reply) |
+| **Consult** | "Did you mean the broom or the mop?" | No graph change; **terminal this iteration** --- no reply correlation; player re-enters a scanning command (resumable Consult deferred) |
 | **Resolved** | Normal apply path | Trusted id at commit boundary |
 
-Complexity LLM and frame extract should **Abstain** on true unparseable input, **Consult** only when structured alternatives exist (catalog-backed), not on policy/legality failures (those stay **Error**).
+The **proposer / joint hop** (successor to frame extract + complexity LLM per **FT-3 decisions so far** --- both retired as distinct steps) should **Abstain** on true unparseable input and **Consult** only when structured, catalog-backed alternatives exist; policy / legality failures stay **Error** (deterministic tail / shared validator).
 
 ## Gateway exit (required before Phase C)
 
@@ -318,12 +358,13 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 ### FT-3. Abstention vs Consulting
 
 - [ ] **FT-3.1 Parse result contract**
-  - [ ] Add **`ParseCommandConsultResult`** (or chosen shape) + guards; distinguish from **`Error`** and success variants.
-  - [ ] Handler in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts): Consult -> player-visible message, **no** positions stream.
+  - [ ] Add **`ParseCommandConsultResult`** variant + guards; distinguish from **`Error`** and success variants (**decided**: new variant, not enriched `Error`).
+  - [ ] Actions carries the structured **alternate proposed commands** (candidate re-phrasings that would scan) as **data**; perception owns the copy.
+  - [ ] Handler in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts): Consult -> player-visible message via perception, **no** positions stream, **no** resumable state (terminal prompt inviting a re-entered scanning command).
 
-- [ ] **FT-3.2 Downstream hop prompts**
-  - [ ] Frame extract: abstain signals vs proceed; do not consult for missing catalog objects (compiler/identity owns Consult).
-  - [ ] Complexity LLM: align abstain vs membership atomic vs defer; no consult unless catalog-backed alternatives exist (likely **none** on this hop --- document).
+- [ ] **FT-3.2 Proposer Abstain/Consult behavior** (frame extract + complexity LLM retired per **FT-3 decisions so far**)
+  - [ ] Proposer / joint hop: Abstain on unparseable; Consult only with structured, catalog-backed alternatives; policy/legality failures stay **Error** (deterministic tail / shared validator).
+  - [ ] Deterministic fast-path + shared validator: no Consult authoring (defer -> Error; commit-vs-Consult is the FT-5 gate).
 
 - [ ] **FT-3.3 Compiler commit rules (foundation for C1)**
   - [ ] **`resolveComponent`**: input **`SpanResolution`** -> committed id | consult | error per **FT-5** policy.
@@ -375,7 +416,7 @@ npm run build
 | FT-0 framing + type skeleton | Not started |
 | FT-1 candidate pool (embedding + lexical) | Design decided (pending FT-8 + calibration); build not started |
 | FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
-| FT-3 Abstain vs Consult | Not started |
+| FT-3 Abstain vs Consult | **Decided (2026-07-08)**: complexity LLM + frame extract retired as distinct hops; owner map (proposer = Abstain/Consult, shared validator = defer, FT-5 = commit gate); no narrow-scope tier-2 LLM. Wire shape: **new `ParseCommandResult` Consult variant**, actions emits alternate proposed commands + perception assembles copy, **not resumable** this iteration. Variant types land with FT-4 |
 | FT-4 integration + gateway | Not started |
 | **Gateway exit** (unblocks Phase C) | Not started |
 | Phase C Plan IR (sibling plan) | Blocked on gateway |
