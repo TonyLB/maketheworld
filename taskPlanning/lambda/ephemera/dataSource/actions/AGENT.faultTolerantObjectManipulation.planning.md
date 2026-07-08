@@ -65,7 +65,7 @@ classify (trusted-output or provisional intent --- TBD at FT-4)
 - Phase D plan LLM (sibling plan).
 - Client UI for Consulting (may stub **`PublishMessage`** / OOC only in v1).
 - Player feedback / retroactive revision loops ([`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) --- future trust-axis).
-- Replacing classify with a single end-to-end compiler LLM (classify remains topology discriminator for this initiative).
+- Replacing classify with a single end-to-end compiler LLM **for the whole game** --- classify remains the **family** discriminator (manipulation vs navigation vs speech vs Acme). **Note (FT-7 / FT-2):** the *intra-manipulation* sub-topology (membership vs relational) and **`verbClass`** may become **provisional hints** consumed by the joint hop rather than committed classify routing; that narrowing **is** in scope, a universal compiler is not.
 
 ## Background (durable docs --- link, do not duplicate)
 
@@ -102,12 +102,12 @@ Plan-only: decisions we are making in order to implement this initiative and unb
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
 | **FT-1** | **Candidate pool construction** --- How do **embeddings** (cosine rank on **`EMBEDDING#IMPROMPTU`**, optional enriched index) combine with a tunable **`lexicalRelevance`** function to produce a **ranked candidate pool** per span with **relevance ratings** (absolute score, margin, eligible count, source tags)? Merge strategy + joint-score shape settled in **FT-1 decisions so far** below (**no admission floor**; rank-all + full ranked list + **gap-trim shortlist under a Top-N ceiling**; **weighted RMS** joint score; strict conjunctive gate deferred to FT-5). Depends on **FT-8** (per-signal normalization to `[0,1]`, which must be **absolute** not within-set --- see decisions). No architectural fork remains. **Calibration-owned (not decisions), fit in FT-1.3:** Top-N ceiling, gap-trim threshold, RMS weights `w_l`/`w_e`. **Delegated:** embedding index shape -> FT-8; [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts) floor migration -> FT-5 confidence stage (no longer pool-admission floors). | FT-2, FT-3, FT-8, gateway | Decided (pending calibration) |
-| **FT-2** | **Identity LLM necessity** --- If we no longer require a **trusted-output single `objectId`** per span at the identity tier, do we still need a dedicated **identity LLM** hop? Options to compare: (a) pool + deterministic adjudication only; (b) pool + lightweight validator LLM; (c) pool + identity LLM only on **backtrack** when pool ambiguous; (d) retain identity LLM but change output to **rank/reason** not pick-one. Bedrock budget vs paraphrase coverage. | FT-3, gateway | Open |
+| **FT-2** | **Identity LLM necessity** --- If we no longer require a **trusted-output single `objectId`** per span at the identity tier, do we still need a dedicated **identity LLM** hop? Rejected: (a) pool + deterministic adjudication only; (b) pool + lightweight validator LLM; (c) pool + identity LLM only on **backtrack** when pool ambiguous; (d) retain identity LLM but change output to **rank/reason** not pick-one. **Chosen: (e) merge identity into a joint `(identity, plan)` adjudicator** over the FT-1 pool, with an **unchanged deterministic legality/commit tail** --- see **FT-2 decisions so far** + **Instruction compiler + validator architecture**. Bedrock-bypass for common cases is answered by **staged fast-path composition** (mechanism documented; enabling capabilities relocated to their own build threads, not decision blockers). | FT-3, FT-7, gateway | **Decided (e) (2026-07-08)**; enablers + validation pending (in-memory sandbox, per-enum transfer semantics, tiered fast-path coverage, prototype + calibration) |
 | **FT-3** | **Abstention vs Consulting downstream** --- How do **frame extract**, **complexity LLM**, and the **compiler** prompt/observe outcomes so the pipeline cleanly distinguishes **Abstain** ("I can't parse that" --- terminal or soft stop) vs **Consult** ("Player, do you mean X or Y?" --- provisional, resumable)? Wire shape: new **`ParseCommandResult`** variants vs enriched **`Error`** with structured **`consultCandidates`**? Who owns Consult copy (actions vs perception)? | FT-4, gateway, client | Open |
 | FT-4 | **`SpanResolution` artifact** --- Canonical type for provisional span grounding (span text, candidates[], status: `resolved` \| `ambiguous` \| `noMatch` \| `consult`, confidence fields). Shared by membership + relational paths and Plan IR **`resolveComponent`**. | FT-1--3, C1 | Open |
-| FT-5 | **Auto-resolve policy at compile time** --- When may the **compiler** commit a single id without Consult (high confidence + margin)? Align with FT-1 thresholds; document vs identity-tier auto-resolve (prefer **one** commit point). | C1, gateway | Open |
+| FT-5 | **Auto-resolve / commit-gate policy** --- When may selection **commit** a candidate without Consult (absolute confidence **floor** + **margin** over runner-up)? Owns the floor/margin the deterministic **selector** applies to the N-candidate rubric (**legality gates, confidence ranks**; decline -> Consult) --- see **Instruction compiler + validator architecture**. Align with FT-1 relevance / FT-8 absolute scale; document vs identity-tier auto-resolve (prefer **one** commit point). | C1, gateway | Open |
 | FT-6 | **Recovery orchestration owner** --- Inline in [`identityStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts) vs dedicated orchestrator module vs [`llm/pipeline/`](../../../../../lambda/ephemera/llm/pipeline/AGENT.md) wrapper for identity+validation loop. | FT-2, FT-3 | Open |
-| FT-7 | **Classify trust posture for Phase C** --- Keep classify **trusted-output** while enrich becomes fault-tolerant, or allow provisional intent handoff? Default recommendation: **trusted-output classify** for v1; reassess when Plan IR subsumes routing. | C4 | Open |
+| FT-7 | **Classify trust posture for Phase C** --- Keep classify **trusted-output** while enrich becomes fault-tolerant, or allow provisional intent handoff? **Direction (2026-07-08, see FT-2 decisions so far):** **two-level classify** --- **trusted-output at the family level** (manipulation vs navigation vs speech vs Acme; keeps the joint prompt scoped) but **provisional hints** for the **intra-manipulation** sub-fields (**`verbClass`**, membership-vs-relational sub-split) consumed as **evidence** by the joint hop, not committed routing. Not a single end-to-end compiler for the whole game. | C4, FT-2 | Open (direction set) |
 | **FT-8** | **Embedding cosine -> `[0,1]` relevance normalization** --- The RMS joint score (FT-1) requires each signal on a comparable relevance scale, but raw cosines cluster tightly (~0.05-0.25) with meaningful **ratio** separation and tiny **absolute** separation (observed power/log-like gradient, not linear). What mapping turns raw cosine into a `[0,1]` relevance? Candidates: log or power transform (`cosine^k`); logistic fit; per-catalog-shape (unary vs multi) rescale. **Also owns the embedding index-shape fork** (delegated from FT-1): symmetric `shortName`-only (production v1) vs enriched asymmetric `shortNamePlusDescription` ([`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) asymmetric ladder), since the index shape sets the cosine distribution being normalized (paraphrase uplift vs absent-object risk trade-off). **Constraint (from FT-1 no-floor):** the mapping feeding the downstream noMatch judgment must be **absolute / globally calibrated**, *not* a within-candidate-set rescale (min-max / percentile), which always sends top-1 -> ~1.0 and makes "none match" unknowable; within-set rescale is admissible only for RMS comparability if a separate absolute top-1 signal is retained. Fit against calibration snapshots + asymmetric ladder; must not reintroduce the absent-object false positives that absolute floors currently guard. Applies to `lexicalRelevance` output too if its raw scale is non-linear. | FT-1, FT-5, gateway | Open |
 
 ### FT-1 decisions so far (2026-07-08)
@@ -155,9 +155,76 @@ Questions to answer during FT-1 slice (do not treat as decided):
 - Tune the `w_l` / `w_e` RMS weights, the Top-N ceiling, and the gap-trim threshold --- open, calibration-owned (no admission floor, no `w_a` term).
 - Re-run **`EmbeddingAsymmetricLadder`** + simulate pool metrics before locking merge policy.
 
+### FT-2 decisions so far (2026-07-08)
+
+Plan-only; graduate to durable docs when FT-2 ships. **Status: Decided (e) 2026-07-08.** The architectural fork is **locked**; the Bedrock-bypass concern that previously held it open is answered in principle by **staged fast-path composition** (see **Instruction compiler + validator architecture**). Enabling capabilities are tracked as **separate build threads, not decision blockers**: in-memory sandbox, per-enum interaction-under-transfer semantics, tiered fast-path coverage. Validation (prototype + calibration) pending, mirroring FT-1's "Decided (pending calibration)".
+
+**Reframing --- trust-posture coupling, not a seam violation.** The current deterministic membership **`operationKind`** derivation ([`complexityPreGates`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/complexityPreGates.ts): sole-host room -> `takeHold`, actor -> `drop`) is **graph-truth / state-derived closure** --- the *sanctioned* deterministic pattern (BD-12), **not** a seam violation. What is actually costly is **trusted-output coupling**: identity must commit to one id *before* membership is observed, and [`verbMembershipAgreement`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/verbMembershipAgreement.ts) can only **reject** (terminal Error), never **re-rank**. So "drop bag" with a room-hosted bag + a held satchel **Errors** today instead of selecting the held candidate. The fix is a **trust-posture** change --- and it must **not** be used to license LLM invention of `operationKind` from language (the real canonical violation).
+
+**Direction: joint `(identity, plan)` adjudication --- FT-2 option (e).** Fold the identity tier and the front half of the Phase C compiler into one **fault-tolerant hybrid adjudicator** that ranks **`(identity, plan-candidate)` tuples** over the FT-1 candidate pools, backed by an **unchanged deterministic legality/commit tail**. Membership state + language direction become **evidence for identity**, not a downstream consequence of an already-committed id (today's membership observation can only veto). This **relocates and broadens** the identity LLM rather than deleting it (so FT-2's literal question resolves to "merge scope", not "remove"); the joint hop remains the semantic **backtrack** owner the exploration notes require.
+
+**Membership `operationKind` stays a deterministic fallout.** The joint hop adjudicates **identity** using **`verbClass`** (when present) + deterministically-packaged membership facts as **evidence**; once identity + host-instance are pinned, membership **`operationKind`** (`takeHold`/`drop`) still resolves **deterministically** from graph position. The joint hop does **not** emit membership `operationKind`. Relational **`operationKind`** (`establishRelation`/`dissolveRelation`) remains **semantic** (frame extract, BD-12); the joint hop may own it on the relational path.
+
+**`verbClass` becomes an optional hint, owned downstream.** Today **`verbClass`** is a **required** enrich input ([`index.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/index.ts) errors if absent) whose only semantic consumer is the reject-only agreement gate. Move ownership of **operation-direction** to the **joint hop** (consume `verbClass` as evidence when present; derive from language when absent); demote **classify + deterministic lexical templates + specialized prompts** to fast-path **producers** of the same artifact --- sanctioned by "**Fast paths are not a second owner**" ([`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md)). Satisfies the vacuum test (no un-owned field).
+
+**Load-bearing invariant = the closed primitive registry, not the enum.** Relaxing `verbClass` (and, per FT-7, the intra-manipulation sub-topology) is safe **because the commit tail still expresses only a closed set of Plan IR primitives** (`transferMembership`, `establishRelation`, `dissolveRelation`, ...). The joint hop **selects from that fixed menu** (BD-10 / Phase D "registry primitives only" constraint pulled forward and fused with identity); it never **invents** operations. The real design frontier is therefore where **open language meets the closed vocabulary**: some intents (e.g. "hold the marshmallow stick just on the edge of the campfire" --- sustained-hold + a `Custom`/manner relation) may **not fit** the registry. Out-of-registry intents must **Abstain / Consult / defer** (FT-3; analog to the BD-2 `in`/nesting defer), **not** be force-projected onto the nearest primitive.
+
+**Tiered ladder to preserve cheap paths (open thread).** To keep the common case off the general compiler:
+
+1. **Deterministic template** (`get`/`take`/`drop` + noun) --- emits `verbClass` + often a committed plan; **zero** post-classify Bedrock (preserve today's fast path).
+2. **Specialized narrow prompt** for common-but-inexact shapes --- cheap, tightly scoped; still emits the hint fields.
+3. **General joint compiler** for open language --- no required `verbClass`; reasons from language + evidence; selects from the registry; **Abstain/Consult** on out-of-registry.
+
+`verbClass` / sub-topology are outputs of tiers 1--2 that tier 3 does **not** require. **Coverage of tiers 1--2 is a calibration target** (budget risk: today's zero/one-hop traffic must not all fall through to the expensive tier 3). **Resolved (2026-07-08):** the Bedrock-bypass mechanism is **staged fast-path composition** (**Instruction compiler + validator architecture** below) --- Bedrock cost = count of stages whose closed-world predicate fails; the golden path is zero. Tier coverage is now a **build/calibration target**, no longer a decision blocker; FT-2 is **Decided (e)**.
+
+**Couples FT-2 to Phase C compiler shape.** Option (e) makes **`resolveComponent`** the deterministic **tail** of a joint semantic hop, **not** a standalone primitive --- confirm the sibling Phase C plan is comfortable. Ownership split: registry **expressiveness** (new primitives / manner slots for intents like "just on the edge") is **sibling-plan-owned** (Phase C/D, BD-2/BD-10); **graceful out-of-registry Abstain/Consult** is **FT-3** here.
+
 ### FT-2 exploration notes (non-normative)
 
 Identity LLM today: [`buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/buildPrompt.ts) + [`interpretIdentity.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/interpretIdentity.ts) --- optimistic single pick. If removed from steady path, ensure **backtrack** path still has a semantic owner for hard paraphrase cases identity tier owns.
+
+### Instruction compiler + validator architecture (2026-07-08)
+
+Plan-only; extends the FT-2 direction and feeds FT-3 (Consult) + FT-5 (commit gate). **Status: this section is the basis on which FT-2 is Decided (e) (2026-07-08)** --- it answers the "recover Bedrock-bypass" concern in principle. The concrete capabilities it names (in-memory sandbox, per-enum transfer semantics, propose-N + selector) are **build threads**, not open decisions.
+
+**Propose-N, then deterministic legality-gated selection (not iterative backtrack).** The joint hop emits **N ranked `(identity, plan)` candidates** in one generation; a deterministic **selector** evaluates all N and picks-or-Consults. This collapses propose -> validate -> backtrack round-trips into **one** generation hop + pure deterministic scoring, and makes selection a **testable pure function** of `(candidates, current-state)` (LLM nondeterminism confined to generation).
+
+- **Legality gates, confidence ranks --- lexicographic, not a blended score.** Partition candidates by legality outcome (`clean-legal` > `defer` > `illegal`); rank **within the legal survivors** by (absolute, calibrated) confidence plus optional tie-breakers (plan parsimony, fewer BD-8 inserted steps, enum over `Custom`). Confidence never buys back illegality.
+- **Selection may decline.** When the best legal candidate is below the **FT-5 commit floor** or its **margin over the runner-up** is thin, the outcome is **Consult/Abstain** (FT-3), not argmax --- otherwise this silently re-creates open-loop auto-commit. The runner-up **legal** candidates *are* the Consult menu, so the N-list is dual-purpose (select + Consult options).
+- **Confidence must be absolute + de-correlated** (FT-1 / FT-8 discipline): not within-set (else top-1 -> ~1.0 even for a garbage set), and do not double-count correlated signals (LLM rank, LLM self-confidence, pool relevance).
+
+**Dry-run legality evaluator over an in-memory sandbox.** Scoring N candidates before commit requires legality evaluable **without persisting**: a pure `(proposedPlan, currentState) -> { verdict: legal | defer | illegal, decidable: boolean, resultPreview }`. Single-step legality is already near-pure ([`evaluateRelationalLegality`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/evaluateRelationalLegality.ts), [`complexityPreGates`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/complexityPreGates.ts)); the new need is **compound (BD-9) plans**, whose legality depends on the **simulated intermediate state** (drop then relate). This requires spin-out **in-memory sandboxes** (own task --- conceptually simple, architecturally middling) that hydrate from the **ingress-packaged context** (room + held catalogs/graph already fetched), not fresh Dynamo reads, so the golden path stays IO-cheap as well as Bedrock-cheap.
+
+**The validator itself tiers on enum vs `Custom` (= BD-10 `defer`).** Legality is a clean deterministic **gate only over the modeled subset**:
+
+- **Enum relations (`On`/`Under`/`Against`)** have modeled mechanics by construction (BD-2) -> dissolve / interaction legality is deterministic -> **fast-approve**.
+- **`Custom` / free-text relations** ("embedded miraculously into the stone") carry a `relationLabel` but **no modeled mechanics** -> legality becomes a **semantic** judgment -> **LLM validator** (exactly the BD-10 `defer` bucket / Phase D escalation).
+
+The validator's fast-approve predicate is *"the plan's blast radius touches only modeled relations/primitives"*; any `Custom` (or unmodeled affordance) in the blast radius escalates. The `decidable` flag from the dry-run is the router.
+
+**Staged fast-path composition --- the zero-Bedrock golden path.** Pipeline stages are **not** Bedrock hops; they are **decision points**, each with a **closed-world fast-path** and an **LLM fallback**. **Bedrock cost of a command = the number of stages whose closed-world predicate *fails*, not the number of stages.** On the Infocom golden path every predicate holds -> cost is **zero**:
+
+| Stage | Closed-world predicate (golden path) | Fast-path outcome |
+| --- | --- | --- |
+| Classify | `get`/`take`/`drop` + noun template | synthesize intent + `verbClass` |
+| Identity | unique exact `shortName`, structural gap | resolve to that id |
+| Compile | inputs closed-world (exact id, known verb, affected relations all enum) | synthesize `dissolve(enum) + transferMembership` |
+| Validate | blast radius all modeled | fast-approve |
+| Commit | trusted ids + legal plan | `transactWrite` |
+
+The fault-tolerant machinery therefore adds **recovery capacity that activates on uncertainty**, not cost on certainty: "get sword" is instant and free; "hold the marshmallow stick just on the edge of the campfire" pays only for the reasoning it actually demands. Same pipeline, graceful degradation.
+
+**Three requirements the golden path implicitly demands:**
+
+1. **Closed-world-only fast-pass.** A fast-path may treat a hint as truth **only** on a genuinely closed-world signal (unique exact label / structural gap), **never** a marginal soft signal (near-miss embedding gap) --- else it re-creates open-loop auto-commit on a guess. Soft gaps route through confidence-gating + possible Consult.
+2. **Enum relations need deterministic *interaction-under-transfer* semantics** (Phase C), not just establish / dissolve: `On` dissolves freely on pickup; `Under` may block or require composition. This modeled core is what makes enum fast-approve legitimate --- and precisely what `Custom` lacks.
+3. **Dry-run returns *decidability*, not just a verdict** (above), so the selector routes all-modeled -> fast-approve vs any-unmodeled -> LLM validator.
+
+**Keep the proposer/validator split even when both are deterministic.** On the golden path the compiler fast-pass and validator look redundant. Keep them separate: the validator is the **single shared legality authority** the *LLM* proposer must also pass; the golden-path "redundancy" is what lets the expensive path reuse the cheap tail.
+
+**Affordance checks recurse the same pattern.** Diegetic plausibility ("can't hold liquid soup") is out of scope now; when added it is another decision point --- **modeled property** -> deterministic reject (still zero Bedrock); **novel judgment** -> LLM. Golden path survives iff the affordance is modeled or absent.
+
+**Honest cost:** every tiered stage carries **two implementations** (deterministic fast-path + LLM fallback) that must emit the **same artifact shape** ("Fast paths are not a second owner"); more code + test surface, and a standing discipline that the two never diverge in contract. Already the established pattern (classify [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)).
 
 ### FT-3 exploration notes (non-normative)
 
@@ -174,7 +241,7 @@ Complexity LLM and frame extract should **Abstain** on true unparseable input, *
 All must be **Decided** and corresponding **FT-0--FT-4** checklist items **complete** (or explicitly **N/A** with written rationale in this plan):
 
 - [ ] **FT-1** decided --- candidate pool + relevance contract documented and tested (design decided 2026-07-08; pending FT-8 + calibration).
-- [ ] **FT-2** decided --- identity LLM role in steady path documented (keep, defer to backtrack, or replace).
+- [ ] **FT-2** decided --- identity LLM role in steady path documented (**decided (e) 2026-07-08**: merge identity into a joint `(identity, plan)` adjudicator; durable-doc write-up + enabler build threads still pending).
 - [ ] **FT-3** decided --- Abstain vs Consult wire types + owner stages documented.
 - [ ] **FT-4** shipped --- **`SpanResolution`** (or chosen name) types + guards in actions layer.
 - [ ] Identity tier emits **provisional pool** (not terminal embedding **`Resolved`**) on non-exact paths, or shim documented with sunset date.
@@ -281,7 +348,7 @@ npm run build
 | Fault-tolerant task plan | Done |
 | FT-0 framing + type skeleton | Not started |
 | FT-1 candidate pool (embedding + lexical) | Design decided (pending FT-8 + calibration); build not started |
-| FT-2 identity tier + recovery | Not started |
+| FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
 | FT-3 Abstain vs Consult | Not started |
 | FT-4 integration + gateway | Not started |
 | **Gateway exit** (unblocks Phase C) | Not started |
@@ -294,3 +361,4 @@ npm run build
 - **Seams:** BD-12 field ownership unchanged; fault tolerance does not authorize compiler **`operationKind`** invention.
 - **Client:** Consulting may ship as OOC / **`PublishMessage`** first; structured reply correlation is follow-on (out of scope unless plan updated).
 - **Calibration:** FT-1 should produce durable numbers in [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md) / embedding snapshots before production threshold changes.
+- **FT-2 <-> Phase C coupling (2026-07-08):** option (e) makes **`resolveComponent`** the deterministic **tail** of a joint semantic hop, not a standalone primitive --- flag to the sibling plan before C1. Registry **expressiveness** (new primitives / manner slots for intents like "just on the edge") stays **sibling-plan-owned** (Phase C/D); **out-of-registry Abstain/Consult** is FT-3 here. The closed primitive registry --- not `verbClass` or the intent enum --- is the invariant that keeps the relaxed classify frame inside the seam.
