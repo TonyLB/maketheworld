@@ -6,12 +6,14 @@ Parent docs:
 
 - Actions implementation (field tables, egress, playbooks): [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
 - Enrich module inventory: [`../AGENT.md`](../AGENT.md)
-- LLM design seams: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md), [`../../../llm/AGENT.contract.md`](../../../llm/AGENT.contract.md)
+- LLM design (two axes): [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md), [`../../../llm/AGENT.contract.md`](../../../llm/AGENT.contract.md)
 - Operator semantics: [`../../../diegeticLogic/AGENT.operators.concepts.md`](../../../diegeticLogic/AGENT.operators.concepts.md)
 
 Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder is the enrich compiler surface ([`index.ts`](index.ts)).
 
 ## Pipeline architecture
+
+**Trust posture (v1):** **trusted-output** through terminal parse and positions ingress --- each hop's semantic fields are treated as settled until Error; identity embedding v1 is a partial exception migrating toward fault-tolerant closed-loop ([`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md)). General vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**).
 
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
@@ -146,4 +148,4 @@ Authority: [`../../../../AGENT.testing.md`](../../../../AGENT.testing.md).
 ## Navigation
 
 - Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
-- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md)
+- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C blocked on [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md))
