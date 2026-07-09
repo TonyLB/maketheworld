@@ -5,13 +5,14 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { rankCatalogByCosineSimilarity } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity'
-import { simulateEmbeddingIdentity } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity'
+import { simulateEmbeddingIdentityWithPool } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity'
 import { T_ABS, T_ABS_UNARY, T_MARGIN } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds'
 import type {
     EmbeddingMatchCandidate,
     EmbeddingMatchDecision,
     EmbeddingMatchRankedScore,
 } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/types'
+import type { SpanCandidatePool } from '../../dataSource/actions/enrich/objectManipulation/spanResolution'
 import {
     embedNormalizedSemanticText,
     type EmbedNormalizedSemanticTextDeps,
@@ -77,6 +78,13 @@ export type IdentityCalibrationResult = {
         T_MARGIN: number
     }
     corpusCaseId?: string
+    pool?: SpanCandidatePool
+    poolMetrics?: {
+        topJointRelevance: number
+        topMargin: number
+        shortlistSize: number
+        lexicalChannelActive: boolean
+    }
 }
 
 export type IdentityCorpusCaseResult = IdentityCalibrationResult & {
@@ -310,7 +318,8 @@ export async function simulateIdentityCalibration(
 
     const candidates = buildCalibrationCandidates(catalog, catalogEmbeddings)
     const rankedScores = rankCatalogByCosineSimilarity(spanEmbedding, candidates)
-    const decision = simulateEmbeddingIdentity(spanEmbedding, candidates)
+    const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span)
+    const decision = simulation.legacyDecision
     const { margin, ratio } = marginAndRatio(rankedScores)
     const corpusMatch = findMatchingCorpusCase(span, catalog)
 
@@ -326,6 +335,13 @@ export async function simulateIdentityCalibration(
             T_ABS,
             T_ABS_UNARY,
             T_MARGIN,
+        },
+        pool: simulation.pool,
+        poolMetrics: {
+            topJointRelevance: simulation.metrics.topJointRelevance,
+            topMargin: simulation.metrics.topMargin,
+            shortlistSize: simulation.metrics.shortlistSize,
+            lexicalChannelActive: simulation.metrics.lexicalChannelActive,
         },
         ...(corpusMatch ? { corpusCaseId: corpusMatch.id } : {}),
     }

@@ -6,6 +6,7 @@ import {
     EphemeraRoomId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -78,6 +79,19 @@ const isParseCommandAcmeOrderErrorType = (value: unknown): value is ParseCommand
 export type ParseCommandErrorResult = {
     type: 'Error'
     errorMessage?: string
+}
+
+/** Catalog-backed ambiguity: alternate proposed commands (FT-3 wire shape; unwired in FT-0). */
+export type ParseCommandConsultAlternative = {
+    proposedCommand: string
+    objectId?: EphemeraObjectId
+}
+
+/** Player-facing consult terminal parse (FT-3); perception assembles copy from alternatives. */
+export type ParseCommandConsultResult = {
+    type: 'Consult'
+    alternatives: readonly ParseCommandConsultAlternative[]
+    confidence: ParseCommandConfidence
 }
 
 export type ParseCommandNavigationResult = {
@@ -323,6 +337,7 @@ export type IntentClassificationResult =
 
 export type ParseCommandResult =
     | ParseCommandErrorResult
+    | ParseCommandConsultResult
     | ParseCommandNavigationResult
     | ParseCommandHomeResult
     | ParseCommandAcmeOrderResult
@@ -347,6 +362,33 @@ export function isParseCommandErrorResult(
     result: ParseCommandResult
 ): result is ParseCommandErrorResult {
     return result.type === 'Error'
+}
+
+export function isParseCommandConsultResult(
+    result: ParseCommandResult
+): result is ParseCommandConsultResult {
+    if (result.type !== 'Consult') {
+        return false
+    }
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (!Array.isArray(result.alternatives) || result.alternatives.length === 0) {
+        return false
+    }
+    return result.alternatives.every((alternative) => {
+        if (!alternative || typeof alternative !== 'object' || Array.isArray(alternative)) {
+            return false
+        }
+        const entry = alternative as Record<string, unknown>
+        if (typeof entry.proposedCommand !== 'string' || entry.proposedCommand.trim().length === 0) {
+            return false
+        }
+        if (entry.objectId === undefined) {
+            return true
+        }
+        return typeof entry.objectId === 'string' && isEphemeraObjectId(entry.objectId)
+    })
 }
 
 export function isParseCommandAwaitRoadrunnerResult(

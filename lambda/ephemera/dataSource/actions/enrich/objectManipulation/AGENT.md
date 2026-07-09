@@ -15,6 +15,20 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 **Trust posture (v1):** **trusted-output** through terminal parse and positions ingress --- each hop's semantic fields are treated as settled until Error; identity embedding v1 is a partial exception migrating toward fault-tolerant closed-loop ([`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md)). General vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**).
 
+### Target handoff artifacts (FT-0 skeleton)
+
+**Runtime unchanged in FT-0** --- identity stage still emits `SpanGrounding`; no Consult handler path yet.
+
+FT-4 span-resolution types (guards only) live in [`spanResolution.ts`](spanResolution.ts):
+
+| Type | Role |
+| --- | --- |
+| `SpanCandidatePool` | Input evidence: ranked `candidates[]` per span (no `status` field) |
+| `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
+| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point) |
+
+Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult` stub: [`../../baseClasses.ts`](../../baseClasses.ts) (unwired until FT-3).
+
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
 ### Conceptual flow (classify through terminal parse)
@@ -44,7 +58,7 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to exactly one catalog **`objectId`** for a unary membership command.
 
 - **Deterministic slice:** exact **`shortName`** match against merged room + held catalog ([`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`catalogMerge.ts`](catalogMerge.ts)).
-- **Embedding tier (shipped):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`resolveObjectSpanByEmbedding`](embeddingMatch/resolveObjectSpanByEmbedding.ts), [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)); catalog vectors attached at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)). **Calibration findings, asymmetric index experiments, and deferred closed-loop recommender architecture:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
+- **Embedding tier (shipped):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`resolveObjectSpanByEmbedding`](embeddingMatch/resolveObjectSpanByEmbedding.ts), [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)); catalog vectors attached at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)). **FT-1.1 / FT-1.1.5 (2026-07-09):** FT-8 relevance helpers + tanh flank combine in [`embeddingMatch/`](embeddingMatch/). **FT-1.2 (2026-07-09):** [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts) emits ranked `SpanCandidatePool` (embed + lexical RMS joint relevance, gap-trim shortlist); simulator/calibration use pool metrics; **production `identityStage` still uses v1 legacy decision until FT-2.** **Calibration findings, asymmetric index experiments:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
 - **Semantic hop (conditional):** when embedding abstains, deterministic resolve returns **AmbiguousMatch**, or span embed invoke fails, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
 
 **Handoff:** one grounded **`objectId`** or terminal resolve Error.
