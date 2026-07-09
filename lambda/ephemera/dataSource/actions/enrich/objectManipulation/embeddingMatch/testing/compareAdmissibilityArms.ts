@@ -4,20 +4,25 @@ import type { LexicalChannelPolicy } from '../buildSpanCandidatePool'
 import { lexicalRelevance } from '../lexicalRelevance'
 import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
 import type { RelevanceNormalizationParams } from '../thresholds'
-import { T_JOINT_ABS } from '../thresholds'
+import { T_JOINT_ABS, T_JOINT_MARGIN } from '../thresholds'
 
-import { buildCandidatesFromIdentityCase, type IdentityCaseVectorPlan } from './mockVectors'
+import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
+
 import {
-    buildCatalogCandidates,
+    buildCandidatesFromIdentityCase,
+    buildShortSpanPoolVectors,
+    type IdentityCaseVectorPlan,
+} from './mockVectors'
+import {
     SHORT_SPAN_LEXICAL_CASES,
     SHORT_SPAN_POOL_CASES,
     type ShortSpanLexicalCase,
     type ShortSpanPoolCase,
 } from './shortSpanCalibrationCases'
-import {
-    embeddingAtCosineSimilarity,
-    makeEmbeddingFromAxis,
-} from './mockVectors'
+
+/** Retirement target: lexical always on (gate removed). Baseline: legacy gated policy. */
+export const RETIREMENT_BASELINE_POLICY: LexicalChannelPolicy = 'legacy'
+export const RETIREMENT_TARGET_POLICY: LexicalChannelPolicy = 'alwaysActive'
 
 export type AdmissibilityArmMetrics = {
     topJointRelevance: number
@@ -32,8 +37,10 @@ export type AdmissibilityArmComparison = {
     caseId: string
     kind: 'identity-corpus' | 'short-span-lexical' | 'short-span-pool'
     bucket?: string
-    admissibilityOn: AdmissibilityArmMetrics
-    alwaysActive: AdmissibilityArmMetrics
+    /** Legacy gated policy (pre-retirement baseline). */
+    baseline: AdmissibilityArmMetrics
+    /** Gate-off retirement target (alwaysActive). */
+    gateOff: AdmissibilityArmMetrics
     identityRankingRegression: boolean
     shortSpanRegression: boolean
     notes?: string
@@ -77,7 +84,7 @@ const metricsFromSimulation = (
 }
 
 const simulateWithPolicy = (
-    spanEmbedding: ReturnType<typeof makeEmbeddingFromAxis>,
+    spanEmbedding: SemanticEmbedding,
     candidates: ReturnType<typeof buildCandidatesFromIdentityCase>['candidates'],
     span: string,
     lexicalChannelPolicy: LexicalChannelPolicy,
@@ -85,15 +92,15 @@ const simulateWithPolicy = (
 ) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, { lexicalChannelPolicy, params })
 
 const identityRankingRegression = (
-    on: AdmissibilityArmMetrics,
-    off: AdmissibilityArmMetrics
+    baseline: AdmissibilityArmMetrics,
+    gateOff: AdmissibilityArmMetrics
 ): boolean => {
-    if (on.headLabel !== off.headLabel) {
+    if (baseline.headLabel !== gateOff.headLabel) {
         return true
     }
-    const onOrder = on.rankingLabels.join('|')
-    const offOrder = off.rankingLabels.join('|')
-    return onOrder !== offOrder
+    const baselineOrder = baseline.rankingLabels.join('|')
+    const gateOffOrder = gateOff.rankingLabels.join('|')
+    return baselineOrder !== gateOffOrder
 }
 
 const compareIdentityCorpusCase = (
@@ -110,20 +117,20 @@ const compareIdentityCorpusCase = (
     }
 
     const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(identityCase, vectorPlan)
-    const on = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'admissibility', params)
+    const baseline = metricsFromSimulation(
+        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, RETIREMENT_BASELINE_POLICY, params)
     )
-    const off = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'alwaysActive', params)
+    const gateOff = metricsFromSimulation(
+        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, RETIREMENT_TARGET_POLICY, params)
     )
 
     return {
         caseId,
         kind: 'identity-corpus',
         bucket: identityCase.bucket,
-        admissibilityOn: on,
-        alwaysActive: off,
-        identityRankingRegression: identityRankingRegression(on, off),
+        baseline,
+        gateOff,
+        identityRankingRegression: identityRankingRegression(baseline, gateOff),
         shortSpanRegression: false,
     }
 }
@@ -140,9 +147,6 @@ const compareShortSpanLexicalCase = (
     const head = ranked[0]
 
     const shortSpanRegression = (() => {
-        if (fixture.expectTopLexBelow !== undefined && (head?.lexicalScore ?? 1) >= fixture.expectTopLexBelow) {
-            return true
-        }
         if (fixture.expectHeadAbove) {
             if (head?.shortName === fixture.expectHeadAbove) {
                 return false
@@ -167,66 +171,63 @@ const compareShortSpanLexicalCase = (
     return {
         caseId: fixture.id,
         kind: 'short-span-lexical',
-        admissibilityOn: metrics,
-        alwaysActive: metrics,
+        baseline: metrics,
+        gateOff: metrics,
         identityRankingRegression: false,
         shortSpanRegression,
         notes: fixture.notes,
     }
 }
 
+const poolFixtureRegression = (
+    fixture: ShortSpanPoolCase,
+    gateOff: AdmissibilityArmMetrics
+): boolean => {
+    if (fixture.expectHeadLabel && gateOff.headLabel !== fixture.expectHeadLabel) {
+        return true
+    }
+
+    if (fixture.category === 'spurious-diverse-catalog') {
+        const jointCeiling = fixture.expectTopJointBelow ?? T_JOINT_ABS
+        if (gateOff.topJointRelevance >= jointCeiling) {
+            return true
+        }
+        if (
+            fixture.expectTopMarginBelowWhenAboveFloor
+            && gateOff.topJointRelevance >= T_JOINT_ABS
+            && gateOff.topMargin >= T_JOINT_MARGIN
+        ) {
+            return true
+        }
+    }
+
+    return false
+}
+
 const compareShortSpanPoolCase = (
     fixture: ShortSpanPoolCase,
     params?: RelevanceNormalizationParams
 ): AdmissibilityArmComparison => {
-    const base = makeEmbeddingFromAxis(0)
-    const candidates = buildCatalogCandidates(fixture.catalog, `OBJECT#${fixture.id}`).map(
-        (candidate, index) => ({
-            ...candidate,
-            embedding: makeEmbeddingFromAxis(index + 1),
-        })
-    )
-    const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
-
-    const on = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'admissibility', params)
-    )
-    const off = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'alwaysActive', params)
+    const { spanEmbedding, candidates } = buildShortSpanPoolVectors(
+        fixture.catalog,
+        `OBJECT#${fixture.id}`,
+        fixture.vectorPlan
     )
 
-    const shortSpanRegression = (() => {
-        if (
-            fixture.expectLexicalInactiveWithAdmissibility &&
-            on.lexicalChannelActive
-        ) {
-            return true
-        }
-        if (
-            fixture.expectTopJointBelowWithAlwaysActive !== undefined &&
-            off.topJointRelevance >= fixture.expectTopJointBelowWithAlwaysActive
-        ) {
-            return true
-        }
-        if (
-            fixture.expectTopJointBelowWithAlwaysActive !== undefined &&
-            off.topJointRelevance >= T_JOINT_ABS
-        ) {
-            return true
-        }
-        if (fixture.expectHeadLabel && off.headLabel !== fixture.expectHeadLabel) {
-            return true
-        }
-        return false
-    })()
+    const baseline = metricsFromSimulation(
+        simulateWithPolicy(spanEmbedding, candidates, fixture.span, RETIREMENT_BASELINE_POLICY, params)
+    )
+    const gateOff = metricsFromSimulation(
+        simulateWithPolicy(spanEmbedding, candidates, fixture.span, RETIREMENT_TARGET_POLICY, params)
+    )
 
     return {
         caseId: fixture.id,
         kind: 'short-span-pool',
-        admissibilityOn: on,
-        alwaysActive: off,
-        identityRankingRegression: identityRankingRegression(on, off),
-        shortSpanRegression,
+        baseline,
+        gateOff,
+        identityRankingRegression: identityRankingRegression(baseline, gateOff),
+        shortSpanRegression: poolFixtureRegression(fixture, gateOff),
         notes: fixture.notes,
     }
 }

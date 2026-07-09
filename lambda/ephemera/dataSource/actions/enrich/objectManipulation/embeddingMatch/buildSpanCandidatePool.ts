@@ -8,7 +8,7 @@ import {
     type SpanRelevanceSourceTag,
 } from '../spanResolution'
 
-import { buildAdmissibleShortSpans, isLexicalChannelActive } from './admissibleShortSpans'
+import { buildAdmissibleShortSpans, isLexicalChannelActive, type LexicalChannelPolicy } from './admissibleShortSpans'
 import { embedRelevance } from './embedRelevance'
 import { gapTrimShortlist } from './gapTrimShortlist'
 import { lexicalRelevance } from './lexicalRelevance'
@@ -17,12 +17,12 @@ import type { RelevanceNormalizationParams } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 
 /** How the pool builder decides whether to score the lexical channel for this span. */
-export type LexicalChannelPolicy = 'admissibility' | 'alwaysActive'
+export type { LexicalChannelPolicy } from './admissibleShortSpans'
 
 export type BuildSpanCandidatePoolOptions = {
     spanEmbedding?: SemanticEmbedding
     params?: RelevanceNormalizationParams
-    /** Default `admissibility` (catalog-derived short-span gate). `alwaysActive` for FT-1.3 A/B arm B. */
+    /** Default `narrowed` (FT-1.3.1: length-1 active; inadmissible length-2 gate retained). */
     lexicalChannelPolicy?: LexicalChannelPolicy
 }
 
@@ -42,7 +42,7 @@ const resolveLexicalChannelActive = (
         candidates.map(({ normalizedShortName }) => ({ normalizedShortName })),
         params.sMin
     )
-    return isLexicalChannelActive(normalizedSpan, admissibleShortSpans, params.sMin)
+    return isLexicalChannelActive(normalizedSpan, admissibleShortSpans, params.sMin, lexicalChannelPolicy)
 }
 
 const buildSourceTags = (
@@ -91,7 +91,7 @@ export function buildSpanCandidatePool(
     options: BuildSpanCandidatePoolOptions = {}
 ): SpanCandidatePool {
     const params = options.params ?? {}
-    const lexicalChannelPolicy = options.lexicalChannelPolicy ?? 'admissibility'
+    const lexicalChannelPolicy = options.lexicalChannelPolicy ?? 'narrowed'
     const normalizedSpan = normalizeShortNameForEmbedding(span)
     const lexicalChannelActive = resolveLexicalChannelActive(
         normalizedSpan,

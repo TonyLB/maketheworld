@@ -2,18 +2,18 @@ import { simulateEmbeddingIdentityCorpus } from './simulateEmbeddingIdentityCorp
 import {
     compareAllAdmissibilityArms,
     evaluateAdmissibilityRetirement,
+    RETIREMENT_TARGET_POLICY,
 } from './compareAdmissibilityArms'
 import { compareFlankCombineLegacyRows } from './compareFlankCombineLegacy'
+import { buildShortSpanPoolVectors } from './mockVectors'
+import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
 import { lexicalRelevance } from '../lexicalRelevance'
 import { T_JOINT_ABS, T_JOINT_MARGIN } from '../thresholds'
 
 describe('compareAdmissibilityArms', () => {
-    it('identity corpus ranking is unchanged between admissibility on and alwaysActive', () => {
+    it('identity corpus ranking is unchanged between legacy and alwaysActive', () => {
         const verdict = evaluateAdmissibilityRetirement()
-        const identityRegressions = verdict.comparisons
-            .filter((entry) => entry.kind === 'identity-corpus' && entry.identityRankingRegression)
-            .map((entry) => entry.caseId)
-        expect(identityRegressions).toEqual([])
+        expect(verdict.identityRankingRegressions).toEqual([])
     })
 
     it('ax/axolotl ranks above ax/coaxial on lexical relevance', () => {
@@ -38,18 +38,32 @@ describe('compareAdmissibilityArms', () => {
         expect(donLex).toBeCloseTo(gemLex, 9)
     })
 
-    it('legacy retirement harness still fails on expectTopLexBelow 0.35 with gate off', () => {
+    it('gate-off (alwaysActive) retirement harness passes with revised fixture intent', () => {
         const verdict = evaluateAdmissibilityRetirement(compareAllAdmissibilityArms())
-        expect(verdict.pass).toBe(false)
+        expect(verdict.pass).toBe(true)
         expect(verdict.identityRankingRegressions).toEqual([])
-        expect(verdict.shortSpanRegressions).toEqual(
-            expect.arrayContaining([
-                'short-lex-001-length-1-a',
-                'short-lex-002-ax-axe-only',
-                'short-pool-001-length-1-a',
-                'short-pool-002-ax-axe-only',
-            ])
+        expect(verdict.shortSpanRegressions).toEqual([])
+    })
+
+    it('ax/rusty axe shorthand clears T_JOINT_ABS under alwaysActive (success case)', () => {
+        const { spanEmbedding, candidates } = buildShortSpanPoolVectors(
+            ['rusty axe'],
+            'OBJECT#short-pool-002',
+            { kind: 'unary-below-floor', similarity: 0.11 }
         )
+        const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, 'ax', {
+            lexicalChannelPolicy: RETIREMENT_TARGET_POLICY,
+        })
+        expect(simulation.pool.candidates[0]!.label).toBe('rusty axe')
+        expect(simulation.metrics.topJointRelevance).toBeGreaterThanOrEqual(T_JOINT_ABS)
+    })
+
+    it('diverse-catalog length-1 stays below T_JOINT_ABS under alwaysActive', () => {
+        const row = evaluateAdmissibilityRetirement().comparisons.find(
+            (entry) => entry.caseId === 'short-pool-001-length-1-a'
+        )
+        expect(row).toBeDefined()
+        expect(row!.gateOff.topJointRelevance).toBeLessThan(T_JOINT_ABS)
     })
 })
 

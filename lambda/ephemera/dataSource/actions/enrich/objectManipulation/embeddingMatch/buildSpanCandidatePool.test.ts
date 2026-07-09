@@ -3,7 +3,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isSpanCandidatePool } from '../spanResolution'
 
 import { buildSpanCandidatePool } from './buildSpanCandidatePool'
-import { T_ABS, T_ABS_UNARY } from './thresholds'
+import { T_ABS, T_ABS_UNARY, T_JOINT_ABS } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 import {
     buildCandidatesFromIdentityCase,
@@ -63,35 +63,36 @@ describe('buildSpanCandidatePool', () => {
         expect(pool.candidates[0]!.jointRelevance).toBeGreaterThan(pool.candidates[1]!.jointRelevance)
     })
 
-    it('omits lexRelevance when lexical channel is inactive for length-1 span', () => {
+    it('scores lexRelevance for length-1 span by default (narrowed FT-1.3.1 policy)', () => {
         const base = makeEmbeddingFromAxis(0)
         const candidates = [catalogEntry(objectA, 'axe', base)]
         const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
 
         const pool = buildSpanCandidatePool('a', candidates, { spanEmbedding })
-        expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
+        expect(pool.candidates[0]!.lexRelevance).toBeDefined()
         expect(pool.candidates[0]!.embedRelevance).toBeDefined()
     })
 
-    it('omits lexRelevance for inadmissible short span against axe-only catalog', () => {
+    it('omits lexRelevance for inadmissible length-2 span against axe-only catalog', () => {
         const base = makeEmbeddingFromAxis(0)
         const candidates = [catalogEntry(objectA, 'rusty axe', base)]
-        const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
+        const spanEmbedding = embeddingAtCosineSimilarity(base, 0.11)
 
         const pool = buildSpanCandidatePool('ax', candidates, { spanEmbedding })
         expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
+        expect(pool.candidates[0]!.jointRelevance).toBeLessThan(T_JOINT_ABS)
     })
 
-    it('scores lexRelevance when lexicalChannelPolicy is alwaysActive for length-1 span', () => {
+    it('legacy policy still omits lexRelevance for length-1 span', () => {
         const base = makeEmbeddingFromAxis(0)
         const candidates = [catalogEntry(objectA, 'axe', base)]
         const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
 
         const pool = buildSpanCandidatePool('a', candidates, {
             spanEmbedding,
-            lexicalChannelPolicy: 'alwaysActive',
+            lexicalChannelPolicy: 'legacy',
         })
-        expect(pool.candidates[0]!.lexRelevance).toBeDefined()
+        expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
     })
 
     it('assigns marginToRunnerUp on ranked candidates', () => {

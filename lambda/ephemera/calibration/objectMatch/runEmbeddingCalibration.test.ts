@@ -137,14 +137,14 @@ describe('runEmbeddingCalibration', () => {
         expect(summary!.suggestedJointFloorHeadroom).toContain('T_JOINT_ABS')
     })
 
-    it('runIdentityCorpus admissibility off does not change identity corpus ranking', async () => {
-        const onResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'admissibility' })
-        const offResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'alwaysActive' })
-        for (const onCase of onResult.cases) {
-            const offCase = offResult.cases.find((entry) => entry.id === onCase.id)
-            expect(offCase).toBeDefined()
-            expect(offCase!.pool?.candidates.map((c) => c.label)).toEqual(
-                onCase.pool?.candidates.map((c) => c.label)
+    it('runIdentityCorpus narrowed policy does not change identity corpus ranking vs legacy', async () => {
+        const legacyResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'legacy' })
+        const narrowedResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'narrowed' })
+        for (const legacyCase of legacyResult.cases) {
+            const narrowedCase = narrowedResult.cases.find((entry) => entry.id === legacyCase.id)
+            expect(narrowedCase).toBeDefined()
+            expect(narrowedCase!.pool?.candidates.map((c) => c.label)).toEqual(
+                legacyCase.pool?.candidates.map((c) => c.label)
             )
         }
     })

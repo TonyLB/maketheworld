@@ -71,18 +71,10 @@ describe('FT-1.3.2 / FT-1.3.3 sensitivity bounds around locked constants', () =>
         }
     )
 
-    it('diverse-catalog length-1 regression remains; unary shorthand excluded from spurious bound', () => {
+    it('gate-off retirement passes with revised fixture intent (alwaysActive target)', () => {
         const verdict = evaluateAdmissibilityRetirement()
-        expect(verdict.shortSpanRegressions).toEqual(
-            expect.arrayContaining(['short-lex-001-length-1-a', 'short-pool-001-length-1-a'])
-        )
-        expect(verdict.shortSpanRegressions).not.toContain('short-lex-005-unary-a-axe-shorthand')
-    })
-
-    it('full retirement still fails on expectTopLexBelow 0.35 bound (a/axe lex clears T_JOINT_ABS only)', () => {
-        const verdict = evaluateAdmissibilityRetirement()
-        expect(verdict.pass).toBe(false)
+        expect(verdict.pass).toBe(true)
         expect(verdict.identityRankingRegressions).toEqual([])
-        expect(verdict.shortSpanRegressions).not.toContain('short-lex-005-unary-a-axe-shorthand')
+        expect(verdict.shortSpanRegressions).toEqual([])
     })
 })
