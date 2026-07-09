@@ -73,6 +73,20 @@ export const LEX_REMOTE_FLANK_SCALE = 4
 /** Weight for combined remote flank evidence channel. */
 export const LEX_REMOTE_FLANK_WEIGHT = 0.9
 
+// FT-1.2 pool merge (provisional; lock in FT-1.3 calibration pass).
+
+/** RMS weight for lexical channel in weightedRmsJointRelevance. */
+export const JOINT_RELEVANCE_W_L = 1.0
+
+/** RMS weight for embedding channel in weightedRmsJointRelevance. */
+export const JOINT_RELEVANCE_W_E = 1.0
+
+/** Hard ceiling on gap-trim shortlist length. */
+export const POOL_SHORTLIST_TOP_N = 5
+
+/** Relative drop (score_i - score_{i+1}) / score_i that ends shortlist inclusion. */
+export const POOL_GAP_TRIM_RELATIVE_DROP = 0.15
+
 export type RelevanceNormalizationParams = {
     cMin?: number
     cMax?: number
@@ -90,4 +104,8 @@ export type RelevanceNormalizationParams = {
     lexRemoteFlankMidpointMultiplier?: number
     lexRemoteFlankScale?: number
     lexRemoteFlankWeight?: number
+    jointRelevanceWL?: number
+    jointRelevanceWE?: number
+    poolShortlistTopN?: number
+    poolGapTrimRelativeDrop?: number
 }

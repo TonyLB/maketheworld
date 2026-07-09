@@ -6,6 +6,7 @@ import {
     centeredTanhEvidence,
     multiplicativeFlankScoreV1,
     tanhCenteredFlankScore,
+    weightedRmsJointRelevance,
 } from './relevanceCombine'
 import {
     LEX_ADJOINED_FLANK_MAX_DAMAGE,
@@ -67,6 +68,30 @@ describe('tanhCenteredFlankScore', () => {
             remoteRightLength: 0,
         }, spanScale)
         expect(withBestAdjoined).toBeGreaterThan(withNeutralAdjoined)
+    })
+})
+
+describe('weightedRmsJointRelevance', () => {
+    it('returns RMS when both signals present', () => {
+        expect(weightedRmsJointRelevance({ lex: 1, embed: 0 })).toBeCloseTo(Math.SQRT1_2)
+        expect(weightedRmsJointRelevance({ lex: 0.5, embed: 0.5 })).toBeCloseTo(0.5)
+    })
+
+    it('returns lex alone when embed absent', () => {
+        expect(weightedRmsJointRelevance({ lex: 0.8 })).toBeCloseTo(0.8)
+    })
+
+    it('returns embed alone when lex absent', () => {
+        expect(weightedRmsJointRelevance({ embed: 0.6 })).toBeCloseTo(0.6)
+    })
+
+    it('returns 0 when both channels absent', () => {
+        expect(weightedRmsJointRelevance({})).toBe(0)
+    })
+
+    it('rejects non-finite inputs when a channel is present', () => {
+        expect(() => weightedRmsJointRelevance({ lex: Number.NaN, embed: 0.5 })).toThrow(/finite/)
+        expect(() => weightedRmsJointRelevance({ embed: Number.POSITIVE_INFINITY })).toThrow(/finite/)
     })
 })
 

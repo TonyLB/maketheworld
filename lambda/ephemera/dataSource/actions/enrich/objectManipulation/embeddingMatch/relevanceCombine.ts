@@ -1,6 +1,7 @@
-import { sigmoid, tanh } from './evidenceNumerics'
-import type { FlankLengthMetrics } from './lexicalMatchMetrics'
+import { clampUnitInterval, sigmoid, tanh } from './evidenceNumerics'
 import {
+    JOINT_RELEVANCE_W_E,
+    JOINT_RELEVANCE_W_L,
     LEX_ADJOINED_FLANK_MAX_DAMAGE,
     LEX_ADJOINED_FLANK_SCALE,
     LEX_ADJOINED_FLANK_WEIGHT,
@@ -12,6 +13,53 @@ import {
     LEX_REMOTE_FLANK_WEIGHT,
     type RelevanceNormalizationParams,
 } from './thresholds'
+import type { FlankLengthMetrics } from './lexicalMatchMetrics'
+
+export type WeightedRmsJointRelevanceInput = {
+    lex?: number
+    embed?: number
+}
+
+/**
+ * FT-1.2 weighted RMS joint relevance (soft-OR).
+ * Absent channels are undefined --- dropped from numerator and weight sum, not plugged as 0.
+ */
+export const weightedRmsJointRelevance = (
+    input: WeightedRmsJointRelevanceInput,
+    params: RelevanceNormalizationParams = {}
+): number => {
+    const w_l = params.jointRelevanceWL ?? JOINT_RELEVANCE_W_L
+    const w_e = params.jointRelevanceWE ?? JOINT_RELEVANCE_W_E
+    const { lex, embed } = input
+
+    if (lex !== undefined && embed !== undefined) {
+        if (!Number.isFinite(lex) || !Number.isFinite(embed)) {
+            throw new Error('weightedRmsJointRelevance: lex and embed must be finite when both present')
+        }
+        if (!Number.isFinite(w_l) || w_l <= 0 || !Number.isFinite(w_e) || w_e <= 0) {
+            throw new Error('weightedRmsJointRelevance: w_l and w_e must be finite numbers > 0')
+        }
+        const numerator = w_l * lex * lex + w_e * embed * embed
+        const denominator = w_l + w_e
+        return clampUnitInterval(Math.sqrt(numerator / denominator))
+    }
+
+    if (lex !== undefined) {
+        if (!Number.isFinite(lex)) {
+            throw new Error('weightedRmsJointRelevance: lex must be finite when present')
+        }
+        return clampUnitInterval(lex)
+    }
+
+    if (embed !== undefined) {
+        if (!Number.isFinite(embed)) {
+            throw new Error('weightedRmsJointRelevance: embed must be finite when present')
+        }
+        return clampUnitInterval(embed)
+    }
+
+    return 0
+}
 
 export type CenteredTanhEvidenceInput = {
     value: number
