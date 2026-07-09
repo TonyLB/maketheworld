@@ -1,7 +1,11 @@
 /**
- * Sellers-style approximate substring matching.
- * P = pattern span; T = candidate object name string (character-level, no tokenization).
- * Base metric: Optimal String Alignment (OSA) / restricted Damerau-Levenshtein.
+ * Sellers-style approximate substring matching (step 1 of lexical relevance pipeline).
+ *
+ * Locates the best approximate embedding of pattern P in candidate text T using OSA
+ * (restricted Damerau-Levenshtein). Downstream, lexicalMatchMetrics decomposes the
+ * match span and flanks into per-factor relevance scores that lexicalRelevance multiplies.
+ *
+ * P = pattern span; T = catalog shortName (character-level, no tokenization).
  */
 
 export type SellersMatchSpan = {

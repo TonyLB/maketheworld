@@ -119,7 +119,7 @@ Plan-only; graduate to durable docs (**`embeddingMatch/AGENT.md`**, contract) wh
 
 **Lexical relevance is a tunable function.** `lexicalRelevance(span, shortName) -> [0,1]` is an explicit scoring function that **will be tuned and refactored over time** to improve pool quality --- treat the v1 body as a starting heuristic, not a contract. **Normalization shape is FT-8-owned** (see **FT-8 decisions so far**); FT-1 owns merge + pool contract only.
 
-- **v1 body (FT-8):** substring-biased edit distance on normalized span vs normalized `shortName` (same normalization pipeline as exact match / embedding). See **FT-8 decisions so far** for the full algorithm.
+- **v1 body (FT-8, 2026-07-09):** Sellers alignment + multiplicative per-factor relevance (`editDistanceRelevance` * adjoined flanks * remote flank). Legacy substring-biased edit distance retained for simulator A/B. See **FT-8 decisions so far**.
 - **Calibration baseline (not v1):** token-overlap heuristic from the 2026-07-08 FT-1 draft --- keep in the pool simulator for A/B against substring edit distance.
 - **Deferred tuning (not v1):** stemming, description tokens when the enriched index ships, TF-IDF-style down-weighting of common tokens, phrase-order signals.
 
@@ -171,19 +171,27 @@ Plan-only; graduate to durable docs (**`embeddingMatch/AGENT.md`**, contract) wh
 - **Does not reorder:** absent-object best can still normalize above paraphrase best on symmetric index --- acceptable because noMatch / auto-resolve consume **joint** relevance + FT-5 conjunctive gate, not embed alone.
 - **Calibration-owned:** `c_min` sweep (0.05 vs 0.08); power-transform `(c^k - c_min^k) / (1 - c_min^k)` as simulator A/B; **per-index-shape anchors** if `shortNamePlusDescription` ships (asymmetric ladder reshapes the distribution --- paraphrase uplift vs absent-object risk).
 
-**Lexical relevance --- substring-biased edit distance on the shorter side.**
+**Lexical relevance --- Sellers alignment + multiplicative factors (2026-07-09).**
 
-- **Inputs:** normalized `objectSpan` and normalized catalog `shortName` (same pipeline as exact match / [`normalizeShortNameForEmbedding`](../../../../../lambda/ephemera/dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh.ts)).
-- **Distance `d`:** minimum edit cost to embed the **shorter** string as a contiguous match in the **longer** string, with **two-tier flank discount** (replaces a single "cheap prefix/suffix" rule):
-  - **Strong discount** --- flanking edits **separated from the match by a non-alpha boundary** (space, hyphen, punctuation) or whole-token prefix/suffix in a multi-token `shortName` (`rusty ax`: span `ax` matches the separated token).
-  - **Moderate discount** --- flanking **alpha** directly glued to the match within the same token (`axle`: span `ax` matches at token start; suffix `le` is alpha-adjacent --- costs more than `rusty ax`, less than unrelated).
-  - Substitutions / insertions **inside** the match window remain **expensive** (full unit cost).
-  Motivating case: span `ax` ranks **`rusty ax` > `axle` > unrelated** (`ax` vs `axle` is morphology, not referential containment).
-- **Relevance:** `lexRelevance = clamp( 1 - d / max(|shorter|, L_min), 0, 1 )` --- **proportional penalty** on the shorter normalized side so long names are not statistically more vulnerable to a consistent per-character typo rate than short names (`hyper-macerator` vs `sword`).
-- **`L_min` floor (catalog side):** first effort **`L_min = 5`** --- ultra-short catalog names (`gem`, `key`) do not become brittle one-typo catastrophes.
-- **Expected behavior:** exact / wrapper match (`broom` vs `the broom`) -> ~`1.0`; unrelated (`sword` vs `anvil`) -> ~`0`; token-free paraphrase (`sweeping tool` vs `broom`) -> ~`0` (embedding lifts via RMS soft-OR).
-- **Calibration-owned:** `L_min` sweep; strong vs moderate flank cost weights; token-level vs character-level distance unit; token-overlap baseline retained in simulator for A/B.
+Supersedes the FT-1.1 substring-biased edit-distance body for `lexicalRelevance()`; legacy distance retained in `lexicalRelevance.ts` for simulator A/B.
+
+- **Inputs:** normalized `objectSpan` and normalized catalog `shortName`; shorter string is pattern P, longer is candidate T.
+- **Alignment:** [`sellersApproximateSubstringMatch`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/sellersApproximateSubstringMatch.ts) (OSA) yields `editDistance` and `matchSpan` in T.
+- **Flank geometry:** [`deriveFlankLengthMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts) splits flank material into adjoined vs remote character lengths (alpha-glued morphology vs whitespace-/boundary-separated wrapper).
+- **Per-factor relevance** (each in `[0,1]` except edit floor at `0`):
+  - **Edit (hard gate):** `1 - min(1, editDistance / max(|match span in T|, |P|))` --- only factor that can zero lexical relevance.
+  - **Adjoined left / right:** `1 - maxDamage_adj * (1 - exp(-k * flankLength / spanScale))` --- floor `1 - maxDamage_adj`; cannot fully overrule a strong edit match.
+  - **Remote (combined left+right):** same asymptotic with smaller `maxDamage_remote` (~`0.2` first effort).
+  - `spanScale = max(|match span in T|, |P|, 1)`.
+- **Combine:** `lexRelevance = edit * leftAdjoined * rightAdjoined * remote` (multiplicative independent evidence).
+- **Expected behavior:** exact / short wrapper (`broom` vs `the broom`) -> high; `ax` ranks `rusty ax` > `axle` > unrelated; token-free paraphrase (`sweeping tool` vs `broom`) -> well below exact (absolute floor calibration-owned in FT-1.3).
+- **Calibration-owned:** `LEX_ADJOINED_FLANK_MAX_DAMAGE`, `LEX_REMOTE_FLANK_MAX_DAMAGE`, `LEX_FLANK_RELEVANCE_K` in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts); paraphrase absolute separation; token-overlap baseline retained in simulator for A/B.
 - **Deferred:** description tokens when enriched index ships.
+
+**Lexical relevance --- substring-biased edit distance (FT-1.1 legacy, simulator A/B only).**
+
+- **Distance `d`:** minimum edit cost to embed the **shorter** string as a contiguous match in the **longer** string, with **two-tier flank discount**.
+- **Relevance:** `clamp(1 - d / max(|shorter|, L_min), 0, 1)`.
 
 **Short-span lexical admissibility (scan-level gate, decided 2026-07-08).** Substring lexical is meaningless for very short spans (length-1 `a` substring-matches a large fraction of English tokens at ~1.0). Before scoring any `(span, shortName)` pairs, decide whether the **lexical channel is active for this scan**:
 
@@ -513,12 +521,12 @@ Reviewed [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.conc
 
 ### FT-1. Candidate pool (embedding + lexical)
 
-- [ ] **FT-1.1 Lexical + normalization helpers**
-  - [ ] Implement **`embedRelevance`** per **FT-8 decisions so far** (two-point log map on cosine).
-  - [ ] Implement **`lexicalRelevance`** per **FT-8 decisions so far** (substring-biased edit distance, two-tier boundary discount, `L_min` floor).
-  - [ ] Implement **short-span admissibility pre-pass** (`admissibleShortSpans` from catalog tokens; length-1 + inadmissible length-2/3 -> lexical channel absent, drop `w_l` from RMS).
-  - [ ] Unit tests: exact / wrapper match, typo tolerance across short vs long names, `ax` vs `rusty ax` vs `axle`, paraphrase (lex ~0), absent object, unary catalog, duplicate shortName, length-1 absent, `ax` vs `axe`-only catalog (lexical absent).
-  - [ ] Retain token-overlap baseline in simulator for A/B (not production path).
+- [X] **FT-1.1 Lexical + normalization helpers**
+  - [X] Implement **`embedRelevance`** per **FT-8 decisions so far** (two-point log map on cosine).
+  - [X] Implement **`lexicalRelevance`** --- Sellers alignment + multiplicative factors (`lexicalMatchMetrics` + `lexicalRelevanceFromMetrics`; legacy substring-biased distance for A/B).
+  - [X] Implement **short-span admissibility pre-pass** (`admissibleShortSpans` from catalog tokens; length-1 + inadmissible length-2/3 -> lexical channel absent, drop `w_l` from RMS).
+  - [X] Unit tests: exact / wrapper match, typo tolerance across short vs long names, `ax` vs `rusty ax` vs `axle`, paraphrase (lex ~0), absent object, unary catalog, duplicate shortName, length-1 absent, `ax` vs `axe`-only catalog (lexical absent).
+  - [X] Retain token-overlap baseline in simulator for A/B (not production path).
 
 - [ ] **FT-1.2 Pool merge**
   - [ ] Refactor [`rankCatalogByCosineSimilarity`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity.ts) / [`decideEmbeddingMatch`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/decideEmbeddingMatch.ts) toward **pool + relevance** output (narrow or replace terminal **`Resolved`**).
@@ -605,7 +613,7 @@ npm run build
 | --- | --- |
 | Fault-tolerant task plan | Done |
 | FT-0 framing + type skeleton | **Done (2026-07-09)** --- `spanResolution.ts` guards + `ParseCommandConsultResult` stub; outcome mapping documented; runtime unchanged |
-| FT-1 candidate pool (embedding + lexical) | Design decided (2026-07-08); FT-8 normalization decided (2026-07-08); constants pending calibration; build not started |
+| FT-1 candidate pool (embedding + lexical) | **FT-1.1 shipped (2026-07-09)** --- `embedRelevance`, `lexicalRelevance`, `admissibleShortSpans` in [`embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/); FT-1.2 pool merge pending |
 | FT-8 per-signal relevance normalization | **Decided (2026-07-08)**: log map for embed; substring edit distance for lex (two-tier boundary discount, `L_min` floor); catalog-derived short-span admissibility (`S_min`, length-1 absent, `0` vs undefined); index-shape fork + anchor constants calibration-owned |
 | FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
 | FT-3 Abstain vs Consult | **Decided (2026-07-08)**: complexity LLM + frame extract retired as distinct hops; owner map (proposer = Abstain/Consult, shared validator = defer, FT-5 = auto-resolve / selection gate); no narrow-scope tier-2 LLM. Wire shape: **new `ParseCommandResult` Consult variant**, actions emits alternate proposed commands + perception assembles copy, **not resumable** this iteration. Variant types land with FT-4 |
@@ -620,12 +628,13 @@ npm run build
 ## Coordination notes
 
 - **Sibling plan:** [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- Phase C **must not** start until **Gateway exit** here is complete.
-- **FT-0 shipped (2026-07-09):** [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) defines `SpanCandidatePool`, `ObjectSpanCandidate`, `SpanResolutionOutcome` + guards; `ParseCommandConsultResult` stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired). Runtime trust posture unchanged; see **FT-0 outcome mapping** in this plan.
+- **FT-0 shipped (2026-07-09):** [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) defines `SpanCandidatePool`, `ObjectSpanCandidate`, `SpanResolutionOutcome` + guards; `ParseCommandConsultResult` stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired). See **FT-0 outcome mapping** in this plan.
+- **FT-1.1 helpers shipped (2026-07-09):** [`embedRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/embedRelevance.ts), Sellers + multiplicative [`lexicalRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalRelevance.ts) ([`lexicalMatchMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts)), [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + FT-8 anchor constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts). Token-overlap A/B baseline in [`embeddingMatch/testing/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/). Runtime identity path unchanged until FT-1.2 pool merge.
 - **Commit boundary:** BD-9 atomic apply unchanged --- fault tolerance is pre-commit only **in this iteration**. Conceptually the commit boundary is the **steepest riser on a recoverability gradient** (detection flips self -> external), **not** a hard wall; a future **player-authority retcon** tier reduces but never eliminates post-commit recovery cost (see **Recoverability gradient + optimistic proposal**). Design stance: account for LLM error at any point, do not aspire to an error-free LLM. Not this initiative.
 - **Seams:** BD-12 field ownership unchanged; fault tolerance does not authorize compiler **`operationKind`** invention.
 - **Client:** Consulting may ship as OOC / **`PublishMessage`** first; structured reply correlation is follow-on (out of scope unless plan updated).
 - **Calibration:** FT-1 + FT-8 should produce durable numbers in [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md) / embedding snapshots before production threshold changes.
-- **FT-8 relevance normalization (2026-07-08):** per-signal **`[0,1]`** mapping decided --- embedding: two-point log (`c_min` -> 0, `1` -> 1); lexical: substring-biased edit distance with two-tier boundary discount (strong at non-alpha boundaries, moderate for alpha-adjacent flanks), proportional `L_min` floor, **catalog-derived short-span admissibility** (`S_min` ~ 3, length-1 lexical absent, inadmissible short spans drop `w_l` not `lex=0`). Absolute scale discipline (no within-set rescale for noMatch / auto-resolve). Anchor constants + index-shape fork calibration-owned. **Upstream junk-span fast-reject** (classify/frame, empty or `< S_min` after article strip) deferred as QoL follow-on --- not Gateway-blocking; pool admissibility is v1 authoritative.
+- **FT-8 relevance normalization (2026-07-08, lexical body updated 2026-07-09):** per-signal **`[0,1]`** mapping decided --- embedding: two-point log (`c_min` -> 0, `1` -> 1); lexical: Sellers + multiplicative factors (edit hard gate; asymptotic adjoined/remote flank penalties with `maxDamage` floors), **catalog-derived short-span admissibility** (`S_min` ~ 3, length-1 lexical absent, inadmissible short spans drop `w_l` not `lex=0`). Absolute scale discipline (no within-set rescale for noMatch / auto-resolve). Anchor constants + index-shape fork calibration-owned. **Upstream junk-span fast-reject** (classify/frame, empty or `< S_min` after article strip) deferred as QoL follow-on --- not Gateway-blocking; pool admissibility is v1 authoritative.
 - **FT-2 <-> Phase C coupling (2026-07-08):** option (e) makes span grounding the deterministic **tail** of a joint semantic hop; **`resolveComponent` is retired as a standalone Plan IR primitive** (FT-5, 2026-07-08) --- the surviving per-span work is the selector verdict + existence/presence guard, not a runtime step. Flag to the sibling plan before C1 (registry drops `resolveComponent`). Registry **expressiveness** (new primitives / manner slots for intents like "just on the edge") stays **sibling-plan-owned** (Phase C/D); **out-of-registry Abstain/Consult** is FT-3 here. The closed primitive registry --- not `verbClass` or the intent enum --- is the invariant that keeps the relaxed classify frame inside the seam.
 - **Classify trust posture (FT-7, 2026-07-08):** **two-level classify** --- trusted **family** commit, provisional **intra-manipulation** hints (sub-topology + `verbClass`) consumed as evidence by the joint hop (FT-2 (e)). Classify **reunifies to one manipulation-family intent type** with an optional `{ subTopology?, verbClass?, confidence }` hint bundle, which **supersedes the sibling BD-11 top-level membership-vs-relational type split** (its committed-routing role only --- the family and `verbClass`-as-membership-direction semantics survive). **No `enrichRoute` fork** --- one shared entry into the FT-6 orchestrator, which **is** the concrete content of sibling **C4**. Hint trust rides the `confidence` scalar: **`1.0` is a reserved closed-world sentinel** (deterministic producers only; probabilistic producers clamped `< 1.0`; seam fast-path fires on `=== 1.0`, never a threshold). Flag to the sibling plan (BD-11 + C4) before C1. See **FT-7 decisions so far**.
 - **Closed-loop orchestration (FT-6, 2026-07-08):** gateway recovery is **single-pass** in a dedicated feature-layer orchestrator module; the linear `llm/pipeline/` runner is **not** adopted this iteration (no loop to run). The first case that *forces* a **re-entrant** loop is the **container-contents supplement** (`take X out of Y`; the deferred FT-4 `withinObject` locus, cross-plan with the sibling `in` / nesting vertical BD-2, BD-5): ground `from` -> supplement the target pool with the host's contents -> re-run. Tracked for a future `taskPlanning/lambda/ephemera/llm/pipeline/` orchestrator plan (re-entrant input shape + stall / time-budget), seeded when a concrete consumer lands --- **not** a Gateway-exit blocker. See **FT-6 decisions so far**.

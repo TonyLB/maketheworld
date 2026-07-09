@@ -28,11 +28,21 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). **Not wired to produc
 | Module | Role |
 | --- | --- |
 | [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
-| [`lexicalRelevance`](lexicalRelevance.ts) | FT-8 substring-biased edit distance -> `[0,1]` |
+| [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | OSA Sellers alignment of span in catalog `shortName` |
+| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + per-factor relevance (`editDistanceRelevance`, `flankLengthRelevance`, `lexicalRelevanceFromMetrics`) |
+| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then multiplicative combine |
 | [`admissibleShortSpans`](admissibleShortSpans.ts) | Catalog-derived short-span admissibility; `isLexicalChannelActive` scan gate |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
 
-Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**). Anchor constants are first-effort in `thresholds.ts`; lock in FT-1.3 calibration pass.
+**Lexical relevance pipeline (2026-07-09):** embed shorter normalized string in longer -> Sellers match -> four multiplicative `[0,1]` factors:
+
+1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, editDistance / max(|span in T|, |P|))`
+2. **Left / right adjoined flanks** (morphology glued to match): asymptotic `1 - maxDamage * (1 - exp(-k * flank / spanScale))`, floor `1 - maxDamage` each
+3. **Remote flank** (whitespace-/boundary-separated wrapper): same asymptotic with smaller `maxDamage`
+
+`maxDamage` and `k` anchors in [`thresholds.ts`](thresholds.ts) (`LEX_ADJOINED_FLANK_MAX_DAMAGE`, `LEX_REMOTE_FLANK_MAX_DAMAGE`, `LEX_FLANK_RELEVANCE_K`); lock in FT-1.3 calibration. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
+
+Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
 
 **Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
 

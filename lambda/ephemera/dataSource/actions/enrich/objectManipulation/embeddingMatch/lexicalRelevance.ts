@@ -8,6 +8,7 @@ import {
 import {
     computeLexicalMatchMetrics,
     deriveFlankLengthMetrics,
+    lexicalRelevanceFromMetrics,
     type FlankLengthMetrics,
     type LexicalMatchMetrics,
 } from './lexicalMatchMetrics'
@@ -24,14 +25,40 @@ export {
     type SellersApproximateSubstringMatch,
     type SellersMatchSpan,
     computeLexicalMatchMetrics,
+    lexicalRelevanceFromMetrics,
     type LexicalMatchMetrics,
     deriveFlankLengthMetrics,
     type FlankLengthMetrics,
 }
 
-const clampUnitInterval = (value: number): number => (
-    Math.min(1, Math.max(0, value))
-)
+/**
+ * FT-8 lexical relevance entry point.
+ *
+ * Embeds the shorter normalized string in the longer (span vs catalog shortName), runs Sellers
+ * alignment, then multiplies four independent [0, 1] factors from lexicalMatchMetrics:
+ * edit distance (hard gate), left/right adjoined flanks, and combined remote flank material.
+ *
+ * Legacy substringBiasedEditDistance below is retained for simulator A/B only.
+ */
+export function lexicalRelevance(
+    span: string,
+    shortName: string,
+    params: RelevanceNormalizationParams = {}
+): number {
+    const normalizedSpan = normalizeShortNameForEmbedding(span)
+    const normalizedShortName = normalizeShortNameForEmbedding(shortName)
+
+    if (normalizedSpan.length === 0 || normalizedShortName.length === 0) {
+        return 0
+    }
+
+    const [pattern, candidateText] = normalizedSpan.length <= normalizedShortName.length
+        ? [normalizedSpan, normalizedShortName]
+        : [normalizedShortName, normalizedSpan]
+
+    const metrics = computeLexicalMatchMetrics(pattern, candidateText)
+    return lexicalRelevanceFromMetrics(metrics, pattern.length, params)
+}
 
 const isAlpha = (char: string | undefined): boolean => (
     char !== undefined && /[a-z0-9]/i.test(char)
@@ -153,8 +180,8 @@ export const normalizedSubstringAlignmentDistance = (
 }
 
 /**
- * Minimum normalized edit distance to embed shorter in longer.
- * Match-window cost scales with |shorter|; flank cost scales with |longer|.
+ * Legacy FT-1.1 substring-biased edit distance (simulator A/B baseline).
+ * Production lexicalRelevance uses Sellers + multiplicative factors in lexicalMatchMetrics.
  */
 export function substringBiasedEditDistance(
     span: string,
@@ -233,28 +260,4 @@ export function substringBiasedEditDistance(
         longer.length,
         lMin
     )
-}
-
-/**
- * FT-8 lexical relevance: substring-biased edit distance with proportional L_min floor.
- * Match-window cost normalizes against |shorter|; flank cost normalizes against |longer|.
- */
-export function lexicalRelevance(
-    span: string,
-    shortName: string,
-    params: RelevanceNormalizationParams = {}
-): number {
-    const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const normalizedShortName = normalizeShortNameForEmbedding(shortName)
-
-    if (normalizedSpan.length === 0 || normalizedShortName.length === 0) {
-        return 0
-    }
-
-    const distance = substringBiasedEditDistance(span, shortName, params)
-    if (!Number.isFinite(distance)) {
-        return 0
-    }
-
-    return clampUnitInterval(1 - distance)
 }

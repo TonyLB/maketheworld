@@ -42,6 +42,15 @@ export const LEX_FLANK_MODERATE_COST = 0.5
 /** In-window substitution / insertion unit cost (typo tolerance). */
 export const LEX_MATCH_SUBSTITUTION_COST = 1
 
+/** Max multiplicative discount for alpha-adjoined flank material (per flank factor). */
+export const LEX_ADJOINED_FLANK_MAX_DAMAGE = 0.5
+
+/** Max multiplicative discount for whitespace-/boundary-separated remote material. */
+export const LEX_REMOTE_FLANK_MAX_DAMAGE = 0.2
+
+/** Decay rate for flank-length relevance vs match-span multiples (calibration-owned). */
+export const LEX_FLANK_RELEVANCE_K = 1
+
 export type RelevanceNormalizationParams = {
     cMin?: number
     cMax?: number
@@ -50,4 +59,7 @@ export type RelevanceNormalizationParams = {
     lexFlankStrongCost?: number
     lexFlankModerateCost?: number
     lexMatchSubstitutionCost?: number
+    lexAdjoinedFlankMaxDamage?: number
+    lexRemoteFlankMaxDamage?: number
+    lexFlankRelevanceK?: number
 }
