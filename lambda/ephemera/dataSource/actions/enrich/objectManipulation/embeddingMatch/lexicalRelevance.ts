@@ -35,8 +35,7 @@ export {
  * FT-8 lexical relevance entry point.
  *
  * Embeds the shorter normalized string in the longer (span vs catalog shortName), runs Sellers
- * alignment, then multiplies four independent [0, 1] factors from lexicalMatchMetrics:
- * edit distance (hard gate), left/right adjoined flanks, and combined remote flank material.
+ * alignment, then combines editDistanceRelevance (hard gate) with tanhCenteredFlankScore (FT-1.1.5).
  *
  * Legacy substringBiasedEditDistance below is retained for simulator A/B only.
  */

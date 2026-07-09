@@ -51,6 +51,28 @@ export const LEX_REMOTE_FLANK_MAX_DAMAGE = 0.2
 /** Decay rate for flank-length relevance vs match-span multiples (calibration-owned). */
 export const LEX_FLANK_RELEVANCE_K = 1
 
+// FT-1.1.5 tanh-centered flank combine (provisional; lock in FT-1.3 calibration pass).
+// sigmoid(bias + e_L + e_R + e_Rm) where e_i = w_i * tanh((m_i - x_i) / s_i).
+// Adjoined midpoint m = spanScale / 2 at runtime; remote midpoint = spanScale * LEX_REMOTE_FLANK_MIDPOINT_MULTIPLIER.
+
+/** Outer sigmoid bias when all flank channels sit at their midpoints. */
+export const LEX_FLANK_COMBINE_BIAS = 2.6
+
+/** Steepness scale for adjoined left/right flank evidence channels. */
+export const LEX_ADJOINED_FLANK_SCALE = 1.5
+
+/** Weight for adjoined left/right flank evidence channels. */
+export const LEX_ADJOINED_FLANK_WEIGHT = 1.0
+
+/** Remote flank midpoint as a multiple of spanScale (wrapper length neutral point). */
+export const LEX_REMOTE_FLANK_MIDPOINT_MULTIPLIER = 3
+
+/** Steepness scale for combined remote flank evidence channel. */
+export const LEX_REMOTE_FLANK_SCALE = 4
+
+/** Weight for combined remote flank evidence channel. */
+export const LEX_REMOTE_FLANK_WEIGHT = 0.9
+
 export type RelevanceNormalizationParams = {
     cMin?: number
     cMax?: number
@@ -62,4 +84,10 @@ export type RelevanceNormalizationParams = {
     lexAdjoinedFlankMaxDamage?: number
     lexRemoteFlankMaxDamage?: number
     lexFlankRelevanceK?: number
+    lexFlankCombineBias?: number
+    lexAdjoinedFlankScale?: number
+    lexAdjoinedFlankWeight?: number
+    lexRemoteFlankMidpointMultiplier?: number
+    lexRemoteFlankScale?: number
+    lexRemoteFlankWeight?: number
 }

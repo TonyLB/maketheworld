@@ -157,11 +157,11 @@ describe('lexicalRelevanceFromMetrics', () => {
         expect(metrics.editDistance).toBeGreaterThan(0)
     })
 
-    it('multiplies edit and flank factors', () => {
+    it('combines edit gate with tanh flank score for axle vs ax', () => {
         const metrics = computeLexicalMatchMetrics('ax', 'axle')
         const score = lexicalRelevanceFromMetrics(metrics, 2)
         const editFactor = editDistanceRelevance(metrics.editDistance, 2, 2)
-        const adjoinedRight = flankLengthRelevance(2, 2, 0.5, 1)
-        expect(score).toBeCloseTo(editFactor * adjoinedRight)
+        expect(score).toBeLessThanOrEqual(editFactor)
+        expect(score).toBeGreaterThan(0)
     })
 })

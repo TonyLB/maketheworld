@@ -28,19 +28,28 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). **Not wired to produc
 | Module | Role |
 | --- | --- |
 | [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
+| [`evidenceNumerics`](evidenceNumerics.ts) | Domain-agnostic `sigmoid`, `tanh`, `clampUnitInterval` |
+| [`relevanceCombine`](relevanceCombine.ts) | Flank + joint combiner patterns: `tanhCenteredFlankScore` (production), `multiplicativeFlankScoreV1` (simulator A/B); `weightedRmsJointRelevance` at FT-1.2 |
 | [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | OSA Sellers alignment of span in catalog `shortName` |
-| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + per-factor relevance (`editDistanceRelevance`, `flankLengthRelevance`, `lexicalRelevanceFromMetrics`) |
-| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then multiplicative combine |
+| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + `editDistanceRelevance` + `lexicalRelevanceFromMetrics` |
+| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then edit gate * tanh flank combine |
 | [`admissibleShortSpans`](admissibleShortSpans.ts) | Catalog-derived short-span admissibility; `isLexicalChannelActive` scan gate |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
+| [`testing/simulateLexicalIdentityCorpus`](testing/simulateLexicalIdentityCorpus.ts) | Lexical-only identity corpus rank + tanh vs v1 A/B harness |
 
-**Lexical relevance pipeline (2026-07-09):** embed shorter normalized string in longer -> Sellers match -> four multiplicative `[0,1]` factors:
+**Lexical relevance pipeline (FT-1.1.5, 2026-07-09):** embed shorter normalized string in longer -> Sellers match -> combine:
 
 1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, editDistance / max(|span in T|, |P|))`
-2. **Left / right adjoined flanks** (morphology glued to match): asymptotic `1 - maxDamage * (1 - exp(-k * flank / spanScale))`, floor `1 - maxDamage` each
-3. **Remote flank** (whitespace-/boundary-separated wrapper): same asymptotic with smaller `maxDamage`
+2. **Flank geometry** via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics):
 
-`maxDamage` and `k` anchors in [`thresholds.ts`](thresholds.ts) (`LEX_ADJOINED_FLANK_MAX_DAMAGE`, `LEX_REMOTE_FLANK_MAX_DAMAGE`, `LEX_FLANK_RELEVANCE_K`); lock in FT-1.3 calibration. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
+```
+t_i     = (m_i - x_i) / s_i
+e_i     = w_i * tanh(t_i)
+flankScore = sigmoid(bias + e_L + e_R + e_Rm)
+lexRelevance = editDistanceRelevance * flankScore
+```
+
+Per-channel `m` / `s` / `w` and combine `bias` in [`thresholds.ts`](thresholds.ts) (`LEX_FLANK_COMBINE_BIAS`, `LEX_ADJOINED_FLANK_*`, `LEX_REMOTE_FLANK_*`); adjoined midpoint `m = spanScale / 2` at runtime. Lock in FT-1.3 calibration. Legacy multiplicative asymptotic combine retained as `multiplicativeFlankScoreV1` for simulator A/B. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
 
 Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
 

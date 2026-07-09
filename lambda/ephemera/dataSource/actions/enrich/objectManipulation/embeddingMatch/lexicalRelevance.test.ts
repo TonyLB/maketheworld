@@ -32,6 +32,12 @@ describe('lexicalRelevance', () => {
         expect(axle).toBeGreaterThan(unrelated)
     })
 
+    it('ranks prefix-anchored axolotl above infix-embedded coaxial', () => {
+        const axolotl = lexicalRelevance('ax', 'axolotl')
+        const coaxial = lexicalRelevance('ax', 'coaxial')
+        expect(axolotl).toBeGreaterThan(coaxial)
+    })
+
     it('scores paraphrase well below exact match (calibration-owned absolute floor)', () => {
         expect(lexicalRelevance('sweeping tool', 'broom')).toBeLessThan(0.4)
         expect(lexicalRelevance('sweeping tool', 'broom')).toBeLessThan(lexicalRelevance('broom', 'broom'))

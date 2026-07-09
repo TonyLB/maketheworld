@@ -4,20 +4,17 @@
  * Pipeline toward pooled lexical relevance:
  * 1. Sellers approximate substring match locates the best alignment of pattern P in candidate T.
  * 2. deriveFlankLengthMetrics partitions flank material in T into adjoined vs remote lengths.
- * 3. editDistanceRelevance and flankLengthRelevance normalize each evidence channel to (0, 1].
- * 4. lexicalRelevanceFromMetrics multiplies the four factors (edit is the only channel that can hit 0).
+ * 3. editDistanceRelevance normalizes match quality (hard gate, can hit 0).
+ * 4. lexicalRelevanceFromMetrics combines edit gate * tanhCenteredFlankScore (FT-1.1.5).
  */
 
 import {
     sellersApproximateSubstringMatch,
     type SellersMatchSpan,
 } from './sellersApproximateSubstringMatch'
-import {
-    LEX_ADJOINED_FLANK_MAX_DAMAGE,
-    LEX_FLANK_RELEVANCE_K,
-    LEX_REMOTE_FLANK_MAX_DAMAGE,
-    type RelevanceNormalizationParams,
-} from './thresholds'
+import { clampUnitInterval } from './evidenceNumerics'
+import { tanhCenteredFlankScore } from './relevanceCombine'
+import type { RelevanceNormalizationParams } from './thresholds'
 
 const isAlpha = (char: string | undefined): boolean => (
     char !== undefined && /[a-z0-9]/i.test(char)
@@ -189,45 +186,21 @@ export function editDistanceRelevance(
     return 1 - Math.min(1, normalizedEdit)
 }
 
-const resolveFlankRelevanceParams = (params: RelevanceNormalizationParams) => ({
-    lexAdjoinedFlankMaxDamage: params.lexAdjoinedFlankMaxDamage ?? LEX_ADJOINED_FLANK_MAX_DAMAGE,
-    lexRemoteFlankMaxDamage: params.lexRemoteFlankMaxDamage ?? LEX_REMOTE_FLANK_MAX_DAMAGE,
-    lexFlankRelevanceK: params.lexFlankRelevanceK ?? LEX_FLANK_RELEVANCE_K,
-})
-
 /**
- * Multiplicative lexical relevance from precomputed Sellers + flank metrics.
+ * Lexical relevance from precomputed Sellers + flank metrics (FT-1.1.5).
  *
- * editDistanceRelevance * leftAdjoined * rightAdjoined * nonAdjoinedRemote
+ * editDistanceRelevance (hard gate) * tanhCenteredFlankScore
  */
 export function lexicalRelevanceFromMetrics(
     metrics: LexicalMatchMetrics,
     patternLength: number,
     params: RelevanceNormalizationParams = {}
 ): number {
-    const flankParams = resolveFlankRelevanceParams(params)
     const spanLen = matchSpanLength(metrics.matchSpan)
     const spanScale = Math.max(spanLen, patternLength, 1)
 
     const editFactor = editDistanceRelevance(metrics.editDistance, spanLen, patternLength)
-    const leftAdjoinedFactor = flankLengthRelevance(
-        metrics.adjoinedLeftLength,
-        spanScale,
-        flankParams.lexAdjoinedFlankMaxDamage,
-        flankParams.lexFlankRelevanceK
-    )
-    const rightAdjoinedFactor = flankLengthRelevance(
-        metrics.adjoinedRightLength,
-        spanScale,
-        flankParams.lexAdjoinedFlankMaxDamage,
-        flankParams.lexFlankRelevanceK
-    )
-    const nonAdjoinedFactor = flankLengthRelevance(
-        metrics.remoteLeftLength + metrics.remoteRightLength,
-        spanScale,
-        flankParams.lexRemoteFlankMaxDamage,
-        flankParams.lexFlankRelevanceK
-    )
+    const flankScore = tanhCenteredFlankScore(metrics, spanScale, params)
 
-    return editFactor * leftAdjoinedFactor * rightAdjoinedFactor * nonAdjoinedFactor
+    return clampUnitInterval(editFactor * flankScore)
 }
