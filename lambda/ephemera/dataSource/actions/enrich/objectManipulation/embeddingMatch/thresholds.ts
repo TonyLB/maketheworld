@@ -35,7 +35,7 @@ export const C_MAX = 1
 /** Lexical proportional floor so ultra-short catalog names are not brittle. */
 export const L_MIN = 5
 
-/** Minimum normalized span length for FT-1.4 upstream junk-span discard (not pool lexical gating). */
+/** Legacy harness constant for short-span admissibility baseline only (FT-1.3.1 retired production gate). */
 export const S_MIN = 3
 
 /** Flank edit cost when separated from match by non-alpha / token boundary. */

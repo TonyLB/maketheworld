@@ -307,6 +307,32 @@ describe('interpretIntentClassificationBody', () => {
         )).toEqual({ type: 'Unknown', confidence: 0.25 })
     })
 
+    it('peels leading articles from LLM-parsed manipulation and Acme spans', () => {
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectMembershipIntent","objectSpans":["the broom"],"verbClass":"acquire","confidence":0.92}'
+        )).toEqual({
+            type: 'ObjectMembershipIntent',
+            rawObjectSpans: ['broom'],
+            verbClass: 'acquire',
+            confidence: 0.92,
+        })
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectMembershipIntent","objectSpans":["a"],"verbClass":"acquire","confidence":0.92}'
+        )).toEqual({
+            type: 'ObjectMembershipIntent',
+            rawObjectSpans: ['a'],
+            verbClass: 'acquire',
+            confidence: 0.92,
+        })
+        expect(interpretIntentClassificationBody(
+            '{"type":"AcmeOrder","orders":["an anvil"],"confidence":0.85}'
+        )).toEqual({
+            type: 'AcmeOrderIntent',
+            rawOrders: ['anvil'],
+            confidence: 0.85,
+        })
+    })
+
     it('rejects AcmeOrder when orders array is missing, empty, or has invalid entries', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"AcmeOrder","confidence":0.9}'

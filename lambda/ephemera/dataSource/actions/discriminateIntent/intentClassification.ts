@@ -24,6 +24,7 @@ import {
     isParseCommandObjectMembershipIntentResult,
     isParseCommandObjectRelateIntentResult,
 } from './baseClasses'
+import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
 
 function isParseConfidence(value: unknown): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
@@ -104,7 +105,7 @@ function parseAcmeOrderIntentRawOrders(obj: Record<string, unknown>): { rawOrder
         if (trimmed.length === 0) {
             return { error: 'AcmeOrder intent orders entries must be non-empty after trim' }
         }
-        rawOrders.push(trimmed)
+        rawOrders.push(peelLeadingArticleWhenTail(trimmed))
     }
     if (rawOrders.length === 0) {
         return { error: 'AcmeOrder intent orders array must be non-empty' }
@@ -137,7 +138,7 @@ function parseObjectIntentRawObjectSpans(
         if (trimmed.length === 0) {
             return { error: `${intentTypeName} intent objectSpans entries must be non-empty after trim` }
         }
-        rawObjectSpans.push(trimmed)
+        rawObjectSpans.push(peelLeadingArticleWhenTail(trimmed))
     }
     if (rawObjectSpans.length === 0) {
         return { error: `${intentTypeName} intent objectSpans array must be non-empty` }
