@@ -11,6 +11,7 @@ import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
+import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -30,10 +31,6 @@ function isBareHomeCommand(trimmed: string): boolean {
 /** After trim, case-insensitive predict as the whole line (no p alias). */
 function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
-}
-
-function stripLeadingArticle(rawSpan: string): string {
-    return rawSpan.trim().replace(/^the\s+/i, '').trim()
 }
 
 function maybeDeterministicManipulationIntent(
@@ -61,7 +58,7 @@ function maybeDeterministicManipulationIntent(
         return null
     }
 
-    const rawObjectSpan = stripLeadingArticle(tail)
+    const rawObjectSpan = peelLeadingArticleWhenTail(tail)
     if (!rawObjectSpan) {
         return null
     }

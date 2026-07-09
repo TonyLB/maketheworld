@@ -209,5 +209,44 @@ describe('deterministicIntentChecks', () => {
             expect(deterministicIntentChecks({ command: 'drop' })).toBeNull()
             expect(deterministicIntentChecks({ command: 'get' })).toBeNull()
         })
+
+        it('peels leading articles on deterministic manipulation spans', () => {
+            expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
+                type: 'ObjectMembershipIntent',
+                rawObjectSpans: ['apple'],
+                verbClass: 'acquire',
+                confidence: 1,
+            })
+            expect(deterministicIntentChecks({
+                command: 'get a broom',
+                roomObjectLabels: ['broom'],
+            })).toEqual({
+                type: 'ObjectMembershipIntent',
+                rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
+                confidence: 1,
+            })
+            expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
+                type: 'ObjectMembershipIntent',
+                rawObjectSpans: ['rope'],
+                verbClass: 'release',
+                confidence: 1,
+            })
+        })
+
+        it('preserves article-only spans instead of rejecting them', () => {
+            expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
+                type: 'ObjectMembershipIntent',
+                rawObjectSpans: ['a'],
+                verbClass: 'acquire',
+                confidence: 1,
+            })
+            expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
+                type: 'ObjectMembershipIntent',
+                rawObjectSpans: ['the'],
+                verbClass: 'release',
+                confidence: 1,
+            })
+        })
     })
 })
