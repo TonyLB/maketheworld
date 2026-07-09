@@ -35,7 +35,7 @@ export const C_MAX = 1
 /** Lexical proportional floor so ultra-short catalog names are not brittle. */
 export const L_MIN = 5
 
-/** Short-span admissibility threshold (normalized span length). Retirement candidate FT-1.3.1. */
+/** Minimum normalized span length for FT-1.4 upstream junk-span discard (not pool lexical gating). */
 export const S_MIN = 3
 
 /** Flank edit cost when separated from match by non-alpha / token boundary. */

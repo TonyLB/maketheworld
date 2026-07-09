@@ -137,3 +137,33 @@ export const buildCandidatesFromIdentityCase = (
 
     return { spanEmbedding, candidates }
 }
+
+export type ShortSpanPoolVectorPlan = IdentityCaseVectorPlan
+
+/**
+ * Build span + catalog embeddings for short-span pool retirement fixtures.
+ * Reuses identity-corpus vector-plan vocabulary (weak/absent-object geometry).
+ */
+export const buildShortSpanPoolVectors = (
+    catalog: readonly string[],
+    objectIdPrefix: string,
+    vectorPlan: ShortSpanPoolVectorPlan
+): {
+    spanEmbedding: SemanticEmbedding
+    candidates: EmbeddingMatchCandidate[]
+} => {
+    const identityCase: EmbeddingCalibrationIdentityCase = {
+        id: objectIdPrefix,
+        bucket: 'hard-negative',
+        span: '',
+        catalog: [...catalog],
+    }
+    const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(identityCase, vectorPlan)
+    return {
+        spanEmbedding,
+        candidates: candidates.map((candidate, index) => ({
+            ...candidate,
+            objectId: `${objectIdPrefix}-${index}` as EphemeraObjectId,
+        })),
+    }
+}

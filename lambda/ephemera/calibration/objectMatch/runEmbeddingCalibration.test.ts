@@ -4,6 +4,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { normalizeShortNameForEmbedding } from '../../dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh'
+import { resolveLegacyLexicalChannelActive } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/legacyLexicalChannelGate'
 import {
     bucketStats,
     compareEmbeddingPair,
@@ -137,14 +138,16 @@ describe('runEmbeddingCalibration', () => {
         expect(summary!.suggestedJointFloorHeadroom).toContain('T_JOINT_ABS')
     })
 
-    it('runIdentityCorpus admissibility off does not change identity corpus ranking', async () => {
-        const onResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'admissibility' })
-        const offResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'alwaysActive' })
-        for (const onCase of onResult.cases) {
-            const offCase = offResult.cases.find((entry) => entry.id === onCase.id)
-            expect(offCase).toBeDefined()
-            expect(offCase!.pool?.candidates.map((c) => c.label)).toEqual(
-                onCase.pool?.candidates.map((c) => c.label)
+    it('runIdentityCorpus gate-off default does not change ranking vs legacy gated baseline', async () => {
+        const legacyResult = await runIdentityCorpus(undefined, deps, {
+            resolveLexicalChannelActive: resolveLegacyLexicalChannelActive,
+        })
+        const gateOffResult = await runIdentityCorpus(undefined, deps)
+        for (const legacyCase of legacyResult.cases) {
+            const gateOffCase = gateOffResult.cases.find((entry) => entry.id === legacyCase.id)
+            expect(gateOffCase).toBeDefined()
+            expect(gateOffCase!.pool?.candidates.map((c) => c.label)).toEqual(
+                legacyCase.pool?.candidates.map((c) => c.label)
             )
         }
     })

@@ -1,13 +1,14 @@
-import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
+import { normalizeShortNameForEmbedding } from '../../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 
-import { S_MIN } from './thresholds'
+import type { EmbeddingMatchCandidate } from '../types'
+import { S_MIN, type RelevanceNormalizationParams } from '../thresholds'
 
 export type AdmissibleShortSpanCatalogEntry = {
     normalizedShortName: string
 }
 
 /**
- * Precompute catalog-admissible short spans for lexical channel gating (FT-8).
+ * Precompute catalog-admissible short spans (FT-8 legacy gate --- harness baseline only).
  * Whole tokens only --- alpha-prefixes inside tokens are not admitted.
  */
 export function buildAdmissibleShortSpans(
@@ -35,10 +36,10 @@ export function buildAdmissibleShortSpans(
 }
 
 /**
- * Whether the lexical channel is active for this scan.
- * When false, callers must drop w_l from RMS (undefined, not lex=0).
+ * Legacy gated policy (pre-FT-1.3.1 production): length-1 inactive; length 2..S_min-1
+ * catalog-admitted only. Used as retirement harness baseline, not production.
  */
-export function isLexicalChannelActive(
+export function isLegacyLexicalChannelActive(
     normalizedSpan: string,
     admissibleShortSpans: ReadonlySet<string>,
     sMin: number = S_MIN
@@ -56,4 +57,18 @@ export function isLexicalChannelActive(
         return true
     }
     return admissibleShortSpans.has(span)
+}
+
+/** Harness resolver: pre-FT-1.3.1 catalog-derived short-span gate. */
+export const resolveLegacyLexicalChannelActive = (
+    normalizedSpan: string,
+    candidates: readonly EmbeddingMatchCandidate[],
+    params: RelevanceNormalizationParams
+): boolean => {
+    const sMin = params.sMin ?? S_MIN
+    const admissibleShortSpans = buildAdmissibleShortSpans(
+        candidates.map(({ normalizedShortName }) => ({ normalizedShortName })),
+        sMin
+    )
+    return isLegacyLexicalChannelActive(normalizedSpan, admissibleShortSpans, sMin)
 }

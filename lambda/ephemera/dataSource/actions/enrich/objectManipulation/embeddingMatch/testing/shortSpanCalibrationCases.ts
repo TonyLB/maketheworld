@@ -4,6 +4,8 @@ import { normalizeShortNameForEmbedding } from '../../../../../objects/embedding
 
 import type { EmbeddingMatchCandidate } from '../types'
 
+import type { ShortSpanPoolVectorPlan } from './mockVectors'
+
 export type ShortSpanLexicalCase = {
     id: string
     span: string
@@ -11,20 +13,35 @@ export type ShortSpanLexicalCase = {
     notes?: string
     /** When set, head catalog entry must rank above this shortName on lexical relevance. */
     expectHeadAbove?: string
-    /** When set, top lexical score must stay below this bound (spurious-match guard). */
-    expectTopLexBelow?: number
 }
+
+/**
+ * Pool fixture intent for FT-1.3.1 retirement harness (gate-off / alwaysActive target).
+ *
+ * - spurious-diverse-catalog: length-1 (or similar) vs many unrelated entries; joint head must
+ *   stay below FT-5 floor with lexical always on --- substring false-positive guard.
+ * - shorthand-unary: legitimate prefix shorthand vs one (or few) catalog entries; ranking the
+ *   intended object highly (and clearing the floor) is desired, not a regression.
+ * - ordering-invariant: geometry / rank order checks with weak embed tie.
+ */
+export type ShortSpanPoolFixtureCategory =
+    | 'spurious-diverse-catalog'
+    | 'shorthand-unary'
+    | 'ordering-invariant'
 
 export type ShortSpanPoolCase = {
     id: string
     span: string
     catalog: readonly string[]
+    category: ShortSpanPoolFixtureCategory
     notes?: string
-    /** With admissibility on, lexical channel should be inactive for this span. */
-    expectLexicalInactiveWithAdmissibility?: boolean
-    /** With admissibility off, top joint relevance must stay below FT-5 joint floor proposal. */
-    expectTopJointBelowWithAlwaysActive?: number
+    vectorPlan: ShortSpanPoolVectorPlan
+    /** When set, alwaysActive head label must match. */
     expectHeadLabel?: string
+    /** spurious-diverse-catalog: top joint must stay strictly below this (default T_JOINT_ABS). */
+    expectTopJointBelow?: number
+    /** spurious-diverse-catalog: when joint clears floor, margin must stay below T_JOINT_MARGIN. */
+    expectTopMarginBelowWhenAboveFloor?: boolean
 }
 
 export const SHORT_SPAN_LEXICAL_CASES: readonly ShortSpanLexicalCase[] = [
@@ -32,15 +49,14 @@ export const SHORT_SPAN_LEXICAL_CASES: readonly ShortSpanLexicalCase[] = [
         id: 'short-lex-001-length-1-a',
         span: 'a',
         catalog: ['axe', 'anvil', 'lantern'],
-        notes: 'Length-1 span against multi-token catalog; spurious substring risk.',
-        expectTopLexBelow: 0.35,
+        notes: 'Length-1 vs diverse catalog --- spurious substring risk (pool: short-pool-001).',
     },
     {
-        id: 'short-lex-002-ax-axe-only',
+        id: 'short-lex-002-ax-axe-shorthand',
         span: 'ax',
         catalog: ['rusty axe'],
-        notes: 'Inadmissible length-2 span vs axe-only catalog under gate.',
-        expectTopLexBelow: 0.35,
+        expectHeadAbove: 'rusty axe',
+        notes: 'Prefix shorthand for axe token inside rusty axe --- desired match (mirror short-lex-004).',
     },
     {
         id: 'short-lex-003-axolotl-vs-coaxial',
@@ -60,7 +76,7 @@ export const SHORT_SPAN_LEXICAL_CASES: readonly ShortSpanLexicalCase[] = [
         id: 'short-lex-005-unary-a-axe-shorthand',
         span: 'a',
         catalog: ['axe'],
-        notes: 'Unary axe catalog: a as shorthand may score moderately high; not a diverse-catalog spurious case.',
+        notes: 'Unary axe catalog: a as shorthand may score moderately high.',
     },
     {
         id: 'short-lex-006-gem-gemstones-proportionate',
@@ -83,29 +99,37 @@ export const SHORT_SPAN_POOL_CASES: readonly ShortSpanPoolCase[] = [
         id: 'short-pool-001-length-1-a',
         span: 'a',
         catalog: ['axe', 'anvil', 'lantern'],
-        expectLexicalInactiveWithAdmissibility: true,
-        expectTopJointBelowWithAlwaysActive: 0.42,
-        notes: 'Gate off: lex scores but joint head stays below FT-5 floor.',
+        category: 'spurious-diverse-catalog',
+        vectorPlan: { kind: 'below-multi-floor', similarities: [0.11, 0.09, 0.08] },
+        expectTopMarginBelowWhenAboveFloor: true,
+        notes: 'Diverse catalog: gate-off joint head must stay below FT-5 floor with weak embed.',
     },
     {
-        id: 'short-pool-002-ax-axe-only',
+        id: 'short-pool-002-ax-axe-shorthand',
         span: 'ax',
         catalog: ['rusty axe'],
-        expectLexicalInactiveWithAdmissibility: true,
-        expectTopJointBelowWithAlwaysActive: 0.42,
+        category: 'shorthand-unary',
+        vectorPlan: { kind: 'unary-below-floor', similarity: 0.11 },
+        expectHeadLabel: 'rusty axe',
+        notes: 'Prefix shorthand for only object in room --- high joint is a success case, not spurious.',
     },
     {
         id: 'short-pool-003-axolotl-vs-coaxial',
         span: 'ax',
         catalog: ['axolotl', 'coaxial'],
+        category: 'ordering-invariant',
+        vectorPlan: { kind: 'below-multi-floor', similarities: [0.11, 0.09] },
         expectHeadLabel: 'axolotl',
-        notes: 'Pool ordering invariant with mocked embed tie.',
+        notes: 'Pool ordering invariant with weak embed tie.',
     },
     {
         id: 'short-pool-004-unary-a-axe-shorthand',
         span: 'a',
         catalog: ['axe'],
-        notes: 'Unary shorthand: joint head may clear lexical bar; embed/mock tie is weak --- retirement uses split criteria.',
+        category: 'shorthand-unary',
+        vectorPlan: { kind: 'unary-below-floor', similarity: 0.16 },
+        expectHeadLabel: 'axe',
+        notes: 'Unary a/axe shorthand --- moderate-to-high joint OK; embed still weak.',
     },
 ]
 

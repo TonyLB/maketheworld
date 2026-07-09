@@ -1,5 +1,5 @@
 import { catalogHasDuplicateNormalizedShortNames } from './catalogHasDuplicateNormalizedShortNames'
-import { buildSpanCandidatePool, type LexicalChannelPolicy } from './buildSpanCandidatePool'
+import { buildSpanCandidatePool, type ResolveLexicalChannelActive } from './buildSpanCandidatePool'
 import { decideEmbeddingMatch } from './decideEmbeddingMatch'
 import { rankCatalogByCosineSimilarity } from './rankCatalogByCosineSimilarity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
@@ -22,8 +22,9 @@ export type EmbeddingIdentitySimulation = {
 }
 
 export type SimulateEmbeddingIdentityWithPoolOptions = {
-    lexicalChannelPolicy?: LexicalChannelPolicy
     params?: RelevanceNormalizationParams
+    /** Harness-only override (e.g. legacy gated baseline). Production omits. */
+    resolveLexicalChannelActive?: ResolveLexicalChannelActive
 }
 
 const decideLegacyEmbeddingMatch = (
@@ -62,8 +63,10 @@ export function simulateEmbeddingIdentityWithPool(
 ): EmbeddingIdentitySimulation {
     const pool = buildSpanCandidatePool(span, candidates, {
         spanEmbedding,
-        lexicalChannelPolicy: options.lexicalChannelPolicy,
         params: options.params,
+        ...(options.resolveLexicalChannelActive
+            ? { resolveLexicalChannelActive: options.resolveLexicalChannelActive }
+            : {}),
     })
     const lexicalChannelActive = pool.candidates.some(
         (candidate) => candidate.lexRelevance !== undefined

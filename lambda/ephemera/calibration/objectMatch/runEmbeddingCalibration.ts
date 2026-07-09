@@ -5,7 +5,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { rankCatalogByCosineSimilarity } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity'
-import type { LexicalChannelPolicy } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool'
+import type { ResolveLexicalChannelActive } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool'
 import { simulateEmbeddingIdentityWithPool } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity'
 import { T_ABS, T_ABS_UNARY, T_JOINT_ABS, T_JOINT_MARGIN, T_MARGIN } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds'
 import type {
@@ -115,7 +115,8 @@ export type MarginRatioComparison = {
 export type RunEmbeddingCalibrationDeps = EmbedNormalizedSemanticTextDeps
 
 export type RunEmbeddingCalibrationOptions = {
-    lexicalChannelPolicy?: LexicalChannelPolicy
+    /** Harness-only: legacy gated lexical baseline. Production calibration omits. */
+    resolveLexicalChannelActive?: ResolveLexicalChannelActive
 }
 
 const headroomNoteForJointBucket = (
@@ -356,7 +357,9 @@ export async function simulateIdentityCalibration(
     const candidates = buildCalibrationCandidates(catalog, catalogEmbeddings)
     const rankedScores = rankCatalogByCosineSimilarity(spanEmbedding, candidates)
     const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, {
-        lexicalChannelPolicy: options.lexicalChannelPolicy,
+        ...(options.resolveLexicalChannelActive
+            ? { resolveLexicalChannelActive: options.resolveLexicalChannelActive }
+            : {}),
     })
     const decision = simulation.legacyDecision
     const { margin, ratio } = marginAndRatio(rankedScores)

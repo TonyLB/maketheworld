@@ -8,7 +8,6 @@ import {
     type SpanRelevanceSourceTag,
 } from '../spanResolution'
 
-import { buildAdmissibleShortSpans, isLexicalChannelActive } from './admissibleShortSpans'
 import { embedRelevance } from './embedRelevance'
 import { gapTrimShortlist } from './gapTrimShortlist'
 import { lexicalRelevance } from './lexicalRelevance'
@@ -16,34 +15,25 @@ import { weightedRmsJointRelevance } from './relevanceCombine'
 import type { RelevanceNormalizationParams } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 
-/** How the pool builder decides whether to score the lexical channel for this span. */
-export type LexicalChannelPolicy = 'admissibility' | 'alwaysActive'
+export type ResolveLexicalChannelActive = (
+    normalizedSpan: string,
+    candidates: readonly EmbeddingMatchCandidate[],
+    params: RelevanceNormalizationParams
+) => boolean
 
 export type BuildSpanCandidatePoolOptions = {
     spanEmbedding?: SemanticEmbedding
     params?: RelevanceNormalizationParams
-    /** Default `admissibility` (catalog-derived short-span gate). `alwaysActive` for FT-1.3 A/B arm B. */
-    lexicalChannelPolicy?: LexicalChannelPolicy
+    /**
+     * Override lexical channel gating (harness-only). Production omits this --- lexical scores
+     * every non-empty normalized span (FT-1.3.1 gate retirement).
+     */
+    resolveLexicalChannelActive?: ResolveLexicalChannelActive
 }
 
-const resolveLexicalChannelActive = (
-    normalizedSpan: string,
-    candidates: readonly EmbeddingMatchCandidate[],
-    params: RelevanceNormalizationParams,
-    lexicalChannelPolicy: LexicalChannelPolicy
-): boolean => {
-    if (normalizedSpan.length === 0) {
-        return false
-    }
-    if (lexicalChannelPolicy === 'alwaysActive') {
-        return true
-    }
-    const admissibleShortSpans = buildAdmissibleShortSpans(
-        candidates.map(({ normalizedShortName }) => ({ normalizedShortName })),
-        params.sMin
-    )
-    return isLexicalChannelActive(normalizedSpan, admissibleShortSpans, params.sMin)
-}
+const defaultLexicalChannelActive: ResolveLexicalChannelActive = (normalizedSpan) => (
+    normalizedSpan.length > 0
+)
 
 const buildSourceTags = (
     lexicalChannelActive: boolean,
@@ -91,14 +81,9 @@ export function buildSpanCandidatePool(
     options: BuildSpanCandidatePoolOptions = {}
 ): SpanCandidatePool {
     const params = options.params ?? {}
-    const lexicalChannelPolicy = options.lexicalChannelPolicy ?? 'admissibility'
     const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const lexicalChannelActive = resolveLexicalChannelActive(
-        normalizedSpan,
-        candidates,
-        params,
-        lexicalChannelPolicy
-    )
+    const resolveActive = options.resolveLexicalChannelActive ?? defaultLexicalChannelActive
+    const lexicalChannelActive = resolveActive(normalizedSpan, candidates, params)
     const hasSpanEmbedding = options.spanEmbedding !== undefined
 
     const scored = candidates.map((candidate) => {
