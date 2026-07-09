@@ -17,6 +17,7 @@ import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 import {
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandConsultResult,
     isParseCommandErrorResult,
     isParseCommandHelpResult,
     isParseCommandLookRoomResult,
@@ -123,6 +124,37 @@ const expectCompletedSchedulePutsMatchBootstrap = (segments: string[]) => {
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
+    const broomId = 'OBJECT#Broom' as EphemeraObjectId
+
+    describe('isParseCommandConsultResult', () => {
+        it('accepts valid Consult with alternatives and confidence', () => {
+            expect(isParseCommandConsultResult({
+                type: 'Consult',
+                alternatives: [
+                    { proposedCommand: 'take the broom', objectId: broomId },
+                    { proposedCommand: 'take the mop' },
+                ],
+                confidence: 0.6,
+            })).toBe(true)
+        })
+
+        it('rejects empty alternatives or invalid confidence', () => {
+            expect(isParseCommandConsultResult({
+                type: 'Consult',
+                alternatives: [],
+                confidence: 0.6,
+            })).toBe(false)
+            expect(isParseCommandConsultResult({
+                type: 'Consult',
+                alternatives: [{ proposedCommand: 'take the broom' }],
+                confidence: 1.2,
+            })).toBe(false)
+            expect(isParseCommandConsultResult({
+                type: 'Error',
+                errorMessage: 'nope',
+            } as any)).toBe(false)
+        })
+    })
 
     describe('isParseCommandHomeResult', () => {
         it('accepts valid Home with confidence in [0, 1]', () => {

@@ -1,6 +1,6 @@
 # Object manipulation parse --- fault-tolerant trust + Plan IR foundation
 
-**Status:** Not started. **Gateway** for Phase C of [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- do not begin Plan IR / compiler work until **Gateway exit** below is satisfied.
+**Status:** In progress (FT-0 shipped 2026-07-09). **Gateway** for Phase C of [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- do not begin Plan IR / compiler work until **Gateway exit** below is satisfied.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -461,7 +461,7 @@ All must be **Decided** and corresponding **FT-0--FT-5** checklist items **compl
 - [ ] **FT-1** decided --- candidate pool + relevance contract documented and tested (design decided 2026-07-08; FT-8 normalization decided 2026-07-08; constants pending calibration).
 - [ ] **FT-2** decided --- identity LLM role in steady path documented (**decided (e) 2026-07-08**: merge identity into a joint `(identity, plan)` adjudicator; durable-doc write-up + enabler build threads still pending).
 - [ ] **FT-3** decided --- Abstain vs Consult wire types + owner stages documented.
-- [ ] **FT-4** shipped --- span-resolution types + guards in actions layer (**shape decided 2026-07-08**: input pool `candidates[]` with per-candidate `locus`, no `status`; verdict on the selector-tail output at the FT-5 selection point; types/guards pending build).
+- [ ] **FT-4** shipped --- span-resolution types + guards in actions layer (**shape decided 2026-07-08**; **types/guards shipped FT-0**; selector wiring + end-to-end integration pending FT-4 build).
 - [ ] **FT-5** decided --- auto-resolve / selection gate (floor + margin over runner-up) + post-selection existence/presence guard documented; `resolveComponent` retired as a standalone primitive (**decided 2026-07-08**; floor/margin constants calibration-owned).
 - [ ] **FT-8** decided --- per-signal embed + lex relevance normalization to absolute `[0,1]` scale documented (**decided 2026-07-08**: log map + substring edit distance + two-tier boundary discount + catalog-derived short-span admissibility; anchor constants calibration-owned).
 - [ ] Identity tier emits **provisional pool** (not terminal embedding **`Resolved`**) on non-exact paths, or shim documented with sunset date.
@@ -474,13 +474,42 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 ### FT-0. Decision framing + types skeleton
 
-- [ ] **FT-0.1 Readout**
-  - [ ] Team review of [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) fault recovery section against current identity stage code.
-  - [ ] Capture FT-1--FT-3 options in decision rows (update **Open decisions** table as choices narrow).
+- [X] **FT-0.1 Readout**
+  - [X] Team review of [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) fault recovery section against current identity stage code.
+  - [X] Capture FT-1--FT-3 options in decision rows (update **Open decisions** table as choices narrow). **Architectural forks closed (2026-07-09):** remaining FT-1--FT-3 work is implementation + calibration, not option rows.
 
-- [ ] **FT-0.2 Artifact sketch**
-  - [ ] Draft **`SpanResolution`** / **`ObjectSpanCandidate`** types (names TBD at FT-4) in actions **`baseClasses`** or enrich **`objectManipulation/`** types module --- guards only, no behavior change yet.
-  - [ ] Document mapping: current **`identityStage`** outcomes -> future artifact statuses.
+- [X] **FT-0.2 Artifact sketch**
+  - [X] Draft **`SpanCandidatePool`** / **`ObjectSpanCandidate`** / **`SpanResolutionOutcome`** types in enrich [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) --- guards only, no behavior change yet. **`ParseCommandConsultResult`** stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired).
+  - [X] Document mapping: current **`identityStage`** outcomes -> future artifact statuses (see **FT-0 outcome mapping** below).
+
+#### FT-0 readout (fault recovery vs identity stage v1)
+
+Reviewed [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.concepts.md) (**Fault recovery patterns**, **Output trust models**) against [`identityStage.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/identityStage.ts). Summary:
+
+| Concept | Current v1 behavior | FT target |
+| --- | --- | --- |
+| **Trusted-output** | Every span must end `resolved` or stage `error` before compile | Provisional `SpanCandidatePool` until FT-5 auto-resolve |
+| **Correct** | Identity LLM optimistic pick-one; no validator backtrack | Joint `(identity, plan)` adjudicator + selector (FT-2 / FT-5) |
+| **Backtrack** | Embedding abstain -> identity LLM (single retry owner) | Propose-N + semantic abstain / consult (FT-2 / FT-3) |
+| **Supplement** | Catalog + embeddings attached at parse ingress (shipped) | Same; future `withinObject` pool supplement (FT-6 forward flag) |
+| **Closed-world vs closed-loop** | Embedding `Resolved` is terminal commit-worthy | Embedding becomes recommender input to pool (FT-1) |
+
+**Key gap:** intermediate states (`noMatch`, `ambiguous`, `EmbeddingMatchDecision.Abstain`) collapse to `ParseCommandErrorResult` today --- no `Consult` variant and no provisional artifact for the compiler to adjudicate. FT-0 ships type skeleton only; runtime trust posture unchanged until FT-1+.
+
+#### FT-0 outcome mapping
+
+| Current artifact | When | Future artifact / stage |
+| --- | --- | --- |
+| `ObjectSpanResolutionResult.Resolved` | Exact shortName match | `ObjectSpanCandidate` with `sourceTags: ['exact']`, `jointRelevance: 1`; selector may auto-resolve immediately |
+| `ObjectSpanResolutionResult.NoMatch` | No exact match | Non-empty `SpanCandidatePool` (FT-1 rank-all); `noMatch` becomes FT-2 / FT-5 **judgment**, not pool status |
+| `ObjectSpanResolutionResult.AmbiguousMatch` | Duplicate normalized shortName | Pool with thin margin among top candidates; FT-5 -> `consult` |
+| `ObjectSpanResolutionResult.NoCatalog` | Empty catalog at deterministic step | Upstream **error path** (not pool status); `candidates.length === 0` only for legitimately empty ingress context |
+| `EmbeddingMatchDecision.Resolved` | Floor + margin pass | Strong head candidate in pool; FT-5 may auto-resolve (not terminal commit) |
+| `EmbeddingMatchDecision.Abstain` | below_floor / ambiguous_margin / no_eligible / embed_invoke_failed | Pool still emitted; abstain reason informs semantic adjudication (FT-2), not terminal Error |
+| `SpanGrounding.resolved` + `IdentityStageResult.success` | Post-LLM pick-one | `SpanResolutionOutcome { verdict: 'resolved' }` at selector only |
+| `IdentityStageResult.error` | noCatalog, LLM failure | `SpanResolutionOutcome { verdict: 'error' }` or upstream error; multi-span ambiguity -> `consult` not Error (FT-4.1) |
+| `collapseUnaryGrounding.error` | 0 or 2+ resolved spans | FT-5 cross-tuple selection + consult menu |
+| Terminal `ParseCommandErrorResult` | All enrich failures today | Split: **Error** (policy / legality), **Consult** (`ParseCommandConsultResult`), **Abstain** (proposer, FT-3) |
 
 ### FT-1. Candidate pool (embedding + lexical)
 
@@ -575,12 +604,12 @@ npm run build
 | Milestone | Status |
 | --- | --- |
 | Fault-tolerant task plan | Done |
-| FT-0 framing + type skeleton | Not started |
+| FT-0 framing + type skeleton | **Done (2026-07-09)** --- `spanResolution.ts` guards + `ParseCommandConsultResult` stub; outcome mapping documented; runtime unchanged |
 | FT-1 candidate pool (embedding + lexical) | Design decided (2026-07-08); FT-8 normalization decided (2026-07-08); constants pending calibration; build not started |
 | FT-8 per-signal relevance normalization | **Decided (2026-07-08)**: log map for embed; substring edit distance for lex (two-tier boundary discount, `L_min` floor); catalog-derived short-span admissibility (`S_min`, length-1 absent, `0` vs undefined); index-shape fork + anchor constants calibration-owned |
 | FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
 | FT-3 Abstain vs Consult | **Decided (2026-07-08)**: complexity LLM + frame extract retired as distinct hops; owner map (proposer = Abstain/Consult, shared validator = defer, FT-5 = auto-resolve / selection gate); no narrow-scope tier-2 LLM. Wire shape: **new `ParseCommandResult` Consult variant**, actions emits alternate proposed commands + perception assembles copy, **not resumable** this iteration. Variant types land with FT-4 |
-| FT-4 span-resolution artifact shape | **Decided (2026-07-08)**: **two locked types** --- `SpanCandidatePool` (input `candidates[]` with per-candidate `locus`, room/held v1, **no `status`**; empty array = nothing to rank) + `SpanResolutionOutcome` (verdict `resolved`/`consult`/`error` on the selector-tail output at the FT-5 selection point). Types/guards pending build |
+| FT-4 span-resolution artifact shape | **Decided (2026-07-08)**; **types/guards shipped in FT-0 skeleton** ([`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts)); full integration in FT-4 |
 | FT-5 auto-resolve / selection gate | **Decided (2026-07-08)**: two-phase deterministic tail --- (1) cross-tuple selection (legality + floor + margin -> auto-resolve or Consult), (2) per-span existence/presence guard (referential integrity, orthogonal to semantics). "commit" reserved for persist+publish; FT-5 act = auto-resolve/select. `resolveComponent` retired as a standalone primitive. Floor/margin constants calibration-owned |
 | FT-6 recovery orchestration owner | **Decided (2026-07-08)**: single-pass **dedicated feature-layer orchestrator module** (propose-N + pure selector + existence/presence guard); reject inline `identityStage` + `llm/pipeline/` runner. Container-contents supplement (deferred FT-4 `withinObject`) flagged as the first **re-entrant** closed-loop consumer -> future `llm/pipeline/` plan, non-blocking |
 | FT-7 classify trust posture | **Decided (2026-07-08)**: **two-level classify** --- trusted family (manipulation vs navigation vs speech vs Acme), provisional intra-manipulation hints. **Reunified manipulation-family intent type** with optional `{ subTopology?, verbClass?, confidence }` hint bundle --- **supersedes the BD-11 top-level membership-vs-relational type split** (routing role only; family + `verbClass` semantics survive). **No `enrichRoute` fork** (one shared entry -> FT-6 orchestrator = C4). Hint trust = `confidence` scalar: **`1.0` reserved closed-world sentinel** (deterministic only; LLM clamped `< 1.0`; seam fast-path on `=== 1.0`). `verbClass` required -> optional (membership-only). Family-level errors stay trusted-output terminal (Abstain; cross-family correction = future tier). Hint-confidence calibration delegated to FT-2/FT-5; future experiment (widen downstream gates to strong LLM confidence) documented, non-blocking |
@@ -591,6 +620,7 @@ npm run build
 ## Coordination notes
 
 - **Sibling plan:** [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- Phase C **must not** start until **Gateway exit** here is complete.
+- **FT-0 shipped (2026-07-09):** [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) defines `SpanCandidatePool`, `ObjectSpanCandidate`, `SpanResolutionOutcome` + guards; `ParseCommandConsultResult` stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired). Runtime trust posture unchanged; see **FT-0 outcome mapping** in this plan.
 - **Commit boundary:** BD-9 atomic apply unchanged --- fault tolerance is pre-commit only **in this iteration**. Conceptually the commit boundary is the **steepest riser on a recoverability gradient** (detection flips self -> external), **not** a hard wall; a future **player-authority retcon** tier reduces but never eliminates post-commit recovery cost (see **Recoverability gradient + optimistic proposal**). Design stance: account for LLM error at any point, do not aspire to an error-free LLM. Not this initiative.
 - **Seams:** BD-12 field ownership unchanged; fault tolerance does not authorize compiler **`operationKind`** invention.
 - **Client:** Consulting may ship as OOC / **`PublishMessage`** first; structured reply correlation is follow-on (out of scope unless plan updated).

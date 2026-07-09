@@ -15,6 +15,20 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 **Trust posture (v1):** **trusted-output** through terminal parse and positions ingress --- each hop's semantic fields are treated as settled until Error; identity embedding v1 is a partial exception migrating toward fault-tolerant closed-loop ([`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md)). General vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**).
 
+### Target handoff artifacts (FT-0 skeleton)
+
+**Runtime unchanged in FT-0** --- identity stage still emits `SpanGrounding`; no Consult handler path yet.
+
+FT-4 span-resolution types (guards only) live in [`spanResolution.ts`](spanResolution.ts):
+
+| Type | Role |
+| --- | --- |
+| `SpanCandidatePool` | Input evidence: ranked `candidates[]` per span (no `status` field) |
+| `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
+| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point) |
+
+Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult` stub: [`../../baseClasses.ts`](../../baseClasses.ts) (unwired until FT-3).
+
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
 ### Conceptual flow (classify through terminal parse)

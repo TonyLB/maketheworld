@@ -25,6 +25,8 @@
 
 **Wiring:** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error.
 
+**FT-0 migration note (2026-07-09):** v1 `EmbeddingMatchDecision.Resolved` is a **terminal commit-worthy** outcome today. The fault-tolerant gateway retires that posture: embedding (and lexical) signals feed a ranked `SpanCandidatePool` ([`../spanResolution.ts`](../spanResolution.ts)); auto-resolve moves to the FT-5 selector. Algorithm and thresholds are unchanged until FT-1 refactors `decideEmbeddingMatch`.
+
 ---
 
 ## Calibration findings (2026-07-07, Titan v2 256d quantized)
