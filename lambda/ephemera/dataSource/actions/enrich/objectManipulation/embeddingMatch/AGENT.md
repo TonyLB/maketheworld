@@ -19,7 +19,20 @@
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | Rank + decide (calibration + tests) |
 | [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate |
 | [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
-| [`thresholds.ts`](thresholds.ts) | Locked constants (`T_ABS`, `T_ABS_UNARY`, `T_MARGIN`) |
+| [`thresholds.ts`](thresholds.ts) | Locked constants (`T_ABS`, `T_ABS_UNARY`, `T_MARGIN`; FT-8 anchors `C_MIN`, `L_MIN`, `S_MIN`, flank costs) |
+
+## FT-1.1 relevance normalization (2026-07-09)
+
+Pure helpers for the fault-tolerant candidate pool (FT-1). **Not wired to production identity path** until FT-1.2 pool merge.
+
+| Module | Role |
+| --- | --- |
+| [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
+| [`lexicalRelevance`](lexicalRelevance.ts) | FT-8 substring-biased edit distance -> `[0,1]` |
+| [`admissibleShortSpans`](admissibleShortSpans.ts) | Catalog-derived short-span admissibility; `isLexicalChannelActive` scan gate |
+| [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
+
+Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**). Anchor constants are first-effort in `thresholds.ts`; lock in FT-1.3 calibration pass.
 
 **Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
 
