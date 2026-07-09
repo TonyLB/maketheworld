@@ -56,26 +56,49 @@ export const LEX_REMOTE_FLANK_MAX_DAMAGE = 0.2
 /** Decay rate for flank-length relevance vs match-span multiples (simulator A/B). */
 export const LEX_FLANK_RELEVANCE_K = 1
 
-// FT-1.1.5 tanh-centered flank combine (locked FT-1.3, 2026-07-09).
-// sigmoid(bias + e_L + e_R + e_Rm) where e_i = w_i * tanh((m_i - x_i) / s_i).
+// -----------------------------------------------------------------------------
+// FT-1.3.2-1.3.6 lexical flank combine (locked 2026-07-09).
+// Canonical snapshot: calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json
+// Sweeps: testing/flankChannelWeightSweep.ts (FT-1.3.5), testing/flankCombineBiasSweep.ts (FT-1.3.6)
+// FT-1.3.2: coverage-derived biasEff + adjoined positive damp (BIAS_MIN, BIAS_COVERAGE_SCALE, ADJOINED_POS_DAMP_SCALE)
+// FT-1.3.3: ratio-invariant adjoined (ADJOINED_FLANK_MIDPOINT_RATIO)
+// FT-1.3.4: ratio-invariant remote (REMOTE_FLANK_MIDPOINT_RATIO)
+// FT-1.3.5: LEX_ADJOINED_FLANK_WEIGHT=3.0, LEX_REMOTE_FLANK_WEIGHT=0.4
+// FT-1.3.6: LEX_FLANK_COMBINE_BIAS=1.5 (Pareto: highest biasMax with a/axe lex < T_JOINT_ABS)
+// coverage = patternLength / candidateTextLength drives biasEff; production channels use x/spanScale when context present.
 
 /** Outer sigmoid bias when all flank channels sit at their midpoints. */
-export const LEX_FLANK_COMBINE_BIAS = 2.6
+export const LEX_FLANK_COMBINE_BIAS = 1.5
 
 /** Steepness scale for adjoined left/right flank evidence channels. */
 export const LEX_ADJOINED_FLANK_SCALE = 1.5
 
 /** Weight for adjoined left/right flank evidence channels. */
-export const LEX_ADJOINED_FLANK_WEIGHT = 1.0
+export const LEX_ADJOINED_FLANK_WEIGHT = 3.0
 
-/** Remote flank midpoint as a multiple of spanScale (wrapper length neutral point). */
+/** Remote flank midpoint as a multiple of spanScale (wrapper length neutral point). Legacy absolute path. */
 export const LEX_REMOTE_FLANK_MIDPOINT_MULTIPLIER = 3
+
+/** FT-1.3.4: ratio-invariant remote midpoint (fraction of spanScale; neutral at 3x remote/span). */
+export const LEX_REMOTE_FLANK_MIDPOINT_RATIO = LEX_REMOTE_FLANK_MIDPOINT_MULTIPLIER
 
 /** Steepness scale for combined remote flank evidence channel. */
 export const LEX_REMOTE_FLANK_SCALE = 4
 
 /** Weight for combined remote flank evidence channel. */
-export const LEX_REMOTE_FLANK_WEIGHT = 0.9
+export const LEX_REMOTE_FLANK_WEIGHT = 0.4
+
+/** Outer sigmoid bias at zero embed coverage (fragment match). */
+export const LEX_FLANK_COMBINE_BIAS_MIN = 0
+
+/** Steepness of tanh lift on embed coverage for bias interpolation. */
+export const LEX_BIAS_COVERAGE_SCALE = 4
+
+/** Pattern-length scale for asymmetric adjoined positive evidence damp: tanh(patternLength / scale). */
+export const LEX_ADJOINED_POS_DAMP_SCALE = 3
+
+/** FT-1.3.3: ratio-invariant adjoined midpoint (fraction of spanScale; neutral flank ratio). */
+export const LEX_ADJOINED_FLANK_MIDPOINT_RATIO = 0.5
 
 // -----------------------------------------------------------------------------
 // FT-1.2 pool merge (locked FT-1.3, 2026-07-09).
@@ -118,9 +141,14 @@ export type RelevanceNormalizationParams = {
     lexRemoteFlankMaxDamage?: number
     lexFlankRelevanceK?: number
     lexFlankCombineBias?: number
+    lexFlankCombineBiasMin?: number
+    lexBiasCoverageScale?: number
+    lexAdjoinedPosDampScale?: number
+    lexAdjoinedFlankMidpointRatio?: number
     lexAdjoinedFlankScale?: number
     lexAdjoinedFlankWeight?: number
     lexRemoteFlankMidpointMultiplier?: number
+    lexRemoteFlankMidpointRatio?: number
     lexRemoteFlankScale?: number
     lexRemoteFlankWeight?: number
     jointRelevanceWL?: number

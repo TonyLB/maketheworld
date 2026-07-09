@@ -1,6 +1,7 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
 
 import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
+import type { RelevanceNormalizationParams } from '../thresholds'
 import {
     buildCandidatesFromIdentityCase,
     type IdentityCaseVectorPlan,
@@ -41,7 +42,9 @@ const vectorPlansByCaseId: Record<string, IdentityCaseVectorPlan> = {
     },
 }
 
-export const simulateEmbeddingIdentityCorpus = (): EmbeddingIdentityCorpusPoolResult[] => (
+export const simulateEmbeddingIdentityCorpus = (
+    params?: RelevanceNormalizationParams
+): EmbeddingIdentityCorpusPoolResult[] => (
     EMBEDDING_CALIBRATION_IDENTITY_CASES.map((identityCase) => {
         const vectorPlan = vectorPlansByCaseId[identityCase.id]
         if (!vectorPlan) {
@@ -52,7 +55,12 @@ export const simulateEmbeddingIdentityCorpus = (): EmbeddingIdentityCorpusPoolRe
             identityCase,
             vectorPlan
         )
-        const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, identityCase.span)
+        const simulation = simulateEmbeddingIdentityWithPool(
+            spanEmbedding,
+            candidates,
+            identityCase.span,
+            { params }
+        )
         const head = simulation.pool.candidates[0]
 
         return {

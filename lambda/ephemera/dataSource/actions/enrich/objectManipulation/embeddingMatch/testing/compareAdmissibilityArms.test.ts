@@ -3,6 +3,7 @@ import {
     compareAllAdmissibilityArms,
     evaluateAdmissibilityRetirement,
 } from './compareAdmissibilityArms'
+import { compareFlankCombineLegacyRows } from './compareFlankCombineLegacy'
 import { lexicalRelevance } from '../lexicalRelevance'
 import { T_JOINT_ABS, T_JOINT_MARGIN } from '../thresholds'
 
@@ -21,8 +22,26 @@ describe('compareAdmissibilityArms', () => {
         expect(axolotl).toBeGreaterThan(coaxial)
     })
 
-    it('short-span fixtures show spurious high lex without admissibility gate', () => {
-        const verdict = evaluateAdmissibilityRetirement()
+    it('FT-1.3.6 biasMax sweep lowers spurious a/axe lexical below T_JOINT_ABS', () => {
+        const [row] = compareFlankCombineLegacyRows([{ span: 'a', shortName: 'axe' }])
+        expect(row.mitigatedLex).toBeLessThan(row.legacyFlankScore)
+        expect(row.mitigatedLex).toBeLessThan(T_JOINT_ABS)
+    })
+
+    it('gem/gemstones scores above a/axe at equal embed coverage (FT-1.3.3)', () => {
+        expect(lexicalRelevance('gem', 'gemstones')).toBeGreaterThan(lexicalRelevance('a', 'axe'))
+    })
+
+    it('don/wimbledon is precisely symmetric with gem/gemstones (morphology guardrail)', () => {
+        const gemLex = lexicalRelevance('gem', 'gemstones')
+        const donLex = lexicalRelevance('don', 'wimbledon')
+        expect(donLex).toBeCloseTo(gemLex, 9)
+    })
+
+    it('legacy retirement harness still fails on expectTopLexBelow 0.35 with gate off', () => {
+        const verdict = evaluateAdmissibilityRetirement(compareAllAdmissibilityArms())
+        expect(verdict.pass).toBe(false)
+        expect(verdict.identityRankingRegressions).toEqual([])
         expect(verdict.shortSpanRegressions).toEqual(
             expect.arrayContaining([
                 'short-lex-001-length-1-a',
@@ -31,12 +50,6 @@ describe('compareAdmissibilityArms', () => {
                 'short-pool-002-ax-axe-only',
             ])
         )
-    })
-
-    it('admissibility retirement A/B fails --- gate required for length-1/2 spurious lex', () => {
-        const verdict = evaluateAdmissibilityRetirement(compareAllAdmissibilityArms())
-        expect(verdict.pass).toBe(false)
-        expect(verdict.identityRankingRegressions).toEqual([])
     })
 })
 

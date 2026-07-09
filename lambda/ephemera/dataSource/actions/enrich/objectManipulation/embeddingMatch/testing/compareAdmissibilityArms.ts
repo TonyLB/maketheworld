@@ -3,6 +3,7 @@ import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibrat
 import type { LexicalChannelPolicy } from '../buildSpanCandidatePool'
 import { lexicalRelevance } from '../lexicalRelevance'
 import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
+import type { RelevanceNormalizationParams } from '../thresholds'
 import { T_JOINT_ABS } from '../thresholds'
 
 import { buildCandidatesFromIdentityCase, type IdentityCaseVectorPlan } from './mockVectors'
@@ -79,8 +80,9 @@ const simulateWithPolicy = (
     spanEmbedding: ReturnType<typeof makeEmbeddingFromAxis>,
     candidates: ReturnType<typeof buildCandidatesFromIdentityCase>['candidates'],
     span: string,
-    lexicalChannelPolicy: LexicalChannelPolicy
-) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, { lexicalChannelPolicy })
+    lexicalChannelPolicy: LexicalChannelPolicy,
+    params?: RelevanceNormalizationParams
+) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, { lexicalChannelPolicy, params })
 
 const identityRankingRegression = (
     on: AdmissibilityArmMetrics,
@@ -94,7 +96,10 @@ const identityRankingRegression = (
     return onOrder !== offOrder
 }
 
-const compareIdentityCorpusCase = (caseId: string): AdmissibilityArmComparison => {
+const compareIdentityCorpusCase = (
+    caseId: string,
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison => {
     const identityCase = EMBEDDING_CALIBRATION_IDENTITY_CASES.find((entry) => entry.id === caseId)
     if (!identityCase) {
         throw new Error(`Missing identity case ${caseId}`)
@@ -106,10 +111,10 @@ const compareIdentityCorpusCase = (caseId: string): AdmissibilityArmComparison =
 
     const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(identityCase, vectorPlan)
     const on = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'admissibility')
+        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'admissibility', params)
     )
     const off = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'alwaysActive')
+        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, 'alwaysActive', params)
     )
 
     return {
@@ -123,10 +128,13 @@ const compareIdentityCorpusCase = (caseId: string): AdmissibilityArmComparison =
     }
 }
 
-const compareShortSpanLexicalCase = (fixture: ShortSpanLexicalCase): AdmissibilityArmComparison => {
+const compareShortSpanLexicalCase = (
+    fixture: ShortSpanLexicalCase,
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison => {
     const ranked = fixture.catalog.map((shortName) => ({
         shortName,
-        lexicalScore: lexicalRelevance(fixture.span, shortName),
+        lexicalScore: lexicalRelevance(fixture.span, shortName, params),
     }))
     ranked.sort((left, right) => right.lexicalScore - left.lexicalScore)
     const head = ranked[0]
@@ -167,7 +175,10 @@ const compareShortSpanLexicalCase = (fixture: ShortSpanLexicalCase): Admissibili
     }
 }
 
-const compareShortSpanPoolCase = (fixture: ShortSpanPoolCase): AdmissibilityArmComparison => {
+const compareShortSpanPoolCase = (
+    fixture: ShortSpanPoolCase,
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison => {
     const base = makeEmbeddingFromAxis(0)
     const candidates = buildCatalogCandidates(fixture.catalog, `OBJECT#${fixture.id}`).map(
         (candidate, index) => ({
@@ -178,10 +189,10 @@ const compareShortSpanPoolCase = (fixture: ShortSpanPoolCase): AdmissibilityArmC
     const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
 
     const on = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'admissibility')
+        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'admissibility', params)
     )
     const off = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'alwaysActive')
+        simulateWithPolicy(spanEmbedding, candidates, fixture.span, 'alwaysActive', params)
     )
 
     const shortSpanRegression = (() => {
@@ -220,20 +231,26 @@ const compareShortSpanPoolCase = (fixture: ShortSpanPoolCase): AdmissibilityArmC
     }
 }
 
-export const compareAdmissibilityArmsForIdentityCorpus = (): AdmissibilityArmComparison[] => (
+export const compareAdmissibilityArmsForIdentityCorpus = (
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison[] => (
     EMBEDDING_CALIBRATION_IDENTITY_CASES.map((identityCase) =>
-        compareIdentityCorpusCase(identityCase.id)
+        compareIdentityCorpusCase(identityCase.id, params)
     )
 )
 
-export const compareAdmissibilityArmsForShortSpanFixtures = (): AdmissibilityArmComparison[] => [
-    ...SHORT_SPAN_LEXICAL_CASES.map(compareShortSpanLexicalCase),
-    ...SHORT_SPAN_POOL_CASES.map(compareShortSpanPoolCase),
+export const compareAdmissibilityArmsForShortSpanFixtures = (
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison[] => [
+    ...SHORT_SPAN_LEXICAL_CASES.map((fixture) => compareShortSpanLexicalCase(fixture, params)),
+    ...SHORT_SPAN_POOL_CASES.map((fixture) => compareShortSpanPoolCase(fixture, params)),
 ]
 
-export const compareAllAdmissibilityArms = (): AdmissibilityArmComparison[] => [
-    ...compareAdmissibilityArmsForIdentityCorpus(),
-    ...compareAdmissibilityArmsForShortSpanFixtures(),
+export const compareAllAdmissibilityArms = (
+    params?: RelevanceNormalizationParams
+): AdmissibilityArmComparison[] => [
+    ...compareAdmissibilityArmsForIdentityCorpus(params),
+    ...compareAdmissibilityArmsForShortSpanFixtures(params),
 ]
 
 export type AdmissibilityAbVerdict = {

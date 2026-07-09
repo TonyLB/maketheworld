@@ -1,12 +1,14 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (v1 production shim + FT-1.2 pool builder + FT-1.3 calibration).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **Production path (v1):** open-loop terminal fast path (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)). **FT-1.2 (2026-07-09):** rank-all `SpanCandidatePool` builder with embed + lexical joint relevance. **FT-1.3 (2026-07-09):** locked FT-8 / FT-1.2 constants + proposed FT-5 `T_JOINT_*` floors; short-span admissibility **retained** (A/B retirement failed).
+**Status: shipped (v1 production shim + FT-1.2 pool builder + FT-1.3 calibration + FT-1.3.2-1.3.6 calibrated lexical combine).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **Production path (v1):** open-loop terminal fast path (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)). **FT-1.2 (2026-07-09):** rank-all `SpanCandidatePool` builder with embed + lexical joint relevance. **FT-1.3 (2026-07-09):** locked FT-8 / FT-1.2 constants + proposed FT-5 `T_JOINT_*` floors. **FT-1.3.2-1.3.6 (2026-07-09):** coverage-derived flank bias, ratio-invariant adjoined + remote channels, and sweep-locked flank weights / `biasMax` --- spurious `a/axe` lex clears `T_JOINT_ABS` (~0.40) without breaking morphology symmetry. **Short-span admissibility gate remains ON**; FT-1.3.1 retirement wiring deferred to a post-merge branch (legacy A/B harness still fails on `expectTopLexBelow: 0.35`).
 
 **Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
 **Pipeline context:** [`../AGENT.md`](../AGENT.md) step 4 (identity).
 
-**Calibration tooling:** [`../../../../../calibration/AGENT.md`](../../../../../calibration/AGENT.md).
+**Calibration tooling:** [`../../../../../calibration/AGENT.md`](../../../../../calibration/AGENT.md) --- Bedrock-backed operator runs, Lambda console handlers, and committed snapshot JSON under `calibration/objectMatch/snapshots/`.
+
+**Mocked calibration harnesses:** [`testing/`](testing/) --- Jest sweeps, A/B retirement checks, and identity-ordering invariants on deterministic mock vectors. **Not** production runtime and **not** Lambda-invokable; they exercise production combine code locally. Durable numeric artifacts commit under `calibration/objectMatch/snapshots/` (e.g. via [`generatePoolCalibrationSnapshot.test.ts`](../../../../../calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts)).
 
 ---
 
@@ -33,6 +35,9 @@ Rank-all candidate pool for fault-tolerant span grounding. **Not wired to `ident
 | [`testing/simulateEmbeddingIdentityCorpus`](testing/simulateEmbeddingIdentityCorpus.ts) | Identity corpus pool-metrics harness (ordering invariants, not v1 resolve rate alone) |
 | [`testing/compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) | Short-span admissibility on vs off A/B (FT-1.3) |
 | [`testing/shortSpanCalibrationCases`](testing/shortSpanCalibrationCases.ts) | Length-1/2 + `ax`/`axolotl` fixtures |
+| [`testing/compareFlankCombineLegacy`](testing/compareFlankCombineLegacy.ts) | Legacy vs mitigated flank-combine score table |
+| [`testing/flankCombineBiasSweep`](testing/flankCombineBiasSweep.ts) | `biasMax` grid sweep + lock helper (FT-1.3.6) |
+| [`testing/flankChannelWeightSweep`](testing/flankChannelWeightSweep.ts) | `(w_adjoined, w_remote)` grid sweep + lock helper (FT-1.3.5) |
 
 **Joint relevance (FT-1):**
 
@@ -68,13 +73,21 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 2. **Flank geometry** via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics):
 
 ```
-t_i     = (m_i - x_i) / s_i
-e_i     = w_i * tanh(t_i)
-flankScore = sigmoid(bias + e_L + e_R + e_Rm)
+x_L/R   = adjoinedLength / spanScale
+m_L/R   = LEX_ADJOINED_FLANK_MIDPOINT_RATIO (0.5)
+x_Rm    = remoteLength / spanScale              [production + context, FT-1.3.4]
+m_Rm    = LEX_REMOTE_FLANK_MIDPOINT_RATIO (3.0)
+e_L/R   = positive adjoined evidence * tanh(patternLength / LEX_ADJOINED_POS_DAMP_SCALE)
+          negative adjoined evidence at full weight
+e_Rm    = w_Rm * tanh((m_Rm - x_Rm) / s_Rm)
+coverage = patternLength / candidateTextLength
+lift     = tanh(LEX_BIAS_COVERAGE_SCALE * coverage) / tanh(LEX_BIAS_COVERAGE_SCALE)
+biasEff  = LEX_FLANK_COMBINE_BIAS_MIN + (LEX_FLANK_COMBINE_BIAS - MIN) * lift
+flankScore = sigmoid(biasEff + e_L + e_R + e_Rm)
 lexRelevance = editDistanceRelevance * flankScore
 ```
 
-Per-channel `m` / `s` / `w` and combine `bias` in [`thresholds.ts`](thresholds.ts) (`LEX_FLANK_COMBINE_BIAS`, `LEX_ADJOINED_FLANK_*`, `LEX_REMOTE_FLANK_*`); adjoined midpoint `m = spanScale / 2` at runtime. Locked FT-1.3 (2026-07-09). Legacy multiplicative asymptotic combine retained as `multiplicativeFlankScoreV1` for simulator A/B. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
+Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`lexicalRelevanceFromMetrics`](lexicalMatchMetrics.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
 
 Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
 
@@ -97,13 +110,40 @@ Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planni
 
 ## FT-1.3 calibration (2026-07-09)
 
-**Snapshot:** [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json) (mock Bedrock harness; confirm on dev stack live run).
+**Canonical snapshot:** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (mock Bedrock harness; FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Confirm on dev stack live run.
 
-**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance comments): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`.
+**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
 
 **Proposed FT-5 floors (unwired):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin.
 
-**Short-span admissibility A/B:** retirement **failed**. With `lexicalChannelPolicy: 'alwaysActive'`, length-1 `a` and inadmissible length-2 `ax` produce spurious lex ~0.94+ and joint heads above `T_JOINT_ABS`. Identity corpus ranking unchanged between arms. **Keep** [`admissibleShortSpans`](admissibleShortSpans.ts) / `isLexicalChannelActive`; FT-1.3.1 removal deferred.
+**Short-span admissibility A/B:** tuning hypothesis **validated** --- calibrated combine suppresses `a/axe` lex below `T_JOINT_ABS`. Legacy [`compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) retirement harness **still fails** on `expectTopLexBelow: 0.35` + flat weak embed mock; diverse-catalog length-1/2 fixtures still regress with gate off. Identity corpus ranking unchanged between arms. **Keep** [`admissibleShortSpans`](admissibleShortSpans.ts) / `isLexicalChannelActive` until **FT-1.3.1** (post-merge): revised retirement criteria, `alwaysActive` policy, gate removal. See [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-1.3.1**).
+
+**Morphology invariant:** lexical is string geometry, not semantics. `gem/gemstones` and `don/wimbledon` are **precisely symmetric** (3-char span, 6-char adjoined flank, 9-char candidate, 3/9 coverage) --- scores must remain equal; tuning must not prefer one over the other lexically.
+
+## FT-1.3.2-1.3.6 calibrated lexical combine (2026-07-09)
+
+Sequential experiments locked production lexical combine constants. Intermediate experiment snapshots are local-only (not committed); canonical record is the bias-sweep snapshot above.
+
+| Slice | Change | Locked value(s) |
+| --- | --- | --- |
+| FT-1.3.2 | Coverage-derived `biasEff(coverage)` + asymmetric adjoined positive damp | `BIAS_MIN=0`, `BIAS_COVERAGE_SCALE=4`, `ADJOINED_POS_DAMP_SCALE=3` |
+| FT-1.3.3 | Ratio-invariant adjoined L/R (`x/spanScale`, `m=0.5`) | `LEX_ADJOINED_FLANK_MIDPOINT_RATIO=0.5` |
+| FT-1.3.4 | Ratio-invariant remote (`remoteLength/spanScale`, `m=3.0`) | `LEX_REMOTE_FLANK_MIDPOINT_RATIO=3.0` |
+| FT-1.3.5 | Flank channel weight sweep | `w_adjoined=3.0`, `w_remote=0.4` |
+| FT-1.3.6 | `biasMax` sweep (Pareto: highest bias with `a/axe` < `T_JOINT_ABS`) | `LEX_FLANK_COMBINE_BIAS=1.5` |
+
+**Final scores (mocked harness):**
+
+| Pair | Lex (approx) |
+| --- | ---: |
+| `a` / `axe` | **~0.40** (< `T_JOINT_ABS`) |
+| `gem` / `gemstones` | **~0.50** |
+| `don` / `wimbledon` | **~0.50** (=== gem by morphology) |
+| `ax` / `rusty ax` vs `axle` | ~0.91 vs ~0.79 (gap ~0.12) |
+| `broom` / `broom` | ~0.97 |
+| Paraphrase joint | ~0.75 (unchanged) |
+
+**Harnesses:** [`testing/compareFlankCombineLegacy`](testing/compareFlankCombineLegacy.ts), [`testing/shortSpanMitigationSweep.test.ts`](testing/shortSpanMitigationSweep.test.ts) (FT-1.3.2/3 sensitivity bounds), [`testing/flankChannelWeightSweep`](testing/flankChannelWeightSweep.ts) (FT-1.3.5), [`testing/flankCombineBiasSweep`](testing/flankCombineBiasSweep.ts) (FT-1.3.6).
 
 **Index shape:** production remains `shortName`-only. No asymmetric ladder re-run (unchanged since 2026-07-07). Prior snapshot: [`asymmetric-identity-ladder-v1-2026-07-07.json`](../../../../../calibration/objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json).
 

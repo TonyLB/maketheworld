@@ -35,21 +35,22 @@ const mockInvokeEmbed = async ({ inputText }: { inputText: string }) => {
  * npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts
  */
 describe('generatePoolCalibrationSnapshot', () => {
-    it('writes pool calibration snapshot JSON', async () => {
+    it('writes pool calibration snapshot JSON (FT-1.3.6 biasMax sweep)', async () => {
         embeddingByNormalized.clear()
         const result = await runFullEmbeddingCalibration(undefined, { invokeEmbed: mockInvokeEmbed })
         const payload = {
-            snapshotId: 'embedding-identity-pool-v1-2026-07-09',
-            note: 'Mock Bedrock vectors (Jest harness). Re-run EmbeddingCalibrationCorpus on dev stack for live Titan confirmation.',
+            snapshotId: 'embedding-identity-pool-v1-2026-07-09-bias-sweep',
+            note: 'Mock Bedrock vectors (Jest harness). FT-1.3.2-6: coverage bias, ratio-invariant adjoined + remote, flank weights w_adjoined=3.0 w_remote=0.4, biasMax=1.5. a/axe lex below T_JOINT_ABS; gem/don morphology symmetric. Re-run EmbeddingCalibrationCorpus on dev stack for live Titan confirmation.',
             ...calibrationRunMetadata(),
             ...result,
         }
         const outPath = path.join(
             __dirname,
             'snapshots',
-            'embedding-identity-pool-v1-2026-07-09.json'
+            'embedding-identity-pool-v1-2026-07-09-bias-sweep.json'
         )
         fs.writeFileSync(outPath, `${JSON.stringify(payload, null, 2)}\n`)
+        expect(payload.snapshotId).toBe('embedding-identity-pool-v1-2026-07-09-bias-sweep')
         expect(result.identity.bucketSummaries[0]?.topJointRelevanceStats).toBeDefined()
         expect(fs.existsSync(outPath)).toBe(true)
     })

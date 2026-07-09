@@ -2,6 +2,8 @@
 
 Dev-only **read-only** tooling for tuning object-identity embedding thresholds. Lives under [`objectMatch/`](objectMatch/); production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
+**Layering:** this tree is Bedrock-backed operator tooling (Lambda invoke, corpus runs, snapshot JSON). Mocked parameter sweeps and admissibility A/B harnesses live in [`embeddingMatch/testing/`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/) --- see **Mocked calibration harnesses** in [`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Those harnesses feed the same locked constants; snapshots here are the durable record.
+
 Production context: [`../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md).
 
 ## Access
@@ -136,7 +138,7 @@ Use bucket stats to fit **FT-5 selector floors** (unwired until FT-5 ships):
 
 Optional `lexicalChannelPolicy: 'alwaysActive'` on `runIdentityCorpus` / `runFullEmbeddingCalibration` runs admissibility A/B arm B (FT-1.3).
 
-Snapshot (mock Bedrock harness, 2026-07-09): [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Re-run live `EmbeddingCalibrationCorpus` on dev stack to confirm Titan headroom.
+Snapshot (mock Bedrock harness, 2026-07-09): **canonical** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Intermediate experiment snapshots (shortspan-mitigation, ratio-invariant, flank-weight-sweep, etc.) are local-only and not committed. Re-run live `EmbeddingCalibrationCorpus` on dev stack to confirm Titan headroom.
 
 Regenerate mock snapshot: `npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts`
 
@@ -172,7 +174,7 @@ Re-run `EmbeddingCalibrationCorpus` and update `thresholds.ts` provenance commen
 Optional: commit snapshot JSON under [`objectMatch/snapshots/`](objectMatch/snapshots/) after a live run for model-migration diffs.
 
 - v1 shim (2026-07-07): `T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008` --- [`embedding-identity-v1-2026-07-07.json`](objectMatch/snapshots/embedding-identity-v1-2026-07-07.json)
-- FT-1.3 pool metrics (2026-07-09): `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` + FT-8/FT-1.2 constants --- [`thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts), [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json)
+- FT-1.3 pool metrics (2026-07-09): `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` + FT-8/FT-1.2 constants --- [`thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts), canonical [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json)
 
 ## Local verification (mocked Bedrock)
 

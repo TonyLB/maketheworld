@@ -194,13 +194,17 @@ export function editDistanceRelevance(
 export function lexicalRelevanceFromMetrics(
     metrics: LexicalMatchMetrics,
     patternLength: number,
+    candidateTextLength: number,
     params: RelevanceNormalizationParams = {}
 ): number {
     const spanLen = matchSpanLength(metrics.matchSpan)
     const spanScale = Math.max(spanLen, patternLength, 1)
 
     const editFactor = editDistanceRelevance(metrics.editDistance, spanLen, patternLength)
-    const flankScore = tanhCenteredFlankScore(metrics, spanScale, params)
+    const flankScore = tanhCenteredFlankScore(metrics, spanScale, params, {
+        patternLength,
+        candidateTextLength,
+    })
 
     return clampUnitInterval(editFactor * flankScore)
 }

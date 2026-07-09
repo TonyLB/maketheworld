@@ -619,10 +619,41 @@ Reviewed [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.conc
   - [X] **Asymmetric ladder:** index shape unchanged (`shortName`-only) --- no re-run. Prior snapshot [`asymmetric-identity-ladder-v1-2026-07-07.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json); pool snapshot [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json).
   - [X] FT-5 confidence stage owns migrated floors: `T_ABS`/`T_MARGIN` scoped to v1 production shim (raw cosine); `T_JOINT_*` proposed for FT-5 selector on `jointRelevance` --- **not** pool admission. Documented in [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) (**Threshold ownership**).
 
-- [ ] **FT-1.3.1 Short-span admissibility retirement** (only if FT-1.3 A/B passes with admissibility off)
-  - [ ] Remove [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + `isLexicalChannelActive` from pool builder; lexical always scored per `(span, shortName)`.
-  - [ ] Remove `S_min` gate and absent-channel drop-`w_l` paths tied solely to short-span admissibility; update tests (retire length-1 absent / `ax` vs `axe`-only absent cases or rewrite as low-lex-score expectations).
-  - [ ] Update FT-8 steady-state docs; note upstream junk-span discard (FT-1.4) remains optional QoL, not load-bearing.
+- [X] **FT-1.3.2 Soft short-span lexical mitigation (experiment)** **shipped 2026-07-09**
+  - [X] Implement coverage-derived `biasEff(coverage)` + asymmetric adjoined positive damp in [`relevanceCombine.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts); thread `FlankCombineContext` from [`lexicalRelevanceFromMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts).
+  - [X] Re-run A/B --- **retirement still fails** (`a`/`axe` ~0.90 lex, above `T_JOINT_ABS`); identity corpus ranking unchanged. Remote channel unchanged --- vacuity bonus is documented follow-up.
+  - [X] Pool snapshot with mitigation note: [`embedding-identity-pool-v1-2026-07-09-shortspan-mitigation.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-shortspan-mitigation.json). Admissibility gate **on** in production until a future slice passes retirement.
+
+- [X] **FT-1.3.3 Ratio-invariant adjoined + split retirement criteria (experiment)** **shipped 2026-07-09**
+  - [X] Adjoined L/R use `x/spanScale`, `m=LEX_ADJOINED_FLANK_MIDPOINT_RATIO` when `FlankCombineContext` present; FT-1.3.2 coverage bias + positive damp retained.
+  - [X] Add proportionate-coverage fixtures (`gem`/`gemstones` vs `a`/`axe`); `gem`/`gemstones` > `a`/`axe` at equal embed coverage; `ax`/`axolotl` > `ax`/`coaxial` preserved.
+  - [X] **Revise FT-1.3.1 retirement bar:** diverse-catalog length-1 spurious lex + inadmissible `ax` must stay below `T_JOINT_ABS` with gate off; unary `a`/`axe` shorthand may score moderately --- not a failure. Full gate retirement still blocked (remote vacuity + diverse-catalog).
+  - [X] Snapshot: [`embedding-identity-pool-v1-2026-07-09-ratio-invariant.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-ratio-invariant.json).
+
+- [X] **FT-1.3.4 Ratio-invariant remote (experiment)** **shipped 2026-07-09**
+  - [X] Remote channel uses `remoteLength/spanScale`, `m=LEX_REMOTE_FLANK_MIDPOINT_RATIO` when context present (parallel to FT-1.3.3 adjoined).
+  - [X] Equal zero-remote vacuity across span scales; `gem`/`gemstones` no longer inflated vs `a`/`axe` on remote. `ax`/`axle` vacuity bonus reduced; gap vs `rusty ax` narrowed (coverage bias still favors axle).
+  - [X] **FT-1.3.5 flank weight sweep:** locked `w_adjoined=3.0`, `w_remote=0.4`; `a/axe` ~0.63, `gem`/`gemstones` ~0.72, identity ordering preserved.
+
+- [X] **FT-1.3.5 Flank channel weight sweep (experiment)** **shipped 2026-07-09**
+  - [X] Joint sweep on ratio-invariant production path; locked `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`.
+  - [X] Higher adjoined weight amplifies L/R flank geometry; lower remote weight drops zero-remote vacuity floor. `rusty ax` > `axle` gap opened (~0.05).
+  - [X] Retirement still fails (`a/axe` ~0.63 > `T_JOINT_ABS`); gate **on**. Superseded for production bias by FT-1.3.6.
+
+- [X] **FT-1.3.6 biasMax sweep (experiment)** **shipped 2026-07-09**
+  - [X] Pareto lock: highest `biasMax` with `a/axe` lex < `T_JOINT_ABS` -> `LEX_FLANK_COMBINE_BIAS=1.5`.
+  - [X] `a/axe` ~0.40 (< `T_JOINT_ABS`); `gem/gemstones` === `don/wimbledon` ~0.50 (morphology symmetry); `rusty ax` vs `axle` ~0.91 vs ~0.79.
+  - [X] Canonical snapshot: [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json). Tuning hypothesis validated; admissibility gate **on** until FT-1.3.1.
+
+- [ ] **FT-1.3.1 Short-span admissibility retirement** (**post-merge branch** --- revised criteria; not in FT-1.3.2-6 merge)
+  - [ ] **Identity ranking unchanged** between admissibility on vs `alwaysActive`.
+  - [ ] **Morphology ordering invariants:** `gem/gemstones` > `a/axe`; must not tune so `gem > don` lexically (precisely symmetric pairs).
+  - [ ] **`gem` === `don` symmetry guardrail** on locked morphology fixtures.
+  - [ ] **Spurious heads below `T_JOINT_ABS`** on joint with **realistic embed** (not flat 0.2 mock); drop or relax legacy `expectTopLexBelow: 0.35`.
+  - [ ] **Diverse-catalog length-1:** with gate off, top joint on `a` vs multi-token catalog must not spuriously clear `T_JOINT_ABS` without margin (or keep length-1 gate as narrow exception).
+  - [ ] **Inadmissible length-2** (`ax` vs `rusty axe`-only): joint head below `T_JOINT_ABS` with gate off.
+  - [ ] **Unary shorthand OK:** `a` vs `['axe']` may score moderate lex; auto-resolve still gated by embed + FT-5 margin.
+  - [ ] Switch default `lexicalChannelPolicy` to `alwaysActive`; remove or narrow [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) only when above pass.
 
 - [ ] **FT-1.4 Upstream junk-span discard (deferred QoL --- not Gateway-blocking; independent of FT-1.3.1 admissibility retirement)**
   - [ ] Classify / frame extract: fast-reject when normalized span is empty or below minimum length after article strip (`get a` -> `a`, etc.) -> Abstain / Unknown without pool build.
@@ -699,7 +730,7 @@ npm run build
 | --- | --- |
 | Fault-tolerant task plan | Done |
 | FT-0 framing + type skeleton | **Done (2026-07-09)** --- `spanResolution.ts` guards + `ParseCommandConsultResult` stub; outcome mapping documented; runtime unchanged |
-| FT-1 candidate pool (embedding + lexical) | **FT-1.3 calibration done (2026-07-09)** --- locked FT-8/FT-1.2 constants + proposed `T_JOINT_*`; admissibility **retained** (A/B retirement failed); pool snapshot committed; production `identityStage` still v1 until FT-2 |
+| FT-1 candidate pool (embedding + lexical) | **FT-1.3.2-1.3.6 calibrated combine done (2026-07-09)** --- locked lexical constants; `a/axe` lex < `T_JOINT_ABS`; admissibility **retained** (FT-1.3.1 deferred post-merge); canonical snapshot `embedding-identity-pool-v1-2026-07-09-bias-sweep.json`; production `identityStage` still v1 until FT-2 |
 | FT-8 per-signal relevance normalization | **Decided + calibrated (2026-07-09)**: log map for embed; Sellers + tanh flank combine for lex; anchor constants locked in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts); short-span admissibility retained |
 | FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
 | FT-3 Abstain vs Consult | **Decided (2026-07-08)**: complexity LLM + frame extract retired as distinct hops; owner map (proposer = Abstain/Consult, shared validator = defer, FT-5 = auto-resolve / selection gate); no narrow-scope tier-2 LLM. Wire shape: **new `ParseCommandResult` Consult variant**, actions emits alternate proposed commands + perception assembles copy, **not resumable** this iteration. Variant types land with FT-4 |
@@ -715,6 +746,12 @@ npm run build
 
 - **Sibling plan:** [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- Phase C **must not** start until **Gateway exit** here is complete.
 - **FT-0 shipped (2026-07-09):** [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) defines `SpanCandidatePool`, `ObjectSpanCandidate`, `SpanResolutionOutcome` + guards; `ParseCommandConsultResult` stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired). See **FT-0 outcome mapping** in this plan.
+- **FT-1.3.2-1.3.6 calibrated lexical combine (2026-07-09):** sequential experiments locked coverage bias, ratio-invariant adjoined + remote, `w_adjoined=3.0`, `w_remote=0.4`, `biasMax=1.5`. `a/axe` lex ~0.40 (< `T_JOINT_ABS`); `gem/gemstones` === `don/wimbledon` by morphology. Canonical snapshot [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json). Gate **on**; legacy A/B still fails `expectTopLexBelow: 0.35` --- FT-1.3.1 post-merge.
+- **FT-1.3.6 biasMax sweep (2026-07-09):** `LEX_FLANK_COMBINE_BIAS=1.5`; see canonical snapshot above.
+- **FT-1.3.5 flank weight sweep (2026-07-09):** locked `w_adjoined=3.0`, `w_remote=0.4`. Superseded for bias by FT-1.3.6.
+- **FT-1.3.4 ratio-invariant remote (2026-07-09):** remote `x/spanScale`; equal zero-remote vacuity; `axle` vacuity bonus reduced vs `rusty ax`. Superseded by FT-1.3.5 for production constants.
+- **FT-1.3.3 ratio-invariant adjoined (2026-07-09):** adjoined L/R normalized by `spanScale`; split retirement criteria documented for FT-1.3.1.
+- **FT-1.3.2 short-span mitigation (2026-07-09):** coverage-derived flank bias + asymmetric adjoined positive damp shipped in production lexical combine. Gateway exit still blocked (FT-2, FT-3, FT-5).
 - **FT-1.3 calibration shipped (2026-07-09):** locked FT-8/FT-1.2 constants + proposed FT-5 `T_JOINT_*` in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts); pool snapshot [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../lambda/ephemera/calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json); [`compareAdmissibilityArms`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/compareAdmissibilityArms.ts) A/B --- **admissibility retirement failed** (length-1/2 spurious lex); FT-1.3.1 deferred. `lexicalChannelPolicy` on pool builder + calibration for A/B. Threshold ownership: v1 `T_ABS` = production shim only; FT-5 owns `T_JOINT_*` on joint relevance.
 - **FT-1.1.5 lexical combine shipped (2026-07-09):** [`evidenceNumerics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/evidenceNumerics.ts), [`relevanceCombine`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts) (`tanhCenteredFlankScore` production, `multiplicativeFlankScoreV1` simulator A/B); `lexicalRelevanceFromMetrics` wired to edit gate * tanh flank combine. Provisional flank-combine constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts). Identity corpus lexical harness: [`testing/simulateLexicalIdentityCorpus`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/simulateLexicalIdentityCorpus.ts) --- tanh spreads more middle-band mass on long-wrapper cases vs v1 product; ordering invariants (`ax`/`axolotl` > `ax`/`coaxial`, paraphrase/absent tails) pass.
 - **FT-1.1 helpers shipped (2026-07-09):** [`embedRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/embedRelevance.ts), Sellers + [`lexicalRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalRelevance.ts) ([`lexicalMatchMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts)), [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + FT-8 anchor constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts). Token-overlap A/B baseline in [`embeddingMatch/testing/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/).

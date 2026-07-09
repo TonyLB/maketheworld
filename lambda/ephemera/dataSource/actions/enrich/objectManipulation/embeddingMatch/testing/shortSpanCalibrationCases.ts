@@ -56,6 +56,26 @@ export const SHORT_SPAN_LEXICAL_CASES: readonly ShortSpanLexicalCase[] = [
         expectHeadAbove: 'rusty ax',
         notes: 'Short span with admissible catalog token.',
     },
+    {
+        id: 'short-lex-005-unary-a-axe-shorthand',
+        span: 'a',
+        catalog: ['axe'],
+        notes: 'Unary axe catalog: a as shorthand may score moderately high; not a diverse-catalog spurious case.',
+    },
+    {
+        id: 'short-lex-006-gem-gemstones-proportionate',
+        span: 'gem',
+        catalog: ['gemstones', 'anvil'],
+        expectHeadAbove: 'anvil',
+        notes: 'Proportionate coverage control (1/3 embed); legitimate stem should beat unrelated catalog entry.',
+    },
+    {
+        id: 'short-lex-007-don-wimbledon-symmetry',
+        span: 'don',
+        catalog: ['wimbledon', 'anvil'],
+        expectHeadAbove: 'anvil',
+        notes: 'Morphology mirror of gem/gemstones (3-char span, 6-char adjoined, 9-char candidate, 3/9 coverage); lex must match gem pair.',
+    },
 ]
 
 export const SHORT_SPAN_POOL_CASES: readonly ShortSpanPoolCase[] = [
@@ -80,6 +100,12 @@ export const SHORT_SPAN_POOL_CASES: readonly ShortSpanPoolCase[] = [
         catalog: ['axolotl', 'coaxial'],
         expectHeadLabel: 'axolotl',
         notes: 'Pool ordering invariant with mocked embed tie.',
+    },
+    {
+        id: 'short-pool-004-unary-a-axe-shorthand',
+        span: 'a',
+        catalog: ['axe'],
+        notes: 'Unary shorthand: joint head may clear lexical bar; embed/mock tie is weak --- retirement uses split criteria.',
     },
 ]
 

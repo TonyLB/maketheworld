@@ -152,14 +152,14 @@ describe('editDistanceRelevance', () => {
 describe('lexicalRelevanceFromMetrics', () => {
     it('documents sellers alignment for paraphrase (calibration-owned separation)', () => {
         const metrics = computeLexicalMatchMetrics('broom', 'sweeping tool')
-        const score = lexicalRelevanceFromMetrics(metrics, 5)
+        const score = lexicalRelevanceFromMetrics(metrics, 5, 'sweeping tool'.length)
         expect(score).toBeLessThan(0.4)
         expect(metrics.editDistance).toBeGreaterThan(0)
     })
 
     it('combines edit gate with tanh flank score for axle vs ax', () => {
         const metrics = computeLexicalMatchMetrics('ax', 'axle')
-        const score = lexicalRelevanceFromMetrics(metrics, 2)
+        const score = lexicalRelevanceFromMetrics(metrics, 2, 'axle'.length)
         const editFactor = editDistanceRelevance(metrics.editDistance, 2, 2)
         expect(score).toBeLessThanOrEqual(editFactor)
         expect(score).toBeGreaterThan(0)

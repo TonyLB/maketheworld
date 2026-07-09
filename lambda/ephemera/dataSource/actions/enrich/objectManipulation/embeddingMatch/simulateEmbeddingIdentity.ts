@@ -5,6 +5,7 @@ import { rankCatalogByCosineSimilarity } from './rankCatalogByCosineSimilarity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import type { SpanCandidatePool } from '../spanResolution'
+import type { RelevanceNormalizationParams } from './thresholds'
 
 export type EmbeddingIdentitySimulationMetrics = {
     topJointRelevance: number
@@ -22,6 +23,7 @@ export type EmbeddingIdentitySimulation = {
 
 export type SimulateEmbeddingIdentityWithPoolOptions = {
     lexicalChannelPolicy?: LexicalChannelPolicy
+    params?: RelevanceNormalizationParams
 }
 
 const decideLegacyEmbeddingMatch = (
@@ -61,6 +63,7 @@ export function simulateEmbeddingIdentityWithPool(
     const pool = buildSpanCandidatePool(span, candidates, {
         spanEmbedding,
         lexicalChannelPolicy: options.lexicalChannelPolicy,
+        params: options.params,
     })
     const lexicalChannelActive = pool.candidates.some(
         (candidate) => candidate.lexRelevance !== undefined
