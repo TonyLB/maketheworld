@@ -5,8 +5,9 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { rankCatalogByCosineSimilarity } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity'
+import type { LexicalChannelPolicy } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool'
 import { simulateEmbeddingIdentityWithPool } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity'
-import { T_ABS, T_ABS_UNARY, T_MARGIN } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds'
+import { T_ABS, T_ABS_UNARY, T_JOINT_ABS, T_JOINT_MARGIN, T_MARGIN } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds'
 import type {
     EmbeddingMatchCandidate,
     EmbeddingMatchDecision,
@@ -93,6 +94,18 @@ export type IdentityCorpusCaseResult = IdentityCalibrationResult & {
     expectedVerdict?: 'resolve' | 'abstain'
 }
 
+export type IdentityCorpusBucketSummary = NumericBucketStats & {
+    bucket: EmbeddingCalibrationBucket
+    bestSimStats: NumericBucketStats
+    marginStats: NumericBucketStats
+    ratioStats: NumericBucketStats
+    topJointRelevanceStats: NumericBucketStats
+    topMarginStats: NumericBucketStats
+    shortlistSizeStats: NumericBucketStats
+    suggestedHeadroom?: string
+    suggestedJointFloorHeadroom?: string
+}
+
 export type MarginRatioComparison = {
     absoluteGap: NumericBucketStats
     ratio: NumericBucketStats
@@ -100,6 +113,29 @@ export type MarginRatioComparison = {
 }
 
 export type RunEmbeddingCalibrationDeps = EmbedNormalizedSemanticTextDeps
+
+export type RunEmbeddingCalibrationOptions = {
+    lexicalChannelPolicy?: LexicalChannelPolicy
+}
+
+const headroomNoteForJointBucket = (
+    bucket: EmbeddingCalibrationBucket,
+    jointStats: NumericBucketStats
+): string | undefined => {
+    switch (bucket) {
+        case 'absent-object':
+        case 'hard-negative':
+        case 'unary-trap':
+        case 'synonym-without-shared-tokens':
+            return `T_JOINT_ABS upper bound hint: ${bucket} max topJointRelevance ${jointStats.max.toFixed(4)}`
+        case 'positive-paraphrase':
+            return `T_JOINT_ABS lower bound hint: positive-paraphrase min topJointRelevance ${jointStats.min.toFixed(4)}`
+        case 'duplicate-shortName':
+            return `T_JOINT_MARGIN hint: duplicate-shortName thin margin expected; median topMargin ${jointStats.median.toFixed(4)}`
+        default:
+            return undefined
+    }
+}
 
 export const median = (values: readonly number[]): number => {
     if (values.length === 0) {
@@ -287,7 +323,8 @@ const marginAndRatio = (
 
 export async function simulateIdentityCalibration(
     input: { span: string; catalog: readonly string[] },
-    deps: RunEmbeddingCalibrationDeps = {}
+    deps: RunEmbeddingCalibrationDeps = {},
+    options: RunEmbeddingCalibrationOptions = {}
 ): Promise<IdentityCalibrationResult | { error: string }> {
     const { span, catalog } = input
     if (!span || typeof span !== 'string') {
@@ -318,7 +355,9 @@ export async function simulateIdentityCalibration(
 
     const candidates = buildCalibrationCandidates(catalog, catalogEmbeddings)
     const rankedScores = rankCatalogByCosineSimilarity(spanEmbedding, candidates)
-    const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span)
+    const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, {
+        lexicalChannelPolicy: options.lexicalChannelPolicy,
+    })
     const decision = simulation.legacyDecision
     const { margin, ratio } = marginAndRatio(rankedScores)
     const corpusMatch = findMatchingCorpusCase(span, catalog)
@@ -349,18 +388,11 @@ export async function simulateIdentityCalibration(
 
 export async function runIdentityCorpus(
     bucket?: EmbeddingCalibrationBucket,
-    deps: RunEmbeddingCalibrationDeps = {}
+    deps: RunEmbeddingCalibrationDeps = {},
+    options: RunEmbeddingCalibrationOptions = {}
 ): Promise<{
     cases: IdentityCorpusCaseResult[]
-    bucketSummaries: Array<
-        NumericBucketStats & {
-            bucket: EmbeddingCalibrationBucket
-            bestSimStats: NumericBucketStats
-            marginStats: NumericBucketStats
-            ratioStats: NumericBucketStats
-            suggestedHeadroom?: string
-        }
-    >
+    bucketSummaries: IdentityCorpusBucketSummary[]
     marginRatioComparison: MarginRatioComparison
 }> {
     const casesToRun = filterCasesByBucket(EMBEDDING_CALIBRATION_IDENTITY_CASES, bucket)
@@ -369,7 +401,8 @@ export async function runIdentityCorpus(
     for (const identityCase of casesToRun) {
         const result = await simulateIdentityCalibration(
             { span: identityCase.span, catalog: identityCase.catalog },
-            deps
+            deps,
+            options
         )
         if ('error' in result) {
             throw new Error(`identity case ${identityCase.id}: ${result.error}`)
@@ -400,7 +433,7 @@ export async function runIdentityCorpus(
         note: 'Compare absolute-gap (T_MARGIN) vs ratio (R_MARGIN) separation on multi-catalog identity cases for EM-D2.',
     }
 
-    const bucketSummaries = buckets.map((bucketName) => {
+    const bucketSummaries: IdentityCorpusBucketSummary[] = buckets.map((bucketName) => {
         const bucketCases = cases.filter((entry) => entry.bucket === bucketName)
         const bestSims = bucketCases.map((entry) => entry.rankedScores[0]?.similarity ?? 0)
         const bucketMargins = bucketCases
@@ -409,14 +442,22 @@ export async function runIdentityCorpus(
         const bucketRatios = bucketCases
             .map((entry) => entry.ratio)
             .filter((value): value is number => value !== null)
+        const topJointRelevances = bucketCases.map((entry) => entry.poolMetrics?.topJointRelevance ?? 0)
+        const topMargins = bucketCases.map((entry) => entry.poolMetrics?.topMargin ?? 0)
+        const shortlistSizes = bucketCases.map((entry) => entry.poolMetrics?.shortlistSize ?? 0)
         const stats = bucketStats(bestSims)
+        const topJointRelevanceStats = bucketStats(topJointRelevances)
         return {
             bucket: bucketName,
             ...stats,
             bestSimStats: stats,
             marginStats: bucketStats(bucketMargins),
             ratioStats: bucketStats(bucketRatios),
+            topJointRelevanceStats,
+            topMarginStats: bucketStats(topMargins),
+            shortlistSizeStats: bucketStats(shortlistSizes),
             suggestedHeadroom: headroomNoteForBucket(bucketName, stats),
+            suggestedJointFloorHeadroom: headroomNoteForJointBucket(bucketName, topJointRelevanceStats),
         }
     })
 
@@ -425,7 +466,8 @@ export async function runIdentityCorpus(
 
 export async function runFullEmbeddingCalibration(
     bucket?: EmbeddingCalibrationBucket,
-    deps: RunEmbeddingCalibrationDeps = {}
+    deps: RunEmbeddingCalibrationDeps = {},
+    options: RunEmbeddingCalibrationOptions = {}
 ): Promise<{
     metadata: CalibrationRunMetadata
     pairs: Awaited<ReturnType<typeof runPairCorpus>>
@@ -433,7 +475,7 @@ export async function runFullEmbeddingCalibration(
 }> {
     const [pairs, identity] = await Promise.all([
         runPairCorpus(bucket, deps),
-        runIdentityCorpus(bucket, deps),
+        runIdentityCorpus(bucket, deps, options),
     ])
     return {
         metadata: calibrationRunMetadata(),

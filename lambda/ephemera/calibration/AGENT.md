@@ -2,6 +2,8 @@
 
 Dev-only **read-only** tooling for tuning object-identity embedding thresholds. Lives under [`objectMatch/`](objectMatch/); production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
+**Layering:** this tree is Bedrock-backed operator tooling (Lambda invoke, corpus runs, snapshot JSON). Mocked parameter sweeps and admissibility A/B harnesses live in [`embeddingMatch/testing/`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/) --- see **Mocked calibration harnesses** in [`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Those harnesses feed the same locked constants; snapshots here are the durable record.
+
 Production context: [`../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md).
 
 ## Access
@@ -98,18 +100,47 @@ Corpus definitions: [`objectMatch/corpus.ts`](objectMatch/corpus.ts). Pure score
 
 ## Interpreting output
 
-### Absolute floors
+### Absolute floors (v1 production shim --- raw cosine)
 
 | Constant | Role |
 | --- | --- |
 | `T_ABS` | Multi-candidate floor; primary guard when requested object is absent from catalog |
 | `T_ABS_UNARY` | Unary catalog floor; must stay **> T_ABS** (no lexical backstop) |
 
+**Ownership:** v1 terminal `decideEmbeddingMatch` only --- **not** pool admission. FT-5 selector will use `T_JOINT_*` on joint relevance (see below).
+
 Use identity corpus bucket stats:
 
 - **`absent-object`**: set `T_ABS` above max `sim_best` in this bucket
 - **`unary-trap`** / **`synonym-without-shared-tokens`**: set `T_ABS_UNARY` above max `sim_best`; verify headroom over `T_ABS`
 - **`positive-paraphrase`**: ensure chosen floors still allow resolve on `identity-003-broom-paraphrase`
+
+### Pool metrics (FT-1.3 --- joint relevance scale)
+
+`EmbeddingCalibrationCorpus` identity results now include per-case `poolMetrics` (`topJointRelevance`, `topMargin`, `shortlistSize`, `lexicalChannelActive`) and bucket summaries:
+
+- `topJointRelevanceStats` --- min/median/max of head `jointRelevance` per bucket
+- `topMarginStats` --- min/median/max of head `marginToRunnerUp`
+- `shortlistSizeStats` --- gap-trim shortlist length distribution
+- `suggestedJointFloorHeadroom` --- hints for FT-5 `T_JOINT_ABS` / `T_JOINT_MARGIN`
+
+Use bucket stats to fit **FT-5 selector floors** (unwired until FT-5 ships):
+
+| Constant | Role |
+| --- | --- |
+| `T_JOINT_ABS` | Multi-candidate minimum top-1 `jointRelevance` for auto-resolve |
+| `T_JOINT_ABS_UNARY` | Unary-catalog joint floor; must stay **> T_JOINT_ABS** |
+| `T_JOINT_MARGIN` | Minimum `jointRelevance` gap top-1 vs top-2 |
+
+- **`absent-object` / `unary-trap`**: `T_JOINT_ABS` above max `topJointRelevance` in bucket
+- **`positive-paraphrase`**: min `topJointRelevance` should clear `T_JOINT_ABS`; margin should clear `T_JOINT_MARGIN`
+- **`duplicate-shortName`**: thin `topMargin` --- must stay below `T_JOINT_MARGIN`
+
+Optional `lexicalChannelPolicy: 'alwaysActive'` on `runIdentityCorpus` / `runFullEmbeddingCalibration` runs admissibility A/B arm B (FT-1.3).
+
+Snapshot (mock Bedrock harness, 2026-07-09): **canonical** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Intermediate experiment snapshots (shortspan-mitigation, ratio-invariant, flank-weight-sweep, etc.) are local-only and not committed. Re-run live `EmbeddingCalibrationCorpus` on dev stack to confirm Titan headroom.
+
+Regenerate mock snapshot: `npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts`
 
 ### Margin rule (EM-D2)
 
@@ -140,7 +171,10 @@ Re-run `EmbeddingCalibrationCorpus` and update `thresholds.ts` provenance commen
 - `SEMANTIC_EMBEDDING_V1_DIMENSIONS` or encoding
 - Normalization rules in `normalizeShortNameForEmbedding`
 
-Optional: commit snapshot JSON under [`objectMatch/snapshots/`](objectMatch/snapshots/) after a live run for model-migration diffs. Locked constants (2026-07-07): `T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008` --- see [`thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts) and [`embedding-identity-v1-2026-07-07.json`](objectMatch/snapshots/embedding-identity-v1-2026-07-07.json).
+Optional: commit snapshot JSON under [`objectMatch/snapshots/`](objectMatch/snapshots/) after a live run for model-migration diffs.
+
+- v1 shim (2026-07-07): `T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008` --- [`embedding-identity-v1-2026-07-07.json`](objectMatch/snapshots/embedding-identity-v1-2026-07-07.json)
+- FT-1.3 pool metrics (2026-07-09): `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` + FT-8/FT-1.2 constants --- [`thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts), canonical [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json)
 
 ## Local verification (mocked Bedrock)
 

@@ -1,0 +1,1016 @@
+{
+  "snapshotId": "embedding-identity-pool-v1-2026-07-09",
+  "note": "Mock Bedrock vectors (Jest harness). Rolling default snapshot; authoritative FT-1.3.2-6 calibration record is embedding-identity-pool-v1-2026-07-09-bias-sweep.json. Re-run EmbeddingCalibrationCorpus on dev stack for live Titan confirmation.",
+  "corpusId": "embedding-identity-v1",
+  "modelId": "amazon.titan-embed-text-v2:0",
+  "dimensions": 256,
+  "calibratedAt": "2026-07-09T19:35:17.252Z",
+  "metadata": {
+    "corpusId": "embedding-identity-v1",
+    "modelId": "amazon.titan-embed-text-v2:0",
+    "dimensions": 256,
+    "calibratedAt": "2026-07-09T19:35:17.251Z"
+  },
+  "pairs": {
+    "cases": [
+      {
+        "id": "pair-001-broom-paraphrase",
+        "bucket": "positive-paraphrase",
+        "left": "broom",
+        "right": "sweeping tool",
+        "leftNormalized": "broom",
+        "rightNormalized": "sweeping tool",
+        "similarity": 0.9934857020645665,
+        "modelId": "amazon.titan-embed-text-v2:0",
+        "dimensions": 256
+      },
+      {
+        "id": "pair-002-sword-rapier",
+        "bucket": "synonym-without-shared-tokens",
+        "left": "sword",
+        "right": "ornate rapier",
+        "leftNormalized": "sword",
+        "rightNormalized": "ornate rapier",
+        "similarity": 0.9928335340869756,
+        "modelId": "amazon.titan-embed-text-v2:0",
+        "dimensions": 256
+      },
+      {
+        "id": "pair-003-broom-lantern",
+        "bucket": "hard-negative",
+        "left": "broom",
+        "right": "lantern",
+        "leftNormalized": "broom",
+        "rightNormalized": "lantern",
+        "similarity": 0.9783817057081263,
+        "modelId": "amazon.titan-embed-text-v2:0",
+        "dimensions": 256
+      },
+      {
+        "id": "pair-004-anvil-hammer",
+        "bucket": "hard-negative",
+        "left": "anvil",
+        "right": "hammer",
+        "leftNormalized": "anvil",
+        "rightNormalized": "hammer",
+        "similarity": 0.9985069340149899,
+        "modelId": "amazon.titan-embed-text-v2:0",
+        "dimensions": 256
+      }
+    ],
+    "bucketSummaries": [
+      {
+        "bucket": "positive-paraphrase",
+        "min": 0.9934857020645665,
+        "median": 0.9934857020645665,
+        "max": 0.9934857020645665,
+        "count": 1,
+        "suggestedHeadroom": "T_ABS lower bound hint: positive-paraphrase min sim 0.9935"
+      },
+      {
+        "bucket": "synonym-without-shared-tokens",
+        "min": 0.9928335340869756,
+        "median": 0.9928335340869756,
+        "max": 0.9928335340869756,
+        "count": 1,
+        "suggestedHeadroom": "T_ABS_UNARY upper bound hint: unary-trap max best sim 0.9928 (must stay > T_ABS)"
+      },
+      {
+        "bucket": "hard-negative",
+        "min": 0.9783817057081263,
+        "median": 0.9884443198615581,
+        "max": 0.9985069340149899,
+        "count": 2,
+        "suggestedHeadroom": "T_ABS upper bound: keep below min positive resolve; absent/hard-negative max sim 0.9985"
+      }
+    ]
+  },
+  "identity": {
+    "cases": [
+      {
+        "span": "sword",
+        "spanNormalized": "sword",
+        "catalog": [
+          "broom",
+          "anvil",
+          "lantern"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 0.9980229517950866
+          },
+          {
+            "objectId": "OBJECT#calib-1",
+            "catalogScope": "room",
+            "similarity": 0.9958835716689283
+          },
+          {
+            "objectId": "OBJECT#calib-2",
+            "catalogScope": "room",
+            "similarity": 0.9894453407201184
+          }
+        ],
+        "margin": 0.00213938012615833,
+        "ratio": 1.0021482231327232,
+        "decision": {
+          "type": "Abstain",
+          "reason": "ambiguous_margin"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "sword",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "broom",
+              "jointRelevance": 0.7205052353256036,
+              "lexRelevance": 0.1989381013103205,
+              "embedRelevance": 0.9993393918535642,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.0021131018724850348
+            },
+            {
+              "id": "OBJECT#calib-2",
+              "label": "lantern",
+              "jointRelevance": 0.7183921334531186,
+              "lexRelevance": 0.198105737582154,
+              "embedRelevance": 0.9964580430463078,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.01225899128653618
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7061331421665824,
+              "lexRelevance": 0,
+              "embedRelevance": 0.9986230664931096,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "broom",
+              "jointRelevance": 0.7205052353256036,
+              "lexRelevance": 0.1989381013103205,
+              "embedRelevance": 0.9993393918535642,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.0021131018724850348
+            },
+            {
+              "id": "OBJECT#calib-2",
+              "label": "lantern",
+              "jointRelevance": 0.7183921334531186,
+              "lexRelevance": 0.198105737582154,
+              "embedRelevance": 0.9964580430463078,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.01225899128653618
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7061331421665824,
+              "lexRelevance": 0,
+              "embedRelevance": 0.9986230664931096,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.7205052353256036,
+          "topMargin": 0.0021131018724850348,
+          "shortlistSize": 3,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-001-absent-sword",
+        "id": "identity-001-absent-sword",
+        "bucket": "absent-object",
+        "expectedVerdict": "abstain"
+      },
+      {
+        "span": "sword",
+        "spanNormalized": "sword",
+        "catalog": [
+          "ornate rapier"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 0.9928335340869756
+          }
+        ],
+        "margin": null,
+        "ratio": null,
+        "decision": {
+          "type": "Resolved",
+          "objectId": "OBJECT#calib-0",
+          "catalogScope": "room"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "sword",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "ornate rapier",
+              "jointRelevance": 0.7576875834100405,
+              "lexRelevance": 0.39112256444298726,
+              "embedRelevance": 0.9975991618335671,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "ornate rapier",
+              "jointRelevance": 0.7576875834100405,
+              "lexRelevance": 0.39112256444298726,
+              "embedRelevance": 0.9975991618335671,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.7576875834100405,
+          "topMargin": 0,
+          "shortlistSize": 1,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-002-unary-trap",
+        "id": "identity-002-unary-trap",
+        "bucket": "unary-trap",
+        "expectedVerdict": "abstain"
+      },
+      {
+        "span": "sweeping tool",
+        "spanNormalized": "sweeping tool",
+        "catalog": [
+          "broom",
+          "anvil",
+          "lantern"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-1",
+            "catalogScope": "room",
+            "similarity": 0.9992218200399307
+          },
+          {
+            "objectId": "OBJECT#calib-2",
+            "catalogScope": "room",
+            "similarity": 0.9955753348418305
+          },
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 0.9934857020645665
+          }
+        ],
+        "margin": 0.00364648519810018,
+        "ratio": 1.003662691381039,
+        "decision": {
+          "type": "Abstain",
+          "reason": "ambiguous_margin"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "sweeping tool",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "broom",
+              "jointRelevance": 0.7594098435616892,
+              "lexRelevance": 0.39719660235432513,
+              "embedRelevance": 0.9978183602615049,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.038673544764414425
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7207362987972747,
+              "lexRelevance": 0.1985983011771625,
+              "embedRelevance": 0.9997401360241241,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.007914333710617005
+            },
+            {
+              "id": "OBJECT#calib-2",
+              "label": "lantern",
+              "jointRelevance": 0.7128219650866577,
+              "lexRelevance": 0.13852310343805632,
+              "embedRelevance": 0.9985197332220822,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "broom",
+              "jointRelevance": 0.7594098435616892,
+              "lexRelevance": 0.39719660235432513,
+              "embedRelevance": 0.9978183602615049,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.038673544764414425
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7207362987972747,
+              "lexRelevance": 0.1985983011771625,
+              "embedRelevance": 0.9997401360241241,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.007914333710617005
+            },
+            {
+              "id": "OBJECT#calib-2",
+              "label": "lantern",
+              "jointRelevance": 0.7128219650866577,
+              "lexRelevance": 0.13852310343805632,
+              "embedRelevance": 0.9985197332220822,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.7594098435616892,
+          "topMargin": 0.038673544764414425,
+          "shortlistSize": 3,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-003-broom-paraphrase",
+        "id": "identity-003-broom-paraphrase",
+        "bucket": "positive-paraphrase",
+        "expectedVerdict": "resolve"
+      },
+      {
+        "span": "lantern",
+        "spanNormalized": "lantern",
+        "catalog": [
+          "lantern",
+          "lantern"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 1
+          },
+          {
+            "objectId": "OBJECT#calib-1",
+            "catalogScope": "room",
+            "similarity": 1
+          }
+        ],
+        "margin": 0,
+        "ratio": 1,
+        "decision": {
+          "type": "Abstain",
+          "reason": "ambiguous_margin"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "lantern",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "lantern",
+              "jointRelevance": 0.9978119684126493,
+              "lexRelevance": 0.995619128289052,
+              "embedRelevance": 1,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "lantern",
+              "jointRelevance": 0.9978119684126493,
+              "lexRelevance": 0.995619128289052,
+              "embedRelevance": 1,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "lantern",
+              "jointRelevance": 0.9978119684126493,
+              "lexRelevance": 0.995619128289052,
+              "embedRelevance": 1,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0
+            },
+            {
+              "id": "OBJECT#calib-1",
+              "label": "lantern",
+              "jointRelevance": 0.9978119684126493,
+              "lexRelevance": 0.995619128289052,
+              "embedRelevance": 1,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.9978119684126493,
+          "topMargin": 0,
+          "shortlistSize": 2,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-004-duplicate-shortname",
+        "id": "identity-004-duplicate-shortname",
+        "bucket": "duplicate-shortName",
+        "expectedVerdict": "abstain"
+      },
+      {
+        "span": "sweeping tool",
+        "spanNormalized": "sweeping tool",
+        "catalog": [
+          "lantern",
+          "anvil"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-1",
+            "catalogScope": "room",
+            "similarity": 0.9992218200399307
+          },
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 0.9955753348418305
+          }
+        ],
+        "margin": 0.00364648519810018,
+        "ratio": 1.003662691381039,
+        "decision": {
+          "type": "Abstain",
+          "reason": "ambiguous_margin"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "sweeping tool",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7207362987972747,
+              "lexRelevance": 0.1985983011771625,
+              "embedRelevance": 0.9997401360241241,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.007914333710617005
+            },
+            {
+              "id": "OBJECT#calib-0",
+              "label": "lantern",
+              "jointRelevance": 0.7128219650866577,
+              "lexRelevance": 0.13852310343805632,
+              "embedRelevance": 0.9985197332220822,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-1",
+              "label": "anvil",
+              "jointRelevance": 0.7207362987972747,
+              "lexRelevance": 0.1985983011771625,
+              "embedRelevance": 0.9997401360241241,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              },
+              "marginToRunnerUp": 0.007914333710617005
+            },
+            {
+              "id": "OBJECT#calib-0",
+              "label": "lantern",
+              "jointRelevance": 0.7128219650866577,
+              "lexRelevance": 0.13852310343805632,
+              "embedRelevance": 0.9985197332220822,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.7207362987972747,
+          "topMargin": 0.007914333710617005,
+          "shortlistSize": 2,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-005-hard-negative-span",
+        "id": "identity-005-hard-negative-span",
+        "bucket": "hard-negative",
+        "expectedVerdict": "abstain"
+      },
+      {
+        "span": "blade",
+        "spanNormalized": "blade",
+        "catalog": [
+          "ornate rapier"
+        ],
+        "rankedScores": [
+          {
+            "objectId": "OBJECT#calib-0",
+            "catalogScope": "room",
+            "similarity": 0.9996716535332382
+          }
+        ],
+        "margin": null,
+        "ratio": null,
+        "decision": {
+          "type": "Resolved",
+          "objectId": "OBJECT#calib-0",
+          "catalogScope": "room"
+        },
+        "thresholds": {
+          "T_ABS": 0.14,
+          "T_ABS_UNARY": 0.18,
+          "T_MARGIN": 0.008
+        },
+        "pool": {
+          "span": "blade",
+          "candidates": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "ornate rapier",
+              "jointRelevance": 0.7606643720396649,
+              "lexRelevance": 0.3967868536716015,
+              "embedRelevance": 0.9998903772586205,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ],
+          "shortlist": [
+            {
+              "id": "OBJECT#calib-0",
+              "label": "ornate rapier",
+              "jointRelevance": 0.7606643720396649,
+              "lexRelevance": 0.3967868536716015,
+              "embedRelevance": 0.9998903772586205,
+              "sourceTags": [
+                "lexical",
+                "embedding"
+              ],
+              "locus": {
+                "kind": "room"
+              }
+            }
+          ]
+        },
+        "poolMetrics": {
+          "topJointRelevance": 0.7606643720396649,
+          "topMargin": 0,
+          "shortlistSize": 1,
+          "lexicalChannelActive": true
+        },
+        "corpusCaseId": "identity-006-synonym-unary",
+        "id": "identity-006-synonym-unary",
+        "bucket": "synonym-without-shared-tokens",
+        "expectedVerdict": "abstain"
+      }
+    ],
+    "bucketSummaries": [
+      {
+        "bucket": "absent-object",
+        "min": 0.9980229517950866,
+        "median": 0.9980229517950866,
+        "max": 0.9980229517950866,
+        "count": 1,
+        "bestSimStats": {
+          "min": 0.9980229517950866,
+          "median": 0.9980229517950866,
+          "max": 0.9980229517950866,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0.00213938012615833,
+          "median": 0.00213938012615833,
+          "max": 0.00213938012615833,
+          "count": 1
+        },
+        "ratioStats": {
+          "min": 1.0021482231327232,
+          "median": 1.0021482231327232,
+          "max": 1.0021482231327232,
+          "count": 1
+        },
+        "topJointRelevanceStats": {
+          "min": 0.7205052353256036,
+          "median": 0.7205052353256036,
+          "max": 0.7205052353256036,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0.0021131018724850348,
+          "median": 0.0021131018724850348,
+          "max": 0.0021131018724850348,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 3,
+          "median": 3,
+          "max": 3,
+          "count": 1
+        },
+        "suggestedHeadroom": "T_ABS upper bound: keep below min positive resolve; absent/hard-negative max sim 0.9980",
+        "suggestedJointFloorHeadroom": "T_JOINT_ABS upper bound hint: absent-object max topJointRelevance 0.7205"
+      },
+      {
+        "bucket": "unary-trap",
+        "min": 0.9928335340869756,
+        "median": 0.9928335340869756,
+        "max": 0.9928335340869756,
+        "count": 1,
+        "bestSimStats": {
+          "min": 0.9928335340869756,
+          "median": 0.9928335340869756,
+          "max": 0.9928335340869756,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 0
+        },
+        "ratioStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 0
+        },
+        "topJointRelevanceStats": {
+          "min": 0.7576875834100405,
+          "median": 0.7576875834100405,
+          "max": 0.7576875834100405,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 1,
+          "median": 1,
+          "max": 1,
+          "count": 1
+        },
+        "suggestedHeadroom": "T_ABS_UNARY upper bound hint: unary-trap max best sim 0.9928 (must stay > T_ABS)",
+        "suggestedJointFloorHeadroom": "T_JOINT_ABS upper bound hint: unary-trap max topJointRelevance 0.7577"
+      },
+      {
+        "bucket": "positive-paraphrase",
+        "min": 0.9992218200399307,
+        "median": 0.9992218200399307,
+        "max": 0.9992218200399307,
+        "count": 1,
+        "bestSimStats": {
+          "min": 0.9992218200399307,
+          "median": 0.9992218200399307,
+          "max": 0.9992218200399307,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0.00364648519810018,
+          "median": 0.00364648519810018,
+          "max": 0.00364648519810018,
+          "count": 1
+        },
+        "ratioStats": {
+          "min": 1.003662691381039,
+          "median": 1.003662691381039,
+          "max": 1.003662691381039,
+          "count": 1
+        },
+        "topJointRelevanceStats": {
+          "min": 0.7594098435616892,
+          "median": 0.7594098435616892,
+          "max": 0.7594098435616892,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0.038673544764414425,
+          "median": 0.038673544764414425,
+          "max": 0.038673544764414425,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 3,
+          "median": 3,
+          "max": 3,
+          "count": 1
+        },
+        "suggestedHeadroom": "T_ABS lower bound hint: positive-paraphrase min sim 0.9992",
+        "suggestedJointFloorHeadroom": "T_JOINT_ABS lower bound hint: positive-paraphrase min topJointRelevance 0.7594"
+      },
+      {
+        "bucket": "duplicate-shortName",
+        "min": 1,
+        "median": 1,
+        "max": 1,
+        "count": 1,
+        "bestSimStats": {
+          "min": 1,
+          "median": 1,
+          "max": 1,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 1
+        },
+        "ratioStats": {
+          "min": 1,
+          "median": 1,
+          "max": 1,
+          "count": 1
+        },
+        "topJointRelevanceStats": {
+          "min": 0.9978119684126493,
+          "median": 0.9978119684126493,
+          "max": 0.9978119684126493,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 2,
+          "median": 2,
+          "max": 2,
+          "count": 1
+        },
+        "suggestedJointFloorHeadroom": "T_JOINT_MARGIN hint: duplicate-shortName thin margin expected; median topMargin 0.9978"
+      },
+      {
+        "bucket": "hard-negative",
+        "min": 0.9992218200399307,
+        "median": 0.9992218200399307,
+        "max": 0.9992218200399307,
+        "count": 1,
+        "bestSimStats": {
+          "min": 0.9992218200399307,
+          "median": 0.9992218200399307,
+          "max": 0.9992218200399307,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0.00364648519810018,
+          "median": 0.00364648519810018,
+          "max": 0.00364648519810018,
+          "count": 1
+        },
+        "ratioStats": {
+          "min": 1.003662691381039,
+          "median": 1.003662691381039,
+          "max": 1.003662691381039,
+          "count": 1
+        },
+        "topJointRelevanceStats": {
+          "min": 0.7207362987972747,
+          "median": 0.7207362987972747,
+          "max": 0.7207362987972747,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0.007914333710617005,
+          "median": 0.007914333710617005,
+          "max": 0.007914333710617005,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 2,
+          "median": 2,
+          "max": 2,
+          "count": 1
+        },
+        "suggestedHeadroom": "T_ABS upper bound: keep below min positive resolve; absent/hard-negative max sim 0.9992",
+        "suggestedJointFloorHeadroom": "T_JOINT_ABS upper bound hint: hard-negative max topJointRelevance 0.7207"
+      },
+      {
+        "bucket": "synonym-without-shared-tokens",
+        "min": 0.9996716535332382,
+        "median": 0.9996716535332382,
+        "max": 0.9996716535332382,
+        "count": 1,
+        "bestSimStats": {
+          "min": 0.9996716535332382,
+          "median": 0.9996716535332382,
+          "max": 0.9996716535332382,
+          "count": 1
+        },
+        "marginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 0
+        },
+        "ratioStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 0
+        },
+        "topJointRelevanceStats": {
+          "min": 0.7606643720396649,
+          "median": 0.7606643720396649,
+          "max": 0.7606643720396649,
+          "count": 1
+        },
+        "topMarginStats": {
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "count": 1
+        },
+        "shortlistSizeStats": {
+          "min": 1,
+          "median": 1,
+          "max": 1,
+          "count": 1
+        },
+        "suggestedHeadroom": "T_ABS_UNARY upper bound hint: unary-trap max best sim 0.9997 (must stay > T_ABS)",
+        "suggestedJointFloorHeadroom": "T_JOINT_ABS upper bound hint: synonym-without-shared-tokens max topJointRelevance 0.7607"
+      }
+    ],
+    "marginRatioComparison": {
+      "absoluteGap": {
+        "min": 0,
+        "median": 0.002892932662129255,
+        "max": 0.00364648519810018,
+        "count": 4
+      },
+      "ratio": {
+        "min": 1,
+        "median": 1.002905457256881,
+        "max": 1.003662691381039,
+        "count": 4
+      },
+      "note": "Compare absolute-gap (T_MARGIN) vs ratio (R_MARGIN) separation on multi-catalog identity cases for EM-D2."
+    }
+  }
+}

@@ -50,12 +50,21 @@ describe('lexical combine A/B on identity corpus metrics', () => {
     })
 
     it('production lexical path matches edit gate times tanh flank score', () => {
-        const metrics = computeLexicalMatchMetrics('broom', 'the broom')
-        const spanScale = Math.max(matchSpanLength(metrics.matchSpan), 5, 1)
-        const productionScore = lexicalRelevanceFromMetrics(metrics, 5)
-        const editFactor = editDistanceRelevance(metrics.editDistance, matchSpanLength(metrics.matchSpan), 5)
-        const expected = editFactor * tanhCenteredFlankScore(metrics, spanScale)
+        const candidateText = 'the broom'
+        const metrics = computeLexicalMatchMetrics('broom', candidateText)
+        const patternLength = 5
+        const spanScale = Math.max(matchSpanLength(metrics.matchSpan), patternLength, 1)
+        const productionScore = lexicalRelevanceFromMetrics(metrics, patternLength, candidateText.length)
+        const editFactor = editDistanceRelevance(
+            metrics.editDistance,
+            matchSpanLength(metrics.matchSpan),
+            patternLength
+        )
+        const expected = editFactor * tanhCenteredFlankScore(metrics, spanScale, {}, {
+            patternLength,
+            candidateTextLength: candidateText.length,
+        })
         expect(productionScore).toBeCloseTo(expected)
-        expect(lexicalRelevance('broom', 'the broom')).toBeCloseTo(productionScore)
+        expect(lexicalRelevance('broom', candidateText)).toBeCloseTo(productionScore)
     })
 })

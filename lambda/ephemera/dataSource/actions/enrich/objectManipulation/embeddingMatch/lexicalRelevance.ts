@@ -56,7 +56,7 @@ export function lexicalRelevance(
         : [normalizedShortName, normalizedSpan]
 
     const metrics = computeLexicalMatchMetrics(pattern, candidateText)
-    return lexicalRelevanceFromMetrics(metrics, pattern.length, params)
+    return lexicalRelevanceFromMetrics(metrics, pattern.length, candidateText.length, params)
 }
 
 const isAlpha = (char: string | undefined): boolean => (

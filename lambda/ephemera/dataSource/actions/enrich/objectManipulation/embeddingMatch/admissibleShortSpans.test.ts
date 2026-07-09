@@ -74,6 +74,6 @@ describe('lexical channel absent integration', () => {
     it('allows lexical scoring when channel active for unary exact match', () => {
         const unary = buildAdmissibleShortSpans([{ normalizedShortName: 'sword' }])
         expect(isLexicalChannelActive('sword', unary)).toBe(true)
-        expect(lexicalRelevance('sword', 'sword')).toBeCloseTo(1, 2)
+        expect(lexicalRelevance('sword', 'sword')).toBeGreaterThan(0.97)
     })
 })
