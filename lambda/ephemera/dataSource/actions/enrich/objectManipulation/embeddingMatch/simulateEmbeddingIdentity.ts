@@ -1,5 +1,5 @@
 import { catalogHasDuplicateNormalizedShortNames } from './catalogHasDuplicateNormalizedShortNames'
-import { buildSpanCandidatePool } from './buildSpanCandidatePool'
+import { buildSpanCandidatePool, type LexicalChannelPolicy } from './buildSpanCandidatePool'
 import { decideEmbeddingMatch } from './decideEmbeddingMatch'
 import { rankCatalogByCosineSimilarity } from './rankCatalogByCosineSimilarity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
@@ -18,6 +18,10 @@ export type EmbeddingIdentitySimulation = {
     pool: SpanCandidatePool
     legacyDecision: EmbeddingMatchDecision
     metrics: EmbeddingIdentitySimulationMetrics
+}
+
+export type SimulateEmbeddingIdentityWithPoolOptions = {
+    lexicalChannelPolicy?: LexicalChannelPolicy
 }
 
 const decideLegacyEmbeddingMatch = (
@@ -51,9 +55,13 @@ const buildSimulationMetrics = (
 export function simulateEmbeddingIdentityWithPool(
     spanEmbedding: SemanticEmbedding,
     candidates: readonly EmbeddingMatchCandidate[],
-    span: string = ''
+    span: string = '',
+    options: SimulateEmbeddingIdentityWithPoolOptions = {}
 ): EmbeddingIdentitySimulation {
-    const pool = buildSpanCandidatePool(span, candidates, { spanEmbedding })
+    const pool = buildSpanCandidatePool(span, candidates, {
+        spanEmbedding,
+        lexicalChannelPolicy: options.lexicalChannelPolicy,
+    })
     const lexicalChannelActive = pool.candidates.some(
         (candidate) => candidate.lexRelevance !== undefined
     )

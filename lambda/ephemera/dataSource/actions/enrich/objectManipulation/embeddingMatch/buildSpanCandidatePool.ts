@@ -16,9 +16,33 @@ import { weightedRmsJointRelevance } from './relevanceCombine'
 import type { RelevanceNormalizationParams } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 
+/** How the pool builder decides whether to score the lexical channel for this span. */
+export type LexicalChannelPolicy = 'admissibility' | 'alwaysActive'
+
 export type BuildSpanCandidatePoolOptions = {
     spanEmbedding?: SemanticEmbedding
     params?: RelevanceNormalizationParams
+    /** Default `admissibility` (catalog-derived short-span gate). `alwaysActive` for FT-1.3 A/B arm B. */
+    lexicalChannelPolicy?: LexicalChannelPolicy
+}
+
+const resolveLexicalChannelActive = (
+    normalizedSpan: string,
+    candidates: readonly EmbeddingMatchCandidate[],
+    params: RelevanceNormalizationParams,
+    lexicalChannelPolicy: LexicalChannelPolicy
+): boolean => {
+    if (normalizedSpan.length === 0) {
+        return false
+    }
+    if (lexicalChannelPolicy === 'alwaysActive') {
+        return true
+    }
+    const admissibleShortSpans = buildAdmissibleShortSpans(
+        candidates.map(({ normalizedShortName }) => ({ normalizedShortName })),
+        params.sMin
+    )
+    return isLexicalChannelActive(normalizedSpan, admissibleShortSpans, params.sMin)
 }
 
 const buildSourceTags = (
@@ -67,12 +91,14 @@ export function buildSpanCandidatePool(
     options: BuildSpanCandidatePoolOptions = {}
 ): SpanCandidatePool {
     const params = options.params ?? {}
+    const lexicalChannelPolicy = options.lexicalChannelPolicy ?? 'admissibility'
     const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const admissibleShortSpans = buildAdmissibleShortSpans(
-        candidates.map(({ normalizedShortName }) => ({ normalizedShortName })),
-        params.sMin
+    const lexicalChannelActive = resolveLexicalChannelActive(
+        normalizedSpan,
+        candidates,
+        params,
+        lexicalChannelPolicy
     )
-    const lexicalChannelActive = isLexicalChannelActive(normalizedSpan, admissibleShortSpans, params.sMin)
     const hasSpanEmbedding = options.spanEmbedding !== undefined
 
     const scored = candidates.map((candidate) => {

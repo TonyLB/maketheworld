@@ -123,6 +123,32 @@ describe('runEmbeddingCalibration', () => {
         expect(result.marginRatioComparison.note).toContain('EM-D2')
     })
 
+    it('runIdentityCorpus includes pool-metrics bucket summaries', async () => {
+        const result = await runIdentityCorpus(undefined, deps)
+        const summary = result.bucketSummaries.find((entry) => entry.bucket === 'positive-paraphrase')
+        expect(summary).toBeDefined()
+        expect(summary!.topJointRelevanceStats.count).toBeGreaterThan(0)
+        expect(summary!.topMarginStats).toMatchObject({
+            min: expect.any(Number),
+            median: expect.any(Number),
+            max: expect.any(Number),
+            count: expect.any(Number),
+        })
+        expect(summary!.suggestedJointFloorHeadroom).toContain('T_JOINT_ABS')
+    })
+
+    it('runIdentityCorpus admissibility off does not change identity corpus ranking', async () => {
+        const onResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'admissibility' })
+        const offResult = await runIdentityCorpus(undefined, deps, { lexicalChannelPolicy: 'alwaysActive' })
+        for (const onCase of onResult.cases) {
+            const offCase = offResult.cases.find((entry) => entry.id === onCase.id)
+            expect(offCase).toBeDefined()
+            expect(offCase!.pool?.candidates.map((c) => c.label)).toEqual(
+                onCase.pool?.candidates.map((c) => c.label)
+            )
+        }
+    })
+
     it('runFullEmbeddingCalibration returns metadata and both corpora', async () => {
         const result = await runFullEmbeddingCalibration(undefined, deps)
         expect(result.metadata.corpusId).toBe('embedding-identity-v1')

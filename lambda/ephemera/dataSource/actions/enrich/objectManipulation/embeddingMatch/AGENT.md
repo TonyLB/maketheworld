@@ -1,6 +1,6 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (v1 production shim + FT-1.2 pool builder).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **Production path (v1):** open-loop terminal fast path (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)). **FT-1.2 (2026-07-09):** rank-all `SpanCandidatePool` builder with embed + lexical joint relevance; simulator/calibration consume pool metrics; production `identityStage` still uses v1 legacy decision until FT-2.
+**Status: shipped (v1 production shim + FT-1.2 pool builder + FT-1.3 calibration).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **Production path (v1):** open-loop terminal fast path (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)). **FT-1.2 (2026-07-09):** rank-all `SpanCandidatePool` builder with embed + lexical joint relevance. **FT-1.3 (2026-07-09):** locked FT-8 / FT-1.2 constants + proposed FT-5 `T_JOINT_*` floors; short-span admissibility **retained** (A/B retirement failed).
 
 **Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
@@ -19,7 +19,7 @@
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision (production shim); [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
 | [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate (v1 decision) |
 | [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
-| [`thresholds.ts`](thresholds.ts) | Locked v1 gates (`T_ABS`, `T_ABS_UNARY`, `T_MARGIN`); FT-8 anchors; FT-1.2 joint RMS + gap-trim (provisional until FT-1.3) |
+| [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (proposed, unwired) |
 
 ## FT-1.2 pool merge (2026-07-09)
 
@@ -31,6 +31,8 @@ Rank-all candidate pool for fault-tolerant span grounding. **Not wired to `ident
 | [`gapTrimShortlist`](gapTrimShortlist.ts) | Relative gap + Top-N ceiling shortlist |
 | [`relevanceCombine`](relevanceCombine.ts) | `weightedRmsJointRelevance` (absent-channel drop semantics) |
 | [`testing/simulateEmbeddingIdentityCorpus`](testing/simulateEmbeddingIdentityCorpus.ts) | Identity corpus pool-metrics harness (ordering invariants, not v1 resolve rate alone) |
+| [`testing/compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) | Short-span admissibility on vs off A/B (FT-1.3) |
+| [`testing/shortSpanCalibrationCases`](testing/shortSpanCalibrationCases.ts) | Length-1/2 + `ax`/`axolotl` fixtures |
 
 **Joint relevance (FT-1):**
 
@@ -40,7 +42,7 @@ joint = lex                                                     [embed absent]
 joint = embed                                                   [lex absent]
 ```
 
-Provisional `JOINT_RELEVANCE_W_L` / `JOINT_RELEVANCE_W_E`, `POOL_SHORTLIST_TOP_N`, `POOL_GAP_TRIM_RELATIVE_DROP` in [`thresholds.ts`](thresholds.ts) --- lock in FT-1.3 calibration.
+Locked `JOINT_RELEVANCE_W_L` / `JOINT_RELEVANCE_W_E`, `POOL_SHORTLIST_TOP_N`, `POOL_GAP_TRIM_RELATIVE_DROP` in [`thresholds.ts`](thresholds.ts) (FT-1.3, 2026-07-09).
 
 **Pool contract:** no admission floor; full ranked `candidates[]` + `shortlist` (gap-trim). Per-candidate `{ id, label, jointRelevance, marginToRunnerUp?, lexRelevance?, embedRelevance?, sourceTags, locus }`. Types: [`../spanResolution.ts`](../spanResolution.ts).
 
@@ -72,7 +74,7 @@ flankScore = sigmoid(bias + e_L + e_R + e_Rm)
 lexRelevance = editDistanceRelevance * flankScore
 ```
 
-Per-channel `m` / `s` / `w` and combine `bias` in [`thresholds.ts`](thresholds.ts) (`LEX_FLANK_COMBINE_BIAS`, `LEX_ADJOINED_FLANK_*`, `LEX_REMOTE_FLANK_*`); adjoined midpoint `m = spanScale / 2` at runtime. Lock in FT-1.3 calibration. Legacy multiplicative asymptotic combine retained as `multiplicativeFlankScoreV1` for simulator A/B. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
+Per-channel `m` / `s` / `w` and combine `bias` in [`thresholds.ts`](thresholds.ts) (`LEX_FLANK_COMBINE_BIAS`, `LEX_ADJOINED_FLANK_*`, `LEX_REMOTE_FLANK_*`); adjoined midpoint `m = spanScale / 2` at runtime. Locked FT-1.3 (2026-07-09). Legacy multiplicative asymptotic combine retained as `multiplicativeFlankScoreV1` for simulator A/B. Legacy `substringBiasedEditDistance` in `lexicalRelevance.ts` retained for simulator A/B only.
 
 Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
 
@@ -81,6 +83,29 @@ Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planni
 **Wiring:** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error.
 
 **FT-0 migration note (2026-07-09):** v1 `EmbeddingMatchDecision.Resolved` is a **terminal commit-worthy** outcome on the production path today. FT-1.2 ships the ranked `SpanCandidatePool` builder ([`buildSpanCandidatePool`](buildSpanCandidatePool.ts)); auto-resolve moves to the FT-5 selector when FT-2 wires `identityStage` to pool artifacts.
+
+## Threshold ownership (FT-1.3, 2026-07-09)
+
+| Constant group | Scale | Consumer | Pool admission? |
+| --- | --- | --- | --- |
+| `T_ABS`, `T_ABS_UNARY`, `T_MARGIN` | raw cosine | v1 [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) until FT-2 | **No** --- terminal open-loop shim only |
+| `C_MIN`, `L_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance`, admissibility gate | **No** --- relevance normalization |
+| `JOINT_RELEVANCE_W_*`, gap-trim | joint `[0,1]` | [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) | **No** --- rank-all, no floor |
+| `T_JOINT_ABS`, `T_JOINT_MARGIN`, `T_JOINT_ABS_UNARY` | joint `[0,1]` | FT-5 selector (unwired) | **No** --- auto-resolve gate, not membership |
+
+**Pool contract:** unconditional rank-all; gating is downstream (FT-5 confidence on `jointRelevance` + `marginToRunnerUp`).
+
+## FT-1.3 calibration (2026-07-09)
+
+**Snapshot:** [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json) (mock Bedrock harness; confirm on dev stack live run).
+
+**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance comments): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`.
+
+**Proposed FT-5 floors (unwired):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin.
+
+**Short-span admissibility A/B:** retirement **failed**. With `lexicalChannelPolicy: 'alwaysActive'`, length-1 `a` and inadmissible length-2 `ax` produce spurious lex ~0.94+ and joint heads above `T_JOINT_ABS`. Identity corpus ranking unchanged between arms. **Keep** [`admissibleShortSpans`](admissibleShortSpans.ts) / `isLexicalChannelActive`; FT-1.3.1 removal deferred.
+
+**Index shape:** production remains `shortName`-only. No asymmetric ladder re-run (unchanged since 2026-07-07). Prior snapshot: [`asymmetric-identity-ladder-v1-2026-07-07.json`](../../../../../calibration/objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json).
 
 ---
 

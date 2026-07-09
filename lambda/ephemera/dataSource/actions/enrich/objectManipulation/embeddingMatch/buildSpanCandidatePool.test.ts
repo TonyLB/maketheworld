@@ -82,6 +82,18 @@ describe('buildSpanCandidatePool', () => {
         expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
     })
 
+    it('scores lexRelevance when lexicalChannelPolicy is alwaysActive for length-1 span', () => {
+        const base = makeEmbeddingFromAxis(0)
+        const candidates = [catalogEntry(objectA, 'axe', base)]
+        const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
+
+        const pool = buildSpanCandidatePool('a', candidates, {
+            spanEmbedding,
+            lexicalChannelPolicy: 'alwaysActive',
+        })
+        expect(pool.candidates[0]!.lexRelevance).toBeDefined()
+    })
+
     it('assigns marginToRunnerUp on ranked candidates', () => {
         const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
             {
