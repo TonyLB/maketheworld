@@ -7,9 +7,11 @@ import { T_ABS, T_ABS_UNARY, T_JOINT_ABS } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 import {
     buildCandidatesFromIdentityCase,
+    buildShortSpanPoolVectors,
     embeddingAtCosineSimilarity,
     makeEmbeddingFromAxis,
 } from './testing/mockVectors'
+import { resolveLegacyLexicalChannelActive } from './testing/legacyLexicalChannelGate'
 
 const objectA = 'OBJECT#a' as EphemeraObjectId
 const objectB = 'OBJECT#b' as EphemeraObjectId
@@ -63,7 +65,7 @@ describe('buildSpanCandidatePool', () => {
         expect(pool.candidates[0]!.jointRelevance).toBeGreaterThan(pool.candidates[1]!.jointRelevance)
     })
 
-    it('scores lexRelevance for length-1 span by default (narrowed FT-1.3.1 policy)', () => {
+    it('scores lexRelevance for length-1 span by default (FT-1.3.1 gate retired)', () => {
         const base = makeEmbeddingFromAxis(0)
         const candidates = [catalogEntry(objectA, 'axe', base)]
         const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
@@ -73,24 +75,25 @@ describe('buildSpanCandidatePool', () => {
         expect(pool.candidates[0]!.embedRelevance).toBeDefined()
     })
 
-    it('omits lexRelevance for inadmissible length-2 span against axe-only catalog', () => {
-        const base = makeEmbeddingFromAxis(0)
-        const candidates = [catalogEntry(objectA, 'rusty axe', base)]
-        const spanEmbedding = embeddingAtCosineSimilarity(base, 0.11)
-
+    it('scores lexRelevance for ax/rusty axe shorthand by default', () => {
+        const { spanEmbedding, candidates } = buildShortSpanPoolVectors(
+            ['rusty axe'],
+            'OBJECT#test',
+            { kind: 'unary-below-floor', similarity: 0.11 }
+        )
         const pool = buildSpanCandidatePool('ax', candidates, { spanEmbedding })
-        expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
-        expect(pool.candidates[0]!.jointRelevance).toBeLessThan(T_JOINT_ABS)
+        expect(pool.candidates[0]!.lexRelevance).toBeDefined()
+        expect(pool.candidates[0]!.jointRelevance).toBeGreaterThanOrEqual(T_JOINT_ABS)
     })
 
-    it('legacy policy still omits lexRelevance for length-1 span', () => {
+    it('legacy harness resolver omits lex when pre-FT-1.3.1 gate would be inactive', () => {
         const base = makeEmbeddingFromAxis(0)
         const candidates = [catalogEntry(objectA, 'axe', base)]
         const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
 
         const pool = buildSpanCandidatePool('a', candidates, {
             spanEmbedding,
-            lexicalChannelPolicy: 'legacy',
+            resolveLexicalChannelActive: resolveLegacyLexicalChannelActive,
         })
         expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
     })

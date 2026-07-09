@@ -1,8 +1,8 @@
 import {
     buildAdmissibleShortSpans,
-    isLexicalChannelActive,
-} from './admissibleShortSpans'
-import { lexicalRelevance } from './lexicalRelevance'
+    isLegacyLexicalChannelActive,
+} from './legacyLexicalChannelGate'
+import { lexicalRelevance } from '../lexicalRelevance'
 
 describe('buildAdmissibleShortSpans', () => {
     it('admits whole short names and tokens shorter than S_min', () => {
@@ -30,7 +30,7 @@ describe('buildAdmissibleShortSpans', () => {
     })
 })
 
-describe('isLexicalChannelActive', () => {
+describe('isLegacyLexicalChannelActive', () => {
     const catalogWithAx = buildAdmissibleShortSpans([
         { normalizedShortName: 'rusty ax' },
     ])
@@ -39,43 +39,32 @@ describe('isLexicalChannelActive', () => {
     ])
 
     it('legacy policy keeps length-1 spans inactive', () => {
-        expect(isLexicalChannelActive('a', catalogWithAx, undefined, 'legacy')).toBe(false)
-        expect(isLexicalChannelActive('a', new Set(['a']), undefined, 'legacy')).toBe(false)
-    })
-
-    it('narrowed policy activates length-1 spans (FT-1.3.1)', () => {
-        expect(isLexicalChannelActive('a', catalogWithAx, undefined, 'narrowed')).toBe(true)
-        expect(isLexicalChannelActive('a', catalogAxeOnly, undefined, 'narrowed')).toBe(true)
+        expect(isLegacyLexicalChannelActive('a', catalogWithAx)).toBe(false)
+        expect(isLegacyLexicalChannelActive('a', new Set(['a']))).toBe(false)
     })
 
     it('is inactive for inadmissible length-2 span ax vs axe-only catalog', () => {
-        expect(isLexicalChannelActive('ax', catalogAxeOnly, undefined, 'legacy')).toBe(false)
-        expect(isLexicalChannelActive('ax', catalogAxeOnly, undefined, 'narrowed')).toBe(false)
+        expect(isLegacyLexicalChannelActive('ax', catalogAxeOnly)).toBe(false)
     })
 
     it('is active for admissible length-2 span ax when catalog has ax token', () => {
-        expect(isLexicalChannelActive('ax', catalogWithAx, undefined, 'narrowed')).toBe(true)
+        expect(isLegacyLexicalChannelActive('ax', catalogWithAx)).toBe(true)
     })
 
     it('is active for spans at or above S_min', () => {
-        expect(isLexicalChannelActive('broom', catalogAxeOnly, undefined, 'narrowed')).toBe(true)
-        expect(isLexicalChannelActive('sword', new Set(), undefined, 'narrowed')).toBe(true)
+        expect(isLegacyLexicalChannelActive('broom', catalogAxeOnly)).toBe(true)
+        expect(isLegacyLexicalChannelActive('sword', new Set())).toBe(true)
     })
 
     it('is inactive for empty span', () => {
-        expect(isLexicalChannelActive('', catalogWithAx, undefined, 'narrowed')).toBe(false)
-    })
-
-    it('alwaysActive scores every non-empty span', () => {
-        expect(isLexicalChannelActive('ax', catalogAxeOnly, undefined, 'alwaysActive')).toBe(true)
-        expect(isLexicalChannelActive('a', catalogAxeOnly, undefined, 'alwaysActive')).toBe(true)
+        expect(isLegacyLexicalChannelActive('', catalogWithAx)).toBe(false)
     })
 })
 
 describe('lexical channel integration', () => {
     it('allows lexical scoring when channel active for unary exact match', () => {
         const unary = buildAdmissibleShortSpans([{ normalizedShortName: 'sword' }])
-        expect(isLexicalChannelActive('sword', unary, undefined, 'narrowed')).toBe(true)
+        expect(isLegacyLexicalChannelActive('sword', unary)).toBe(true)
         expect(lexicalRelevance('sword', 'sword')).toBeGreaterThan(0.97)
     })
 })

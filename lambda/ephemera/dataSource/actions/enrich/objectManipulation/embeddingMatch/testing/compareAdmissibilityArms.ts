@@ -1,6 +1,5 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
 
-import type { LexicalChannelPolicy } from '../buildSpanCandidatePool'
 import { lexicalRelevance } from '../lexicalRelevance'
 import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
 import type { RelevanceNormalizationParams } from '../thresholds'
@@ -13,6 +12,7 @@ import {
     buildShortSpanPoolVectors,
     type IdentityCaseVectorPlan,
 } from './mockVectors'
+import { resolveLegacyLexicalChannelActive } from './legacyLexicalChannelGate'
 import {
     SHORT_SPAN_LEXICAL_CASES,
     SHORT_SPAN_POOL_CASES,
@@ -20,9 +20,12 @@ import {
     type ShortSpanPoolCase,
 } from './shortSpanCalibrationCases'
 
-/** Retirement target: lexical always on (gate removed). Baseline: legacy gated policy. */
-export const RETIREMENT_BASELINE_POLICY: LexicalChannelPolicy = 'legacy'
-export const RETIREMENT_TARGET_POLICY: LexicalChannelPolicy = 'alwaysActive'
+/** Retirement baseline: pre-FT-1.3.1 catalog-derived gate (harness only). */
+export const RETIREMENT_BASELINE_POLICY = 'legacy' as const
+/** Retirement target: lexical always on (current production). */
+export const RETIREMENT_TARGET_POLICY = 'alwaysActive' as const
+
+export type LexicalChannelPolicy = typeof RETIREMENT_BASELINE_POLICY | typeof RETIREMENT_TARGET_POLICY
 
 export type AdmissibilityArmMetrics = {
     topJointRelevance: number
@@ -87,9 +90,14 @@ const simulateWithPolicy = (
     spanEmbedding: SemanticEmbedding,
     candidates: ReturnType<typeof buildCandidatesFromIdentityCase>['candidates'],
     span: string,
-    lexicalChannelPolicy: LexicalChannelPolicy,
+    policy: LexicalChannelPolicy,
     params?: RelevanceNormalizationParams
-) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, { lexicalChannelPolicy, params })
+) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, {
+    params,
+    ...(policy === RETIREMENT_BASELINE_POLICY
+        ? { resolveLexicalChannelActive: resolveLegacyLexicalChannelActive }
+        : {}),
+})
 
 const identityRankingRegression = (
     baseline: AdmissibilityArmMetrics,

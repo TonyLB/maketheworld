@@ -136,7 +136,7 @@ Use bucket stats to fit **FT-5 selector floors** (unwired until FT-5 ships):
 - **`positive-paraphrase`**: min `topJointRelevance` should clear `T_JOINT_ABS`; margin should clear `T_JOINT_MARGIN`
 - **`duplicate-shortName`**: thin `topMargin` --- must stay below `T_JOINT_MARGIN`
 
-Optional `lexicalChannelPolicy: 'legacy' | 'narrowed' | 'alwaysActive'` on `runIdentityCorpus` / `runFullEmbeddingCalibration`. Production default is **`narrowed`** (FT-1.3.1).
+Optional `resolveLexicalChannelActive` override on `runIdentityCorpus` / `simulateIdentityCalibration` for legacy gated baseline (harness). Production calibration uses gate-off default (FT-1.3.1).
 
 Snapshot (mock Bedrock harness, 2026-07-09): **canonical** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Intermediate experiment snapshots (shortspan-mitigation, ratio-invariant, flank-weight-sweep, etc.) are local-only and not committed. Re-run live `EmbeddingCalibrationCorpus` on dev stack to confirm Titan headroom.
 

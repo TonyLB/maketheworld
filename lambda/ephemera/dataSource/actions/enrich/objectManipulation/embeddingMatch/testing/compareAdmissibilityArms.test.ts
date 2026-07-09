@@ -2,7 +2,6 @@ import { simulateEmbeddingIdentityCorpus } from './simulateEmbeddingIdentityCorp
 import {
     compareAllAdmissibilityArms,
     evaluateAdmissibilityRetirement,
-    RETIREMENT_TARGET_POLICY,
 } from './compareAdmissibilityArms'
 import { compareFlankCombineLegacyRows } from './compareFlankCombineLegacy'
 import { buildShortSpanPoolVectors } from './mockVectors'
@@ -51,9 +50,7 @@ describe('compareAdmissibilityArms', () => {
             'OBJECT#short-pool-002',
             { kind: 'unary-below-floor', similarity: 0.11 }
         )
-        const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, 'ax', {
-            lexicalChannelPolicy: RETIREMENT_TARGET_POLICY,
-        })
+        const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, 'ax', {})
         expect(simulation.pool.candidates[0]!.label).toBe('rusty axe')
         expect(simulation.metrics.topJointRelevance).toBeGreaterThanOrEqual(T_JOINT_ABS)
     })
