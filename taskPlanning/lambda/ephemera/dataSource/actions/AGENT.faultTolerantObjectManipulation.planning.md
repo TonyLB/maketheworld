@@ -119,7 +119,7 @@ Plan-only; graduate to durable docs (**`embeddingMatch/AGENT.md`**, contract) wh
 
 **Lexical relevance is a tunable function.** `lexicalRelevance(span, shortName) -> [0,1]` is an explicit scoring function that **will be tuned and refactored over time** to improve pool quality --- treat the v1 body as a starting heuristic, not a contract. **Normalization shape is FT-8-owned** (see **FT-8 decisions so far**); FT-1 owns merge + pool contract only.
 
-- **v1 body (FT-8, 2026-07-09):** Sellers alignment + multiplicative per-factor relevance (`editDistanceRelevance` * adjoined flanks * remote flank). Legacy substring-biased edit distance retained for simulator A/B. See **FT-8 decisions so far**.
+- **v1 body (FT-8, 2026-07-09):** Sellers alignment + multiplicative per-factor relevance (`editDistanceRelevance` * adjoined flanks * remote flank). **FT-1.1.5** (planned) refactors only the **combine** step --- edit gate stays multiplicative; flank lengths combine via centered `tanh` evidence + outer `sigmoid`. Legacy substring-biased edit distance retained for simulator A/B. See **FT-8 decisions so far** + **FT-1.1.5 recommended order**.
 - **Calibration baseline (not v1):** token-overlap heuristic from the 2026-07-08 FT-1 draft --- keep in the pool simulator for A/B against substring edit distance.
 - **Deferred tuning (not v1):** stemming, description tokens when the enriched index ships, TF-IDF-style down-weighting of common tokens, phrase-order signals.
 
@@ -158,6 +158,76 @@ Questions to answer during FT-1 slice (do not treat as decided):
 - Tune the `w_l` / `w_e` RMS weights, the Top-N ceiling, and the gap-trim threshold --- open, calibration-owned (no admission floor, no `w_a` term).
 - Re-run **`EmbeddingAsymmetricLadder`** + simulate pool metrics before locking merge policy.
 
+### FT-1.1.5 Lexical combine refactor --- recommended order (2026-07-09)
+
+Plan-only; graduate to durable docs when shipped. **Slices between FT-1.1 (shipped multiplicative v1) and FT-1.2 (pool merge).** FT-1.1 shipped the Sellers + flank-geometry pipeline; FT-1.1.5 changes **only** how per-factor relevance scores are **combined** --- extracted from [`lexicalMatchMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts) into sibling modules under [`embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/). Alignment, flank decomposition, and per-channel asymptotic formulas are unchanged.
+
+**Module layout (combiner home for FT-1 merge policy).** Split **pure math** from **relevance combiner patterns** so future pool-merge variants (flank sigmoid, weighted RMS joint, possible lex+embed sigmoid re-exam) share one owner without coupling to `llm/` or a cross-lambda package:
+
+| Module | Role |
+| --- | --- |
+| [`evidenceNumerics.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/evidenceNumerics.ts) | Domain-agnostic primitives: `sigmoid`, `tanh`, `clampUnitInterval`, stable `exp` guards. No FT-1 semantics. Lift to [`internalUtils`](../../../../../lambda/ephemera/internalUtils/) only if a non-`embeddingMatch` consumer appears. |
+| [`relevanceCombine.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts) | `[0,1]` evidence **combiner patterns** + A/B variants. FT-1.1.5: `tanhCenteredFlankScore` (production), `multiplicativeFlankScoreV1` (simulator). FT-1.2: `weightedRmsJointRelevance` (absent-channel drop semantics). Future lex+embed tanh/sigmoid variant lands here alongside RMS for simulator A/B. |
+| [`lexicalMatchMetrics.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts) | Flank geometry + per-factor relevance; `lexicalRelevanceFromMetrics` calls `relevanceCombine`. |
+| [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts) | Calibration constants for all combiners (per-channel `m`/`s`/`w`, combine `bias`; joint `w_l`/`w_e` at FT-1.2). Legacy `LEX_*_FLANK_MAX_DAMAGE` / `LEX_FLANK_RELEVANCE_K` remain for v1 asymptotic factors + simulator A/B until retired. |
+
+**Not** [`llm/`](../../../../../lambda/ephemera/llm/) (Bedrock/pipeline, not scoring) or **`mtw-lambda-patterns`** until a second lambda needs the same combiners.
+
+**Problem (why refactor now, before pool merge).** The shipped **four-way product** preserves ordering but **compresses the middle band**: several "okay" flank factors in the 0.5-0.9 range multiply into scores clustered below ~0.4, while near-perfect cases sit near 1.0. That bimodal spread is weak feedstock for downstream stages that need absolute mass in **0.25-0.75**: weighted-RMS joint with embed (FT-1), gap-trim relative cuts, and the FT-5 absolute-confidence floor. Multiplication is conjunctive; flank channels are facets of one alignment, not independent evidence --- a clean adjoined flank should be able to **partially offset** a depressed remote-flank factor (e.g. `broom` in a long `the ... broom` wrapper), which the product forbids when multiple channels are sub-1.
+
+**Direction (locked for implementation).**
+
+- **Keep `editDistanceRelevance` as a hard multiplicative gate** --- the only channel that may drive lexical relevance to `0` (paraphrase, absent-object, catastrophic misalignment). Unchanged formula and veto role from FT-8.
+- **Combine flank geometry via centered `tanh` evidence + outer `sigmoid`**, not a product of asymptotic `[0,1]` factors. Each channel is specified by **midpoint** (neutral), **scale** (steepness around neutral), and **weight** (relative importance independent of midpoint):
+
+```
+t_i     = (m_i - x_i) / s_i                    // x_i = raw flank length (or combined remote length)
+e_i     = w_i * tanh(t_i)                      // bounded evidence in [-w_i, w_i]
+flankScore = sigmoid(bias + e_L + e_R + e_Rm)
+lexRelevance = editDistanceRelevance * flankScore
+```
+
+  **Per-channel intent (adjoined flanks):** `x = 0` is **better than neutral** (positive evidence, saturating as `tanh → +1`); `x = m` is neutral (`e = 0`); `x → ∞` is progressively worse with **string length**, evidence saturating as `tanh → -1` (asymptote on the penalty side, not unbounded negative score). First-effort adjoined midpoint: **`m = spanScale / 2`** (half the match span in T). Remote flank uses the same shape with its own `(m, s, w)` --- wrapper length is unbounded in the catalog, but per-channel evidence is bounded before the outer sigmoid.
+- **`bias`** calibrates the score when all channels sit at their midpoints (`sigmoid(bias)` on the FT-8 absolute scale). FT-1.3 owns `(bias, m_i, s_i, w_i)` per channel; first implementation may ship provisional anchors.
+- **Not changing (pending calibration):** embed+lex joint RMS (still disjunctive power mean --- correlation argument unchanged); Sellers alignment; `deriveFlankLengthMetrics`; legacy `flankLengthRelevance` asymptotics (retained for **multiplicative v1** simulator A/B); legacy `substringBiasedEditDistance`. **Short-span lexical admissibility** (`admissibleShortSpans`, `S_min`, length-1 absent) **ships unchanged through FT-1.1.5** but is a **retirement candidate** --- see hypothesis below.
+
+**Short-span admissibility retirement hypothesis (test in FT-1.3 calibration).** The catalog-derived short-span gate exists because v1 lexical scoring treated very short spans as near-`1.0` substring hits against a large fraction of catalog tokens (length-1 `a`, inadmissible length-2 `ax` vs `axe`-only catalog). **Hypothesis:** FT-1.1.5's span-scaled `tanh` evidence --- midpoints and scales keyed to `spanScale`, adjoined-flank geometry distinguishing prefix vs infix (`ax`/`axolotl` > `ax`/`coaxial`), edit gate, and bounded outer `sigmoid` --- may produce **low absolute lexical scores** for spurious short-span matches without a separate scan-level "lexical channel absent" pre-pass. If calibration confirms:
+
+- Run identity corpus + pool simulator **twice**: (A) current **`admissibleShortSpans` / `isLexicalChannelActive`** gate; (B) same metrics with short-span admissibility **turned off** (lexical always active for every normalized span length).
+- **Pass criteria for retirement:** (B) does not regress identity-corpus buckets (paraphrase, absent-object, unary trap, short-span cases); length-1/2 spurious lex matches stay below noMatch / FT-5 floors; `ax`/`axolotl` > `ax`/`coaxial` and related ordering tests still hold.
+- **If hypothesis holds:** remove `admissibleShortSpans`, `isLexicalChannelActive`, and `S_min` gate from pool builder; simplify RMS merge (lex always defined per candidate); update [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) + FT-8 steady-state; retain upstream junk-span discard (FT-1.4) as optional QoL only.
+- **If hypothesis fails:** keep admissibility; document which corpus cases require it under the new combine.
+
+**Why `tanh` per channel, `sigmoid` outer.** `tanh` is the standard centered saturating nonlinearity: positive evidence caps at `+w`, negative at `-w`, with smooth approach to both asymptotes as flank **string length** grows. Summing bounded channel votes then applying `sigmoid` spreads mass into the 0.25-0.75 middle band while letting clean flanks partially offset depressed siblings --- the offset behavior multiplication forbids. Decoupling `m`, `s`, and `w` per channel is clearer than a single `alpha + beta * sum(log f)`.
+
+**Math sanity test (must hold after implementation).** Adjoined-flank geometry must distinguish **prefix-anchored** vs **infix-embedded** short-span matches --- double-check with a unit test (add if missing):
+
+- `lexicalRelevance('ax', 'axolotl')` **>** `lexicalRelevance('ax', 'coaxial')`
+
+  (`ax` is a clean prefix of `axolotl`; in `coaxial` it is alpha-adjoined on both sides inside a longer token.) Failing this ordering signals mis-specified midpoints, weights, or conflation of left/right adjoined channels. Keep alongside existing `ax` / `rusty ax` / `axle` ranking tests.
+
+**Absolute-scale anchors (FT-8 discipline).** Fit must preserve:
+
+| Anchor | Target |
+| --- | --- |
+| Perfect alignment (`edit=1`, all flanks at best) | `lex ~ 1.0` |
+| All flanks at midpoints + `edit=1` | `sigmoid(bias)` --- predictable absolute |
+| Paraphrase (`sweeping tool` / `broom`) | `lex` well below exact --- driven primarily by edit gate |
+| Absent object (`sword` / `anvil`) | `lex` near zero |
+| Ordering invariants | `rusty ax` > `axle` > unrelated; `ax`/`axolotl` > `ax`/`coaxial`; wrapper containment high; typo-on-long > typo-on-short |
+
+**Recommended build order.**
+
+1. **Add [`evidenceNumerics.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/evidenceNumerics.ts)** --- `sigmoid`, `tanh`, `clampUnitInterval`; unit tests for stability at extreme inputs.
+2. **Add [`relevanceCombine.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts)** --- `centeredTanhEvidence({ value, midpoint, scale, weight })`, `tanhCenteredFlankScore(...)` (production) + `multiplicativeFlankScoreV1` (simulator A/B); per-channel + `bias` constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
+3. **Wire `lexicalRelevanceFromMetrics`** --- `editDistanceRelevance` (hard gate) * `tanhCenteredFlankScore(...)` from raw flank lengths + `spanScale` (not from v1 `flankLengthRelevance` factors on the production path).
+4. **Update unit tests** --- `evidenceNumerics`, `relevanceCombine`, lexical invariants: ordering + tail (paraphrase, absent object, `ax` ranking); middle-band cases (long wrapper, `ax`/`axle`, typo-on-long); **`ax`/`axolotl` > `ax`/`coaxial`** math sanity test (add if missing).
+5. **Update [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md)** module table + combine formula when shipped.
+6. **Re-run pool simulator / identity corpus** on the new combine **before FT-1.2 pool merge** --- confirm joint RMS + gap-trim behavior improves with more middle-band lexical mass.
+7. **FT-1.3 calibration** fits `(bias, m_i, s_i, w_i)` per flank channel jointly with `c_min`, RMS `w_l`/`w_e`, gap-trim, and FT-5 floor/margin; **A/B short-span admissibility on vs off**. **FT-1.2** adds `weightedRmsJointRelevance` to `relevanceCombine.ts` (not inline in pool builder). **FT-1.3.1** retires admissibility if A/B passes with gate off.
+
+**Blocks:** nothing in FT-1.2 is blocked on constants being locked, but shipping pool merge on the known-bimodal multiplicative combine wastes a calibration cycle. **Recommended:** land FT-1.1.5 before FT-1.2, or land FT-1.2 behind a feature flag until step 5 passes.
+
 ### FT-8 decisions so far (2026-07-08)
 
 Plan-only; graduate to durable docs (**`embeddingMatch/AGENT.md`**, contract) when FT-8 ships. Resolves per-signal **`[0,1]` relevance normalization** for the FT-1 weighted-RMS pool builder and the FT-5 absolute-confidence floor.
@@ -183,7 +253,7 @@ Supersedes the FT-1.1 substring-biased edit-distance body for `lexicalRelevance(
   - **Adjoined left / right:** `1 - maxDamage_adj * (1 - exp(-k * flankLength / spanScale))` --- floor `1 - maxDamage_adj`; cannot fully overrule a strong edit match.
   - **Remote (combined left+right):** same asymptotic with smaller `maxDamage_remote` (~`0.2` first effort).
   - `spanScale = max(|match span in T|, |P|, 1)`.
-- **Combine:** `lexRelevance = edit * leftAdjoined * rightAdjoined * remote` (multiplicative independent evidence).
+- **Combine (shipped FT-1.1 v1):** `lexRelevance = edit * leftAdjoined * rightAdjoined * remote` (multiplicative independent evidence). **Superseded for production combine by FT-1.1.5** (edit gate * `sigmoid(bias + Σ w_i tanh((m_i - x_i)/s_i))` on raw flank lengths); v1 product retained for simulator A/B until calibration retires it.
 - **Expected behavior:** exact / short wrapper (`broom` vs `the broom`) -> high; `ax` ranks `rusty ax` > `axle` > unrelated; token-free paraphrase (`sweeping tool` vs `broom`) -> well below exact (absolute floor calibration-owned in FT-1.3).
 - **Calibration-owned:** `LEX_ADJOINED_FLANK_MAX_DAMAGE`, `LEX_REMOTE_FLANK_MAX_DAMAGE`, `LEX_FLANK_RELEVANCE_K` in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts); paraphrase absolute separation; token-overlap baseline retained in simulator for A/B.
 - **Deferred:** description tokens when enriched index ships.
@@ -193,7 +263,7 @@ Supersedes the FT-1.1 substring-biased edit-distance body for `lexicalRelevance(
 - **Distance `d`:** minimum edit cost to embed the **shorter** string as a contiguous match in the **longer** string, with **two-tier flank discount**.
 - **Relevance:** `clamp(1 - d / max(|shorter|, L_min), 0, 1)`.
 
-**Short-span lexical admissibility (scan-level gate, decided 2026-07-08).** Substring lexical is meaningless for very short spans (length-1 `a` substring-matches a large fraction of English tokens at ~1.0). Before scoring any `(span, shortName)` pairs, decide whether the **lexical channel is active for this scan**:
+**Short-span lexical admissibility (scan-level gate, decided 2026-07-08; retirement under review).** Substring lexical is meaningless for very short spans under **v1 multiplicative** scoring (length-1 `a` substring-matches a large fraction of English tokens at ~1.0). Before scoring any `(span, shortName)` pairs, decide whether the **lexical channel is active for this scan**. **FT-1.1.5 hypothesis:** span-scaled `tanh` combine may make this gate unnecessary --- **FT-1.3 calibration** runs pool metrics with admissibility **on vs off**; remove if off passes (see **FT-1.1.5 Short-span admissibility retirement hypothesis**).
 
 - **`S_min`:** first effort **`S_min = 3`** characters on normalized span. Spans at or above `S_min` always get lexical scoring (per pair).
 - **Length-1:** lexical channel **absent** always --- drop `w_l` from RMS for every candidate (undefined, not `0`).
@@ -207,12 +277,13 @@ Supersedes the FT-1.1 substring-biased edit-distance body for `lexicalRelevance(
 
 **Embedding index-shape fork (still FT-8-owned, not locked).** Production v1 geometry is symmetric **`shortName`-only**; enriched asymmetric **`shortNamePlusDescription`** is preferred when storage ships ([`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) asymmetric ladder). Index shape sets the cosine distribution being log-normalized --- re-run **`EmbeddingAsymmetricLadder`** + pool simulator before locking `c_min` per shape.
 
-**FT-1.3 fit order:** implement both normalizers + short-span admissibility pre-pass -> simulate pool metrics on identity corpus + asymmetric ladder -> lock `c_min`, `L_min`, `S_min`, edit-cost weights, then fit `w_l`/`w_e`, gap-trim, and FT-5 floor/margin on normalized joint scores.
+**FT-1.3 fit order:** implement both normalizers + short-span admissibility pre-pass (gate stays for A/B baseline) -> **FT-1.1.5 lexical combine refactor** (edit gate * tanh-centered flank evidence + sigmoid; simulator A/B vs multiplicative v1) -> simulate pool metrics on identity corpus + asymmetric ladder -> **admissibility on vs off A/B** -> lock `c_min`, `L_min`, edit-cost weights, flank-combine `(bias, m, s, w)` per channel, then fit `w_l`/`w_e`, gap-trim, and FT-5 floor/margin (`S_min` only if admissibility survives A/B).
 
 ### FT-8 exploration notes (non-normative)
 
 - **Duplicate normalized shortNames:** lexical scores may be identical; ambiguity is a pool property + FT-5 Consult, not an FT-8 normalization fix.
-- **Upstream junk-span discard (deferred QoL):** fast-reject at classify / frame extract when normalized span is empty or `< S_min` after article strip (`get a`, etc.) --- avoids pointless pool + embed work and surfaces Abstain earlier. Pool admissibility remains authoritative; upstream is an optimization, not required for Gateway exit. Track as follow-on after FT-1 pool builder ships.
+- **Short-span admissibility vs span-scaled tanh combine:** FT-1.3 calibration A/B (admissibility on vs off). If off passes, retire `S_min` / `admissibleShortSpans` --- the gate was compensating for v1 lexical false positives, not a fundamental pool contract.
+- **Upstream junk-span discard (deferred QoL):** fast-reject at classify / frame extract when normalized span is empty or `< S_min` after article strip (`get a`, etc.) --- avoids pointless pool + embed work and surfaces Abstain earlier. Independent of admissibility retirement; pool builder may score all spans while classify still fast-rejects junk. Track as follow-on after FT-1 pool builder ships.
 
 ### FT-2 decisions so far (2026-07-08)
 
@@ -528,20 +599,35 @@ Reviewed [`llm/AGENT.concepts.md`](../../../../../lambda/ephemera/llm/AGENT.conc
   - [X] Unit tests: exact / wrapper match, typo tolerance across short vs long names, `ax` vs `rusty ax` vs `axle`, paraphrase (lex ~0), absent object, unary catalog, duplicate shortName, length-1 absent, `ax` vs `axe`-only catalog (lexical absent).
   - [X] Retain token-overlap baseline in simulator for A/B (not production path).
 
+- [ ] **FT-1.1.5 Lexical combine refactor** (recommended before FT-1.2 --- see **FT-1.1.5 recommended order**)
+  - [ ] Add [`evidenceNumerics.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/evidenceNumerics.ts) --- `sigmoid`, `tanh`, `clampUnitInterval` (pure math; no FT-1 semantics).
+  - [ ] Add [`relevanceCombine.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts) --- `centeredTanhEvidence`, `tanhCenteredFlankScore` (production) + `multiplicativeFlankScoreV1` (simulator A/B).
+  - [ ] Wire **`lexicalRelevanceFromMetrics`**: `editDistanceRelevance` (hard gate) * `tanhCenteredFlankScore(...)` from raw flank lengths.
+  - [ ] Add calibration-owned constants to [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts): combine `bias`; per-channel `m` / `s` / `w` (adjoined L/R, remote).
+  - [ ] Unit tests: `evidenceNumerics`, `relevanceCombine`, lexical ordering + tail invariants; middle-band cases (long wrapper, `ax`/`axle`, typo-on-long); **`ax`/`axolotl` > `ax`/`coaxial`** (add if missing --- math sanity for adjoined-flank geometry).
+  - [ ] Pool simulator / identity corpus pass on new combine before FT-1.2 merge (or FT-1.2 behind flag until pass).
+  - [ ] Update [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md) module table + combine formula when shipped.
+
 - [ ] **FT-1.2 Pool merge**
   - [ ] Refactor [`rankCatalogByCosineSimilarity`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity.ts) / [`decideEmbeddingMatch`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/decideEmbeddingMatch.ts) toward **pool + relevance** output (narrow or replace terminal **`Resolved`**).
-  - [ ] Apply **FT-8** `embedRelevance` + `lexicalRelevance` before **weighted RMS** joint score (per FT-1 decisions); emit full ranked list + gap-trim shortlist with relevance fields (id, label, absolute score, margin).
+  - [ ] Add **`weightedRmsJointRelevance`** to [`relevanceCombine.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/relevanceCombine.ts); apply **FT-8** `embedRelevance` + `lexicalRelevance` before joint score (per FT-1 decisions); emit full ranked list + gap-trim shortlist with relevance fields (id, label, absolute score, margin).
   - [ ] Extend [`simulateEmbeddingIdentity`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity.ts) / calibration corpus for pool metrics (not terminal auto-resolve rate alone).
 
 - [ ] **FT-1.3 Calibration pass** (FT-1 + FT-8 design decided; this fits the constants)
-  - [ ] Fit + lock calibration constants with provenance comments: `c_min`, `L_min`, `S_min`, boundary edit-cost weights, RMS weights `w_l`/`w_e`, Top-N ceiling, gap-trim threshold.
+  - [ ] Fit + lock calibration constants with provenance comments: `c_min`, `L_min`, `S_min` (drop if admissibility retired), boundary edit-cost weights, flank-combine `(bias, m, s, w)` per channel, RMS weights `w_l`/`w_e`, Top-N ceiling, gap-trim threshold.
+  - [ ] **Short-span admissibility A/B:** run identity corpus + pool simulator with **`isLexicalChannelActive` / `admissibleShortSpans` on** vs **off** (lexical always active); record false-positive / ranking regressions on length-1, length-2, unary, and `ax`/`axolotl` vs `ax`/`coaxial` cases. **Remove admissibility gate if off passes** (see FT-1.1.5 retirement hypothesis).
   - [ ] Re-run **`EmbeddingAsymmetricLadder`** if index shape changes; record snapshot path in [`embeddingMatch/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md).
   - [ ] Confirm the FT-5 confidence stage owns the migrated [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts) floors (no longer pool-admission floors).
 
-- [ ] **FT-1.4 Upstream junk-span discard (deferred QoL --- not Gateway-blocking)**
-  - [ ] Classify / frame extract: fast-reject when normalized span is empty or `< S_min` after article strip (`get a`, etc.) -> Abstain / Unknown without pool build.
+- [ ] **FT-1.3.1 Short-span admissibility retirement** (only if FT-1.3 A/B passes with admissibility off)
+  - [ ] Remove [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + `isLexicalChannelActive` from pool builder; lexical always scored per `(span, shortName)`.
+  - [ ] Remove `S_min` gate and absent-channel drop-`w_l` paths tied solely to short-span admissibility; update tests (retire length-1 absent / `ax` vs `axe`-only absent cases or rewrite as low-lex-score expectations).
+  - [ ] Update FT-8 steady-state docs; note upstream junk-span discard (FT-1.4) remains optional QoL, not load-bearing.
+
+- [ ] **FT-1.4 Upstream junk-span discard (deferred QoL --- not Gateway-blocking; independent of FT-1.3.1 admissibility retirement)**
+  - [ ] Classify / frame extract: fast-reject when normalized span is empty or below minimum length after article strip (`get a` -> `a`, etc.) -> Abstain / Unknown without pool build.
   - [ ] Align deterministic `stripLeadingArticle` with classify prompt (`a` / `an` / `the` / `some`).
-  - [ ] Tests: junk span never reaches pool builder; pool admissibility tests remain authoritative for v1 behavior.
+  - [ ] Tests: junk span never reaches pool builder; if FT-1.3.1 retires admissibility, these tests replace (not duplicate) the old short-span gate tests.
 
 ### FT-2. Identity tier + recovery loop
 
@@ -613,7 +699,7 @@ npm run build
 | --- | --- |
 | Fault-tolerant task plan | Done |
 | FT-0 framing + type skeleton | **Done (2026-07-09)** --- `spanResolution.ts` guards + `ParseCommandConsultResult` stub; outcome mapping documented; runtime unchanged |
-| FT-1 candidate pool (embedding + lexical) | **FT-1.1 shipped (2026-07-09)** --- `embedRelevance`, `lexicalRelevance`, `admissibleShortSpans` in [`embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/); FT-1.2 pool merge pending |
+| FT-1 candidate pool (embedding + lexical) | **FT-1.1 shipped (2026-07-09)** --- `embedRelevance`, `lexicalRelevance`, `admissibleShortSpans` in [`embeddingMatch/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/); **FT-1.1.5** lexical combine refactor planned (edit gate * tanh-centered flank evidence + sigmoid); FT-1.2 pool merge pending |
 | FT-8 per-signal relevance normalization | **Decided (2026-07-08)**: log map for embed; substring edit distance for lex (two-tier boundary discount, `L_min` floor); catalog-derived short-span admissibility (`S_min`, length-1 absent, `0` vs undefined); index-shape fork + anchor constants calibration-owned |
 | FT-2 identity tier + recovery | **Decided (e) (2026-07-08)**: joint `(identity, plan)` adjudicator; Bedrock-bypass answered by staged fast-path composition (enablers = separate build threads); build not started |
 | FT-3 Abstain vs Consult | **Decided (2026-07-08)**: complexity LLM + frame extract retired as distinct hops; owner map (proposer = Abstain/Consult, shared validator = defer, FT-5 = auto-resolve / selection gate); no narrow-scope tier-2 LLM. Wire shape: **new `ParseCommandResult` Consult variant**, actions emits alternate proposed commands + perception assembles copy, **not resumable** this iteration. Variant types land with FT-4 |
@@ -629,12 +715,12 @@ npm run build
 
 - **Sibling plan:** [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) --- Phase C **must not** start until **Gateway exit** here is complete.
 - **FT-0 shipped (2026-07-09):** [`spanResolution.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/spanResolution.ts) defines `SpanCandidatePool`, `ObjectSpanCandidate`, `SpanResolutionOutcome` + guards; `ParseCommandConsultResult` stub in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (unwired). See **FT-0 outcome mapping** in this plan.
-- **FT-1.1 helpers shipped (2026-07-09):** [`embedRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/embedRelevance.ts), Sellers + multiplicative [`lexicalRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalRelevance.ts) ([`lexicalMatchMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts)), [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + FT-8 anchor constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts). Token-overlap A/B baseline in [`embeddingMatch/testing/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/). Runtime identity path unchanged until FT-1.2 pool merge.
+- **FT-1.1 helpers shipped (2026-07-09):** [`embedRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/embedRelevance.ts), Sellers + multiplicative [`lexicalRelevance`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalRelevance.ts) ([`lexicalMatchMetrics`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/lexicalMatchMetrics.ts)), [`admissibleShortSpans`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/admissibleShortSpans.ts) + FT-8 anchor constants in [`thresholds.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts). Token-overlap A/B baseline in [`embeddingMatch/testing/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/). Runtime identity path unchanged until FT-1.2 pool merge. **FT-1.1.5** (planned 2026-07-09): refactor lexical **combine** to edit gate * tanh-centered flank evidence + sigmoid before pool merge --- see **FT-1.1.5 recommended order**.
 - **Commit boundary:** BD-9 atomic apply unchanged --- fault tolerance is pre-commit only **in this iteration**. Conceptually the commit boundary is the **steepest riser on a recoverability gradient** (detection flips self -> external), **not** a hard wall; a future **player-authority retcon** tier reduces but never eliminates post-commit recovery cost (see **Recoverability gradient + optimistic proposal**). Design stance: account for LLM error at any point, do not aspire to an error-free LLM. Not this initiative.
 - **Seams:** BD-12 field ownership unchanged; fault tolerance does not authorize compiler **`operationKind`** invention.
 - **Client:** Consulting may ship as OOC / **`PublishMessage`** first; structured reply correlation is follow-on (out of scope unless plan updated).
 - **Calibration:** FT-1 + FT-8 should produce durable numbers in [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md) / embedding snapshots before production threshold changes.
-- **FT-8 relevance normalization (2026-07-08, lexical body updated 2026-07-09):** per-signal **`[0,1]`** mapping decided --- embedding: two-point log (`c_min` -> 0, `1` -> 1); lexical: Sellers + multiplicative factors (edit hard gate; asymptotic adjoined/remote flank penalties with `maxDamage` floors), **catalog-derived short-span admissibility** (`S_min` ~ 3, length-1 lexical absent, inadmissible short spans drop `w_l` not `lex=0`). Absolute scale discipline (no within-set rescale for noMatch / auto-resolve). Anchor constants + index-shape fork calibration-owned. **Upstream junk-span fast-reject** (classify/frame, empty or `< S_min` after article strip) deferred as QoL follow-on --- not Gateway-blocking; pool admissibility is v1 authoritative.
+- **FT-8 relevance normalization (2026-07-08, lexical body updated 2026-07-09):** per-signal **`[0,1]`** mapping decided --- embedding: two-point log (`c_min` -> 0, `1` -> 1); lexical: Sellers + per-factor flank asymptotics (edit hard gate; adjoined/remote `maxDamage` floors). **Combine:** multiplicative v1 shipped FT-1.1; **FT-1.1.5** refactors to edit gate * `sigmoid(bias + Σ w_i tanh((m_i - x_i)/s_i))` on raw flank lengths. **Catalog-derived short-span admissibility** (`S_min` ~ 3, length-1 lexical absent, inadmissible short spans drop `w_l` not `lex=0`). Absolute scale discipline (no within-set rescale for noMatch / auto-resolve). Anchor constants + index-shape fork calibration-owned. **Upstream junk-span fast-reject** (classify/frame, empty or `< S_min` after article strip) deferred as QoL follow-on --- not Gateway-blocking; pool admissibility is v1 authoritative.
 - **FT-2 <-> Phase C coupling (2026-07-08):** option (e) makes span grounding the deterministic **tail** of a joint semantic hop; **`resolveComponent` is retired as a standalone Plan IR primitive** (FT-5, 2026-07-08) --- the surviving per-span work is the selector verdict + existence/presence guard, not a runtime step. Flag to the sibling plan before C1 (registry drops `resolveComponent`). Registry **expressiveness** (new primitives / manner slots for intents like "just on the edge") stays **sibling-plan-owned** (Phase C/D); **out-of-registry Abstain/Consult** is FT-3 here. The closed primitive registry --- not `verbClass` or the intent enum --- is the invariant that keeps the relaxed classify frame inside the seam.
 - **Classify trust posture (FT-7, 2026-07-08):** **two-level classify** --- trusted **family** commit, provisional **intra-manipulation** hints (sub-topology + `verbClass`) consumed as evidence by the joint hop (FT-2 (e)). Classify **reunifies to one manipulation-family intent type** with an optional `{ subTopology?, verbClass?, confidence }` hint bundle, which **supersedes the sibling BD-11 top-level membership-vs-relational type split** (its committed-routing role only --- the family and `verbClass`-as-membership-direction semantics survive). **No `enrichRoute` fork** --- one shared entry into the FT-6 orchestrator, which **is** the concrete content of sibling **C4**. Hint trust rides the `confidence` scalar: **`1.0` is a reserved closed-world sentinel** (deterministic producers only; probabilistic producers clamped `< 1.0`; seam fast-path fires on `=== 1.0`, never a threshold). Flag to the sibling plan (BD-11 + C4) before C1. See **FT-7 decisions so far**.
 - **Closed-loop orchestration (FT-6, 2026-07-08):** gateway recovery is **single-pass** in a dedicated feature-layer orchestrator module; the linear `llm/pipeline/` runner is **not** adopted this iteration (no loop to run). The first case that *forces* a **re-entrant** loop is the **container-contents supplement** (`take X out of Y`; the deferred FT-4 `withinObject` locus, cross-plan with the sibling `in` / nesting vertical BD-2, BD-5): ground `from` -> supplement the target pool with the host's contents -> re-run. Tracked for a future `taskPlanning/lambda/ephemera/llm/pipeline/` orchestrator plan (re-entrant input shape + stall / time-budget), seeded when a concrete consumer lands --- **not** a Gateway-exit blocker. See **FT-6 decisions so far**.
