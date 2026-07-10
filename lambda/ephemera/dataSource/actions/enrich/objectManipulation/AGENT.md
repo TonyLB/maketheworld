@@ -37,7 +37,7 @@ FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 | `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
 | `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point; Abstain is terminal-parse only) |
 
-Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal **`Consult`** / **`Abstain`**: [`../../baseClasses.ts`](../../baseClasses.ts) (membership egress + actions handlers as of FT-3.1 / FT-3.2).
+Outcome mapping from legacy identity / embedding types to pool + selector verdicts is documented in [`spanResolution.ts`](spanResolution.ts) guards and the production path above. Terminal **`Consult`** / **`Abstain`**: [`../../baseClasses.ts`](../../baseClasses.ts) (membership + relational egress + actions handlers).
 
 ### Abstain vs Consult vs Error (membership + relational)
 
@@ -179,4 +179,4 @@ Authority: [`../../../../AGENT.testing.md`](../../../../AGENT.testing.md).
 ## Navigation
 
 - Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
-- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C blocked on [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md))
+- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C unblocked --- Gateway exit complete; see **Phase C design debt** in that plan)

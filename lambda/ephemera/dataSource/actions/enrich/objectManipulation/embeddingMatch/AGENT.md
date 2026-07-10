@@ -89,7 +89,7 @@ lexRelevance = editDistanceRelevance * flankScore
 
 Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`lexicalRelevanceFromMetrics`](lexicalMatchMetrics.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
 
-Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
+Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**, **FT-1.3 calibration**) + locked constants in [`thresholds.ts`](thresholds.ts).
 
 **Storage:** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
 
