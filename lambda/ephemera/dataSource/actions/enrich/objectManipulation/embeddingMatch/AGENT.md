@@ -1,8 +1,8 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (FT-3.3 relational + FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipTuples`](../proposeMembershipTuples.ts) + [`selectIdentityPlanTuple`](../selectIdentityPlanTuple.ts) (`T_JOINT_*` legality-gated). **Relational production (FT-3.3, 2026-07-10):** pools + [`proposeRelationalTuples`](../proposeRelationalTuples.ts) + [`selectRelationalFromPools`](../selectRelationalFromPools.ts) (shared `selectPlanTuple`). Bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts) harness-only. **Calibration regression only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts). Identity LLM retired from production.
+**Status: shipped (FT-3.3 relational + FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **v2 steady-state = pool recommender** (not terminal pick-one). **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipTuples`](../proposeMembershipTuples.ts) + [`selectIdentityPlanTuple`](../selectIdentityPlanTuple.ts) (`T_JOINT_*` legality-gated). **Relational production (FT-3.3, 2026-07-10):** pools + [`proposeRelationalTuples`](../proposeRelationalTuples.ts) + [`selectRelationalFromPools`](../selectRelationalFromPools.ts) (shared `selectPlanTuple`). Bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts) harness-only. **Calibration / historical only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) / [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts). Identity LLM retired from production.
 
-**Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
+**Output trust:** **v1** open-loop terminal `Resolved` (retired from production) vs **v2** closed-loop pool -> FT-5 selector (auto-resolve | Consult | Abstain). Canonical vocabulary: [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
 **Pipeline context:** [`../AGENT.md`](../AGENT.md) step 4 (identity).
 
@@ -19,8 +19,8 @@
 | [`rankCatalogByCosineSimilarity`](rankCatalogByCosineSimilarity.ts) | Linear scan; ranked scores |
 | [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` (calibration regression) |
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision; [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
-| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + v1 decide (calibration only) |
-| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
+| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + v1 decide (calibration only --- **not** production identity) |
+| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation (shared by production pool path) |
 | [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (membership + relational tuple selectors) |
 
 ## FT-1.2 / FT-2.1 pool merge (production)
@@ -53,7 +53,7 @@ Locked `JOINT_RELEVANCE_W_L` / `JOINT_RELEVANCE_W_E`, `POOL_SHORTLIST_TOP_N`, `P
 
 ## FT-1.1 relevance normalization (2026-07-09)
 
-Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSpanCandidatePool`** (FT-1.2); production identity path still v1 until FT-2.
+Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSpanCandidatePool`** (FT-1.2) and production identity / relational grounding via [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts).
 
 | Module | Role |
 | --- | --- |
@@ -91,20 +91,18 @@ Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoi
 
 Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-8 decisions so far**).
 
-**Storage (v1):** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
+**Storage:** catalog vectors from **`EMBEDDING#IMPROMPTU`** keyed on **normalized `shortName` only** ([`buildShortNameSemanticEmbedding`](../../../../objects/embedding/buildShortNameSemanticEmbedding.ts)). **`RoomInPlayObjectCatalogEntry.embedding`** is optional on catalog entries; **`handleParseRequested`** ([`index.ts`](../../../index.ts)) batch-loads via **`internalCache.ObjectEmbedding.get`** and attaches vectors with [`attachEmbeddingsToCatalogEntries`](../../../attachEmbeddingsToCatalogEntries.ts) before identity stage runs.
 
-**Wiring:** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) call `resolveObjectSpanByEmbedding` on deterministic `NoMatch` only (skip on `AmbiguousMatch`). Span embed invoke failure maps to `embed_invoke_failed` abstain and **falls through to identity LLM** --- never a terminal Error.
-
-**FT-0 migration note (2026-07-09):** v1 `EmbeddingMatchDecision.Resolved` is a **terminal commit-worthy** outcome on the production path today. FT-1.2 ships the ranked `SpanCandidatePool` builder ([`buildSpanCandidatePool`](buildSpanCandidatePool.ts)); auto-resolve moves to the FT-5 selector when FT-2 wires `identityStage` to pool artifacts.
+**Wiring (production):** [`identityStage.ts`](../identityStage.ts) and [`resolveRelationalGrounding.ts`](../resolveRelationalGrounding.ts) emit pools via [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) on non-exact spans. Exact unique match skips embed. **No identity LLM fallthrough.** Span embed invoke failure yields an empty/weak pool; FT-5 selector declines to Abstain/Error --- never a silent best-guess id. [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) / [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) remain **calibration-only**.
 
 ## Threshold ownership (FT-1.3, 2026-07-09)
 
 | Constant group | Scale | Consumer | Pool admission? |
 | --- | --- | --- | --- |
-| `T_ABS`, `T_ABS_UNARY`, `T_MARGIN` | raw cosine | v1 [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) until FT-2 | **No** --- terminal open-loop shim only |
+| `T_ABS`, `T_ABS_UNARY`, `T_MARGIN` | raw cosine | v1 [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) (calibration shim only) | **No** --- open-loop calibration |
 | `C_MIN`, `L_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance` | **No** --- relevance normalization |
 | `JOINT_RELEVANCE_W_*`, gap-trim | joint `[0,1]` | [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) | **No** --- rank-all, no floor |
-| `T_JOINT_ABS`, `T_JOINT_MARGIN`, `T_JOINT_ABS_UNARY` | joint `[0,1]` | FT-5 selector (unwired) | **No** --- auto-resolve gate, not membership |
+| `T_JOINT_ABS`, `T_JOINT_MARGIN`, `T_JOINT_ABS_UNARY` | joint `[0,1]` | FT-5 selector (**wired** on membership + relational) | **No** --- auto-resolve gate |
 
 **Pool contract:** unconditional rank-all; gating is downstream (FT-5 confidence on `jointRelevance` + `marginToRunnerUp`).
 
@@ -114,7 +112,7 @@ Formulas and admissibility rules: [`AGENT.faultTolerantObjectManipulation.planni
 
 **Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
 
-**Proposed FT-5 floors (unwired):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin.
+**FT-5 floors (wired on membership + relational selectors):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin when catalog is unary / high-margin.
 
 **Short-span admissibility (FT-1.3.1, 2026-07-09):** gate **retired**. [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) scores lexical for every non-empty normalized span; FT-5 `T_JOINT_*` owns auto-resolve gating downstream. **Spurious diverse-catalog length-1** (`a` vs multi-token catalog) stays below `T_JOINT_ABS` (~0.34 joint with weak embed). **Prefix shorthand** (`ax`/`rusty axe`, `a`/`axe`) may score moderately-to-highly --- desired pool behavior. Harness: [`compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) (legacy gated baseline vs gate-off production). Legacy gate logic: [`testing/legacyLexicalChannelGate`](testing/legacyLexicalChannelGate.ts).
 
@@ -153,7 +151,7 @@ Sequential experiments locked production lexical combine constants. Intermediate
 
 Snapshots: [`embedding-identity-v1-2026-07-07.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-v1-2026-07-07.json), [`asymmetric-identity-ladder-v1-2026-07-07.json`](../../../../../calibration/objectMatch/snapshots/asymmetric-identity-ladder-v1-2026-07-07.json).
 
-### Symmetric shortName index (production v1 geometry)
+### Symmetric shortName index (production geometry)
 
 Live corpus on isolated short phrases:
 
@@ -161,7 +159,7 @@ Live corpus on isolated short phrases:
 - **Absent-object** best similarity can **exceed** paraphrase best (`identity-001` max 0.253 vs `identity-003` best 0.158). **Margin gate is essential**; absolute floor alone is insufficient without careful tuning.
 - Locked thresholds (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`, absolute-gap margin) separate most corpus buckets at **shortName-only** index; paraphrase resolve at locked thresholds depends on margin + catalog shape.
 
-**Interpretation:** Titan on symmetric short-short text encodes **distributional / lexical similarity**, not reliable **referential identity** ("same catalog object"). Token-free descriptive paraphrase (e.g. `sweeping tool` / `broom`) is a weak fit for terminal auto-resolve on shortName vectors alone.
+**Interpretation:** Titan on symmetric short-short text encodes **distributional / lexical similarity**, not reliable **referential identity** ("same catalog object"). Token-free descriptive paraphrase (e.g. `sweeping tool` / `broom`) is a weak fit for terminal auto-resolve on shortName vectors alone --- which is why production treats embedding as a **recommender** into the FT-5 selector, not a terminal pick-one.
 
 ### Asymmetric span vs enriched catalog index (exploration)
 
@@ -189,39 +187,31 @@ Live corpus on isolated short phrases:
 2. Enrichment **improves rank separation** for paraphrase (median tier +0.11) while **lowering** absent-object median (-0.09) vs symmetric --- but **does not** clear all failure modes (`sword` / `anvil` still ~0.20; unary `blade` / `rapier` rises toward `T_ABS_UNARY`).
 3. **Do not lock new thresholds from asymmetric ladder alone** without committing to enriched storage and re-running full identity corpus + simulate.
 
-### Open-loop terminal resolve vs closed-loop recommender
+### Open-loop terminal resolve vs closed-loop recommender (historical rationale)
 
 Vocabulary: **open-loop** / **closed-loop** here map to **trusted-output** / **fault-tolerant** in [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md).
 
-**v1 architecture** treats embedding as **pick-one-or-abstain** when conjunctive gates pass. Downstream enrich stages are **intolerant of false positives** (wrong `objectId` is costly).
+**v1 architecture** treated embedding as **pick-one-or-abstain** when conjunctive gates passed. Downstream enrich stages are **intolerant of false positives** (wrong `objectId` is costly). Under that success criterion, asymmetric results were only somewhat encouraging.
 
-Under that success criterion, asymmetric results are **only somewhat encouraging**: paraphrase improves but absent-object and unary-trap still breach absolute floors if auto-resolved.
+**v2 (shipped):** embedding emits a ranked **candidate pool**; the FT-5 selector (propose-N + legality + floor/margin) **auto-resolves**, **Consults**, or **Abstains**. Closed-loop identity grounding is live on membership and relational paths --- the adjudicator is the deterministic selector (not an identity LLM). The same calibration numbers are more encouraging under this model:
 
-Under a **closed-loop** model --- embedding emits **top-N candidates + confidence** (absolute sim, margin, eligible count); identity LLM / post-identity validation **confirms or corrects** --- the **same numbers are more encouraging**:
-
-- Paraphrase: strong **margin** over 2nd candidate (~0.17) even at modest absolute sim.
-- Absent-object: clustered weak scores -> **low confidence**, not terminal resolve.
+- Paraphrase: strong **margin** over 2nd candidate (~0.17) even at modest absolute sim when catalog is unary / high-margin; thin margin among legal alternatives -> **Consult**.
+- Absent-object: clustered weak scores -> grey-band **Abstain**, not terminal resolve.
 - Enrichment role: **reranker / shortlist generator**, not sole decider.
-
-This module's v1 `Resolved` outcome is a **shipping compromise**, not the long-term identity contract.
 
 ---
 
-## Deferred follow-on (out of v1 scope)
+## Deferred follow-on
 
 Recovery pattern vocabulary: [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Fault recovery patterns**).
 
 | Initiative | Recovery pattern | Intent |
 | --- | --- | --- |
-| **Identity LLM abstain / `noMatch`** | Backtrack (owner) | When nothing in catalog fits, identity LLM returns abstain instead of optimistic best-effort pick. Does not change v1 [`buildPrompt.ts`](../buildPrompt.ts) / [`interpretIdentity.ts`](../interpretIdentity.ts). |
-| **Lexical backstop on unary catalog** | --- | Token overlap / edit distance --- **rejected for v1**; unary uses `T_abs_unary > T_abs` only. |
-| **Closed-loop identity** | Correct + backtrack | Upstream stages emit **best-guess + confidence**; downstream equipped with low-cost correction (never assume upstream is final). |
-| **Embedding as candidate recommender** | Supplement (rank) + backtrack | Replace or narrow terminal `Resolved`; expose ranked shortlist; identity LLM adjudicates 1-N candidates. |
 | **Enriched `EMBEDDING#IMPROMPTU`** | Supplement | Store `shortNamePlusDescription` (or equivalent) when spawn/update has prose; refresh policy extends beyond shortName hash. |
-| **Post-identity validation LLM** | Correct | Judge span + command vs grounded `objectId`; trigger correction or backtrack. |
-| **Identification retry loop** | Backtrack (+ supplement) | On validation failure, broader / more expensive pass (e.g. identity LLM when fast path won, wider catalog context, abstain-capable prompt). |
+| **`withinObject` pool supplement** | Supplement | Container-contents expand after grounding `from` (re-entrant loop; future `llm/pipeline/` orchestrator). |
+| **Phase C joint proposer** | Backtrack / Consult | LLM joint `(identity, plan)` hop beyond numeric FT-5 floors; retires complexity LLM + frame extract as distinct hops (C1/C4). |
 
-**When starting closed-loop work:** re-read this file and asymmetric snapshot; re-run `EmbeddingAsymmetricLadder` + `EmbeddingSimulateIdentity` (rich catalog fixtures) before changing storage or gates.
+**When revisiting enrichment or thresholds:** re-read this file and asymmetric snapshot; re-run `EmbeddingAsymmetricLadder` + pool corpus harnesses before changing storage or gates.
 
 ---
 

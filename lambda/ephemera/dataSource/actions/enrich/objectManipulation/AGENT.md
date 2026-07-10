@@ -13,7 +13,17 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ## Pipeline architecture
 
-**Trust posture (v1):** **trusted-output** through terminal parse and positions ingress --- each hop's semantic fields are treated as settled until Error; identity embedding v1 is a partial exception migrating toward fault-tolerant closed-loop ([`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md)). General vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**).
+**Trust posture:** enrich identity/selection is **fault-tolerant** (ranked `SpanCandidatePool` + propose-N + FT-5 selector -> auto-resolve, **Consult**, or **Abstain**). **Terminal parse** and **positions ingress** remain **trusted-output** --- a single grounded winner, or a terminal Consult/Abstain/Error before any stream. Classify family routing is still trusted-output (BD-11 live; FT-7 reunify is Phase C). Vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**). Pool recommender details: [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
+
+### Recovery patterns (per hop)
+
+| Pattern | Where | Shipped behavior |
+| --- | --- | --- |
+| **Supplement** | Catalog / embed ingress | Room + held catalogs and `EMBEDDING#IMPROMPTU` attached before identity; future `withinObject` pool expand (deferred) |
+| **Correct** | Dry-run + existence guard | Locus legality and referential integrity reject illegal tuples; never vacuum-fill a missing id |
+| **Backtrack** | Selector decline | Thin-margin -> **Consult**; grey-band / unfit head -> **Abstain** --- not identity-LLM retry |
+
+Orchestration is **single-pass** this iteration (propose-N + pure selector + guard). Re-entrant closed-loop (container-contents supplement) is a future `llm/pipeline/` concern, not Gateway-blocking.
 
 ### Target handoff artifacts (FT-0 skeleton)
 
@@ -120,7 +130,7 @@ Legality ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)) runs
 
 ---
 
-**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references via pool + FT-5 selector (membership and relational), **close** simple membership atomics from locus legality or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **compile** to trusted terminal parse, Consult, Abstain, or player-facing Error.
+**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references via pool + FT-5 selector (membership and relational), **close** simple membership atomics from locus legality or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **auto-resolve** to trusted terminal parse, or emit terminal Consult / Abstain / Error before commit.
 
 ### Field ownership (quick reference)
 
