@@ -15,6 +15,7 @@ import * as apiEphemera from '../apiEphemera'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 
 import {
+    isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandConsultResult,
@@ -152,6 +153,36 @@ describe('parseCommand type guards', () => {
             expect(isParseCommandConsultResult({
                 type: 'Error',
                 errorMessage: 'nope',
+            } as any)).toBe(false)
+        })
+    })
+
+    describe('isParseCommandAbstainResult', () => {
+        it('accepts valid Abstain with confidence', () => {
+            expect(isParseCommandAbstainResult({
+                type: 'Abstain',
+                confidence: 0.7,
+            })).toBe(true)
+            expect(isParseCommandAbstainResult({
+                type: 'Abstain',
+                confidence: 0.7,
+                reason: 'noMatch',
+            })).toBe(true)
+        })
+
+        it('rejects invalid confidence or wrong type', () => {
+            expect(isParseCommandAbstainResult({
+                type: 'Abstain',
+                confidence: 1.2,
+            })).toBe(false)
+            expect(isParseCommandAbstainResult({
+                type: 'Error',
+                errorMessage: 'nope',
+            } as any)).toBe(false)
+            expect(isParseCommandAbstainResult({
+                type: 'Consult',
+                alternatives: [{ proposedCommand: 'take the broom' }],
+                confidence: 0.6,
             } as any)).toBe(false)
         })
     })

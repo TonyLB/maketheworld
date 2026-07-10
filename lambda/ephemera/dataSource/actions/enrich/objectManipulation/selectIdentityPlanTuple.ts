@@ -36,6 +36,10 @@ export type SelectIdentityPlanTupleResult =
         deferSurvivors: readonly ScoredIdentityPlanCandidate[]
     }
     | {
+        verdict: 'abstain'
+        reason: string
+    }
+    | {
         verdict: 'error'
         reason: string
     }
@@ -132,9 +136,9 @@ function selectAmongLegal(
         }
     }
 
-    // Grey band: head below floor (or unary below unary floor)
+    // Grey band: head below floor (or unary below unary floor) -> Abstain (FT-3.2)
     return {
-        verdict: 'error',
+        verdict: 'abstain',
         reason: objectManipulationErrorMessages.noMatch,
     }
 }
@@ -174,6 +178,7 @@ export function selectIdentityPlanTupleToSpanOutcome(
             locus: result.candidate.identity.locus,
         }
     }
+    // abstain and error both map to SpanResolutionOutcome error (Abstain is terminal-parse only)
     return {
         verdict: 'error',
         reason: result.reason,

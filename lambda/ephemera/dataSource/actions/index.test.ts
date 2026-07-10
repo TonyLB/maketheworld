@@ -1899,6 +1899,45 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
+        it('publishes WorldOOCMessage for Abstain without positions stream', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'Abstain',
+                confidence: 0.7,
+                reason: 'ObjectManipulation resolution failed: no such object in the room',
+            })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [],
+                exits: [],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'take the sword',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ["I couldn't understand that command."],
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+
         it('publishes WorldOOCMessage for notCarryingObject agreement failure', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'Error',

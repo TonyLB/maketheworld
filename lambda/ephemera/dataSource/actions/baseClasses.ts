@@ -95,6 +95,17 @@ export type ParseCommandConsultResult = {
     confidence: ParseCommandConfidence
 }
 
+/**
+ * Unparseable / no catalog-backed match (FT-3.2). Distinct from **Error** (policy/legality)
+ * and **Consult** (structured alternatives). v1 OOC stub; perception may own copy later.
+ */
+export type ParseCommandAbstainResult = {
+    type: 'Abstain'
+    confidence: ParseCommandConfidence
+    /** Optional machine reason (e.g. noMatch); not required for player copy. */
+    reason?: string
+}
+
 export type ParseCommandNavigationResult = {
     type: 'Navigation'
     targetId: EphemeraRoomId
@@ -339,6 +350,7 @@ export type IntentClassificationResult =
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandConsultResult
+    | ParseCommandAbstainResult
     | ParseCommandNavigationResult
     | ParseCommandHomeResult
     | ParseCommandAcmeOrderResult
@@ -390,6 +402,21 @@ export function isParseCommandConsultResult(
         }
         return typeof entry.objectId === 'string' && isEphemeraObjectId(entry.objectId)
     })
+}
+
+export function isParseCommandAbstainResult(
+    result: ParseCommandResult
+): result is ParseCommandAbstainResult {
+    if (result.type !== 'Abstain') {
+        return false
+    }
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (result.reason === undefined) {
+        return true
+    }
+    return typeof result.reason === 'string'
 }
 
 export function isParseCommandAwaitRoadrunnerResult(

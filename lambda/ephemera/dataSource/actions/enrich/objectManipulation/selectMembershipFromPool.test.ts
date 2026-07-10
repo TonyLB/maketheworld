@@ -95,7 +95,7 @@ describe('selectMembershipFromPool', () => {
         })
     })
 
-    it('maps grey-band abstain to noMatch error', () => {
+    it('maps grey-band to abstain (not consult, not error)', () => {
         const pool: SpanCandidatePool = {
             span: 'sword',
             candidates: [
@@ -114,8 +114,8 @@ describe('selectMembershipFromPool', () => {
             verbClass: 'acquire',
             catalog,
         })).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.noMatch,
+            type: 'abstain',
+            reason: objectManipulationErrorMessages.noMatch,
         })
     })
 })

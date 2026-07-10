@@ -243,4 +243,36 @@ describe('compileMembershipAtomic', () => {
         expect(getMembershipContainers).not.toHaveBeenCalled()
         expect(getPositionGraph).not.toHaveBeenCalled()
     })
+
+    it('FT-3.2 grey-band egresses as Abstain (not Consult, not Error)', async () => {
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'take the sword',
+                rawObjectSpans: ['sword'],
+                verbClass: 'acquire',
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                ],
+            },
+            0.9,
+            {
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+                embedSpan: jest.fn().mockResolvedValue({
+                    success: true,
+                    embedding: [0.01, 0.02, 0.03],
+                }),
+            }
+        )
+
+        expect(result.type).toBe('Abstain')
+        if (result.type === 'Abstain') {
+            expect(result.confidence).toBe(0.9)
+            expect(result.reason).toBe(objectManipulationErrorMessages.noMatch)
+        }
+        expect(getMembershipContainers).not.toHaveBeenCalled()
+        expect(getPositionGraph).not.toHaveBeenCalled()
+    })
 })

@@ -33,6 +33,7 @@ import {
     type ParseCommandAcmeOrderLine,
     type ParseCommandConsultAlternative,
     type ParseCommandResult,
+    isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandCharacterSpokeResult,
@@ -191,6 +192,14 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
             message: [line],
+        })
+    }
+    else if (isParseCommandAbstainResult(parseResult)) {
+        messageBus.publish({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: ["I couldn't understand that command."],
         })
     }
     else if (isParseCommandCoyoteEngineTestResult(parseResult)) {

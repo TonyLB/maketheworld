@@ -71,7 +71,7 @@ describe('selectIdentityPlanTuple', () => {
         }
     })
 
-    it('absent-object grey band below floor -> noMatch error (not consult)', () => {
+    it('absent-object grey band below floor -> abstain (not consult)', () => {
         const anvil = identityPlanCandidateFromSpan(
             candidate(
                 'OBJECT#Anvil' as EphemeraObjectId,
@@ -88,7 +88,7 @@ describe('selectIdentityPlanTuple', () => {
         })
 
         expect(result).toEqual({
-            verdict: 'error',
+            verdict: 'abstain',
             reason: objectManipulationErrorMessages.noMatch,
         })
     })
@@ -113,7 +113,7 @@ describe('selectIdentityPlanTuple', () => {
                 ),
             ],
         })
-        expect(below.verdict).toBe('error')
+        expect(below.verdict).toBe('abstain')
 
         const above = selectIdentityPlanTuple({
             candidates: [

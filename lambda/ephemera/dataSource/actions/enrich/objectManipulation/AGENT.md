@@ -17,7 +17,7 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ### Target handoff artifacts (FT-0 skeleton)
 
-**Runtime (FT-2.2 + FT-3.1, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); thin-margin ambiguity egresses terminal **`Consult`** ([`ParseCommandConsultResult`](../../baseClasses.ts)); grey-band abstain / noMatch stays **Error**. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (declines -> Error until FT-3.3).
+**Runtime (FT-2.2 + FT-3.2, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); thin-margin ambiguity egresses terminal **`Consult`** ([`ParseCommandConsultResult`](../../baseClasses.ts)); grey-band / unfit head egresses terminal **`Abstain`** ([`ParseCommandAbstainResult`](../../baseClasses.ts)); policy / legality / validator defer stay **Error**. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (declines -> Error until FT-3.3). Complexity LLM and frame extract remain live interim hops until Phase C **C4**.
 
 FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 
@@ -25,9 +25,19 @@ FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 | --- | --- |
 | `SpanCandidatePool` | Input evidence: ranked `candidates[]` per span (no `status` field) |
 | `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
-| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point) |
+| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point; Abstain is terminal-parse only) |
 
-Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult`: [`../../baseClasses.ts`](../../baseClasses.ts) (wired on membership egress + actions handler as of FT-3.1).
+Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal **`Consult`** / **`Abstain`**: [`../../baseClasses.ts`](../../baseClasses.ts) (membership egress + actions handlers as of FT-3.1 / FT-3.2).
+
+### Abstain vs Consult vs Error (membership)
+
+| Outcome | When | Owner |
+| --- | --- | --- |
+| **Consult** | Thin margin among legal tuples; catalog-backed `alternatives` | FT-5 selector only |
+| **Abstain** | Grey-band below `T_JOINT_*` floor; unfit head; no catalog-backed menu | Deterministic propose-N / selector decline |
+| **Error** | Illegal dry-run, existence guard, cardinality, `multiPresent`, complexity defer interim | Validator / pre-gates --- never Consult |
+
+Invariant: dry-run `defer` and closed-world fast-path **must not author Consult**. LLM joint proposer + hop retirement deferred to Phase C.
 
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
@@ -58,10 +68,10 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to a trusted catalog **`objectId`** + membership **`operationKind`** for a unary membership command.
 
 - **Pool emission (FT-2.1):** per-span [`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) --- exact unique match -> single-candidate pool (`sourceTags: ['exact']`, `jointRelevance: 1`); duplicate exact labels -> multi-candidate pool with distinct `locus`; non-exact -> span embed + [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts).
-- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult` -> terminal **`Consult`** with structured `alternatives` (FT-3.1); grey-band -> `noMatch` **Error**.
+- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult` -> terminal **`Consult`** with structured `alternatives` (FT-3.1); grey-band -> **`Abstain`** (FT-3.2).
 - **Retired from membership production path:** per-span identity LLM; reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) veto after a committed id (legality is now pre-select dry-run); bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (still used on **relational** path).
 
-**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim), terminal **`Consult`** (catalog-backed ambiguity), or terminal Error.
+**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim until Phase C), terminal **`Consult`** (catalog-backed ambiguity), terminal **`Abstain`** (grey-band / noMatch), or terminal Error.
 
 **5. Post-select observation + complexity pre-gates (deterministic)**  
 After selector resolve, read authoritative **membership containers** and host **`positionGraph`**. Exit-edge / non-atomic topology still defers to the complexity LLM (interim until FT-3 sandbox retirement):

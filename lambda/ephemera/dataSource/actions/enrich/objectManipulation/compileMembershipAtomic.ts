@@ -1,6 +1,7 @@
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
 import type {
+    ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandObjectManipulationResult,
@@ -33,6 +34,7 @@ export type CompileMembershipAtomicDeps = {
 export type CompileMembershipAtomicResult =
     | ParseCommandObjectManipulationResult
     | ParseCommandConsultResult
+    | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
@@ -70,6 +72,14 @@ export async function compileMembershipAtomic(
 
     if (selection.type === 'error') {
         return { type: 'Error', errorMessage: selection.errorMessage }
+    }
+
+    if (selection.type === 'abstain') {
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.reason,
+        }
     }
 
     if (selection.type === 'consult') {

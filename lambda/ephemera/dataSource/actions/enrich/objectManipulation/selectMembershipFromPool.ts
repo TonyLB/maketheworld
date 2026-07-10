@@ -30,6 +30,10 @@ export type SelectMembershipFromPoolResult =
         alternatives: readonly SpanResolutionConsultAlternative[]
     }
     | {
+        type: 'abstain'
+        reason: string
+    }
+    | {
         type: 'error'
         errorMessage: string
     }
@@ -44,7 +48,7 @@ export type SelectMembershipFromPoolInput = {
 
 /**
  * Membership FT-2.2 glue: propose-N -> FT-5 selector -> existence/presence guard.
- * Thin-margin consult preserves alternatives for FT-3.1 Consult egress; grey-band stays error.
+ * Thin-margin consult preserves alternatives for Consult egress; grey-band -> Abstain (FT-3.2).
  */
 export function selectMembershipFromPool(
     input: SelectMembershipFromPoolInput
@@ -84,6 +88,13 @@ function mapSelection(
         return {
             type: 'error',
             errorMessage: selection.reason,
+        }
+    }
+
+    if (selection.verdict === 'abstain') {
+        return {
+            type: 'abstain',
+            reason: selection.reason,
         }
     }
 
