@@ -1,6 +1,6 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipTuples`](../proposeMembershipTuples.ts) + [`selectIdentityPlanTuple`](../selectIdentityPlanTuple.ts) (`T_JOINT_*` legality-gated). **Relational production:** still bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts). **Calibration regression only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts). Identity LLM retired from production.
+**Status: shipped (FT-3.3 relational + FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipTuples`](../proposeMembershipTuples.ts) + [`selectIdentityPlanTuple`](../selectIdentityPlanTuple.ts) (`T_JOINT_*` legality-gated). **Relational production (FT-3.3, 2026-07-10):** pools + [`proposeRelationalTuples`](../proposeRelationalTuples.ts) + [`selectRelationalFromPools`](../selectRelationalFromPools.ts) (shared `selectPlanTuple`). Bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts) harness-only. **Calibration regression only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts). Identity LLM retired from production.
 
 **Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
@@ -21,7 +21,7 @@
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision; [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
 | [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + v1 decide (calibration only) |
 | [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
-| [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (membership tuple selector + relational bridge) |
+| [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (membership + relational tuple selectors) |
 
 ## FT-1.2 / FT-2.1 pool merge (production)
 

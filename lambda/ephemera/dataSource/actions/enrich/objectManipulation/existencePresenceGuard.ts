@@ -1,7 +1,10 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import type { IdentityPlanCandidate } from './identityPlanCandidate'
+import type {
+    IdentityPlanCandidate,
+    IdentityPlanIdentity,
+} from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SpanCandidateLocus } from './spanResolution'
 import { locusToCatalogScope } from './unaryCollapse'
@@ -14,11 +17,11 @@ export type ExistencePresenceGuardResult =
  * Post-selection referential integrity (FT-5 phase 2): chosen id exists in ingress
  * catalogs and claimed locus matches catalog scope.
  */
-export function existencePresenceGuard(
-    candidate: IdentityPlanCandidate,
+export function existencePresenceGuardForIdentity(
+    identity: IdentityPlanIdentity,
     catalog: readonly ObjectManipulationCatalogEntry[]
 ): ExistencePresenceGuardResult {
-    const entry = catalog.find((item) => item.objectId === candidate.identity.objectId)
+    const entry = catalog.find((item) => item.objectId === identity.objectId)
     if (entry === undefined) {
         return {
             type: 'error',
@@ -26,7 +29,7 @@ export function existencePresenceGuard(
         }
     }
 
-    const expectedScope = locusToCatalogScope(candidate.identity.locus)
+    const expectedScope = locusToCatalogScope(identity.locus)
     if (entry.catalogScope !== expectedScope) {
         return {
             type: 'error',
@@ -34,7 +37,7 @@ export function existencePresenceGuard(
         }
     }
 
-    if (!locusMatchesV1Scope(candidate.identity.locus, entry.catalogScope)) {
+    if (!locusMatchesV1Scope(identity.locus, entry.catalogScope)) {
         return {
             type: 'error',
             reason: objectManipulationErrorMessages.noMatch,
@@ -42,6 +45,13 @@ export function existencePresenceGuard(
     }
 
     return { type: 'ok' }
+}
+
+export function existencePresenceGuard(
+    candidate: IdentityPlanCandidate,
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): ExistencePresenceGuardResult {
+    return existencePresenceGuardForIdentity(candidate.identity, catalog)
 }
 
 function locusMatchesV1Scope(

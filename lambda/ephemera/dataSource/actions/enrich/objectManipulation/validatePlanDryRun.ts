@@ -1,8 +1,12 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import { evaluateRelationalLegality } from './evaluateRelationalLegality'
+import type {
+    IdentityPlanCandidate,
+    RelationalIdentityPlanCandidate,
+} from './identityPlanCandidate'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
-import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
 export type DryRunVerdict = 'legal' | 'defer' | 'illegal'
@@ -18,6 +22,10 @@ export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
     positionGraph?: EphemeraPositionGraph
     actorCharacterId?: EphemeraCharacterId
+}
+
+export type ValidateRelationalPlanContext = {
+    positionGraph: EphemeraPositionGraph
 }
 
 /**
@@ -76,4 +84,29 @@ function escalateExitEdgeIfNeeded(
         }
     }
     return { verdict: 'legal', decidable: true }
+}
+
+/**
+ * Single-step relational dry-run (FT-3.3). Wraps evaluateRelationalLegality;
+ * allow -> legal, failures -> illegal (no Consult from legality).
+ */
+export function validateRelationalPlanDryRun(
+    candidate: RelationalIdentityPlanCandidate,
+    context: ValidateRelationalPlanContext
+): DryRunOutcome {
+    const legality = evaluateRelationalLegality({
+        operationKind: candidate.plan.operationKind,
+        subjectId: candidate.subject.objectId,
+        targetId: candidate.target.objectId,
+        normalizedRelation: candidate.plan.relation,
+        graph: context.positionGraph,
+    })
+    if (legality.type === 'allow') {
+        return { verdict: 'legal', decidable: true }
+    }
+    return {
+        verdict: 'illegal',
+        decidable: true,
+        reason: legality.errorMessage,
+    }
 }
