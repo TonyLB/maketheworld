@@ -13,6 +13,10 @@ export const locusToCatalogScope = (locus: SpanCandidateLocus): ObjectManipulati
     locus.kind === 'heldByActor' ? 'held' : 'room'
 )
 
+/**
+ * FT-2.1 bridge helper. Membership compile uses {@link selectMembershipFromPool} (FT-2.2).
+ * Retained for tests and any non-membership callers of single-span bridge collapse.
+ */
 export function collapseUnarySpanPools(spanPools: readonly SpanCandidatePool[]): UnaryCollapseResult {
     if (spanPools.length === 0) {
         return {

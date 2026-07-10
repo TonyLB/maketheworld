@@ -10,7 +10,8 @@ import type { SpanCandidatePool, SpanResolutionOutcome } from './spanResolution'
 
 /**
  * FT-2.1 bridge: single-span FT-5 auto-resolve on joint relevance floor + margin.
- * Superseded by FT-2.2 tuple selector + Consult wire. Declines map to error, not Consult.
+ * Membership path superseded by FT-2.2 {@link selectMembershipFromPool} / {@link selectIdentityPlanTuple}.
+ * Still used by relational grounding until a later slice. Declines map to error, not Consult.
  */
 export function selectSingleSpanFromPool(pool: SpanCandidatePool): SpanResolutionOutcome {
     const { candidates } = pool

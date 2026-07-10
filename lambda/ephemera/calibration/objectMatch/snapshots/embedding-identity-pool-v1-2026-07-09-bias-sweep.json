@@ -4,12 +4,12 @@
   "corpusId": "embedding-identity-v1",
   "modelId": "amazon.titan-embed-text-v2:0",
   "dimensions": 256,
-  "calibratedAt": "2026-07-10T01:11:48.323Z",
+  "calibratedAt": "2026-07-10T13:04:14.856Z",
   "metadata": {
     "corpusId": "embedding-identity-v1",
     "modelId": "amazon.titan-embed-text-v2:0",
     "dimensions": 256,
-    "calibratedAt": "2026-07-10T01:11:48.314Z"
+    "calibratedAt": "2026-07-10T13:04:14.854Z"
   },
   "pairs": {
     "cases": [

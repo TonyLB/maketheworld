@@ -74,7 +74,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 3. **Enrich (membership path only)** --- **`parseCommand`** routes **`ObjectMembershipIntent`** -> **`compileMembershipAtomic`**. Membership complexity defer may yield terminal **`Error`** stubs (`multiObject`, `multiPresent`, **`relationalPlacement`** on membership path only). See [Object manipulation classify + enrich steady-state](#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents) for full pipeline.
 
-4. **Identity resolve (FT-2.1)** --- pool emission in [`identityStage.ts`](enrich/objectManipulation/identityStage.ts) via [`resolveCatalogSpanToPool`](enrich/objectManipulation/resolveCatalogSpanToPool.ts) (exact -> single-candidate pool; non-exact -> [`buildSpanCandidatePool`](enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool.ts)); bridge [`selectSingleSpanFromPool`](enrich/objectManipulation/selectSingleSpanFromPool.ts) (`T_JOINT_*` auto-resolve; declines -> Error). Identity LLM retired. Calibration: [`enrich/objectManipulation/embeddingMatch/AGENT.md`](enrich/objectManipulation/embeddingMatch/AGENT.md). Agreement gate after pre-gates unchanged.
+4. **Identity resolve (FT-2.2 membership / FT-2.1 relational)** --- pool emission in [`identityStage.ts`](enrich/objectManipulation/identityStage.ts) via [`resolveCatalogSpanToPool`](enrich/objectManipulation/resolveCatalogSpanToPool.ts) (exact -> single-candidate pool; non-exact -> [`buildSpanCandidatePool`](enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool.ts)). **Membership:** [`selectMembershipFromPool`](enrich/objectManipulation/selectMembershipFromPool.ts) (propose-N + FT-5 legality-gated tuple selector + existence guard; Consult maps to Error until FT-3.1). **Relational:** bridge [`selectSingleSpanFromPool`](enrich/objectManipulation/selectSingleSpanFromPool.ts). Identity LLM retired. Calibration: [`enrich/objectManipulation/embeddingMatch/AGENT.md`](enrich/objectManipulation/embeddingMatch/AGENT.md).
 
 5. **Terminal parse** --- **`ParseCommandObjectManipulationResult`** / guards in [`baseClasses.ts`](baseClasses.ts) for membership **`operationKind: takeHold` | `drop`** only. Relational outcomes use **`ParseCommandEstablishRelationResult`** (BD-1) --- not an extension of **`ObjectManipulation`**.
 
@@ -145,9 +145,8 @@ Parse Requested
   -> classify (LLM): ObjectMembershipIntent OR ObjectRelateIntent (movementObjectLabels = room + held)
   -> parseCommand branches by intent type -> enrichObjectManipulation(enrichRoute):
        membership: cardinality gate -> compileMembershipAtomic
-            -> resolveCatalogSpanToPool -> selectSingleSpanFromPool (FT-2.1)
-            -> unary collapse -> membership observation + complexity pre-gates
-            -> agreement gate (verbClass vs operationKind) on atomic path
+            -> resolveCatalogSpanToPool -> selectMembershipFromPool (FT-2.2)
+            -> post-select observation + complexity pre-gates (exit-edge -> complexity LLM)
             -> complexity LLM only on pre-gate defer
        relational: frame extract LLM -> normalizeRelationSpan
             -> per-span pool + bridge selector (FT-2.1)
