@@ -1,6 +1,6 @@
 # Plan-compiler dry-run sandbox (Phase C prerequisite)
 
-**Status:** Not started. Split out of [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) (2026-07-10) --- that plan's Phase C design debt named this as a prerequisite for C1 but carried no `Recommended order` of its own. This sibling plan owns just the sandbox: design debt consolidation, open decisions, and a build checklist.
+**Status:** Design decided (SB-1 -- SB-5 all Decided/Resolved, 2026-07-10); build not started (S2 next). Split out of [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) (2026-07-10) --- that plan's Phase C design debt named this as a prerequisite for C1 but carried no `Recommended order` of its own. This sibling plan owns just the sandbox: design debt consolidation, open decisions, and a build checklist.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -12,14 +12,16 @@ Phase B shipped two **single-step** dry-run validators --- [`validatePlanDryRun.
 
 Phase C composition (BD-8: auto-insert `drop` before `establishRelation`; BD-9: atomic multi-step apply) needs a validator that can tell whether a **compound** plan is legal **before** any real `transactWrite` --- which requires simulating the intermediate state a compound plan passes through (e.g. after the simulated `drop`, is the object now eligible for `establishRelation`?). That simulator is this sandbox.
 
+**Not compound-only (corrected 2026-07-10):** the same question arises for an ordinary **length-1** `transferMembership` step with no relational step at all --- "pick up the tray" when a glass is `On` the tray must ask exactly the same interaction-under-transfer question (SB-5) as a BD-8 composed plan does, because the tray is the **target** of an existing relational edge. Today's shipped `validateMembershipPlanDryRun` has no mechanism for this --- it only checks exit edges (room connections), never relational edges. The sandbox must close this gap for every membership transfer, not only ones the compiler already recognizes as compound.
+
 ## Scope
 
 ### In scope
 
-- A pure evaluator: `(proposedPlan, currentState) -> { verdict, decidable, resultPreview }`. No persist, no Dynamo reads --- hydrates from **ingress-packaged context** (room + held catalogs/graph) already assembled for the command.
-- **Compound simulation:** apply step 1 of a plan to an in-memory copy of state, then evaluate step 2 against the mutated copy (not the original). Reuses the existing single-step validators as the per-step primitive.
-- **Deterministic interaction-under-transfer semantics per enum relation** (the modeled core that makes enum fast-approve legitimate): e.g. `On` dissolves freely on pickup; `Under` may block or require composition before a transfer is legal. `Custom` / unmodeled blast radius has no such core and routes to the LLM validator (BD-10 `defer`) instead of the sandbox.
-- `resultPreview` shape sufficient for C2's single composed transcript (not separate drop + relate lines) and for Consult-menu presentation of runner-up legal candidates (FT-5).
+- A pure **reducer**: `(instructions, currentGraphs: Record<hostId, EphemeraPositionGraph>) -> { verdict, decidable, resultGraphs? } | { verdict: 'illegal' | 'defer', decidable, reason }`. No persist, no Dynamo reads --- hydrates from **ingress-packaged context** (room + held catalogs/graph) already assembled for the command. `resultGraphs` (immutable-reduce output, per SB-4 representation) is generic sandbox output, not a shape fitted to any one downstream consumer (SB-3, resolved by merge into SB-4) --- C2's transcript builder and FT-5's Consult menu each derive what they need from it independently.
+- **Compound simulation:** apply step 1 of a plan to an in-memory copy of state, then evaluate step 2 against the mutated copy (not the original). Reuses the sandbox's per-step primitive (shipped validators + the universal interaction-under-transfer check below) for each step --- no separate compound-only logic path.
+- **Deterministic interaction-under-transfer semantics per enum relation** (the modeled core that makes enum fast-approve legitimate): e.g. `On` dissolves freely on pickup; `Under` may block or require composition before a transfer is legal (see SB-5 detail below). `Custom` / unmodeled blast radius has no such core and routes to the LLM validator (BD-10 `defer`) instead of the sandbox.
+- **Universal gating, not compound-only:** every `transferMembership` step (single-step *or* the Nth step of a compound plan) must check **all** relational edges touching the transferred object --- whether it plays subject or target in that edge --- against the SB-5 table before the step is allowed. The shipped `validateMembershipPlanDryRun` (exit-edge check) is composed with this new relational-edge check, not replaced by it; the sandbox's single-step primitive is the union of both, applied uniformly regardless of plan length.
 - Wiring into the C1 compiler/selector: enum -> sandbox fast-approve; `Custom` / unmodeled -> LLM validator tier.
 
 ### Out of scope (unless plan updated)
@@ -58,10 +60,36 @@ Plan-only: decisions we are making in order to implement this sandbox. When a de
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| SB-1 | **Multi-host scope** --- does the sandbox need to simulate a compound plan that spans **more than one `positionGraph`** in v1, or does BD-6 (host always = actor's current room) mean every Phase C compound plan is single-host, and cross-host simulation is deferred to the future nesting/container operator? | Sandbox state shape | Open |
-| SB-2 | **Interaction-under-transfer rule table location** --- new module (e.g. `interactionUnderTransfer.ts`) consumed by both the sandbox and `evaluateRelationalLegality`, vs inlined into the sandbox evaluator directly. | Sandbox build order | Open |
-| SB-3 | **`resultPreview` contents** --- minimum fields C2 (single composed transcript) and FT-5 (Consult menu rendering of runner-up candidates) actually need; avoid over-fitting to one consumer before both exist. | Sandbox evaluator signature | Open |
-| SB-4 | **In-memory state representation** --- clone-and-mutate a typed snapshot of the ingress-packaged catalogs/graph vs a diff/patch-list applied lazily at read time. Affects perf and how naturally per-step primitives compose. | Compound simulation step | Open |
+| SB-1 | **Multi-host scope** --- **decided: yes, the sandbox must simulate multi-host state in v1.** Confirmed (2026-07-10) against shipped code: `takeHold`/`drop` are already cross-host today --- each Room and each Character owns its own `EphemeraPositionGraph` (`Meta::Room.positionGraph` / `Meta::Character.positionGraph`), joined only by adjacency index, not containment. `applyObjectTakeHold.ts` (`positions/manipulation/membership/applyObjectTakeHold.ts:61-129`) produces a `roomDiff` + `characterDiff` in one `HostEffect[]` list; the kernel `applyHostEffects.ts` is host-agnostic by construction (dedupes `affectedHostIds` across arbitrarily many hosts, one `transactWrite`). BD-6 ("host = actor's current room") was scoped to the **relational** operator's edge-host choice only, never a single-host claim for the whole manipulation vertical. A BD-8 composed plan (`drop` then `establishRelation`) therefore already touches **two** graphs (Character's, losing the object; Room's, gaining it + the new edge) before `establishRelation` even runs. | Sandbox state shape | **Decided (2026-07-10)** |
+| SB-2 | **Interaction-under-transfer rule table location** --- **decided (2026-07-10): new module** (e.g. `interactionUnderTransfer.ts` under [`enrich/objectManipulation/`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/)), not inlined into the sandbox evaluator. Consumed by the sandbox's single-step and compound checks (S3/S4) and `evaluateRelationalLegality.ts` where relevant, so the SB-5 rule table has one authoritative home rather than being duplicated or coupled to sandbox internals. | Sandbox build order | **Decided (2026-07-10)** |
+| SB-3 | ~~`resultPreview` contents~~ --- **resolved by merge into SB-4 (2026-07-10):** not a distinct question. The sandbox is a pure reducer over `EphemeraPositionGraph` items, not a validator fitted to specific downstream consumers --- its success output *is* the reduced graph set (per SB-4 representation), plus validity errors on failure. C2's transcript builder and FT-5's Consult menu each read whatever they need from that same generic output; the sandbox does not compute a bespoke preview shape for either. | N/A | **Resolved (merged into SB-4)** |
+| SB-4 | **In-memory state representation** --- **decided (2026-07-10): clone-and-mutate a typed snapshot**, not a diff/patch-list. Each affected `hostId` (per SB-1) gets its own cloned `EphemeraPositionGraph` snapshot in the sandbox's working state; a step's effect mutates the clone directly, and the next step reads the mutated clone --- no lazy patch application at read time. This is also the output representation (subsumes SB-3): the reducer's success result is the same typed snapshot set (`resultGraphs`), not a separate diff or preview object. | Compound simulation step; sandbox evaluator signature | **Decided (2026-07-10)** |
+| SB-5 | **Interaction-under-transfer rule content** --- **decided (2026-07-10):** per relation kind, whether dissolving on transfer is deterministically clean or requires interaction assessment depends on **which endpoint plays the load-bearing / constraining role**, not a fixed subject-vs-target split. See table below. | S2 rule table | **Decided (2026-07-10)** |
+
+### SB-5 detail: interaction-under-transfer table (revised 2026-07-10 --- three outcomes)
+
+Principle: the endpoint whose movement is ambiguous is the one that physically supports or spatially constrains the other. `On` and `Under` are **not** mirror images of the same physical fact --- `On` encodes a load relation (target supports subject); `Under` encodes a spatial/enclosure relation (target does not support subject, but its geometry may constrain subject's removal). `Against` encodes neither, so it is symmetric.
+
+**Revision (BD-13, informed by parent-plan multi-member `transferMembership`):** a third outcome, **`carry`**, replaces `defer` wherever the ambiguity is resolvable by absorbing the other endpoint into the transfer set rather than leaving its fate undecided. `carry` only applies where there is an actual object to absorb (a load relation, `On`) --- it does **not** apply to `Under`'s subject-move case, where the ambiguity is spatial clearance, not "what happens to some other object," and there is nothing to carry.
+
+**Internal vs. boundary (BD-13):** an edge where *both* endpoints move together as one transfer set (because one absorbed the other via `carry`) is **internal** --- never evaluated, never dissolved, simply preserved (recreated on the destination host graph). Only edges crossing the **boundary** of the transfer set (one endpoint in the set, one outside it) are evaluated against this table at all.
+
+| Relation kind | Subject moves (transfer) | Target moves (transfer) | Why |
+| --- | --- | --- | --- |
+| `On` | Clean dissolve | **Carry** (absorb subject into transfer set --- revised from `defer`, BD-13) | Target supports subject; when the target moves, the sane deterministic default is "the subject comes with it" (get the tray, the glass on it comes too) rather than leaving the outcome ambiguous. Subject-move alone is a trivial pick-up --- nothing rests on the subject in this relation, so it dissolves cleanly with nothing to carry. |
+| `Under` | **Defer** (interaction assessment --- unchanged, no carry partner) | Clean dissolve | Target does not support subject (no load relation) --- target-move has no bearing on subject, so it dissolves cleanly. Subject-move may be spatially constrained by target's geometry (clearance); there is no other object to absorb, so this stays a genuine `defer`. |
+| `Against` | Clean dissolve | Clean dissolve | Casual/lateral contact, no load-bearing or enclosure role either direction --- loosest relation, breaks cleanly regardless of which endpoint moves; never `carry` (a broom leaning against a moved table should fall, not be lifted with it). |
+| `Custom` | N/A --- always defer | N/A --- always defer | Unmodeled; not this table's concern (BD-10). |
+
+**Reconciles with BD-10 and BD-9, does not add an ad-hoc verdict:** every remaining "Defer" cell above is still the existing **BD-10 `defer` bucket** --- Phase B/C terminalizes it as the Error stub, Phase D's plan-LLM is the eventual escalation path. `carry` is not a new top-level sandbox verdict either --- it resolves to `legal` at the sandbox's `{verdict, decidable, resultGraphs}` level (SB-4); it only changes *which objects* the compiler's `transferMembership` step moves and *which edges* are recreated on the destination graph (BD-13, kernel side tracked in the parent plan).
+
+**`carry` is transitive (closure to fixpoint, not one hop):** worked example --- `glass On book`, `book On tray`, command "get tray."
+
+1. Tray is the object named in the transfer. Examine tray's edges: `book On tray` --- target (tray) moves, `On`/target-moves = **carry**. Absorb book into the transfer set.
+2. **Re-examine the newly absorbed object's edges** (not just the originally-named object's): book's edges include `glass On book` --- target (book) moves (book is now also in the transfer set), `On`/target-moves = **carry** again. Absorb glass.
+3. Glass has no further edges. Closure terminates: transfer set = `{tray, book, glass}`. Both `book On tray` and `glass On book` are **internal** to the set --- preserved untouched, recreated on the destination host graph. No boundary edges remain to evaluate (tray's dissolved `On table` edge, if any, is the only true boundary edge, handled separately by BD-8 composition).
+
+**Cycle safety:** the closure walk must track a visited-set and terminate on re-encountering an already-absorbed object, since nothing today guarantees the relational-edge graph is acyclic --- a malformed or adversarial state must not infinite-loop the sandbox.
 
 ## Getting started
 
@@ -81,31 +109,34 @@ cd lambda/ephemera && npm run test -- --watchAll=false \
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step.
 
-- [ ] **S1. Resolve open decisions (SB-1 -- SB-4)**
-  - [ ] Confirm multi-host scope for v1 (SB-1) against BD-6 host-selection rule in the parent plan.
-  - [ ] Decide interaction-under-transfer rule table location (SB-2).
-  - [ ] Decide `resultPreview` minimum shape (SB-3).
-  - [ ] Decide in-memory state representation (SB-4).
+- [X] **S1. Resolve open decisions (SB-1 -- SB-5)**
+  - [X] Confirm multi-host scope for v1 (SB-1) --- decided: sandbox state is keyed by `hostId` across room **and** character hosts; `takeHold`/`drop` are cross-host today, so single-host was never a valid v1 simplification.
+  - [X] Decide interaction-under-transfer rule table location (SB-2) --- new module `interactionUnderTransfer.ts`.
+  - [X] Resolve `resultPreview` question (SB-3) --- merged into SB-4; no bespoke preview shape.
+  - [X] Decide in-memory state representation (SB-4) --- clone-and-mutate typed snapshot, keyed by `hostId`, same shape for input and output.
+  - [X] Lock interaction-under-transfer rule content (SB-5) --- load-bearing/constraining-endpoint principle; see table.
 
-- [ ] **S2. Sandbox state + single-step composition**
-  - [ ] Define `SandboxState` type (hydrated from ingress-packaged room/held catalogs + host `positionGraph`(s) per SB-1).
-  - [ ] Wrap `validateMembershipPlanDryRun` / `validateRelationalPlanDryRun` as the sandbox's per-step primitive, unchanged in behavior.
-  - [ ] Tests: sandbox single-step parity with existing dry-run validator tests (no behavior drift).
+- [ ] **S2. Interaction-under-transfer rule table** (moved ahead of single-step composition --- S3 now depends on it)
+  - [ ] Create `interactionUnderTransfer.ts` (per SB-2) under `enrich/objectManipulation/`; implement the SB-5 table with **three** outcomes (`dissolve` / `carry` / `defer`) per relation kind and moved-endpoint role, keyed to check **any** edge touching a given object regardless of whether it plays subject or target.
+  - [ ] Expose a **transfer-set closure helper**: given a starting object and a host graph, absorb objects connected via `carry`-classified edges **to a fixpoint** --- re-examine each newly-absorbed object's own edges for further `carry` links, not just the originally-named object's edges (see SB-5 worked example: glass on book on tray). Guard with a visited-set for cycle safety. This is shared logic the parent plan's C1 compiler uses to *construct* multi-member `transferMembership` candidates, and the sandbox uses to *validate* that a given candidate's transfer set is complete (encloses everything reachable via `carry` edges).
+  - [ ] Wire into `evaluateRelationalLegality.ts` wherever it needs the same rule content, so the table has one authoritative home (SB-2).
+  - [ ] Tests: each enum relation's transfer behavior in both directions (subject-move and target-move), including `On`/target-moves now resolving to `carry` rather than `defer`; `Custom` explicitly excluded (always defer, not this table's concern); **multi-hop closure** --- glass on book, book on tray, "get tray" --- must absorb all three, not just the directly-linked book; a malformed cyclic edge set must terminate, not infinite-loop.
 
-- [ ] **S3. Interaction-under-transfer rule table**
-  - [ ] Build the deterministic per-enum-relation rule set (`On` dissolves on pickup; `Under` may block/compose; etc.).
-  - [ ] Wire into the compound simulation step (S4) so a simulated `drop` correctly updates/removes relational edges before the next step evaluates.
-  - [ ] Tests: each enum relation's transfer behavior; `Custom` explicitly excluded (routes to LLM validator, not this table).
+- [ ] **S3. Sandbox state + single-step composition**
+  - [ ] Define `SandboxState` type keyed by `hostId` as a clone-and-mutate typed snapshot (SB-4) of each affected host's `positionGraph`, hydrated from ingress-packaged room/held catalogs (per SB-1: room and character hosts both, mirroring `HostEffect[]` host-agnostic shape).
+  - [ ] Wrap `validateMembershipPlanDryRun` / `validateRelationalPlanDryRun` as the sandbox's per-step primitives, **composed with** the S2 interaction-under-transfer check --- **not** "unchanged in behavior": every membership transfer step (single-step *or* the Nth step of a compound plan) must check the transfer-set boundary (S2 closure helper) against the transferred object's edges, regardless of whether the transfer is part of a recognized compound plan.
+  - [ ] Tests: a **complete** "get tray" candidate (`dissolveRelation` + multi-member `transferMembership([tray, glass])`, BD-13) must be `legal`; an **incomplete** candidate (`transferMembership(tray)` alone, glass left out despite the `carry`-eligible edge) must **not** be silently approved --- the sandbox must catch a candidate that under-specifies the transfer set, not just approve whatever object list it's handed.
 
 - [ ] **S4. Compound simulation**
-  - [ ] Implement the mutate-and-reevaluate loop: apply step N's effect to the in-memory state (per SB-4 representation), then evaluate step N+1 against the mutated state.
+  - [ ] Implement the mutate-and-reevaluate loop: apply step N's effect directly onto the cloned snapshot (SB-4), then evaluate step N+1 against the mutated clone.
+  - [ ] For a multi-member `transferMembership` step, recreate internal (carried) edges on the destination host's cloned snapshot as part of the simulated effect (mirrors the real kernel work tracked in the parent plan, BD-13) --- the simulated `resultGraphs` must show `glass On tray` on the Character host's graph, not just tray's membership node.
   - [ ] Enforce BD-9 semantics in the simulation itself: if any step is illegal/deferred, the whole plan reports as such (no partial-legal plans).
-  - [ ] Tests: held object + surface relation composed plan (BD-8 golden path); a case where the interaction rule blocks composition (e.g. `Under` conflict).
+  - [ ] Tests: held object + surface relation composed plan (BD-8 golden path); a case where the interaction rule blocks composition (e.g. `Under` conflict); "get tray" (dissolve + carry) end-to-end producing correct `resultGraphs` on both hosts; **three-deep chain** (glass on book, book on tray, "get tray") --- `resultGraphs` on the Character host must show all three objects plus both internal edges recreated.
 
-- [ ] **S5. `resultPreview` + wiring**
-  - [ ] Implement `resultPreview` per SB-3 decision.
+- [ ] **S5. `resultGraphs` + wiring**
+  - [ ] Implement the reducer's success output (`resultGraphs`, per SB-4 representation) --- the reduced `EphemeraPositionGraph` set, no bespoke preview shape.
   - [ ] Wire sandbox output into the C1 selector: enum -> sandbox fast-approve tier; `Custom` / unmodeled -> LLM validator tier (BD-10 `defer`).
-  - [ ] Tests: end-to-end candidate -> sandbox verdict -> selector outcome, including a Consult case surfacing runner-up legal candidates from `resultPreview`.
+  - [ ] Tests: end-to-end candidate -> sandbox verdict -> selector outcome, including a Consult case where downstream code derives a candidate comparison from `resultGraphs` (not a sandbox-computed preview).
 
 - [ ] **S6. Durable docs**
   - [ ] Graduate shipped behavior into [`objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) and/or [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) as applicable.
@@ -126,9 +157,16 @@ npm run build
 | Milestone | Status |
 | --- | --- |
 | Split from parent plan's Phase C design debt | Done (2026-07-10) |
-| SB-1 -- SB-4 open decisions | Not started |
-| S2 sandbox state + single-step composition | Not started |
-| S3 interaction-under-transfer rule table | Not started |
+| SB-1 (multi-host scope) | **Decided (2026-07-10)** --- sandbox state keyed by `hostId`, room + character both |
+| SB-5 (interaction-under-transfer rule content) | **Decided (2026-07-10); revised (2026-07-10)** --- three outcomes (`dissolve`/`carry`/`defer`); `On`/target-moves now `carry`, not `defer` (BD-13) |
+| SB-2 (rule table location) | **Decided (2026-07-10)** --- new module `interactionUnderTransfer.ts` |
+| SB-3 (resultPreview contents) | **Resolved (2026-07-10)** --- merged into SB-4; sandbox is a pure reducer, no bespoke preview shape |
+| SB-4 (state representation) | **Decided (2026-07-10)** --- clone-and-mutate typed snapshot, keyed by `hostId`, same shape in and out |
+| **S1 (all open decisions)** | **Done (2026-07-10)** --- SB-1 -- SB-5 all decided/resolved |
+| Scope correction: universal gating (not compound-only) | Done (2026-07-10) --- membership transfer must check relational edges even in length-1 plans; "pick up tray" (glass `On` tray) example |
+| BD-13 multi-member `transferMembership` + carry (cross-ref) | **Decided (2026-07-10)** --- kernel/primitive side tracked in parent plan; see [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) BD-13 |
+| S2 interaction-under-transfer rule table | Not started |
+| S3 sandbox state + single-step composition | Not started |
 | S4 compound simulation | Not started |
-| S5 resultPreview + wiring | Not started |
+| S5 resultGraphs + wiring | Not started |
 | S6 durable docs | Not started |
