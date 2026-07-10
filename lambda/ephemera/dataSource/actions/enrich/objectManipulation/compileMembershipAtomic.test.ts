@@ -121,7 +121,6 @@ describe('compileMembershipAtomic', () => {
     })
 
     it('does not short-circuit relational commands (routing is at enrich entry)', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await compileMembershipAtomic(
@@ -133,7 +132,6 @@ describe('compileMembershipAtomic', () => {
             },
             0.9,
             {
-                invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
@@ -146,7 +144,6 @@ describe('compileMembershipAtomic', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.notCarryingObject,
         })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 

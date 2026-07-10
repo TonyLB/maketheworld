@@ -17,7 +17,7 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ### Target handoff artifacts (FT-0 skeleton)
 
-**Runtime unchanged in FT-0** --- identity stage still emits `SpanGrounding`; no Consult handler path yet.
+**Runtime (FT-2.1, 2026-07-09):** identity stage emits `SpanCandidatePool[]`; compilers bridge to trusted `objectId` via [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) until FT-2.2 tuple selector ships.
 
 FT-4 span-resolution types (guards only) live in [`spanResolution.ts`](spanResolution.ts):
 
@@ -54,17 +54,17 @@ When the fast path does not apply, the model chooses **topology**:
 
 #### Membership branch (`compileMembershipAtomic`)
 
-**4. Identity (hybrid)**  
+**4. Identity (pool + bridge)**  
 **Purpose:** map classify **`objectSpans`** to exactly one catalog **`objectId`** for a unary membership command.
 
-- **Deterministic slice:** exact **`shortName`** match against merged room + held catalog ([`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`catalogMerge.ts`](catalogMerge.ts)).
-- **Embedding tier (shipped):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`resolveObjectSpanByEmbedding`](embeddingMatch/resolveObjectSpanByEmbedding.ts), [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)); catalog vectors attached at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)). **FT-1.1 / FT-1.1.5 (2026-07-09):** FT-8 relevance helpers + tanh flank combine in [`embeddingMatch/`](embeddingMatch/). **FT-1.2 (2026-07-09):** [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts) emits ranked `SpanCandidatePool` (embed + lexical RMS joint relevance, gap-trim shortlist); simulator/calibration use pool metrics; **production `identityStage` still uses v1 legacy decision until FT-2.** **Calibration findings, asymmetric index experiments:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
-- **Semantic hop (conditional):** when embedding abstains, deterministic resolve returns **AmbiguousMatch**, or span embed invoke fails, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
+- **Pool emission (FT-2.1, 2026-07-09):** per-span [`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) --- exact unique match -> single-candidate pool (`sourceTags: ['exact']`, `jointRelevance: 1`); duplicate exact labels -> multi-candidate pool with distinct `locus`; non-exact -> span embed + [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts) (embed + lexical RMS joint relevance, gap-trim shortlist). Span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)); catalog vectors attached at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)). **Calibration:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
+- **Bridge selector (FT-2.1 interim):** [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) auto-resolves on exact match or `T_JOINT_*` floor + margin; declines -> terminal **Error** (Consult wire deferred to FT-3). Superseded by FT-2.2 tuple selector.
+- **Retired from production path:** per-span identity LLM; v1 terminal [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts) `Resolved` (retained for calibration regression only).
 
 **Handoff:** one grounded **`objectId`** or terminal resolve Error.
 
 **5. Unary collapse (deterministic)**  
-Require exactly one resolved target; fail on zero or multiple grounded ids ([`unaryCollapse.ts`](unaryCollapse.ts)).
+Require exactly one span pool and successful bridge selection ([`collapseUnarySpanPools`](unaryCollapse.ts)).
 
 **6. Membership observation + complexity pre-gates (deterministic)**  
 Read authoritative **membership containers** and, when there is a sole host, that host's **`positionGraph`**. Pre-gates close simple atomics when topology is unambiguous:
@@ -102,8 +102,8 @@ The hop receives grounded **`objectId`**, membership containers, and which **exi
 **10. Relation normalizer (deterministic)**  
 Map **`relationSpan`** -> **`relationKind`** enum (`On` | `Under` | `Against`) or **`Custom`** + **`relationLabel`**; **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error ([`normalizeRelationSpan.ts`](normalizeRelationSpan.ts)).
 
-**11. Relational grounding (hybrid)**  
-Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same three-tier identity pattern as membership: exact resolve, embedding fast path on **NoMatch** (skip on **AmbiguousMatch**), identity LLM on abstain / ambiguous / embed failure.
+**11. Relational grounding (pool + bridge)**  
+Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same pool emission as membership ([`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) + [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) bridge). Shared span embed cache across subject + target spans.
 
 **12. Relational legality (deterministic)**  
 Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)): both nodes on graph; **`dissolveRelation`** requires a matching edge; **`establishRelation`** allows idempotent duplicate; **conflicting existing relational topology** on subject/target -> **`complexRelational`** Error stub (Phase D plan LLM is the future escalation --- see planning doc).
@@ -125,7 +125,7 @@ Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluate
 | Membership **`operationKind`** (`takeHold` \| `drop`) | Enrich pre-gates + agreement (atomic path); complexity LLM when deferred | Deterministic + semantic defer |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Frame extract (**BD-12**) | Semantic |
 | **`relationKind`** / **`relationLabel`** | Relation normalizer | Deterministic |
-| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity + grounding stages | Deterministic + embedding tier + conditional identity LLM |
+| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity pool + bridge selector (FT-2.1) | Deterministic + embed rank |
 
 Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**Deterministic enrich boundary**).
 
@@ -133,8 +133,8 @@ Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**De
 
 | Path | Typical hops |
 | --- | --- |
-| Membership | **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss (skipped when embedding resolves); **1** identity LLM and/or **1** complexity LLM when those stages defer |
-| Relational | **+1** frame extract; **0--2** Titan embeds (per distinct span on exact miss); **0--2** identity LLM calls (per span) when embedding abstains or resolve is ambiguous |
+| Membership | **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss; **1** complexity LLM when pre-gates defer. Identity LLM retired (FT-2.1). |
+| Relational | **+1** frame extract; **0--2** Titan embeds (per distinct span on exact miss). Identity LLM retired (FT-2.1). |
 
 Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / **`drop`** may need **zero** post-classify Bedrock calls.
 
@@ -144,7 +144,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | --- | --- |
 | Entry + route | [`index.ts`](index.ts), [`cardinalityGate.ts`](cardinalityGate.ts) |
 | Membership compiler | [`compileMembershipAtomic.ts`](compileMembershipAtomic.ts), [`membershipFrame.ts`](membershipFrame.ts), [`complexityPreGates.ts`](complexityPreGates.ts), [`membershipObservation.ts`](membershipObservation.ts) |
-| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) (policy + wiring) |
+| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`resolveCatalogSpanToPool.ts`](resolveCatalogSpanToPool.ts), [`selectSingleSpanFromPool.ts`](selectSingleSpanFromPool.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) |
 | Complexity finalize | [`interpretAndFinalize.ts`](interpretAndFinalize.ts), [`complexityClasses.ts`](complexityClasses.ts) |
 | Relational | [`frameExtract/runFrameExtractStage.ts`](frameExtract/runFrameExtractStage.ts), [`frameExtract/buildFrameExtractPrompt.ts`](frameExtract/buildFrameExtractPrompt.ts), [`compileRelational.ts`](compileRelational.ts), [`resolveRelationalGrounding.ts`](resolveRelationalGrounding.ts), [`normalizeRelationSpan.ts`](normalizeRelationSpan.ts), [`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts) |
 | Frames | [`manipulationFrame.ts`](manipulationFrame.ts) |

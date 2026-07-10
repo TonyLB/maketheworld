@@ -1,117 +1,33 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
-import { buildObjectManipulationIdentityPrompt } from './buildPrompt'
 import { catalogWithScope } from './catalogMerge'
 import { createSpanEmbedCache } from './embeddingMatch/spanEmbedCache'
-import {
-    resolveObjectSpanByEmbedding,
-    type ResolveObjectSpanByEmbeddingDeps,
-} from './embeddingMatch/resolveObjectSpanByEmbedding'
-import { interpretObjectManipulationIdentityBody } from './interpretIdentity'
+import type { ResolveObjectSpanByEmbeddingDeps } from './embeddingMatch/resolveObjectSpanByEmbedding'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import {
-    objectManipulationErrorMessageForResolution,
-    objectManipulationErrorMessages,
-    resolveObjectSpanToObjectId,
-} from './resolveObjectSpan'
+    resolveCatalogSpanToPool,
+    type ResolveCatalogSpanToPoolDeps,
+} from './resolveCatalogSpanToPool'
+import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import {
+    resolvedObjectIdFromSpanOutcome,
+    selectSingleSpanFromPool,
+    spanResolutionErrorReason,
+} from './selectSingleSpanFromPool'
+import type { SpanCandidatePool } from './spanResolution'
 
-export type RelationalGroundingDeps = {
-    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
-    resolveObjectSpanByEmbeddingImpl?: typeof resolveObjectSpanByEmbedding
-} & Pick<ResolveObjectSpanByEmbeddingDeps, 'embedSpan' | 'spanEmbedCache'>
+export type RelationalGroundingDeps = ResolveCatalogSpanToPoolDeps &
+    Pick<ResolveObjectSpanByEmbeddingDeps, 'embedSpan'>
 
 export type RelationalGroundingResult =
-    | { type: 'success'; subjectId: EphemeraObjectId; targetId: EphemeraObjectId }
+    | {
+          type: 'success'
+          subjectPool: SpanCandidatePool
+          targetPool: SpanCandidatePool
+          subjectId: EphemeraObjectId
+          targetId: EphemeraObjectId
+      }
     | { type: 'error'; errorMessage: string }
-
-async function invokeIdentityLlmForSpan(
-    command: string,
-    span: string,
-    catalog: readonly RoomInPlayObjectCatalogEntry[],
-    invokeIdentity: typeof invokeBedrockObjectManipulationEnrich
-): Promise<
-    | { type: 'resolved'; objectId: EphemeraObjectId }
-    | { type: 'error'; errorMessage: string }
-> {
-    const allowedObjectIds = new Set(catalog.map(({ objectId }) => objectId))
-    const promptParts = buildObjectManipulationIdentityPrompt(command, {
-        rawObjectSpan: span,
-        catalog: catalogWithScope(catalog, 'room'),
-    })
-    const invokeResult = await invokeIdentity(promptParts)
-    if (!invokeResult.success) {
-        return {
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
-        }
-    }
-
-    const parsed = interpretObjectManipulationIdentityBody(invokeResult.body, allowedObjectIds)
-    if (!parsed.success) {
-        return { type: 'error', errorMessage: parsed.errorMessage }
-    }
-
-    return { type: 'resolved', objectId: parsed.response.objectId }
-}
-
-async function resolveSpanToObjectId(
-    command: string,
-    span: string,
-    catalog: readonly RoomInPlayObjectCatalogEntry[],
-    deps: RelationalGroundingDeps
-): Promise<
-    | { type: 'resolved'; objectId: EphemeraObjectId }
-    | { type: 'error'; errorMessage: string }
-> {
-    const resolution = resolveObjectSpanToObjectId(span, catalog)
-    if (resolution.type === 'Resolved') {
-        return { type: 'resolved', objectId: resolution.objectId }
-    }
-
-    if (resolution.type === 'NoCatalog') {
-        return {
-            type: 'error',
-            errorMessage: objectManipulationErrorMessageForResolution({ type: 'NoCatalog' }),
-        }
-    }
-
-    if (resolution.type === 'NoMatch') {
-        const resolveByEmbedding = deps.resolveObjectSpanByEmbeddingImpl ?? resolveObjectSpanByEmbedding
-        const embeddingDecision = await resolveByEmbedding(
-            span,
-            catalogWithScope(catalog, 'room'),
-            {
-                embedSpan: deps.embedSpan,
-                spanEmbedCache: deps.spanEmbedCache,
-            }
-        )
-        if (embeddingDecision.type === 'Resolved') {
-            return { type: 'resolved', objectId: embeddingDecision.objectId }
-        }
-    }
-
-    if (resolution.type === 'NoMatch' || resolution.type === 'AmbiguousMatch') {
-        if (catalog.length === 0) {
-            return {
-                type: 'error',
-                errorMessage: objectManipulationErrorMessageForResolution({ type: 'NoCatalog' }),
-            }
-        }
-
-        return invokeIdentityLlmForSpan(
-            command,
-            span,
-            catalog,
-            deps.invokeBedrockObjectManipulationIdentityImpl ?? invokeBedrockObjectManipulationEnrich
-        )
-    }
-
-    return {
-        type: 'error',
-        errorMessage: objectManipulationErrorMessageForResolution(resolution),
-    }
-}
 
 export async function resolveRelationalGrounding(
     command: string,
@@ -120,21 +36,35 @@ export async function resolveRelationalGrounding(
     roomObjectCatalog: readonly RoomInPlayObjectCatalogEntry[] | undefined,
     deps: RelationalGroundingDeps = {}
 ): Promise<RelationalGroundingResult> {
-    const catalog = roomObjectCatalog ?? []
+    void command
+    const catalog = catalogWithScope(roomObjectCatalog ?? [], 'room')
     const spanEmbedCache = deps.spanEmbedCache ?? createSpanEmbedCache()
-    const groundingDeps: RelationalGroundingDeps = { ...deps, spanEmbedCache }
+    const poolDeps: ResolveCatalogSpanToPoolDeps = { ...deps, spanEmbedCache }
 
-    const subjectResult = await resolveSpanToObjectId(command, subjectSpan, catalog, groundingDeps)
-    if (subjectResult.type === 'error') {
-        return subjectResult
+    const subjectPoolResult = await resolveCatalogSpanToPool(subjectSpan, catalog, poolDeps)
+    if (subjectPoolResult.type === 'error') {
+        return subjectPoolResult
     }
 
-    const targetResult = await resolveSpanToObjectId(command, targetSpan, catalog, groundingDeps)
-    if (targetResult.type === 'error') {
-        return targetResult
+    const targetPoolResult = await resolveCatalogSpanToPool(targetSpan, catalog, poolDeps)
+    if (targetPoolResult.type === 'error') {
+        return targetPoolResult
     }
 
-    if (subjectResult.objectId === targetResult.objectId) {
+    const subjectOutcome = selectSingleSpanFromPool(subjectPoolResult.pool)
+    if (subjectOutcome.verdict !== 'resolved') {
+        return { type: 'error', errorMessage: spanResolutionErrorReason(subjectOutcome) }
+    }
+
+    const targetOutcome = selectSingleSpanFromPool(targetPoolResult.pool)
+    if (targetOutcome.verdict !== 'resolved') {
+        return { type: 'error', errorMessage: spanResolutionErrorReason(targetOutcome) }
+    }
+
+    const subjectId = resolvedObjectIdFromSpanOutcome(subjectOutcome)!
+    const targetId = resolvedObjectIdFromSpanOutcome(targetOutcome)!
+
+    if (subjectId === targetId) {
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
@@ -143,7 +73,9 @@ export async function resolveRelationalGrounding(
 
     return {
         type: 'success',
-        subjectId: subjectResult.objectId,
-        targetId: targetResult.objectId,
+        subjectPool: subjectPoolResult.pool,
+        targetPool: targetPoolResult.pool,
+        subjectId,
+        targetId,
     }
 }

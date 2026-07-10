@@ -10,7 +10,7 @@ import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
 } from './complexityPreGates'
-import { runIdentityStage } from './identityStage'
+import { runIdentityStage, type IdentityStageDeps } from './identityStage'
 import {
     finalizeComplexityFromEnrich,
     interpretObjectManipulationComplexityBody,
@@ -21,15 +21,14 @@ import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
-import { collapseUnaryGrounding } from './unaryCollapse'
+import { collapseUnarySpanPools } from './unaryCollapse'
 import { evaluateVerbMembershipAgreement } from './verbMembershipAgreement'
 
 export type CompileMembershipAtomicDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich
-    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
     invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
-}
+} & Pick<IdentityStageDeps, 'embedSpan'>
 
 export type CompileMembershipAtomicResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
 
@@ -51,17 +50,13 @@ export async function compileMembershipAtomic(
         frame.command,
         frame.rawObjectSpans,
         identityCatalog,
-        {
-            invokeBedrockObjectManipulationIdentityImpl:
-                deps.invokeBedrockObjectManipulationIdentityImpl
-                ?? deps.invokeBedrockObjectManipulationEnrichImpl,
-        }
+        { embedSpan: deps.embedSpan }
     )
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const collapseResult = collapseUnaryGrounding(identityResult.spanGroundings)
+    const collapseResult = collapseUnarySpanPools(identityResult.spanPools)
     if (collapseResult.type === 'error') {
         return { type: 'Error', errorMessage: collapseResult.errorMessage }
     }

@@ -4,6 +4,9 @@ import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/e
 import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import { enrichObjectManipulation } from './index'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import {
+    buildCandidatesFromIdentityCase,
+} from './embeddingMatch/testing/mockVectors'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
@@ -42,7 +45,6 @@ const emptyCharacterGraph = testPositionGraph(characterId)
 describe('enrichObjectManipulation', () => {
     it('returns grounded takeHold without Bedrock on zero-hop eligible path', async () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
         const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
@@ -58,7 +60,6 @@ describe('enrichObjectManipulation', () => {
             0.92,
             {
                 invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers, getPositionGraph },
             }
@@ -71,13 +72,11 @@ describe('enrichObjectManipulation', () => {
             confidence: 0.92,
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns grounded drop without Bedrock on zero-hop eligible path', async () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
         const getPositionGraph = jest.fn().mockResolvedValue(emptyCharacterGraph)
@@ -94,7 +93,6 @@ describe('enrichObjectManipulation', () => {
             0.91,
             {
                 invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers, getPositionGraph },
             }
@@ -107,7 +105,6 @@ describe('enrichObjectManipulation', () => {
             confidence: 0.91,
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
@@ -215,7 +212,6 @@ describe('enrichObjectManipulation', () => {
             body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on","operationKind":"establishRelation"}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
             {
@@ -229,7 +225,6 @@ describe('enrichObjectManipulation', () => {
             {
                 invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationIdentityImpl,
                 positionsReadDeps: relationalPositionsReadDeps(),
             }
         )
@@ -245,7 +240,6 @@ describe('enrichObjectManipulation', () => {
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
     })
 
     it('frame-extracts lean rope against anvil fixture', async () => {
@@ -515,10 +509,29 @@ describe('enrichObjectManipulation', () => {
         }
     })
 
-    it('invokes identity LLM when deterministic resolve fails', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
+    it('resolves paraphrase via pool without identity LLM', async () => {
+        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
+            {
+                id: 'test-paraphrase',
+                bucket: 'positive-paraphrase',
+                span: 'sweeping tool',
+                catalog: ['broom'],
+            },
+            {
+                kind: 'resolve-index',
+                targetIndex: 0,
+                targetSimilarity: 0.95,
+                otherSimilarity: 0.5,
+            }
+        )
+        const paraphraseCatalog = candidates.map((candidate) => ({
+            objectId: broomId,
+            normalizedShortName: candidate.normalizedShortName,
+            embedding: candidate.embedding,
+        }))
+        const embedSpan = jest.fn().mockResolvedValue({
             success: true,
-            body: `{"objectId":"${broomId}"}`,
+            embedding: spanEmbedding,
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
@@ -530,11 +543,11 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the sweeping tool',
                 rawObjectSpans: ['sweeping tool'],
                 verbClass: 'acquire',
-                roomObjectCatalog: catalog,
+                roomObjectCatalog: paraphraseCatalog,
             },
             0.88,
             {
-                invokeBedrockObjectManipulationIdentityImpl,
+                embedSpan,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers, getPositionGraph },
             }
@@ -546,7 +559,7 @@ describe('enrichObjectManipulation', () => {
             objectId: broomId,
             confidence: 0.88,
         })
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalled()
+        expect(embedSpan).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
@@ -599,7 +612,6 @@ describe('enrichObjectManipulation', () => {
     it('membership enrichRoute skips frame extract even when command contains a preposition word', async () => {
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
         const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
@@ -616,7 +628,6 @@ describe('enrichObjectManipulation', () => {
             {
                 invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers, getPositionGraph },
             }

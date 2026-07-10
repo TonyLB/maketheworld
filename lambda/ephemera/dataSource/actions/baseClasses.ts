@@ -25,6 +25,7 @@ import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockPa
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
+import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
@@ -662,14 +663,14 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
     /** Bedrock enrich for object manipulation complexity stage; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
-    /** Bedrock identity stage for object manipulation; tests may inject a mock. */
-    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
     invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Bedrock frame-extract stage for relational object manipulation; tests may inject a mock. */
     invokeBedrockObjectManipulationFrameExtractImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Injectable Positions reads for object manipulation membership pre-gates. */
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
+    /** Injectable span embed for object manipulation identity pool builder (tests). */
+    embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */
