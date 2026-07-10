@@ -1,6 +1,6 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (v1 production shim + FT-1.2 pool builder + FT-1.3 calibration + FT-1.3.2-1.3.6 calibrated lexical combine + FT-1.3.1 admissibility gate retired).** Cosine-similarity tier between exact `shortName` resolve and the identity LLM. **Production path (v1):** open-loop terminal fast path (`Resolved` | `Abstain` via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts)). **FT-1.2 (2026-07-09):** rank-all `SpanCandidatePool` builder with embed + lexical joint relevance. **FT-1.3 (2026-07-09):** locked FT-8 / FT-1.2 constants + proposed FT-5 `T_JOINT_*` floors. **FT-1.3.2-1.3.6 (2026-07-09):** coverage-derived flank bias, ratio-invariant adjoined + remote channels, and sweep-locked flank weights / `biasMax`. **FT-1.3.1 (2026-07-09):** short-span admissibility gate **retired** --- lexical scores every non-empty span; legacy gate preserved in [`testing/legacyLexicalChannelGate`](testing/legacyLexicalChannelGate.ts) for harness baseline only.
+**Status: shipped (FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipTuples`](../proposeMembershipTuples.ts) + [`selectIdentityPlanTuple`](../selectIdentityPlanTuple.ts) (`T_JOINT_*` legality-gated). **Relational production:** still bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts). **Calibration regression only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts). Identity LLM retired from production.
 
 **Output trust:** canonical **trusted-output vs fault-tolerant** contrast for object identity --- see [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
@@ -12,20 +12,20 @@
 
 ---
 
-## v1 module surface
+## v1 calibration shim (not production)
 
 | Module | Role |
 | --- | --- |
 | [`rankCatalogByCosineSimilarity`](rankCatalogByCosineSimilarity.ts) | Linear scan; ranked scores |
-| [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` |
-| [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision (production shim); [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
-| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + orchestrate (v1 decision) |
+| [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` (calibration regression) |
+| [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision; [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
+| [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + v1 decide (calibration only) |
 | [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation |
-| [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (proposed, unwired) |
+| [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (membership tuple selector + relational bridge) |
 
-## FT-1.2 pool merge (2026-07-09)
+## FT-1.2 / FT-2.1 pool merge (production)
 
-Rank-all candidate pool for fault-tolerant span grounding. **Not wired to `identityStage` until FT-2**; production still uses v1 cosine + conjunctive gates.
+Rank-all candidate pool for fault-tolerant span grounding. **Wired to production identity path (FT-2.1, 2026-07-09).**
 
 | Module | Role |
 | --- | --- |

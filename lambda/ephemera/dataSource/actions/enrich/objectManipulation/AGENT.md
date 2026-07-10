@@ -17,9 +17,9 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ### Target handoff artifacts (FT-0 skeleton)
 
-**Runtime unchanged in FT-0** --- identity stage still emits `SpanGrounding`; no Consult handler path yet.
+**Runtime (FT-2.2, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); Consult/Abstain map to **Error** at enrich egress until FT-3.1. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts).
 
-FT-4 span-resolution types (guards only) live in [`spanResolution.ts`](spanResolution.ts):
+FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 
 | Type | Role |
 | --- | --- |
@@ -54,41 +54,38 @@ When the fast path does not apply, the model chooses **topology**:
 
 #### Membership branch (`compileMembershipAtomic`)
 
-**4. Identity (hybrid)**  
-**Purpose:** map classify **`objectSpans`** to exactly one catalog **`objectId`** for a unary membership command.
+**4. Identity (pool + FT-2.2 selector)**  
+**Purpose:** map classify **`objectSpans`** to a trusted catalog **`objectId`** + membership **`operationKind`** for a unary membership command.
 
-- **Deterministic slice:** exact **`shortName`** match against merged room + held catalog ([`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`catalogMerge.ts`](catalogMerge.ts)).
-- **Embedding tier (shipped):** cosine-similarity fast path between exact match and identity LLM when conjunctive gates pass on pre-attached **`EMBEDDING#IMPROMPTU`** vectors --- [`resolveObjectSpanByEmbedding`](embeddingMatch/resolveObjectSpanByEmbedding.ts), [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts), [`rankCatalogByCosineSimilarity`](embeddingMatch/rankCatalogByCosineSimilarity.ts); locked thresholds in [`embeddingMatch/thresholds.ts`](embeddingMatch/thresholds.ts) (`T_ABS=0.14`, `T_ABS_UNARY=0.18`, `T_MARGIN=0.008`); span embed via [`../../objects/embedding/embedObjectSpan.ts`](../../objects/embedding/embedObjectSpan.ts) with per-invocation dedupe ([`spanEmbedCache`](embeddingMatch/spanEmbedCache.ts)); catalog vectors attached at parse ingress ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)). **FT-1.1 / FT-1.1.5 (2026-07-09):** FT-8 relevance helpers + tanh flank combine in [`embeddingMatch/`](embeddingMatch/). **FT-1.2 (2026-07-09):** [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts) emits ranked `SpanCandidatePool` (embed + lexical RMS joint relevance, gap-trim shortlist); simulator/calibration use pool metrics; **production `identityStage` still uses v1 legacy decision until FT-2.** **Calibration findings, asymmetric index experiments:** [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
-- **Semantic hop (conditional):** when embedding abstains, deterministic resolve returns **AmbiguousMatch**, or span embed invoke fails, the **identity LLM** picks the best single **`objectId`** from the allowed catalog (**optimistic best-effort** referential resolution using command + catalog context). Parser rejects ids outside the catalog.
+- **Pool emission (FT-2.1):** per-span [`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) --- exact unique match -> single-candidate pool (`sourceTags: ['exact']`, `jointRelevance: 1`); duplicate exact labels -> multi-candidate pool with distinct `locus`; non-exact -> span embed + [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts).
+- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult`; grey-band -> `noMatch` error. **Enrich egress** still maps consult/abstain to terminal **Error** until FT-3.1 Consult wire.
+- **Retired from membership production path:** per-span identity LLM; reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) veto after a committed id (legality is now pre-select dry-run); bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (still used on **relational** path).
 
-**Handoff:** one grounded **`objectId`** or terminal resolve Error.
+**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim), or terminal Error.
 
-**5. Unary collapse (deterministic)**  
-Require exactly one resolved target; fail on zero or multiple grounded ids ([`unaryCollapse.ts`](unaryCollapse.ts)).
-
-**6. Membership observation + complexity pre-gates (deterministic)**  
-Read authoritative **membership containers** and, when there is a sole host, that host's **`positionGraph`**. Pre-gates close simple atomics when topology is unambiguous:
+**5. Post-select observation + complexity pre-gates (deterministic)**  
+After selector resolve, read authoritative **membership containers** and host **`positionGraph`**. Exit-edge / non-atomic topology still defers to the complexity LLM (interim until FT-3 sandbox retirement):
 
 | Outcome | Meaning |
 | --- | --- |
 | **Error** (`noMembershipHost`) | No membership host for the object |
 | **complex** (`multiPresent`) | Object on multiple membership hosts |
-| **atomic** (`takeHold` / `drop`) | Sole host is room (take) or actor character inventory (drop), and object does **not** touch an **exit edge** on that host graph |
+| **atomic** | Selector-chosen op applies (no verbClass veto) |
 | **deferToComplexityLlm** | Object touches an **exit edge** on its sole membership host, or host pattern is not closed by rules above |
 
 **Steady-state intent:** anything whose membership-host graph includes an **exit edge** that references the object needs **added processing** beyond the simple room/character-host heuristic --- hence defer to the complexity hop. In-host **relational** edges alone do **not** trigger this defer; they are handled on the **`ObjectRelateIntent`** path or by future composition (Phase C).
 
-**7. Agreement gate (deterministic, atomic path only)**  
-When pre-gates return **atomic**, reconcile classify **`verbClass`** with graph-derived **`operationKind`** ([`verbMembershipAgreement.ts`](verbMembershipAgreement.ts)): e.g. **`release`** + room-hosted object -> **`notCarryingObject`** Error.
+**7. Agreement gate (retired on FT-2.2 atomic path)**  
+Reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) is **no longer** applied after selector resolve --- locus legality in the dry-run already rejects room+drop / held+takeHold. Module retained for unit tests / complexity-path debt.
 
 **8. Complexity LLM (semantic reasoning, conditional)**  
-**Purpose:** when pre-gates **defer**, judge whether the player still intends a **simple membership atomic** (`takeHold` / `drop`) despite exit-edge topology on the host, or whether the command is **relationally complex** (`complexityClass: relationalPlacement` terminal stub on the membership path).
+**Purpose:** when post-select pre-gates **defer** (exit-edge), judge whether the player still intends a **simple membership atomic** (`takeHold` / `drop`) despite exit-edge topology on the host, or whether the command is **relationally complex** (`complexityClass: relationalPlacement` terminal stub on the membership path).
 
 The hop receives grounded **`objectId`**, membership containers, and which **exit edges** touch the object --- not a full graph dump.
 
-**Handoff:** atomic **`operationKind`** (`takeHold` | `drop`) or complex **`complexityClass`** (terminal Error via [`finalizeComplexityFromEnrich`](interpretAndFinalize.ts)).
+**Handoff:** atomic **`operationKind`** (`takeHold` / `drop`) or complex **`complexityClass`** (terminal Error via [`finalizeComplexityFromEnrich`](interpretAndFinalize.ts)).
 
-**Known gap (documented debt):** the complexity path **does not** run the **`verbClass`** agreement gate today. A complexity atomic **`operationKind`** can disagree with classify language. Per [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md), graph-shaped judgment in an LLM hop should **not** override classify-owned membership language without an explicit reconciliation stage --- treat missing agreement on this path as **fix later**, not steady-state design.
+**Known gap (documented debt):** the complexity path **does not** re-run locus dry-run agreement today. Per [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md), treat missing reconciliation on this path as **fix later** --- FT-3 sandbox retirement is the intended cleanup.
 
 ---
 
@@ -102,8 +99,8 @@ The hop receives grounded **`objectId`**, membership containers, and which **exi
 **10. Relation normalizer (deterministic)**  
 Map **`relationSpan`** -> **`relationKind`** enum (`On` | `Under` | `Against`) or **`Custom`** + **`relationLabel`**; **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error ([`normalizeRelationSpan.ts`](normalizeRelationSpan.ts)).
 
-**11. Relational grounding (hybrid)**  
-Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same three-tier identity pattern as membership: exact resolve, embedding fast path on **NoMatch** (skip on **AmbiguousMatch**), identity LLM on abstain / ambiguous / embed failure.
+**11. Relational grounding (pool + bridge)**  
+Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same pool emission as membership ([`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) + [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) bridge). Shared span embed cache across subject + target spans.
 
 **12. Relational legality (deterministic)**  
 Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)): both nodes on graph; **`dissolveRelation`** requires a matching edge; **`establishRelation`** allows idempotent duplicate; **conflicting existing relational topology** on subject/target -> **`complexRelational`** Error stub (Phase D plan LLM is the future escalation --- see planning doc).
@@ -113,7 +110,7 @@ Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluate
 
 ---
 
-**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references, **close** simple membership atomics from graph truth or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **compile** to trusted terminal parse or player-facing Error.
+**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references via pool + FT-5 selector (membership) or bridge (relational), **close** simple membership atomics from locus legality or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **compile** to trusted terminal parse or player-facing Error.
 
 ### Field ownership (quick reference)
 
@@ -122,10 +119,10 @@ Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluate
 | Intent **`type`** (`ObjectMembershipIntent` \| `ObjectRelateIntent`) | Classify | Semantic |
 | **`verbClass`** | Classify (**membership only**) | Semantic |
 | **`objectSpans`** / **`rawObjectSpans`** | Classify (hints); frame extract re-tags on relational path | Semantic + re-extract |
-| Membership **`operationKind`** (`takeHold` \| `drop`) | Enrich pre-gates + agreement (atomic path); complexity LLM when deferred | Deterministic + semantic defer |
+| Membership **`operationKind`** (`takeHold` \| `drop`) | FT-2.2 selector (locus legality + verb-intended propose-N); complexity LLM when deferred | Deterministic + semantic defer |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Frame extract (**BD-12**) | Semantic |
 | **`relationKind`** / **`relationLabel`** | Relation normalizer | Deterministic |
-| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity + grounding stages | Deterministic + embedding tier + conditional identity LLM |
+| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity pool + bridge selector (FT-2.1) | Deterministic + embed rank |
 
 Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**Deterministic enrich boundary**).
 
@@ -133,8 +130,8 @@ Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**De
 
 | Path | Typical hops |
 | --- | --- |
-| Membership | **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss (skipped when embedding resolves); **1** identity LLM and/or **1** complexity LLM when those stages defer |
-| Relational | **+1** frame extract; **0--2** Titan embeds (per distinct span on exact miss); **0--2** identity LLM calls (per span) when embedding abstains or resolve is ambiguous |
+| Membership | **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss; **1** complexity LLM when pre-gates defer. Identity LLM retired (FT-2.1). |
+| Relational | **+1** frame extract; **0--2** Titan embeds (per distinct span on exact miss). Identity LLM retired (FT-2.1). |
 
 Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / **`drop`** may need **zero** post-classify Bedrock calls.
 
@@ -144,7 +141,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | --- | --- |
 | Entry + route | [`index.ts`](index.ts), [`cardinalityGate.ts`](cardinalityGate.ts) |
 | Membership compiler | [`compileMembershipAtomic.ts`](compileMembershipAtomic.ts), [`membershipFrame.ts`](membershipFrame.ts), [`complexityPreGates.ts`](complexityPreGates.ts), [`membershipObservation.ts`](membershipObservation.ts) |
-| Identity + prompts | [`identityStage.ts`](identityStage.ts), [`buildPrompt.ts`](buildPrompt.ts), [`interpretIdentity.ts`](interpretIdentity.ts), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) (policy + wiring) |
+| Identity + selector | [`identityStage.ts`](identityStage.ts), [`resolveCatalogSpanToPool.ts`](resolveCatalogSpanToPool.ts), [`proposeMembershipTuples.ts`](proposeMembershipTuples.ts), [`validatePlanDryRun.ts`](validatePlanDryRun.ts), [`selectIdentityPlanTuple.ts`](selectIdentityPlanTuple.ts), [`existencePresenceGuard.ts`](existencePresenceGuard.ts), [`selectMembershipFromPool.ts`](selectMembershipFromPool.ts), [`selectSingleSpanFromPool.ts`](selectSingleSpanFromPool.ts) (relational bridge), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) |
 | Complexity finalize | [`interpretAndFinalize.ts`](interpretAndFinalize.ts), [`complexityClasses.ts`](complexityClasses.ts) |
 | Relational | [`frameExtract/runFrameExtractStage.ts`](frameExtract/runFrameExtractStage.ts), [`frameExtract/buildFrameExtractPrompt.ts`](frameExtract/buildFrameExtractPrompt.ts), [`compileRelational.ts`](compileRelational.ts), [`resolveRelationalGrounding.ts`](resolveRelationalGrounding.ts), [`normalizeRelationSpan.ts`](normalizeRelationSpan.ts), [`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts) |
 | Frames | [`manipulationFrame.ts`](manipulationFrame.ts) |

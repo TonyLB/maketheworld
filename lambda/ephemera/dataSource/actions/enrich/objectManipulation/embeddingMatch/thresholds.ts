@@ -116,7 +116,8 @@ export const POOL_SHORTLIST_TOP_N = 5
 export const POOL_GAP_TRIM_RELATIVE_DROP = 0.15
 
 // -----------------------------------------------------------------------------
-// FT-5 selector (joint relevance scale) --- proposed, unwired until FT-5 ships.
+// FT-5 selector (joint relevance scale) --- wired on membership via selectIdentityPlanTuple
+// (FT-2.2) and on relational via selectSingleSpanFromPool bridge.
 // Fit from mocked identity corpus pool metrics (FT-1.3); live Bedrock headroom in pool snapshot.
 // Consumes jointRelevance + marginToRunnerUp on [0,1] absolute scale --- NOT pool admission.
 

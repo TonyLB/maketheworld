@@ -74,7 +74,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 3. **Enrich (membership path only)** --- **`parseCommand`** routes **`ObjectMembershipIntent`** -> **`compileMembershipAtomic`**. Membership complexity defer may yield terminal **`Error`** stubs (`multiObject`, `multiPresent`, **`relationalPlacement`** on membership path only). See [Object manipulation classify + enrich steady-state](#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents) for full pipeline.
 
-4. **Identity resolve** --- three-tier hybrid in identity stage ([`identityStage.ts`](enrich/objectManipulation/identityStage.ts)): exact **`shortName`** match ([`resolveObjectSpan.ts`](enrich/objectManipulation/resolveObjectSpan.ts) + merged catalog via [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts)); embedding fast path on **NoMatch** only ([`resolveObjectSpanByEmbedding`](enrich/objectManipulation/embeddingMatch/resolveObjectSpanByEmbedding.ts); skip on **AmbiguousMatch**; abstain falls through per [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md) **Fast-path closure**); identity LLM on abstain / ambiguous / span embed invoke failure. Calibration + deferred closed-loop: [`enrich/objectManipulation/embeddingMatch/AGENT.md`](enrich/objectManipulation/embeddingMatch/AGENT.md). Agreement gate after pre-gates: **`release` + room host** -> **`notCarryingObject`**; **`acquire` + actor character host** -> **`alreadyHoldingObject`**.
+4. **Identity resolve (FT-2.2 membership / FT-2.1 relational)** --- pool emission in [`identityStage.ts`](enrich/objectManipulation/identityStage.ts) via [`resolveCatalogSpanToPool`](enrich/objectManipulation/resolveCatalogSpanToPool.ts) (exact -> single-candidate pool; non-exact -> [`buildSpanCandidatePool`](enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool.ts)). **Membership:** [`selectMembershipFromPool`](enrich/objectManipulation/selectMembershipFromPool.ts) (propose-N + FT-5 legality-gated tuple selector + existence guard; Consult maps to Error until FT-3.1). **Relational:** bridge [`selectSingleSpanFromPool`](enrich/objectManipulation/selectSingleSpanFromPool.ts). Identity LLM retired. Calibration: [`enrich/objectManipulation/embeddingMatch/AGENT.md`](enrich/objectManipulation/embeddingMatch/AGENT.md).
 
 5. **Terminal parse** --- **`ParseCommandObjectManipulationResult`** / guards in [`baseClasses.ts`](baseClasses.ts) for membership **`operationKind: takeHold` | `drop`** only. Relational outcomes use **`ParseCommandEstablishRelationResult`** (BD-1) --- not an extension of **`ObjectManipulation`**.
 
@@ -94,7 +94,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 2. **Classify** --- **`ObjectRelateIntent`** + **`rawObjectSpans`** only (no **`verbClass`**). **`movementObjectLabels`** = room + held (same parallel fetch as membership).
 
-3. **Enrich** --- frame extract LLM ([`frameExtract/runFrameExtractStage.ts`](enrich/objectManipulation/frameExtract/runFrameExtractStage.ts)) emits **`operationKind: establishRelation` | `dissolveRelation`** (BD-12) -> **`normalizeRelationSpan`** (deterministic) -> **`resolveRelationalGrounding`** (room catalog, BD-5; per-span three-tier identity: exact -> embedding on NoMatch -> identity LLM on abstain / ambiguous / embed failure) -> **`evaluateRelationalLegality`** (BD-10) -> **`compileRelational`**.
+3. **Enrich** --- frame extract LLM ([`frameExtract/runFrameExtractStage.ts`](enrich/objectManipulation/frameExtract/runFrameExtractStage.ts)) emits **`operationKind: establishRelation` | `dissolveRelation`** (BD-12) -> **`normalizeRelationSpan`** (deterministic) -> **`resolveRelationalGrounding`** (room catalog, BD-5; per-span pool + bridge selector, FT-2.1) -> **`evaluateRelationalLegality`** (BD-10) -> **`compileRelational`**.
 
 4. **Terminal parse** --- **`ParseCommandEstablishRelationResult`** (`type: 'EstablishRelation'`) with grounded **`subjectId`**, **`targetId`**, **`hostRoomId`**, **`relationKind`**, optional **`relationLabel`**, and **`operationKind`** (BD-1). **Must not** extend **`ParseCommandObjectManipulationResult`**.
 
@@ -145,17 +145,16 @@ Parse Requested
   -> classify (LLM): ObjectMembershipIntent OR ObjectRelateIntent (movementObjectLabels = room + held)
   -> parseCommand branches by intent type -> enrichObjectManipulation(enrichRoute):
        membership: cardinality gate -> compileMembershipAtomic
-            -> exact shortName -> [NoMatch] embedding tier -> [abstain] identity LLM
-            -> unary collapse -> membership observation + complexity pre-gates
-            -> agreement gate (verbClass vs operationKind) on atomic path
+            -> resolveCatalogSpanToPool -> selectMembershipFromPool (FT-2.2)
+            -> post-select observation + complexity pre-gates (exit-edge -> complexity LLM)
             -> complexity LLM only on pre-gate defer
        relational: frame extract LLM -> normalizeRelationSpan
-            -> per-span exact -> [NoMatch] embedding tier -> [abstain] identity LLM
+            -> per-span pool + bridge selector (FT-2.1)
             -> compileRelational -> EstablishRelation | Error
   -> terminal parse / egress (Object Take Hold | Object Drop | EstablishRelation stream) or Error
 ```
 
-**Bedrock budget (after classify):** membership path **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss (skipped when embedding resolves); **1** identity LLM and/or **1** complexity LLM when those stages defer. Relational route adds **+1** frame-extract hop; **0--2** Titan embeds (per distinct span on exact miss); **0--2** identity LLM calls (per span) when embedding abstains or resolve is ambiguous. **`normalizeRelationSpan`** (B2) is deterministic --- no Bedrock. Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error (not **`establishRelation`**). Eligible exact-name, single-span, single-host, edge-free **`takeHold`** or **`drop`** may need **zero** post-classify Bedrock calls.
+**Bedrock budget (after classify):** membership path **0** when exact identity + atomic pre-gates succeed; **+1 Titan embed** per distinct span on exact miss; **1** complexity LLM when pre-gates defer (identity LLM retired FT-2.1). Relational route adds **+1** frame-extract hop; **0--2** Titan embeds (per distinct span on exact miss). **`normalizeRelationSpan`** (B2) is deterministic --- no Bedrock. Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error (not **`establishRelation`**). Eligible exact-name, single-span, single-host, edge-free **`takeHold`** or **`drop`** may need **zero** post-classify Bedrock calls.
 
 1. **In-room catalog:** [`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts) --- merged-layer read (`Positions` + character perspective + `ComponentAggregate` with improvisation fallback); labels via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts). Wired on **`Parse Requested`** as **`roomObjectCatalog`** on **`parseCommand`** input.
 2. **Held inventory catalog:** [`heldInventoryCatalogForCharacter.ts`](heldInventoryCatalogForCharacter.ts) --- character `positionGraph` + character asset-stack perspective merge; parallel fetch on **`Parse Requested`**; threaded as **`heldInventoryCatalog`** on **`parseCommand`**. Identity resolves against [`mergeObjectManipulationCatalogs`](enrich/objectManipulation/catalogMerge.ts) (room entries first; held-only entries appended; dedupe by `objectId` with room winning).

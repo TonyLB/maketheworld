@@ -2,6 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { runIdentityStage } from './identityStage'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { isSpanCandidatePool } from './spanResolution'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import {
     buildCandidatesFromIdentityCase,
@@ -17,59 +18,45 @@ const roomCatalog: ObjectManipulationCatalogEntry[] = [
 ]
 
 describe('runIdentityStage', () => {
-    it('resolves span deterministically without Bedrock', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
+    it('emits exact pool without embed', async () => {
         const embedSpan = jest.fn()
 
         const result = await runIdentityStage(
             'pick up the broom',
             ['broom'],
             roomCatalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
         expect(result).toEqual({
             type: 'success',
-            spanGroundings: [{
-                type: 'resolved',
-                objectId: broomId,
-                catalogScope: 'room',
+            spanPools: [{
+                span: 'broom',
+                candidates: [{
+                    id: broomId,
+                    label: 'broom',
+                    jointRelevance: 1,
+                    marginToRunnerUp: 0,
+                    sourceTags: ['exact'],
+                    locus: { kind: 'room' },
+                }],
+                shortlist: [{
+                    id: broomId,
+                    label: 'broom',
+                    jointRelevance: 1,
+                    marginToRunnerUp: 0,
+                    sourceTags: ['exact'],
+                    locus: { kind: 'room' },
+                }],
             }],
         })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(embedSpan).not.toHaveBeenCalled()
+        if (result.type === 'success') {
+            expect(isSpanCandidatePool(result.spanPools[0])).toBe(true)
+        }
     })
 
-    it('invokes identity LLM on NoMatch when catalog has no embeddings', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: `{"objectId":"${broomId}"}`,
-        })
-        const embedSpan = jest.fn().mockResolvedValue({
-            success: true,
-            embedding: makeEmbeddingFromAxis(0),
-        })
-
-        const result = await runIdentityStage(
-            'pick up the sweeping tool',
-            ['sweeping tool'],
-            roomCatalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
-        )
-
-        expect(result).toEqual({
-            type: 'success',
-            spanGroundings: [{
-                type: 'resolved',
-                objectId: broomId,
-                catalogScope: 'room',
-            }],
-        })
-        expect(embedSpan).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalled()
-    })
-
-    it('resolves paraphrase via embedding without identity LLM', async () => {
+    it('emits ranked pool on paraphrase without identity LLM', async () => {
         const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
             {
                 id: 'test-paraphrase',
@@ -84,14 +71,13 @@ describe('runIdentityStage', () => {
                 otherSimilarity: 0.5,
             }
         )
-        const catalog: ObjectManipulationCatalogEntry[] = candidates.map((candidate) => ({
-            objectId: candidate.objectId === candidates[0]!.objectId ? broomId : anvilId,
+        const catalog: ObjectManipulationCatalogEntry[] = candidates.map((candidate, index) => ({
+            objectId: index === 0 ? broomId : anvilId,
             normalizedShortName: candidate.normalizedShortName,
             catalogScope: 'room' as const,
             embedding: candidate.embedding,
         }))
 
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const embedSpan = jest.fn().mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
@@ -101,22 +87,19 @@ describe('runIdentityStage', () => {
             'pick up the sweeping tool',
             ['sweeping tool'],
             catalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
-        expect(result).toEqual({
-            type: 'success',
-            spanGroundings: [{
-                type: 'resolved',
-                objectId: broomId,
-                catalogScope: 'room',
-            }],
-        })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect(result.spanPools).toHaveLength(1)
+        expect(result.spanPools[0]?.candidates[0]?.id).toBe(broomId)
         expect(embedSpan).toHaveBeenCalled()
     })
 
-    it('falls through to identity LLM when embedding abstains on absent-object span', async () => {
+    it('emits pool on absent-object span (no identity LLM)', async () => {
         const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
             {
                 id: 'test-absent',
@@ -133,10 +116,6 @@ describe('runIdentityStage', () => {
             embedding: candidate.embedding,
         }))
 
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: `{"objectId":"${broomId}"}`,
-        })
         const embedSpan = jest.fn().mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
@@ -146,61 +125,37 @@ describe('runIdentityStage', () => {
             'pick up the sword',
             ['sword'],
             catalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
         expect(result.type).toBe('success')
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalledTimes(1)
+        if (result.type !== 'success') {
+            return
+        }
+        expect(result.spanPools[0]?.candidates.length).toBeGreaterThan(0)
     })
 
-    it('falls through to identity LLM on embed invoke failure without terminal error', async () => {
+    it('emits lex-only pool on embed invoke failure', async () => {
         const catalog: ObjectManipulationCatalogEntry[] = [{
             objectId: broomId,
             normalizedShortName: 'broom',
             catalogScope: 'room',
             embedding: makeEmbeddingFromAxis(1),
         }]
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: `{"objectId":"${broomId}"}`,
-        })
         const embedSpan = jest.fn().mockResolvedValue({ success: false })
 
         const result = await runIdentityStage(
             'pick up the sweeping tool',
             ['sweeping tool'],
             catalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
-        expect(result).toEqual({
-            type: 'success',
-            spanGroundings: [{
-                type: 'resolved',
-                objectId: broomId,
-                catalogScope: 'room',
-            }],
-        })
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalledTimes(1)
-    })
-
-    it('fails closed when identity LLM returns invalid JSON', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: 'not json',
-        })
-
-        const result = await runIdentityStage(
-            'pick up the thing',
-            ['thing'],
-            roomCatalog,
-            { invokeBedrockObjectManipulationIdentityImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.identityParseFailed,
-        })
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect(result.spanPools[0]?.candidates.length).toBe(1)
     })
 
     it('returns noCatalog error when catalog is empty and span does not match', async () => {

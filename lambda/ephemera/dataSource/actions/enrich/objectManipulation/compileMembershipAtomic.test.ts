@@ -8,11 +8,15 @@ import { agreementFailureConfidence } from './verbMembershipAgreement'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const pouchId = 'OBJECT#Pouch' as EphemeraObjectId
+const bagId = 'OBJECT#Bag' as EphemeraObjectId
+const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
+const mopId = 'OBJECT#Mop' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 const broomCatalog = [{ objectId: broomId, normalizedShortName: 'broom' }]
 const pouchCatalog = [{ objectId: pouchId, normalizedShortName: 'pouch' }]
+const bagCatalog = [{ objectId: bagId, normalizedShortName: 'bag' }]
 
 const touchingEdge: StandardExitEdgeData = {
     tag: 'Exit',
@@ -121,7 +125,6 @@ describe('compileMembershipAtomic', () => {
     })
 
     it('does not short-circuit relational commands (routing is at enrich entry)', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await compileMembershipAtomic(
@@ -133,7 +136,6 @@ describe('compileMembershipAtomic', () => {
             },
             0.9,
             {
-                invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
@@ -146,7 +148,6 @@ describe('compileMembershipAtomic', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.notCarryingObject,
         })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
@@ -182,5 +183,60 @@ describe('compileMembershipAtomic', () => {
             errorMessage: objectManipulationErrorMessages.complexRelational,
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
+    })
+
+    it('FT-2.2 illegal-if-wrong: drop bag selects held satchel over room bag', async () => {
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: EphemeraObjectId) => (
+            objectId === satchelId ? [characterId] : [roomId]
+        ))
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+
+        // Duplicate exact label "bag" at room + held loci (ambiguous exact pool).
+        const result = await compileMembershipAtomic(
+            {
+                command: 'drop the bag',
+                rawObjectSpans: ['bag'],
+                verbClass: 'release',
+                characterId,
+                roomObjectCatalog: bagCatalog,
+                heldInventoryCatalog: [{ objectId: satchelId, normalizedShortName: 'bag' }],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getPositionGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectManipulation',
+            operationKind: 'drop',
+            objectId: satchelId,
+            confidence: 0.9,
+        })
+    })
+
+    it('FT-2.2 thin-margin consult still egresses as Error until FT-3.1', async () => {
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+
+        // Duplicate exact "broom" labels -> multi-exact pool; bridge formerly errored,
+        // FT-2.2 selector consults (both legal takeHold) then egress maps to Error.
+        const result = await compileMembershipAtomic(
+            {
+                command: 'take the broom',
+                rawObjectSpans: ['broom'],
+                verbClass: 'acquire',
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: mopId, normalizedShortName: 'broom' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getPositionGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.ambiguousMatch,
+        })
+        expect(result).not.toMatchObject({ type: 'Consult' })
     })
 })

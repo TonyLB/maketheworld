@@ -34,10 +34,10 @@ async function parseCommandCore(
             intentResult.confidence,
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+                embedSpan: deps.embedSpan,
             }
         )
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
@@ -57,10 +57,10 @@ async function parseCommandCore(
             intentResult.confidence,
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationIdentityImpl: deps.invokeBedrockObjectManipulationIdentityImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+                embedSpan: deps.embedSpan,
             }
         )
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }

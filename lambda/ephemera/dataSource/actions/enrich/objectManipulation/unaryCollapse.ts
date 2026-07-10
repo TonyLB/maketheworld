@@ -1,59 +1,48 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogScope } from './catalogMerge'
-import type { SpanGrounding } from './identityStage'
-import {
-    objectManipulationErrorMessageForResolution,
-    objectManipulationErrorMessages,
-} from './resolveObjectSpan'
+import { selectSingleSpanFromPool, spanResolutionErrorReason } from './selectSingleSpanFromPool'
+import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import type { SpanCandidateLocus, SpanCandidatePool } from './spanResolution'
 
 export type UnaryCollapseResult =
     | { type: 'resolved'; objectId: EphemeraObjectId; catalogScope: ObjectManipulationCatalogScope }
     | { type: 'error'; errorMessage: string }
 
-function groundingToResolutionError(grounding: SpanGrounding): string {
-    if (grounding.type === 'noCatalog') {
-        return objectManipulationErrorMessageForResolution({ type: 'NoCatalog' })
-    }
-    if (grounding.type === 'noMatch') {
-        return objectManipulationErrorMessageForResolution({ type: 'NoMatch' })
-    }
-    return objectManipulationErrorMessageForResolution({ type: 'AmbiguousMatch' })
-}
+export const locusToCatalogScope = (locus: SpanCandidateLocus): ObjectManipulationCatalogScope => (
+    locus.kind === 'heldByActor' ? 'held' : 'room'
+)
 
-export function collapseUnaryGrounding(spanGroundings: readonly SpanGrounding[]): UnaryCollapseResult {
-    const resolved = spanGroundings.filter((g): g is Extract<SpanGrounding, { type: 'resolved' }> => g.type === 'resolved')
-
-    if (resolved.length === 0) {
-        const first = spanGroundings[0]
-        if (first !== undefined && first.type !== 'resolved') {
-            return { type: 'error', errorMessage: groundingToResolutionError(first) }
-        }
+/**
+ * FT-2.1 bridge helper. Membership compile uses {@link selectMembershipFromPool} (FT-2.2).
+ * Retained for tests and any non-membership callers of single-span bridge collapse.
+ */
+export function collapseUnarySpanPools(spanPools: readonly SpanCandidatePool[]): UnaryCollapseResult {
+    if (spanPools.length === 0) {
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.noMatch,
         }
     }
 
-    if (resolved.length > 1) {
+    if (spanPools.length > 1) {
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.ambiguousMatch,
         }
     }
 
-    const unresolved = spanGroundings.some((g) => g.type !== 'resolved')
-    if (unresolved) {
-        const firstUnresolved = spanGroundings.find((g) => g.type !== 'resolved')
-        if (firstUnresolved !== undefined) {
-            return { type: 'error', errorMessage: groundingToResolutionError(firstUnresolved) }
+    const outcome = selectSingleSpanFromPool(spanPools[0]!)
+    if (outcome.verdict === 'resolved') {
+        return {
+            type: 'resolved',
+            objectId: outcome.objectId,
+            catalogScope: locusToCatalogScope(outcome.locus),
         }
     }
 
-    const sole = resolved[0]
     return {
-        type: 'resolved',
-        objectId: sole.objectId,
-        catalogScope: sole.catalogScope,
+        type: 'error',
+        errorMessage: spanResolutionErrorReason(outcome),
     }
 }

@@ -1273,11 +1273,7 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"subjectSpan":"it","targetSpan":"bench","relationSpan":"under","operationKind":"establishRelation"}',
-        })
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"objectId":"OBJECT#Broom"}',
+            body: '{"subjectSpan":"broom","targetSpan":"bench","relationSpan":"under","operationKind":"establishRelation"}',
         })
 
         const result = await parseCommand(
@@ -1294,7 +1290,6 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationFrameExtractImpl,
-                invokeBedrockObjectManipulationIdentityImpl,
                 objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, benchId]),
             }
         )

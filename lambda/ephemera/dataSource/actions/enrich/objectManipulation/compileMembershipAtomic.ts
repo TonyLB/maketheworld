@@ -10,7 +10,7 @@ import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
 } from './complexityPreGates'
-import { runIdentityStage } from './identityStage'
+import { runIdentityStage, type IdentityStageDeps } from './identityStage'
 import {
     finalizeComplexityFromEnrich,
     interpretObjectManipulationComplexityBody,
@@ -21,15 +21,13 @@ import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
-import { collapseUnaryGrounding } from './unaryCollapse'
-import { evaluateVerbMembershipAgreement } from './verbMembershipAgreement'
+import { selectMembershipFromPool } from './selectMembershipFromPool'
 
 export type CompileMembershipAtomicDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich
-    invokeBedrockObjectManipulationIdentityImpl?: typeof invokeBedrockObjectManipulationEnrich
     invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
-}
+} & Pick<IdentityStageDeps, 'embedSpan'>
 
 export type CompileMembershipAtomicResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
 
@@ -51,22 +49,26 @@ export async function compileMembershipAtomic(
         frame.command,
         frame.rawObjectSpans,
         identityCatalog,
-        {
-            invokeBedrockObjectManipulationIdentityImpl:
-                deps.invokeBedrockObjectManipulationIdentityImpl
-                ?? deps.invokeBedrockObjectManipulationEnrichImpl,
-        }
+        { embedSpan: deps.embedSpan }
     )
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const collapseResult = collapseUnaryGrounding(identityResult.spanGroundings)
-    if (collapseResult.type === 'error') {
-        return { type: 'Error', errorMessage: collapseResult.errorMessage }
+    // FT-2.2: propose-N + FT-5 selector (locus legality). Exit-edge defer still uses
+    // post-select observation + complexity LLM until FT-3 sandbox retirement.
+    const selection = selectMembershipFromPool({
+        spanPools: identityResult.spanPools,
+        verbClass: frame.verbClass,
+        catalog: identityCatalog,
+        commandSpan: frame.rawObjectSpans[0],
+    })
+
+    if (selection.type === 'error') {
+        return { type: 'Error', errorMessage: selection.errorMessage }
     }
 
-    const { objectId } = collapseResult
+    const objectId = selection.objectId
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
     const observation = await observeMembershipForObject(objectId, positionsReadDeps)
     const preGateOutcome = evaluateComplexityPreGates({
@@ -81,19 +83,18 @@ export async function compileMembershipAtomic(
         return { type: 'Error', errorMessage: preGateError }
     }
 
-    if (preGateOutcome.type === 'atomic') {
-        const agreement = evaluateVerbMembershipAgreement(frame.verbClass, preGateOutcome)
-        if (agreement.type === 'disagreement') {
-            return { type: 'Error', errorMessage: agreement.errorMessage }
-        }
+    if (selection.type === 'resolved' && preGateOutcome.type === 'atomic') {
+        // Selector already chose operationKind via locus legality; skip reject-only
+        // verbMembershipAgreement (FT-2.2 illegal-if-wrong / "drop bag").
         return {
             type: 'ObjectManipulation',
-            operationKind: agreement.operationKind,
+            operationKind: selection.operationKind,
             objectId,
             confidence: intentConfidence,
         }
     }
 
+    // defer from selector (unmodeled locus) or exit-edge / non-atomic pre-gate
     const invokeComplexity = deps.invokeBedrockObjectManipulationComplexityImpl
         ?? deps.invokeBedrockObjectManipulationEnrichImpl
         ?? invokeBedrockObjectManipulationEnrich

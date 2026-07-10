@@ -9,8 +9,8 @@ export type ResolveObjectSpanByEmbeddingDeps = {
 }
 
 /**
- * Embed span -> rank pre-attached catalog vectors -> decide.
- * No catalog load; identity stage consumes pre-attached embeddings only.
+ * v1 calibration shim: embed span -> rank -> decideEmbeddingMatch.
+ * Production identity path uses resolveCatalogSpanToPool (FT-2.1) instead.
  */
 export async function resolveObjectSpanByEmbedding(
     rawObjectSpan: string,

@@ -2,6 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { resolveRelationalGrounding } from './resolveRelationalGrounding'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { isSpanCandidatePool } from './spanResolution'
 import {
     buildCandidatesFromIdentityCase,
     makeEmbeddingFromAxis,
@@ -22,11 +23,15 @@ describe('resolveRelationalGrounding', () => {
             ]
         )
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             type: 'success',
             subjectId: broomId,
             targetId: tableId,
         })
+        if (result.type === 'success') {
+            expect(isSpanCandidatePool(result.subjectPool)).toBe(true)
+            expect(isSpanCandidatePool(result.targetPool)).toBe(true)
+        }
     })
 
     it('returns error when subject and target resolve to same object', async () => {
@@ -43,27 +48,18 @@ describe('resolveRelationalGrounding', () => {
         })
     })
 
-    it('returns error when identity LLM invoke fails', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: false,
-        })
-
+    it('returns error when span pool fails to auto-resolve', async () => {
         const result = await resolveRelationalGrounding(
-            'put broom on table',
-            'broom',
+            'put thing on table',
+            'thing',
             'table',
-            [{ objectId: broomId, normalizedShortName: 'broom' }],
-            { invokeBedrockObjectManipulationIdentityImpl }
+            [{ objectId: tableId, normalizedShortName: 'table' }]
         )
 
-        expect(result).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.identityInvokeFailed,
-        })
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalled()
+        expect(result.type).toBe('error')
     })
 
-    it('resolves paraphrase subject via embedding without identity LLM', async () => {
+    it('resolves paraphrase subject via pool without identity LLM', async () => {
         const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
             {
                 id: 'test-paraphrase',
@@ -84,7 +80,6 @@ describe('resolveRelationalGrounding', () => {
             embedding: candidate.embedding,
         }))
 
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn()
         const embedSpan = jest.fn().mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
@@ -95,38 +90,48 @@ describe('resolveRelationalGrounding', () => {
             'sweeping tool',
             'table',
             catalog,
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             type: 'success',
             subjectId: broomId,
             targetId: tableId,
         })
-        expect(invokeBedrockObjectManipulationIdentityImpl).not.toHaveBeenCalled()
         expect(embedSpan).toHaveBeenCalledTimes(1)
     })
 
     it('dedupes span embed across subject and target when both miss exact match', async () => {
+        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
+            {
+                id: 'test-paraphrase-dedupe',
+                bucket: 'positive-paraphrase',
+                span: 'sweeping tool',
+                catalog: ['broom'],
+            },
+            {
+                kind: 'resolve-index',
+                targetIndex: 0,
+                targetSimilarity: 0.95,
+                otherSimilarity: 0.5,
+            }
+        )
+        const catalog = candidates.map((candidate) => ({
+            objectId: broomId,
+            normalizedShortName: candidate.normalizedShortName,
+            embedding: candidate.embedding,
+        }))
         const embedSpan = jest.fn().mockResolvedValue({
             success: true,
-            embedding: makeEmbeddingFromAxis(0),
-        })
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: `{"objectId":"${broomId}"}`,
+            embedding: spanEmbedding,
         })
 
         const result = await resolveRelationalGrounding(
             'put sweeping tool on sweeping tool',
             'sweeping tool',
             'Sweeping Tool',
-            [{
-                objectId: broomId,
-                normalizedShortName: 'broom',
-                embedding: makeEmbeddingFromAxis(1),
-            }],
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            catalog,
+            { embedSpan }
         )
 
         expect(result).toEqual({
@@ -134,14 +139,9 @@ describe('resolveRelationalGrounding', () => {
             errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
         })
         expect(embedSpan).toHaveBeenCalledTimes(1)
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalledTimes(2)
     })
 
-    it('falls through to identity LLM on embed invoke failure without terminal error', async () => {
-        const invokeBedrockObjectManipulationIdentityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: `{"objectId":"${broomId}"}`,
-        })
+    it('errors on embed invoke failure when pool cannot auto-resolve', async () => {
         const embedSpan = jest.fn().mockResolvedValue({ success: false })
 
         const result = await resolveRelationalGrounding(
@@ -156,15 +156,10 @@ describe('resolveRelationalGrounding', () => {
                 },
                 { objectId: tableId, normalizedShortName: 'table' },
             ],
-            { invokeBedrockObjectManipulationIdentityImpl, embedSpan }
+            { embedSpan }
         )
 
-        expect(result).toEqual({
-            type: 'success',
-            subjectId: broomId,
-            targetId: tableId,
-        })
+        expect(result.type).toBe('error')
         expect(embedSpan).toHaveBeenCalledTimes(1)
-        expect(invokeBedrockObjectManipulationIdentityImpl).toHaveBeenCalledTimes(1)
     })
 })
