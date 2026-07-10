@@ -1,4 +1,5 @@
 import type {
+    ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandEstablishRelationResult,
     ParseCommandObjectManipulationResult,
@@ -15,6 +16,7 @@ export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 export type EnrichObjectManipulationResult =
     | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
+    | ParseCommandConsultResult
     | ParseCommandErrorResult
 
 export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & FrameExtractStageDeps & CompileRelationalDeps

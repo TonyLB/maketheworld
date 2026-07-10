@@ -33,7 +33,7 @@ This file records **normative rules** for Ephemera LLM + code pipelines. Mental 
 ## Output trust
 
 - Each pipeline or hop **should** document its **trust posture** (trusted-output vs fault-tolerant) and handoff artifact shape in feature `AGENT.md` when it differs from the pipeline default. See [`AGENT.concepts.md`](AGENT.concepts.md) (**Output trust models**, **Fault recovery patterns**, **How the axes compose**).
-- **Trusted-output (default for shipped parse/enrich):** downstream **may** treat documented owner emissions as **settled** for that field until a later explicit recovery hop is defined. Uncertainty **must** abstain, defer, or terminalize Error --- not pass silent best guesses.
+- **Trusted-output (default for shipped parse/enrich):** downstream **may** treat documented owner emissions as **settled** for that field until a later explicit recovery hop is defined. Uncertainty **must** abstain, defer, terminalize **Error**, or (catalog-backed ambiguity) terminalize **Consult** --- not pass silent best guesses. **Consult** carries structured alternate proposed commands; it is not an enriched **Error**.
 - **Fault-tolerant:** upstream **must** document provisional handoffs (confidence, alternatives where applicable); downstream **must** implement documented **fault recovery** (correct, backtrack, and/or supplement) before commit boundaries. Downstream **must not** assume upstream is final without that contract.
 - **Commit boundaries** (positions ingress, atomic graph apply, trusted-id bus payloads) **must** receive trusted-output regardless of provisional hops earlier in the pipeline.
 - Mixing trust models within one pipeline **must** document each hop handoff explicitly.

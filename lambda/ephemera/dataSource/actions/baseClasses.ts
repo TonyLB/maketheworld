@@ -82,13 +82,13 @@ export type ParseCommandErrorResult = {
     errorMessage?: string
 }
 
-/** Catalog-backed ambiguity: alternate proposed commands (FT-3 wire shape; unwired in FT-0). */
+/** Catalog-backed ambiguity: alternate proposed commands (FT-3.1 wire). */
 export type ParseCommandConsultAlternative = {
     proposedCommand: string
     objectId?: EphemeraObjectId
 }
 
-/** Player-facing consult terminal parse (FT-3); perception assembles copy from alternatives. */
+/** Player-facing consult terminal parse (FT-3.1); v1 OOC stub assembles copy from alternatives. */
 export type ParseCommandConsultResult = {
     type: 'Consult'
     alternatives: readonly ParseCommandConsultAlternative[]

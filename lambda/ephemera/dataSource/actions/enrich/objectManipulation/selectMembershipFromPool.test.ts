@@ -52,7 +52,7 @@ describe('selectMembershipFromPool', () => {
         })
     })
 
-    it('maps thin-margin consult to Error with selectorVerdict consult', () => {
+    it('preserves thin-margin consult alternatives', () => {
         const pool: SpanCandidatePool = {
             span: 'sweeping tool',
             candidates: [
@@ -79,9 +79,19 @@ describe('selectMembershipFromPool', () => {
             verbClass: 'acquire',
             catalog,
         })).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.ambiguousMatch,
-            selectorVerdict: 'consult',
+            type: 'consult',
+            alternatives: [
+                {
+                    objectId: broomId,
+                    label: 'broom',
+                    proposedCommand: 'take the broom',
+                },
+                {
+                    objectId: mopId,
+                    label: 'mop',
+                    proposedCommand: 'take the mop',
+                },
+            ],
         })
     })
 
@@ -106,7 +116,6 @@ describe('selectMembershipFromPool', () => {
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.noMatch,
-            selectorVerdict: 'error',
         })
     })
 })

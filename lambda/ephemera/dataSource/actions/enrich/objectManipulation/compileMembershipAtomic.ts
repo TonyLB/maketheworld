@@ -1,6 +1,7 @@
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
 import type {
+    ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
@@ -29,7 +30,10 @@ export type CompileMembershipAtomicDeps = {
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
 } & Pick<IdentityStageDeps, 'embedSpan'>
 
-export type CompileMembershipAtomicResult = ParseCommandObjectManipulationResult | ParseCommandErrorResult
+export type CompileMembershipAtomicResult =
+    | ParseCommandObjectManipulationResult
+    | ParseCommandConsultResult
+    | ParseCommandErrorResult
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
@@ -66,6 +70,17 @@ export async function compileMembershipAtomic(
 
     if (selection.type === 'error') {
         return { type: 'Error', errorMessage: selection.errorMessage }
+    }
+
+    if (selection.type === 'consult') {
+        return {
+            type: 'Consult',
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId }) => ({
+                proposedCommand,
+                objectId,
+            })),
+            confidence: intentConfidence,
+        }
     }
 
     const objectId = selection.objectId

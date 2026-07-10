@@ -17,7 +17,7 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ### Target handoff artifacts (FT-0 skeleton)
 
-**Runtime (FT-2.2, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); Consult/Abstain map to **Error** at enrich egress until FT-3.1. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts).
+**Runtime (FT-2.2 + FT-3.1, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); thin-margin ambiguity egresses terminal **`Consult`** ([`ParseCommandConsultResult`](../../baseClasses.ts)); grey-band abstain / noMatch stays **Error**. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (declines -> Error until FT-3.3).
 
 FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 
@@ -27,7 +27,7 @@ FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 | `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
 | `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point) |
 
-Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult` stub: [`../../baseClasses.ts`](../../baseClasses.ts) (unwired until FT-3).
+Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult`: [`../../baseClasses.ts`](../../baseClasses.ts) (wired on membership egress + actions handler as of FT-3.1).
 
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
@@ -58,10 +58,10 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to a trusted catalog **`objectId`** + membership **`operationKind`** for a unary membership command.
 
 - **Pool emission (FT-2.1):** per-span [`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) --- exact unique match -> single-candidate pool (`sourceTags: ['exact']`, `jointRelevance: 1`); duplicate exact labels -> multi-candidate pool with distinct `locus`; non-exact -> span embed + [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts).
-- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult`; grey-band -> `noMatch` error. **Enrich egress** still maps consult/abstain to terminal **Error** until FT-3.1 Consult wire.
+- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult` -> terminal **`Consult`** with structured `alternatives` (FT-3.1); grey-band -> `noMatch` **Error**.
 - **Retired from membership production path:** per-span identity LLM; reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) veto after a committed id (legality is now pre-select dry-run); bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (still used on **relational** path).
 
-**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim), or terminal Error.
+**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim), terminal **`Consult`** (catalog-backed ambiguity), or terminal Error.
 
 **5. Post-select observation + complexity pre-gates (deterministic)**  
 After selector resolve, read authoritative **membership containers** and host **`positionGraph`**. Exit-edge / non-atomic topology still defers to the complexity LLM (interim until FT-3 sandbox retirement):
