@@ -1,6 +1,6 @@
 # Object manipulation parse --- Phases B--D (frame, establishRelation, plan IR)
 
-**Status:** Phase B complete (B6 durable docs shipped). **Fault-tolerant gateway Done (FT-4.3, 2026-07-10)** --- Gateway exit complete; planning file retired (git retains history). **Phase C unblocked** (ready for C1). Phase C design debt from that gateway is consolidated below (**Phase C design debt**).
+**Status:** Phase B complete (B6 durable docs shipped). **Fault-tolerant gateway Done (FT-4.3, 2026-07-10)** --- Gateway exit complete; planning file retired (git retains history). **Phase C unblocked** (ready for C1). Phase C design debt from that gateway is consolidated below (**Phase C design debt**). **Sibling plan split out (2026-07-10):** [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md) now owns the in-memory dry-run sandbox design + build checklist --- a blocking prerequisite for C1 compound-plan legality.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -94,7 +94,7 @@ Enum members and custom persist shape: [`positions/AGENT.contract.md` --- Host-l
 - **Composition rules (BD-8):** when single command implies membership change + relation (e.g. held object + "put X on Y"), compiler auto-inserts **`drop`** before **`establishRelation`** --- no require explicit drop language.
 - **`MultipleCommands`** policy: reject vs allow bounded multi-step from one line.
 - **Multi-step failure (BD-9):** composed plans (**drop** + **`establishRelation`**, etc.) apply **atomically** --- positions kernel bundles membership **`HostEffect[]`** + relational patches in **one** `transactWrite` (same family as graph+adjacency bundling in **`applyHostEffects`**). **Not** sequential per-step streams with first-step commit; **not** RoomStack-style fail-tolerant tail.
-- **Compiler shape (from fault-tolerant gateway, 2026-07-08):** the C1/C2 compiler is a **candidate proposer** (deterministic fast-pass *or* LLM fallback) feeding a **shared deterministic validator** that runs a **pure dry-run legality evaluation over an in-memory sandbox** (no persist) and returns `verdict + decidable + resultPreview`. Selection is a deterministic **legality-gated + confidence** rubric (enum -> fast-approve; **`Custom`** / unmodeled -> LLM validator = BD-10 `defer`) that **auto-resolves** the winner or **Consults** ("commit" reserved for persist + publish). Span grounding is the deterministic **tail** of the joint `(identity, plan)` hop; **`resolveComponent` is retired as a standalone Plan IR primitive** --- the surviving per-span work is the selector verdict + an existence/presence guard. **New Phase C prerequisites:** (a) an **in-memory sandbox** capability for compound (BD-9) legality; (b) **deterministic interaction-under-transfer semantics per enum relation** (e.g. `On` dissolves on pickup; `Under` may block / compose) --- the modeled core that lets `get X off Y` fast-approve, whose absence for `Custom` routes legality to the LLM validator. Golden path (known verb + exact label + all-enum blast radius) stays **zero Bedrock** via staged fast-path composition. Detail: **Phase C design debt** below.
+- **Compiler shape (from fault-tolerant gateway, 2026-07-08):** the C1/C2 compiler is a **candidate proposer** (deterministic fast-pass *or* LLM fallback) feeding a **shared deterministic validator** that runs a **pure dry-run legality evaluation over an in-memory sandbox** (no persist) and returns `verdict + decidable + resultPreview`. Selection is a deterministic **legality-gated + confidence** rubric (enum -> fast-approve; **`Custom`** / unmodeled -> LLM validator = BD-10 `defer`) that **auto-resolves** the winner or **Consults** ("commit" reserved for persist + publish). Span grounding is the deterministic **tail** of the joint `(identity, plan)` hop; **`resolveComponent` is retired as a standalone Plan IR primitive** --- the surviving per-span work is the selector verdict + an existence/presence guard. **New Phase C prerequisites:** (a) an **in-memory sandbox** capability for compound (BD-9) legality; (b) **deterministic interaction-under-transfer semantics per enum relation** (e.g. `On` dissolves on pickup; `Under` may block / compose) --- the modeled core that lets `get X off Y` fast-approve, whose absence for `Custom` routes legality to the LLM validator. Golden path (known verb + exact label + all-enum blast radius) stays **zero Bedrock** via staged fast-path composition. **Design, open decisions, and build checklist for the sandbox itself now live in a sibling plan:** [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md).
 
 ### Phase D --- optional / deferrable
 
@@ -229,7 +229,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [ ] **C1. Plan IR types + registry**
   - [ ] Define **`ParsePlanStep`** union and runtime primitive registry (transferMembership, establishRelation, dissolveRelation). **`resolveComponent` is not a runtime primitive**; grounding is the selector verdict + existence/presence guard in the compiler tail, not an executable step.
   - [ ] Deterministic **compiler** from **`ManipulationFrame`** + context -> plan (usually length 1; sometimes 2+) or **`defer`** / **Error** per BD-10.
-  - [ ] **LLM joint `(identity, plan)` proposer** (deferred from FT-3.2): open-language fallback when closed-world fast-path fails; emits N ranked tuples for FT-5 selection; owns semantic grey-band Abstain/Consult beyond numeric floors. See **Phase C design debt** (**Legacy hop retirement**, **Instruction compiler**).
+  - [ ] **LLM joint `(identity, plan)` proposer** (deferred from FT-3.2): open-language fallback when closed-world fast-path fails; emits N ranked tuples for FT-5 selection; owns semantic grey-band Abstain/Consult beyond numeric floors. See **Phase C design debt** (**Legacy hop retirement**) and the sibling sandbox plan (**Instruction compiler + validator**, [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md)).
+  - [ ] **Dry-run sandbox** (blocking prerequisite): consume [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md) --- the compiler's legality validation for compound (BD-9) plans depends on that sandbox existing before C1 can select/auto-resolve a compound candidate.
 
 - [ ] **C2. Executor + compound kernel apply**
   - [ ] Compiler emits ordered plan; executor routes **length-1** plans to existing single-step streams (Phase B path).
@@ -257,15 +258,14 @@ Plan-only forward-looking decisions absorbed when the fault-tolerant gateway pla
 
 ### Instruction compiler + validator (C1/C2)
 
-**Propose-N, then deterministic legality-gated selection (not iterative backtrack).** The joint hop emits **N ranked `(identity, plan)` candidates** in one generation; a deterministic **selector** evaluates all N and picks-or-Consults. Selection is a **testable pure function** of `(candidates, current-state)`.
+**Split out (2026-07-10) into a sibling plan:** [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md) --- design debt, open decisions (SB-1--SB-4), and a build checklist (S1--S6) for the in-memory dry-run sandbox this compiler/validator depends on. That plan owns the sandbox itself (state shape, compound simulation, interaction-under-transfer rule table, `resultPreview` shape).
 
+**What stays here (compiler/selector shell, not the sandbox):**
+
+- **Propose-N, then deterministic legality-gated selection (not iterative backtrack).** The joint hop emits **N ranked `(identity, plan)` candidates** in one generation; a deterministic **selector** evaluates all N (via the sandbox) and picks-or-Consults. Selection is a **testable pure function** of `(candidates, current-state)`.
 - **Legality gates, confidence ranks --- lexicographic.** Partition by legality (`clean-legal` > `defer` > `illegal`); rank **within legal survivors** by absolute calibrated confidence. Confidence never buys back illegality.
 - **Selection may decline.** Below FT-5 floor or thin margin over runner-up -> **Consult/Abstain**, not argmax. Runner-up **legal** candidates are the Consult menu.
-- **Dry-run over an in-memory sandbox.** Pure `(proposedPlan, currentState) -> { verdict, decidable, resultPreview }` without persist. Compound (BD-9) plans need **simulated intermediate state** (drop then relate). Sandbox hydrates from **ingress-packaged context** (room + held catalogs/graph), not fresh Dynamo reads.
-- **Validator tiers on enum vs `Custom` (= BD-10 `defer`).** Enum relations (`On`/`Under`/`Against`) -> deterministic fast-approve. **`Custom`** / unmodeled blast radius -> LLM validator (Phase D escalation).
-- **Staged fast-path composition.** Pipeline stages are decision points with closed-world fast-path + LLM fallback. **Bedrock cost = number of stages whose closed-world predicate fails.** Golden path (exact label + known verb + all-enum) stays **zero Bedrock**.
-- **Keep proposer/validator split** even when both are deterministic on the golden path --- the validator is the **single shared legality authority** the LLM proposer must also pass.
-- **Enum relations need deterministic interaction-under-transfer semantics** (Phase C): e.g. `On` dissolves freely on pickup; `Under` may block or require composition. That modeled core is what makes enum fast-approve legitimate --- and what `Custom` lacks.
+- **Keep proposer/validator split** even when both are deterministic on the golden path --- the validator (sandbox) is the **single shared legality authority** the LLM proposer must also pass.
 
 ### Span resolution I/O + selector (C1 tail)
 
@@ -372,6 +372,7 @@ npm run build
 | Phase B establishRelation vertical | Done |
 | Fault-tolerant gateway | **Done (FT-4.3, 2026-07-10)** --- Gateway exit complete; planning file retired; design debt consolidated in **Phase C design debt** |
 | Phase C Plan IR | **Ready / Not started** (unblocked; begin at C1) |
+| Phase C plan-compiler sandbox (sibling plan) | **Not started** --- see [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md); blocking prerequisite for C1 compound legality |
 | Phase C5 legacy admissibility harness review | Not started (follow-on after C4) |
 | Phase D LLM plans | Not started |
 
