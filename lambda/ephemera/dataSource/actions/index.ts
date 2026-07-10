@@ -31,10 +31,13 @@ import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from '.
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
+    type ParseCommandConsultAlternative,
     type ParseCommandResult,
+    isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandCharacterSpokeResult,
+    isParseCommandConsultResult,
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
@@ -149,6 +152,22 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
     }
 }
 
+/** v1 OOC stub: perception owns steady-state Consult copy; actions assembles from structured alternatives. */
+const consultMessageForPlayer = (
+    alternatives: readonly ParseCommandConsultAlternative[]
+): string => {
+    const quoted = alternatives.map((alternative) => `"${alternative.proposedCommand}"`)
+    if (quoted.length === 1) {
+        return `Did you mean ${quoted[0]}?`
+    }
+    if (quoted.length === 2) {
+        return `Did you mean ${quoted[0]} or ${quoted[1]}?`
+    }
+    const head = quoted.slice(0, -1).join(', ')
+    const last = quoted[quoted.length - 1]
+    return `Did you mean ${head}, or ${last}?`
+}
+
 type ResponseContext = {
     characterId: EphemeraCharacterId
     roomExitContext: RoomExitTargetsForCharacter
@@ -164,6 +183,23 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             targets: [characterId],
             displayProtocol: 'WorldOOCMessage',
             message: [line],
+        })
+    }
+    else if (isParseCommandConsultResult(parseResult)) {
+        const line = consultMessageForPlayer(parseResult.alternatives)
+        messageBus.publish({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: [line],
+        })
+    }
+    else if (isParseCommandAbstainResult(parseResult)) {
+        messageBus.publish({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'WorldOOCMessage',
+            message: ["I couldn't understand that command."],
         })
     }
     else if (isParseCommandCoyoteEngineTestResult(parseResult)) {

@@ -13,11 +13,21 @@ Orchestration lives in [`parseCommand.ts`](../../parseCommand.ts); this folder i
 
 ## Pipeline architecture
 
-**Trust posture (v1):** **trusted-output** through terminal parse and positions ingress --- each hop's semantic fields are treated as settled until Error; identity embedding v1 is a partial exception migrating toward fault-tolerant closed-loop ([`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md)). General vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**).
+**Trust posture:** enrich identity/selection is **fault-tolerant** (ranked `SpanCandidatePool` + propose-N + FT-5 selector -> auto-resolve, **Consult**, or **Abstain**). **Terminal parse** and **positions ingress** remain **trusted-output** --- a single grounded winner, or a terminal Consult/Abstain/Error before any stream. Classify family routing is still trusted-output (BD-11 live; FT-7 reunify is Phase C). Vocabulary: [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md) (**Output trust models**). Pool recommender details: [`embeddingMatch/AGENT.md`](embeddingMatch/AGENT.md).
+
+### Recovery patterns (per hop)
+
+| Pattern | Where | Shipped behavior |
+| --- | --- | --- |
+| **Supplement** | Catalog / embed ingress | Room + held catalogs and `EMBEDDING#IMPROMPTU` attached before identity; future `withinObject` pool expand (deferred) |
+| **Correct** | Dry-run + existence guard | Locus legality and referential integrity reject illegal tuples; never vacuum-fill a missing id |
+| **Backtrack** | Selector decline | Thin-margin -> **Consult**; grey-band / unfit head -> **Abstain** --- not identity-LLM retry |
+
+Orchestration is **single-pass** this iteration (propose-N + pure selector + guard). Re-entrant closed-loop (container-contents supplement) is a future `llm/pipeline/` concern, not Gateway-blocking.
 
 ### Target handoff artifacts (FT-0 skeleton)
 
-**Runtime (FT-2.2, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); Consult/Abstain map to **Error** at enrich egress until FT-3.1. **Relational** path still uses bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts).
+**Runtime (FT-2.2 + FT-3.3, 2026-07-10):** identity stage emits `SpanCandidatePool[]`. **Membership** path: deterministic propose-N + FT-5 tuple selector ([`selectMembershipFromPool`](selectMembershipFromPool.ts)); thin-margin ambiguity egresses terminal **`Consult`** ([`ParseCommandConsultResult`](../../baseClasses.ts)); grey-band / unfit head egresses terminal **`Abstain`** ([`ParseCommandAbstainResult`](../../baseClasses.ts)); policy / legality / validator defer stay **Error**. **Relational** path: pools-only grounding + [`selectRelationalFromPools`](selectRelationalFromPools.ts) (same FT-5 policy + dual existence guard); Consult/Abstain/Error/EstablishRelation from [`compileRelational`](compileRelational.ts). Bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) retired from production (harness only). Complexity LLM and frame extract remain live interim hops until Phase C **C4**.
 
 FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 
@@ -25,9 +35,19 @@ FT-4 span-resolution types live in [`spanResolution.ts`](spanResolution.ts):
 | --- | --- |
 | `SpanCandidatePool` | Input evidence: ranked `candidates[]` per span (no `status` field) |
 | `ObjectSpanCandidate` | One catalog object with relevance fields + deterministic `locus` |
-| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point) |
+| `SpanResolutionOutcome` | Selector verdict: `resolved` \| `consult` \| `error` (FT-5 selection point; Abstain is terminal-parse only) |
 
-Outcome mapping from current `identityStage` / embedding types: [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md) (**FT-0 outcome mapping**). Terminal `ParseCommandConsultResult` stub: [`../../baseClasses.ts`](../../baseClasses.ts) (unwired until FT-3).
+Outcome mapping from legacy identity / embedding types to pool + selector verdicts is documented in [`spanResolution.ts`](spanResolution.ts) guards and the production path above. Terminal **`Consult`** / **`Abstain`**: [`../../baseClasses.ts`](../../baseClasses.ts) (membership + relational egress + actions handlers).
+
+### Abstain vs Consult vs Error (membership + relational)
+
+| Outcome | When | Owner |
+| --- | --- | --- |
+| **Consult** | Thin margin among legal tuples; catalog-backed `alternatives` | FT-5 selector only |
+| **Abstain** | Grey-band below `T_JOINT_*` floor; unfit head; no catalog-backed menu | Deterministic propose-N / selector decline |
+| **Error** | Illegal dry-run, existence guard, cardinality, `multiPresent`, complexity defer interim, relational legality | Validator / pre-gates --- never Consult |
+
+Invariant: dry-run `defer` and closed-world fast-path **must not author Consult**. LLM joint proposer + hop retirement deferred to Phase C.
 
 Production runs a **branching sequence** after classify: **`enrichRoute: 'membership'`** -> [`compileMembershipAtomic`](compileMembershipAtomic.ts), or **`enrichRoute: 'relational'`** -> frame extract -> [`compileRelational`](compileRelational.ts). Read this section for **what each phase is for**; step names, guards, and parsers live in source.
 
@@ -58,10 +78,10 @@ When the fast path does not apply, the model chooses **topology**:
 **Purpose:** map classify **`objectSpans`** to a trusted catalog **`objectId`** + membership **`operationKind`** for a unary membership command.
 
 - **Pool emission (FT-2.1):** per-span [`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) --- exact unique match -> single-candidate pool (`sourceTags: ['exact']`, `jointRelevance: 1`); duplicate exact labels -> multi-candidate pool with distinct `locus`; non-exact -> span embed + [`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts).
-- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult`; grey-band -> `noMatch` error. **Enrich egress** still maps consult/abstain to terminal **Error** until FT-3.1 Consult wire.
-- **Retired from membership production path:** per-span identity LLM; reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) veto after a committed id (legality is now pre-select dry-run); bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (still used on **relational** path).
+- **Tuple selector (FT-2.2, 2026-07-10):** [`selectMembershipFromPool`](selectMembershipFromPool.ts) = [`proposeMembershipTuples`](proposeMembershipTuples.ts) (verbClass-intended op on each v1-locus candidate) -> [`validateMembershipPlanDryRun`](validatePlanDryRun.ts) (locus legality) -> [`selectIdentityPlanTuple`](selectIdentityPlanTuple.ts) (`T_JOINT_*` floor + margin) -> [`existencePresenceGuard`](existencePresenceGuard.ts). Illegal-if-wrong (e.g. "drop bag" with room bag + held satchel) drops illegal tuples before confidence ranking. Thin-margin -> selector `consult` -> terminal **`Consult`** with structured `alternatives` (FT-3.1); grey-band -> **`Abstain`** (FT-3.2).
+- **Retired from production path:** per-span identity LLM; reject-only [`verbMembershipAgreement`](verbMembershipAgreement.ts) veto after a committed id (legality is now pre-select dry-run); bridge [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) (harness only after FT-3.3).
 
-**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim), or terminal Error.
+**Handoff:** grounded **`objectId`** + **`operationKind`**, defer to complexity LLM (exit-edge interim until Phase C), terminal **`Consult`** (catalog-backed ambiguity), terminal **`Abstain`** (grey-band / noMatch), or terminal Error.
 
 **5. Post-select observation + complexity pre-gates (deterministic)**  
 After selector resolve, read authoritative **membership containers** and host **`positionGraph`**. Exit-edge / non-atomic topology still defers to the complexity LLM (interim until FT-3 sandbox retirement):
@@ -99,18 +119,18 @@ The hop receives grounded **`objectId`**, membership containers, and which **exi
 **10. Relation normalizer (deterministic)**  
 Map **`relationSpan`** -> **`relationKind`** enum (`On` | `Under` | `Against`) or **`Custom`** + **`relationLabel`**; **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error ([`normalizeRelationSpan.ts`](normalizeRelationSpan.ts)).
 
-**11. Relational grounding (pool + bridge)**  
-Resolve **`subjectSpan`** and **`targetSpan`** to room-catalog **`objectId`**s (**BD-5**: room catalog only for v1). Same pool emission as membership ([`resolveCatalogSpanToPool`](resolveCatalogSpanToPool.ts) + [`selectSingleSpanFromPool`](selectSingleSpanFromPool.ts) bridge). Shared span embed cache across subject + target spans.
+**11. Relational grounding (pool + FT-3.3 selector)**  
+Resolve **`subjectSpan`** and **`targetSpan`** via room-catalog pools (**BD-5**: room catalog only for v1). [`resolveRelationalGrounding`](resolveRelationalGrounding.ts) emits pools only; [`selectRelationalFromPools`](selectRelationalFromPools.ts) = [`proposeRelationalTuples`](proposeRelationalTuples.ts) (cartesian subject x target; confidence = min joint) -> shared FT-5 [`selectPlanTuple`](selectIdentityPlanTuple.ts) with [`validateRelationalPlanDryRun`](validatePlanDryRun.ts) -> dual [`existencePresenceGuard`](existencePresenceGuard.ts). Thin-margin -> **Consult**; grey-band -> **Abstain**. Shared span embed cache across subject + target spans.
 
-**12. Relational legality (deterministic)**  
-Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)): both nodes on graph; **`dissolveRelation`** requires a matching edge; **`establishRelation`** allows idempotent duplicate; **conflicting existing relational topology** on subject/target -> **`complexRelational`** Error stub (Phase D plan LLM is the future escalation --- see planning doc).
+**12. Relational legality (inside dry-run)**  
+Legality ([`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts)) runs as the selector dry-run: both nodes on graph; **`dissolveRelation`** requires a matching edge; **`establishRelation`** allows idempotent duplicate; **conflicting existing relational topology** on subject/target -> illegal (**`complexRelational`** Error; Phase D plan LLM is the future escalation --- see planning doc).
 
 **13. Terminal compile (deterministic)**  
-[`compileRelational`](compileRelational.ts) emits **`EstablishRelation`** or **`Error`**.
+[`compileRelational`](compileRelational.ts) emits **`EstablishRelation`**, **`Consult`**, **`Abstain`**, or **`Error`**.
 
 ---
 
-**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references via pool + FT-5 selector (membership) or bridge (relational), **close** simple membership atomics from locus legality or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **compile** to trusted terminal parse or player-facing Error.
+**In one sentence:** classify **membership vs relational topology** and language direction, **ground** object references via pool + FT-5 selector (membership and relational), **close** simple membership atomics from locus legality or **defer** when exit edges complicate the host, **extract** relational frames and operator choice when the intent is in-host edges, then **auto-resolve** to trusted terminal parse, or emit terminal Consult / Abstain / Error before commit.
 
 ### Field ownership (quick reference)
 
@@ -122,7 +142,7 @@ Observe the host **`positionGraph`** ([`evaluateRelationalLegality.ts`](evaluate
 | Membership **`operationKind`** (`takeHold` \| `drop`) | FT-2.2 selector (locus legality + verb-intended propose-N); complexity LLM when deferred | Deterministic + semantic defer |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Frame extract (**BD-12**) | Semantic |
 | **`relationKind`** / **`relationLabel`** | Relation normalizer | Deterministic |
-| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity pool + bridge selector (FT-2.1) | Deterministic + embed rank |
+| Grounded **`objectId`** / **`subjectId`** / **`targetId`** | Identity pool + FT-5 tuple selector (FT-2.2 membership / FT-3.3 relational) | Deterministic + embed rank |
 
 Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**Deterministic enrich boundary**).
 
@@ -141,7 +161,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | --- | --- |
 | Entry + route | [`index.ts`](index.ts), [`cardinalityGate.ts`](cardinalityGate.ts) |
 | Membership compiler | [`compileMembershipAtomic.ts`](compileMembershipAtomic.ts), [`membershipFrame.ts`](membershipFrame.ts), [`complexityPreGates.ts`](complexityPreGates.ts), [`membershipObservation.ts`](membershipObservation.ts) |
-| Identity + selector | [`identityStage.ts`](identityStage.ts), [`resolveCatalogSpanToPool.ts`](resolveCatalogSpanToPool.ts), [`proposeMembershipTuples.ts`](proposeMembershipTuples.ts), [`validatePlanDryRun.ts`](validatePlanDryRun.ts), [`selectIdentityPlanTuple.ts`](selectIdentityPlanTuple.ts), [`existencePresenceGuard.ts`](existencePresenceGuard.ts), [`selectMembershipFromPool.ts`](selectMembershipFromPool.ts), [`selectSingleSpanFromPool.ts`](selectSingleSpanFromPool.ts) (relational bridge), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) |
+| Identity + selector | [`identityStage.ts`](identityStage.ts), [`resolveCatalogSpanToPool.ts`](resolveCatalogSpanToPool.ts), [`proposeMembershipTuples.ts`](proposeMembershipTuples.ts), [`proposeRelationalTuples.ts`](proposeRelationalTuples.ts), [`validatePlanDryRun.ts`](validatePlanDryRun.ts), [`selectIdentityPlanTuple.ts`](selectIdentityPlanTuple.ts) (`selectPlanTuple` core), [`existencePresenceGuard.ts`](existencePresenceGuard.ts), [`selectMembershipFromPool.ts`](selectMembershipFromPool.ts), [`selectRelationalFromPools.ts`](selectRelationalFromPools.ts), [`selectSingleSpanFromPool.ts`](selectSingleSpanFromPool.ts) (harness only), [`resolveObjectSpan.ts`](resolveObjectSpan.ts), [`embeddingMatch/`](embeddingMatch/) |
 | Complexity finalize | [`interpretAndFinalize.ts`](interpretAndFinalize.ts), [`complexityClasses.ts`](complexityClasses.ts) |
 | Relational | [`frameExtract/runFrameExtractStage.ts`](frameExtract/runFrameExtractStage.ts), [`frameExtract/buildFrameExtractPrompt.ts`](frameExtract/buildFrameExtractPrompt.ts), [`compileRelational.ts`](compileRelational.ts), [`resolveRelationalGrounding.ts`](resolveRelationalGrounding.ts), [`normalizeRelationSpan.ts`](normalizeRelationSpan.ts), [`evaluateRelationalLegality.ts`](evaluateRelationalLegality.ts) |
 | Frames | [`manipulationFrame.ts`](manipulationFrame.ts) |
@@ -159,4 +179,4 @@ Authority: [`../../../../AGENT.testing.md`](../../../../AGENT.testing.md).
 ## Navigation
 
 - Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
-- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C blocked on [`AGENT.faultTolerantObjectManipulation.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.faultTolerantObjectManipulation.planning.md))
+- Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C unblocked --- Gateway exit complete; see **Phase C design debt** in that plan)

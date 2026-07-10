@@ -1,7 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { resolveRelationalGrounding } from './resolveRelationalGrounding'
-import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { isSpanCandidatePool } from './spanResolution'
 import {
     buildCandidatesFromIdentityCase,
@@ -12,7 +11,7 @@ const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 
 describe('resolveRelationalGrounding', () => {
-    it('resolves subject and target deterministically from room catalog', async () => {
+    it('emits subject and target pools from room catalog', async () => {
         const result = await resolveRelationalGrounding(
             'put broom on table',
             'broom',
@@ -23,18 +22,16 @@ describe('resolveRelationalGrounding', () => {
             ]
         )
 
-        expect(result).toMatchObject({
-            type: 'success',
-            subjectId: broomId,
-            targetId: tableId,
-        })
+        expect(result.type).toBe('success')
         if (result.type === 'success') {
             expect(isSpanCandidatePool(result.subjectPool)).toBe(true)
             expect(isSpanCandidatePool(result.targetPool)).toBe(true)
+            expect(result.subjectPool.candidates[0]!.id).toBe(broomId)
+            expect(result.targetPool.candidates[0]!.id).toBe(tableId)
         }
     })
 
-    it('returns error when subject and target resolve to same object', async () => {
+    it('emits pools for same-span subject/target (selection owns same-id error)', async () => {
         const result = await resolveRelationalGrounding(
             'put broom on broom',
             'broom',
@@ -42,13 +39,14 @@ describe('resolveRelationalGrounding', () => {
             [{ objectId: broomId, normalizedShortName: 'broom' }]
         )
 
-        expect(result).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
-        })
+        expect(result.type).toBe('success')
+        if (result.type === 'success') {
+            expect(result.subjectPool.candidates[0]!.id).toBe(broomId)
+            expect(result.targetPool.candidates[0]!.id).toBe(broomId)
+        }
     })
 
-    it('returns error when span pool fails to auto-resolve', async () => {
+    it('emits pools even when span is non-exact (selection owns auto-resolve)', async () => {
         const result = await resolveRelationalGrounding(
             'put thing on table',
             'thing',
@@ -56,10 +54,13 @@ describe('resolveRelationalGrounding', () => {
             [{ objectId: tableId, normalizedShortName: 'table' }]
         )
 
-        expect(result.type).toBe('error')
+        expect(result.type).toBe('success')
+        if (result.type === 'success') {
+            expect(result.targetPool.candidates[0]!.id).toBe(tableId)
+        }
     })
 
-    it('resolves paraphrase subject via pool without identity LLM', async () => {
+    it('builds paraphrase subject pool without identity LLM', async () => {
         const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
             {
                 id: 'test-paraphrase',
@@ -93,11 +94,11 @@ describe('resolveRelationalGrounding', () => {
             { embedSpan }
         )
 
-        expect(result).toMatchObject({
-            type: 'success',
-            subjectId: broomId,
-            targetId: tableId,
-        })
+        expect(result.type).toBe('success')
+        if (result.type === 'success') {
+            expect(result.subjectPool.candidates[0]!.id).toBe(broomId)
+            expect(result.targetPool.candidates[0]!.id).toBe(tableId)
+        }
         expect(embedSpan).toHaveBeenCalledTimes(1)
     })
 
@@ -134,14 +135,11 @@ describe('resolveRelationalGrounding', () => {
             { embedSpan }
         )
 
-        expect(result).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
-        })
+        expect(result.type).toBe('success')
         expect(embedSpan).toHaveBeenCalledTimes(1)
     })
 
-    it('errors on embed invoke failure when pool cannot auto-resolve', async () => {
+    it('still emits pools when embed invoke fails (lexical-only ranking)', async () => {
         const embedSpan = jest.fn().mockResolvedValue({ success: false })
 
         const result = await resolveRelationalGrounding(
@@ -159,7 +157,10 @@ describe('resolveRelationalGrounding', () => {
             { embedSpan }
         )
 
-        expect(result.type).toBe('error')
+        expect(result.type).toBe('success')
         expect(embedSpan).toHaveBeenCalledTimes(1)
+        if (result.type === 'success') {
+            expect(result.targetPool.candidates[0]!.id).toBe(tableId)
+        }
     })
 })

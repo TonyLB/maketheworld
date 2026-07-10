@@ -9,7 +9,7 @@ import {
     selectIdentityPlanTuple,
     type SelectIdentityPlanTupleResult,
 } from './selectIdentityPlanTuple'
-import type { SpanCandidatePool } from './spanResolution'
+import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
 import { locusToCatalogScope } from './unaryCollapse'
 import type { ValidateMembershipPlanContext } from './validatePlanDryRun'
 
@@ -26,10 +26,16 @@ export type SelectMembershipFromPoolResult =
         catalogScope: ObjectManipulationCatalogScope
     }
     | {
+        type: 'consult'
+        alternatives: readonly SpanResolutionConsultAlternative[]
+    }
+    | {
+        type: 'abstain'
+        reason: string
+    }
+    | {
         type: 'error'
         errorMessage: string
-        /** Selector-level consult (maps to Error at enrich egress until FT-3.1). */
-        selectorVerdict?: 'consult' | 'error'
     }
 
 export type SelectMembershipFromPoolInput = {
@@ -42,7 +48,7 @@ export type SelectMembershipFromPoolInput = {
 
 /**
  * Membership FT-2.2 glue: propose-N -> FT-5 selector -> existence/presence guard.
- * Consult / grey-band decline as error for enrich egress until FT-3.1.
+ * Thin-margin consult preserves alternatives for Consult egress; grey-band -> Abstain (FT-3.2).
  */
 export function selectMembershipFromPool(
     input: SelectMembershipFromPoolInput
@@ -53,7 +59,6 @@ export function selectMembershipFromPool(
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.noMatch,
-            selectorVerdict: 'error',
         }
     }
 
@@ -61,7 +66,6 @@ export function selectMembershipFromPool(
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.ambiguousMatch,
-            selectorVerdict: 'error',
         }
     }
 
@@ -84,15 +88,20 @@ function mapSelection(
         return {
             type: 'error',
             errorMessage: selection.reason,
-            selectorVerdict: 'error',
+        }
+    }
+
+    if (selection.verdict === 'abstain') {
+        return {
+            type: 'abstain',
+            reason: selection.reason,
         }
     }
 
     if (selection.verdict === 'consult') {
         return {
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.ambiguousMatch,
-            selectorVerdict: 'consult',
+            type: 'consult',
+            alternatives: selection.alternatives,
         }
     }
 
@@ -102,7 +111,6 @@ function mapSelection(
         return {
             type: 'error',
             errorMessage: guard.reason,
-            selectorVerdict: 'error',
         }
     }
 

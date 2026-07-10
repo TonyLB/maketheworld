@@ -33,10 +33,20 @@ This file records **normative rules** for Ephemera LLM + code pipelines. Mental 
 ## Output trust
 
 - Each pipeline or hop **should** document its **trust posture** (trusted-output vs fault-tolerant) and handoff artifact shape in feature `AGENT.md` when it differs from the pipeline default. See [`AGENT.concepts.md`](AGENT.concepts.md) (**Output trust models**, **Fault recovery patterns**, **How the axes compose**).
-- **Trusted-output (default for shipped parse/enrich):** downstream **may** treat documented owner emissions as **settled** for that field until a later explicit recovery hop is defined. Uncertainty **must** abstain, defer, or terminalize Error --- not pass silent best guesses.
+- **Trusted-output (default for shipped parse/enrich):** downstream **may** treat documented owner emissions as **settled** for that field until a later explicit recovery hop is defined. Uncertainty **must** terminalize **Abstain** (unparseable / no catalog-backed match), **Consult** (catalog-backed ambiguity with structured alternate proposed commands), **Error** (policy / legality / validator defer), or defer --- not pass silent best guesses. **Consult** and **Abstain** are first-class `ParseCommandResult` variants, not enriched **Error**.
 - **Fault-tolerant:** upstream **must** document provisional handoffs (confidence, alternatives where applicable); downstream **must** implement documented **fault recovery** (correct, backtrack, and/or supplement) before commit boundaries. Downstream **must not** assume upstream is final without that contract.
 - **Commit boundaries** (positions ingress, atomic graph apply, trusted-id bus payloads) **must** receive trusted-output regardless of provisional hops earlier in the pipeline.
 - Mixing trust models within one pipeline **must** document each hop handoff explicitly.
+
+### Abstain vs Consult vs Error (object manipulation, FT-3.3)
+
+| Outcome | Owner | When | Must not |
+| --- | --- | --- | --- |
+| **Consult** | FT-5 selector only | Thin margin among **legal** `(identity, plan)` tuples; alternatives are catalog-backed proposed commands | Invent menus from dry-run `defer` or grey-band unfit heads |
+| **Abstain** | Deterministic propose-N / selector decline | Grey-band below floor; unfit head; unparseable with **no** catalog-backed menu | Offer nonsense Consult options |
+| **Error** | Dry-run validator, pre-gates, existence guard, complexity interim | Illegal op, policy, BD-10 `defer`, existence failure | Surface as Consult |
+
+Invariant: deterministic fast-path + shared validator **must not author Consult**. Validator `defer` -> **Error** (complexity LLM remains interim until Phase C **C4**). Applies to **membership and relational** enrich paths (FT-3.3). LLM joint `(identity, plan)` proposer + complexity/frame-extract hop retirement land with Phase C (**C1** / **C4**), not the FT-3.2 wire.
 
 ---
 

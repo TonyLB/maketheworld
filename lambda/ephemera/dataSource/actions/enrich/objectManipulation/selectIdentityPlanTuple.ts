@@ -14,46 +14,50 @@ import {
     type ValidateMembershipPlanContext,
 } from './validatePlanDryRun'
 
-export type ScoredIdentityPlanCandidate = {
-    candidate: IdentityPlanCandidate
+export type ScoredPlanCandidate<T> = {
+    candidate: T
     dryRun: DryRunOutcome
 }
 
-export type SelectIdentityPlanTupleResult =
+export type SelectPlanTupleResult<T> =
     | {
         verdict: 'resolved'
-        candidate: IdentityPlanCandidate
-        legalSurvivors: readonly ScoredIdentityPlanCandidate[]
+        candidate: T
+        legalSurvivors: readonly ScoredPlanCandidate<T>[]
     }
     | {
         verdict: 'consult'
         alternatives: readonly SpanResolutionConsultAlternative[]
-        legalSurvivors: readonly ScoredIdentityPlanCandidate[]
+        legalSurvivors: readonly ScoredPlanCandidate<T>[]
     }
     | {
         verdict: 'defer'
-        candidate: IdentityPlanCandidate
-        deferSurvivors: readonly ScoredIdentityPlanCandidate[]
+        candidate: T
+        deferSurvivors: readonly ScoredPlanCandidate<T>[]
+    }
+    | {
+        verdict: 'abstain'
+        reason: string
     }
     | {
         verdict: 'error'
         reason: string
     }
 
-export type SelectIdentityPlanTupleInput = {
-    candidates: readonly IdentityPlanCandidate[]
-    dryRunContext?: ValidateMembershipPlanContext
-    /** Used to build Consult proposedCommand strings. */
-    commandSpan?: string
+export type SelectPlanTupleInput<T> = {
+    candidates: readonly T[]
+    getConfidence: (candidate: T) => number
+    dryRun: (candidate: T) => DryRunOutcome
+    toConsultAlternative: (candidate: T) => SpanResolutionConsultAlternative
 }
 
 /**
- * FT-5 cross-tuple selector: legality partition, then floor + margin on legal survivors.
+ * FT-5 cross-tuple selector core: legality partition, then floor + margin on legal survivors.
  */
-export function selectIdentityPlanTuple(
-    input: SelectIdentityPlanTupleInput
-): SelectIdentityPlanTupleResult {
-    const { candidates, dryRunContext = {}, commandSpan = 'object' } = input
+export function selectPlanTuple<T>(
+    input: SelectPlanTupleInput<T>
+): SelectPlanTupleResult<T> {
+    const { candidates, getConfidence, dryRun, toConsultAlternative } = input
 
     if (candidates.length === 0) {
         return {
@@ -62,22 +66,22 @@ export function selectIdentityPlanTuple(
         }
     }
 
-    const scored: ScoredIdentityPlanCandidate[] = candidates.map((candidate) => ({
+    const scored: ScoredPlanCandidate<T>[] = candidates.map((candidate) => ({
         candidate,
-        dryRun: validateMembershipPlanDryRun(candidate, dryRunContext),
+        dryRun: dryRun(candidate),
     }))
 
     const legal = scored
-        .filter(({ dryRun }) => dryRun.verdict === 'legal')
-        .sort((a, b) => b.candidate.confidence - a.candidate.confidence)
+        .filter(({ dryRun: outcome }) => outcome.verdict === 'legal')
+        .sort((a, b) => getConfidence(b.candidate) - getConfidence(a.candidate))
 
     if (legal.length > 0) {
-        return selectAmongLegal(legal, commandSpan)
+        return selectAmongLegal(legal, getConfidence, toConsultAlternative)
     }
 
     const defer = scored
-        .filter(({ dryRun }) => dryRun.verdict === 'defer')
-        .sort((a, b) => b.candidate.confidence - a.candidate.confidence)
+        .filter(({ dryRun: outcome }) => outcome.verdict === 'defer')
+        .sort((a, b) => getConfidence(b.candidate) - getConfidence(a.candidate))
 
     if (defer.length > 0) {
         return {
@@ -88,8 +92,8 @@ export function selectIdentityPlanTuple(
     }
 
     const illegalHead = scored
-        .filter(({ dryRun }) => dryRun.verdict === 'illegal')
-        .sort((a, b) => b.candidate.confidence - a.candidate.confidence)[0]
+        .filter(({ dryRun: outcome }) => outcome.verdict === 'illegal')
+        .sort((a, b) => getConfidence(b.candidate) - getConfidence(a.candidate))[0]
 
     return {
         verdict: 'error',
@@ -98,19 +102,21 @@ export function selectIdentityPlanTuple(
     }
 }
 
-function selectAmongLegal(
-    legal: ScoredIdentityPlanCandidate[],
-    commandSpan: string
-): SelectIdentityPlanTupleResult {
+function selectAmongLegal<T>(
+    legal: ScoredPlanCandidate<T>[],
+    getConfidence: (candidate: T) => number,
+    toConsultAlternative: (candidate: T) => SpanResolutionConsultAlternative
+): SelectPlanTupleResult<T> {
     const head = legal[0]!
     const absFloor = legal.length === 1 ? T_JOINT_ABS_UNARY : T_JOINT_ABS
     const runnerUp = legal[1]
+    const headConfidence = getConfidence(head.candidate)
     const margin = runnerUp === undefined
         ? 1
-        : head.candidate.confidence - runnerUp.candidate.confidence
+        : headConfidence - getConfidence(runnerUp.candidate)
     const marginPasses = legal.length === 1 || margin >= T_JOINT_MARGIN
 
-    if (head.candidate.confidence >= absFloor && marginPasses) {
+    if (headConfidence >= absFloor && marginPasses) {
         return {
             verdict: 'resolved',
             candidate: head.candidate,
@@ -120,29 +126,55 @@ function selectAmongLegal(
 
     if (
         legal.length > 1
-        && head.candidate.confidence >= absFloor
+        && headConfidence >= absFloor
         && margin < T_JOINT_MARGIN
     ) {
         return {
             verdict: 'consult',
-            alternatives: legal.map(({ candidate }) =>
-                consultAlternativeFromCandidate(candidate, commandSpan)
-            ),
+            alternatives: legal.map(({ candidate }) => toConsultAlternative(candidate)),
             legalSurvivors: legal,
         }
     }
 
-    // Grey band: head below floor (or unary below unary floor)
+    // Grey band: head below floor (or unary below unary floor) -> Abstain (FT-3.2)
     return {
-        verdict: 'error',
+        verdict: 'abstain',
         reason: objectManipulationErrorMessages.noMatch,
     }
 }
 
-function consultAlternativeFromCandidate(
+export type ScoredIdentityPlanCandidate = ScoredPlanCandidate<IdentityPlanCandidate>
+
+export type SelectIdentityPlanTupleResult = SelectPlanTupleResult<IdentityPlanCandidate>
+
+export type SelectIdentityPlanTupleInput = {
+    candidates: readonly IdentityPlanCandidate[]
+    dryRunContext?: ValidateMembershipPlanContext
+    /** Used to build Consult proposedCommand strings. */
+    commandSpan?: string
+}
+
+/**
+ * Membership FT-5 selector: legality partition, then floor + margin on legal survivors.
+ */
+export function selectIdentityPlanTuple(
+    input: SelectIdentityPlanTupleInput
+): SelectIdentityPlanTupleResult {
+    const { candidates, dryRunContext = {}, commandSpan = 'object' } = input
+    return selectPlanTuple({
+        candidates,
+        getConfidence: (candidate) => candidate.confidence,
+        dryRun: (candidate) => validateMembershipPlanDryRun(candidate, dryRunContext),
+        toConsultAlternative: (candidate) =>
+            membershipConsultAlternative(candidate, commandSpan),
+    })
+}
+
+function membershipConsultAlternative(
     candidate: IdentityPlanCandidate,
     commandSpan: string
 ): SpanResolutionConsultAlternative {
+    void commandSpan
     const verb = candidate.plan.operationKind === 'drop' ? 'drop' : 'take'
     return {
         objectId: candidate.identity.objectId,
@@ -174,6 +206,7 @@ export function selectIdentityPlanTupleToSpanOutcome(
             locus: result.candidate.identity.locus,
         }
     }
+    // abstain and error both map to SpanResolutionOutcome error (Abstain is terminal-parse only)
     return {
         verdict: 'error',
         reason: result.reason,

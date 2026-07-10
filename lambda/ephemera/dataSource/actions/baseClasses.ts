@@ -82,17 +82,28 @@ export type ParseCommandErrorResult = {
     errorMessage?: string
 }
 
-/** Catalog-backed ambiguity: alternate proposed commands (FT-3 wire shape; unwired in FT-0). */
+/** Catalog-backed ambiguity: alternate proposed commands (FT-3.1 wire). */
 export type ParseCommandConsultAlternative = {
     proposedCommand: string
     objectId?: EphemeraObjectId
 }
 
-/** Player-facing consult terminal parse (FT-3); perception assembles copy from alternatives. */
+/** Player-facing consult terminal parse (FT-3.1); v1 OOC stub assembles copy from alternatives. */
 export type ParseCommandConsultResult = {
     type: 'Consult'
     alternatives: readonly ParseCommandConsultAlternative[]
     confidence: ParseCommandConfidence
+}
+
+/**
+ * Unparseable / no catalog-backed match (FT-3.2). Distinct from **Error** (policy/legality)
+ * and **Consult** (structured alternatives). v1 OOC stub; perception may own copy later.
+ */
+export type ParseCommandAbstainResult = {
+    type: 'Abstain'
+    confidence: ParseCommandConfidence
+    /** Optional machine reason (e.g. noMatch); not required for player copy. */
+    reason?: string
 }
 
 export type ParseCommandNavigationResult = {
@@ -339,6 +350,7 @@ export type IntentClassificationResult =
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandConsultResult
+    | ParseCommandAbstainResult
     | ParseCommandNavigationResult
     | ParseCommandHomeResult
     | ParseCommandAcmeOrderResult
@@ -390,6 +402,21 @@ export function isParseCommandConsultResult(
         }
         return typeof entry.objectId === 'string' && isEphemeraObjectId(entry.objectId)
     })
+}
+
+export function isParseCommandAbstainResult(
+    result: ParseCommandResult
+): result is ParseCommandAbstainResult {
+    if (result.type !== 'Abstain') {
+        return false
+    }
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (result.reason === undefined) {
+        return true
+    }
+    return typeof result.reason === 'string'
 }
 
 export function isParseCommandAwaitRoadrunnerResult(

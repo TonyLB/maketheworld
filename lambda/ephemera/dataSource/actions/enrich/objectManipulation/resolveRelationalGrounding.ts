@@ -1,5 +1,3 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-
 import { catalogWithScope } from './catalogMerge'
 import { createSpanEmbedCache } from './embeddingMatch/spanEmbedCache'
 import type { ResolveObjectSpanByEmbeddingDeps } from './embeddingMatch/resolveObjectSpanByEmbedding'
@@ -8,12 +6,6 @@ import {
     resolveCatalogSpanToPool,
     type ResolveCatalogSpanToPoolDeps,
 } from './resolveCatalogSpanToPool'
-import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import {
-    resolvedObjectIdFromSpanOutcome,
-    selectSingleSpanFromPool,
-    spanResolutionErrorReason,
-} from './selectSingleSpanFromPool'
 import type { SpanCandidatePool } from './spanResolution'
 
 export type RelationalGroundingDeps = ResolveCatalogSpanToPoolDeps &
@@ -24,11 +16,13 @@ export type RelationalGroundingResult =
           type: 'success'
           subjectPool: SpanCandidatePool
           targetPool: SpanCandidatePool
-          subjectId: EphemeraObjectId
-          targetId: EphemeraObjectId
       }
     | { type: 'error'; errorMessage: string }
 
+/**
+ * Emit subject + target SpanCandidatePool artifacts (FT-3.3).
+ * Selection / Consult / Abstain live in selectRelationalFromPools.
+ */
 export async function resolveRelationalGrounding(
     command: string,
     subjectSpan: string,
@@ -51,31 +45,9 @@ export async function resolveRelationalGrounding(
         return targetPoolResult
     }
 
-    const subjectOutcome = selectSingleSpanFromPool(subjectPoolResult.pool)
-    if (subjectOutcome.verdict !== 'resolved') {
-        return { type: 'error', errorMessage: spanResolutionErrorReason(subjectOutcome) }
-    }
-
-    const targetOutcome = selectSingleSpanFromPool(targetPoolResult.pool)
-    if (targetOutcome.verdict !== 'resolved') {
-        return { type: 'error', errorMessage: spanResolutionErrorReason(targetOutcome) }
-    }
-
-    const subjectId = resolvedObjectIdFromSpanOutcome(subjectOutcome)!
-    const targetId = resolvedObjectIdFromSpanOutcome(targetOutcome)!
-
-    if (subjectId === targetId) {
-        return {
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
-        }
-    }
-
     return {
         type: 'success',
         subjectPool: subjectPoolResult.pool,
         targetPool: targetPoolResult.pool,
-        subjectId,
-        targetId,
     }
 }

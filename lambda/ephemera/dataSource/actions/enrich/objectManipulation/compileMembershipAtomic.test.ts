@@ -213,12 +213,11 @@ describe('compileMembershipAtomic', () => {
         })
     })
 
-    it('FT-2.2 thin-margin consult still egresses as Error until FT-3.1', async () => {
+    it('FT-3.1 thin-margin consult egresses as Consult with alternatives', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
         const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
 
-        // Duplicate exact "broom" labels -> multi-exact pool; bridge formerly errored,
-        // FT-2.2 selector consults (both legal takeHold) then egress maps to Error.
+        // Duplicate exact "broom" labels -> multi-exact pool; selector consults (both legal takeHold).
         const result = await compileMembershipAtomic(
             {
                 command: 'take the broom',
@@ -234,9 +233,46 @@ describe('compileMembershipAtomic', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.ambiguousMatch,
+            type: 'Consult',
+            confidence: 0.9,
+            alternatives: [
+                { proposedCommand: 'take the broom', objectId: broomId },
+                { proposedCommand: 'take the broom', objectId: mopId },
+            ],
         })
-        expect(result).not.toMatchObject({ type: 'Consult' })
+        expect(getMembershipContainers).not.toHaveBeenCalled()
+        expect(getPositionGraph).not.toHaveBeenCalled()
+    })
+
+    it('FT-3.2 grey-band egresses as Abstain (not Consult, not Error)', async () => {
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'take the sword',
+                rawObjectSpans: ['sword'],
+                verbClass: 'acquire',
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                ],
+            },
+            0.9,
+            {
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+                embedSpan: jest.fn().mockResolvedValue({
+                    success: true,
+                    embedding: [0.01, 0.02, 0.03],
+                }),
+            }
+        )
+
+        expect(result.type).toBe('Abstain')
+        if (result.type === 'Abstain') {
+            expect(result.confidence).toBe(0.9)
+            expect(result.reason).toBe(objectManipulationErrorMessages.noMatch)
+        }
+        expect(getMembershipContainers).not.toHaveBeenCalled()
+        expect(getPositionGraph).not.toHaveBeenCalled()
     })
 })

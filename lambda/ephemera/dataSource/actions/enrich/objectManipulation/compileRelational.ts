@@ -1,21 +1,31 @@
 import internalCache from '../../../../internalCache'
 import type {
+    ParseCommandAbstainResult,
+    ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 
+import { catalogWithScope } from './catalogMerge'
 import type { ManipulationFrame } from './manipulationFrame'
-import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { normalizeRelationSpan } from './normalizeRelationSpan'
 import { resolveRelationalGrounding, type RelationalGroundingDeps } from './resolveRelationalGrounding'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import {
+    relationPhraseFromNormalized,
+    selectRelationalFromPools,
+} from './selectRelationalFromPools'
 
 export type CompileRelationalDeps = RelationalGroundingDeps & {
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
 }
 
-export type CompileRelationalResult = ParseCommandEstablishRelationResult | ParseCommandErrorResult
+export type CompileRelationalResult =
+    | ParseCommandEstablishRelationResult
+    | ParseCommandConsultResult
+    | ParseCommandAbstainResult
+    | ParseCommandErrorResult
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
@@ -55,26 +65,49 @@ export async function compileRelational(
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
     const graph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
+    const catalog = catalogWithScope(frame.roomObjectCatalog ?? [], 'room')
+    const relation = norm.relation
 
-    const legality = evaluateRelationalLegality({
+    const selection = selectRelationalFromPools({
+        subjectPool: grounding.subjectPool,
+        targetPool: grounding.targetPool,
         operationKind: frame.operationKind,
-        subjectId: grounding.subjectId,
-        targetId: grounding.targetId,
-        normalizedRelation: norm.relation,
-        graph,
+        relation,
+        catalog,
+        dryRunContext: { positionGraph: graph },
+        relationPhrase: relationPhraseFromNormalized(relation),
     })
-    if (legality.type === 'error') {
-        return { type: 'Error', errorMessage: legality.errorMessage }
+
+    if (selection.type === 'error') {
+        return { type: 'Error', errorMessage: selection.errorMessage }
+    }
+    if (selection.type === 'abstain') {
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.reason,
+        }
+    }
+    if (selection.type === 'consult') {
+        return {
+            type: 'Consult',
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId }) => ({
+                proposedCommand,
+                objectId,
+            })),
+            confidence: intentConfidence,
+        }
     }
 
-    const relation = norm.relation
     return {
         type: 'EstablishRelation',
-        operationKind: frame.operationKind,
-        subjectId: grounding.subjectId,
-        targetId: grounding.targetId,
-        relationKind: relation.kind,
-        ...(relation.type === 'custom' ? { relationLabel: relation.relationLabel } : {}),
+        operationKind: selection.operationKind,
+        subjectId: selection.subjectId,
+        targetId: selection.targetId,
+        relationKind: selection.relation.kind,
+        ...(selection.relation.type === 'custom'
+            ? { relationLabel: selection.relation.relationLabel }
+            : {}),
         hostRoomId: frame.hostRoomId,
         confidence: intentConfidence,
     }

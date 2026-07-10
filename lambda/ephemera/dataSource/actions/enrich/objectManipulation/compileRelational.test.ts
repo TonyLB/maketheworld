@@ -197,4 +197,87 @@ describe('compileRelational', () => {
             errorMessage: objectManipulationErrorMessages.dissolveNoMatchingEdge,
         })
     })
+
+    it('returns Consult when subject pool is thin-margin ambiguous', async () => {
+        const mopId = 'OBJECT#Mop' as EphemeraObjectId
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: broomId },
+                    { tag: 'Object' as const, universalKey: mopId },
+                    { tag: 'Object' as const, universalKey: tableId },
+                ],
+            })
+        )
+
+        // Duplicate exact "broom" labels -> multi-exact subject pool; selector consults.
+        const result = await compileRelational(
+            {
+                command: 'put broom on table',
+                subjectSpan: 'broom',
+                targetSpan: 'table',
+                relationSpan: 'on',
+                operationKind: 'establishRelation',
+                rawObjectSpans: ['broom'],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: mopId, normalizedShortName: 'broom' },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'Consult',
+            confidence: 0.9,
+            alternatives: [
+                { proposedCommand: 'put the broom on the table', objectId: broomId },
+                { proposedCommand: 'put the broom on the table', objectId: mopId },
+            ],
+        })
+    })
+
+    it('returns Abstain when subject is unfit grey-band against unary catalog', async () => {
+        const getPositionGraph = jest.fn().mockResolvedValue(
+            testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: tableId },
+                    { tag: 'Object' as const, universalKey: broomId },
+                ],
+            })
+        )
+
+        const result = await compileRelational(
+            {
+                command: 'put sword on table',
+                subjectSpan: 'sword',
+                targetSpan: 'table',
+                relationSpan: 'on',
+                operationKind: 'establishRelation',
+                rawObjectSpans: ['sword'],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                ],
+            },
+            0.9,
+            {
+                positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph },
+                embedSpan: jest.fn().mockResolvedValue({
+                    success: true,
+                    embedding: [0.01, 0.02, 0.03],
+                }),
+            }
+        )
+
+        expect(result.type).toBe('Abstain')
+        if (result.type === 'Abstain') {
+            expect(result.confidence).toBe(0.9)
+            expect(result.reason).toBe(objectManipulationErrorMessages.noMatch)
+        }
+    })
 })
