@@ -155,6 +155,27 @@ Normative rules: [`llm/AGENT.contract.md`](../../../llm/AGENT.contract.md) (**De
 
 Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / **`drop`** may need **zero** post-classify Bedrock calls.
 
+### Phase C sandbox (built, not yet wired into production)
+
+[`interactionUnderTransfer.ts`](interactionUnderTransfer.ts), [`sandboxState.ts`](sandboxState.ts), [`sandboxStep.ts`](sandboxStep.ts), [`sandboxPlan.ts`](sandboxPlan.ts) implement a pure, in-memory dry-run legality simulator for **`transferMembership`** / **`establishRelation`** / **`dissolveRelation`**, built for Phase C (see [`AGENT.planCompilerSandbox.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.planCompilerSandbox.planning.md)) but **not yet wired into the live request path** --- `selectIdentityPlanTuple.ts` and `selectMembershipFromPool.ts` still call `validateMembershipPlanDryRun`/`validateRelationalPlanDryRun` directly, unmodified. [`sandboxSelectorReadiness.test.ts`](sandboxSelectorReadiness.test.ts) proves (via a test-only adapter) that the sandbox's output already fits `selectPlanTuple`'s generic `dryRun` callback shape, so wiring it in later is mechanical once its remaining prerequisite lands (see "Known gap" below).
+
+**Multi-host state.** **`takeHold`** / **`drop`** are already cross-host today (Room's `EphemeraPositionGraph` vs. Character's, joined only by adjacency index, not containment) --- the sandbox models this directly: `SandboxState = Map<EphemeraMembershipHostId, EphemeraPositionGraph>`, mirroring `applyHostEffects.ts`'s own `graphsByHost` pattern. No new mutation machinery --- `EphemeraPositionGraph`'s existing methods (`addObject`, `removeObject`, `addRelationalEdge`, `applyRelationalPatch`) already return a new instance rather than mutating in place.
+
+**Interaction-under-transfer.** Every **`transferMembership`** step --- single-step or the Nth step of a compound plan --- must check relational edges touching the transferred object, not just exit edges (the shipped `validateMembershipPlanDryRun` only ever checked exit edges). The outcome per relation kind depends on **which endpoint plays the load-bearing / constraining role**, not a fixed subject-vs-target split:
+
+| Relation kind | Subject moves | Target moves |
+| --- | --- | --- |
+| `On` | Clean dissolve | **Carry** (absorb into transfer set) |
+| `Under` | **Defer** (interaction assessment) | Clean dissolve |
+| `Against` | Clean dissolve | Clean dissolve |
+| `Custom` | Defer | Defer |
+
+**`On`**'s target-move case is **`carry`**, not **`defer`**: when a supporting surface moves, the deterministic default is "what's resting on it comes along" (get the tray, the glass on it comes too) rather than leaving the outcome ambiguous. **`Under`**'s subject-move case has no carry partner --- the ambiguity is spatial clearance, not "what happens to some other object" --- so it stays a genuine defer. **`carry`** is **transitive to a fixpoint**: absorbing an object means re-examining *its* edges too (glass on book, book on tray --- picking up the tray absorbs both). An edge where both endpoints end up in the same transfer set is **internal** (never evaluated, preserved as-is on the destination host); only edges crossing the transfer set's **boundary** are checked against this table.
+
+**Construction vs. validation.** The sandbox **validates** that a candidate's transfer set is already complete --- it never **expands** one itself, even though the closure algorithm (`computeCarryClosure`) is available to it. A **`carry`**-classified boundary edge on a candidate means the candidate under-specified its transfer set; the sandbox returns **`illegal`** (`incompleteTransferSet`), not a silent auto-fix. Growing the transfer set to include carried objects is exclusively the job of whatever constructs the candidate (deterministic compiler or LLM-plan proposer) --- keeping the validator a single shared legality authority every proposer must pass, and keeping FT-5 selection confidence meaningful (computed against the same candidate that ends up applied, not one silently mutated afterward).
+
+**Known gap, accepted as interim:** because the sandbox isn't wired in, "take tray" (glass **`On`** it) still silently succeeds in production today and leaves a dangling **`glass On tray`** edge referencing an object that's now held. Wiring the sandbox into `selectIdentityPlanTuple.ts` today would only ever see single-object candidates (nothing yet constructs a correct multi-member **`carry`** candidate), so it would flip this bug from "silently wrong" to "explicitly rejected," not yet "correct" --- worse in the interim. Fixing it for real needs both a compiler that can construct complete multi-member candidates and the actual edit to `selectIdentityPlanTuple.ts:167` / `selectMembershipFromPool.ts`; neither has happened yet.
+
 ## Key files
 
 | Area | Files |
