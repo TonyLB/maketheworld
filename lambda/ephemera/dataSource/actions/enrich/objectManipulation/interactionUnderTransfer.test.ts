@@ -1,0 +1,135 @@
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+
+import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
+import {
+    boundaryEdgeOutcomes,
+    classifyInteractionUnderTransfer,
+    computeCarryClosure,
+    roleOfObjectInEdge,
+} from './interactionUnderTransfer'
+
+const trayId = 'OBJECT#Tray' as EphemeraObjectId
+const tableId = 'OBJECT#Table' as EphemeraObjectId
+const bookId = 'OBJECT#Book' as EphemeraObjectId
+const glassId = 'OBJECT#Glass' as EphemeraObjectId
+const bootsId = 'OBJECT#Boots' as EphemeraObjectId
+const aId = 'OBJECT#A' as EphemeraObjectId
+const bId = 'OBJECT#B' as EphemeraObjectId
+const roomId = 'ROOM#Bridge' as EphemeraRoomId
+
+describe('classifyInteractionUnderTransfer', () => {
+    it.each([
+        ['On', 'subject', 'dissolve'],
+        ['On', 'target', 'carry'],
+        ['Under', 'subject', 'defer'],
+        ['Under', 'target', 'dissolve'],
+        ['Against', 'subject', 'dissolve'],
+        ['Against', 'target', 'dissolve'],
+        ['Custom', 'subject', 'defer'],
+        ['Custom', 'target', 'defer'],
+    ] as const)('%s / %s -> %s', (relationKind, movedRole, expected) => {
+        expect(classifyInteractionUnderTransfer(relationKind, movedRole)).toBe(expected)
+    })
+})
+
+describe('roleOfObjectInEdge', () => {
+    const edge: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+
+    it('returns subject when objectId is the from endpoint', () => {
+        expect(roleOfObjectInEdge(bookId, edge)).toBe('subject')
+    })
+
+    it('returns target when objectId is the to endpoint', () => {
+        expect(roleOfObjectInEdge(trayId, edge)).toBe('target')
+    })
+
+    it('returns undefined when objectId is not on the edge', () => {
+        expect(roleOfObjectInEdge(glassId, edge)).toBeUndefined()
+    })
+})
+
+describe('computeCarryClosure', () => {
+    it('absorbs the subject of an On edge when the target moves (single hop)', () => {
+        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const graph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: bookId },
+            ],
+            edges: [bookOnTray],
+        })
+
+        expect(computeCarryClosure(trayId, graph)).toEqual(new Set([trayId, bookId]))
+    })
+
+    it('absorbs a three-deep chain to a fixpoint (glass on book, book on tray, get tray)', () => {
+        const glassOnBook: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
+        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const graph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: bookId },
+                { tag: 'Object', universalKey: glassId },
+            ],
+            edges: [glassOnBook, bookOnTray],
+        })
+
+        expect(computeCarryClosure(trayId, graph)).toEqual(new Set([trayId, bookId, glassId]))
+    })
+
+    it('does not absorb across an Under edge in either direction', () => {
+        const bootsUnderTable: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bootsId, to: tableId, kind: 'Under' }
+        const graph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: bootsId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [bootsUnderTable],
+        })
+
+        expect(computeCarryClosure(tableId, graph)).toEqual(new Set([tableId]))
+        expect(computeCarryClosure(bootsId, graph)).toEqual(new Set([bootsId]))
+    })
+
+    it('terminates on a malformed cyclic edge set instead of looping', () => {
+        const aOnB: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: aId, to: bId, kind: 'On' }
+        const bOnA: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bId, to: aId, kind: 'On' }
+        const graph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: aId },
+                { tag: 'Object', universalKey: bId },
+            ],
+            edges: [aOnB, bOnA],
+        })
+
+        expect(computeCarryClosure(aId, graph)).toEqual(new Set([aId, bId]))
+    })
+})
+
+describe('boundaryEdgeOutcomes', () => {
+    it('reports only the true external edge for a resolved transfer set', () => {
+        const glassOnBook: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
+        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const trayOnTable: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: trayId, to: tableId, kind: 'On' }
+        const graph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: bookId },
+                { tag: 'Object', universalKey: glassId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [glassOnBook, bookOnTray, trayOnTable],
+        })
+        const transferSet = computeCarryClosure(trayId, graph)
+
+        const outcomes = boundaryEdgeOutcomes(transferSet, graph)
+
+        expect(outcomes).toHaveLength(1)
+        expect(outcomes[0]).toEqual({
+            edge: { from: trayId, to: tableId, kind: 'On' },
+            movedRole: 'subject',
+            outcome: 'dissolve',
+        })
+    })
+})
