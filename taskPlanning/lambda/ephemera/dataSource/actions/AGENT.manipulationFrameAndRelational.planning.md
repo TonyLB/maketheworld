@@ -260,6 +260,8 @@ Plan-only forward-looking decisions absorbed when the fault-tolerant gateway pla
 
 ### Instruction compiler + validator (C1/C2)
 
+**Pipeline decomposition (2026-07-12):** C1 is really **two** independent jobs joined by a third. Vocabulary graduated to [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) (**Target** --- not yet the shipped module shape): **Identify** (span -> UUID, needs KR) and **Plan** (verb/frame -> abstract primitive family, does **not** need KR) are independent and can run in parallel; only **Synthesize** (abstract primitive + KR -> complete grounded instruction, legality-checked) is a genuine join of both. The existing sandbox (S1--S6 below) is the **Synthesize** stage's validation half; its `interactionUnderTransfer.ts` / `computeCarryClosure` are Synthesize-stage *closure* logic that currently sits alongside the sandbox's pure-validation code as a module-boundary artifact, not a design requirement --- see the concepts doc's "Current conflation" section. **Still open here, not yet in concepts.md:** the abstract-primitive type family itself (referent language for span-relative locations, e.g. "wherever X currently is") --- this is an implementation fork, not settled vocabulary, until it ships.
+
 **Split out (2026-07-10) into a sibling plan:** [`AGENT.planCompilerSandbox.planning.md`](AGENT.planCompilerSandbox.planning.md) --- design debt, open decisions (SB-1--SB-4), and a build checklist (S1--S6) for the in-memory dry-run sandbox this compiler/validator depends on. That plan owns the sandbox itself (state shape, compound simulation, interaction-under-transfer rule table, `resultPreview` shape).
 
 **What stays here (compiler/selector shell, not the sandbox):**
