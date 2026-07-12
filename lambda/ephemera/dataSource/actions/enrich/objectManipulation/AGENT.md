@@ -176,6 +176,8 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 
 **Known gap, accepted as interim:** because the sandbox isn't wired in, "take tray" (glass **`On`** it) still silently succeeds in production today and leaves a dangling **`glass On tray`** edge referencing an object that's now held. Wiring the sandbox into `selectIdentityPlanTuple.ts` today would only ever see single-object candidates (nothing yet constructs a correct multi-member **`carry`** candidate), so it would flip this bug from "silently wrong" to "explicitly rejected," not yet "correct" --- worse in the interim. Fixing it for real needs both a compiler that can construct complete multi-member candidates and the actual edit to `selectIdentityPlanTuple.ts:167` / `selectMembershipFromPool.ts`; neither has happened yet.
 
+**Conceptual home (2026-07-12):** this sandbox is the **Synthesize**-stage validation half of a three-job pipeline (Identify / Plan / Synthesize) --- see [`../../AGENT.concepts.md`](../../AGENT.concepts.md) (**Target**, not yet the shipped module shape). `interactionUnderTransfer.ts` / `computeCarryClosure` do Synthesize-stage closure work; no code changes from this yet.
+
 ## Key files
 
 | Area | Files |
@@ -200,4 +202,5 @@ Authority: [`../../../../AGENT.testing.md`](../../../../AGENT.testing.md).
 ## Navigation
 
 - Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
+- Identify / Plan / Synthesize decomposition (Target vocabulary): [`../../AGENT.concepts.md`](../../AGENT.concepts.md)
 - Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C unblocked --- Gateway exit complete; see **Phase C design debt** in that plan)

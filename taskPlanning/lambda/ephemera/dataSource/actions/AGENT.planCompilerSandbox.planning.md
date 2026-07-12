@@ -16,6 +16,8 @@ Phase C composition (BD-8: auto-insert `drop` before `establishRelation`; BD-9: 
 
 **Known production gap:** graduated (S6, 2026-07-11) into [`objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) --- "Phase C sandbox" section, "Known gap" paragraph. Not restated here; that doc is now authoritative.
 
+**Pipeline decomposition (2026-07-12):** this sandbox is now understood as the **Synthesize**-stage validation half of a three-job pipeline (Identify / Plan / Synthesize) --- vocabulary in [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md). `interactionUnderTransfer.ts` / `computeCarryClosure` do Synthesize-stage closure work that module-wise sits next to this sandbox's pure-validation code as a naming artifact, not a design requirement --- no code change from this, noted here only so a cold read of this closed plan isn't surprised by the later reframe.
+
 ## Scope
 
 ### In scope
