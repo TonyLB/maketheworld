@@ -112,4 +112,59 @@ describe('applyObjectTakeHold', () => {
             roomId: ROOM_ID,
         })
     })
+
+    it('passes carriedEdges through to applyHostEffects (BD-13 slice 2)', async () => {
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([ROOM_ID])
+        applyHostEffectsMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            changed: true,
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(ROOM_ID, { nodes: [], edges: [] }),
+                EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, {
+                    nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+                    edges: [],
+                }),
+            ],
+        })
+
+        const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
+        const carriedEdges = [{ hostId: CHARACTER_ID, edge: { from: GLASS_ID, to: OBJECT_ID, kind: 'On' as const } }]
+
+        await applyObjectTakeHold(
+            { objectId: OBJECT_ID, roomId: ROOM_ID, characterId: CHARACTER_ID, carriedEdges },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(applyHostEffectsMock).toHaveBeenCalledWith(
+            expect.objectContaining({ edgeCarries: carriedEdges }),
+            undefined
+        )
+    })
+
+    it('defaults edgeCarries to an empty array when carriedEdges is omitted (regression)', async () => {
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([ROOM_ID])
+        applyHostEffectsMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            changed: true,
+            postApplyGraphs: [
+                EphemeraPositionGraph.fromFieldPayload(ROOM_ID, { nodes: [], edges: [] }),
+                EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, {
+                    nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+                    edges: [],
+                }),
+            ],
+        })
+
+        await applyObjectTakeHold(
+            { objectId: OBJECT_ID, roomId: ROOM_ID, characterId: CHARACTER_ID },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(applyHostEffectsMock).toHaveBeenCalledWith(
+            expect.objectContaining({ edgeCarries: [] }),
+            undefined
+        )
+    })
 })

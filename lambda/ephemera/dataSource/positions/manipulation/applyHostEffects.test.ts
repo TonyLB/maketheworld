@@ -8,6 +8,7 @@ import { applyHostEffects } from './applyHostEffects'
 import { testPositionGraph } from '../positionGraph/testFixtures'
 
 const OBJECT_ID = 'OBJECT#Broom' as EphemeraObjectId
+const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const NAV_CHARACTER_ID = 'CHARACTER#Nav' as EphemeraCharacterId
@@ -201,6 +202,112 @@ describe('applyHostEffects', () => {
         expect(transactWrite).toHaveBeenCalledTimes(1)
         const items = transactWrite.mock.calls[0][0] as any[]
         expect(items).toHaveLength(4)
+    })
+
+    it('bundles edgeCarries into the same transact as hostEffects (BD-13 slice 2)', async () => {
+        const plan = planObjectTakeHoldTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID,
+            priorContainers: [ROOM_ID],
+        })
+
+        const roomGraphWithObject = {
+            nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+            edges: [] as [],
+        }
+        const emptyCharacterGraph = { nodes: [], edges: [] as [] }
+
+        const result = await applyHostEffects(
+            {
+                hostEffects: plan.hostEffects,
+                edgeCarries: [{ hostId: CHARACTER_ID, edge: { from: GLASS_ID, to: OBJECT_ID, kind: 'On' } }],
+            },
+            {
+                getPositionGraph: async (hostId) =>
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID, emptyCharacterGraph),
+                transactWrite,
+            }
+        )
+
+        expect(result).toMatchObject({ ok: true, persisted: true, changed: true })
+        expect(transactWrite).toHaveBeenCalledTimes(1)
+        const items = transactWrite.mock.calls[0][0] as any[]
+        expect(items).toHaveLength(5)
+
+        if (result.ok && result.persisted) {
+            expect(result.postApplyGraphs.find((g) => g.hostId === CHARACTER_ID)?.toStored().edges).toEqual([
+                { tag: 'Relational', from: GLASS_ID, to: OBJECT_ID, kind: 'On' },
+            ])
+        }
+    })
+
+    it('behaves exactly as before when edgeCarries is omitted (regression)', async () => {
+        const plan = planObjectTakeHoldTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID,
+            priorContainers: [ROOM_ID],
+        })
+
+        const roomGraphWithObject = {
+            nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+            edges: [] as [],
+        }
+        const emptyCharacterGraph = { nodes: [], edges: [] as [] }
+
+        const result = await applyHostEffects(
+            { hostEffects: plan.hostEffects },
+            {
+                getPositionGraph: async (hostId) =>
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID, emptyCharacterGraph),
+                transactWrite,
+            }
+        )
+
+        expect(result).toMatchObject({ ok: true, persisted: true, changed: true })
+        const items = transactWrite.mock.calls[0][0] as any[]
+        expect(items).toHaveLength(4)
+    })
+
+    it('returns validation error when an edge carry targets a host not touched by hostEffects', async () => {
+        const plan = planObjectTakeHoldTransfer({
+            objectId: OBJECT_ID,
+            roomId: ROOM_ID,
+            characterId: CHARACTER_ID,
+            priorContainers: [ROOM_ID],
+        })
+
+        const roomGraphWithObject = {
+            nodes: [{ tag: 'Object' as const, universalKey: OBJECT_ID }],
+            edges: [] as [],
+        }
+        const emptyCharacterGraph = { nodes: [], edges: [] as [] }
+        const untouchedRoomId = 'ROOM#Untouched' as EphemeraRoomId
+
+        const result = await applyHostEffects(
+            {
+                hostEffects: plan.hostEffects,
+                edgeCarries: [{ hostId: untouchedRoomId, edge: { from: GLASS_ID, to: OBJECT_ID, kind: 'On' } }],
+            },
+            {
+                getPositionGraph: async (hostId) =>
+                    hostId === ROOM_ID
+                        ? testPositionGraph(ROOM_ID, roomGraphWithObject)
+                        : testPositionGraph(CHARACTER_ID, emptyCharacterGraph),
+                transactWrite,
+            }
+        )
+
+        expect(result).toMatchObject({
+            ok: false,
+            errorCode: 'HOST_EFFECT_VALIDATION_FAILED',
+        })
+        expect(transactWrite).not.toHaveBeenCalled()
     })
 
     it('returns error when transact fails', async () => {

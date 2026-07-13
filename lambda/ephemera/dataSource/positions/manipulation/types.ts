@@ -25,6 +25,8 @@ export type MembershipTransferPlan = {
 
 export type ApplyHostEffectsArgs = {
     hostEffects: HostEffect[]
+    /** Internal relational edges (BD-13) carried along with the host effects, bundled into the same atomic write. */
+    edgeCarries?: HostRelationalEdgeCarry[]
 }
 
 export type ApplyHostEffectsSuccess = {

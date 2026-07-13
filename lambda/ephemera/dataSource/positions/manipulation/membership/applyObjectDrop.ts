@@ -76,7 +76,7 @@ export const applyObjectDrop = async (
     }
 
     const kernelResult = await applyHostEffects(
-        { hostEffects: plan.hostEffects },
+        { hostEffects: plan.hostEffects, edgeCarries: args.carriedEdges ?? [] },
         deps.kernelPersist
     )
 
