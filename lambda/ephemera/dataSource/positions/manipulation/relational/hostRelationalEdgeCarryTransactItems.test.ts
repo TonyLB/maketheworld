@@ -2,16 +2,16 @@ import { produce } from 'immer'
 
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { buildHostRelationalEdgeRecreationTransactItems } from './hostRelationalEdgeRecreationTransactItems'
+import { buildHostRelationalEdgeCarryTransactItems } from './hostRelationalEdgeCarryTransactItems'
 
 const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
-describe('buildHostRelationalEdgeRecreationTransactItems', () => {
-    it('recreates a relational edge on a Room host via Meta::Room', () => {
-        const items = buildHostRelationalEdgeRecreationTransactItems([{
+describe('buildHostRelationalEdgeCarryTransactItems', () => {
+    it('carries a relational edge on a Room host via Meta::Room', () => {
+        const items = buildHostRelationalEdgeCarryTransactItems([{
             hostId: ROOM_ID,
             edge: { from: GLASS_ID, to: TRAY_ID, kind: 'On' },
         }]) as any[]
@@ -35,8 +35,8 @@ describe('buildHostRelationalEdgeRecreationTransactItems', () => {
         ])
     })
 
-    it('recreates a relational edge on a Character host via Meta::Character', () => {
-        const items = buildHostRelationalEdgeRecreationTransactItems([{
+    it('carries a relational edge on a Character host via Meta::Character', () => {
+        const items = buildHostRelationalEdgeCarryTransactItems([{
             hostId: CHARACTER_ID,
             edge: { from: GLASS_ID, to: TRAY_ID, kind: 'On' },
         }]) as any[]
@@ -60,7 +60,7 @@ describe('buildHostRelationalEdgeRecreationTransactItems', () => {
     })
 
     it('preserves relationLabel for Custom-kind edges', () => {
-        const items = buildHostRelationalEdgeRecreationTransactItems([{
+        const items = buildHostRelationalEdgeCarryTransactItems([{
             hostId: ROOM_ID,
             edge: { from: GLASS_ID, to: TRAY_ID, kind: 'Custom', relationLabel: 'balanced on' },
         }]) as any[]
@@ -81,7 +81,7 @@ describe('buildHostRelationalEdgeRecreationTransactItems', () => {
     })
 
     it('is idempotent: does not duplicate an edge already present on the destination graph', () => {
-        const items = buildHostRelationalEdgeRecreationTransactItems([{
+        const items = buildHostRelationalEdgeCarryTransactItems([{
             hostId: ROOM_ID,
             edge: { from: GLASS_ID, to: TRAY_ID, kind: 'On' },
         }]) as any[]
@@ -101,8 +101,8 @@ describe('buildHostRelationalEdgeRecreationTransactItems', () => {
         ])
     })
 
-    it('builds one transact item per recreation, dispatching per-item by host type', () => {
-        const items = buildHostRelationalEdgeRecreationTransactItems([
+    it('builds one transact item per carried edge, dispatching per-item by host type', () => {
+        const items = buildHostRelationalEdgeCarryTransactItems([
             { hostId: ROOM_ID, edge: { from: GLASS_ID, to: TRAY_ID, kind: 'On' } },
             { hostId: CHARACTER_ID, edge: { from: GLASS_ID, to: TRAY_ID, kind: 'On' } },
         ]) as any[]

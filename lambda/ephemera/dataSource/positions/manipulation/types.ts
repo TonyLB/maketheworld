@@ -70,14 +70,19 @@ export type ApplyHostRelationalPatchResult =
     | { ok: false; errorCode: string; errorMessage: string }
 
 /**
- * One relational-edge recreation on a fixed host (Room or Character), used when a
- * carried object set moves hosts and an existing edge among the carried objects
- * (e.g. `glass On tray`) must be re-materialized on the destination host graph
- * (BD-13). Recreation is always an add: it is not player-initiated establish/dissolve
- * (that pathway is Room-only, see HostRelationalPatch / BD-6) --- it is a mechanical
- * consequence of a membership move, so there is no `op` field.
+ * One relational edge carried along to a fixed destination host (Room or
+ * Character), used when a carried object set moves hosts and an existing edge
+ * among the carried objects (e.g. `glass On tray`) must be re-materialized on the
+ * destination host graph (BD-13). This is a *carry*, not an *add*: the edge already
+ * existed --- it is not player-initiated establish/dissolve (that pathway is
+ * Room-only, see HostRelationalPatch / BD-6) --- it is a mechanical consequence of
+ * a membership move preserving a pre-existing fact, so there is no `op` field.
+ * Deliberately kept separate from `HostRelationalPatch` even after that pathway
+ * generalizes beyond Room-only hosts (BD-15/BD-16): the two answer different
+ * questions (carry an existing fact across a move vs. create or destroy a fact
+ * outright), not just "which hosts are legal."
  */
-export type HostRelationalEdgeRecreation = {
+export type HostRelationalEdgeCarry = {
     hostId: EphemeraMembershipHostId
     edge: HostRelationalEdge
 }
