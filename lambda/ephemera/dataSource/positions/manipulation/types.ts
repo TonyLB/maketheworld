@@ -68,3 +68,16 @@ export type ApplyHostRelationalPatchResult =
     | ApplyHostRelationalPatchSuccess
     | { ok: true; persisted: false; changed: false }
     | { ok: false; errorCode: string; errorMessage: string }
+
+/**
+ * One relational-edge recreation on a fixed host (Room or Character), used when a
+ * carried object set moves hosts and an existing edge among the carried objects
+ * (e.g. `glass On tray`) must be re-materialized on the destination host graph
+ * (BD-13). Recreation is always an add: it is not player-initiated establish/dissolve
+ * (that pathway is Room-only, see HostRelationalPatch / BD-6) --- it is a mechanical
+ * consequence of a membership move, so there is no `op` field.
+ */
+export type HostRelationalEdgeRecreation = {
+    hostId: EphemeraMembershipHostId
+    edge: HostRelationalEdge
+}
