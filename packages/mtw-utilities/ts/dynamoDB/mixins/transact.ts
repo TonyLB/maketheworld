@@ -1,13 +1,23 @@
 import { TransactWriteItem, TransactWriteItemsCommand, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb"
 import { DBHandlerItem, DBHandlerKey, DBHandlerLegalKey } from "../baseClasses"
 import { marshall } from "@aws-sdk/util-dynamodb"
+import { produce } from "immer"
+import { WritableDraft } from "immer/dist/internal"
 import { UpdateExtendedProps } from "./update"
 import withGetOperations from "./get"
 import withUpdate from "./update"
 import { unique } from "../../lists"
+import { deepEqual } from "../../objects"
 import mapProjectionFields, { reservedFields } from "./utils/mapProjectionFields"
 
 type TransactionRequestUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = { Key: DBHandlerKey<KIncoming, KeyType> } & UpdateExtendedProps<KIncoming, KeyType>
+
+export type TransactionRequestMultiKeyUpdate<KIncoming extends DBHandlerLegalKey, KeyType extends string = string, T extends Partial<DBHandlerItem<KIncoming, KeyType>> = Partial<DBHandlerItem<KIncoming, KeyType>>> = {
+    Keys: DBHandlerKey<KIncoming, KeyType>[];
+    updateKeys: string[];
+    reducer: (draft: WritableDraft<Record<string, T>>) => void;
+    checkKeys?: string[];
+}
 export type TransactionRequestConditionCheck<KIncoming extends DBHandlerLegalKey, KeyType extends string = string> = {
     Key: DBHandlerKey<KIncoming, KeyType>;
     ProjectionFields: string[];
@@ -42,20 +52,67 @@ export type TransactionRequest<KIncoming extends DBHandlerLegalKey, KeyType exte
     Delete: DBHandlerKey<KIncoming, KeyType>
 } | {
     ConditionCheck: TransactionRequestConditionCheck<KIncoming, KeyType>;
+} | {
+    MultiKeyUpdate: TransactionRequestMultiKeyUpdate<KIncoming, KeyType>;
 }
 
 export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends string = string>() => <GBase extends
         ReturnType<ReturnType<typeof withUpdate<KIncoming, T>>> &
         ReturnType<ReturnType<typeof withGetOperations<KIncoming, T>>>>(Base: GBase) => {
     return class TransactionDBHandler extends Base {
+        //
+        // _marshalledKeyString returns a deterministic string form of a DBHandlerKey's marshalled
+        // representation, used to key the Record<string, T> a MultiKeyUpdate reducer operates over.
+        //
+        _marshalledKeyString(key: DBHandlerKey<KIncoming, T>): string {
+            return JSON.stringify(marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }))
+        }
+
+        //
+        // _unchangedFieldConditions builds an equality (or attribute_not_exists) condition for every
+        // field in `fields`, unconditionally --- unlike updateByReducer's inline per-field conditions
+        // (only emitted for fields that are *checked and changed*, or on the "new record" branch),
+        // this always locks every field so a MultiKeyUpdate key that was fetched but left unchanged by
+        // the reducer still participates in the transaction's optimistic lock (OD-3, no opt-out).
+        //
+        _unchangedFieldConditions(
+            fields: string[],
+            priorValue: Partial<DBHandlerItem<KIncoming, T>> | undefined
+        ): { ExpressionAttributeNames: Record<string, string>; ExpressionAttributeValues: Record<string, any>; conditionExpressions: string[] } {
+            const { ExpressionAttributeNames } = mapProjectionFields(fields)
+            const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
+            return fields.reduce<{ ExpressionAttributeNames: Record<string, string>; ExpressionAttributeValues: Record<string, any>; conditionExpressions: string[] }>((previous, field, index) => {
+                const translatedField = field in translateToExpressionAttributeNames ? translateToExpressionAttributeNames[field] : field
+                const hasValue = priorValue !== undefined && field in priorValue && (priorValue as Record<string, any>)[field] !== undefined
+                return {
+                    ExpressionAttributeNames: (translatedField in ExpressionAttributeNames)
+                        ? { ...previous.ExpressionAttributeNames, [translatedField]: field }
+                        : previous.ExpressionAttributeNames,
+                    ExpressionAttributeValues: hasValue
+                        ? { ...previous.ExpressionAttributeValues, [`:Old${index}`]: (priorValue as Record<string, any>)[field] }
+                        : previous.ExpressionAttributeValues,
+                    conditionExpressions: [
+                        ...previous.conditionExpressions,
+                        hasValue ? `${translatedField} = :Old${index}` : `attribute_not_exists(${translatedField})`
+                    ]
+                }
+            }, { ExpressionAttributeNames: {}, ExpressionAttributeValues: {}, conditionExpressions: [] })
+        }
+
         async transactWrite(items: TransactionRequest<KIncoming, T>[]) {
             const itemsToFetch = items.reduce<TransactionRequestUpdate<KIncoming, T>[]>((previous, item) => ('Update' in item && (!('priorFetch' in item.Update)) ? [...previous, item.Update] : previous), [])
+            const multiKeyItems = items.reduce<TransactionRequestMultiKeyUpdate<KIncoming, T>[]>((previous, item) => ('MultiKeyUpdate' in item ? [...previous, item.MultiKeyUpdate] : previous), [])
             const aggregateProjectionFields = unique(
                 [this._incomingKeyLabel, 'DataCategory'],
-                ...itemsToFetch.map(({ updateKeys }) => (updateKeys))
+                ...itemsToFetch.map(({ updateKeys }) => (updateKeys)),
+                ...multiKeyItems.map(({ updateKeys }) => (updateKeys))
             )
-            const fetchedItems = itemsToFetch.length ? await this.getItems<DBHandlerItem<KIncoming, T>>({
-                Keys: itemsToFetch.map((item) => (item.Key)),
+            const allKeysToFetch = [
+                ...itemsToFetch.map((item) => (item.Key)),
+                ...multiKeyItems.flatMap((item) => (item.Keys))
+            ]
+            const fetchedItems = allKeysToFetch.length ? await this.getItems<DBHandlerItem<KIncoming, T>>({
+                Keys: allKeysToFetch,
                 ProjectionFields: aggregateProjectionFields
             }) : []
 
@@ -114,6 +171,53 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                             }
                         } as TransactWriteItem]
                     }
+                }
+                if ('MultiKeyUpdate' in item) {
+                    const { Keys, updateKeys, reducer, checkKeys } = item.MultiKeyUpdate
+                    const priorRecord = Keys.reduce<Record<string, DBHandlerItem<KIncoming, T>>>((previous, key) => {
+                        const marshalledKey = this._marshalledKeyString(key)
+                        const fetchedItem = fetchedItems.find((checkItem) => (checkItem[this._incomingKeyLabel] === key[this._incomingKeyLabel] && checkItem.DataCategory === key.DataCategory))
+                        return fetchedItem ? { ...previous, [marshalledKey]: fetchedItem } : previous
+                    }, {})
+                    const nextRecord = produce(priorRecord, reducer)
+                    return Keys.flatMap((key) => {
+                        const marshalledKey = this._marshalledKeyString(key)
+                        const prior = priorRecord[marshalledKey]
+                        const next = nextRecord[marshalledKey]
+                        if (deepEqual(prior, next)) {
+                            const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = this._unchangedFieldConditions(checkKeys ?? updateKeys, prior)
+                            if (!conditionExpressions.length) {
+                                return []
+                            }
+                            return [{
+                                ConditionCheck: {
+                                    TableName: this._tableName,
+                                    Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }),
+                                    ConditionExpression: conditionExpressions.join(' AND '),
+                                    ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
+                                    ...(Object.keys(ExpressionAttributeValues).length > 0 ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                                }
+                            }] as TransactWriteItem[]
+                        }
+                        if (prior !== undefined && next === undefined) {
+                            //
+                            // MultiKeyUpdate does not (yet) support removing a key from the Record it reduces
+                            // over --- see OD-2 in the MultiKeyUpdate task plan. A reducer that clears a
+                            // previously-fetched key's value is a caller error, not a legal "delete" outcome.
+                            //
+                            throw new Error('MultiKeyUpdate reducer may not remove a previously-fetched key (deletion is not yet supported)')
+                        }
+                        const updateTransaction = this._optimisticUpdateFactory(prior, { Key: key, updateKeys, updateReducer: () => next, checkKeys })
+                        if (updateTransaction.action !== 'update') {
+                            return []
+                        }
+                        return [{
+                            Update: {
+                                TableName: this._tableName,
+                                ...updateTransaction.update
+                            }
+                        } as TransactWriteItem]
+                    })
                 }
                 if ('ConditionCheck' in item) {
                     const { ExpressionAttributeNames } = mapProjectionFields(item.ConditionCheck.ProjectionFields)
