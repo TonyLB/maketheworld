@@ -197,7 +197,7 @@ describe('compileMembershipAtomic', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
-    it('Slice 4b: a carry-related object (glass On tray) now errors instead of silently resolving', async () => {
+    it('Slice 2 (Pipeline A -> B migration): a carry-related object (glass On tray) computes the real closure, still declines as not-yet-appliable', async () => {
         const roomGraphWithCarry = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
@@ -227,7 +227,7 @@ describe('compileMembershipAtomic', () => {
 
         expect(result).toEqual({
             type: 'Error',
-            errorMessage: objectManipulationErrorMessages.incompleteTransferSet,
+            errorMessage: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
         })
         // Terminates at the selector's own error verdict --- never reaches the complexity LLM fallback.
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()

@@ -117,6 +117,47 @@ describe('selectMembershipFromPool', () => {
         })
     })
 
+    it('Slice 2: a carry-related object (glass On tray) surfaces multiObjectTransferNotYetSupported', () => {
+        const trayId = 'OBJECT#Tray' as EphemeraObjectId
+        const glassId = 'OBJECT#Glass' as EphemeraObjectId
+        const carryCatalog: ObjectManipulationCatalogEntry[] = [
+            { objectId: trayId, normalizedShortName: 'tray', catalogScope: 'room' },
+        ]
+        const roomGraphWithCarry = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: trayId },
+                { tag: 'Object' as const, universalKey: glassId },
+            ],
+            edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
+        })
+        const stateWithCarry = buildSandboxState([roomGraphWithCarry, characterGraph])
+
+        const pool: SpanCandidatePool = {
+            span: 'tray',
+            candidates: [
+                {
+                    id: trayId,
+                    label: 'tray',
+                    jointRelevance: 1,
+                    sourceTags: ['exact'],
+                    locus: { kind: 'room' },
+                },
+            ],
+        }
+
+        expect(selectMembershipFromPool({
+            spanPools: [pool],
+            verbClass: 'acquire',
+            catalog: carryCatalog,
+            sandboxState: stateWithCarry,
+            roomId,
+            actorCharacterId: characterId,
+        })).toEqual({
+            type: 'error',
+            errorMessage: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+        })
+    })
+
     it('maps grey-band to abstain (not consult, not error)', () => {
         const pool: SpanCandidatePool = {
             span: 'sword',

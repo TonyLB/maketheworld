@@ -8,8 +8,11 @@ import {
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { evaluateSandboxPlan } from './sandboxPlan'
+import type { SandboxPlanStep } from './sandboxPlan'
 import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
+import { expandTransferMembership } from './synthesize/expandTransferMembership'
+import { relationalStepToSandboxPlanStep } from './synthesize/toSandboxPlanStep'
 import type { DryRunOutcome } from './validatePlanDryRun'
 
 export type ScoredPlanCandidate<T> = {
@@ -156,16 +159,23 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * Sandbox-mediated membership dry run (Slice 4b) --- promotes the pattern
- * `sandboxSelectorReadiness.test.ts` proved out to production. Unlike the
- * relational selector (Slice 4a, a pure refactor), this one is a deliberate
- * behavior change: `applyTransferMembershipStep` checks boundary-edge
- * completeness (BD-13 carry-closure), which the old empty-context dry run
- * never did --- an object with a `carry`-classified boundary edge (something
- * `On`/`Under`/`Against` it) now legitimately comes back `illegal` rather
- * than silently moving alone. Accepted (2026-07-14) as surfacing a real
- * correctness gap rather than papering over it; resolved properly once
- * Slice 7 (Pipeline B migration) wires in real carry-closure at this stage.
+ * Sandbox-mediated membership dry run (Slice 4b, Expansion wired in Slice 2 of
+ * the Pipeline A -> B migration). Invokes `expandTransferMembership` (Synthesize's
+ * Expansion sub-role) to compute the real carry-closed transfer set + any
+ * required dissolve steps, instead of validating a naive single-object set ---
+ * replacing BD-17's interim blanket rejection of any carry-classified boundary
+ * edge with a real, KR-grounded computation. Grounding is a no-op here: Identify
+ * already resolved this candidate to a concrete `objectId`, so the
+ * `TransferMembershipStep` is built directly rather than via `groundChange`.
+ *
+ * Even once Expansion confirms a multi-object transfer is legal
+ * (`evaluateSandboxPlan` --- the same shared legality authority every other
+ * candidate goes through), this compiler still cannot *apply* it: it never
+ * touches the kernel directly, only the later bus/execute path does (Pipeline
+ * A -> B migration Slice 3, not yet built). So a legal multi-object result
+ * still declines here, but with `multiObjectTransferNotYetSupported` --- a
+ * distinct, more accurate message than BD-17's `incompleteTransferSet`, since
+ * the candidate is no longer incomplete, just not yet appliable.
  */
 const sandboxMembershipDryRun = (
     candidate: IdentityPlanCandidate,
@@ -173,7 +183,7 @@ const sandboxMembershipDryRun = (
     roomId: EphemeraRoomId | undefined,
     actorCharacterId: EphemeraCharacterId | undefined
 ): DryRunOutcome => {
-    const { locus } = candidate.identity
+    const { locus, objectId } = candidate.identity
 
     if (locus.kind !== 'room' && locus.kind !== 'heldByActor') {
         // heldByOtherCharacter / withinObject: not closed-world atomic in v1 --- unchanged from
@@ -195,16 +205,60 @@ const sandboxMembershipDryRun = (
         }
     }
 
-    const outcome = evaluateSandboxPlan(state, [{
-        kind: 'transferMembership',
-        candidate,
-        transferSet: new Set([candidate.identity.objectId]),
-        context: { sourceHostId, destinationHostId },
-    }])
+    const expandResult = expandTransferMembership(
+        { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId: sourceHostId, toHostId: destinationHostId },
+        (hostId) => state.get(hostId)
+    )
 
-    return outcome.verdict === 'legal'
-        ? { verdict: 'legal', decidable: true }
-        : { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
+    if (expandResult.verdict === 'error') {
+        return { verdict: 'illegal', decidable: true, reason: expandResult.reason }
+    }
+    if (expandResult.verdict === 'defer') {
+        return { verdict: 'defer', decidable: expandResult.decidable, reason: expandResult.reason }
+    }
+
+    // expandResult.verdict === 'complete'. Dissolve steps are purely Expansion-derived (no
+    // pre-existing proposer candidate to preserve), so convert them via the standard converter.
+    // The transferMembership step keeps the *real* candidate (preserving its stated
+    // operationKind, which the sandbox's own legality check compares against `context`'s
+    // direction to catch e.g. "drop" claimed on a room-locus object) --- only the transferSet
+    // widens to Expansion's carry-closed result.
+    const dissolveConversions = expandResult.dissolveSteps.map(relationalStepToSandboxPlanStep)
+    const conversionFailure = dissolveConversions.find((result) => !result.ok)
+    if (conversionFailure && !conversionFailure.ok) {
+        return { verdict: 'illegal', decidable: true, reason: conversionFailure.reason }
+    }
+
+    const planSteps: SandboxPlanStep[] = [
+        ...dissolveConversions.flatMap((result) => (result.ok ? [result.step] : [])),
+        {
+            kind: 'transferMembership',
+            candidate,
+            transferSet: expandResult.transferStep.objectIds,
+            context: { sourceHostId, destinationHostId },
+        },
+    ]
+
+    const outcome = evaluateSandboxPlan(state, planSteps)
+
+    if (outcome.verdict !== 'legal') {
+        return { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
+    }
+
+    // A dissolve-only closure (no carry) needs no apply-layer changes at all --- the moving
+    // object's own removal already auto-strips the dissolved edge (see Pipeline A -> B migration
+    // Slice 1). Only an actual carry (the transfer set growing beyond the single object) exceeds
+    // what today's single-object apply path can execute.
+    const needsMultiObjectApply = expandResult.transferStep.objectIds.size > 1
+    if (needsMultiObjectApply) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+        }
+    }
+
+    return { verdict: 'legal', decidable: true }
 }
 
 /**

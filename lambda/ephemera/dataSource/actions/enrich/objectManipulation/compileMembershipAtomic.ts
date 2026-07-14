@@ -130,10 +130,11 @@ export async function compileMembershipAtomic(
         }
     }
 
-    // defer from selector (unmodeled locus or exit-edge) or non-atomic pre-gate. Note: an
-    // incomplete carry set (Slice 4b's accepted behavior change) surfaces as an `illegal`
-    // dry-run reason, which --- with no legal or defer candidates --- already terminated as
-    // `selection.type === 'error'` above, before reaching this fallback at all.
+    // defer from selector (unmodeled locus or exit-edge) or non-atomic pre-gate. Note: a
+    // multi-object transfer (Expansion-computed, real and legal, but not yet appliable --- Pipeline
+    // A -> B migration Slice 2) surfaces as an `illegal` dry-run reason, which --- with no legal or
+    // defer candidates --- already terminated as `selection.type === 'error'` above, before
+    // reaching this fallback at all.
     const invokeComplexity = deps.invokeBedrockObjectManipulationComplexityImpl
         ?? deps.invokeBedrockObjectManipulationEnrichImpl
         ?? invokeBedrockObjectManipulationEnrich

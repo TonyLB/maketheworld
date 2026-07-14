@@ -203,7 +203,7 @@ describe('selectIdentityPlanTuple', () => {
         expect(result.verdict).toBe('defer')
     })
 
-    it('accepts the Slice 4b behavior change: a carry-related object now comes back illegal (incompleteTransferSet), not silently resolved', () => {
+    it('Slice 2: a carry-related object (glass On tray) computes the real closure via Expansion, still declines as not-yet-appliable', () => {
         const roomGraphWithCarry = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
@@ -227,7 +227,105 @@ describe('selectIdentityPlanTuple', () => {
 
         expect(result).toEqual({
             verdict: 'error',
-            reason: objectManipulationErrorMessages.incompleteTransferSet,
+            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
         })
+    })
+
+    it('Slice 2: BD-13\'s own "get tray" shape (glass On tray, tray On table) also computes the full closure + dissolve, still declines', () => {
+        const tableId = 'OBJECT#Table' as EphemeraObjectId
+        const roomGraphWithCarryAndDissolve = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: trayId },
+                { tag: 'Object' as const, universalKey: glassId },
+                { tag: 'Object' as const, universalKey: tableId },
+            ],
+            edges: [
+                { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
+                { tag: 'Relational', from: trayId, to: tableId, kind: 'On' },
+            ],
+        })
+        const stateWithBoth = buildSandboxState([roomGraphWithCarryAndDissolve, characterGraph])
+
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(trayId, 'tray', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: stateWithBoth,
+            roomId,
+            actorCharacterId: characterId,
+        })
+
+        expect(result).toEqual({
+            verdict: 'error',
+            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+        })
+    })
+
+    it('Slice 2: an object with no boundary relational edges stays legal, unchanged (no regression)', () => {
+        const result = withSandbox({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+        })
+
+        expect(result.verdict).toBe('resolved')
+    })
+
+    it('Slice 2: an Against-classified boundary edge still cleanly dissolves (no carry, no dissolve-apply needed), stays legal', () => {
+        const tableId = 'OBJECT#Table' as EphemeraObjectId
+        const roomGraphWithAgainst = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: broomId },
+                { tag: 'Object' as const, universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Against' }],
+        })
+        const stateWithAgainst = buildSandboxState([roomGraphWithAgainst, characterGraph])
+
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: stateWithAgainst,
+            roomId,
+            actorCharacterId: characterId,
+        })
+
+        expect(result.verdict).toBe('resolved')
+    })
+
+    it('Slice 2: a Custom-kind boundary edge still defers (unchanged shape, now reachable via real classification)', () => {
+        const tableId = 'OBJECT#Table' as EphemeraObjectId
+        const roomGraphWithCustom = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: broomId },
+                { tag: 'Object' as const, universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
+        })
+        const stateWithCustom = buildSandboxState([roomGraphWithCustom, characterGraph])
+
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: stateWithCustom,
+            roomId,
+            actorCharacterId: characterId,
+        })
+
+        expect(result.verdict).toBe('defer')
     })
 })
