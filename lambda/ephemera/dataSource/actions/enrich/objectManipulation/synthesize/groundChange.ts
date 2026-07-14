@@ -6,6 +6,13 @@ import { actingCharacterRef, currentHostRef } from '../plan/ungroundedPrimitive'
 import type { ParsePlanStep } from '../parsePlanStep'
 import { groundReferent, type GroundingContext } from './groundReferent'
 
+/**
+ * `ok: false` is hard-terminal today, same caveat as `GroundReferentResult`
+ * (whose failures propagate straight through here) --- see BD-18
+ * (`AGENT.manipulationFrameAndRelational.planning.md`) for the unbuilt
+ * Synthesize -> Identify backtrack direction this shape should stay
+ * compatible with.
+ */
 export type GroundChangeResult =
     | { ok: true; step: ParsePlanStep }
     | { ok: false; reason: string }

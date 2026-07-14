@@ -140,7 +140,7 @@ Optional `resolveLexicalChannelActive` override on `runIdentityCorpus` / `simula
 
 Snapshot (mock Bedrock harness, 2026-07-09): **canonical** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Intermediate experiment snapshots (shortspan-mitigation, ratio-invariant, flank-weight-sweep, etc.) are local-only and not committed. Re-run live `EmbeddingCalibrationCorpus` on dev stack to confirm Titan headroom.
 
-Regenerate mock snapshot: `npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts`
+Regenerate mock snapshot (skipped by default under a blanket `npm run test` --- rewrites this file's `calibratedAt` --- so it's gated behind an env var): `RUN_CALIBRATION=1 npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts`
 
 ### Margin rule (EM-D2)
 

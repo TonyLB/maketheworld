@@ -31,10 +31,11 @@ const mockInvokeEmbed = async ({ inputText }: { inputText: string }) => {
 
 /**
  * Generates embedding-identity-pool-v1 snapshot from deterministic mock Bedrock vectors.
- * Run manually when refreshing FT-1.3 calibration artifacts:
- * npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts
+ * Skipped by default (rewrites a committed snapshot's `calibratedAt` on every run, which
+ * is only wanted when deliberately refreshing FT-1.3 calibration artifacts). Run with:
+ * RUN_CALIBRATION=1 npm run test -- --watchAll=false calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts
  */
-describe('generatePoolCalibrationSnapshot', () => {
+;(process.env.RUN_CALIBRATION ? describe : describe.skip)('generatePoolCalibrationSnapshot', () => {
     it('writes pool calibration snapshot JSON (FT-1.3.6 biasMax sweep)', async () => {
         embeddingByNormalized.clear()
         const result = await runFullEmbeddingCalibration(undefined, { invokeEmbed: mockInvokeEmbed })
