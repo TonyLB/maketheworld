@@ -1,17 +1,17 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ManipulationVerbClass } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from './catalogMerge'
 import { existencePresenceGuard } from './existencePresenceGuard'
 import { proposeMembershipTuples } from './proposeMembershipTuples'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import type { SandboxState } from './sandboxState'
 import {
     selectIdentityPlanTuple,
     type SelectIdentityPlanTupleResult,
 } from './selectIdentityPlanTuple'
 import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
 import { locusToCatalogScope } from './unaryCollapse'
-import type { ValidateMembershipPlanContext } from './validatePlanDryRun'
 
 export type SelectMembershipFromPoolResult =
     | {
@@ -42,7 +42,10 @@ export type SelectMembershipFromPoolInput = {
     spanPools: readonly SpanCandidatePool[]
     verbClass: ManipulationVerbClass
     catalog: readonly ObjectManipulationCatalogEntry[]
-    dryRunContext?: ValidateMembershipPlanContext
+    /** Live KR state (room + acting character's own inventory), for the sandbox-mediated dry run. */
+    sandboxState?: SandboxState
+    roomId?: EphemeraRoomId
+    actorCharacterId?: EphemeraCharacterId
     commandSpan?: string
 }
 
@@ -53,7 +56,7 @@ export type SelectMembershipFromPoolInput = {
 export function selectMembershipFromPool(
     input: SelectMembershipFromPoolInput
 ): SelectMembershipFromPoolResult {
-    const { spanPools, verbClass, catalog, dryRunContext, commandSpan } = input
+    const { spanPools, verbClass, catalog, sandboxState, roomId, actorCharacterId, commandSpan } = input
 
     if (spanPools.length === 0) {
         return {
@@ -73,7 +76,9 @@ export function selectMembershipFromPool(
     const tuples = proposeMembershipTuples({ pool, verbClass })
     const selection = selectIdentityPlanTuple({
         candidates: tuples,
-        dryRunContext,
+        sandboxState,
+        roomId,
+        actorCharacterId,
         commandSpan: commandSpan ?? pool.span,
     })
 

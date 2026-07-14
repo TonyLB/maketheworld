@@ -60,14 +60,24 @@ const mockMessageBus = () => ({
     publish: jest.fn(),
 })
 
+/** Slice 4b: both room and character graphs are now fetched before selection runs; respond by hostId. */
+const hostAwareGetPositionGraph = (overrides: Record<string, unknown> = {}) =>
+    jest.fn().mockImplementation(async (hostId: string) => (
+        overrides[hostId] ?? (
+            hostId === 'CHARACTER#123'
+                ? testPositionGraph('CHARACTER#123' as EphemeraCharacterId)
+                : testPositionGraph('ROOM#Bridge' as EphemeraRoomId)
+        )
+    ))
+
 const objectManipulationPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
-    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('ROOM#Bridge' as EphemeraRoomId)),
+    getPositionGraph: hostAwareGetPositionGraph(),
 })
 
 const objectManipulationDropPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['CHARACTER#123' as EphemeraCharacterId]),
-    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('CHARACTER#123' as EphemeraCharacterId)),
+    getPositionGraph: hostAwareGetPositionGraph(),
 })
 
 const relationalPositionsReadDepsForTests = (
@@ -1094,6 +1104,8 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'pick up the broom',
+                characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
@@ -1139,6 +1151,8 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand(
                 {
                     command: 'take the sweeping tool',
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom', 'mop'],
                     roomObjectCatalog: [
                         {
@@ -1191,6 +1205,8 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand(
                 {
                     command: 'take the broom',
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom'],
                     roomObjectCatalog: [
                         { objectId: broomId, normalizedShortName: 'broom' },
@@ -1297,6 +1313,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put down the broom',
                 characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
@@ -1323,6 +1340,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'drop the broom',
                 characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 heldInventoryCatalog: [],
@@ -1350,6 +1368,8 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'pick up the broom',
+                characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'held broom' }],
@@ -1379,6 +1399,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'toss the pouch',
                 characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: pouchId, normalizedShortName: 'pouch' }],
@@ -1408,6 +1429,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'pick up the broom',
                 characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
@@ -1561,6 +1583,8 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'pick up the broom',
+                characterId: 'CHARACTER#123',
+                hostRoomId: roomId,
                 roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
@@ -1569,16 +1593,18 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockObjectManipulationComplexityImpl,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraphFromEnvelope(roomId, {
-                        nodes: [],
-                        edges: [{
-                            tag: 'Exit',
-                            uuid: 'edge-1',
-                            from: broomId,
-                            to: tableId,
-                            payload: {},
-                        }],
-                    })),
+                    getPositionGraph: hostAwareGetPositionGraph({
+                        [roomId]: testPositionGraphFromEnvelope(roomId, {
+                            nodes: [],
+                            edges: [{
+                                tag: 'Exit',
+                                uuid: 'edge-1',
+                                from: broomId,
+                                to: tableId,
+                                payload: {},
+                            }],
+                        }),
+                    }),
                 },
             }
         )
@@ -1599,6 +1625,8 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'grab anvil',
+                characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: ['anvil'],
                 roomObjectCatalog: [{ objectId: anvilId, normalizedShortName: 'anvil' }],
             },
@@ -1631,6 +1659,8 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand(
                 {
                     command: 'take broom',
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
@@ -1664,6 +1694,7 @@ describe('parseCommand LLM path', () => {
                 {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom'],
                     roomObjectCatalog: [],
                     heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
@@ -1690,6 +1721,8 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand(
                 {
                     command: 'get broom',
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
@@ -1716,6 +1749,7 @@ describe('parseCommand LLM path', () => {
                 {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
                     roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                     heldInventoryCatalog: [],

@@ -1,4 +1,4 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     T_JOINT_ABS,
@@ -7,12 +7,10 @@ import {
 } from './embeddingMatch/thresholds'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { evaluateSandboxPlan } from './sandboxPlan'
+import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
-import {
-    validateMembershipPlanDryRun,
-    type DryRunOutcome,
-    type ValidateMembershipPlanContext,
-} from './validatePlanDryRun'
+import type { DryRunOutcome } from './validatePlanDryRun'
 
 export type ScoredPlanCandidate<T> = {
     candidate: T
@@ -149,9 +147,64 @@ export type SelectIdentityPlanTupleResult = SelectPlanTupleResult<IdentityPlanCa
 
 export type SelectIdentityPlanTupleInput = {
     candidates: readonly IdentityPlanCandidate[]
-    dryRunContext?: ValidateMembershipPlanContext
+    /** Live KR state (room + acting character's own inventory), for the sandbox-mediated dry run. */
+    sandboxState?: SandboxState
+    roomId?: EphemeraRoomId
+    actorCharacterId?: EphemeraCharacterId
     /** Used to build Consult proposedCommand strings. */
     commandSpan?: string
+}
+
+/**
+ * Sandbox-mediated membership dry run (Slice 4b) --- promotes the pattern
+ * `sandboxSelectorReadiness.test.ts` proved out to production. Unlike the
+ * relational selector (Slice 4a, a pure refactor), this one is a deliberate
+ * behavior change: `applyTransferMembershipStep` checks boundary-edge
+ * completeness (BD-13 carry-closure), which the old empty-context dry run
+ * never did --- an object with a `carry`-classified boundary edge (something
+ * `On`/`Under`/`Against` it) now legitimately comes back `illegal` rather
+ * than silently moving alone. Accepted (2026-07-14) as surfacing a real
+ * correctness gap rather than papering over it; resolved properly once
+ * Slice 7 (Pipeline B migration) wires in real carry-closure at this stage.
+ */
+const sandboxMembershipDryRun = (
+    candidate: IdentityPlanCandidate,
+    state: SandboxState,
+    roomId: EphemeraRoomId | undefined,
+    actorCharacterId: EphemeraCharacterId | undefined
+): DryRunOutcome => {
+    const { locus } = candidate.identity
+
+    if (locus.kind !== 'room' && locus.kind !== 'heldByActor') {
+        // heldByOtherCharacter / withinObject: not closed-world atomic in v1 --- unchanged from
+        // today; the sandbox has no way to check another character's inventory graph anyway.
+        return {
+            verdict: 'defer',
+            decidable: false,
+            reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
+        }
+    }
+
+    const sourceHostId = locus.kind === 'room' ? roomId : actorCharacterId
+    const destinationHostId = locus.kind === 'room' ? actorCharacterId : roomId
+    if (sourceHostId === undefined || destinationHostId === undefined) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.noMembershipHost,
+        }
+    }
+
+    const outcome = evaluateSandboxPlan(state, [{
+        kind: 'transferMembership',
+        candidate,
+        transferSet: new Set([candidate.identity.objectId]),
+        context: { sourceHostId, destinationHostId },
+    }])
+
+    return outcome.verdict === 'legal'
+        ? { verdict: 'legal', decidable: true }
+        : { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
 }
 
 /**
@@ -160,11 +213,11 @@ export type SelectIdentityPlanTupleInput = {
 export function selectIdentityPlanTuple(
     input: SelectIdentityPlanTupleInput
 ): SelectIdentityPlanTupleResult {
-    const { candidates, dryRunContext = {}, commandSpan = 'object' } = input
+    const { candidates, sandboxState = new Map(), roomId, actorCharacterId, commandSpan = 'object' } = input
     return selectPlanTuple({
         candidates,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: (candidate) => validateMembershipPlanDryRun(candidate, dryRunContext),
+        dryRun: (candidate) => sandboxMembershipDryRun(candidate, sandboxState, roomId, actorCharacterId),
         toConsultAlternative: (candidate) =>
             membershipConsultAlternative(candidate, commandSpan),
     })

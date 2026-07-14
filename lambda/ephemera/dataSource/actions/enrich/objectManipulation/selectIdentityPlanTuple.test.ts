@@ -1,15 +1,22 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { identityPlanCandidateFromSpan } from './identityPlanCandidate'
 import { T_JOINT_ABS, T_JOINT_ABS_UNARY, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
 import { selectIdentityPlanTuple } from './selectIdentityPlanTuple'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { buildSandboxState } from './sandboxState'
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const mopId = 'OBJECT#Mop' as EphemeraObjectId
+const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
+const trayId = 'OBJECT#Tray' as EphemeraObjectId
+const glassId = 'OBJECT#Glass' as EphemeraObjectId
+const roomId = 'ROOM#Bridge' as EphemeraRoomId
+const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 
 const candidate = (
     id: EphemeraObjectId,
@@ -26,6 +33,24 @@ const candidate = (
     locus,
 })
 
+const roomGraph = testPositionGraph(roomId, {
+    nodes: [
+        { tag: 'Object' as const, universalKey: bagId },
+        { tag: 'Object' as const, universalKey: broomId },
+        { tag: 'Object' as const, universalKey: mopId },
+        { tag: 'Object' as const, universalKey: anvilId },
+        { tag: 'Object' as const, universalKey: trayId },
+        { tag: 'Object' as const, universalKey: glassId },
+    ],
+})
+const characterGraph = testPositionGraph(characterId, {
+    nodes: [{ tag: 'Object' as const, universalKey: satchelId }],
+})
+const sandboxState = buildSandboxState([roomGraph, characterGraph])
+
+const withSandbox = (input: Parameters<typeof selectIdentityPlanTuple>[0]) =>
+    selectIdentityPlanTuple({ ...input, sandboxState, roomId, actorCharacterId: characterId })
+
 describe('selectIdentityPlanTuple', () => {
     it('illegal-if-wrong: drop bag selects held satchel over room bag', () => {
         const roomBag = identityPlanCandidateFromSpan(
@@ -37,7 +62,7 @@ describe('selectIdentityPlanTuple', () => {
             'drop'
         )
 
-        const result = selectIdentityPlanTuple({
+        const result = withSandbox({
             candidates: [roomBag, heldSatchel],
             commandSpan: 'bag',
         })
@@ -59,7 +84,7 @@ describe('selectIdentityPlanTuple', () => {
             'takeHold'
         )
 
-        const result = selectIdentityPlanTuple({
+        const result = withSandbox({
             candidates: [broom, mop],
             commandSpan: 'sweeping tool',
         })
@@ -74,7 +99,7 @@ describe('selectIdentityPlanTuple', () => {
     it('absent-object grey band below floor -> abstain (not consult)', () => {
         const anvil = identityPlanCandidateFromSpan(
             candidate(
-                'OBJECT#Anvil' as EphemeraObjectId,
+                anvilId,
                 'anvil',
                 T_JOINT_ABS - 0.05,
                 { kind: 'room' }
@@ -82,7 +107,7 @@ describe('selectIdentityPlanTuple', () => {
             'takeHold'
         )
 
-        const result = selectIdentityPlanTuple({
+        const result = withSandbox({
             candidates: [anvil],
             commandSpan: 'sword',
         })
@@ -100,12 +125,12 @@ describe('selectIdentityPlanTuple', () => {
         )
         broom.identity = { ...broom.identity, sourceTags: ['exact'] }
 
-        const result = selectIdentityPlanTuple({ candidates: [broom] })
+        const result = withSandbox({ candidates: [broom] })
         expect(result.verdict).toBe('resolved')
     })
 
     it('uses unary absolute floor for single legal survivor', () => {
-        const below = selectIdentityPlanTuple({
+        const below = withSandbox({
             candidates: [
                 identityPlanCandidateFromSpan(
                     candidate(broomId, 'broom', T_JOINT_ABS_UNARY - 0.01, { kind: 'room' }),
@@ -115,7 +140,7 @@ describe('selectIdentityPlanTuple', () => {
         })
         expect(below.verdict).toBe('abstain')
 
-        const above = selectIdentityPlanTuple({
+        const above = withSandbox({
             candidates: [
                 identityPlanCandidateFromSpan(
                     candidate(broomId, 'broom', T_JOINT_ABS_UNARY, { kind: 'room' }),
@@ -127,7 +152,7 @@ describe('selectIdentityPlanTuple', () => {
     })
 
     it('returns illegal reason when all candidates illegal', () => {
-        const result = selectIdentityPlanTuple({
+        const result = withSandbox({
             candidates: [
                 identityPlanCandidateFromSpan(
                     candidate(broomId, 'broom', 0.9, { kind: 'room' }),
@@ -138,6 +163,71 @@ describe('selectIdentityPlanTuple', () => {
         expect(result).toEqual({
             verdict: 'error',
             reason: objectManipulationErrorMessages.notCarryingObject,
+        })
+    })
+
+    it('returns illegal reason when no graph state is supplied at all (roomId/actorCharacterId absent)', () => {
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 0.9, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+        })
+        expect(result).toEqual({
+            verdict: 'error',
+            reason: objectManipulationErrorMessages.noMembershipHost,
+        })
+    })
+
+    it('defers (not resolved) when the object touches an exit edge (Slice 4b: now decided during selection)', () => {
+        const roomGraphWithExit = testPositionGraphFromEnvelope(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: broomId }],
+            edges: [{ tag: 'Exit', uuid: 'edge-1', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, payload: {} }],
+        })
+        const stateWithExit = buildSandboxState([roomGraphWithExit, characterGraph])
+
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: stateWithExit,
+            roomId,
+            actorCharacterId: characterId,
+        })
+
+        expect(result.verdict).toBe('defer')
+    })
+
+    it('accepts the Slice 4b behavior change: a carry-related object now comes back illegal (incompleteTransferSet), not silently resolved', () => {
+        const roomGraphWithCarry = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: trayId },
+                { tag: 'Object' as const, universalKey: glassId },
+            ],
+            edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
+        })
+        const stateWithCarry = buildSandboxState([roomGraphWithCarry, characterGraph])
+
+        const result = selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(trayId, 'tray', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: stateWithCarry,
+            roomId,
+            actorCharacterId: characterId,
+        })
+
+        expect(result).toEqual({
+            verdict: 'error',
+            reason: objectManipulationErrorMessages.incompleteTransferSet,
         })
     })
 })

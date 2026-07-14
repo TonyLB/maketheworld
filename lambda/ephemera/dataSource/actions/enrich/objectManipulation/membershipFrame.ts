@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
     ManipulationVerbClass,
@@ -16,6 +16,7 @@ export type MembershipManipulationFrame = {
     rawObjectSpans: readonly string[]
     verbClass: ManipulationVerbClass
     characterId?: EphemeraCharacterId
+    hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
@@ -23,7 +24,7 @@ export type MembershipManipulationFrame = {
 export function buildMembershipManipulationFrame(
     input: Pick<
         ParseCommandInput,
-        'command' | 'characterId' | 'roomObjectCatalog' | 'heldInventoryCatalog'
+        'command' | 'characterId' | 'hostRoomId' | 'roomObjectCatalog' | 'heldInventoryCatalog'
     >,
     intent: Pick<ParseCommandObjectMembershipIntentResult, 'rawObjectSpans' | 'verbClass'>
 ): MembershipManipulationFrame {
@@ -32,6 +33,7 @@ export function buildMembershipManipulationFrame(
         rawObjectSpans: intent.rawObjectSpans,
         verbClass: intent.verbClass,
         characterId: input.characterId,
+        hostRoomId: input.hostRoomId,
         roomObjectCatalog: input.roomObjectCatalog,
         heldInventoryCatalog: input.heldInventoryCatalog,
     }

@@ -57,6 +57,7 @@ export async function enrichObjectManipulation(
             rawObjectSpans: input.rawObjectSpans,
             verbClass: input.verbClass,
             characterId: input.characterId,
+            hostRoomId: input.hostRoomId,
             roomObjectCatalog: input.roomObjectCatalog,
             heldInventoryCatalog: input.heldInventoryCatalog,
         },

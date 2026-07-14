@@ -1,15 +1,19 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { T_JOINT_ABS, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
 import type { SpanCandidatePool } from './spanResolution'
+import { buildSandboxState } from './sandboxState'
+import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const mopId = 'OBJECT#Mop' as EphemeraObjectId
+const roomId = 'ROOM#Bridge' as EphemeraRoomId
+const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 
 const catalog: ObjectManipulationCatalogEntry[] = [
     { objectId: bagId, normalizedShortName: 'bag', catalogScope: 'room' },
@@ -17,6 +21,18 @@ const catalog: ObjectManipulationCatalogEntry[] = [
     { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room' },
     { objectId: mopId, normalizedShortName: 'mop', catalogScope: 'room' },
 ]
+
+const roomGraph = testPositionGraph(roomId, {
+    nodes: [
+        { tag: 'Object' as const, universalKey: bagId },
+        { tag: 'Object' as const, universalKey: broomId },
+        { tag: 'Object' as const, universalKey: mopId },
+    ],
+})
+const characterGraph = testPositionGraph(characterId, {
+    nodes: [{ tag: 'Object' as const, universalKey: satchelId }],
+})
+const sandboxState = buildSandboxState([roomGraph, characterGraph])
 
 describe('selectMembershipFromPool', () => {
     it('illegal-if-wrong drop bag resolves held satchel', () => {
@@ -44,6 +60,9 @@ describe('selectMembershipFromPool', () => {
             spanPools: [pool],
             verbClass: 'release',
             catalog,
+            sandboxState,
+            roomId,
+            actorCharacterId: characterId,
         })).toEqual({
             type: 'resolved',
             objectId: satchelId,
@@ -78,6 +97,9 @@ describe('selectMembershipFromPool', () => {
             spanPools: [pool],
             verbClass: 'acquire',
             catalog,
+            sandboxState,
+            roomId,
+            actorCharacterId: characterId,
         })).toEqual({
             type: 'consult',
             alternatives: [
@@ -113,6 +135,9 @@ describe('selectMembershipFromPool', () => {
             spanPools: [pool],
             verbClass: 'acquire',
             catalog,
+            sandboxState,
+            roomId,
+            actorCharacterId: characterId,
         })).toEqual({
             type: 'abstain',
             reason: objectManipulationErrorMessages.noMatch,

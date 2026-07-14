@@ -39,15 +39,22 @@ const touchingEdge: StandardExitEdgeData = {
 }
 
 const graphWithTouchingEdge = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [touchingEdge] })
+const characterGraphWithTouchingEdge = testPositionGraphFromEnvelope(characterId, { nodes: [], edges: [touchingEdge] })
 const emptyRoomGraph = testPositionGraph(roomId)
 const emptyCharacterGraph = testPositionGraph(characterId)
+
+/** Room and character graph fetches are now both issued (Slice 4b) before selection runs; respond by hostId. */
+const hostAwareGetPositionGraph = (overrides: Record<string, unknown> = {}) =>
+    jest.fn().mockImplementation(async (hostId: string) => (
+        overrides[hostId] ?? (hostId === characterId ? emptyCharacterGraph : emptyRoomGraph)
+    ))
 
 describe('enrichObjectManipulation', () => {
     it('returns grounded takeHold without Bedrock on zero-hop eligible path', async () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await enrichObjectManipulation(
             {
@@ -55,6 +62,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: catalog,
             },
             0.92,
@@ -79,7 +88,7 @@ describe('enrichObjectManipulation', () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyCharacterGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await enrichObjectManipulation(
             {
@@ -88,6 +97,7 @@ describe('enrichObjectManipulation', () => {
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
                 characterId,
+                hostRoomId: roomId,
                 heldInventoryCatalog: catalog,
             },
             0.91,
@@ -155,7 +165,7 @@ describe('enrichObjectManipulation', () => {
     it('blocks takeHold when object is multi-present', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId, 'ROOM#Hall'])
-        const getPositionGraph = jest.fn()
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await enrichObjectManipulation(
             {
@@ -163,6 +173,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -176,7 +188,9 @@ describe('enrichObjectManipulation', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.complexMultiPresent,
         })
-        expect(getPositionGraph).not.toHaveBeenCalled()
+        // multiPresent is decided post-selection (containers count) --- the selector's own
+        // room/character graph pre-fetch (Slice 4b) still runs beforehand, so getPositionGraph
+        // is no longer expected to stay uncalled here.
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
@@ -423,7 +437,7 @@ describe('enrichObjectManipulation', () => {
             body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(graphWithTouchingEdge)
+        const getPositionGraph = hostAwareGetPositionGraph({ [roomId]: graphWithTouchingEdge })
 
         const result = await enrichObjectManipulation(
             {
@@ -431,6 +445,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: catalog,
             },
             0.9,
@@ -453,7 +469,7 @@ describe('enrichObjectManipulation', () => {
             body: '{"disposition":"atomic","operationKind":"drop"}',
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue(graphWithTouchingEdge)
+        const getPositionGraph = hostAwareGetPositionGraph({ [characterId]: characterGraphWithTouchingEdge })
 
         const result = await enrichObjectManipulation(
             {
@@ -462,6 +478,7 @@ describe('enrichObjectManipulation', () => {
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
                 characterId,
+                hostRoomId: roomId,
                 heldInventoryCatalog: catalog,
             },
             0.85,
@@ -486,7 +503,7 @@ describe('enrichObjectManipulation', () => {
             body: 'not json',
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(graphWithTouchingEdge)
+        const getPositionGraph = hostAwareGetPositionGraph({ [roomId]: graphWithTouchingEdge })
 
         const result = await enrichObjectManipulation(
             {
@@ -494,6 +511,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: catalog,
             },
             0.85,
@@ -535,7 +554,7 @@ describe('enrichObjectManipulation', () => {
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await enrichObjectManipulation(
             {
@@ -543,6 +562,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'pick up the sweeping tool',
                 rawObjectSpans: ['sweeping tool'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: paraphraseCatalog,
             },
             0.88,
@@ -614,7 +635,7 @@ describe('enrichObjectManipulation', () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await enrichObjectManipulation(
             {
@@ -622,6 +643,8 @@ describe('enrichObjectManipulation', () => {
                 command: 'take broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: catalog,
             },
             0.92,
