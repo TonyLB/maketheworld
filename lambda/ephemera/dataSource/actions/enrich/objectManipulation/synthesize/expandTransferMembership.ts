@@ -5,6 +5,15 @@ import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
 import type { DissolveRelationStep, TransferMembershipStep } from '../parsePlanStep'
 import { boundaryEdgeOutcomes, computeCarryClosure } from './interactionUnderTransfer'
 
+/**
+ * `error` is hard-terminal and `defer` today only ever escalates to an LLM
+ * validator (BD-10) --- neither outcome can currently ask Identify to
+ * reconsider its candidate given what Expansion found (e.g. "widen the
+ * search to this other host"). That's a named-but-unbuilt future direction,
+ * see BD-18 (`AGENT.manipulationFrameAndRelational.planning.md`); keep this
+ * union open to a third outcome rather than overfitting call sites to just
+ * these two during the Pipeline A -> B migration.
+ */
 export type ExpandTransferMembershipResult =
     | { verdict: 'complete'; dissolveSteps: DissolveRelationStep[]; transferStep: TransferMembershipStep }
     | { verdict: 'defer'; decidable: boolean; reason: string }

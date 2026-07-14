@@ -191,6 +191,72 @@ describe('selectRelationalFromPools', () => {
         })
     })
 
+    it('resolves a dissolveRelation against an existing Custom edge via the sandbox-mediated dry run', () => {
+        const graphWithCustomEdge = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: broomId },
+                { tag: 'Object' as const, universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'wedged against' }],
+        })
+
+        const result = selectRelationalFromPools({
+            subjectPool: subjectPool([
+                {
+                    id: broomId,
+                    label: 'broom',
+                    jointRelevance: 1,
+                    sourceTags: ['exact'],
+                    locus: { kind: 'room' },
+                },
+            ]),
+            targetPool: targetPoolExact,
+            operationKind: 'dissolveRelation',
+            relation: { type: 'custom', kind: 'Custom', relationLabel: 'wedged against' },
+            catalog,
+            dryRunContext: { positionGraph: graphWithCustomEdge },
+        })
+
+        expect(result).toEqual({
+            type: 'resolved',
+            subjectId: broomId,
+            targetId: tableId,
+            operationKind: 'dissolveRelation',
+            relation: { type: 'custom', kind: 'Custom', relationLabel: 'wedged against' },
+        })
+    })
+
+    it('does not leak sandbox state mutations from dry-run probes on non-selected candidates', () => {
+        const edgesBefore = roomGraph.relationalEdges
+
+        selectRelationalFromPools({
+            subjectPool: subjectPool([
+                {
+                    id: broomId,
+                    label: 'broom',
+                    jointRelevance: T_JOINT_ABS + 0.05,
+                    marginToRunnerUp: T_JOINT_MARGIN - 0.01,
+                    sourceTags: ['lexical', 'embedding'],
+                    locus: { kind: 'room' },
+                },
+                {
+                    id: mopId,
+                    label: 'mop',
+                    jointRelevance: T_JOINT_ABS + 0.02,
+                    sourceTags: ['lexical', 'embedding'],
+                    locus: { kind: 'room' },
+                },
+            ]),
+            targetPool: targetPoolExact,
+            operationKind: 'establishRelation',
+            relation: { type: 'enum', kind: 'On' },
+            catalog,
+            dryRunContext: { positionGraph: roomGraph },
+        })
+
+        expect(roomGraph.relationalEdges).toEqual(edgesBefore)
+    })
+
     it('illegal dry-run (not on graph) -> error', () => {
         const emptyGraph = testPositionGraph(roomId, { nodes: [] })
         expect(selectRelationalFromPools({

@@ -2,6 +2,7 @@
 *.tsbuildinfo
 .cursor/
 .idea/
+.claude/settings.local.json
 .aws-sam/
 .vscode/
 *.DS_Store

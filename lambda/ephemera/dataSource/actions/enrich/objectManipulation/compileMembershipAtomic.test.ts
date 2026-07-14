@@ -4,13 +4,14 @@ import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/e
 import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import { compileMembershipAtomic } from './compileMembershipAtomic'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { agreementFailureConfidence } from './verbMembershipAgreement'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const pouchId = 'OBJECT#Pouch' as EphemeraObjectId
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
 const mopId = 'OBJECT#Mop' as EphemeraObjectId
+const trayId = 'OBJECT#Tray' as EphemeraObjectId
+const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const characterId = 'CHARACTER#Player' as EphemeraCharacterId
@@ -28,17 +29,26 @@ const touchingEdge: StandardExitEdgeData = {
 
 const graphWithTouchingEdge = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [touchingEdge] })
 const emptyRoomGraph = testPositionGraph(roomId)
+const emptyCharacterGraph = testPositionGraph(characterId)
+
+/** Room and character graph fetches are now both issued (Slice 4b) before selection runs; respond by hostId. */
+const hostAwareGetPositionGraph = (overrides: Record<string, unknown> = {}) =>
+    jest.fn().mockImplementation(async (hostId: string) => (
+        overrides[hostId] ?? (hostId === characterId ? emptyCharacterGraph : emptyRoomGraph)
+    ))
 
 describe('compileMembershipAtomic', () => {
     it('returns takeHold for room object with acquire verbClass', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await compileMembershipAtomic(
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: broomCatalog,
             },
             0.92,
@@ -55,7 +65,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns drop for held-only release paraphrase (toss the pouch)', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await compileMembershipAtomic(
             {
@@ -63,6 +73,7 @@ describe('compileMembershipAtomic', () => {
                 rawObjectSpans: ['pouch'],
                 verbClass: 'release',
                 characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: [],
                 heldInventoryCatalog: pouchCatalog,
             },
@@ -80,7 +91,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns notCarryingObject when release disagrees with room sole host', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await compileMembershipAtomic(
             {
@@ -88,6 +99,7 @@ describe('compileMembershipAtomic', () => {
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
                 characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: broomCatalog,
                 heldInventoryCatalog: [],
             },
@@ -103,7 +115,7 @@ describe('compileMembershipAtomic', () => {
 
     it('returns alreadyHoldingObject when acquire disagrees with actor character sole host', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await compileMembershipAtomic(
             {
@@ -111,6 +123,7 @@ describe('compileMembershipAtomic', () => {
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
                 characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: [],
                 heldInventoryCatalog: broomCatalog,
             },
@@ -132,6 +145,8 @@ describe('compileMembershipAtomic', () => {
                 command: 'put the broom on the table',
                 rawObjectSpans: ['broom'],
                 verbClass: 'release',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: broomCatalog,
             },
             0.9,
@@ -139,7 +154,7 @@ describe('compileMembershipAtomic', () => {
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getPositionGraph: jest.fn().mockResolvedValue(emptyRoomGraph),
+                    getPositionGraph: hostAwareGetPositionGraph(),
                 },
             }
         )
@@ -151,24 +166,21 @@ describe('compileMembershipAtomic', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('downgrades agreement failure confidence via agreementFailureConfidence helper', () => {
-        expect(agreementFailureConfidence(0.94)).toBe(0.5)
-        expect(agreementFailureConfidence(0.3)).toBe(0.3)
-    })
-
     it('invokes complexity LLM when exit edges touch object', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(graphWithTouchingEdge)
+        const getPositionGraph = hostAwareGetPositionGraph({ [roomId]: graphWithTouchingEdge })
 
         const result = await compileMembershipAtomic(
             {
                 command: 'pick up the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: broomCatalog,
             },
             0.9,
@@ -185,11 +197,47 @@ describe('compileMembershipAtomic', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
+    it('Slice 2 (Pipeline A -> B migration): a carry-related object (glass On tray) computes the real closure, still declines as not-yet-appliable', async () => {
+        const roomGraphWithCarry = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: trayId },
+                { tag: 'Object' as const, universalKey: glassId },
+            ],
+            edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
+        })
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = hostAwareGetPositionGraph({ [roomId]: roomGraphWithCarry })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'get the tray',
+                rawObjectSpans: ['tray'],
+                verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+        })
+        // Terminates at the selector's own error verdict --- never reaches the complexity LLM fallback.
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
     it('FT-2.2 illegal-if-wrong: drop bag selects held satchel over room bag', async () => {
         const getMembershipContainers = jest.fn().mockImplementation(async (objectId: EphemeraObjectId) => (
             objectId === satchelId ? [characterId] : [roomId]
         ))
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         // Duplicate exact label "bag" at room + held loci (ambiguous exact pool).
         const result = await compileMembershipAtomic(
@@ -198,6 +246,7 @@ describe('compileMembershipAtomic', () => {
                 rawObjectSpans: ['bag'],
                 verbClass: 'release',
                 characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: bagCatalog,
                 heldInventoryCatalog: [{ objectId: satchelId, normalizedShortName: 'bag' }],
             },
@@ -215,7 +264,7 @@ describe('compileMembershipAtomic', () => {
 
     it('FT-3.1 thin-margin consult egresses as Consult with alternatives', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         // Duplicate exact "broom" labels -> multi-exact pool; selector consults (both legal takeHold).
         const result = await compileMembershipAtomic(
@@ -223,6 +272,8 @@ describe('compileMembershipAtomic', () => {
                 command: 'take the broom',
                 rawObjectSpans: ['broom'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: mopId, normalizedShortName: 'broom' },
@@ -240,19 +291,22 @@ describe('compileMembershipAtomic', () => {
                 { proposedCommand: 'take the broom', objectId: mopId },
             ],
         })
+        // Post-selection observation (containers/multiPresent) is never reached on Consult egress;
+        // the room/character graph pre-fetch (Slice 4b) runs unconditionally before selection, though.
         expect(getMembershipContainers).not.toHaveBeenCalled()
-        expect(getPositionGraph).not.toHaveBeenCalled()
     })
 
     it('FT-3.2 grey-band egresses as Abstain (not Consult, not Error)', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(emptyRoomGraph)
+        const getPositionGraph = hostAwareGetPositionGraph()
 
         const result = await compileMembershipAtomic(
             {
                 command: 'take the sword',
                 rawObjectSpans: ['sword'],
                 verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: broomId, normalizedShortName: 'broom' },
                 ],
@@ -273,6 +327,5 @@ describe('compileMembershipAtomic', () => {
             expect(result.reason).toBe(objectManipulationErrorMessages.noMatch)
         }
         expect(getMembershipContainers).not.toHaveBeenCalled()
-        expect(getPositionGraph).not.toHaveBeenCalled()
     })
 })

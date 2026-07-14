@@ -1,4 +1,4 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     T_JOINT_ABS,
@@ -7,12 +7,13 @@ import {
 } from './embeddingMatch/thresholds'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { evaluateSandboxPlan } from './sandboxPlan'
+import type { SandboxPlanStep } from './sandboxPlan'
+import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
-import {
-    validateMembershipPlanDryRun,
-    type DryRunOutcome,
-    type ValidateMembershipPlanContext,
-} from './validatePlanDryRun'
+import { expandTransferMembership } from './synthesize/expandTransferMembership'
+import { relationalStepToSandboxPlanStep } from './synthesize/toSandboxPlanStep'
+import type { DryRunOutcome } from './validatePlanDryRun'
 
 export type ScoredPlanCandidate<T> = {
     candidate: T
@@ -149,9 +150,115 @@ export type SelectIdentityPlanTupleResult = SelectPlanTupleResult<IdentityPlanCa
 
 export type SelectIdentityPlanTupleInput = {
     candidates: readonly IdentityPlanCandidate[]
-    dryRunContext?: ValidateMembershipPlanContext
+    /** Live KR state (room + acting character's own inventory), for the sandbox-mediated dry run. */
+    sandboxState?: SandboxState
+    roomId?: EphemeraRoomId
+    actorCharacterId?: EphemeraCharacterId
     /** Used to build Consult proposedCommand strings. */
     commandSpan?: string
+}
+
+/**
+ * Sandbox-mediated membership dry run (Slice 4b, Expansion wired in Slice 2 of
+ * the Pipeline A -> B migration). Invokes `expandTransferMembership` (Synthesize's
+ * Expansion sub-role) to compute the real carry-closed transfer set + any
+ * required dissolve steps, instead of validating a naive single-object set ---
+ * replacing BD-17's interim blanket rejection of any carry-classified boundary
+ * edge with a real, KR-grounded computation. Grounding is a no-op here: Identify
+ * already resolved this candidate to a concrete `objectId`, so the
+ * `TransferMembershipStep` is built directly rather than via `groundChange`.
+ *
+ * Even once Expansion confirms a multi-object transfer is legal
+ * (`evaluateSandboxPlan` --- the same shared legality authority every other
+ * candidate goes through), this compiler still cannot *apply* it: it never
+ * touches the kernel directly, only the later bus/execute path does (Pipeline
+ * A -> B migration Slice 3, not yet built). So a legal multi-object result
+ * still declines here, but with `multiObjectTransferNotYetSupported` --- a
+ * distinct, more accurate message than BD-17's `incompleteTransferSet`, since
+ * the candidate is no longer incomplete, just not yet appliable.
+ */
+const sandboxMembershipDryRun = (
+    candidate: IdentityPlanCandidate,
+    state: SandboxState,
+    roomId: EphemeraRoomId | undefined,
+    actorCharacterId: EphemeraCharacterId | undefined
+): DryRunOutcome => {
+    const { locus, objectId } = candidate.identity
+
+    if (locus.kind !== 'room' && locus.kind !== 'heldByActor') {
+        // heldByOtherCharacter / withinObject: not closed-world atomic in v1 --- unchanged from
+        // today; the sandbox has no way to check another character's inventory graph anyway.
+        return {
+            verdict: 'defer',
+            decidable: false,
+            reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
+        }
+    }
+
+    const sourceHostId = locus.kind === 'room' ? roomId : actorCharacterId
+    const destinationHostId = locus.kind === 'room' ? actorCharacterId : roomId
+    if (sourceHostId === undefined || destinationHostId === undefined) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.noMembershipHost,
+        }
+    }
+
+    const expandResult = expandTransferMembership(
+        { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId: sourceHostId, toHostId: destinationHostId },
+        (hostId) => state.get(hostId)
+    )
+
+    if (expandResult.verdict === 'error') {
+        return { verdict: 'illegal', decidable: true, reason: expandResult.reason }
+    }
+    if (expandResult.verdict === 'defer') {
+        return { verdict: 'defer', decidable: expandResult.decidable, reason: expandResult.reason }
+    }
+
+    // expandResult.verdict === 'complete'. Dissolve steps are purely Expansion-derived (no
+    // pre-existing proposer candidate to preserve), so convert them via the standard converter.
+    // The transferMembership step keeps the *real* candidate (preserving its stated
+    // operationKind, which the sandbox's own legality check compares against `context`'s
+    // direction to catch e.g. "drop" claimed on a room-locus object) --- only the transferSet
+    // widens to Expansion's carry-closed result.
+    const dissolveConversions = expandResult.dissolveSteps.map(relationalStepToSandboxPlanStep)
+    const conversionFailure = dissolveConversions.find((result) => !result.ok)
+    if (conversionFailure && !conversionFailure.ok) {
+        return { verdict: 'illegal', decidable: true, reason: conversionFailure.reason }
+    }
+
+    const planSteps: SandboxPlanStep[] = [
+        ...dissolveConversions.flatMap((result) => (result.ok ? [result.step] : [])),
+        {
+            kind: 'transferMembership',
+            candidate,
+            transferSet: expandResult.transferStep.objectIds,
+            context: { sourceHostId, destinationHostId },
+        },
+    ]
+
+    const outcome = evaluateSandboxPlan(state, planSteps)
+
+    if (outcome.verdict !== 'legal') {
+        return { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
+    }
+
+    // A dissolve-only closure (no carry) needs no apply-layer changes at all --- the moving
+    // object's own removal already auto-strips the dissolved edge (see Pipeline A -> B migration
+    // Slice 1). Only an actual carry (the transfer set growing beyond the single object) exceeds
+    // what today's single-object apply path can execute.
+    const needsMultiObjectApply = expandResult.transferStep.objectIds.size > 1
+    if (needsMultiObjectApply) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+        }
+    }
+
+    return { verdict: 'legal', decidable: true }
 }
 
 /**
@@ -160,11 +267,11 @@ export type SelectIdentityPlanTupleInput = {
 export function selectIdentityPlanTuple(
     input: SelectIdentityPlanTupleInput
 ): SelectIdentityPlanTupleResult {
-    const { candidates, dryRunContext = {}, commandSpan = 'object' } = input
+    const { candidates, sandboxState = new Map(), roomId, actorCharacterId, commandSpan = 'object' } = input
     return selectPlanTuple({
         candidates,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: (candidate) => validateMembershipPlanDryRun(candidate, dryRunContext),
+        dryRun: (candidate) => sandboxMembershipDryRun(candidate, sandboxState, roomId, actorCharacterId),
         toConsultAlternative: (candidate) =>
             membershipConsultAlternative(candidate, commandSpan),
     })

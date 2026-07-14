@@ -1,7 +1,5 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
@@ -11,9 +9,6 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const otherRoomId = 'ROOM#Hall' as EphemeraRoomId
-const tableId = 'OBJECT#Table' as EphemeraObjectId
-
-const characterId = 'CHARACTER#Player' as EphemeraCharacterId
 
 describe('evaluateComplexityPreGates', () => {
     it('returns error when object has no membership hosts', () => {
@@ -30,50 +25,11 @@ describe('evaluateComplexityPreGates', () => {
         })).toEqual({ type: 'complex', complexityClass: 'multiPresent' })
     })
 
-    it('returns atomic takeHold for sole host with no touching edges', () => {
+    it('returns atomic for a sole host --- locus/exit-edge legality is decided during selection now (Slice 4b), not here', () => {
         expect(evaluateComplexityPreGates({
             objectId: broomId,
             containers: [roomId],
-            positionGraph: testPositionGraph(roomId, {
-                nodes: [{ tag: 'Object', universalKey: broomId }],
-            }),
-        })).toEqual({ type: 'atomic', operationKind: 'takeHold' })
-    })
-
-    it('returns atomic drop for sole actor character host with no touching edges', () => {
-        expect(evaluateComplexityPreGates({
-            objectId: broomId,
-            containers: [characterId],
-            positionGraph: testPositionGraph(characterId, {
-                nodes: [{ tag: 'Object', universalKey: broomId }],
-            }),
-            actorCharacterId: characterId,
-        })).toEqual({ type: 'atomic', operationKind: 'drop' })
-    })
-
-    it('defers when sole character host is not the actor', () => {
-        expect(evaluateComplexityPreGates({
-            objectId: broomId,
-            containers: ['CHARACTER#Other' as EphemeraCharacterId],
-            positionGraph: testPositionGraph('CHARACTER#Other' as EphemeraCharacterId),
-            actorCharacterId: characterId,
-        })).toEqual({ type: 'deferToComplexityLlm' })
-    })
-
-    it('defers to complexity LLM when exit edges touch the object', () => {
-        const edge: StandardExitEdgeData = {
-            tag: 'Exit',
-            uuid: 'edge-1',
-            from: broomId,
-            to: tableId,
-            payload: {},
-        }
-
-        expect(evaluateComplexityPreGates({
-            objectId: broomId,
-            containers: [roomId],
-            positionGraph: testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] }),
-        })).toEqual({ type: 'deferToComplexityLlm' })
+        })).toEqual({ type: 'atomic' })
     })
 })
 
@@ -88,9 +44,7 @@ describe('preGateOutcomeToTerminalError', () => {
             .toBe(objectManipulationErrorMessages.complexMultiPresent)
     })
 
-    it('returns null for atomic and defer outcomes', () => {
-        expect(preGateOutcomeToTerminalError({ type: 'atomic', operationKind: 'takeHold' })).toBeNull()
-        expect(preGateOutcomeToTerminalError({ type: 'atomic', operationKind: 'drop' })).toBeNull()
-        expect(preGateOutcomeToTerminalError({ type: 'deferToComplexityLlm' })).toBeNull()
+    it('returns null for atomic', () => {
+        expect(preGateOutcomeToTerminalError({ type: 'atomic' })).toBeNull()
     })
 })

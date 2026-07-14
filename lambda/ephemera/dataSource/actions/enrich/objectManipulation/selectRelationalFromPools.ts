@@ -1,5 +1,7 @@
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import type { RelationalOperationKind } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { existencePresenceGuardForIdentity } from './existencePresenceGuard'
@@ -7,15 +9,14 @@ import type { RelationalIdentityPlanCandidate } from './identityPlanCandidate'
 import { proposeRelationalTuples } from './proposeRelationalTuples'
 import type { NormalizedRelation } from './relationKind'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { evaluateSandboxPlan } from './sandboxPlan'
+import { buildSandboxState } from './sandboxState'
 import {
     selectPlanTuple,
     type SelectPlanTupleResult,
 } from './selectIdentityPlanTuple'
 import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
-import {
-    validateRelationalPlanDryRun,
-    type ValidateRelationalPlanContext,
-} from './validatePlanDryRun'
+import type { DryRunOutcome, ValidateRelationalPlanContext } from './validatePlanDryRun'
 
 export type SelectRelationalFromPoolsResult =
     | {
@@ -93,12 +94,44 @@ export function selectRelationalFromPools(
     const selection = selectPlanTuple({
         candidates: tuples,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: (candidate) => validateRelationalPlanDryRun(candidate, dryRunContext),
+        dryRun: (candidate) => sandboxRelationalDryRun(candidate, dryRunContext.positionGraph),
         toConsultAlternative: (candidate) =>
             relationalConsultAlternative(candidate, phrase),
     })
 
     return mapSelection(selection, catalog)
+}
+
+/**
+ * Production dry-run via the sandbox (`evaluateSandboxPlan`/`applyRelationalStep`),
+ * promoting the pattern `sandboxSelectorReadiness.test.ts` proved out --- the
+ * relational path is a pure refactor here: exactly one host graph is fetched
+ * by this function's caller (`compileRelational.ts`), and it's exactly the
+ * one `applyRelationalStep` needs (establishRelation/dissolveRelation are
+ * structurally single-room operations, BD-6). Discards `outcome.state`
+ * deliberately --- this is a per-candidate legality probe during selection,
+ * not a commit; only the resolved candidate's effect should ever persist,
+ * and that persistence happens later, through the real kernel path, not here.
+ */
+const sandboxRelationalDryRun = (
+    candidate: RelationalIdentityPlanCandidate,
+    positionGraph: EphemeraPositionGraph
+): DryRunOutcome => {
+    const { hostId } = positionGraph
+    if (!isEphemeraRoomId(hostId)) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.notOnHostGraph,
+        }
+    }
+
+    const state = buildSandboxState([positionGraph])
+    const outcome = evaluateSandboxPlan(state, [{ kind: 'relational', candidate, hostId }])
+
+    return outcome.verdict === 'legal'
+        ? { verdict: 'legal', decidable: true }
+        : { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
 }
 
 function mapSelection(

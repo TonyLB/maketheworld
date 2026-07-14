@@ -1,24 +1,27 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
-
 import { complexErrorMessage } from './complexityClasses'
-import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
+/**
+ * Narrowed (Slice 5, 2026-07-14): only checks what the sandbox-mediated
+ * membership selector (Slice 4b) doesn't --- `containers.length` is a
+ * KR-state property orthogonal to any single candidate's locus, so it can't
+ * be decided during selection at all. The locus/exit-edge legality this
+ * function used to re-derive post-selection is now decided correctly,
+ * earlier, by `selectIdentityPlanTuple`'s own sandbox-mediated dry run
+ * (real graph access, no longer an empty context) --- re-checking it here
+ * was the same `objectTouchesExitEdgeOnGraph` check running twice.
+ */
 export type ComplexityPreGateOutcome =
     | { type: 'error'; reason: 'noMembershipHost' }
     | { type: 'complex'; complexityClass: 'multiPresent' }
-    | { type: 'atomic'; operationKind: 'takeHold' | 'drop' }
-    | { type: 'deferToComplexityLlm' }
+    | { type: 'atomic' }
 
 export function evaluateComplexityPreGates(input: {
     objectId: EphemeraObjectId
     containers: readonly EphemeraMembershipHostId[]
-    positionGraph?: EphemeraPositionGraph
-    actorCharacterId?: EphemeraCharacterId
 }): ComplexityPreGateOutcome {
     if (input.containers.length === 0) {
         return { type: 'error', reason: 'noMembershipHost' }
@@ -26,24 +29,7 @@ export function evaluateComplexityPreGates(input: {
     if (input.containers.length > 1) {
         return { type: 'complex', complexityClass: 'multiPresent' }
     }
-    if (
-        input.positionGraph !== undefined
-        && objectTouchesExitEdgeOnGraph(input.positionGraph, input.objectId)
-    ) {
-        return { type: 'deferToComplexityLlm' }
-    }
-    const soleHost = input.containers[0]
-    if (isEphemeraRoomId(soleHost)) {
-        return { type: 'atomic', operationKind: 'takeHold' }
-    }
-    if (
-        input.actorCharacterId !== undefined
-        && isEphemeraCharacterId(soleHost)
-        && soleHost === input.actorCharacterId
-    ) {
-        return { type: 'atomic', operationKind: 'drop' }
-    }
-    return { type: 'deferToComplexityLlm' }
+    return { type: 'atomic' }
 }
 
 export function preGateOutcomeToTerminalError(outcome: ComplexityPreGateOutcome): string | null {

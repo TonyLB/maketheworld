@@ -1,5 +1,6 @@
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
+import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
@@ -23,6 +24,7 @@ import {
     observeMembershipForObject,
     type ObjectManipulationPositionsReadDeps,
 } from './membershipObservation'
+import { buildSandboxState } from './sandboxState'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
 
 export type CompileMembershipAtomicDeps = {
@@ -61,12 +63,24 @@ export async function compileMembershipAtomic(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    // FT-2.2: propose-N + FT-5 selector (locus legality). Exit-edge defer still uses
-    // post-select observation + complexity LLM until FT-3 sandbox retirement.
+    // Slice 4b: sandbox-mediated selector (locus legality + exit-edge + boundary-edge
+    // completeness, all decided here now, with real graph access --- not post-select).
+    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
+    const [roomGraph, characterGraph] = await Promise.all([
+        frame.hostRoomId !== undefined ? positionsReadDeps.getPositionGraph(frame.hostRoomId) : undefined,
+        frame.characterId !== undefined ? positionsReadDeps.getPositionGraph(frame.characterId) : undefined,
+    ])
+    const sandboxState = buildSandboxState(
+        [roomGraph, characterGraph].filter((graph): graph is EphemeraPositionGraph => graph !== undefined)
+    )
+
     const selection = selectMembershipFromPool({
         spanPools: identityResult.spanPools,
         verbClass: frame.verbClass,
         catalog: identityCatalog,
+        sandboxState,
+        roomId: frame.hostRoomId,
+        actorCharacterId: frame.characterId,
         commandSpan: frame.rawObjectSpans[0],
     })
 
@@ -94,13 +108,10 @@ export async function compileMembershipAtomic(
     }
 
     const objectId = selection.objectId
-    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
     const observation = await observeMembershipForObject(objectId, positionsReadDeps)
     const preGateOutcome = evaluateComplexityPreGates({
         objectId,
         containers: observation.containers,
-        positionGraph: observation.positionGraph,
-        actorCharacterId: frame.characterId,
     })
 
     const preGateError = preGateOutcomeToTerminalError(preGateOutcome)
@@ -109,8 +120,8 @@ export async function compileMembershipAtomic(
     }
 
     if (selection.type === 'resolved' && preGateOutcome.type === 'atomic') {
-        // Selector already chose operationKind via locus legality; skip reject-only
-        // verbMembershipAgreement (FT-2.2 illegal-if-wrong / "drop bag").
+        // Selector already decided locus legality + exit-edge + boundary-edge completeness
+        // (Slice 4b, sandbox-mediated); pre-gates here only rule out multiPresent.
         return {
             type: 'ObjectManipulation',
             operationKind: selection.operationKind,
@@ -119,7 +130,11 @@ export async function compileMembershipAtomic(
         }
     }
 
-    // defer from selector (unmodeled locus) or exit-edge / non-atomic pre-gate
+    // defer from selector (unmodeled locus or exit-edge) or non-atomic pre-gate. Note: a
+    // multi-object transfer (Expansion-computed, real and legal, but not yet appliable --- Pipeline
+    // A -> B migration Slice 2) surfaces as an `illegal` dry-run reason, which --- with no legal or
+    // defer candidates --- already terminated as `selection.type === 'error'` above, before
+    // reaching this fallback at all.
     const invokeComplexity = deps.invokeBedrockObjectManipulationComplexityImpl
         ?? deps.invokeBedrockObjectManipulationEnrichImpl
         ?? invokeBedrockObjectManipulationEnrich

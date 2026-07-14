@@ -21,6 +21,15 @@ export type GroundingContext = {
     ) => EphemeraMembershipHostId | undefined
 }
 
+/**
+ * `ok: false` is hard-terminal today --- no caller distinguishes "genuinely
+ * unresolvable" from "Identify should be asked to reconsider with this new
+ * constraint." The latter (a Synthesize -> Identify backtrack/correction
+ * channel) is a named-but-unbuilt future direction (see
+ * `AGENT.manipulationFrameAndRelational.planning.md`, BD-18) --- don't let the
+ * Pipeline A -> B migration harden this shape in a way that forecloses adding
+ * a third outcome later.
+ */
 export type GroundReferentResult =
     | { ok: true; value: EphemeraObjectId | EphemeraCharacterId | EphemeraMembershipHostId }
     | { ok: false; reason: string }
