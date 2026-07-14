@@ -9,7 +9,8 @@ import type { MembershipDiff } from '../membership/types'
 import { EphemeraPositionGraph } from '../positionGraph'
 import { buildCharacterInventoryTransactItems } from './membership/characterInventoryTransactItems'
 import type { CharacterInventoryDiff } from './membership/characterInventoryTransactItems'
-import type { ApplyHostEffectsArgs, ApplyHostEffectsResult, HostEffect } from './types'
+import { buildHostRelationalEdgeCarryTransactItems } from './relational/hostRelationalEdgeCarryTransactItems'
+import type { ApplyHostEffectsArgs, ApplyHostEffectsResult, HostEffect, HostRelationalEdgeCarry } from './types'
 
 export type ApplyHostEffectsDependencies = {
     getPositionGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraPositionGraph>
@@ -78,6 +79,23 @@ const validateHostEffects = (
                     errorCode: 'HOST_EFFECT_VALIDATION_FAILED',
                     errorMessage: `Cannot add ${effect.identityId} to ${effect.hostId}: already present`,
                 }
+            }
+        }
+    }
+
+    return { ok: true }
+}
+
+const validateEdgeCarries = (
+    edgeCarries: HostRelationalEdgeCarry[],
+    touchedHostIds: Set<EphemeraMembershipHostId>
+): { ok: true } | { ok: false; errorCode: string; errorMessage: string } => {
+    for (const carry of edgeCarries) {
+        if (!touchedHostIds.has(carry.hostId)) {
+            return {
+                ok: false,
+                errorCode: 'HOST_EFFECT_VALIDATION_FAILED',
+                errorMessage: `Cannot carry edge to ${carry.hostId}: not among hosts touched by hostEffects in this call`,
             }
         }
     }
@@ -227,6 +245,7 @@ const buildTransactItemsFromHostEffects = (
 
 const computePostApplyGraphsFromEffects = (
     hostEffects: HostEffect[],
+    edgeCarries: HostRelationalEdgeCarry[],
     graphsByHost: Map<EphemeraMembershipHostId, EphemeraPositionGraph>
 ): EphemeraPositionGraph[] => {
     const workingGraphs = new Map<EphemeraMembershipHostId, EphemeraPositionGraph>()
@@ -239,6 +258,14 @@ const computePostApplyGraphsFromEffects = (
         workingGraphs.set(effect.hostId, prior.applyMembershipEffect(effect))
     }
 
+    for (const carry of edgeCarries) {
+        const prior = workingGraphs.get(carry.hostId) ?? graphsByHost.get(carry.hostId)
+        if (!prior) {
+            continue
+        }
+        workingGraphs.set(carry.hostId, prior.addRelationalEdge(carry.edge))
+    }
+
     return [...workingGraphs.values()]
 }
 
@@ -246,7 +273,7 @@ export const applyHostEffects = async (
     args: ApplyHostEffectsArgs,
     deps?: ApplyHostEffectsDependencies
 ): Promise<ApplyHostEffectsResult> => {
-    const { hostEffects } = args
+    const { hostEffects, edgeCarries = [] } = args
 
     if (hostEffects.length === 0) {
         return { ok: true, persisted: false, changed: false }
@@ -270,12 +297,20 @@ export const applyHostEffects = async (
         return validation
     }
 
-    const postApplyGraphs = computePostApplyGraphsFromEffects(hostEffects, graphsByHost)
+    const edgeCarryValidation = validateEdgeCarries(edgeCarries, new Set(hostIds))
+    if (!edgeCarryValidation.ok) {
+        return edgeCarryValidation
+    }
+
+    const postApplyGraphs = computePostApplyGraphsFromEffects(hostEffects, edgeCarries, graphsByHost)
 
     try {
         let persisted = false
         await exponentialBackoffWrapper(async () => {
-            const transactItems = buildTransactItemsFromHostEffects(hostEffects)
+            const transactItems = [
+                ...buildTransactItemsFromHostEffects(hostEffects),
+                ...buildHostRelationalEdgeCarryTransactItems(edgeCarries),
+            ]
             if (transactItems.length === 0) {
                 return
             }

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraPositionGraph, HostRelationalEdge } from '../../../positions/positionGraph'
+import type { EphemeraPositionGraph, HostRelationalEdge } from '../../../../positions/positionGraph'
 
 export type TransferEndpointRole = 'subject' | 'target'
 

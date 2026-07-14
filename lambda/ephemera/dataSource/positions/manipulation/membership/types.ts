@@ -1,12 +1,15 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeCarry } from '../types'
 
 /** Cross-host object membership apply (v1 takeHold: room -> character). */
 export type ObjectTakeHoldApplyArgs = {
     objectId: EphemeraObjectId;
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
+    /** Internal relational edges (BD-13) carried with the object to the destination host. */
+    carriedEdges?: HostRelationalEdgeCarry[];
 }
 
 /** Cross-host object membership apply (v1 drop: character -> room). */
@@ -14,6 +17,8 @@ export type ObjectDropApplyArgs = {
     objectId: EphemeraObjectId;
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
+    /** Internal relational edges (BD-13) carried with the object to the destination host. */
+    carriedEdges?: HostRelationalEdgeCarry[];
 }
 
 /** Remove object from all membership hosts (destruction / clear). */
