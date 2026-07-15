@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { boundaryEdgeOutcomes } from '../../positionGraph/interactionUnderTransfer'
+import { boundaryEdgeOutcomes } from '../../positionGraph/expandValidate/interactionUnderTransfer'
 import type { EphemeraPositionGraph } from '../../positionGraph'
 
 export type ObjectSetTransferPlan = {
