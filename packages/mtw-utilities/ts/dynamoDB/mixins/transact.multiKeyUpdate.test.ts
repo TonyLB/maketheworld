@@ -211,4 +211,161 @@ describe('withTransactions: MultiKeyUpdate', () => {
             ])
         }).rejects.toThrow('MultiKeyUpdate reducer may not remove a previously-fetched key')
     })
+
+    describe('cascade', () => {
+        it('fires the cascade with the reducer\'s actual (prior, next) output', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
+            const cascade = jest.fn().mockReturnValue([])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: {
+                    Keys: [keyOne],
+                    updateKeys: ['TestValue'],
+                    reducer: (draft) => {
+                        draft[keyOneString].TestValue = 5
+                    },
+                    cascade
+                }}
+            ])
+            expect(cascade).toHaveBeenCalledWith(
+                { [keyOneString]: { PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 } },
+                { [keyOneString]: { PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 5 } }
+            )
+        })
+
+        it('merges cascade-returned items into the same TransactItems array as the per-key items', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: {
+                    Keys: [keyOne],
+                    updateKeys: ['TestValue'],
+                    reducer: (draft) => {
+                        draft[keyOneString].TestValue = 5
+                    },
+                    cascade: () => ([
+                        { Put: { PrimaryKey: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 } as any },
+                        { ConditionCheck: {
+                            Key: { PrimaryKey: 'CascadeCheck', DataCategory: 'Cascade' },
+                            ConditionExpression: 'value = :value',
+                            ProjectionFields: ['value'],
+                            ExpressionAttributeValues: { ':value': 1 }
+                        }}
+                    ])
+                }}
+            ])
+            expect(dbMock.send).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+                { Update: {
+                    TableName: 'Ephemera',
+                    Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'MultiKey' }),
+                    UpdateExpression: 'SET TestValue = :New0',
+                    ExpressionAttributeValues: marshall({ ':New0': 5, ':Old0': 2 }),
+                    ConditionExpression: 'TestValue = :Old0'
+                }},
+                { Put: { TableName: 'Ephemera', Item: marshall({ EphemeraId: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 }) } },
+                { ConditionCheck: {
+                    TableName: 'Ephemera',
+                    Key: marshall({ EphemeraId: 'CascadeCheck', DataCategory: 'Cascade' }),
+                    ConditionExpression: '#value = :value',
+                    ExpressionAttributeNames: { '#value': 'value' },
+                    ExpressionAttributeValues: marshall({ ':value': 1 })
+                }}
+            ]})
+        })
+
+        it('still invokes the cascade when the reducer is a no-op', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 5 }])
+            const cascade = jest.fn().mockReturnValue([
+                { Put: { PrimaryKey: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 } as any }
+            ])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: {
+                    Keys: [keyOne],
+                    updateKeys: ['TestValue'],
+                    reducer: () => {},
+                    cascade
+                }}
+            ])
+            expect(cascade).toHaveBeenCalledTimes(1)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+                { ConditionCheck: {
+                    TableName: 'Ephemera',
+                    Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'MultiKey' }),
+                    ConditionExpression: 'TestValue = :Old0',
+                    ExpressionAttributeValues: marshall({ ':Old0': 5 })
+                }},
+                { Put: { TableName: 'Ephemera', Item: marshall({ EphemeraId: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 }) } }
+            ]})
+        })
+
+        it('rejects the whole transaction (no swallowing) when the send call fails, including cascade items', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
+            const dbMockWithException = {
+                send: jest.fn().mockRejectedValue(new Error('ConditionalCheckFailedException'))
+            }
+            const dbHandlerLocal = new mixinClass({
+                client: dbMockWithException as any,
+                tableName: 'Ephemera',
+                incomingKeyLabel: 'PrimaryKey',
+                internalKeyLabel: 'EphemeraId',
+                options: { getBatchSize: 3 }
+            })
+            jest.spyOn(dbHandlerLocal, 'getItems').mockImplementation(getItemsMock)
+            await expect(async () => {
+                await dbHandlerLocal.transactWrite([
+                    { MultiKeyUpdate: {
+                        Keys: [keyOne],
+                        updateKeys: ['TestValue'],
+                        reducer: (draft) => {
+                            draft[keyOneString].TestValue = 5
+                        },
+                        cascade: () => ([{ Put: { PrimaryKey: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 } as any }])
+                    }}
+                ])
+            }).rejects.toThrow('ConditionalCheckFailedException')
+        })
+
+        it('throws if a cascade-returned Update item does not supply priorFetch', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
+            await expect(async () => {
+                await dbHandler.transactWrite([
+                    { MultiKeyUpdate: {
+                        Keys: [keyOne],
+                        updateKeys: ['TestValue'],
+                        reducer: (draft) => {
+                            draft[keyOneString].TestValue = 5
+                        },
+                        cascade: () => ([
+                            { Update: {
+                                Key: { PrimaryKey: 'CascadeUpdate', DataCategory: 'Cascade' },
+                                updateKeys: ['TestValue'],
+                                updateReducer: (draft: any) => { draft.TestValue = 1 }
+                            }}
+                        ])
+                    }}
+                ])
+            }).rejects.toThrow('MultiKeyUpdate cascade\'s Update items must supply priorFetch')
+        })
+
+        it('throws if the cascade returns a nested MultiKeyUpdate item', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
+            await expect(async () => {
+                await dbHandler.transactWrite([
+                    { MultiKeyUpdate: {
+                        Keys: [keyOne],
+                        updateKeys: ['TestValue'],
+                        reducer: (draft) => {
+                            draft[keyOneString].TestValue = 5
+                        },
+                        cascade: () => ([
+                            { MultiKeyUpdate: {
+                                Keys: [keyTwo],
+                                updateKeys: ['TestValue'],
+                                reducer: () => {}
+                            }}
+                        ])
+                    }}
+                ])
+            }).rejects.toThrow('MultiKeyUpdate cascade may not return a nested MultiKeyUpdate item')
+        })
+    })
 })

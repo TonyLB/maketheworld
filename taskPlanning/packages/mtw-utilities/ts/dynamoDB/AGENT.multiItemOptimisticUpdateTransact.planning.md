@@ -1,6 +1,6 @@
 # `MultiKeyUpdate`: a Record-reduce optimistic-lock primitive for `transactWrite`
 
-**Status:** Slice 1 shipped 2026-07-14 (`MultiKeyUpdate` implemented in `transact.ts`, tests green, `AGENT.contract.md`/`AGENT.implementation.md` created under `packages/mtw-utilities/ts/dynamoDB/`). **Implementation note:** the reducer operates on `Record<string, T>` keyed by marshalled key, not a `Map` --- refined during implementation planning to avoid Immer's `enableMapSet()` requirement and a `deepEqual`-on-`Map` gap (see Design below). Next step: Slice 2 (generalized before/after cascade), not yet started.
+**Status:** Both slices shipped 2026-07-14. Slice 1: `MultiKeyUpdate` implemented in `transact.ts` (reducer operates on `Record<string, T>` keyed by marshalled key, not a `Map` --- refined during implementation planning to avoid Immer's `enableMapSet()` requirement and a `deepEqual`-on-`Map` gap). Slice 2: `MultiKeyUpdate`'s `cascade` field, generalizing `deleteCascade`'s same-transaction-merge pattern beyond its delete-only/final-state-only limits, with no second fetch round for cascade output (a decided constraint, not a gap --- see Design below). Full package suite green (23 suites / 140 tests). Next step: none required by this plan --- see the "when the task finishes" note at the bottom before archiving.
 
 See [`taskPlanning/AGENT.md`](../../../AGENT.md) first for what belongs in this file versus in durable docs, and for the **Recommended order checkboxes** convention this file follows.
 
@@ -32,7 +32,7 @@ This plan's `MultiKeyUpdate` is a **simpler, flatter special case** of that TODO
 ## Getting Started
 
 1. **Understand project foundations.** Read [`taskPlanning/AGENT.md`](../../../AGENT.md) once for the durability ladder and what belongs in a task plan versus a durable doc. This plan is unusually "foundations-only" --- no application code changes --- so the discipline of *not* pulling ephemera-specific concerns in here matters more than usual.
-2. **Read this document's Design and Open decisions sections** below before writing code. Slice 1 is shipped (no remaining gating decisions); Slice 2 has one open decision remaining (OD-2, deferred, and OD-4, decided but not yet implemented).
+2. **Read this document's Design and Open decisions sections** below before writing code. Both slices are shipped; only OD-2 (deferred, not blocking) remains in Open decisions.
 3. **Core integration points:** `packages/mtw-utilities/ts/dynamoDB/mixins/transact.ts` (the `TransactionRequest` union and the `.map(...).flat()` merge step) and `packages/mtw-utilities/ts/dynamoDB/mixins/update.ts` (`UpdateExtendedProps`, `_optimisticUpdateFactory`, `updateByReducer`, `deleteCascade`'s handling). Both files are small enough to read in full.
 4. **Review implemented precedent:** `lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts` (`:184-320`) is the closest thing to a hand-built prior art for this primitive --- read it to see the shape this is generalizing, not to copy its DynamoDB-schema-specific logic (that belongs to the ephemera plan, not this one).
 5. **Testing patterns:** this package uses **Jest** (`packages/mtw-utilities/package.json` --- `"test": "jest"`), not Vitest. Existing sibling tests to model new tests on: [`transact.test.ts`](../../../../packages/mtw-utilities/ts/dynamoDB/mixins/transact.test.ts) and [`update.test.ts`](../../../../packages/mtw-utilities/ts/dynamoDB/mixins/update.test.ts). The `ConditionalCheckFailedException`/`TransactionCanceledException` rejection-propagation test in `transact.test.ts:308-337` is a good model for how this plan's new failure-path tests should be shaped (assert the whole call rejects; no swallowing).
@@ -71,16 +71,19 @@ A cascade mechanism attached to `MultiKeyUpdate` (not a modification of `deleteC
 
 This slice is deliberately generic: it should not reference position graphs, adjacency rows, or anything ephemera-specific. Its test coverage should exercise the mechanism with a synthetic record/reducer/cascade, not real game-state shapes.
 
+**Shipped shape (2026-07-14):** `_transactionRequestItemToTransactWriteItems` was extracted from `transactWrite`'s inline `.map(...)` body (a pure, behavior-neutral refactor, verified by the full existing suite staying green before any cascade code was added) so the `MultiKeyUpdate` branch could recursively convert cascade-returned items through the exact same conversion logic used for every top-level item. **The no-second-fetch-round constraint (confirmed with the user, 2026-07-14):** since the batch-fetch that primes `Update`/`MultiKeyUpdate` items runs once, before the reducer/cascade ever execute, a cascade-returned `Update` item must supply its own `priorFetch` (throws otherwise), and a cascade may not return a nested `MultiKeyUpdate` item (throws otherwise) --- `Put`/`Delete`/`ConditionCheck`/`PrimitiveUpdate`/`SetOperation` need no fetched state and are unrestricted. This was a genuine fork (the alternative was a second fetch round for cascade-returned items lacking `priorFetch`, rejected as edging toward the full multi-layer `transactAggregateGraph` TODO this plan deliberately scoped away from).
+
+Implementation: `transact.ts`'s `cascade` field on `TransactionRequestMultiKeyUpdate`, the cascade-invocation block inside the `MultiKeyUpdate` branch of `_transactionRequestItemToTransactWriteItems`. Contract and code-map updated in [`AGENT.contract.md`](../../../../packages/mtw-utilities/ts/dynamoDB/AGENT.contract.md) and [`AGENT.implementation.md`](../../../../packages/mtw-utilities/ts/dynamoDB/AGENT.implementation.md). Tests: the `describe('cascade', ...)` block in [`transact.multiKeyUpdate.test.ts`](../../../../packages/mtw-utilities/ts/dynamoDB/mixins/transact.multiKeyUpdate.test.ts).
+
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions being made in order to implement the next slice(s). When a decision ships, record it in this package's own contract/implementation docs and remove the row here.
 
-**Slice 1 shipped (2026-07-14):** OD-1 and OD-3 removed below --- both fully decided and now normative text in [`packages/mtw-utilities/ts/dynamoDB/AGENT.contract.md`](../../../../packages/mtw-utilities/ts/dynamoDB/AGENT.contract.md).
+**Both slices shipped (2026-07-14):** OD-1, OD-3, and OD-4 removed below --- all fully decided and now normative text in [`packages/mtw-utilities/ts/dynamoDB/AGENT.contract.md`](../../../../packages/mtw-utilities/ts/dynamoDB/AGENT.contract.md). Only OD-2 remains, since it was explicitly deferred rather than resolved.
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| OD-2 | **Deferred (2026-07-14):** Slice 1 will not support removal from the set (a key present in the fetched `Record` disappearing entirely --- as opposed to `T` itself expressing "empty"/tombstone state) as a first-class `Delete` case. The first ephemera use case (position-graph rewrite) never deletes a graph row outright. Revisit only if a future consumer needs it. | Slice 1 (shipped without it) | Deferred |
-| OD-4 | **Decided (2026-07-14):** the cascade runs *after* the reducer and receives its actual output --- `(prior, next)` where `next` is the reducer's already-computed result, not run independently/in parallel. This matches `deleteCascade`'s existing precedent (`update.ts:284`, which receives `updateOutput.newState` --- the reducer's own output --- not a separately-derived value). | Slice 2 | Decided |
+| OD-2 | **Deferred (2026-07-14):** `MultiKeyUpdate` will not support removal from the set (a key present in the fetched `Record` disappearing entirely --- as opposed to `T` itself expressing "empty"/tombstone state) as a first-class `Delete` case. Neither shipped slice needed it. Revisit only if a future consumer needs it. | Both slices (shipped without it) | Deferred |
 
 ## Recommended order
 
@@ -93,23 +96,24 @@ Pending work uses `- [ ]`; completed work uses `- [X]`. Mark nested lines as you
   - [X] Wire the per-key `Update`/`ConditionCheck` outputs into the existing `.map(...).flat()` merge step (no `Delete` case --- OD-2 deferred; a reducer that removes a fetched key throws instead).
   - [X] Unit tests in a new `transact.multiKeyUpdate.test.ts`: unchanged-key -> `ConditionCheck`; changed-key -> `Update` with correct condition; multi-key mixed split (one changed, one unchanged); multi-key **both changed** (independent per-key `:New0`/`:Old0` indexing, no cross-key collision); new-record (`attribute_not_exists(DataCategory)`) path; whole-transaction rejection (no swallowing); reducer-removes-a-key throws. Confirmed no regression in existing `transact.test.ts`/`update.test.ts` suites (23 suites / 134 tests green package-wide).
   - [X] Created minimal `AGENT.contract.md`/`AGENT.implementation.md` for `packages/mtw-utilities/ts/dynamoDB/` (none existed); removed the OD-1 and OD-3 rows above (both shipped as normative contract text; OD-2 stays, marked Deferred, until a future slice picks it up).
-- [ ] Slice 2: generalized before/after cascade (OD-4 decided --- no gating decisions remain)
-  - [ ] Add the cascade callback field to `MultiKeyUpdate`'s props.
-  - [ ] Implement: cascade runs after the reducer, receiving `(prior, next)` where `next` is the reducer's actual output; returns arbitrary `TransactionRequest[]`, merged into the same transaction alongside Slice 1's own generated items.
-  - [ ] Unit tests with a synthetic cascade (no ephemera-specific shapes) covering: cascade fires with correct prior/next (`next` matching the reducer's real output); cascade output rides in the same atomic transaction (a forced condition failure elsewhere in the transaction must also prevent the cascade's items from committing); a no-op reducer (nothing changed) still allows a cascade to run if the consumer wants it.
-  - [ ] Update this package's contract/implementation docs; remove OD-4 above once shipped.
-- [X] Full package regression: `cd packages/mtw-utilities && npm run test` (all suites green, not just the new ones) --- 23 suites, 134 tests, all passing (2026-07-14).
-- [ ] Hand off to the ephemera plan: add a pointer (not a duplicate) from [`taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) noting this primitive has shipped and is available for the sandbox-rerun-as-reducer slice; do **not** start that ephemera-side slice from this document.
-- [ ] Archive/delete this plan per [taskPlanning/AGENT.md](../../../AGENT.md#when-the-task-finishes) once both slices have shipped and durable docs have absorbed the lasting content.
+- [X] Slice 2: generalized before/after cascade (OD-4 decided --- no gating decisions remain)
+  - [X] Extracted `_transactionRequestItemToTransactWriteItems` from `transactWrite`'s inline `.map(...)` body --- pure refactor, verified behavior-neutral (existing suites green with zero test changes) before any cascade code was added.
+  - [X] Added the `cascade` callback field to `MultiKeyUpdate`'s props.
+  - [X] Implemented: cascade runs unconditionally after the reducer (even on a no-op), receiving `(prior, next)` where `next` is the reducer's actual output; returns arbitrary `TransactionRequest[]`, converted recursively via `_transactionRequestItemToTransactWriteItems` and merged into the same transaction alongside Slice 1's own generated items. Guards: a cascade-returned `Update` without `priorFetch` throws; a cascade-returned `MultiKeyUpdate` throws (no second fetch round --- confirmed with the user, 2026-07-14).
+  - [X] Unit tests (synthetic, no ephemera-specific shapes) in a new `describe('cascade', ...)` block: cascade fires with correct prior/next (`next` matching the reducer's real output); cascade output (`Put` + `ConditionCheck`) rides in the same atomic transaction alongside per-key items; a no-op reducer still invokes the cascade; whole-transaction rejection propagates including cascade items; both guards (`Update` without `priorFetch`, nested `MultiKeyUpdate`) throw with clear messages. Confirmed no regression in existing suites (23 suites / 140 tests green package-wide).
+  - [X] Updated `AGENT.contract.md`/`AGENT.implementation.md` with the cascade's normative shape and code-map entry; removed the OD-4 row above once shipped.
+- [X] Full package regression: `cd packages/mtw-utilities && npm run test` (all suites green, not just the new ones) --- 23 suites, 140 tests, all passing (2026-07-14).
+- [X] Hand off to the ephemera plan: added a pointer in [`taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) noting `MultiKeyUpdate` (including its `cascade`) has shipped and is available for the sandbox-rerun-as-reducer slice; did **not** start that ephemera-side slice from this document.
+- [ ] Archive/delete this plan per [taskPlanning/AGENT.md](../../../AGENT.md#when-the-task-finishes) once durable docs have absorbed the lasting content --- both slices are now done, so this plan is a candidate for archival; **flagged for the user to confirm**, not deleted unilaterally.
 
 ## Progress
 
 | Slice | Status |
 | --- | --- |
 | Slice 1: core `MultiKeyUpdate` (OD-2 deferred; OD-1/OD-3 shipped and removed) | Done (2026-07-14) |
-| Slice 2: generalized before/after cascade (OD-4 decided) | Not started |
-| Full package regression | Done (2026-07-14) --- 23 suites / 134 tests |
-| Ephemera-plan handoff pointer | Not started |
+| Slice 2: generalized before/after cascade (OD-4 shipped and removed) | Done (2026-07-14) |
+| Full package regression | Done (2026-07-14) --- 23 suites / 140 tests |
+| Ephemera-plan handoff pointer | Done (2026-07-14) --- see the Slice 3 pointer added to the ephemera migration plan |
 
 ## Verification
 
