@@ -29,6 +29,8 @@ jest.mock('./resolveRelationalPresentationLabels', () => ({
 
 const CHARACTER = 'CHARACTER#Alice' as const
 const OBJECT = 'OBJECT#Broom' as const
+const TRAY = 'OBJECT#Tray' as const
+const GLASS = 'OBJECT#Glass' as const
 const ROOM = 'ROOM#Cafe' as const
 const ANCHOR_TIME = 1_700_000_000_000
 
@@ -37,6 +39,7 @@ const takeHoldIntent = (overrides: Partial<ObjectManipulationIntentLeg> = {}): O
     operation: 'takeHold',
     characterId: CHARACTER,
     objectId: OBJECT,
+    objectIds: [OBJECT],
     roomId: ROOM,
     ...overrides,
 })
@@ -55,6 +58,7 @@ const dropIntent = (overrides: Partial<ObjectManipulationIntentLeg> = {}): Objec
     operation: 'drop',
     characterId: CHARACTER,
     objectId: OBJECT,
+    objectIds: [OBJECT],
     roomId: ROOM,
     ...overrides,
 })
@@ -135,6 +139,7 @@ describe('objectManipulationPresentationFanIn', () => {
                     characterId: CHARACTER,
                     objectId: OBJECT,
                     roomId: ROOM,
+                    carriedObjectCount: 1,
                     beatAnchorTime: ANCHOR_TIME,
                 })
             })
@@ -147,6 +152,7 @@ describe('objectManipulationPresentationFanIn', () => {
                     characterId: CHARACTER,
                     objectId: OBJECT,
                     roomId: ROOM,
+                    carriedObjectCount: 1,
                     beatAnchorTime: ANCHOR_TIME,
                 })
             })
@@ -175,6 +181,7 @@ describe('objectManipulationPresentationFanIn', () => {
                     characterId: CHARACTER,
                     objectId: OBJECT,
                     roomId: ROOM,
+                    carriedObjectCount: 1,
                     beatAnchorTime: ANCHOR_TIME,
                 })
             })
@@ -187,6 +194,7 @@ describe('objectManipulationPresentationFanIn', () => {
                     characterId: CHARACTER,
                     objectId: OBJECT,
                     roomId: ROOM,
+                    carriedObjectCount: 1,
                     beatAnchorTime: ANCHOR_TIME,
                 })
             })
@@ -195,6 +203,33 @@ describe('objectManipulationPresentationFanIn', () => {
                 expect(buildObjectManipulationEmissionPlan([
                     dropFact({ to: null }),
                 ], { deferralExecution: true })).toBeNull()
+            })
+        })
+
+        describe('carry (BD-13)', () => {
+            it("builds a plan (with carriedObjectCount > 1) for the primary object's cluster", () => {
+                const plan = buildObjectManipulationEmissionPlan([
+                    takeHoldIntent({ objectId: TRAY, objectIds: [TRAY, GLASS] }),
+                    takeHoldFact({ objectId: TRAY }),
+                ], { deferralExecution: false })
+
+                expect(plan).toEqual({
+                    operation: 'takeHold',
+                    characterId: CHARACTER,
+                    objectId: TRAY,
+                    roomId: ROOM,
+                    carriedObjectCount: 2,
+                    beatAnchorTime: ANCHOR_TIME,
+                })
+            })
+
+            it("returns null for a non-primary object's cluster, even with a matched intent+fact pair", () => {
+                const plan = buildObjectManipulationEmissionPlan([
+                    takeHoldIntent({ objectId: GLASS, objectIds: [TRAY, GLASS] }),
+                    takeHoldFact({ objectId: GLASS }),
+                ], { deferralExecution: false })
+
+                expect(plan).toBeNull()
             })
         })
     })
@@ -322,6 +357,27 @@ describe('objectManipulationPresentationFanIn', () => {
                 expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
                     message: ['Alice picks up broom'],
                     createdTime: ANCHOR_TIME,
+                })
+            })
+
+            it("BD-13 carry: publishes exactly one WorldMessage (with the carry suffix), not one per object, even after settleDeferrals", async () => {
+                const store = createObjectManipulationPresentationFanInStore()
+                const ctx = makeCtx()
+                store.setHandlerContext(ctx)
+
+                // One intent leg per object (as the adapter now fans out), each carrying the full set.
+                await store.route(takeHoldIntent({ objectId: TRAY, objectIds: [TRAY, GLASS] }))
+                await store.route(takeHoldIntent({ objectId: GLASS, objectIds: [TRAY, GLASS] }))
+                // One fact leg per object (as the kernel already streams).
+                await store.route(takeHoldFact({ objectId: TRAY }))
+                await store.route(takeHoldFact({ objectId: GLASS }))
+
+                // Both per-object clusters complete (intent+fact matched), but only the primary's fires.
+                expect(store.getOpenPartialCount()).toBe(0)
+                await store.settleDeferrals()
+                expect(worldPublishes(ctx.messageBus)).toHaveLength(1)
+                expect(worldPublishes(ctx.messageBus)[0]).toMatchObject({
+                    message: ['Alice picks up broom and everything on it'],
                 })
             })
         })

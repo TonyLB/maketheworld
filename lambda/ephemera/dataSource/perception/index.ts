@@ -65,9 +65,11 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
                 continue
             }
 
-            const objectManipulationLeg = await toObjectManipulationPresentationLeg(event)
-            if (objectManipulationLeg) {
-                await objectManipulationPresentationFanInStore.route(objectManipulationLeg)
+            const objectManipulationLegs = await toObjectManipulationPresentationLeg(event)
+            if (objectManipulationLegs.length > 0) {
+                for (const leg of objectManipulationLegs) {
+                    await objectManipulationPresentationFanInStore.route(leg)
+                }
                 continue
             }
 

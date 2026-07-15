@@ -27,6 +27,8 @@ export type ObjectManipulationIntentLeg = {
     operation: ObjectManipulationOperation
     characterId: EphemeraCharacterId
     objectId: EphemeraObjectId
+    /** The full carry-closed transfer set (BD-13) this leg's `objectId` is one member of --- size 1 for an ordinary command. `objectIds[0]` is the primary object; only its cluster publishes a message when the set has more than one member. */
+    objectIds: EphemeraObjectId[]
     roomId: EphemeraRoomId
 }
 
@@ -74,6 +76,8 @@ export type ObjectManipulationEmissionPlan = {
     beatAnchorTime: number
     characterName: string
     objectShortName: string
+    /** Size of the carry-closed transfer set (BD-13); 1 for an ordinary command. */
+    carriedObjectCount: number
 }
 
 export type ObjectRelationalEmissionPlan = {
@@ -159,6 +163,12 @@ export const buildObjectManipulationEmissionPlan = (
     let operation: ObjectManipulationOperation | undefined
 
     if (intentLeg) {
+        // Only the primary object's cluster publishes a message for a multi-object carry
+        // (BD-13) --- every other object in the set gets its own intent+fact match (same
+        // per-object cluster mechanism as an ordinary command) but must not emit its own line.
+        if (intentLeg.objectIds.length > 1 && factLeg.objectId !== intentLeg.objectIds[0]) {
+            return null
+        }
         characterId = intentLeg.characterId
         roomId = intentLeg.roomId
         operation = intentLeg.operation
@@ -186,6 +196,7 @@ export const buildObjectManipulationEmissionPlan = (
         characterId,
         objectId: factLeg.objectId,
         roomId,
+        carriedObjectCount: intentLeg?.objectIds.length ?? 1,
         beatAnchorTime: factLeg.beatAnchorTime,
     }
 }

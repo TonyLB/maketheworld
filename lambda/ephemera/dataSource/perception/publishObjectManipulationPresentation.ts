@@ -4,12 +4,17 @@ import type {
     ObjectRelationalEmissionPlan,
 } from './objectManipulationPresentationFanIn'
 
+/** Appended when the transfer set (BD-13 carry) has more than one member --- same suffix, both directions. */
+const carriedSuffix = (plan: ObjectManipulationEmissionPlan): string => (
+    plan.carriedObjectCount > 1 ? ' and everything on it' : ''
+)
+
 export const buildTakeHoldWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
-    `${plan.characterName} picks up ${plan.objectShortName}`
+    `${plan.characterName} picks up ${plan.objectShortName}${carriedSuffix(plan)}`
 )
 
 export const buildDropWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
-    `${plan.characterName} drops ${plan.objectShortName}`
+    `${plan.characterName} drops ${plan.objectShortName}${carriedSuffix(plan)}`
 )
 
 export const buildObjectManipulationWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
