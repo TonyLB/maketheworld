@@ -7,7 +7,7 @@ import type { DropSetApplyResult, ObjectSetDropApplyArgs } from './types'
 export type ApplyObjectSetDropDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-} & Pick<ApplyObjectSetTransferDependencies, 'getPositionGraph' | 'transactWrite'>
+} & Pick<ApplyObjectSetTransferDependencies, 'transactWrite'>
 
 /**
  * Object-*set*-aware drop apply --- thin directional wrapper over

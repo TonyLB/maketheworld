@@ -12,7 +12,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
 import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
 import { EphemeraPositionGraph, fromCharacterMeta, fromRoomMeta } from '../../positionGraph'
-import { computeObjectSetTransfer } from './computeObjectSetTransfer'
+import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
 import type { DropSetApplyResult, ObjectSetMembershipDiff, TakeHoldSetApplyResult } from './types'
 
 export type ApplyObjectSetTransferDirection = 'takeHold' | 'drop'
@@ -27,14 +27,10 @@ export type ApplyObjectSetTransferArgs = {
 export type ApplyObjectSetTransferDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-    getPositionGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraPositionGraph>;
     transactWrite?: typeof ephemeraDB.transactWrite;
 }
 
 type ObjectSetTransferTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
-
-const defaultGetPositionGraph = async (hostId: EphemeraMembershipHostId): Promise<EphemeraPositionGraph> =>
-    internalCache.Positions.getPositionGraph(hostId)
 
 const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
     isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'
@@ -58,13 +54,16 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * 2026-07-15) --- supersedes the `applyHostEffects` + precomputed-diff approach
  * (Slice 1) for this operation. Take-hold/drop are inherently 2-key operations
  * (departure host + arrival host); `MultiKeyUpdate` gives one reducer
- * simultaneous, freshly-fetched access to both, so it can rerun
- * `boundaryEdgeOutcomes`/internal-edge computation live at commit time and
- * reject a stale transfer candidate (built at selection time, possibly racing
- * a concurrent modification) instead of blindly applying a precomputed diff.
- * `computeObjectSetTransfer` is the shared pure function run once here (as a
- * pre-check, to fail fast and build the result diff) and again inside the
- * reducer itself (against the fetch `MultiKeyUpdate` performs at commit time).
+ * simultaneous, freshly-fetched access to both, so it can rerun the shared
+ * Expand+Validate core --- [`applyTransferSet`](../../positionGraph/expandValidate/applyTransferSet.ts),
+ * the same function the compiler's `sandboxStep.ts` uses at selection time ---
+ * live at commit time, rejecting a stale transfer candidate (built earlier,
+ * possibly racing a concurrent modification) instead of blindly applying a
+ * precomputed diff. `transactWrite`'s own internal `MultiKeyUpdate` fetch is
+ * the *only* fetch this function performs: a thrown reducer error aborts
+ * before any `TransactWriteItemsCommand` is ever sent to DynamoDB, so there is
+ * no "wasted write" a separate pre-fetch-and-check would protect against ---
+ * only a wasted extra fetch, which this version doesn't pay.
  *
  * No `carriedEdges` parameter: internal relational edges among the transfer
  * set are derived fresh from the source graph inside the reducer, not passed
@@ -94,30 +93,7 @@ export const applyObjectSetTransfer = async (
         return { ok: true, diffs: [] }
     }
 
-    const getPositionGraph = deps.getPositionGraph ?? defaultGetPositionGraph
     const transactWrite = deps.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
-
-    let priorSourceGraph: EphemeraPositionGraph
-    let priorDestGraph: EphemeraPositionGraph
-    try {
-        [priorSourceGraph, priorDestGraph] = await Promise.all([
-            getPositionGraph(fromHostId),
-            getPositionGraph(toHostId),
-        ])
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorCode: 'OBJECT_SET_TRANSFER_FETCH_FAILED', errorMessage: message }
-    }
-
-    let precheckPlan
-    try {
-        precheckPlan = computeObjectSetTransfer(priorSourceGraph, priorDestGraph, objectIds)
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorCode: 'OBJECT_SET_TRANSFER_VALIDATION_FAILED', errorMessage: message }
-    }
 
     const diffs: ObjectSetMembershipDiff[] = args.objectIds.map((objectId) => ({
         objectId,
@@ -125,6 +101,8 @@ export const applyObjectSetTransfer = async (
         to: toHostId,
         changed: true,
     }))
+
+    let committedGraphs: { sourceGraph: EphemeraPositionGraph; destGraph: EphemeraPositionGraph } | undefined
 
     const multiKeyItem: ObjectSetTransferTransactItem = {
         MultiKeyUpdate: {
@@ -145,9 +123,30 @@ export const applyObjectSetTransfer = async (
                 }
                 const sourceGraph = graphFromMeta(fromEntry, fromHostId)
                 const destGraph = graphFromMeta(toEntry, toHostId)
-                const freshPlan = computeObjectSetTransfer(sourceGraph, destGraph, objectIds)
-                fromEntry.positionGraph = freshPlan.sourceGraph.toStored()
-                toEntry.positionGraph = freshPlan.destGraph.toStored()
+
+                for (const id of objectIds) {
+                    if (!sourceGraph.objectIds.has(id)) {
+                        throw new Error(
+                            `applyObjectSetTransfer: object ${id} not present on source host ${fromHostId} --- stale transfer candidate`
+                        )
+                    }
+                    if (destGraph.objectIds.has(id)) {
+                        throw new Error(
+                            `applyObjectSetTransfer: object ${id} already present on destination host ${toHostId} --- stale transfer candidate`
+                        )
+                    }
+                }
+
+                const transferOutcome = applyTransferSet(sourceGraph, destGraph, objectIds)
+                if (transferOutcome.verdict !== 'legal') {
+                    throw new Error(
+                        `applyObjectSetTransfer: transfer no longer legal (${transferOutcome.reasonCode}) --- stale transfer candidate, concurrent modification detected`
+                    )
+                }
+
+                fromEntry.positionGraph = transferOutcome.sourceGraph.toStored()
+                toEntry.positionGraph = transferOutcome.destGraph.toStored()
+                committedGraphs = { sourceGraph: transferOutcome.sourceGraph, destGraph: transferOutcome.destGraph }
             },
         },
     } as ObjectSetTransferTransactItem
@@ -178,7 +177,7 @@ export const applyObjectSetTransfer = async (
         return { ok: false, errorCode: 'OBJECT_SET_TRANSFER_TRANSACT_FAILED', errorMessage: message }
     }
 
-    if (!persisted) {
+    if (!persisted || !committedGraphs) {
         return {
             ok: false,
             errorCode: 'OBJECT_SET_TRANSFER_TRANSACT_FAILED',
@@ -195,12 +194,7 @@ export const applyObjectSetTransfer = async (
         }
     }
 
-    // Cache-seeding is derived from the pre-check fetch/plan, not a literal post-transaction
-    // read --- consistent with applyHostEffects.ts's existing postApplyGraphs convention. A
-    // legitimate concurrent write racing between the pre-check fetch and the reducer's own
-    // (authoritative) fetch is a narrow, pre-existing class of cache staleness this shares with
-    // that convention, not a new risk; the cache self-corrects on a subsequent read-through.
-    seedGraphMemos([precheckPlan.sourceGraph, precheckPlan.destGraph])
+    seedGraphMemos([committedGraphs.sourceGraph, committedGraphs.destGraph])
 
     for (const objectId of args.objectIds) {
         internalCache.Positions.setMembershipContainers({

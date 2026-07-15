@@ -7,7 +7,7 @@ import type { ObjectSetTakeHoldApplyArgs, TakeHoldSetApplyResult } from './types
 export type ApplyObjectSetTakeHoldDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-} & Pick<ApplyObjectSetTransferDependencies, 'getPositionGraph' | 'transactWrite'>
+} & Pick<ApplyObjectSetTransferDependencies, 'transactWrite'>
 
 /**
  * Object-*set*-aware take-hold apply --- thin directional wrapper over

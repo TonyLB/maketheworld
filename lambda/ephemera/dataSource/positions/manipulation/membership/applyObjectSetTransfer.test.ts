@@ -9,7 +9,6 @@ jest.mock('../../../../internalCache', () => ({
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
-            getPositionGraph: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -32,13 +31,14 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 /**
  * Simulates `transactWrite`'s `MultiKeyUpdate` handling for unit-testing purposes: builds a
- * draft `Record` from `freshGraphsByHost` (structurally, matching `applyObjectSetTransfer`'s
- * own lookup-by-EphemeraId/DataCategory convention, since the real library keys by a private
+ * draft `Record` from `graphsByHost` (structurally, matching `applyObjectSetTransfer`'s own
+ * lookup-by-EphemeraId/DataCategory convention, since the real library keys by a private
  * marshalled-key string this code deliberately avoids depending on) and invokes the reducer.
- * `freshGraphsByHost` may deliberately differ from the pre-check fetch --- that's how the
- * race-condition test below exercises commit-time re-validation.
+ * `transactWrite`'s own internal fetch is the *only* fetch `applyObjectSetTransfer` performs
+ * (2026-07-15 redesign) --- `graphsByHost` stands in for whatever is actually in the database
+ * at the moment of commit.
  */
-const makeTransactWriteMock = (freshGraphsByHost: Record<string, EphemeraPositionGraph>) => {
+const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
     const lastDraft: { current: Record<string, any> | undefined } = { current: undefined }
     const transactWrite: any = jest.fn(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
@@ -47,7 +47,7 @@ const makeTransactWriteMock = (freshGraphsByHost: Record<string, EphemeraPositio
         }
         const draft: Record<string, any> = {}
         multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
-            const graph = freshGraphsByHost[key.EphemeraId]
+            const graph = graphsByHost[key.EphemeraId]
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
@@ -81,14 +81,11 @@ describe('applyObjectSetTransfer', () => {
             ],
         })
         const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-
-        const getPositionGraph = async (hostId: string): Promise<EphemeraPositionGraph> =>
-            hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
         const { transactWrite, lastDraft } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
 
         const result = await applyObjectSetTransfer(
             { direction: 'takeHold', objectIds: [TRAY_ID, GLASS_ID], roomId: ROOM_ID, characterId: CHARACTER_ID },
-            { messageBus: messageBus as any, streamEvent, getPositionGraph, transactWrite }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result.ok).toBe(true)
@@ -135,13 +132,11 @@ describe('applyObjectSetTransfer', () => {
     it('degenerates to single-object behavior when the set has one member', async () => {
         const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
         const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-        const getPositionGraph = async (hostId: string): Promise<EphemeraPositionGraph> =>
-            hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
 
         const result = await applyObjectSetTransfer(
             { direction: 'takeHold', objectIds: [TRAY_ID], roomId: ROOM_ID, characterId: CHARACTER_ID },
-            { messageBus: messageBus as any, streamEvent, getPositionGraph, transactWrite }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result).toMatchObject({
@@ -152,34 +147,23 @@ describe('applyObjectSetTransfer', () => {
     })
 
     it('skips the kernel call entirely when the object set is empty', async () => {
-        const getPositionGraph = jest.fn()
         const transactWrite = jest.fn()
 
         const result = await applyObjectSetTransfer(
             { direction: 'takeHold', objectIds: [], roomId: ROOM_ID, characterId: CHARACTER_ID },
-            { messageBus: messageBus as any, streamEvent, getPositionGraph, transactWrite }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result).toEqual({ ok: true, diffs: [] })
-        expect(getPositionGraph).not.toHaveBeenCalled()
         expect(transactWrite).not.toHaveBeenCalled()
     })
 
-    it('rejects a stale transfer candidate that a concurrent modification invalidated between selection and commit', async () => {
-        // Pre-check fetch: only the intended carry (glass On tray) is present, so the candidate
-        // looks legal at selection time.
-        const precheckRoomGraph = testPositionGraph(ROOM_ID, {
-            nodes: [
-                { tag: 'Object', universalKey: TRAY_ID },
-                { tag: 'Object', universalKey: GLASS_ID },
-            ],
-            edges: [{ tag: 'Relational', from: GLASS_ID, to: TRAY_ID, kind: 'On' }],
-        })
-        // Fresh fetch (as seen by the MultiKeyUpdate reducer at commit time): a concurrent
-        // command has added `book On tray` --- book is not in the transfer set, so this boundary
-        // edge now classifies `carry` (BD-13's own outcome for a target-moves `On` edge), meaning
-        // the transfer set computed at selection time is stale/incomplete.
-        const freshRoomGraph = testPositionGraph(ROOM_ID, {
+    it('rejects a stale transfer candidate invalidated by a concurrent modification, discovered live at commit time', async () => {
+        // A concurrent command has added `book On tray` since the candidate was selected --- book
+        // is not in the transfer set, so this boundary edge now classifies `carry` (BD-13's own
+        // outcome for a target-moves `On` edge): the given transfer set is stale/incomplete. There
+        // is only one fetch now (the reducer's own), so this is the only graph state that matters.
+        const roomGraph = testPositionGraph(ROOM_ID, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
                 { tag: 'Object', universalKey: GLASS_ID },
@@ -191,39 +175,35 @@ describe('applyObjectSetTransfer', () => {
             ],
         })
         const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-
-        const getPositionGraph = async (hostId: string): Promise<EphemeraPositionGraph> =>
-            hostId === ROOM_ID ? precheckRoomGraph : emptyCharacterGraph
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: freshRoomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
 
         const result = await applyObjectSetTransfer(
             { direction: 'takeHold', objectIds: [TRAY_ID, GLASS_ID], roomId: ROOM_ID, characterId: CHARACTER_ID },
-            { messageBus: messageBus as any, streamEvent, getPositionGraph, transactWrite }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result.ok).toBe(false)
         if (result.ok) return
         expect(result.errorCode).toBe('OBJECT_SET_TRANSFER_TRANSACT_FAILED')
+        expect(transactWrite).toHaveBeenCalledTimes(1)
         expect(streamEvent).not.toHaveBeenCalled()
         expect(internalCache.Positions.setMembershipContainers).not.toHaveBeenCalled()
     })
 
-    it('rejects a candidate that already looks stale at the pre-check fetch (fast-fail, no transactWrite attempt)', async () => {
+    it('rejects a stale candidate via the presence guard --- transactWrite is still attempted, not skipped', async () => {
         const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }], edges: [] })
         const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-        const getPositionGraph = async (hostId: string): Promise<EphemeraPositionGraph> =>
-            hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
-        const transactWrite = jest.fn()
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
 
         const result = await applyObjectSetTransfer(
             // TRAY_ID isn't actually on the room graph --- a stale candidate.
             { direction: 'takeHold', objectIds: [TRAY_ID], roomId: ROOM_ID, characterId: CHARACTER_ID },
-            { messageBus: messageBus as any, streamEvent, getPositionGraph, transactWrite }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result.ok).toBe(false)
         if (result.ok) return
-        expect(result.errorCode).toBe('OBJECT_SET_TRANSFER_VALIDATION_FAILED')
-        expect(transactWrite).not.toHaveBeenCalled()
+        expect(result.errorCode).toBe('OBJECT_SET_TRANSFER_TRANSACT_FAILED')
+        expect(transactWrite).toHaveBeenCalledTimes(1)
     })
 })
