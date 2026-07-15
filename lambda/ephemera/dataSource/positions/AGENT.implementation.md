@@ -42,9 +42,9 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 | File | Role |
 | --- | --- |
 | [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
-| [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
+| [`manipulation/membership/applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
 | [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) | **`Object Drop`** ingress entry; delegates to coordinator |
-| [`manipulation/membership/applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
+| [`manipulation/membership/applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
 | [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Cross-host diff + apply result types |
 | [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) | Character-host **`Meta::Character.positionGraph`** + adjacency transact item builders (D16) |
 
@@ -56,7 +56,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
 
-3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts), [`applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts). Contract: [Cross-host object membership-changed bundle (v1 `takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-takehold), [Cross-host object membership-changed bundle (v1 `drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-drop).
+3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts), [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts). Contract: [Cross-host object membership-changed bundle (v1 `takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-takehold), [Cross-host object membership-changed bundle (v1 `drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-drop).
 
 4. **Graph transact** --- coordinator -> shared adapter -> **`applyHostEffects`** only. **Must not** add `update*PositionGraphs` forks. Character inventory transact builders: [`characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts). Room side reuses room membership transact patterns from [`membership/`](membership/) via kernel.
 

@@ -66,6 +66,7 @@ describe('selectMembershipFromPool', () => {
         })).toEqual({
             type: 'resolved',
             objectId: satchelId,
+            objectIds: [satchelId],
             operationKind: 'drop',
             catalogScope: 'held',
         })
@@ -117,7 +118,7 @@ describe('selectMembershipFromPool', () => {
         })
     })
 
-    it('Slice 2: a carry-related object (glass On tray) surfaces multiObjectTransferNotYetSupported', () => {
+    it('Slice 3: a carry-related object (glass On tray) resolves with the full carry-closed transfer set', () => {
         const trayId = 'OBJECT#Tray' as EphemeraObjectId
         const glassId = 'OBJECT#Glass' as EphemeraObjectId
         const carryCatalog: ObjectManipulationCatalogEntry[] = [
@@ -153,8 +154,11 @@ describe('selectMembershipFromPool', () => {
             roomId,
             actorCharacterId: characterId,
         })).toEqual({
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+            type: 'resolved',
+            objectId: trayId,
+            objectIds: [trayId, glassId],
+            operationKind: 'takeHold',
+            catalogScope: 'room',
         })
     })
 

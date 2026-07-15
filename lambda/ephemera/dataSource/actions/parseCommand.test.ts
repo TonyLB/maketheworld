@@ -1124,7 +1124,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.94,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
@@ -1327,7 +1327,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.9,
         })
     })
@@ -1383,7 +1383,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.94,
         })
     })
@@ -1413,7 +1413,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: pouchId,
+            objectIds: [pouchId],
             confidence: 0.88,
         })
     })
@@ -1641,7 +1641,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: anvilId,
+            objectIds: [anvilId],
             confidence: 0.9,
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
@@ -1677,7 +1677,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
-                objectId: broomId,
+                objectIds: [broomId],
                 confidence: 1,
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
@@ -1708,7 +1708,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'ObjectManipulation',
                 operationKind: 'drop',
-                objectId: broomId,
+                objectIds: [broomId],
                 confidence: 1,
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
@@ -1735,7 +1735,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
-                objectId: broomId,
+                objectIds: [broomId],
                 confidence: 1,
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()

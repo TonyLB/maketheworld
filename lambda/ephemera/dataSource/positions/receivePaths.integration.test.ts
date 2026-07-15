@@ -224,7 +224,7 @@ describe('positions receive paths (integration)', () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
                 type: 'Object Take Hold',
                 characterId: CHARACTER_ID,
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 roomId: ROOM_A,
                 confidence: 0.9,
             })
@@ -234,7 +234,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeObjectTakeHoldMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
-                    objectId: 'OBJECT#Broom',
+                    objectIds: ['OBJECT#Broom'],
                     roomId: ROOM_A,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
@@ -251,7 +251,7 @@ describe('positions receive paths (integration)', () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Drop', {
                 type: 'Object Drop',
                 characterId: CHARACTER_ID,
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 roomId: ROOM_A,
                 confidence: 0.9,
             })
@@ -261,7 +261,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeObjectDropMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
-                    objectId: 'OBJECT#Broom',
+                    objectIds: ['OBJECT#Broom'],
                     roomId: ROOM_A,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),

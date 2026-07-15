@@ -177,7 +177,7 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 3. **`setMembershipContainers(objectId)`** -> `[CHARACTER#...]`.
 4. Publish **`RoomUpdate`** per room id in **`froms`** only (character **`to`** does not trigger room affordance refresh).
 
-**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts).
+**Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectTakeHold.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeTakeHoldDiff`.
 
 ### Cross-host object membership-changed bundle (v1 `drop`)
 
@@ -190,7 +190,7 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 3. **`setMembershipContainers(objectId)`** -> `[ROOM#...]`.
 4. Publish **`RoomUpdate`** for destination room only (character **`froms`** does not trigger room affordance refresh).
 
-**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts). Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
+**Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectDrop.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeDropDiff`. Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
 
 ### Host-local relational-changed bundle (v1 `establishRelation` / `dissolveRelation`)
 
@@ -322,18 +322,17 @@ Positions **must** subscribe to:
 ### `Object Take Hold` (positions-owned)
 
 - **Ingress:** typed pick-up via actions **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1).
-- **Must** trust actions-resolved `objectId` and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
-- **Must** call [`applyObjectTakeHold`](manipulation/membership/applyObjectTakeHold.ts) with `{ objectId, roomId, characterId }` --- atomic room-remove + character-add in one transact (**L9** / **D14**).
-- **Bounded room scrub (M2):** **must** remove object from room graph **only** when it is on trusted ingress `roomId` --- **must not** end-state scrub other room hosts.
-- **Character inventory:** **must** add at target `characterId`; **must** remove from other character inventory hosts when object is held elsewhere (`needsCharacterMove`).
+- **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
+- **Must** call [`applyObjectSetTakeHold`](manipulation/membership/applyObjectSetTakeHold.ts) with `{ objectIds, roomId, characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`applyObjectSetTransfer`](manipulation/membership/applyObjectSetTransfer.ts) (**L9** / **D14**; **superseded 2026-07-15**, was the singular `applyObjectTakeHold`).
+- **Live re-derivation, not bounded scrub from trusted ingress alone:** the `MultiKeyUpdate` reducer re-fetches both host graphs and re-validates the transfer (presence + boundary-edge classification) at commit time --- a concurrent modification since selection aborts the whole transact rather than applying a stale plan.
+- **Character inventory:** **must** add every object in `objectIds` at target `characterId`; internal relational edges among the set are recreated on the destination host, derived live from the fetched source graph (not passed in).
 
 ### `Object Drop` (positions-owned)
 
-- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectId, roomId }` (symmetric to **`Object Take Hold`**). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes **`Object Drop`** when enrich yields `operationKind: drop`.
-- **Must** trust actions-resolved `objectId` and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
-- **Must** call [`applyObjectDrop`](manipulation/membership/applyObjectDrop.ts) with `{ objectId, roomId, characterId }` --- atomic character-remove + room-add in one transact.
-- **Bounded character remove:** **must** remove object from character graph **only** when it is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts.
-- **Bounded room add:** **must** add at trusted ingress `roomId` when object is not already on that room; **must not** end-state scrub other room hosts.
+- **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectIds, roomId }` (symmetric to **`Object Take Hold`**; `objectIds` widened from singular `objectId` 2026-07-15). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes **`Object Drop`** when enrich yields `operationKind: drop`.
+- **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
+- **Must** call [`applyObjectSetDrop`](manipulation/membership/applyObjectSetDrop.ts) with `{ objectIds, roomId, characterId }` --- one atomic `MultiKeyUpdate` transact (departure character + arrival room) via [`applyObjectSetTransfer`](manipulation/membership/applyObjectSetTransfer.ts) (**superseded 2026-07-15**, was the singular `applyObjectDrop`).
+- **Live re-derivation, not bounded scrub from trusted ingress alone:** same commit-time re-validation as `Object Take Hold`, above.
 
 ### `Object Establish Relation` (positions-owned)
 

@@ -304,11 +304,16 @@ export type ParseCommandObjectRelateIntentResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`). */
+/**
+ * Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`).
+ * `objectIds` is the carry-closed transfer set (BD-13) --- size 1 for an ordinary command,
+ * size >1 when Expansion (`expandTransferMembership`) computed a real multi-object carry
+ * (Pipeline A -> B migration Slice 3, 2026-07-15). Always non-empty.
+ */
 export type ParseCommandObjectManipulationResult = {
     type: 'ObjectManipulation'
     operationKind: 'takeHold' | 'drop'
-    objectId: EphemeraObjectId
+    objectIds: EphemeraObjectId[]
     confidence: ParseCommandConfidence
 }
 

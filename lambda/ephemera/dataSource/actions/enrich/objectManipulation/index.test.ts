@@ -77,7 +77,7 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.92,
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
@@ -111,7 +111,7 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.91,
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
@@ -491,7 +491,7 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.85,
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
@@ -577,7 +577,7 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.88,
         })
         expect(embedSpan).toHaveBeenCalled()
@@ -659,7 +659,7 @@ describe('enrichObjectManipulation', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.92,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()

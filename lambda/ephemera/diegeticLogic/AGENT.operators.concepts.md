@@ -33,7 +33,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectTakeHold.ts) |
+| Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectSetTakeHold.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
 | Transcript | Fan-in -> **`${Player} picks up ${Object}`** |
 
@@ -68,11 +68,11 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) |
+| Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectSetDrop.ts) |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
 | Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-**Persist path:** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectDrop.ts) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B **`drop`**.
+**Persist path:** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectSetDrop.ts) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B **`drop`**.
 
 **Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
 

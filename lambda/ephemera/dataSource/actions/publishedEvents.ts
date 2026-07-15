@@ -40,18 +40,20 @@ export type CharacterHomePublishedPayload = {
     toRoomId: EphemeraRoomId;
 }
 
+/** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary take-hold. */
 export type ObjectTakeHoldPublishedPayload = {
     type: 'Object Take Hold';
     characterId: EphemeraCharacterId;
-    objectId: EphemeraObjectId;
+    objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
 }
 
+/** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary drop. */
 export type ObjectDropPublishedPayload = {
     type: 'Object Drop';
     characterId: EphemeraCharacterId;
-    objectId: EphemeraObjectId;
+    objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
 }
@@ -308,7 +310,7 @@ export const isObjectTakeHoldPublishedPayload = (
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
         return false
     }
-    if (typeof v.objectId !== 'string' || !isEphemeraObjectId(v.objectId)) {
+    if (!Array.isArray(v.objectIds) || v.objectIds.length === 0 || !v.objectIds.every((id) => typeof id === 'string' && isEphemeraObjectId(id))) {
         return false
     }
     if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
@@ -335,7 +337,7 @@ export const isObjectDropPublishedPayload = (
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
         return false
     }
-    if (typeof v.objectId !== 'string' || !isEphemeraObjectId(v.objectId)) {
+    if (!Array.isArray(v.objectIds) || v.objectIds.length === 0 || !v.objectIds.every((id) => typeof id === 'string' && isEphemeraObjectId(id))) {
         return false
     }
     if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {

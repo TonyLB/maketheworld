@@ -19,6 +19,7 @@ const basePlan = (overrides: Partial<ObjectManipulationEmissionPlan> = {}): Obje
     beatAnchorTime: ANCHOR,
     characterName: 'Alice',
     objectShortName: 'broom',
+    carriedObjectCount: 1,
     ...overrides,
 })
 
@@ -74,5 +75,22 @@ describe('publishObjectManipulationPresentation', () => {
         expect(messageBus.publish).toHaveBeenCalledWith(expect.objectContaining({
             message: ['Someone picks up something'],
         }))
+    })
+
+    it('appends "and everything on it" to take-hold copy for a carry (BD-13)', () => {
+        expect(buildTakeHoldWorldMessage(basePlan({ carriedObjectCount: 2 })))
+            .toBe('Alice picks up broom and everything on it')
+    })
+
+    it('appends "and everything on it" to drop copy for a carry (BD-13)', () => {
+        expect(buildDropWorldMessage(basePlan({ operation: 'drop', carriedObjectCount: 2 })))
+            .toBe('Alice drops broom and everything on it')
+    })
+
+    it('does not append the carry suffix for an ordinary (size-1) command', () => {
+        expect(buildTakeHoldWorldMessage(basePlan({ carriedObjectCount: 1 })))
+            .toBe('Alice picks up broom')
+        expect(buildDropWorldMessage(basePlan({ operation: 'drop', carriedObjectCount: 1 })))
+            .toBe('Alice drops broom')
     })
 })

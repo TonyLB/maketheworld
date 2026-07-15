@@ -24,6 +24,8 @@ export type SelectPlanTupleResult<T> =
     | {
         verdict: 'resolved'
         candidate: T
+        /** The winning candidate's own dry-run outcome (carries membership's `objectIds`, if any). */
+        dryRun: DryRunOutcome
         legalSurvivors: readonly ScoredPlanCandidate<T>[]
     }
     | {
@@ -34,6 +36,7 @@ export type SelectPlanTupleResult<T> =
     | {
         verdict: 'defer'
         candidate: T
+        dryRun: DryRunOutcome
         deferSurvivors: readonly ScoredPlanCandidate<T>[]
     }
     | {
@@ -88,6 +91,7 @@ export function selectPlanTuple<T>(
         return {
             verdict: 'defer',
             candidate: defer[0]!.candidate,
+            dryRun: defer[0]!.dryRun,
             deferSurvivors: defer,
         }
     }
@@ -121,6 +125,7 @@ function selectAmongLegal<T>(
         return {
             verdict: 'resolved',
             candidate: head.candidate,
+            dryRun: head.dryRun,
             legalSurvivors: legal,
         }
     }
@@ -168,14 +173,11 @@ export type SelectIdentityPlanTupleInput = {
  * already resolved this candidate to a concrete `objectId`, so the
  * `TransferMembershipStep` is built directly rather than via `groundChange`.
  *
- * Even once Expansion confirms a multi-object transfer is legal
- * (`evaluateSandboxPlan` --- the same shared legality authority every other
- * candidate goes through), this compiler still cannot *apply* it: it never
- * touches the kernel directly, only the later bus/execute path does (Pipeline
- * A -> B migration Slice 3, not yet built). So a legal multi-object result
- * still declines here, but with `multiObjectTransferNotYetSupported` --- a
- * distinct, more accurate message than BD-17's `incompleteTransferSet`, since
- * the candidate is no longer incomplete, just not yet appliable.
+ * Slice 3 (2026-07-15, `MultiKeyUpdate` redesign): a legal multi-object transfer
+ * is no longer declined here --- the real transfer set is threaded through via
+ * `DryRunOutcome.objectIds` so the bus/`execute*` path (which now calls
+ * `applyObjectSetTakeHold`/`applyObjectSetDrop`, built on `applyObjectSetTransfer`)
+ * can actually apply it.
  */
 const sandboxMembershipDryRun = (
     candidate: IdentityPlanCandidate,
@@ -245,20 +247,7 @@ const sandboxMembershipDryRun = (
         return { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
     }
 
-    // A dissolve-only closure (no carry) needs no apply-layer changes at all --- the moving
-    // object's own removal already auto-strips the dissolved edge (see Pipeline A -> B migration
-    // Slice 1). Only an actual carry (the transfer set growing beyond the single object) exceeds
-    // what today's single-object apply path can execute.
-    const needsMultiObjectApply = expandResult.transferStep.objectIds.size > 1
-    if (needsMultiObjectApply) {
-        return {
-            verdict: 'illegal',
-            decidable: true,
-            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
-        }
-    }
-
-    return { verdict: 'legal', decidable: true }
+    return { verdict: 'legal', decidable: true, objectIds: [...expandResult.transferStep.objectIds] }
 }
 
 /**

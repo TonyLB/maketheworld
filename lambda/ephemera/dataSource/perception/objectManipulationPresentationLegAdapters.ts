@@ -135,41 +135,47 @@ export const isPerceptionObjectManipulationPresentationEnvelope = (
 
 export const toObjectManipulationPresentationLeg = async (
     envelope: StreamingEventEnvelope<unknown>
-): Promise<ObjectManipulationPresentationLeg | undefined> => {
+): Promise<ObjectManipulationPresentationLeg[]> => {
     if (isPerceptionActionsObjectTakeHoldEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectTakeHoldPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        // One intent leg per object in the transfer set (BD-13 carry) --- each object still
+        // gets matched against its own `Object Moved` fact leg by the existing per-object
+        // cluster mechanism, but only the primary object's cluster (`objectIds[0]`) actually
+        // publishes a message; see `buildObjectManipulationEmissionPlan`.
+        return content.objectIds.map((objectId) => ({
             kind: 'intent',
             operation: 'takeHold',
             characterId: content.characterId,
-            objectId: content.objectId,
+            objectId,
+            objectIds: content.objectIds,
             roomId: content.roomId,
-        }
+        }))
     }
 
     if (isPerceptionActionsObjectDropEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectDropPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        return content.objectIds.map((objectId) => ({
             kind: 'intent',
             operation: 'drop',
             characterId: content.characterId,
-            objectId: content.objectId,
+            objectId,
+            objectIds: content.objectIds,
             roomId: content.roomId,
-        }
+        }))
     }
 
     if (isPerceptionActionsObjectEstablishRelationEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectEstablishRelationPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        return [{
             kind: 'relationalIntent',
             operation: 'establishRelation',
             characterId: content.characterId,
@@ -178,15 +184,15 @@ export const toObjectManipulationPresentationLeg = async (
             roomId: content.roomId,
             relationKind: content.relationKind,
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
-        }
+        }]
     }
 
     if (isPerceptionActionsObjectDissolveRelationEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectDissolveRelationPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        return [{
             kind: 'relationalIntent',
             operation: 'dissolveRelation',
             characterId: content.characterId,
@@ -195,29 +201,29 @@ export const toObjectManipulationPresentationLeg = async (
             roomId: content.roomId,
             relationKind: content.relationKind,
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
-        }
+        }]
     }
 
     if (isPerceptionPositionsObjectMovedEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectMovedPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        return [{
             kind: 'fact',
             objectId: content.objectId,
             froms: content.froms,
             to: content.to,
             beatAnchorTime: content.beatAnchorTime,
-        }
+        }]
     }
 
     if (isPerceptionPositionsObjectRelationChangedEnvelope(envelope)) {
         const content = await envelope.getContent()
         if (!isObjectRelationChangedPublishedPayload(content)) {
-            return undefined
+            return []
         }
-        return {
+        return [{
             kind: 'relationalFact',
             subjectId: content.subjectId,
             targetId: content.targetId,
@@ -226,8 +232,8 @@ export const toObjectManipulationPresentationLeg = async (
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
             operation: content.operation,
             beatAnchorTime: content.beatAnchorTime,
-        }
+        }]
     }
 
-    return undefined
+    return []
 }

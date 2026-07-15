@@ -1,22 +1,20 @@
 import messageBus from '../../../../messageBus'
-import * as applyModule from './applyObjectDrop'
+import * as applyModule from './applyObjectSetDrop'
 import { executeObjectDrop } from './executeObjectDrop'
 
-jest.mock('./applyObjectDrop', () => ({
-    applyObjectDrop: jest.fn(),
+jest.mock('./applyObjectSetDrop', () => ({
+    applyObjectSetDrop: jest.fn(),
 }))
 
-const applyObjectDropMock = applyModule.applyObjectDrop as jest.MockedFunction<
-    typeof applyModule.applyObjectDrop
+const applyObjectSetDropMock = applyModule.applyObjectSetDrop as jest.MockedFunction<
+    typeof applyModule.applyObjectSetDrop
 >
 
 describe('executeObjectDrop', () => {
-    it('delegates to applyObjectDrop with ingress args', async () => {
-        applyObjectDropMock.mockResolvedValue({
+    it('delegates to applyObjectSetDrop with ingress args', async () => {
+        applyObjectSetDropMock.mockResolvedValue({
             ok: true,
-            froms: ['CHARACTER#alpha'],
-            to: 'ROOM#TownSquare',
-            changed: true,
+            diffs: [{ objectId: 'OBJECT#Broom', froms: ['CHARACTER#alpha'], to: 'ROOM#TownSquare', changed: true }],
             beatAnchorTime: 1_700_000_000_000,
         })
 
@@ -24,15 +22,15 @@ describe('executeObjectDrop', () => {
 
         await executeObjectDrop({
             characterId: 'CHARACTER#alpha',
-            objectId: 'OBJECT#Broom',
+            objectIds: ['OBJECT#Broom'],
             roomId: 'ROOM#TownSquare',
             messageBus,
             streamEvent,
         })
 
-        expect(applyObjectDropMock).toHaveBeenCalledWith(
+        expect(applyObjectSetDropMock).toHaveBeenCalledWith(
             {
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 roomId: 'ROOM#TownSquare',
                 characterId: 'CHARACTER#alpha',
             },

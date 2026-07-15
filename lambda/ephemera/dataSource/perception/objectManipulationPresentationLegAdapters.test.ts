@@ -13,6 +13,8 @@ import {
 
 const CHARACTER = 'CHARACTER#Alice' as const
 const OBJECT = 'OBJECT#Broom' as const
+const TRAY = 'OBJECT#Tray' as const
+const GLASS = 'OBJECT#Glass' as const
 const ROOM = 'ROOM#Cafe' as const
 const ANCHOR_TIME = 1_700_000_000_000
 
@@ -37,7 +39,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
             const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                 type: 'Object Take Hold',
                 characterId: CHARACTER,
-                objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
             })
             expect(isPerceptionActionsObjectTakeHoldEnvelope(env)).toBe(true)
@@ -48,7 +50,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
             const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
                 type: 'Object Drop',
                 characterId: CHARACTER,
-                objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
             })
             expect(isPerceptionActionsObjectDropEnvelope(env)).toBe(true)
@@ -81,46 +83,77 @@ describe('objectManipulationPresentationLegAdapters', () => {
     })
 
     describe('toObjectManipulationPresentationLeg', () => {
-        it('maps Object Take Hold to intent leg', async () => {
-            const leg = await toObjectManipulationPresentationLeg(
+        it('maps Object Take Hold to a single-element intent leg array', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                     type: 'Object Take Hold',
                     characterId: CHARACTER,
-                    objectId: OBJECT,
+                    objectIds: [OBJECT],
                     roomId: ROOM,
                     confidence: 0.9,
                 })
             )
-            expect(leg).toEqual({
+            expect(legs).toEqual([{
                 kind: 'intent',
                 operation: 'takeHold',
                 characterId: CHARACTER,
                 objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
-            })
+            }])
         })
 
-        it('maps Object Drop to intent leg', async () => {
-            const leg = await toObjectManipulationPresentationLeg(
+        it('maps a multi-object Object Take Hold (BD-13 carry) to one intent leg per object, each carrying the full set', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
+                    type: 'Object Take Hold',
+                    characterId: CHARACTER,
+                    objectIds: [TRAY, GLASS],
+                    roomId: ROOM,
+                })
+            )
+            expect(legs).toEqual([
+                {
+                    kind: 'intent',
+                    operation: 'takeHold',
+                    characterId: CHARACTER,
+                    objectId: TRAY,
+                    objectIds: [TRAY, GLASS],
+                    roomId: ROOM,
+                },
+                {
+                    kind: 'intent',
+                    operation: 'takeHold',
+                    characterId: CHARACTER,
+                    objectId: GLASS,
+                    objectIds: [TRAY, GLASS],
+                    roomId: ROOM,
+                },
+            ])
+        })
+
+        it('maps Object Drop to a single-element intent leg array', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
                     type: 'Object Drop',
                     characterId: CHARACTER,
-                    objectId: OBJECT,
+                    objectIds: [OBJECT],
                     roomId: ROOM,
                     confidence: 0.9,
                 })
             )
-            expect(leg).toEqual({
+            expect(legs).toEqual([{
                 kind: 'intent',
                 operation: 'drop',
                 characterId: CHARACTER,
                 objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
-            })
+            }])
         })
 
-        it('maps Object Moved to fact leg', async () => {
-            const leg = await toObjectManipulationPresentationLeg(
+        it('maps Object Moved to a single-element fact leg array', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
                     type: 'Object Moved',
                     objectId: OBJECT,
@@ -129,34 +162,34 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     beatAnchorTime: ANCHOR_TIME,
                 }, OBJECT)
             )
-            expect(leg).toEqual({
+            expect(legs).toEqual([{
                 kind: 'fact',
                 objectId: OBJECT,
                 froms: [ROOM],
                 to: CHARACTER,
                 beatAnchorTime: ANCHOR_TIME,
-            })
+            }])
         })
 
-        it('returns undefined for non-object-manipulation envelopes', async () => {
-            const leg = await toObjectManipulationPresentationLeg(
+        it('returns an empty array for non-object-manipulation envelopes', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
                 envelope('api.ephemera', 'Character Perception Requested', {
                     ephemeraId: CHARACTER,
                 } as never)
             )
-            expect(leg).toBeUndefined()
+            expect(legs).toEqual([])
         })
 
-        it('returns undefined when content fails payload guard', async () => {
-            const leg = await toObjectManipulationPresentationLeg(
+        it('returns an empty array when content fails payload guard', async () => {
+            const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                     type: 'Object Take Hold',
                     characterId: CHARACTER,
-                    objectId: 'ROOM#bad',
+                    objectIds: ['ROOM#bad'],
                     roomId: ROOM,
                 } as never)
             )
-            expect(leg).toBeUndefined()
+            expect(legs).toEqual([])
         })
     })
 })

@@ -1205,7 +1205,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 {
                     type: 'Object Take Hold',
                     characterId: TAKE_HOLD_CHARACTER,
-                    objectId: TAKE_HOLD_OBJECT,
+                    objectIds: [TAKE_HOLD_OBJECT],
                     roomId: TAKE_HOLD_ROOM,
                 },
                 TAKE_HOLD_CHARACTER
@@ -1248,7 +1248,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 {
                     type: 'Object Drop',
                     characterId: TAKE_HOLD_CHARACTER,
-                    objectId: TAKE_HOLD_OBJECT,
+                    objectIds: [TAKE_HOLD_OBJECT],
                     roomId: TAKE_HOLD_ROOM,
                 },
                 TAKE_HOLD_CHARACTER
@@ -1303,7 +1303,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 {
                     type: 'Object Take Hold',
                     characterId: TAKE_HOLD_CHARACTER,
-                    objectId: TAKE_HOLD_OBJECT,
+                    objectIds: [TAKE_HOLD_OBJECT],
                     roomId: TAKE_HOLD_ROOM,
                 },
                 TAKE_HOLD_CHARACTER
@@ -1327,7 +1327,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 {
                     type: 'Object Take Hold',
                     characterId: TAKE_HOLD_CHARACTER,
-                    objectId: TAKE_HOLD_OBJECT,
+                    objectIds: [TAKE_HOLD_OBJECT],
                     roomId: TAKE_HOLD_ROOM,
                 },
                 TAKE_HOLD_CHARACTER
@@ -1347,7 +1347,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                 {
                     type: 'Object Drop',
                     characterId: TAKE_HOLD_CHARACTER,
-                    objectId: TAKE_HOLD_OBJECT,
+                    objectIds: [TAKE_HOLD_OBJECT],
                     roomId: TAKE_HOLD_ROOM,
                 },
                 TAKE_HOLD_CHARACTER

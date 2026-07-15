@@ -275,12 +275,16 @@ describe('isObjectTakeHoldPublishedPayload', () => {
     const minimal = {
         type: 'Object Take Hold' as const,
         characterId: 'CHARACTER#test',
-        objectId: 'OBJECT#Broom',
+        objectIds: ['OBJECT#Broom'],
         roomId: 'ROOM#from',
     }
 
     it('accepts a valid payload', () => {
         expect(isObjectTakeHoldPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts a multi-object transfer set', () => {
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, objectIds: ['OBJECT#Tray', 'OBJECT#Glass'] })).toBe(true)
     })
 
     it('accepts optional confidence', () => {
@@ -293,9 +297,10 @@ describe('isObjectTakeHoldPublishedPayload', () => {
         expect(isObjectTakeHoldPublishedPayload(rest)).toBe(false)
     })
 
-    it('rejects invalid ids', () => {
+    it('rejects invalid or empty object id sets', () => {
         expect(isObjectTakeHoldPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
-        expect(isObjectTakeHoldPublishedPayload({ ...minimal, objectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, objectIds: ['ROOM#x'] })).toBe(false)
+        expect(isObjectTakeHoldPublishedPayload({ ...minimal, objectIds: [] })).toBe(false)
         expect(isObjectTakeHoldPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
     })
 
