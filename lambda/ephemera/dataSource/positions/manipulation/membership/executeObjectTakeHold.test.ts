@@ -1,22 +1,20 @@
 import messageBus from '../../../../messageBus'
-import * as applyModule from './applyObjectTakeHold'
+import * as applyModule from './applyObjectSetTakeHold'
 import { executeObjectTakeHold } from './executeObjectTakeHold'
 
-jest.mock('./applyObjectTakeHold', () => ({
-    applyObjectTakeHold: jest.fn(),
+jest.mock('./applyObjectSetTakeHold', () => ({
+    applyObjectSetTakeHold: jest.fn(),
 }))
 
-const applyObjectTakeHoldMock = applyModule.applyObjectTakeHold as jest.MockedFunction<
-    typeof applyModule.applyObjectTakeHold
+const applyObjectSetTakeHoldMock = applyModule.applyObjectSetTakeHold as jest.MockedFunction<
+    typeof applyModule.applyObjectSetTakeHold
 >
 
 describe('executeObjectTakeHold', () => {
-    it('delegates to applyObjectTakeHold with ingress args', async () => {
-        applyObjectTakeHoldMock.mockResolvedValue({
+    it('delegates to applyObjectSetTakeHold with ingress args', async () => {
+        applyObjectSetTakeHoldMock.mockResolvedValue({
             ok: true,
-            froms: ['ROOM#Cafe'],
-            to: 'CHARACTER#alpha',
-            changed: true,
+            diffs: [{ objectId: 'OBJECT#Broom', froms: ['ROOM#Cafe'], to: 'CHARACTER#alpha', changed: true }],
             beatAnchorTime: 1_700_000_000_000,
         })
 
@@ -24,15 +22,15 @@ describe('executeObjectTakeHold', () => {
 
         await executeObjectTakeHold({
             characterId: 'CHARACTER#alpha',
-            objectId: 'OBJECT#Broom',
+            objectIds: ['OBJECT#Broom'],
             roomId: 'ROOM#TownSquare',
             messageBus,
             streamEvent,
         })
 
-        expect(applyObjectTakeHoldMock).toHaveBeenCalledWith(
+        expect(applyObjectSetTakeHoldMock).toHaveBeenCalledWith(
             {
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 roomId: 'ROOM#TownSquare',
                 characterId: 'CHARACTER#alpha',
             },

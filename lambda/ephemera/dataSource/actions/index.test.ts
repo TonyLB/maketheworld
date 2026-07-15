@@ -1611,7 +1611,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1644,7 +1644,7 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Object Take Hold',
                     characterId: 'CHARACTER#123',
-                    objectId: 'OBJECT#Broom',
+                    objectIds: ['OBJECT#Broom'],
                     roomId: from,
                     confidence: 0.9,
                 },
@@ -1660,7 +1660,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'drop',
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1693,7 +1693,7 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Object Drop',
                     characterId: 'CHARACTER#123',
-                    objectId: 'OBJECT#Broom',
+                    objectIds: ['OBJECT#Broom'],
                     roomId: from,
                     confidence: 0.9,
                 },
@@ -1709,7 +1709,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1750,7 +1750,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1790,7 +1790,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'drop',
-                objectId: 'OBJECT#Broom',
+                objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { testPositionGraph } from '../../../../positions/positionGraph/testFixtures'
+import { testPositionGraph } from './testFixtures'
 import {
     boundaryEdgeOutcomes,
     classifyInteractionUnderTransfer,

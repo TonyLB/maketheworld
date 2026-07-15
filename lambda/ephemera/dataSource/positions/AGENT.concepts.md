@@ -94,7 +94,7 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
-- **Cross-host apply:** [`manipulation/membership/applyObjectTakeHold.ts`](manipulation/membership/applyObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped). [`manipulation/membership/applyObjectDrop.ts`](manipulation/membership/applyObjectDrop.ts) --- atomic character-remove + room-add on **`drop`** (shipped). Both use shared adapter + kernel --- **no** new `update*PositionGraphs` fork.
+- **Cross-host apply:** [`manipulation/membership/applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped). [`manipulation/membership/applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) --- atomic character-remove + room-add on **`drop`** (shipped). Both use shared adapter + kernel --- **no** new `update*PositionGraphs` fork.
 
 ### Manipulation layering (membership transfer)
 

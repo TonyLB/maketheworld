@@ -37,7 +37,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
             const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                 type: 'Object Take Hold',
                 characterId: CHARACTER,
-                objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
             })
             expect(isPerceptionActionsObjectTakeHoldEnvelope(env)).toBe(true)
@@ -48,7 +48,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
             const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
                 type: 'Object Drop',
                 characterId: CHARACTER,
-                objectId: OBJECT,
+                objectIds: [OBJECT],
                 roomId: ROOM,
             })
             expect(isPerceptionActionsObjectDropEnvelope(env)).toBe(true)
@@ -86,7 +86,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                     type: 'Object Take Hold',
                     characterId: CHARACTER,
-                    objectId: OBJECT,
+                    objectIds: [OBJECT],
                     roomId: ROOM,
                     confidence: 0.9,
                 })
@@ -105,7 +105,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
                     type: 'Object Drop',
                     characterId: CHARACTER,
-                    objectId: OBJECT,
+                    objectIds: [OBJECT],
                     roomId: ROOM,
                     confidence: 0.9,
                 })
@@ -152,7 +152,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
                     type: 'Object Take Hold',
                     characterId: CHARACTER,
-                    objectId: 'ROOM#bad',
+                    objectIds: ['ROOM#bad'],
                     roomId: ROOM,
                 } as never)
             )

@@ -202,7 +202,7 @@ Cross-host **`drop`** uses **bounded** planning on both host kinds (symmetric in
 | **Character** (source) | **bounded** | Scrub **only** trusted ingress `characterId` when object is on that character |
 | **Room** (destination) | **bounded** | Add at trusted ingress `roomId` when object is not already on that room; **do not** end-state scrub other room hosts |
 
-Shipped in [`computeDropDiff`](adapters/computeDropDiff.ts) -> [`planObjectDropTransfer`](adapters/planObjectDropTransfer.ts) -> [`hostEffectsFromObjectDropDiffs`](adapters/hostEffectsFromDiffs.ts). Coordinator: [`applyObjectDrop`](membership/applyObjectDrop.ts) (mirror [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts)). Ingress: [`executeObjectDrop`](membership/executeObjectDrop.ts) + positions **`Object Drop`** stream subscription.
+Shipped in [`computeDropDiff`](adapters/computeDropDiff.ts) -> [`planObjectDropTransfer`](adapters/planObjectDropTransfer.ts) -> [`hostEffectsFromObjectDropDiffs`](adapters/hostEffectsFromDiffs.ts). **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectTakeHold.ts`/`applyObjectDrop.ts` coordinators described in this section are deleted; every take-hold/drop command --- including the ordinary single-object case --- now goes through [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts)/[`applyObjectSetDrop`](membership/applyObjectSetDrop.ts), thin wrappers over [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (`MultiKeyUpdate`-based; see below). Ingress: [`executeObjectDrop`](membership/executeObjectDrop.ts)/[`executeObjectTakeHold`](membership/executeObjectTakeHold.ts) + positions **`Object Drop`**/**`Object Take Hold`** stream subscriptions.
 
 Fact projection: `froms: [CHARACTER#...]`, `to: ROOM#...`. Actions held-catalog identity + parse egress: [`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
@@ -242,8 +242,8 @@ Matches today's expedient coordinators (facts from forward diff, not a second gr
 | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `{ characterId, targetRoomId }` | end-state | --- | `Character Moved` |
 | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `{ objectId, targetRoomId }` | end-state | --- | `Object Moved` |
 | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) (objects spawn) | via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) after existence create | end-state | --- | `Object Moved` |
-| [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `{ objectId, roomId, characterId }` | bounded (room) + character end-state | `[roomId]` | `Object Moved` (cross-host) |
-| [`applyObjectDrop`](membership/applyObjectDrop.ts) | `{ objectId, roomId, characterId }` | bounded (character) + bounded (room) | `[characterId]` (remove), trusted `roomId` (add) | `Object Moved` (cross-host) |
+| [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) (was `applyObjectTakeHold`, superseded 2026-07-15) | `{ objectIds, roomId, characterId }` | `MultiKeyUpdate` reducer over both hosts (see below) | n/a --- reducer re-derives live | `Object Moved` (cross-host, one per object) |
+| [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) (was `applyObjectDrop`, superseded 2026-07-15) | `{ objectIds, roomId, characterId }` | `MultiKeyUpdate` reducer over both hosts (see below) | n/a --- reducer re-derives live | `Object Moved` (cross-host, one per object) |
 
 ### Anti-patterns
 
@@ -271,8 +271,8 @@ Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.cont
 
 1. **Object room** --- coordinator [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) -> `planMembershipTransfer` -> `applyHostEffects`.
 2. **Character navigate** --- coordinator [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) -> `planMembershipTransfer` -> `applyHostEffects` (graph only); ladder via parallel tail.
-3. **Cross-host takeHold** --- coordinator [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) -> `planObjectTakeHoldTransfer` -> `applyHostEffects`.
-4. **Cross-host drop** --- coordinator [`applyObjectDrop`](membership/applyObjectDrop.ts) -> `planObjectDropTransfer` -> `applyHostEffects`.
+3. **Cross-host takeHold** --- coordinator `applyObjectTakeHold` -> `planObjectTakeHoldTransfer` -> `applyHostEffects` (historical; **superseded 2026-07-15** by [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) -> [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) -> `MultiKeyUpdate`, see below).
+4. **Cross-host drop** --- coordinator `applyObjectDrop` -> `planObjectDropTransfer` -> `applyHostEffects` (historical; **superseded 2026-07-15** by [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) -> `MultiKeyUpdate`, see below).
 
 Legacy `update*PositionGraphs` wrappers **removed** in Phase 4c (2026-06-26). Persist tests: [`planMembershipTransfer.characterPersist.test.ts`](../membership/planMembershipTransfer.characterPersist.test.ts), [`planMembershipTransfer.objectPersist.test.ts`](../membership/planMembershipTransfer.objectPersist.test.ts).
 
@@ -321,8 +321,8 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 | Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
 | Improvisational object spawn (objects lane) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
-| **`takeHold`** | [`applyObjectTakeHold`](membership/applyObjectTakeHold.ts) | `planObjectTakeHoldTransfer` | `applyHostEffects` |
-| **`drop`** | [`applyObjectDrop`](membership/applyObjectDrop.ts) | `planObjectDropTransfer` | `applyHostEffects` |
+| **`takeHold`** (superseded 2026-07-15) | [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) | n/a --- reducer re-derives live | [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (`MultiKeyUpdate`) |
+| **`drop`** (superseded 2026-07-15) | [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) | n/a --- reducer re-derives live | [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (`MultiKeyUpdate`) |
 
 **Kernel invariant:** [`applyHostEffects.ts`](applyHostEffects.ts) does **not** call `getMembershipContainers`.
 
@@ -362,10 +362,12 @@ Shared primitives consumed by kernel: [`../positionGraph/`](../positionGraph/), 
 
 | File | Role |
 | --- | --- |
-| [`membership/executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | `Object Take Hold` ingress entry |
-| [`membership/applyObjectTakeHold.ts`](membership/applyObjectTakeHold.ts) | Cross-host membership-changed bundle |
-| [`membership/executeObjectDrop.ts`](membership/executeObjectDrop.ts) | `Object Drop` ingress entry |
-| [`membership/applyObjectDrop.ts`](membership/applyObjectDrop.ts) | Cross-host membership-changed bundle |
+| [`membership/executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | `Object Take Hold` ingress entry (widened to `objectIds: EphemeraObjectId[]`, 2026-07-15) |
+| [`membership/applyObjectSetTakeHold.ts`](membership/applyObjectSetTakeHold.ts) | Thin directional wrapper over [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (replaces the deleted singular `applyObjectTakeHold.ts`) |
+| [`membership/executeObjectDrop.ts`](membership/executeObjectDrop.ts) | `Object Drop` ingress entry (widened to `objectIds: EphemeraObjectId[]`, 2026-07-15) |
+| [`membership/applyObjectSetDrop.ts`](membership/applyObjectSetDrop.ts) | Thin directional wrapper over [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (replaces the deleted singular `applyObjectDrop.ts`) |
+| [`membership/applyObjectSetTransfer.ts`](membership/applyObjectSetTransfer.ts) | **Pipeline A -> B migration Slice 3 (2026-07-15).** Single MultiKeyUpdate-based kernel primitive for both take-hold and drop, any transfer-set size >=1. Fetches both host graphs, pre-checks via [`computeObjectSetTransfer`](membership/computeObjectSetTransfer.ts), then issues one `transactWrite` call: a `MultiKeyUpdate` item (`Keys` = departure + arrival host) whose reducer re-runs `computeObjectSetTransfer` against freshly-fetched state (catching a concurrent modification the pre-check couldn't see --- throws to abort the whole transact rather than applying a stale plan), plus plain sibling `Delete`/`Put` items per object for the `positionAdjacency#<hostId>` reverse-index rows (no `cascade` needed --- the transfer set and both host ids are caller-known before the reducer runs). Supersedes `applyHostEffects` + precomputed `HostRelationalEdgeCarry[]` for this operation; internal relational edges among the transfer set are derived live from the fetched source graph instead of passed in. |
+| [`membership/computeObjectSetTransfer.ts`](membership/computeObjectSetTransfer.ts) | Pure, throwing computation shared by the pre-check and the reducer: validates presence, re-runs `boundaryEdgeOutcomes` (from [`../positionGraph/interactionUnderTransfer.ts`](../positionGraph/interactionUnderTransfer.ts)), derives internal edges, returns the mutated source/dest graphs. |
 | [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) | Character-host graph + adjacency transact builders (kernel reuse) |
 | [`membership/types.ts`](membership/types.ts) | Cross-host diff + apply result types |
 

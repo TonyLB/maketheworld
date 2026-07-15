@@ -17,6 +17,8 @@ export type SelectMembershipFromPoolResult =
     | {
         type: 'resolved'
         objectId: EphemeraObjectId
+        /** Carry-closed transfer set (BD-13); size 1 for an ordinary command. */
+        objectIds: EphemeraObjectId[]
         operationKind: 'takeHold' | 'drop'
         catalogScope: ObjectManipulationCatalogScope
     }
@@ -132,6 +134,7 @@ function mapSelection(
     return {
         type: 'resolved',
         objectId: candidate.identity.objectId,
+        objectIds: selection.dryRun.objectIds ?? [candidate.identity.objectId],
         operationKind: candidate.plan.operationKind,
         catalogScope,
     }

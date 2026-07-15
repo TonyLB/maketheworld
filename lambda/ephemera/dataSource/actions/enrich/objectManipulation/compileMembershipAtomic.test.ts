@@ -58,7 +58,7 @@ describe('compileMembershipAtomic', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.92,
         })
     })
@@ -84,7 +84,7 @@ describe('compileMembershipAtomic', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: pouchId,
+            objectIds: [pouchId],
             confidence: 0.88,
         })
     })
@@ -197,7 +197,7 @@ describe('compileMembershipAtomic', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
-    it('Slice 2 (Pipeline A -> B migration): a carry-related object (glass On tray) computes the real closure, still declines as not-yet-appliable', async () => {
+    it('Slice 3 (Pipeline A -> B migration, MultiKeyUpdate redesign): a carry-related object (glass On tray) computes the real closure and resolves with the full transfer set', async () => {
         const roomGraphWithCarry = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
@@ -226,10 +226,12 @@ describe('compileMembershipAtomic', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
+            type: 'ObjectManipulation',
+            operationKind: 'takeHold',
+            objectIds: [trayId, glassId],
+            confidence: 0.9,
         })
-        // Terminates at the selector's own error verdict --- never reaches the complexity LLM fallback.
+        // Resolved directly by the selector --- never reaches the complexity LLM fallback.
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
@@ -257,7 +259,7 @@ describe('compileMembershipAtomic', () => {
         expect(result).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: satchelId,
+            objectIds: [satchelId],
             confidence: 0.9,
         })
     })

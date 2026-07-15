@@ -75,6 +75,7 @@ describe('sandbox output through the real (unmodified) selectPlanTuple core', ()
         expect(result).toEqual({
             verdict: 'resolved',
             candidate,
+            dryRun: { verdict: 'legal', decidable: true },
             legalSurvivors: [{ candidate, dryRun: { verdict: 'legal', decidable: true } }],
         })
     })

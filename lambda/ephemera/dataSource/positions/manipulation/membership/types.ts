@@ -22,19 +22,17 @@ export type ObjectDropApplyArgs = {
 }
 
 /**
- * Cross-host object-*set* membership apply (Pipeline A -> B migration slice 1,
- * BD-13 slice 3 kernel half; v1 takeHold: room -> character). A carry-closed
- * transfer set (BD-13) moves atomically in one `applyHostEffects` call; a
- * `dissolve`-classified boundary edge needs no separate handling here --- it is
- * already stripped automatically when its in-set endpoint's node is removed
- * from the source graph (`EphemeraPositionGraph.removeObject`).
+ * Cross-host object-*set* membership apply (v1 takeHold: room -> character). A
+ * carry-closed transfer set (BD-13) moves atomically via `applyObjectSetTransfer`'s
+ * `MultiKeyUpdate`-based reducer (Pipeline A -> B migration slice 3, 2026-07-15),
+ * which derives internal edges and re-validates boundary-edge classification
+ * against freshly-fetched state at commit time --- no `carriedEdges` param, since
+ * nothing is precomputed and passed in.
  */
 export type ObjectSetTakeHoldApplyArgs = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
-    /** Internal relational edges (BD-13) carried with the set to the destination host. */
-    carriedEdges?: HostRelationalEdgeCarry[];
 }
 
 /** Cross-host object-*set* membership apply (v1 drop: character -> room). */
@@ -42,8 +40,6 @@ export type ObjectSetDropApplyArgs = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
-    /** Internal relational edges (BD-13) carried with the set to the destination host. */
-    carriedEdges?: HostRelationalEdgeCarry[];
 }
 
 /** Remove object from all membership hosts (destruction / clear). */

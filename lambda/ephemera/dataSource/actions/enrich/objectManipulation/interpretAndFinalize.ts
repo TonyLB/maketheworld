@@ -193,7 +193,7 @@ export function finalizeComplexityFromEnrich(
     return {
         type: 'ObjectManipulation',
         operationKind: complexityResponse.operationKind,
-        objectId,
+        objectIds: [objectId],
         confidence: intentConfidence,
     }
 }

@@ -125,7 +125,7 @@ export async function compileMembershipAtomic(
         return {
             type: 'ObjectManipulation',
             operationKind: selection.operationKind,
-            objectId,
+            objectIds: selection.objectIds,
             confidence: intentConfidence,
         }
     }

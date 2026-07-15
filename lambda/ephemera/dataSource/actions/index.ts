@@ -493,7 +493,7 @@ const publishStreamEventsForIntent = async (
                 update: {
                     type: 'Object Drop',
                     characterId,
-                    objectId: parseResult.objectId,
+                    objectIds: parseResult.objectIds,
                     roomId: fromRoomId,
                     confidence: parseResult.confidence,
                 },
@@ -506,7 +506,7 @@ const publishStreamEventsForIntent = async (
                 update: {
                     type: 'Object Take Hold',
                     characterId,
-                    objectId: parseResult.objectId,
+                    objectIds: parseResult.objectIds,
                     roomId: fromRoomId,
                     confidence: parseResult.confidence,
                 },

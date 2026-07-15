@@ -203,7 +203,7 @@ describe('selectIdentityPlanTuple', () => {
         expect(result.verdict).toBe('defer')
     })
 
-    it('Slice 2: a carry-related object (glass On tray) computes the real closure via Expansion, still declines as not-yet-appliable', () => {
+    it('Slice 3: a carry-related object (glass On tray) computes the real closure via Expansion and resolves with the full transfer set', () => {
         const roomGraphWithCarry = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
@@ -225,13 +225,12 @@ describe('selectIdentityPlanTuple', () => {
             actorCharacterId: characterId,
         })
 
-        expect(result).toEqual({
-            verdict: 'error',
-            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
-        })
+        expect(result.verdict).toBe('resolved')
+        if (result.verdict !== 'resolved') return
+        expect(result.dryRun.objectIds).toEqual([trayId, glassId])
     })
 
-    it('Slice 2: BD-13\'s own "get tray" shape (glass On tray, tray On table) also computes the full closure + dissolve, still declines', () => {
+    it('Slice 3: BD-13\'s own "get tray" shape (glass On tray, tray On table) also computes the full closure + dissolve, and resolves', () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
         const roomGraphWithCarryAndDissolve = testPositionGraph(roomId, {
             nodes: [
@@ -258,10 +257,9 @@ describe('selectIdentityPlanTuple', () => {
             actorCharacterId: characterId,
         })
 
-        expect(result).toEqual({
-            verdict: 'error',
-            reason: objectManipulationErrorMessages.multiObjectTransferNotYetSupported,
-        })
+        expect(result.verdict).toBe('resolved')
+        if (result.verdict !== 'resolved') return
+        expect(result.dryRun.objectIds).toEqual([trayId, glassId])
     })
 
     it('Slice 2: an object with no boundary relational edges stays legal, unchanged (no regression)', () => {

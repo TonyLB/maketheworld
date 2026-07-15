@@ -21,7 +21,6 @@ export const objectManipulationErrorMessages = {
     alreadyHoldingObject: 'ObjectManipulation resolution failed: object is already held',
     unimplementedAtomicOperation: 'ObjectManipulation enrich: that atomic operation is not implemented yet',
     incompleteTransferSet: 'ObjectManipulation enrich: transfer candidate is missing an object carried by relational topology',
-    multiObjectTransferNotYetSupported: 'ObjectManipulation enrich: carrying multiple objects together in one transfer is not supported yet',
     transferInteractionDefer: 'ObjectManipulation enrich: existing relational topology requires interaction assessment before this transfer',
     enrichInvokeFailed: 'Object manipulation enrich failed',
     enrichParseFailed: 'Object manipulation enrich response was not valid',

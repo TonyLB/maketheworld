@@ -74,7 +74,7 @@ describe('finalizeComplexityFromEnrich', () => {
         )).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'takeHold',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.9,
         })
     })
@@ -106,7 +106,7 @@ describe('finalizeComplexityFromEnrich', () => {
         )).toEqual({
             type: 'ObjectManipulation',
             operationKind: 'drop',
-            objectId: broomId,
+            objectIds: [broomId],
             confidence: 0.85,
         })
     })

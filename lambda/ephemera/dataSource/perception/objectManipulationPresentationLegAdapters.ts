@@ -145,7 +145,9 @@ export const toObjectManipulationPresentationLeg = async (
             kind: 'intent',
             operation: 'takeHold',
             characterId: content.characterId,
-            objectId: content.objectId,
+            // Narrates only the primary object; multi-object carry narration (BD-13) is a
+            // separate, still-blocked UX/copy design (Pipeline A -> B migration Slice 4).
+            objectId: content.objectIds[0],
             roomId: content.roomId,
         }
     }
@@ -159,7 +161,9 @@ export const toObjectManipulationPresentationLeg = async (
             kind: 'intent',
             operation: 'drop',
             characterId: content.characterId,
-            objectId: content.objectId,
+            // Narrates only the primary object; multi-object carry narration (BD-13) is a
+            // separate, still-blocked UX/copy design (Pipeline A -> B migration Slice 4).
+            objectId: content.objectIds[0],
             roomId: content.roomId,
         }
     }

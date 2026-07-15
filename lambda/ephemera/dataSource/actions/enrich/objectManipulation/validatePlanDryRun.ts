@@ -16,6 +16,12 @@ export type DryRunOutcome = {
     /** False when an LLM validator would be required (Custom / unmodeled). */
     decidable: boolean
     reason?: string
+    /**
+     * Membership-only: the carry-closed transfer set (BD-13), when a `legal` verdict came from
+     * `sandboxMembershipDryRun`'s Expansion-mediated dry run. Absent for relational dry runs and
+     * for any non-`legal` verdict.
+     */
+    objectIds?: EphemeraObjectId[]
 }
 
 export type ValidateMembershipPlanContext = {

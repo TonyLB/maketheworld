@@ -79,7 +79,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 }
                 await executeObjectDrop({
                     characterId: content.characterId,
-                    objectId: content.objectId,
+                    objectIds: content.objectIds,
                     roomId: content.roomId,
                     messageBus,
                     streamEvent,
@@ -127,7 +127,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 }
                 await executeObjectTakeHold({
                     characterId: content.characterId,
-                    objectId: content.objectId,
+                    objectIds: content.objectIds,
                     roomId: content.roomId,
                     messageBus,
                     streamEvent,

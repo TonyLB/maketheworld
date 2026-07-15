@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { boundaryEdgeOutcomes } from './synthesize/interactionUnderTransfer'
+import { boundaryEdgeOutcomes } from '../../../positions/positionGraph/interactionUnderTransfer'
 import type { IdentityPlanCandidate, RelationalIdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'

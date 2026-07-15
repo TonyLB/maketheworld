@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
 import type { DissolveRelationStep, TransferMembershipStep } from '../parsePlanStep'
-import { boundaryEdgeOutcomes, computeCarryClosure } from './interactionUnderTransfer'
+import { boundaryEdgeOutcomes, computeCarryClosure } from '../../../../positions/positionGraph/interactionUnderTransfer'
 
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
