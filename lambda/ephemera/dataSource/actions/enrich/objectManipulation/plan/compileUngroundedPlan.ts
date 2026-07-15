@@ -49,13 +49,19 @@ export function compileMembershipUngroundedPlan(
 
 /**
  * Plan-stage compiler (zero KR access): maps a shipped, already-extracted
- * relational frame into an ungrounded step. Reuses the already-deterministic,
+ * relational frame into ungrounded steps. Reuses the already-deterministic,
  * already-KR-free `normalizeRelationSpan` (B2) rather than reimplementing
  * phrase-to-enum mapping. Host is not encoded on the Change --- it's implicit
  * (`currentHost(actingCharacter)`, per BD-6) rather than per-instruction.
  * `frame.characterId` / `frame.hostRoomId` are deliberately not read, even
  * though upstream has already populated them --- Plan's job is span/verb
  * reasoning only, regardless of what happens to already be grounded.
+ *
+ * BD-15/16: prepends a `sameHost` `Assertion` before every `Change` step,
+ * unconditionally (BD-15 (1) --- every relation needs the check, not only the
+ * held-item case), reusing the same `subject`/`target` referents as the paired
+ * `Change` so the two are guaranteed to align (BD-15 (2)). Grounding/evaluating
+ * this assertion is out of scope here --- Plan only emits the ungrounded step.
  */
 export function compileRelationalUngroundedPlan(
     frame: ManipulationFrame
@@ -66,14 +72,25 @@ export function compileRelationalUngroundedPlan(
     }
 
     const relation = norm.relation
+    const subject = objectSpanRef(frame.subjectSpan)
+    const target = objectSpanRef(frame.targetSpan)
+
+    const sameHostAssertion = {
+        kind: 'assertion' as const,
+        predicate: 'sameHost' as const,
+        subject,
+        object: target,
+        negate: false,
+    }
+
     const change = {
         kind: 'change' as const,
         primitive: frame.operationKind,
-        subject: objectSpanRef(frame.subjectSpan),
-        target: objectSpanRef(frame.targetSpan),
+        subject,
+        target,
         relationKind: relation.kind,
         ...(relation.type === 'custom' ? { relationLabel: relation.relationLabel } : {}),
     }
 
-    return { type: 'success', steps: [change] }
+    return { type: 'success', steps: [sameHostAssertion, change] }
 }

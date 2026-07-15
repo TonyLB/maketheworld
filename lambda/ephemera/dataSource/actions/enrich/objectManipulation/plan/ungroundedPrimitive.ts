@@ -47,7 +47,21 @@ export type ContainedByAssertion = {
     negate: boolean
 }
 
-export type Assertion = ContainedByAssertion
+/**
+ * BD-15/16: does `subject` share a membership host with `object`? Reuses the same
+ * generic shape as `ContainedByAssertion` --- no new fields --- since `subject`/`object`
+ * carry the same directional roles as the paired relational `Change`'s `subject`/`target`
+ * (guaranteed to align: both are built from the same frame in one compiler pass).
+ */
+export type SameHostAssertion = {
+    kind: 'assertion'
+    predicate: 'sameHost'
+    subject: Referent
+    object: Referent
+    negate: boolean
+}
+
+export type Assertion = ContainedByAssertion | SameHostAssertion
 
 export type UngroundedPlanStep = Change | Assertion
 
