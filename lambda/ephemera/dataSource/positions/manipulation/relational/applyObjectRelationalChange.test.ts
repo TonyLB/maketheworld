@@ -14,7 +14,6 @@ jest.mock('../../../../internalCache', () => ({
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
-            getPositionGraph: jest.fn(),
             set: jest.fn(),
         },
     },
@@ -48,21 +47,10 @@ describe('applyObjectRelationalChange', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(roomGraphWithObjects)
     })
 
-    it('skips side-effect bundle when relation is unchanged', async () => {
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(
-            testPositionGraph(ROOM_ID, {
-                nodes: roomGraphWithObjects.toStored().nodes,
-                edges: [{
-                    tag: 'Relational' as const,
-                    from: BROOM_ID,
-                    to: TABLE_ID,
-                    kind: 'On' as const,
-                }],
-            })
-        )
+    it('skips side-effect bundle when the kernel reports no change (BD-15/16 slice 3: decided live, not precomputed)', async () => {
+        applyHostRelationalPatchMock.mockResolvedValue({ ok: true, persisted: false, changed: false })
 
         const result = await applyObjectRelationalChange(
             {
@@ -76,9 +64,35 @@ describe('applyObjectRelationalChange', () => {
         )
 
         expect(result).toEqual({ ok: true, changed: false })
-        expect(applyHostRelationalPatchMock).not.toHaveBeenCalled()
+        expect(applyHostRelationalPatchMock).toHaveBeenCalledTimes(1)
         expect(messageBus.publish).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
+    })
+
+    it('surfaces a kernel failure', async () => {
+        applyHostRelationalPatchMock.mockResolvedValue({
+            ok: false,
+            errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED',
+            errorMessage: 'stale candidate',
+        })
+
+        const result = await applyObjectRelationalChange(
+            {
+                subjectId: BROOM_ID,
+                targetId: TABLE_ID,
+                roomId: ROOM_ID,
+                relationKind: 'On',
+                operation: 'establish',
+            },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result).toEqual({
+            ok: false,
+            errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED',
+            errorMessage: 'stale candidate',
+        })
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('runs relational-changed bundle on successful establish', async () => {

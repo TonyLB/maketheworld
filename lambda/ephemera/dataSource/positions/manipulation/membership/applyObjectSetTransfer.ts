@@ -11,7 +11,7 @@ import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
 import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
-import { EphemeraPositionGraph, fromCharacterMeta, fromRoomMeta } from '../../positionGraph'
+import { EphemeraPositionGraph, graphFromMeta, hostDataCategory } from '../../positionGraph'
 import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
 import type { DropSetApplyResult, ObjectSetMembershipDiff, TakeHoldSetApplyResult } from './types'
 
@@ -31,12 +31,6 @@ export type ApplyObjectSetTransferDependencies = {
 }
 
 type ObjectSetTransferTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
-
-const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
-    isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'
-
-const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraPositionGraph =>
-    isEphemeraRoomId(hostId) ? fromRoomMeta(meta, hostId) : fromCharacterMeta(meta, hostId)
 
 const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
     for (const graph of graphs) {

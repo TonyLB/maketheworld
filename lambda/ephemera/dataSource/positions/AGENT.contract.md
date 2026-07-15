@@ -234,9 +234,9 @@ v1 **`HostRelationalEdgeKind`** on stored forward-graph edges **must** be one of
 
 Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optional label); positions **must** trust ingress **`kind`** / **`relationLabel`** at apply (same pattern as trusted **`objectId`** on **`Object Take Hold`**). Implementation: [`normalizeRelationSpan`](../actions/enrich/objectManipulation/normalizeRelationSpan.ts) + [`relationKind`](../actions/enrich/objectManipulation/relationKind.ts) types in actions enrich (B2 shipped). B3 legality pre-ingress: [`evaluateRelationalLegality`](../actions/enrich/objectManipulation/evaluateRelationalLegality.ts) observes host graph via read-only **`EphemeraPositionGraph`** from [`positionGraph/`](positionGraph/); stored edge wire shape is **`EphemeraPositionRelationalEdgeData`** (`tag: 'Relational'` on host **`positionGraph.edges`**); gateway read projection passes through stored relational edges ([`packages/mtw-gateways/ts/ephemera/positions/project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)).
 
-### Edge persist shape (BD-3)
+### Edge persist shape (BD-3; host widened BD-15/16 slice 3, 2026-07-15)
 
-Relational mutations **must** persist on a **fixed host** **`Meta::Room.positionGraph`** forward graph only (v1 host: actor's current room --- **BD-6**). **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4)).
+Relational mutations **must** persist on a **fixed host** **`Meta::Room.positionGraph`** or **`Meta::Character.positionGraph`** forward graph only --- **`hostId`** was Room-only through B4 (v1 host: actor's current room --- **BD-6**); the kernel now accepts either (BD-15/16: a held-item relation can target the acting character's own inventory graph). Production ingress (`RelationalIngressArgs.roomId`, the compiler, and the bus payload) still only ever supplies a Room id today --- widening those to reach the held-item case end-to-end is BD-15/16 slice 4, not yet shipped; this slice only made the kernel structurally capable. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4)).
 
 **`HostRelationalPatch`** (kernel input; one add or remove on one host):
 
@@ -252,7 +252,7 @@ type HostRelationalEdge = {
 }
 
 type HostRelationalPatch = {
-    hostId: EphemeraRoomId
+    hostId: EphemeraMembershipHostId
     edge: HostRelationalEdge
     op: 'add' | 'remove'
 }
@@ -269,6 +269,7 @@ type HostRelationalPatch = {
 - All **`establishRelation`** / **`dissolveRelation`** applies **must** route through **`applyHostRelationalPatch`** (explicit **`HostRelationalPatch[]`** only --- **must not** extend **`applyHostEffects`** with edge mutations).
 - Phase C composed commands (**drop** + **`establishRelation`**, etc.) **must** bundle membership **`HostEffect[]`** + **`HostRelationalPatch[]`** in **one** **`transactWrite`** (atomic all-or-nothing --- **BD-9**); **must not** apply membership and relational patches as independent transacts with partial commit.
 - Kernel **must** validate edge presence/absence before transact; on conflict **`positionGraph` wins** (same authority as membership graph).
+- **Redesigned as a `MultiKeyUpdate` reducer (BD-15/16 slice 3, 2026-07-15):** `applyHostRelationalPatch` re-runs `EphemeraPositionGraph.applyRelationalPatch` itself --- the single shared legality authority, including `bothObjectsOnGraph` --- against freshly-fetched graphs inside the transaction, and throws to abort on any staleness or illegality. This replaced an earlier fetch-then-simulate-then-separately-transact design that had a genuine race (legality checked once against a snapshot, then blindly applied at commit with no re-validation) --- the same class of bug Arc A already fixed for `transferMembership` (`applyTransferSet`/`applyObjectSetTransfer`). A useful side effect: a `sameHost` violation discovered only at commit time (a concurrent write moved one of the objects since selection) is now caught live, for free, via the same `bothObjectsOnGraph` check --- not a bespoke `sameHost`-specific mechanism. Self-healing an enum-kind violation (recomputing a fresh repair and bundling it atomically) is **not** attempted --- a stale assumption of any kind simply fails the whole transact with one generic error code (`HOST_RELATIONAL_PATCH_TRANSACT_FAILED`), consistent with BD-18's "interim, not a permanent design conclusion" framing.
 
 ### Legality (actions-owned pre-ingress; positions-owned at apply)
 

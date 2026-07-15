@@ -32,14 +32,10 @@ export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,
     deps: ApplyObjectRelationalChangeDependencies
 ): Promise<RelationalApplyResult> => {
-    const plan = await planHostRelationalPatch(args, deps.kernelPersist)
-
-    if (!plan.changed) {
-        return { ok: true, changed: false }
-    }
+    const patch = planHostRelationalPatch(args)
 
     const kernelResult = await applyHostRelationalPatch(
-        { patches: [plan.patch] },
+        { patches: [patch] },
         deps.kernelPersist
     )
 
@@ -52,7 +48,7 @@ export const applyObjectRelationalChange = async (
         }
     }
 
-    if (!kernelResult.persisted) {
+    if (!kernelResult.persisted || !kernelResult.changed) {
         return { ok: true, changed: false }
     }
 
