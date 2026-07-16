@@ -93,10 +93,10 @@ Second kernel primitive: add/remove **edges** on a fixed host **`positionGraph`*
 Per-operator ingress (relational)     Object Establish Relation | Object Dissolve Relation
         |
         v
-planHostRelationalPatch               graph observation -> HostRelationalPatch + changed gate
+planHostRelationalPatch               pure builder: RelationalIngressArgs -> HostRelationalPatch
         |
         v
-applyHostRelationalPatch (kernel)     validate + apply patches on affected hosts only
+applyHostRelationalPatch (kernel)     MultiKeyUpdate: re-validate live, apply patches on affected hosts
         |
         v
 applyObjectRelationalChange           Object Relation Changed fact, cache seed, RoomUpdate
@@ -104,18 +104,19 @@ applyObjectRelationalChange           Object Relation Changed fact, cache seed, 
 
 Relational ops **do not** route through the **shared membership adapter**. Membership transfer and relational patch may **compose** in Phase C (**BD-9** compound transact); each primitive keeps its own kernel entry.
 
+**Redesigned as a `MultiKeyUpdate` reducer (BD-15/16 slice 3, 2026-07-15)**, mirroring `applyObjectSetTransfer.ts`'s Pipeline A -> B migration Slice 3 redesign: the earlier fetch-then-simulate-then-separately-transact design had the exact same race Arc A already fixed once for `transferMembership` --- legality was checked once against a snapshot (`validateAndSimulatePatches`, since removed), then the commit-time reducer (`hostRelationalPatchTransactItems.ts`, since deleted) blindly applied the precomputed edge with no re-validation. `planHostRelationalPatch.ts` compounded this: it did its own separate fetch purely to precompute a `changed` gate that `applyObjectRelationalChange.ts` used to **skip calling the kernel entirely** on an apparent no-op --- a stale snapshot there could silently skip a command that should have taken effect, never even reaching persistence. Both are fixed: `planHostRelationalPatch` is now a pure, synchronous builder (no fetch, no `changed` field); the kernel is always called; `changed` is now computed live inside the reducer (`!next.equals(prior)` per host, threaded through a closure) and gates the fact-stream/`RoomUpdate` publish in `applyObjectRelationalChange.ts`. **BD-15/16 slice 4 (2026-07-16):** production can now genuinely produce a Character `hostId` --- the compiler (`compileRelational.ts`) fetches both the room's and the acting character's own inventory graph and tries both via `expandSameHost` (already-satisfied same-host case only; cross-host repair declines cleanly, C2 not yet built). `applyObjectRelationalChange.ts`'s cache-seeding (renamed `seedGraphMemos`, was `seedRoomGraphMemos`) fixed to call `internalCache.Positions.set` unconditionally rather than skipping non-Room graphs entirely --- the old version would have left a Character's cached `positionGraph` stale after every such write; `RoomUpdate` publish is now guarded on `isEphemeraRoomId(hostId)`.
+
 | Item | Shipped value |
 | --- | --- |
-| **Kernel entry** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) |
-| **Transact builder** | [`relational/hostRelationalPatchTransactItems.ts`](relational/hostRelationalPatchTransactItems.ts) |
-| **Edge helpers** | [`../positionGraph/`](../positionGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators) |
-| **Planner** | [`relational/planHostRelationalPatch.ts`](relational/planHostRelationalPatch.ts) |
+| **Kernel entry** | [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) --- `MultiKeyUpdate`-based; `transactWrite`'s own internal fetch is the only fetch performed |
+| **Edge helpers** | [`../positionGraph/`](../positionGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
+| **Planner** | [`relational/planHostRelationalPatch.ts`](relational/planHostRelationalPatch.ts) --- pure, synchronous |
 | **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
 | **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
-| **Types** | `HostRelationalPatch` in [`types.ts`](types.ts) |
+| **Types** | `HostRelationalPatch` in [`types.ts`](types.ts) --- `hostId: EphemeraMembershipHostId` (widened from `EphemeraRoomId`, BD-15/16 slice 3) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4) |
 
-**Kernel contract:** explicit **`HostRelationalPatch[]`** only; `getPositionGraph` on affected room hosts; validate nodes on graph; **`op: 'add'`** idempotent when exact edge present; reject **`op: 'remove'`** when absent; single transact; **`postApplyGraphs`** output; **no** adjacency dual-write.
+**Kernel contract:** explicit **`HostRelationalPatch[]`** only; reducer re-runs `EphemeraPositionGraph.applyRelationalPatch` (the shared legality authority, including `bothObjectsOnGraph`) against freshly-fetched graphs, one `MultiKeyUpdate` key per distinct affected host (Room or Character); **`op: 'add'`** idempotent when exact edge present (detected live); reject **`op: 'remove'`** when absent; throws to abort the whole transact on any staleness/illegality (single error code, `HOST_RELATIONAL_PATCH_TRANSACT_FAILED`, for all failures --- same collapse-to-failure precedent as `applyObjectSetTransfer.ts`, same BD-18 caveat: interim, not permanent); **`postApplyGraphs`** output; **no** adjacency dual-write.
 
 ---
 
@@ -366,7 +367,7 @@ Shared primitives consumed by kernel: [`../positionGraph/`](../positionGraph/), 
 | [`membership/applyObjectSetTakeHold.ts`](membership/applyObjectSetTakeHold.ts) | Thin directional wrapper over [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (replaces the deleted singular `applyObjectTakeHold.ts`) |
 | [`membership/executeObjectDrop.ts`](membership/executeObjectDrop.ts) | `Object Drop` ingress entry (widened to `objectIds: EphemeraObjectId[]`, 2026-07-15) |
 | [`membership/applyObjectSetDrop.ts`](membership/applyObjectSetDrop.ts) | Thin directional wrapper over [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (replaces the deleted singular `applyObjectDrop.ts`) |
-| [`membership/applyObjectSetTransfer.ts`](membership/applyObjectSetTransfer.ts) | **Pipeline A -> B migration Slice 3 (2026-07-15); rewired onto the shared Expand+Validate core the same day.** Single MultiKeyUpdate-based kernel primitive for both take-hold and drop, any transfer-set size >=1. Issues exactly one `transactWrite` call --- no separate pre-fetch: a `MultiKeyUpdate` item (`Keys` = departure + arrival host) whose reducer looks up both draft entries structurally, runs an inline presence guard (every id in the transfer set present on the source graph, absent from the destination --- the one check with no equivalent in `applyTransferSet` or the compiler's locus check), then calls [`applyTransferSet`](../positionGraph/expandValidate/applyTransferSet.ts) against the freshly-fetched graphs (the *same* function the compiler's `sandboxStep.ts` uses at selection time) and throws to abort the whole transact on anything other than `legal`, rather than applying a stale plan. A thrown reducer error aborts before any `TransactWriteItemsCommand` is ever sent, so there's no "wasted write" a separate pre-check would protect against --- only a wasted extra fetch, which this version no longer pays. Plain sibling `Delete`/`Put` items per object build the `positionAdjacency#<hostId>` reverse-index rows (no `cascade` needed --- the transfer set and both host ids are caller-known before the reducer runs). Supersedes `applyHostEffects` + precomputed `HostRelationalEdgeCarry[]` for this operation; internal relational edges among the transfer set are derived live from the fetched source graph instead of passed in. `computeObjectSetTransfer.ts` (the bespoke, duplicate implementation this used before the rewire) is deleted. |
+| [`membership/applyObjectSetTransfer.ts`](membership/applyObjectSetTransfer.ts) | **Pipeline A -> B migration Slice 3 (2026-07-15); rewired onto the shared Expand+Validate core the same day.** Single MultiKeyUpdate-based kernel primitive for both take-hold and drop, any transfer-set size >=1. Issues exactly one `transactWrite` call --- no separate pre-fetch: a `MultiKeyUpdate` item (`Keys` = departure + arrival host) whose reducer looks up both draft entries structurally, runs an inline presence guard (every id in the transfer set present on the source graph, absent from the destination --- the one check with no equivalent in `applyTransferSet` or the compiler's locus check), then calls [`applyTransferSet`](../positionGraph/expandValidate/applyTransferSet.ts) against the freshly-fetched graphs (the *same* function the compiler's `sandboxStep.ts` uses at selection time) and throws to abort the whole transact on anything other than `legal`, rather than applying a stale plan. **Note (2026-07-15):** this collapses a freshly-discovered `defer` (e.g. a `Custom`-kind boundary edge that only appeared between selection and commit) into the same generic transaction-abort as a hard `illegal` --- a real, working answer today, but confirmed (see BD-18, `AGENT.manipulationFrameAndRelational.planning.md`) to be an interim stand-in for a not-yet-built persistence-level backtrack channel, not a permanent design conclusion. A thrown reducer error aborts before any `TransactWriteItemsCommand` is ever sent, so there's no "wasted write" a separate pre-check would protect against --- only a wasted extra fetch, which this version no longer pays. Plain sibling `Delete`/`Put` items per object build the `positionAdjacency#<hostId>` reverse-index rows (no `cascade` needed --- the transfer set and both host ids are caller-known before the reducer runs). Supersedes `applyHostEffects` + precomputed `HostRelationalEdgeCarry[]` for this operation; internal relational edges among the transfer set are derived live from the fetched source graph instead of passed in. `computeObjectSetTransfer.ts` (the bespoke, duplicate implementation this used before the rewire) is deleted. |
 | [`membership/characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) | Character-host graph + adjacency transact builders (kernel reuse) |
 | [`membership/types.ts`](membership/types.ts) | Cross-host diff + apply result types |
 
@@ -374,7 +375,7 @@ Shared primitives consumed by kernel: [`../positionGraph/`](../positionGraph/), 
 
 | Path | Role |
 | --- | --- |
-| [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove |
+| [`applyHostRelationalPatch.ts`](applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove. `MultiKeyUpdate`-based (BD-15/16 slice 3, 2026-07-15) --- accepts Room or Character hosts, re-validates live at commit |
 | [`relational/`](relational/) | Per-operator relational coordinators + planner + fact builders |
 
 Spec: [Section A --- Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).

@@ -313,9 +313,6 @@ export class EphemeraPositionGraph {
         if (patch.hostId !== this.hostId) {
             throw new Error(`HostRelationalPatch hostId ${patch.hostId} does not match graph hostId ${this.hostId}`)
         }
-        if (!isEphemeraRoomId(patch.hostId)) {
-            throw new Error(`Relational patch host must be a room: ${patch.hostId}`)
-        }
         if (patch.edge.kind === 'Custom' && typeof patch.edge.relationLabel !== 'string') {
             throw new Error('Custom relational edge requires relationLabel')
         }
@@ -379,3 +376,16 @@ export const fromCharacterMeta = (
     const record = meta as { positionGraph?: EphemeraPositionGraphFieldPayload }
     return EphemeraPositionGraph.fromFieldPayload(hostId, record.positionGraph ?? { nodes: [], edges: [] })
 }
+
+/**
+ * Shared Room/Character dispatch for kernel primitives that read/write a host's
+ * `Meta::Room`/`Meta::Character` record directly (`MultiKeyUpdate` reducers).
+ * Promoted here (2026-07-15, BD-15/16 slice 3) once a third call site
+ * (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
+ * in `applyObjectSetTransfer.ts`.
+ */
+export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
+    isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'
+
+export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraPositionGraph =>
+    isEphemeraRoomId(hostId) ? fromRoomMeta(meta, hostId) : fromCharacterMeta(meta, hostId)

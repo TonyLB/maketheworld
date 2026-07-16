@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { T_JOINT_ABS, T_JOINT_ABS_UNARY, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
@@ -63,7 +63,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: roomGraph },
+            dryRunContext: { roomGraph },
         })
 
         expect(result).toEqual({
@@ -72,6 +72,7 @@ describe('selectRelationalFromPools', () => {
             targetId: tableId,
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
+            hostId: roomId,
         })
     })
 
@@ -98,7 +99,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: roomGraph },
+            dryRunContext: { roomGraph },
         })
 
         expect(result.type).toBe('consult')
@@ -125,7 +126,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: roomGraph },
+            dryRunContext: { roomGraph },
         })
 
         expect(result).toEqual({
@@ -150,7 +151,7 @@ describe('selectRelationalFromPools', () => {
             relation: { type: 'enum', kind: 'On' },
             catalog,
             dryRunContext: {
-                positionGraph: testPositionGraph(roomId, {
+                roomGraph: testPositionGraph(roomId, {
                     nodes: [
                         { tag: 'Object' as const, universalKey: ghostId },
                         { tag: 'Object' as const, universalKey: tableId },
@@ -184,7 +185,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: roomGraph },
+            dryRunContext: { roomGraph },
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.sameSubjectAndTarget,
@@ -214,7 +215,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'dissolveRelation',
             relation: { type: 'custom', kind: 'Custom', relationLabel: 'wedged against' },
             catalog,
-            dryRunContext: { positionGraph: graphWithCustomEdge },
+            dryRunContext: { roomGraph: graphWithCustomEdge },
         })
 
         expect(result).toEqual({
@@ -223,6 +224,7 @@ describe('selectRelationalFromPools', () => {
             targetId: tableId,
             operationKind: 'dissolveRelation',
             relation: { type: 'custom', kind: 'Custom', relationLabel: 'wedged against' },
+            hostId: roomId,
         })
     })
 
@@ -251,7 +253,7 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: roomGraph },
+            dryRunContext: { roomGraph },
         })
 
         expect(roomGraph.relationalEdges).toEqual(edgesBefore)
@@ -273,10 +275,40 @@ describe('selectRelationalFromPools', () => {
             operationKind: 'establishRelation',
             relation: { type: 'enum', kind: 'On' },
             catalog,
-            dryRunContext: { positionGraph: emptyGraph },
+            dryRunContext: { roomGraph: emptyGraph },
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.notOnHostGraph,
+        })
+    })
+
+    it('declines a cross-host relation (subject held, target in room) as not-yet-supported repair (BD-15/16 slice 4c)', () => {
+        const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const characterGraph = testPositionGraph(characterId, {
+            nodes: [{ tag: 'Object' as const, universalKey: broomId }],
+        })
+        const roomOnlyGraph = testPositionGraph(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: tableId }],
+        })
+
+        expect(selectRelationalFromPools({
+            subjectPool: subjectPool([
+                {
+                    id: broomId,
+                    label: 'broom',
+                    jointRelevance: 1,
+                    sourceTags: ['exact'],
+                    locus: { kind: 'heldByActor' },
+                },
+            ]),
+            targetPool: targetPoolExact,
+            operationKind: 'establishRelation',
+            relation: { type: 'enum', kind: 'On' },
+            catalog,
+            dryRunContext: { roomGraph: roomOnlyGraph, characterGraph },
+        })).toEqual({
+            type: 'error',
+            errorMessage: objectManipulationErrorMessages.crossHostRepairNotYetSupported,
         })
     })
 })

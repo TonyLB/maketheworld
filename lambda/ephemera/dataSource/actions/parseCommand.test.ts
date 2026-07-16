@@ -1294,7 +1294,7 @@ describe('parseCommand LLM path', () => {
                 targetId: crateId,
                 relationKind: 'Custom',
                 relationLabel: 'off',
-                hostRoomId: 'ROOM#Bridge',
+                hostId: 'ROOM#Bridge',
                 confidence: 0.86,
             })
             expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
@@ -1483,7 +1483,7 @@ describe('parseCommand LLM path', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'On',
-            hostRoomId: 'ROOM#Bridge',
+            hostId: 'ROOM#Bridge',
             confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
@@ -1527,7 +1527,7 @@ describe('parseCommand LLM path', () => {
             subjectId: broomId,
             targetId: benchId,
             relationKind: 'Under',
-            hostRoomId: 'ROOM#Bridge',
+            hostId: 'ROOM#Bridge',
             confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()

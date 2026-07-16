@@ -281,7 +281,7 @@ describe('positions receive paths (integration)', () => {
                 characterId: CHARACTER_ID,
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
-                roomId: ROOM_A,
+                hostId: ROOM_A,
                 relationKind: 'On',
                 confidence: 0.9,
             })
@@ -293,7 +293,7 @@ describe('positions receive paths (integration)', () => {
                     characterId: CHARACTER_ID,
                     subjectId: 'OBJECT#Broom',
                     targetId: 'OBJECT#Table',
-                    roomId: ROOM_A,
+                    hostId: ROOM_A,
                     relationKind: 'On',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
@@ -310,7 +310,7 @@ describe('positions receive paths (integration)', () => {
                 characterId: CHARACTER_ID,
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
-                roomId: ROOM_A,
+                hostId: ROOM_A,
                 relationKind: 'On',
             })
 
@@ -321,7 +321,7 @@ describe('positions receive paths (integration)', () => {
                     characterId: CHARACTER_ID,
                     subjectId: 'OBJECT#Broom',
                     targetId: 'OBJECT#Table',
-                    roomId: ROOM_A,
+                    hostId: ROOM_A,
                     relationKind: 'On',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),

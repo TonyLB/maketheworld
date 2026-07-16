@@ -1,5 +1,5 @@
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import type { RelationalOperationKind } from '../../baseClasses'
@@ -16,7 +16,18 @@ import {
     type SelectPlanTupleResult,
 } from './selectIdentityPlanTuple'
 import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
-import type { DryRunOutcome, ValidateRelationalPlanContext } from './validatePlanDryRun'
+import { expandSameHost } from './synthesize/expandSameHost'
+import type { DryRunOutcome } from './validatePlanDryRun'
+
+/**
+ * Candidate host graphs for relational host selection (BD-15/16 slice 4c) --- both
+ * optional since either the room or the acting character's own inventory graph may
+ * be unavailable (e.g. a roomless character, or one holding neither object).
+ */
+export type RelationalDryRunContext = {
+    roomGraph?: EphemeraPositionGraph
+    characterGraph?: EphemeraPositionGraph
+}
 
 export type SelectRelationalFromPoolsResult =
     | {
@@ -25,6 +36,7 @@ export type SelectRelationalFromPoolsResult =
         targetId: EphemeraObjectId
         operationKind: RelationalOperationKind
         relation: NormalizedRelation
+        hostId: EphemeraMembershipHostId
     }
     | {
         type: 'consult'
@@ -45,7 +57,7 @@ export type SelectRelationalFromPoolsInput = {
     operationKind: RelationalOperationKind
     relation: NormalizedRelation
     catalog: readonly ObjectManipulationCatalogEntry[]
-    dryRunContext: ValidateRelationalPlanContext
+    dryRunContext: RelationalDryRunContext
     /** Optional relation phrase override for Consult copy (defaults from relation). */
     relationPhrase?: string
 }
@@ -94,7 +106,7 @@ export function selectRelationalFromPools(
     const selection = selectPlanTuple({
         candidates: tuples,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: (candidate) => sandboxRelationalDryRun(candidate, dryRunContext.positionGraph),
+        dryRun: (candidate) => sandboxRelationalDryRun(candidate, dryRunContext.roomGraph, dryRunContext.characterGraph),
         toConsultAlternative: (candidate) =>
             relationalConsultAlternative(candidate, phrase),
     })
@@ -104,33 +116,80 @@ export function selectRelationalFromPools(
 
 /**
  * Production dry-run via the sandbox (`evaluateSandboxPlan`/`applyRelationalStep`),
- * promoting the pattern `sandboxSelectorReadiness.test.ts` proved out --- the
- * relational path is a pure refactor here: exactly one host graph is fetched
- * by this function's caller (`compileRelational.ts`), and it's exactly the
- * one `applyRelationalStep` needs (establishRelation/dissolveRelation are
- * structurally single-room operations, BD-6). Discards `outcome.state`
- * deliberately --- this is a per-candidate legality probe during selection,
- * not a commit; only the resolved candidate's effect should ever persist,
- * and that persistence happens later, through the real kernel path, not here.
+ * promoting the pattern `sandboxSelectorReadiness.test.ts` proved out. Host selection
+ * (BD-15/16 slice 4c) reuses `expandSameHost` (Slice 2) directly against whichever
+ * candidate graphs are available --- the same `satisfied`/`repaired`/`defer`/`error`
+ * classification Pipeline B's Synthesize stage already has, tested, rather than a
+ * second implementation of the same rule. `negate: false` always --- Pipeline A has
+ * no `Assertion`/negate concept. `repaired` (a genuine cross-host fix, e.g. "put tray
+ * on table" when the tray is held) needs compound atomic apply (C2, not yet built),
+ * so it's declined cleanly here, not attempted. Discards `outcome.state` deliberately
+ * --- this is a per-candidate legality probe during selection, not a commit; only the
+ * resolved candidate's effect should ever persist, and that persistence happens later,
+ * through the real kernel path, not here.
  */
 const sandboxRelationalDryRun = (
     candidate: RelationalIdentityPlanCandidate,
-    positionGraph: EphemeraPositionGraph
+    roomGraph?: EphemeraPositionGraph,
+    characterGraph?: EphemeraPositionGraph
 ): DryRunOutcome => {
-    const { hostId } = positionGraph
-    if (!isEphemeraRoomId(hostId)) {
+    const graphsByHost = new Map<EphemeraMembershipHostId, EphemeraPositionGraph>()
+    if (roomGraph) {
+        graphsByHost.set(roomGraph.hostId, roomGraph)
+    }
+    if (characterGraph) {
+        graphsByHost.set(characterGraph.hostId, characterGraph)
+    }
+
+    const getCurrentHost = (id: EphemeraObjectId): EphemeraMembershipHostId | undefined => {
+        for (const graph of graphsByHost.values()) {
+            if (graph.objectIds.has(id)) {
+                return graph.hostId
+            }
+        }
+        return undefined
+    }
+    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraPositionGraph | undefined => graphsByHost.get(hostId)
+
+    const sameHostResult = expandSameHost(
+        {
+            subjectId: candidate.subject.objectId,
+            objectId: candidate.target.objectId,
+            relationKind: candidate.plan.relation.kind,
+            negate: false,
+        },
+        getCurrentHost,
+        getGraph
+    )
+
+    if (sameHostResult.verdict === 'error') {
         return {
             verdict: 'illegal',
             decidable: true,
             reason: objectManipulationErrorMessages.notOnHostGraph,
         }
     }
+    if (sameHostResult.verdict === 'repaired') {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: objectManipulationErrorMessages.crossHostRepairNotYetSupported,
+        }
+    }
+    if (sameHostResult.verdict === 'defer') {
+        return {
+            verdict: 'defer',
+            decidable: sameHostResult.decidable,
+            reason: sameHostResult.reason,
+        }
+    }
 
-    const state = buildSandboxState([positionGraph])
+    const { hostId } = sameHostResult
+    const state = buildSandboxState([...graphsByHost.values()])
     const outcome = evaluateSandboxPlan(state, [{ kind: 'relational', candidate, hostId }])
 
     return outcome.verdict === 'legal'
-        ? { verdict: 'legal', decidable: true }
+        ? { verdict: 'legal', decidable: true, hostId }
         : { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
 }
 
@@ -189,6 +248,10 @@ function mapSelection(
         targetId: candidate.target.objectId,
         operationKind: candidate.plan.operationKind,
         relation: candidate.plan.relation,
+        // Non-null: a 'resolved' verdict only reaches here from a legal dry run, which
+        // always sets `hostId` (sandboxRelationalDryRun above) --- the type just doesn't
+        // encode that invariant across the DryRunOutcome/SelectPlanTupleResult boundary.
+        hostId: selection.dryRun.hostId!,
     }
 }
 

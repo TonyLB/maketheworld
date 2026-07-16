@@ -42,8 +42,7 @@ function findMatchingEdge(
 }
 
 export function evaluateRelationalLegality(input: RelationalLegalityInput): RelationalLegalityOutcome {
-    const objectIdsOnGraph = input.graph.objectIds
-    if (!objectIdsOnGraph.has(input.subjectId) || !objectIdsOnGraph.has(input.targetId)) {
+    if (!input.graph.bothObjectsOnGraph(input.subjectId, input.targetId)) {
         return {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.notOnHostGraph,

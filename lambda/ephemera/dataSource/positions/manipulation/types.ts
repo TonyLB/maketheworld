@@ -48,9 +48,9 @@ export type HostRelationalEdge = {
     relationLabel?: string
 }
 
-/** One add/remove of an in-host relational edge on a fixed room host graph. */
+/** One add/remove of an in-host relational edge on a fixed host graph (Room or Character). */
 export type HostRelationalPatch = {
-    hostId: EphemeraRoomId
+    hostId: EphemeraMembershipHostId
     edge: HostRelationalEdge
     op: 'add' | 'remove'
 }

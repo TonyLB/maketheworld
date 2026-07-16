@@ -316,7 +316,7 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         characterId: 'CHARACTER#test',
         subjectId: 'OBJECT#Broom',
         targetId: 'OBJECT#Table',
-        roomId: 'ROOM#from',
+        hostId: 'ROOM#from',
         relationKind: 'On' as const,
     }
 
@@ -350,7 +350,7 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
     it('rejects invalid ids', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
-        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'OBJECT#x' })).toBe(false)
     })
 })
 
@@ -360,7 +360,7 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
         characterId: 'CHARACTER#test',
         subjectId: 'OBJECT#Broom',
         targetId: 'OBJECT#Table',
-        roomId: 'ROOM#from',
+        hostId: 'ROOM#from',
         relationKind: 'On' as const,
     }
 

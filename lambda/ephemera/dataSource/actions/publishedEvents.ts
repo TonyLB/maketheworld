@@ -12,6 +12,8 @@ import {
     isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { areCoyoteObjectTropeFieldsValid } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
@@ -72,7 +74,8 @@ export type ObjectEstablishRelationPublishedPayload = {
     characterId: EphemeraCharacterId;
     subjectId: EphemeraObjectId;
     targetId: EphemeraObjectId;
-    roomId: EphemeraRoomId;
+    /** Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only `roomId`). */
+    hostId: EphemeraMembershipHostId;
     relationKind: HostRelationalEdgeKindPublished;
     relationLabel?: string;
     confidence?: number;
@@ -83,7 +86,8 @@ export type ObjectDissolveRelationPublishedPayload = {
     characterId: EphemeraCharacterId;
     subjectId: EphemeraObjectId;
     targetId: EphemeraObjectId;
-    roomId: EphemeraRoomId;
+    /** Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only `roomId`). */
+    hostId: EphemeraMembershipHostId;
     relationKind: HostRelationalEdgeKindPublished;
     relationLabel?: string;
     confidence?: number;
@@ -99,7 +103,7 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
     if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
         return false
     }
-    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
+    if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
         return false
     }
     if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS_PUBLISHED.has(v.relationKind as HostRelationalEdgeKindPublished)) {

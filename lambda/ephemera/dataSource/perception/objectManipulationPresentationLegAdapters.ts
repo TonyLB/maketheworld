@@ -9,6 +9,7 @@ import {
     HeaderGuard,
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     ObjectDissolveRelationPublishedPayload,
     ObjectDropPublishedPayload,
@@ -172,7 +173,10 @@ export const toObjectManipulationPresentationLeg = async (
 
     if (isPerceptionActionsObjectEstablishRelationEnvelope(envelope)) {
         const content = await envelope.getContent()
-        if (!isObjectEstablishRelationPublishedPayload(content)) {
+        if (!isObjectEstablishRelationPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
+            // Character-hosted relation narration is unresolved UX/copy design (BD-15/16),
+            // same precondition BD-13's carried-set narration had before it shipped ---
+            // not built here.
             return []
         }
         return [{
@@ -181,7 +185,7 @@ export const toObjectManipulationPresentationLeg = async (
             characterId: content.characterId,
             subjectId: content.subjectId,
             targetId: content.targetId,
-            roomId: content.roomId,
+            roomId: content.hostId,
             relationKind: content.relationKind,
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
         }]
@@ -189,7 +193,8 @@ export const toObjectManipulationPresentationLeg = async (
 
     if (isPerceptionActionsObjectDissolveRelationEnvelope(envelope)) {
         const content = await envelope.getContent()
-        if (!isObjectDissolveRelationPublishedPayload(content)) {
+        if (!isObjectDissolveRelationPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
+            // See the establishRelation branch above --- Character-hosted narration not built yet.
             return []
         }
         return [{
@@ -198,7 +203,7 @@ export const toObjectManipulationPresentationLeg = async (
             characterId: content.characterId,
             subjectId: content.subjectId,
             targetId: content.targetId,
-            roomId: content.roomId,
+            roomId: content.hostId,
             relationKind: content.relationKind,
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
         }]
@@ -220,14 +225,15 @@ export const toObjectManipulationPresentationLeg = async (
 
     if (isPerceptionPositionsObjectRelationChangedEnvelope(envelope)) {
         const content = await envelope.getContent()
-        if (!isObjectRelationChangedPublishedPayload(content)) {
+        if (!isObjectRelationChangedPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
+            // See the establishRelation branch above --- Character-hosted narration not built yet.
             return []
         }
         return [{
             kind: 'relationalFact',
             subjectId: content.subjectId,
             targetId: content.targetId,
-            hostRoomId: content.hostRoomId,
+            hostRoomId: content.hostId,
             relationKind: content.relationKind,
             ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
             operation: content.operation,

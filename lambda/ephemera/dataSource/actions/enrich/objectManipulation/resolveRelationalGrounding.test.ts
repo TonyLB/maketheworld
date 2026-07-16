@@ -31,6 +31,23 @@ describe('resolveRelationalGrounding', () => {
         }
     })
 
+    it('resolves a held-only subject span against heldInventoryCatalog (BD-15/16 slice 4b)', async () => {
+        const stringId = 'OBJECT#String' as EphemeraObjectId
+        const result = await resolveRelationalGrounding(
+            'wrap string around top',
+            'string',
+            'top',
+            [{ objectId: tableId, normalizedShortName: 'top' }],
+            [{ objectId: stringId, normalizedShortName: 'string' }]
+        )
+
+        expect(result.type).toBe('success')
+        if (result.type === 'success') {
+            expect(result.subjectPool.candidates[0]!.id).toBe(stringId)
+            expect(result.targetPool.candidates[0]!.id).toBe(tableId)
+        }
+    })
+
     it('emits pools for same-span subject/target (selection owns same-id error)', async () => {
         const result = await resolveRelationalGrounding(
             'put broom on broom',
@@ -91,6 +108,7 @@ describe('resolveRelationalGrounding', () => {
             'sweeping tool',
             'table',
             catalog,
+            undefined,
             { embedSpan }
         )
 
@@ -132,6 +150,7 @@ describe('resolveRelationalGrounding', () => {
             'sweeping tool',
             'Sweeping Tool',
             catalog,
+            undefined,
             { embedSpan }
         )
 
@@ -154,6 +173,7 @@ describe('resolveRelationalGrounding', () => {
                 },
                 { objectId: tableId, normalizedShortName: 'table' },
             ],
+            undefined,
             { embedSpan }
         )
 

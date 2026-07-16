@@ -6,7 +6,7 @@ import type {
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 
-import { catalogWithScope } from './catalogMerge'
+import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { ManipulationFrame } from './manipulationFrame'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { normalizeRelationSpan } from './normalizeRelationSpan'
@@ -45,7 +45,17 @@ export async function compileRelational(
         }
     }
 
-    if (frame.hostRoomId === undefined) {
+    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
+    // Both candidate hosts are fetched up front (BD-15/16 slice 4c), mirroring
+    // compileMembershipAtomic.ts's existing dual room/character fetch --- host
+    // selection (which of the two, if either, actually satisfies sameHost) happens
+    // later, per candidate, in selectRelationalFromPools's dry run.
+    const [roomGraph, characterGraph] = await Promise.all([
+        frame.hostRoomId !== undefined ? positionsReadDeps.getPositionGraph(frame.hostRoomId) : undefined,
+        frame.characterId !== undefined ? positionsReadDeps.getPositionGraph(frame.characterId) : undefined,
+    ])
+
+    if (!roomGraph && !characterGraph) {
         return {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.noHostRoom,
@@ -57,15 +67,14 @@ export async function compileRelational(
         frame.subjectSpan,
         frame.targetSpan,
         frame.roomObjectCatalog,
+        frame.heldInventoryCatalog,
         deps
     )
     if (grounding.type === 'error') {
         return { type: 'Error', errorMessage: grounding.errorMessage }
     }
 
-    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const graph = await positionsReadDeps.getPositionGraph(frame.hostRoomId)
-    const catalog = catalogWithScope(frame.roomObjectCatalog ?? [], 'room')
+    const catalog = mergeObjectManipulationCatalogs(frame.roomObjectCatalog ?? [], frame.heldInventoryCatalog ?? [])
     const relation = norm.relation
 
     const selection = selectRelationalFromPools({
@@ -74,7 +83,7 @@ export async function compileRelational(
         operationKind: frame.operationKind,
         relation,
         catalog,
-        dryRunContext: { positionGraph: graph },
+        dryRunContext: { roomGraph, characterGraph },
         relationPhrase: relationPhraseFromNormalized(relation),
     })
 
@@ -108,7 +117,7 @@ export async function compileRelational(
         ...(selection.relation.type === 'custom'
             ? { relationLabel: selection.relation.relationLabel }
             : {}),
-        hostRoomId: frame.hostRoomId,
+        hostId: selection.hostId,
         confidence: intentConfidence,
     }
 }

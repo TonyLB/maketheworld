@@ -51,7 +51,7 @@ describe('compileRelational', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'On',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.9,
         })
     })

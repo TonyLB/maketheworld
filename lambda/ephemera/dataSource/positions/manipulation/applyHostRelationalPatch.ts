@@ -1,68 +1,45 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../../internalCache'
-import { EphemeraPositionGraph } from '../positionGraph'
+import { EphemeraPositionGraph, graphFromMeta, hostDataCategory } from '../positionGraph'
 import type {
     ApplyHostRelationalPatchArgs,
     ApplyHostRelationalPatchResult,
     HostRelationalPatch,
 } from './types'
-import { buildHostRelationalPatchTransactItems } from './relational/hostRelationalPatchTransactItems'
 
 export type ApplyHostRelationalPatchDependencies = {
-    getPositionGraph?: (hostId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
     transactWrite?: typeof ephemeraDB.transactWrite
 }
 
-const defaultGetPositionGraph = async (hostId: EphemeraRoomId): Promise<EphemeraPositionGraph> =>
-    internalCache.Positions.getPositionGraph(hostId)
+type HostRelationalPatchTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
 
-const affectedHostIds = (patches: HostRelationalPatch[]): EphemeraRoomId[] =>
+const affectedHostIds = (patches: HostRelationalPatch[]): EphemeraMembershipHostId[] =>
     [...new Set(patches.map((patch) => patch.hostId))]
 
-const validateAndSimulatePatches = (
-    patches: HostRelationalPatch[],
-    graphsByHost: Map<EphemeraRoomId, EphemeraPositionGraph>
-):
-    | { ok: true; changed: boolean; postApplyGraphs: EphemeraPositionGraph[] }
-    | { ok: false; errorCode: string; errorMessage: string } => {
-    let anyChanged = false
-    const workingGraphs = new Map<EphemeraRoomId, EphemeraPositionGraph>()
-
-    for (const patch of patches) {
-        const prior = workingGraphs.get(patch.hostId) ?? graphsByHost.get(patch.hostId)
-        if (!prior) {
-            return {
-                ok: false,
-                errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: `Missing graph for host ${patch.hostId}`,
-            }
-        }
-
-        try {
-            const next = prior.applyRelationalPatch(patch)
-            if (!next.equals(prior)) {
-                anyChanged = true
-            }
-            workingGraphs.set(patch.hostId, next)
-        }
-        catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            return {
-                ok: false,
-                errorCode: 'HOST_RELATIONAL_PATCH_VALIDATION_FAILED',
-                errorMessage: message,
-            }
-        }
-    }
-
-    return {
-        ok: true,
-        changed: anyChanged,
-        postApplyGraphs: [...workingGraphs.values()],
-    }
-}
-
+/**
+ * `MultiKeyUpdate`-based kernel primitive for `establishRelation`/`dissolveRelation`
+ * (BD-15/16 slice 3, 2026-07-15) --- supersedes the earlier fetch-then-simulate-
+ * then-separately-transact design, which had the exact same latent race Arc A
+ * already fixed once for `transferMembership` (BD-13 slice 3): legality was
+ * checked once against a snapshot (`validateAndSimulatePatches`), then the actual
+ * commit-time reducer (formerly `hostRelationalPatchTransactItems.ts`) blindly
+ * applied the precomputed edge to whatever the live draft contained, with no
+ * re-validation. This version reruns `EphemeraPositionGraph.applyRelationalPatch`
+ * itself --- the single shared legality authority, already host-agnostic (`bothObjectsOnGraph`,
+ * duplicate-edge idempotency, `Custom`-label requirement) --- against freshly-fetched
+ * graphs inside the reducer, and throws to abort the whole transact on any
+ * staleness or illegality, rather than trusting an earlier snapshot. `transactWrite`'s
+ * own internal `MultiKeyUpdate` fetch is the only fetch this function performs.
+ *
+ * A useful side effect of reusing `applyRelationalPatch` directly: a `sameHost`
+ * (BD-15/16) violation discovered only at commit time (a concurrent write moved
+ * one of the objects since selection) is caught here for free, via `bothObjectsOnGraph`,
+ * and fails the transact with the same single generic error code every other
+ * staleness/illegality case gets --- not a bespoke `sameHost`-specific check.
+ * Self-healing an enum-kind violation (recomputing a fresh `transferMembership`
+ * repair and bundling it atomically) is not attempted here --- that needs compound
+ * atomic bundling (BD-9) and remains named-but-not-built future work (see BD-18).
+ */
 export const applyHostRelationalPatch = async (
     args: ApplyHostRelationalPatchArgs,
     deps?: ApplyHostRelationalPatchDependencies
@@ -73,58 +50,80 @@ export const applyHostRelationalPatch = async (
         return { ok: true, persisted: false, changed: false }
     }
 
-    const getPositionGraph = deps?.getPositionGraph ?? defaultGetPositionGraph
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
 
     const hostIds = affectedHostIds(patches)
-    const graphsByHost = new Map<EphemeraRoomId, EphemeraPositionGraph>()
 
-    await Promise.all(
-        hostIds.map(async (hostId) => {
-            const graph = await getPositionGraph(hostId)
-            graphsByHost.set(hostId, graph)
-        })
-    )
+    let anyChanged = false
+    let postApplyGraphs: EphemeraPositionGraph[] | undefined
 
-    const simulation = validateAndSimulatePatches(patches, graphsByHost)
-    if (!simulation.ok) {
-        return simulation
-    }
+    const multiKeyItem: HostRelationalPatchTransactItem = {
+        MultiKeyUpdate: {
+            Keys: hostIds.map((hostId) => ({ EphemeraId: hostId, DataCategory: hostDataCategory(hostId) })),
+            updateKeys: ['positionGraph'],
+            reducer: (draft: Record<string, any>) => {
+                const graphs: EphemeraPositionGraph[] = []
+                for (const hostId of hostIds) {
+                    const entry = Object.values(draft).find(
+                        (item: any) => item.EphemeraId === hostId && item.DataCategory === hostDataCategory(hostId)
+                    )
+                    if (!entry) {
+                        throw new Error('applyHostRelationalPatch: MultiKeyUpdate fetch missing an expected host item')
+                    }
 
-    if (!simulation.changed) {
-        return { ok: true, persisted: false, changed: false }
-    }
+                    let graph = graphFromMeta(entry, hostId)
+                    for (const patch of patches.filter((patch) => patch.hostId === hostId)) {
+                        const prior = graph
+                        graph = graph.applyRelationalPatch(patch)
+                        if (!graph.equals(prior)) {
+                            anyChanged = true
+                        }
+                    }
 
-    const { postApplyGraphs } = simulation
+                    entry.positionGraph = graph.toStored()
+                    graphs.push(graph)
+                }
+                postApplyGraphs = graphs
+            },
+        },
+    } as HostRelationalPatchTransactItem
 
+    // `exponentialBackoffWrapper` silently resolves (no throw) for a non-retryable
+    // error outside DEVELOPER_MODE --- matching `applyObjectSetTransfer.ts`'s
+    // convention, `persisted` is the only reliable signal that the transact
+    // actually committed (a reducer throw from a stale/illegal patch is exactly
+    // the kind of non-retryable failure this wrapper can swallow).
+    let persisted = false
     try {
-        let persisted = false
-        await exponentialBackoffWrapper(async () => {
-            const transactItems = buildHostRelationalPatchTransactItems(patches)
-            if (transactItems.length === 0) {
-                return
-            }
-            await transactWrite(transactItems)
-            persisted = true
-        }, { retryErrors: ['TransactionCanceledException'] })
-
-        if (!persisted) {
-            return { ok: true, persisted: false, changed: false }
-        }
-
-        return {
-            ok: true,
-            persisted: true,
-            changed: true,
-            postApplyGraphs,
-        }
+        await exponentialBackoffWrapper(
+            async () => {
+                await transactWrite([multiKeyItem])
+                persisted = true
+            },
+            { retryErrors: ['TransactionCanceledException'] }
+        )
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error)
+        return { ok: false, errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED', errorMessage: message }
+    }
+
+    if (!persisted || !postApplyGraphs) {
         return {
             ok: false,
             errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED',
-            errorMessage: message,
+            errorMessage: 'transactWrite did not persist (see logs)',
         }
+    }
+
+    if (!anyChanged) {
+        return { ok: true, persisted: false, changed: false }
+    }
+
+    return {
+        ok: true,
+        persisted: true,
+        changed: true,
+        postApplyGraphs,
     }
 }

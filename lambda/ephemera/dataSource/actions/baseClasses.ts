@@ -9,6 +9,7 @@ import {
     isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     AcmeCatalogRejectionReason,
@@ -328,7 +329,8 @@ export type ParseCommandEstablishRelationResult = {
     targetId: EphemeraObjectId
     relationKind: 'On' | 'Under' | 'Against' | 'Custom'
     relationLabel?: string
-    hostRoomId: EphemeraRoomId
+    /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
+    hostId: EphemeraMembershipHostId
     confidence: ParseCommandConfidence
 }
 
