@@ -514,8 +514,8 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        const { hostRoomId } = parseResult
-        if (!hostRoomId) {
+        const { hostId } = parseResult
+        if (!hostId) {
             messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
@@ -532,7 +532,7 @@ const publishStreamEventsForIntent = async (
                     characterId,
                     subjectId: parseResult.subjectId,
                     targetId: parseResult.targetId,
-                    roomId: hostRoomId,
+                    hostId,
                     relationKind: parseResult.relationKind,
                     ...(parseResult.relationLabel !== undefined
                         ? { relationLabel: parseResult.relationLabel }
@@ -550,7 +550,7 @@ const publishStreamEventsForIntent = async (
                     characterId,
                     subjectId: parseResult.subjectId,
                     targetId: parseResult.targetId,
-                    roomId: hostRoomId,
+                    hostId,
                     relationKind: parseResult.relationKind,
                     ...(parseResult.relationLabel !== undefined
                         ? { relationLabel: parseResult.relationLabel }

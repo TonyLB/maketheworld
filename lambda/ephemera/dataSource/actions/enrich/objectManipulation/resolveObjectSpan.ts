@@ -20,6 +20,7 @@ export const objectManipulationErrorMessages = {
     notCarryingObject: 'ObjectManipulation resolution failed: object is in room but not held',
     alreadyHoldingObject: 'ObjectManipulation resolution failed: object is already held',
     unimplementedAtomicOperation: 'ObjectManipulation enrich: that atomic operation is not implemented yet',
+    crossHostRepairNotYetSupported: 'ObjectManipulation enrich: that requires moving something first, which is not supported yet',
     incompleteTransferSet: 'ObjectManipulation enrich: transfer candidate is missing an object carried by relational topology',
     transferInteractionDefer: 'ObjectManipulation enrich: existing relational topology requires interaction assessment before this transfer',
     enrichInvokeFailed: 'Object manipulation enrich failed',

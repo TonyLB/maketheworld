@@ -1,5 +1,6 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -9,7 +10,7 @@ export type ExecuteObjectDissolveRelationArgs = {
     characterId: EphemeraCharacterId
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    roomId: EphemeraRoomId
+    hostId: EphemeraMembershipHostId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
     messageBus: MessageBus
@@ -24,7 +25,7 @@ export const executeObjectDissolveRelation = async (
         {
             subjectId: args.subjectId,
             targetId: args.targetId,
-            roomId: args.roomId,
+            hostId: args.hostId,
             relationKind: args.relationKind,
             relationLabel: args.relationLabel,
             operation: 'dissolve',

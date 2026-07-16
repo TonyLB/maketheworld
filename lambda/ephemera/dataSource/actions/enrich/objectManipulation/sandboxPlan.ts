@@ -1,4 +1,5 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { IdentityPlanCandidate, RelationalIdentityPlanCandidate } from './identityPlanCandidate'
 import type { SandboxState } from './sandboxState'
@@ -26,7 +27,7 @@ export type SandboxPlanStep =
     | {
         kind: 'relational'
         candidate: RelationalIdentityPlanCandidate
-        hostId: EphemeraRoomId
+        hostId: EphemeraMembershipHostId
     }
 
 /**

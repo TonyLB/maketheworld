@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testPositionGraph } from '../../positionGraph/testFixtures'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 import { EphemeraPositionGraph } from '../../positionGraph'
@@ -56,7 +56,7 @@ describe('applyObjectRelationalChange', () => {
             {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
-                roomId: ROOM_ID,
+                hostId: ROOM_ID,
                 relationKind: 'On',
                 operation: 'establish',
             },
@@ -80,7 +80,7 @@ describe('applyObjectRelationalChange', () => {
             {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
-                roomId: ROOM_ID,
+                hostId: ROOM_ID,
                 relationKind: 'On',
                 operation: 'establish',
             },
@@ -117,7 +117,7 @@ describe('applyObjectRelationalChange', () => {
             {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
-                roomId: ROOM_ID,
+                hostId: ROOM_ID,
                 relationKind: 'On',
                 operation: 'establish',
             },
@@ -134,7 +134,7 @@ describe('applyObjectRelationalChange', () => {
                 type: 'Object Relation Changed',
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
-                hostRoomId: ROOM_ID,
+                hostId: ROOM_ID,
                 relationKind: 'On',
                 operation: 'establish',
             }),
@@ -146,5 +146,52 @@ describe('applyObjectRelationalChange', () => {
             type: 'RoomUpdate',
             roomId: ROOM_ID,
         })
+    })
+
+    it('seeds the cache but skips RoomUpdate for a Character-hosted relation (BD-15/16 slice 4c)', async () => {
+        const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const STRING_ID = 'OBJECT#String' as EphemeraObjectId
+        const TOP_ID = 'OBJECT#Top' as EphemeraObjectId
+        const characterGraph = EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: STRING_ID },
+                { tag: 'Object' as const, universalKey: TOP_ID },
+            ],
+            edges: [{
+                tag: 'Relational' as const,
+                from: STRING_ID,
+                to: TOP_ID,
+                kind: 'Custom' as const,
+                relationLabel: 'wrapped around',
+            }],
+        })
+        applyHostRelationalPatchMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            changed: true,
+            postApplyGraphs: [characterGraph],
+        })
+
+        const result = await applyObjectRelationalChange(
+            {
+                subjectId: STRING_ID,
+                targetId: TOP_ID,
+                hostId: CHARACTER_ID,
+                relationKind: 'Custom',
+                relationLabel: 'wrapped around',
+                operation: 'establish',
+            },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result).toEqual({
+            ok: true,
+            changed: true,
+            beatAnchorTime: 1_700_000_000_000,
+        })
+        expect(internalCache.Positions.set).toHaveBeenCalledWith(
+            expect.objectContaining({ hostId: CHARACTER_ID })
+        )
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 })

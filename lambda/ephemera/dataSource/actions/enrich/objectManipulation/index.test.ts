@@ -249,11 +249,59 @@ describe('enrichObjectManipulation', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'On',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('resolves a held-item relation when both subject and target are already held (BD-15/16 slice 4c)', async () => {
+        const stringId = 'OBJECT#String' as EphemeraObjectId
+        const topId = 'OBJECT#Top' as EphemeraObjectId
+        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"subjectSpan":"string","targetSpan":"top","relationSpan":"around","operationKind":"establishRelation"}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const heldGraph = testPositionGraph(characterId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: stringId },
+                { tag: 'Object' as const, universalKey: topId },
+            ],
+        })
+        const getPositionGraph = hostAwareGetPositionGraph({ [characterId]: heldGraph })
+
+        const result = await enrichObjectManipulation(
+            {
+                enrichRoute: 'relational',
+                command: 'wrap the string around the top',
+                rawObjectSpans: ['string'],
+                characterId,
+                hostRoomId: roomId,
+                heldInventoryCatalog: [
+                    { objectId: stringId, normalizedShortName: 'string' },
+                    { objectId: topId, normalizedShortName: 'top' },
+                ],
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationFrameExtractImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph },
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: stringId,
+            targetId: topId,
+            relationKind: 'Custom',
+            relationLabel: 'around',
+            hostId: characterId,
+            confidence: 0.9,
+        })
     })
 
     it('frame-extracts lean rope against anvil fixture', async () => {
@@ -296,7 +344,7 @@ describe('enrichObjectManipulation', () => {
             subjectId: 'OBJECT#Rope',
             targetId: 'OBJECT#Anvil',
             relationKind: 'Against',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.88,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
@@ -343,7 +391,7 @@ describe('enrichObjectManipulation', () => {
             targetId: crateId,
             relationKind: 'Custom',
             relationLabel: 'around',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.87,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
@@ -397,7 +445,7 @@ describe('enrichObjectManipulation', () => {
             targetId: crateId,
             relationKind: 'Custom',
             relationLabel: 'off',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.86,
         })
     })
@@ -624,7 +672,7 @@ describe('enrichObjectManipulation', () => {
             subjectId: ladderId,
             targetId: wallId,
             relationKind: 'Against',
-            hostRoomId: roomId,
+            hostId: roomId,
             confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()

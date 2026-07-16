@@ -199,11 +199,11 @@ Graph persist: coordinator -> [`planHostRelationalPatch`](manipulation/relationa
 When relational apply **`changed: true`** after successful graph persist, the coordinator **must**:
 
 1. Stream **`Object Relation Changed`** (when fact non-null).
-2. Seed **`internalCache.Positions`** from kernel **`postApplyGraphs`** for **`hostRoomId`**.
-3. **`ComponentEphemeraMeta.invalidate`** / **`AffordanceRoomDeliverable.invalidate`** for **`hostRoomId`**.
-4. Publish internal **`RoomUpdate`** for **`hostRoomId`** (affordance refresh via orchestration).
+2. Seed **`internalCache.Positions`** from kernel **`postApplyGraphs`** for **`hostId`** (Room or Character, BD-15/16 slice 4 --- unconditional; **must not** skip the cache seed just because the host isn't a room).
+3. **`ComponentEphemeraMeta.invalidate`** / **`AffordanceRoomDeliverable.invalidate`** for **`hostId`** --- **only** when **`hostId`** is a Room (`isEphemeraRoomId`); these caches have no Character-hosted equivalent.
+4. Publish internal **`RoomUpdate`** for **`hostId`** --- **only** when **`hostId`** is a Room; a Character-hosted relation has no room affordance to refresh.
 
-**Must skip** the entire bundle when **`changed: false`** (idempotent duplicate edge on **`op: 'add'`**). Relational fan-in **requires** actions intent leg; perception does not defer on fact-only settle for relational clusters.
+**Must skip** the entire bundle when **`changed: false`** (idempotent duplicate edge on **`op: 'add'`**). Relational fan-in **requires** actions intent leg; perception does not defer on fact-only settle for relational clusters. Character-hosted relation narration is unresolved UX/copy design (BD-15/16) --- the perception leg adapter declines (returns no leg) for a non-Room **`hostId`** rather than guessing copy.
 
 ### Object placement drift repair
 
@@ -282,11 +282,11 @@ type HostRelationalPatch = {
 
 ### Ingress summary
 
-Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Normative handler rules: [Ingress --- `Object Establish Relation`](#object-establish-relation-positions-owned), [Ingress --- `Object Dissolve Relation`](#object-dissolve-relation-positions-owned). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`relationKind`**, optional **`relationLabel`**, and **`roomId`** (host) --- no catalog re-resolve in positions v1.
+Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Normative handler rules: [Ingress --- `Object Establish Relation`](#object-establish-relation-positions-owned), [Ingress --- `Object Dissolve Relation`](#object-dissolve-relation-positions-owned). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`relationKind`**, optional **`relationLabel`**, and **`hostId`** (Room or Character, BD-15/16 slice 4 --- was Room-only **`roomId`**) --- no catalog re-resolve in positions v1. Production ingress can now genuinely produce a Character **`hostId`** when subject and target already share the acting character's inventory graph (BD-15/16 slice 4c); a cross-host case needing repair (compound atomic apply, C2, not yet built) is declined at the compiler, never reaches ingress.
 
 ### `Object Relation Changed` fact (shipped)
 
-- Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostRoomId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
+- Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
 - Streamed from coordinator on successful persist when **`changed: true`**; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
 - Post-persist bundle detail: [Host-local relational-changed bundle](#host-local-relational-changed-bundle-v1-establishrelation--dissolverelation).
 
@@ -337,16 +337,16 @@ Positions **must** subscribe to:
 
 ### `Object Establish Relation` (positions-owned)
 
-- **Ingress:** typed establish via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Establish Relation`**, payload `{ characterId, subjectId, targetId, roomId, relationKind, relationLabel?, confidence? }`. Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes when enrich yields grounded **`EstablishRelation`** with **`operationKind: establishRelation`**.
-- **Must** trust actions-resolved `subjectId`, `targetId`, `roomId` (host), `relationKind`, and optional `relationLabel` at apply --- no re-read of in-room catalog in positions.
-- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](manipulation/relational/executeObjectEstablishRelation.ts) with `{ subjectId, targetId, roomId, relationKind, relationLabel?, operation: 'establish' }` --- kernel **`op: 'add'`** in one transact.
+- **Ingress:** typed establish via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Establish Relation`**, payload `{ characterId, subjectId, targetId, hostId, relationKind, relationLabel?, confidence? }` (**`hostId`** widened from Room-only **`roomId`**, BD-15/16 slice 4). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes when enrich yields grounded **`EstablishRelation`** with **`operationKind: establishRelation`**.
+- **Must** trust actions-resolved `subjectId`, `targetId`, `hostId` (Room or Character), `relationKind`, and optional `relationLabel` at apply --- no re-read of in-room catalog in positions.
+- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](manipulation/relational/executeObjectEstablishRelation.ts) with `{ subjectId, targetId, hostId, relationKind, relationLabel?, operation: 'establish' }` --- kernel **`op: 'add'`** in one transact.
 - **Idempotency:** duplicate establish when exact edge already present (`changed: false`) **must** be a no-op (no bundle).
 
 ### `Object Dissolve Relation` (positions-owned)
 
 - **Ingress:** typed dissolve via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Dissolve Relation`**, same payload shape as establish. Actions **`Parse Requested`** publishes when enrich yields grounded **`EstablishRelation`** with **`operationKind: dissolveRelation`**.
 - **Must** trust actions-resolved ids and relation fields at apply --- no catalog re-resolve in positions.
-- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectDissolveRelation`](manipulation/relational/executeObjectDissolveRelation.ts) with `{ subjectId, targetId, roomId, relationKind, relationLabel?, operation: 'dissolve' }` --- kernel **`op: 'remove'`** matching edge **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
+- **Must** call [`applyObjectRelationalChange`](manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectDissolveRelation`](manipulation/relational/executeObjectDissolveRelation.ts) with `{ subjectId, targetId, hostId, relationKind, relationLabel?, operation: 'dissolve' }` --- kernel **`op: 'remove'`** matching edge **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
 - **Must** reject apply when matching edge absent on host graph.
 
 ### `Character Home` (positions-owned)
@@ -437,4 +437,4 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 
 ## Consumer expectations
 
-Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. After a **successful** object membership apply with `changed: true`, downstream **may** assume affordance memo reflects updated **`StandardRoom.objects`** for affected rooms. After a **successful** relational apply with `changed: true`, downstream **may** assume **`Positions`** memo and affordance deliverable for **`hostRoomId`** reflect updated room **`positionGraph`** topology including stored relational edges (gateway read projection passes through relational edges per [`packages/mtw-gateways/ts/ephemera/positions/project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)). Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).
+Downstream code **may** assume that after a **successful** membership apply with `changed: true`, `Positions` memo and affordance invalidation reflect the updated roster for all affected rooms in **`froms`** and **`to`**. After a **successful** object membership apply with `changed: true`, downstream **may** assume affordance memo reflects updated **`StandardRoom.objects`** for affected rooms. After a **successful** relational apply with `changed: true`, downstream **may** assume **`Positions`** memo for **`hostId`** reflects updated **`positionGraph`** topology including stored relational edges (gateway read projection passes through relational edges per [`packages/mtw-gateways/ts/ephemera/positions/project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)); affordance deliverable invalidation only applies when **`hostId`** is a Room (BD-15/16 slice 4). Downstream **must** remain idempotent under at-least-once ingress (see [`packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md`](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) consumer guidance).

@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
@@ -22,6 +23,12 @@ export type DryRunOutcome = {
      * for any non-`legal` verdict.
      */
     objectIds?: EphemeraObjectId[]
+    /**
+     * Relational-only: the host actually selected among candidate hosts (Room or
+     * Character) when the verdict is `legal` (BD-15/16). Absent for membership dry
+     * runs and for any non-`legal` verdict.
+     */
+    hostId?: EphemeraMembershipHostId
 }
 
 export type ValidateMembershipPlanContext = {

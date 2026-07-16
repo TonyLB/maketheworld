@@ -18,7 +18,7 @@ describe('executeObjectEstablishRelation', () => {
             characterId: 'CHARACTER#Alpha',
             subjectId: 'OBJECT#Broom',
             targetId: 'OBJECT#Table',
-            roomId: 'ROOM#Cafe',
+            hostId: 'ROOM#Cafe',
             relationKind: 'On',
             messageBus: messageBus as any,
             streamEvent: streamEvent as any,
@@ -28,7 +28,7 @@ describe('executeObjectEstablishRelation', () => {
             expect.objectContaining({
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
-                roomId: 'ROOM#Cafe',
+                hostId: 'ROOM#Cafe',
                 relationKind: 'On',
                 operation: 'establish',
             }),

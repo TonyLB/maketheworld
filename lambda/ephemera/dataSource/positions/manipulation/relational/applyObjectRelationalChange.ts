@@ -17,13 +17,20 @@ export type ApplyObjectRelationalChangeDependencies = {
     kernelPersist?: ApplyHostRelationalPatchDependencies
 }
 
-const seedRoomGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
+/**
+ * Renamed from `seedRoomGraphMemos` (BD-15/16 slice 4) --- the old version `continue`d
+ * past `internalCache.Positions.set(graph)` for any non-room graph, so a Character-hosted
+ * relation would persist correctly but leave that character's cached `positionGraph` stale
+ * for the rest of the warm container's lifetime. Matches `applyObjectSetTransfer.ts`'s
+ * already-correct `seedGraphMemos`: `Positions.set` is unconditional; only the room-specific
+ * cache invalidations are gated.
+ */
+const seedGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
     for (const graph of postApplyGraphs) {
-        if (!isEphemeraRoomId(graph.hostId)) {
-            continue
+        if (isEphemeraRoomId(graph.hostId)) {
+            internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
+            internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
         }
-        internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
-        internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
         internalCache.Positions.set(graph)
     }
 }
@@ -56,7 +63,7 @@ export const applyObjectRelationalChange = async (
     const fact = buildObjectRelationalFact({
         subjectId: args.subjectId,
         targetId: args.targetId,
-        hostRoomId: args.roomId,
+        hostId: args.hostId,
         relationKind: args.relationKind,
         relationLabel: args.relationLabel,
         operation: args.operation,
@@ -64,12 +71,14 @@ export const applyObjectRelationalChange = async (
     })
 
     await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
-    seedRoomGraphMemos(kernelResult.postApplyGraphs)
+    seedGraphMemos(kernelResult.postApplyGraphs)
 
-    deps.messageBus.publish({
-        type: 'RoomUpdate',
-        roomId: args.roomId,
-    })
+    if (isEphemeraRoomId(args.hostId)) {
+        deps.messageBus.publish({
+            type: 'RoomUpdate',
+            roomId: args.hostId,
+        })
+    }
 
     return {
         ok: true,

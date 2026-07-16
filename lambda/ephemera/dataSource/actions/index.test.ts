@@ -2015,7 +2015,7 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'On',
-                hostRoomId: hostRoom,
+                hostId: hostRoom,
                 confidence: 0.9,
             })
 
@@ -2045,7 +2045,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     subjectId: 'OBJECT#Broom',
                     targetId: 'OBJECT#Table',
-                    roomId: hostRoom,
+                    hostId: hostRoom,
                     relationKind: 'On',
                     confidence: 0.9,
                 },
@@ -2065,7 +2065,7 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostRoomId: hostRoom,
+                hostId: hostRoom,
                 confidence: 0.85,
             })
 
@@ -2095,7 +2095,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     subjectId: 'OBJECT#Rope',
                     targetId: 'OBJECT#Crate',
-                    roomId: hostRoom,
+                    hostId: hostRoom,
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.85,
@@ -2111,7 +2111,7 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostRoomId: hostRoom,
+                hostId: hostRoom,
                 confidence: 0.9,
             })
 
@@ -2141,7 +2141,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     subjectId: 'OBJECT#Rope',
                     targetId: 'OBJECT#Crate',
-                    roomId: hostRoom,
+                    hostId: hostRoom,
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.9,
@@ -2156,7 +2156,7 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'On',
-                hostRoomId: null as unknown as EphemeraRoomId,
+                hostId: null as unknown as EphemeraRoomId,
                 confidence: 0.9,
             })
 

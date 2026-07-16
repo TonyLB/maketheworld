@@ -11,7 +11,7 @@ import type { RelationalIngressArgs } from './types'
  * the patch structurally from already-resolved ingress args.
  */
 export const planHostRelationalPatch = (args: RelationalIngressArgs): HostRelationalPatch => ({
-    hostId: args.roomId,
+    hostId: args.hostId,
     edge: {
         from: args.subjectId,
         to: args.targetId,

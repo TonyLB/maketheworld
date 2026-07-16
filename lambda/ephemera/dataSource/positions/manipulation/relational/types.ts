@@ -1,4 +1,5 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 export type RelationalIngressOperation = 'establish' | 'dissolve'
@@ -6,7 +7,7 @@ export type RelationalIngressOperation = 'establish' | 'dissolve'
 export type RelationalIngressArgs = {
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    roomId: EphemeraRoomId
+    hostId: EphemeraMembershipHostId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
     operation: RelationalIngressOperation

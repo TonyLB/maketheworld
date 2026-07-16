@@ -36,7 +36,8 @@ export type ObjectRelationChangedPublishedPayload = {
     type: 'Object Relation Changed';
     subjectId: EphemeraObjectId;
     targetId: EphemeraObjectId;
-    hostRoomId: EphemeraRoomId;
+    /** Room or Character host the relation changed on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
+    hostId: EphemeraMembershipHostId;
     relationKind: HostRelationalEdgeKind;
     relationLabel?: string;
     operation: 'establish' | 'dissolve';
@@ -138,7 +139,7 @@ export const isObjectRelationChangedPublishedPayload = (
     if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
         return false
     }
-    if (typeof v.hostRoomId !== 'string' || !isEphemeraRoomId(v.hostRoomId)) {
+    if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
         return false
     }
     if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(v.relationKind as HostRelationalEdgeKind)) {

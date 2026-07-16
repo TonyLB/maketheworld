@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { applyTransferSet } from '../../../positions/positionGraph/expandValidate/applyTransferSet'
@@ -107,7 +107,7 @@ export function applyTransferMembershipStep(
 export function applyRelationalStep(
     state: SandboxState,
     candidate: RelationalIdentityPlanCandidate,
-    hostId: EphemeraRoomId
+    hostId: EphemeraMembershipHostId
 ): SandboxStepOutcome {
     const graph = state.get(hostId)
     if (graph === undefined) {
