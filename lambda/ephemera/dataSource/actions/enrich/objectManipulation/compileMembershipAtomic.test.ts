@@ -63,6 +63,35 @@ describe('compileMembershipAtomic', () => {
         })
     })
 
+    it('BD-20: rejects a multi-span frame (arity check now lives here, after Identify, not ahead of it) without invoking the complexity LLM', async () => {
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getPositionGraph = hostAwareGetPositionGraph()
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'pick up the broom and the bag',
+                rawObjectSpans: ['broom', 'bag'],
+                verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [...broomCatalog, ...bagCatalog],
+            },
+            0.8,
+            {
+                positionsReadDeps: { getMembershipContainers, getPositionGraph },
+                invokeBedrockObjectManipulationComplexityImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.complexMultiObject,
+        })
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+        expect(getPositionGraph).not.toHaveBeenCalled()
+    })
+
     it('returns drop for held-only release paraphrase (toss the pouch)', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
         const getPositionGraph = hostAwareGetPositionGraph()

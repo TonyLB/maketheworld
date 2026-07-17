@@ -67,13 +67,6 @@ export function selectMembershipFromPool(
         }
     }
 
-    if (spanPools.length > 1) {
-        return {
-            type: 'error',
-            errorMessage: objectManipulationErrorMessages.ambiguousMatch,
-        }
-    }
-
     const pool = spanPools[0]!
     const tuples = proposeMembershipTuples({ pool, verbClass })
     const selection = selectIdentityPlanTuple({

@@ -118,29 +118,7 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Error for complex disposition stub via cardinality', async () => {
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom and the anvil',
-                rawObjectSpans: ['broom', 'anvil'],
-                verbClass: 'acquire',
-                roomObjectCatalog: catalog,
-            },
-            0.8,
-            { invokeBedrockObjectManipulationEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexMultiObject,
-        })
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('short-circuits multiObject via cardinality gate without Bedrock', async () => {
+    it('returns Error for a multi-span membership command end-to-end (BD-20: arity check now lives in compileMembershipAtomic)', async () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
 
         const result = await enrichObjectManipulation(

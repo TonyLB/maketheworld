@@ -1,11 +1,8 @@
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
-import { createSpanEmbedCache } from './embeddingMatch/spanEmbedCache'
 import type { ResolveObjectSpanByEmbeddingDeps } from './embeddingMatch/resolveObjectSpanByEmbedding'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import {
-    resolveCatalogSpanToPool,
-    type ResolveCatalogSpanToPoolDeps,
-} from './resolveCatalogSpanToPool'
+import { runIdentityStage } from './identityStage'
+import type { ResolveCatalogSpanToPoolDeps } from './resolveCatalogSpanToPool'
 import type { SpanCandidatePool } from './spanResolution'
 
 export type RelationalGroundingDeps = ResolveCatalogSpanToPoolDeps &
@@ -28,6 +25,11 @@ export type RelationalGroundingResult =
  * all, independent of any host/legality question. Reuses `mergeObjectManipulationCatalogs`
  * (already generic, not membership-specific), the same function `compileMembershipAtomic.ts`
  * uses for the identical purpose.
+ *
+ * Delegates to `runIdentityStage` (BD-20, 2026-07-17) rather than hand-rolling its
+ * own two-call sequence over `resolveCatalogSpanToPool` --- Identify is a uniform
+ * per-span-list resolver with no subject/target concept of its own; the roles are
+ * attached here, positionally, over its plain `spanPools` output.
  */
 export async function resolveRelationalGrounding(
     command: string,
@@ -37,24 +39,12 @@ export async function resolveRelationalGrounding(
     heldInventoryCatalog: readonly RoomInPlayObjectCatalogEntry[] | undefined = undefined,
     deps: RelationalGroundingDeps = {}
 ): Promise<RelationalGroundingResult> {
-    void command
     const catalog = mergeObjectManipulationCatalogs(roomObjectCatalog ?? [], heldInventoryCatalog ?? [])
-    const spanEmbedCache = deps.spanEmbedCache ?? createSpanEmbedCache()
-    const poolDeps: ResolveCatalogSpanToPoolDeps = { ...deps, spanEmbedCache }
-
-    const subjectPoolResult = await resolveCatalogSpanToPool(subjectSpan, catalog, poolDeps)
-    if (subjectPoolResult.type === 'error') {
-        return subjectPoolResult
+    const identityResult = await runIdentityStage(command, [subjectSpan, targetSpan], catalog, deps)
+    if (identityResult.type === 'error') {
+        return identityResult
     }
 
-    const targetPoolResult = await resolveCatalogSpanToPool(targetSpan, catalog, poolDeps)
-    if (targetPoolResult.type === 'error') {
-        return targetPoolResult
-    }
-
-    return {
-        type: 'success',
-        subjectPool: subjectPoolResult.pool,
-        targetPool: targetPoolResult.pool,
-    }
+    const [subjectPool, targetPool] = identityResult.spanPools
+    return { type: 'success', subjectPool: subjectPool!, targetPool: targetPool! }
 }
