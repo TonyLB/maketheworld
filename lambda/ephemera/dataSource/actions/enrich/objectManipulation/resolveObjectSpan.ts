@@ -29,6 +29,9 @@ export const objectManipulationErrorMessages = {
     identityParseFailed: 'Object manipulation identity response was not valid',
     frameExtractInvokeFailed: 'Object manipulation frame extract failed',
     frameExtractParseFailed: 'Object manipulation frame extract response was not valid',
+    identityOnlyFallbackNotYetImplemented: 'ObjectManipulation enrich: the identity-only LLM fallback is not implemented yet',
+    planOnlyFallbackNotYetImplemented: 'ObjectManipulation enrich: the plan-only LLM fallback is not implemented yet',
+    jointFallbackNotYetImplemented: 'ObjectManipulation enrich: the joint identity/plan LLM fallback is not implemented yet',
 } as const
 
 export type ObjectSpanResolutionResult =
