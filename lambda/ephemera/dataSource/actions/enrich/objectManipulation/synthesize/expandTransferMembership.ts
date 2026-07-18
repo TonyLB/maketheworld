@@ -10,7 +10,7 @@ import { boundaryEdgeOutcomes, computeCarryClosure } from '../../../../positions
  * validator (BD-10) --- neither outcome can currently ask Identify to
  * reconsider its candidate given what Expansion found (e.g. "widen the
  * search to this other host"). That's a named-but-unbuilt future direction,
- * see BD-18 (`AGENT.manipulationFrameAndRelational.planning.md`); keep this
+ * see BD-18 (`AGENT.backtrackChannel.planning.md`); keep this
  * union open to a third outcome rather than overfitting call sites to just
  * these two during the Pipeline A -> B migration.
  */

@@ -5,10 +5,8 @@ import type {
     ParseCommandEstablishRelationResult,
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
-import { evaluateCardinalityGate } from './cardinalityGate'
 import { compileMembershipAtomic, type CompileMembershipAtomicDeps } from './compileMembershipAtomic'
 import { compileRelational, type CompileRelationalDeps } from './compileRelational'
-import { complexErrorMessage } from './complexityClasses'
 import { runFrameExtractStage, type FrameExtractStageDeps } from './frameExtract/runFrameExtractStage'
 import type { ManipulationFrameBuildInput } from './manipulationFrame'
 
@@ -34,14 +32,6 @@ export async function enrichObjectManipulation(
             return { type: 'Error', errorMessage: extractResult.errorMessage }
         }
         return compileRelational(extractResult.frame, intentConfidence, deps)
-    }
-
-    const cardinalityOutcome = evaluateCardinalityGate(input.rawObjectSpans)
-    if (cardinalityOutcome.type === 'complex') {
-        return {
-            type: 'Error',
-            errorMessage: complexErrorMessage(cardinalityOutcome.complexityClass),
-        }
     }
 
     if (input.verbClass === undefined) {

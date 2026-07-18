@@ -179,7 +179,7 @@ export type SelectIdentityPlanTupleInput = {
  * `applyObjectSetTakeHold`/`applyObjectSetDrop`, built on `applyObjectSetTransfer`)
  * can actually apply it.
  */
-const sandboxMembershipDryRun = (
+export const sandboxMembershipDryRun = (
     candidate: IdentityPlanCandidate,
     state: SandboxState,
     roomId: EphemeraRoomId | undefined,
@@ -266,7 +266,7 @@ export function selectIdentityPlanTuple(
     })
 }
 
-function membershipConsultAlternative(
+export function membershipConsultAlternative(
     candidate: IdentityPlanCandidate,
     commandSpan: string
 ): SpanResolutionConsultAlternative {

@@ -20,7 +20,7 @@ export type SpanCandidateLocus =
     | { kind: 'heldByOtherCharacter'; characterId: EphemeraCharacterId; characterLabel: string }
     | { kind: 'withinObject'; hostId: EphemeraObjectId; hostLabel: string }
 
-export type SpanRelevanceSourceTag = 'exact' | 'lexical' | 'embedding'
+export type SpanRelevanceSourceTag = 'exact' | 'lexical' | 'embedding' | 'llm'
 
 export type ObjectSpanCandidate = {
     id: EphemeraObjectId
@@ -58,6 +58,7 @@ const SPAN_RELEVANCE_SOURCE_TAGS: ReadonlySet<SpanRelevanceSourceTag> = new Set(
     'exact',
     'lexical',
     'embedding',
+    'llm',
 ])
 
 const isUnitInterval = (value: unknown): value is number => (

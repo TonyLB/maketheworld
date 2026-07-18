@@ -13,6 +13,7 @@ import {
     evaluateComplexityPreGates,
     preGateOutcomeToTerminalError,
 } from './complexityPreGates'
+import { complexErrorMessage } from './complexityClasses'
 import { runIdentityStage, type IdentityStageDeps } from './identityStage'
 import {
     finalizeComplexityFromEnrich,
@@ -61,6 +62,14 @@ export async function compileMembershipAtomic(
     )
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
+    }
+
+    // BD-20 (2026-07-17): arity policy lives here, not ahead of Identify --- Identify
+    // already resolves any number of independent spans fine (see runIdentityStage's
+    // plain loop above); composing/applying more than one is unbuilt Plan-IR work
+    // (BD-8/C2/C3), so this is where "not yet supported" is decided, not a pre-Identify gate.
+    if (frame.rawObjectSpans.length > 1) {
+        return { type: 'Error', errorMessage: complexErrorMessage('multiObject') }
     }
 
     // Slice 4b: sandbox-mediated selector (locus legality + exit-edge + boundary-edge

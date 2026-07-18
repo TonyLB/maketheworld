@@ -166,4 +166,41 @@ describe('runIdentityStage', () => {
             errorMessage: objectManipulationErrorMessages.noCatalog,
         })
     })
+
+    it('dedupes span embed across multiple spans in one call when both miss exact match (BD-20 follow-up: ported from resolveRelationalGrounding.test.ts, since this is runIdentityStage\'s own multi-span behavior, not relational-specific)', async () => {
+        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
+            {
+                id: 'test-paraphrase-dedupe',
+                bucket: 'positive-paraphrase',
+                span: 'sweeping tool',
+                catalog: ['broom'],
+            },
+            {
+                kind: 'resolve-index',
+                targetIndex: 0,
+                targetSimilarity: 0.95,
+                otherSimilarity: 0.5,
+            }
+        )
+        const catalog: ObjectManipulationCatalogEntry[] = candidates.map((candidate) => ({
+            objectId: broomId,
+            normalizedShortName: candidate.normalizedShortName,
+            catalogScope: 'room' as const,
+            embedding: candidate.embedding,
+        }))
+        const embedSpan = jest.fn().mockResolvedValue({
+            success: true,
+            embedding: spanEmbedding,
+        })
+
+        const result = await runIdentityStage(
+            'put sweeping tool on sweeping tool',
+            ['sweeping tool', 'Sweeping Tool'],
+            catalog,
+            { embedSpan }
+        )
+
+        expect(result.type).toBe('success')
+        expect(embedSpan).toHaveBeenCalledTimes(1)
+    })
 })
