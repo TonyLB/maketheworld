@@ -4,7 +4,7 @@
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
-**Parent / sibling relationship:** [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) owns Phase C's Plan IR, compiler, and executor work generally (C1--C5). This plan owns only the **dry-run legality sandbox** the C1 compiler/validator consumes. Land this plan's C1 items alongside (or just ahead of) the parent's C1 checklist --- the parent's compiler cannot emit a validated candidate without this sandbox existing.
+**Parent / sibling relationship (updated 2026-07-18):** the original parent plan was split into an iteration ladder --- see [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) for the index. C1 has since shipped and graduated to durable docs (`enrich/objectManipulation/AGENT.md`, `AGENT.concepts.md`); this sandbox is wired into both live selectors as of 2026-07-14 (see `enrich/objectManipulation/AGENT.md`'s "Phase C sandbox" section) --- this plan's own exit criterion ("once C1 consumes the sandbox") has been met, and this plan is itself a candidate for disposal on a future pass. C2/C3/C5 (remaining, unbuilt Plan-IR work) now live in the parent iterations doc's "Iteration 1, remaining."
 
 ## Purpose
 
@@ -129,7 +129,7 @@ npm run build
 | SB-4 (state representation) | **Decided (2026-07-10)** --- clone-and-mutate typed snapshot, keyed by `hostId`, same shape in and out |
 | **S1 (all open decisions)** | **Done (2026-07-10)** --- SB-1 -- SB-5 all decided/resolved |
 | Scope correction: universal gating (not compound-only) | Done (2026-07-10) --- membership transfer must check relational edges even in length-1 plans; "pick up tray" (glass `On` tray) example |
-| BD-13 multi-member `transferMembership` + carry (cross-ref) | **Decided (2026-07-10)** --- kernel/primitive side tracked in parent plan; see [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) BD-13 |
+| BD-13 multi-member `transferMembership` + carry (cross-ref) | **Decided (2026-07-10), shipped and graduated** --- see [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md)'s BD-N index, and `enrich/objectManipulation/AGENT.md` for the shipped behavior |
 | S2 interaction-under-transfer rule table | **Done (2026-07-10)** --- [`interactionUnderTransfer.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/synthesize/interactionUnderTransfer.ts) + 16 tests; `evaluateRelationalLegality.ts` wiring resolved (S3: closed permanently, no integration point exists); BD-13 kernel discovery (`applyRelationalPatch` room-only guard) recorded |
 | S3 sandbox state + single-step composition | **Done (2026-07-10)** --- [`sandboxState.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/sandboxState.ts) + [`sandboxStep.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/sandboxStep.ts), 8 tests; incomplete-transfer-set verdict decided as `illegal` (not `defer`); internal-edge recreation shipped here (moved from S4) |
 | S4 compound simulation | **Done (2026-07-10)** --- [`sandboxPlan.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/sandboxPlan.ts), 5 tests; `SandboxPlanStep` flagged as sandbox-internal scaffolding, not Plan IR |

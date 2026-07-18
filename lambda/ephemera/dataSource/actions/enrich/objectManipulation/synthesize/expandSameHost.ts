@@ -8,7 +8,7 @@ import type { TransferMembershipStep } from '../parsePlanStep'
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
  * validator (BD-10) --- same caveat as `GroundReferentResult`/
- * `ExpandTransferMembershipResult` (BD-18, `AGENT.manipulationFrameAndRelational.planning.md`):
+ * `ExpandTransferMembershipResult` (BD-18, `AGENT.backtrackChannel.planning.md`):
  * keep this union open to a third outcome rather than letting the Pipeline
  * A -> B migration harden call sites around just these two.
  */
