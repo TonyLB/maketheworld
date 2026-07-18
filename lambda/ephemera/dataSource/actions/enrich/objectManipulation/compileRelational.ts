@@ -7,17 +7,17 @@ import type {
 } from '../../baseClasses'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
+import { runIdentityStage, type IdentityStageDeps } from './identityStage'
 import type { ManipulationFrame } from './manipulationFrame'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { normalizeRelationSpan } from './normalizeRelationSpan'
-import { resolveRelationalGrounding, type RelationalGroundingDeps } from './resolveRelationalGrounding'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import {
     relationPhraseFromNormalized,
     selectRelationalFromPools,
 } from './selectRelationalFromPools'
 
-export type CompileRelationalDeps = RelationalGroundingDeps & {
+export type CompileRelationalDeps = IdentityStageDeps & {
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
 }
 
@@ -62,24 +62,23 @@ export async function compileRelational(
         }
     }
 
-    const grounding = await resolveRelationalGrounding(
+    const catalog = mergeObjectManipulationCatalogs(frame.roomObjectCatalog ?? [], frame.heldInventoryCatalog ?? [])
+    const identityResult = await runIdentityStage(
         frame.command,
-        frame.subjectSpan,
-        frame.targetSpan,
-        frame.roomObjectCatalog,
-        frame.heldInventoryCatalog,
+        [frame.subjectSpan, frame.targetSpan],
+        catalog,
         deps
     )
-    if (grounding.type === 'error') {
-        return { type: 'Error', errorMessage: grounding.errorMessage }
+    if (identityResult.type === 'error') {
+        return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
+    const [subjectPool, targetPool] = identityResult.spanPools
 
-    const catalog = mergeObjectManipulationCatalogs(frame.roomObjectCatalog ?? [], frame.heldInventoryCatalog ?? [])
     const relation = norm.relation
 
     const selection = selectRelationalFromPools({
-        subjectPool: grounding.subjectPool,
-        targetPool: grounding.targetPool,
+        subjectPool: subjectPool!,
+        targetPool: targetPool!,
         operationKind: frame.operationKind,
         relation,
         catalog,
