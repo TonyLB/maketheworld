@@ -1,0 +1,76 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
+import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+
+/**
+ * Directed-cycle check over one host's relational edges of a single kind
+ * (Step 2b step 5, BD-23). Walks `graph.relationalEdges` filtered to `kind`
+ * as a directed `from -> to` graph and reports whether any cycle exists ---
+ * a self-edge (`from === to`) is a one-node cycle, caught by the same walk
+ * with no special case. Scoped to `'On' | 'Under'` only (not `Against`/
+ * `Custom`): those are the two kinds whose real-world semantics imply a
+ * hierarchy that cannot loop back on itself; `Against` and `Custom` are
+ * deliberately out of scope here, per the same "grow as concrete cases
+ * demand" discipline this codebase already applies to Expansion/Assertion.
+ */
+type CycleWalkState = {
+    /** Nodes on the current recursion path --- a hit here is a genuine cycle. */
+    visiting: ReadonlySet<EphemeraObjectId>
+    /** Nodes already fully explored (from any root) without finding a cycle --- memoization, not path state. */
+    visited: ReadonlySet<EphemeraObjectId>
+}
+
+type CycleWalkResult = {
+    hasCycle: boolean
+    visited: ReadonlySet<EphemeraObjectId>
+}
+
+export function detectRelationalCycle(
+    graph: EphemeraPositionGraph,
+    kind: 'On' | 'Under'
+): boolean {
+    const adjacency = graph.relationalEdges
+        .filter((edge) => edge.kind === kind)
+        .reduce((acc, edge) => {
+            acc.set(edge.from, [...(acc.get(edge.from) ?? []), edge.to])
+            return acc
+        }, new Map<EphemeraObjectId, EphemeraObjectId[]>())
+
+    /**
+     * `visiting` is scoped to this call's own stack frame (each recursive
+     * call gets its own snapshot, extended by one node) --- no explicit
+     * backtracking needed on return, unlike a shared mutated Set. `visited`
+     * is threaded through return values instead, since it is a genuine
+     * cross-call memoization cache (nodes fully explored from *any* root):
+     * passing it as an argument alone, with no way back out, would silently
+     * drop memoization across sibling roots in the loop below.
+     */
+    const hasCycleFrom = (
+        node: EphemeraObjectId,
+        { visiting, visited }: CycleWalkState = { visiting: new Set(), visited: new Set() }
+    ): CycleWalkResult => {
+        if (visiting.has(node)) {
+            return { hasCycle: true, visited }
+        }
+        if (visited.has(node)) {
+            return { hasCycle: false, visited }
+        }
+
+        const nextVisiting = new Set([...visiting, node])
+        const nextVisited = new Set([...visited, node])
+
+        return (adjacency.get(node) ?? []).reduce<CycleWalkResult>(
+            (acc, neighbor) => (acc.hasCycle
+                ? acc
+                : hasCycleFrom(neighbor, { visiting: nextVisiting, visited: acc.visited })),
+            { hasCycle: false, visited: nextVisited }
+        )
+    }
+
+    return [...adjacency.keys()].reduce<CycleWalkResult>(
+        (acc, node) => (acc.hasCycle
+            ? acc
+            : hasCycleFrom(node, { visiting: new Set(), visited: acc.visited })),
+        { hasCycle: false, visited: new Set() }
+    ).hasCycle
+}
