@@ -4,6 +4,7 @@ import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import { buildParsePrompt } from './buildParsePrompt'
 import { interpretParseBody } from './interpretParse'
 import type { ParseSkeleton } from './parseToken'
+import { stampStableRefKeys } from './stampStableRefKeys'
 
 export type ParseStageInput = {
     command: string
@@ -39,6 +40,6 @@ export async function runParseStage(
 
     return {
         type: 'success',
-        tokens: parsed.response.tokens,
+        tokens: stampStableRefKeys(parsed.response.tokens),
     }
 }

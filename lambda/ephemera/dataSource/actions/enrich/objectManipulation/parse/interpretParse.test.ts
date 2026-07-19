@@ -72,6 +72,13 @@ describe('interpretParseBody', () => {
         expect(parsed.success).toBe(false)
     })
 
+    it('rejects a token that supplies its own stableRefKey', () => {
+        const parsed = interpretParseBody(
+            '{"tokens":[{"type":"objectSpan","span":"bag","stableRefKey":"ref1"}]}'
+        )
+        expect(parsed.success).toBe(false)
+    })
+
     it('rejects invalid JSON', () => {
         const parsed = interpretParseBody('not json')
         expect(parsed.success).toBe(false)

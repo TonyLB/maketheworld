@@ -17,12 +17,34 @@ describe('runParseStage', () => {
             type: 'success',
             tokens: [
                 { type: 'text', text: 'put' },
-                { type: 'objectSpan', span: 'bag' },
+                { type: 'objectSpan', span: 'bag', stableRefKey: 'bagRef' },
                 { type: 'text', text: 'in' },
-                { type: 'objectSpan', span: 'box' },
+                { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
             ],
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+    })
+
+    it('assigns distinct stableRefKeys to identical-span tokens ("put bench on bench")', async () => {
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"bench"},{"type":"text","text":"on"},{"type":"objectSpan","span":"bench"}]}',
+        })
+
+        const result = await runParseStage(
+            { command: 'put bench on bench' },
+            { invokeBedrockObjectManipulationParseImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'success',
+            tokens: [
+                { type: 'text', text: 'put' },
+                { type: 'objectSpan', span: 'bench', stableRefKey: 'benchRef1' },
+                { type: 'text', text: 'on' },
+                { type: 'objectSpan', span: 'bench', stableRefKey: 'benchRef2' },
+            ],
+        })
     })
 
     it('returns a single text token for a zero-referent command', async () => {
