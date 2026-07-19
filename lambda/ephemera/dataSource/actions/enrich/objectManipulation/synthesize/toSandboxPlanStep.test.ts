@@ -115,18 +115,19 @@ describe('end-to-end: Grounding -> Expansion -> reconciliation -> Validation (BD
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
-            object: objectSpanRef('tray'),
-            from: currentHostRef(objectSpanRef('tray')),
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
             to: actingCharacterRef,
         }
 
         const groundResult = groundChange(change, {
             actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([['tray', { verdict: 'resolved', objectId: TRAY_ID }]]),
+            resolvedSpans: new Map([['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }]]),
             getCurrentHost: (componentId) => (componentId === TRAY_ID ? ROOM_ID : undefined),
         })
         expect(groundResult.ok).toBe(true)
         if (!groundResult.ok) return
+        expect(groundResult.candidates).toHaveLength(1)
 
         const roomGraph = testPositionGraph(ROOM_ID, {
             nodes: [
@@ -142,7 +143,7 @@ describe('end-to-end: Grounding -> Expansion -> reconciliation -> Validation (BD
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
 
         const expandResult = expandTransferMembership(
-            groundResult.step as TransferMembershipStep,
+            groundResult.candidates[0] as TransferMembershipStep,
             (hostId) => (hostId === ROOM_ID ? roomGraph : undefined)
         )
         expect(expandResult.verdict).toBe('complete')

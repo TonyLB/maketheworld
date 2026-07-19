@@ -14,29 +14,41 @@ import { groundReferent, type GroundingContext } from './groundReferent'
  * compatible with.
  */
 export type GroundChangeResult =
-    | { ok: true; step: ParsePlanStep }
+    | { ok: true; candidates: readonly ParsePlanStep[] }
     | { ok: false; reason: string }
 
 /**
- * Grounds a single `Change` (Plan's output) into a `ParsePlanStep`. Does not
- * handle `Assertion` --- Plan's shipped compiler never emits one today
+ * Grounds a single `Change` (Plan's output) into the *joint candidate space* of
+ * `ParsePlanStep`s it could produce (BD-23, 2026-07-19) --- not a single answer.
+ * Each referent field may ground to multiple candidates; this takes the
+ * Cartesian product across all of a Change's referent fields, constructing one
+ * step per combination. Per-combination type checks (is this candidate actually
+ * an object id / room id / membership host id?) filter out ill-typed
+ * combinations individually --- one bad combination doesn't invalidate others.
+ * **Same-object combinations (subject and target grounding to the identical id)
+ * are deliberately never filtered here** --- a self-reference isn't inherently
+ * invalid at this layer; whether it's actually legal (e.g. "can't put an object
+ * on itself") is Validation's job, a later, separate step. Fails only when the
+ * resulting candidate list is empty.
+ *
+ * Does not handle `Assertion` --- Plan's shipped compiler never emits one today
  * (`containedBy` unused, `sameHost` unbuilt), so this is a type-level
  * exclusion, not a TODO.
  *
- * `transferMembership` produces a **single-object, not-yet-carry-closed**
- * `objectIds` set --- growing it to a full carry-closed set is Expansion's
- * job (`computeCarryClosure`, `interactionUnderTransfer.ts`), deliberately not
- * invoked here. How Grounding and Expansion interleave is an open question
- * (`AGENT.concepts.md`, "Synthesize's three sub-roles") --- this function's
- * output is a valid but potentially incomplete candidate by design, not a
- * finished answer to that question.
+ * `transferMembership` produces **single-object, not-yet-carry-closed**
+ * `objectIds` sets per candidate --- growing one to a full carry-closed set is
+ * Expansion's job (`computeCarryClosure`, `interactionUnderTransfer.ts`),
+ * deliberately not invoked here. How Grounding and Expansion interleave is an
+ * open question (`AGENT.concepts.md`, "Synthesize's three sub-roles") --- this
+ * function's output is a valid but potentially incomplete candidate set by
+ * design, not a finished answer to that question.
  *
  * `establishRelation`/`dissolveRelation` derive their host as
  * `currentHost(actingCharacter)`, per BD-6's still-current default (BD-15/16's
  * `sameHost` generalization, which would let a held-item pair ground to a
- * Character host, isn't built yet). A derived host that isn't a Room fails
- * rather than silently narrowing, since that widening is explicitly
- * out-of-scope future work (BD-15 slice 3).
+ * Character host, isn't built yet). A derived host candidate that isn't a Room
+ * is filtered out per-combination rather than failing the whole call, since
+ * that widening is explicitly out-of-scope future work (BD-15 slice 3).
  */
 export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
     switch (change.primitive) {
@@ -46,72 +58,72 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
             if (!subject.ok) {
                 return subject
             }
-            if (!isEphemeraObjectId(subject.value)) {
-                return { ok: false, reason: `Grounded subject ${subject.value} is not an object id` }
-            }
-
             const target = groundReferent(change.target, context)
             if (!target.ok) {
                 return target
             }
-            if (!isEphemeraObjectId(target.value)) {
-                return { ok: false, reason: `Grounded target ${target.value} is not an object id` }
-            }
-
             const host = groundReferent(currentHostRef(actingCharacterRef), context)
             if (!host.ok) {
                 return host
             }
-            if (!isEphemeraRoomId(host.value)) {
-                return { ok: false, reason: `Derived host ${host.value} is not a room --- character-hosted relations are BD-15 slice-3 scope, not yet built` }
-            }
 
-            return {
-                ok: true,
-                step: {
-                    kind: change.primitive,
-                    subjectId: subject.value,
-                    targetId: target.value,
-                    relationKind: change.relationKind,
-                    ...(change.relationLabel !== undefined ? { relationLabel: change.relationLabel } : {}),
-                    hostRoomId: host.value,
-                },
+            const candidates: ParsePlanStep[] = []
+            for (const subjectCandidate of subject.candidates) {
+                if (!isEphemeraObjectId(subjectCandidate)) continue
+                for (const targetCandidate of target.candidates) {
+                    if (!isEphemeraObjectId(targetCandidate)) continue
+                    for (const hostCandidate of host.candidates) {
+                        if (!isEphemeraRoomId(hostCandidate)) continue
+                        candidates.push({
+                            kind: change.primitive,
+                            subjectId: subjectCandidate,
+                            targetId: targetCandidate,
+                            relationKind: change.relationKind,
+                            ...(change.relationLabel !== undefined ? { relationLabel: change.relationLabel } : {}),
+                            hostRoomId: hostCandidate,
+                        })
+                    }
+                }
             }
+            if (candidates.length === 0) {
+                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed establishRelation/dissolveRelation step' }
+            }
+            return { ok: true, candidates }
         }
         case 'transferMembership': {
             const object = groundReferent(change.object, context)
             if (!object.ok) {
                 return object
             }
-            if (!isEphemeraObjectId(object.value)) {
-                return { ok: false, reason: `Grounded object ${object.value} is not an object id` }
-            }
-
             const from = groundReferent(change.from, context)
             if (!from.ok) {
                 return from
             }
-            if (!isEphemeraMembershipHostId(from.value)) {
-                return { ok: false, reason: `Grounded from-host ${from.value} is not a membership host id` }
-            }
-
             const to = groundReferent(change.to, context)
             if (!to.ok) {
                 return to
             }
-            if (!isEphemeraMembershipHostId(to.value)) {
-                return { ok: false, reason: `Grounded to-host ${to.value} is not a membership host id` }
-            }
 
-            return {
-                ok: true,
-                step: {
-                    kind: 'transferMembership',
-                    objectIds: new Set([object.value]),
-                    fromHostId: from.value,
-                    toHostId: to.value,
-                },
+            const candidates: ParsePlanStep[] = []
+            for (const objectCandidate of object.candidates) {
+                if (!isEphemeraObjectId(objectCandidate)) continue
+                for (const fromCandidate of from.candidates) {
+                    if (!isEphemeraMembershipHostId(fromCandidate)) continue
+                    for (const toCandidate of to.candidates) {
+                        if (!isEphemeraMembershipHostId(toCandidate)) continue
+                        candidates.push({
+                            kind: 'transferMembership',
+                            objectIds: new Set([objectCandidate]),
+                            fromHostId: fromCandidate,
+                            toHostId: toCandidate,
+                        })
+                    }
+                }
             }
+            if (candidates.length === 0) {
+                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed transferMembership step' }
+            }
+            return { ok: true, candidates }
         }
     }
 }

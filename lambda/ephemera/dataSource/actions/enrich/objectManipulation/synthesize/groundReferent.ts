@@ -4,14 +4,17 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { Referent } from '../plan/ungroundedPrimitive'
 
 export type ResolvedSpan =
-    | { verdict: 'resolved'; objectId: EphemeraObjectId }
+    | { verdict: 'resolved'; candidateIds: readonly (EphemeraObjectId | EphemeraCharacterId)[] }
     | { verdict: 'unresolved'; reason: string }
 
 /**
- * Grounding's input: already-resolved per-span ids, not raw ranked candidate
- * pools. Identify (pool emission + selection + LLM-consult-if-ambiguous) is a
- * separate, already-scoped job --- Grounding only interprets the `Referent`
- * tree once each leaf span is a settled verdict.
+ * Grounding's input (BD-23, 2026-07-19): ranked candidate pools per stableRefKey,
+ * not one settled verdict per span. Two objectSpan referents with distinct
+ * stableRefKeys can carry the same or different candidate lists --- Grounding's
+ * job is to enumerate combinations across a Change's referents (see
+ * groundChange.ts), never to collapse to one answer or reject a same-object
+ * combination itself. That legality judgment belongs to Validation, a later,
+ * separate step.
  */
 export type GroundingContext = {
     actingCharacterId: EphemeraCharacterId
@@ -31,16 +34,17 @@ export type GroundingContext = {
  * a third outcome later.
  */
 export type GroundReferentResult =
-    | { ok: true; value: EphemeraObjectId | EphemeraCharacterId | EphemeraMembershipHostId }
+    | { ok: true; candidates: readonly (EphemeraObjectId | EphemeraCharacterId | EphemeraMembershipHostId)[] }
     | { ok: false; reason: string }
 
 /**
  * Resolves a `Referent` (`objectSpan` / `actingCharacter` / `currentHost`) into
- * a real id --- the compositional interpretation `AGENT.concepts.md` calls
- * Grounding. `currentHost(X)` grounds `X` first, then looks up its current
- * host via the injected callback (a plain dependency, not a live DB call, so
- * unit tests can supply a fixed map --- mirrors this codebase's `deps`
- * injection pattern elsewhere, e.g. `ApplyHostEffectsDependencies`).
+ * its full candidate list --- the compositional interpretation `AGENT.concepts.md`
+ * calls Grounding. `currentHost(X)` grounds `X` first (possibly multiple
+ * candidates), then looks up each candidate's current host via the injected
+ * callback, dropping any that don't resolve rather than failing the whole
+ * referent --- one candidate's host lookup failing doesn't invalidate another
+ * candidate. Fails only when no candidate produces a host at all.
  */
 export const groundReferent = (
     referent: Referent,
@@ -48,27 +52,37 @@ export const groundReferent = (
 ): GroundReferentResult => {
     switch (referent.referentType) {
         case 'objectSpan': {
-            const resolved = context.resolvedSpans.get(referent.span)
+            if (referent.stableRefKey === undefined) {
+                return {
+                    ok: false,
+                    reason: `objectSpan referent for span "${referent.span}" has no stableRefKey to ground against`,
+                }
+            }
+            const resolved = context.resolvedSpans.get(referent.stableRefKey)
             if (!resolved) {
-                return { ok: false, reason: `No resolution supplied for span "${referent.span}"` }
+                return { ok: false, reason: `No resolution supplied for stableRefKey "${referent.stableRefKey}"` }
             }
             if (resolved.verdict === 'unresolved') {
                 return { ok: false, reason: resolved.reason }
             }
-            return { ok: true, value: resolved.objectId }
+            return { ok: true, candidates: resolved.candidateIds }
         }
         case 'actingCharacter':
-            return { ok: true, value: context.actingCharacterId }
+            return { ok: true, candidates: [context.actingCharacterId] }
         case 'currentHost': {
             const target = groundReferent(referent.referentTarget, context)
             if (!target.ok) {
                 return target
             }
-            const host = context.getCurrentHost(target.value)
-            if (!host) {
-                return { ok: false, reason: `No current host found for ${target.value}` }
+            const hosts = [...new Set(
+                target.candidates
+                    .map((candidate) => context.getCurrentHost(candidate))
+                    .filter((host): host is EphemeraMembershipHostId => host !== undefined)
+            )]
+            if (hosts.length === 0) {
+                return { ok: false, reason: `No current host found for any candidate of ${referent.referentTarget.referentType}` }
             }
-            return { ok: true, value: host }
+            return { ok: true, candidates: hosts }
         }
     }
 }
