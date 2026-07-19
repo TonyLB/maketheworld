@@ -1,6 +1,12 @@
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-export type ObjectSpanReferent = { referentType: 'objectSpan'; span: string }
+/**
+ * stableRefKey is optional here: the only current constructor call sites
+ * (compileUngroundedPlan.ts, fed by the legacy frame types) have no real key to
+ * pass -- Step 2b's native Plan matcher, not yet built, is what will construct
+ * these from Parse's skeleton with a real key. Don't invent placeholder values.
+ */
+export type ObjectSpanReferent = { referentType: 'objectSpan'; span: string; stableRefKey?: string }
 export type ActingCharacterReferent = { referentType: 'actingCharacter' }
 export type CurrentHostReferent = { referentType: 'currentHost'; referentTarget: Referent }
 export type Referent = ObjectSpanReferent | ActingCharacterReferent | CurrentHostReferent
@@ -65,7 +71,11 @@ export type Assertion = ContainedByAssertion | SameHostAssertion
 
 export type UngroundedPlanStep = Change | Assertion
 
-export const objectSpanRef = (span: string): Referent => ({ referentType: 'objectSpan', span })
+export const objectSpanRef = (span: string, stableRefKey?: string): Referent => ({
+    referentType: 'objectSpan',
+    span,
+    ...(stableRefKey !== undefined ? { stableRefKey } : {}),
+})
 
 export const actingCharacterRef: Referent = { referentType: 'actingCharacter' }
 
