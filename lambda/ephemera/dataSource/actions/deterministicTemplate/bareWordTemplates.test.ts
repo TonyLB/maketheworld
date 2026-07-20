@@ -1,11 +1,4 @@
-import {
-    deterministicTemplateRegistry,
-    helpTemplate,
-    homeTemplate,
-    lookTemplate,
-    matchDeterministicTemplate,
-    predictTemplate,
-} from './bareWordTemplates'
+import { helpTemplate, homeTemplate, lookTemplate, predictTemplate } from './bareWordTemplates'
 
 describe('lookTemplate', () => {
     it('matches "look" and "l" (case-insensitive) via matchString', () => {
@@ -74,24 +67,5 @@ describe('predictTemplate', () => {
 
     it('matches via matchTokens', () => {
         expect(predictTemplate.matchTokens([{ type: 'text', text: 'predict' }]).type).toBe('matched')
-    })
-})
-
-describe('matchDeterministicTemplate', () => {
-    it('dispatches each bare word to its correct intent', () => {
-        expect(matchDeterministicTemplate('look')).toMatchObject({ intent: { type: 'LookRoom' } })
-        expect(matchDeterministicTemplate('l')).toMatchObject({ intent: { type: 'LookRoom' } })
-        expect(matchDeterministicTemplate('help')).toMatchObject({ intent: { type: 'Help' } })
-        expect(matchDeterministicTemplate('home')).toMatchObject({ intent: { type: 'Home' } })
-        expect(matchDeterministicTemplate('predict')).toMatchObject({ intent: { type: 'PredictHypothesis' } })
-    })
-
-    it('returns noMatch for an unrecognized command', () => {
-        expect(matchDeterministicTemplate('juggle flaming torches')).toEqual({ type: 'noMatch' })
-    })
-
-    it('is deterministic across repeated calls (first-match-wins registry order)', () => {
-        expect(deterministicTemplateRegistry.length).toBe(4)
-        expect(matchDeterministicTemplate('look')).toEqual(matchDeterministicTemplate('look'))
     })
 })

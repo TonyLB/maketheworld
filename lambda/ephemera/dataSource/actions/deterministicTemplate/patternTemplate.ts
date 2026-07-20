@@ -1,7 +1,12 @@
 import type { ParseSkeleton, ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import type { ParseCommandResult } from '../baseClasses'
-import type { DeterministicTemplate, IntentFieldRole, PatternElement } from './deterministicTemplate'
+import type {
+    DeterministicTemplate,
+    DeterministicTemplateDeferReason,
+    IntentFieldRole,
+    PatternElement,
+} from './deterministicTemplate'
 
 /** What a single pattern element captured out of a successful match. */
 export type PatternCapture =
@@ -173,6 +178,36 @@ export function makePatternTemplate(
                 skeleton,
                 intent: assembleIntent(templateIntent, result.captures),
             }
+        },
+    }
+}
+
+/**
+ * Sibling factory to makePatternTemplate: same two generic engines, but a
+ * structural match means "recognized shape, known-unsupported" rather than
+ * "matched" -- e.g. containment language ("in"/"into") for a relational
+ * command, which the current relation model (On/Under/Against/Custom, a
+ * positionGraph edge) has no representation for at all. Always defers on
+ * structural match; never produces `matched` or reads/assembles intent.
+ */
+export function makeDeferPatternTemplate(
+    pattern: PatternElement[],
+    reason: DeterministicTemplateDeferReason
+): DeterministicTemplate {
+    return {
+        matchString(command) {
+            const result = matchPatternAgainstString(pattern, command)
+            if (result.type === 'noMatch') {
+                return { type: 'noMatch' }
+            }
+            return { type: 'defer', reason }
+        },
+        matchTokens(skeleton) {
+            const result = matchPatternAgainstTokens(pattern, skeleton)
+            if (result.type === 'noMatch') {
+                return { type: 'noMatch' }
+            }
+            return { type: 'defer', reason }
         },
     }
 }

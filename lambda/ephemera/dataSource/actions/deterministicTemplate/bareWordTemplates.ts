@@ -1,5 +1,4 @@
 import { makePatternTemplate } from './patternTemplate'
-import type { DeterministicTemplate, DeterministicTemplateMatch } from './deterministicTemplate'
 
 /**
  * Four bare-word fast-path templates, mirroring discriminateIntent/
@@ -25,24 +24,3 @@ export const predictTemplate = makePatternTemplate(
     [{ type: 'templateText', options: ['predict'] }],
     { type: 'PredictHypothesis', confidence: 1 }
 )
-
-/**
- * Ordered, first-match-wins; agnostic to which factory produced each entry
- * (a future non-pattern-driven implementation could sit in this same array).
- */
-export const deterministicTemplateRegistry: DeterministicTemplate[] = [
-    lookTemplate,
-    helpTemplate,
-    homeTemplate,
-    predictTemplate,
-]
-
-export function matchDeterministicTemplate(command: string): DeterministicTemplateMatch {
-    for (const template of deterministicTemplateRegistry) {
-        const result = template.matchString(command)
-        if (result.type !== 'noMatch') {
-            return result
-        }
-    }
-    return { type: 'noMatch' }
-}
