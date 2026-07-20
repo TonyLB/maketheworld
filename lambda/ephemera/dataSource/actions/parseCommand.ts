@@ -79,7 +79,7 @@ async function parseCommandCore(
         // unconditionally here (deterministicIntentChecks never produces
         // ObjectRelateIntent, so there's no zero-Bedrock path to protect) and there
         // is deliberately no fallback to the legacy flow on Parse failure --- see
-        // AGENT.parseTokenization.planning.md's Step 2b step 6 context.
+        // enrich/objectManipulation/AGENT.md (relational branch).
         const parseResult = await runParseStage(
             { command: input.command },
             { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }

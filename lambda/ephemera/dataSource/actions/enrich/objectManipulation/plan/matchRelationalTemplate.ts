@@ -33,9 +33,8 @@ function classifyVerb(text: string): 'establishRelation' | 'dissolveRelation' | 
  * shape this slice recognizes: TEXT(verb) OBJECTSPAN TEXT(prep) OBJECTSPAN ---
  * exactly 4 tokens, alternating. This check is local to this function and has
  * no bearing on membership's separate, untouched deterministicChecks.ts fast
- * path (see AGENT.parseTokenization.planning.md, Step 2b step 3). No location-
- * disambiguating modifier attachment here -- that's iteration 6 (BD-24),
- * deliberately out of scope. Only ever meaningful once classify has already
+ * path. No location-disambiguating modifier attachment here -- that's iteration 6
+ * (BD-24 in the taskPlanning BD-N index), deliberately out of scope. Only ever meaningful once classify has already
  * routed a command as ObjectRelateIntent; this function does no family/route
  * detection itself.
  */

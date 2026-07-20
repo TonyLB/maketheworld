@@ -290,7 +290,7 @@ export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
     /**
      * Object noun phrase strings for the membership route. Classify itself no longer extracts these
-     * (retired --- see `AGENT.parseTokenization.planning.md`'s Step 3); always `[]` here. The real
+     * (retired --- see `AGENT.implementation.md`, object-manipulation field ownership); always `[]` here. The real
      * source is either `deterministicChecks.ts` (zero-Bedrock fast path, populated before classify
      * ever runs) or Parse's skeleton (`objectSpansFromSkeleton.ts`), both applied in `parseCommand.ts`.
      */
@@ -304,7 +304,7 @@ export type ParseCommandObjectMembershipIntentResult = {
  * Intent discrimination only: player intent is an in-host edge between objects on a host positionGraph.
  * No `verbClass` at classify; operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
  * No object spans at classify either --- the relational route resolves spans entirely from Parse's
- * skeleton (see `AGENT.parseTokenization.planning.md`'s Step 3).
+ * skeleton (see `enrich/objectManipulation/AGENT.md`, relational branch).
  */
 export type ParseCommandObjectRelateIntentResult = {
     type: 'ObjectRelateIntent'

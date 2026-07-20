@@ -68,7 +68,7 @@ When the fast path does not apply, the model chooses **topology**:
 **Handoff:** intent **`type`**, **`rawObjectSpans`**, optional **`verbClass`**, **`confidence`**; catalogs and **`hostRoomId`** from parse ingress. Tie-breakers (e.g. **`ObjectRelateIntent`** beats **`ObjectMembershipIntent`** when the line establishes an in-host relation) live in [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../discriminateIntent/buildIntentClassificationPrompt.ts).
 
 **3. Enrich route (deterministic)**  
-[`parseCommand`](../../parseCommand.ts) sets **`enrichRoute`** from classify intent type and calls [`enrichObjectManipulation`](index.ts). Membership path runs a **cardinality gate** (`multiObject` Error when **`rawObjectSpans.length > 1`**). Relational path has no cardinality gate at entry; frame extract re-derives structure from the command.
+[`parseCommand`](../../parseCommand.ts) sets **`enrichRoute`** from classify intent type and calls [`enrichObjectManipulation`](index.ts). Membership path runs a **cardinality gate** (`multiObject` Error when **`rawObjectSpans.length > 1`**). Relational path has no cardinality gate at entry; the deterministic Plan matcher (`matchRelationalTemplate`) derives structure from Parse's skeleton.
 
 ---
 
@@ -111,7 +111,7 @@ The hop receives grounded **`objectId`**, membership containers, and which **exi
 
 #### Relational branch (native Parse-skeleton pipeline, `compileRelationalFromSkeleton`)
 
-**Retired 2026-07-20:** the original frame-extract LLM + `compileRelational.ts` + `selectRelationalFromPools.ts` + `proposeRelationalTuples.ts` chain (steps 9-13 as they read before this date) is deleted outright, not merely superseded --- see `AGENT.parseTokenization.planning.md`'s Step 3 for the retirement history. The pipeline below is the sole live relational path, per BD-21/BD-22/BD-23's design (Identify/Plan/Synthesize decomposition, [`../../AGENT.concepts.md`](../../AGENT.concepts.md)).
+**Retired 2026-07-20:** the original frame-extract LLM + `compileRelational.ts` + `selectRelationalFromPools.ts` + `proposeRelationalTuples.ts` chain (steps 9-13 as they read before this date) is deleted outright, not merely superseded (retirement history in git; iteration 3 / BD-21 in the [iteration ladder's BD-N index](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationIterations.planning.md)). The pipeline below is the sole live relational path, per BD-21/BD-22/BD-23's design (Identify/Plan/Synthesize decomposition, [`../../AGENT.concepts.md`](../../AGENT.concepts.md)).
 
 **9. Parse (semantic reasoning, upstream of this folder)**  
 **Purpose:** [`parseCommand.ts`](../../parseCommand.ts)'s `ObjectRelateIntent` branch calls [`runParseStage`](parse/runParseStage.ts) unconditionally, turning player language into an ordered **`ParseSkeleton`** --- a sequence of `{ type: 'objectSpan', span, stableRefKey } | { type: 'text', text }` tokens ([`parse/parseToken.ts`](parse/parseToken.ts)). `stableRefKey` (assigned deterministically by [`stampStableRefKeys.ts`](parse/stampStableRefKeys.ts), never by the LLM) lets two identical-text spans ("put bench on bench") stay distinguishable by occurrence, not just array position. No role tagging (subject/target/verb) happens here --- that's Plan's job, step 10. No fallback to the retired frame-extract flow on Parse failure; the branch abstains or errors outright.

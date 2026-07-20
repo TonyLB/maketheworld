@@ -45,11 +45,12 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
 })
 
 /**
- * Step 2b step 6 (AGENT.parseTokenization.planning.md): the native relational
- * pipeline --- Plan match (matchRelationalTemplate) -> Identify
- * (runIdentityStageOverSkeleton) -> Grounding (groundChange) -> Validation
- * (filterLegalRelationalCandidates) --- replacing compileRelational.ts's
- * frame-extract + selectRelationalFromPools flow on the live relational route.
+ * The native relational pipeline (see AGENT.md, relational branch, and
+ * ../../AGENT.concepts.md's Parse/Plan/Synthesize decomposition) --- Plan match
+ * (matchRelationalTemplate) -> Identify (runIdentityStageOverSkeleton) ->
+ * Grounding (groundChange) -> Validation (filterLegalRelationalCandidates) ---
+ * replaced the retired frame-extract + selectRelationalFromPools flow on the
+ * live relational route.
  *
  * Deliberately has no fallback to that legacy flow: a noMatch/nestingDefer
  * skeleton, or a command Grounding/Validation can't make sense of, abstains or
@@ -127,8 +128,9 @@ export async function compileRelationalFromSkeleton(
     }
 
     // Naive placeholder selection (2026-07-19): rank/confidence-based selection
-    // among multiple legal candidates is deliberately deferred (see
-    // AGENT.parseTokenization.planning.md's Open decisions) --- once the
+    // among multiple legal candidates is deliberately deferred (BD-25 --- see the
+    // BD-N index in taskPlanning/.../AGENT.objectManipulationIterations.planning.md,
+    // which routes to iteration 2) --- once the
     // evidence-weighting work generalizes to this deterministic path, this
     // should combine each candidate's grounded Identify confidence
     // (ObjectSpanCandidate.jointRelevance) with a plan-suitability rubric
