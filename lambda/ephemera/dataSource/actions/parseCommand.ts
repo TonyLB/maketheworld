@@ -56,7 +56,6 @@ async function parseCommandCore(
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 embedSpan: deps.embedSpan,
             }
@@ -65,11 +64,32 @@ async function parseCommandCore(
     }
 
     if (intentResult.type === 'ObjectRelateIntent') {
+        // Step 2b step 6 (BD-21/BD-22/BD-23): the relational route now runs entirely
+        // through the native pipeline (Plan match -> Identify -> Grounding ->
+        // Validation, see compileRelationalFromSkeleton.ts) instead of frame-extract +
+        // compileRelational.ts. Unlike Step 2a's membership wiring, Parse runs
+        // unconditionally here (deterministicIntentChecks never produces
+        // ObjectRelateIntent, so there's no zero-Bedrock path to protect) and there
+        // is deliberately no fallback to the legacy flow on Parse failure --- see
+        // AGENT.parseTokenization.planning.md's Step 2b step 6 context.
+        const parseResult = await runParseStage(
+            { command: input.command },
+            { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
+        )
+        if (parseResult.type === 'error') {
+            return {
+                result: { type: 'Error', errorMessage: parseResult.errorMessage },
+                enrichReasoningMarkdown: '',
+                enrichRawBody: undefined,
+            }
+        }
+
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
                 command: input.command,
                 rawObjectSpans: intentResult.rawObjectSpans,
+                parseSkeleton: parseResult.tokens,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,
@@ -77,9 +97,6 @@ async function parseCommandCore(
             },
             intentResult.confidence,
             {
-                invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 embedSpan: deps.embedSpan,
             }

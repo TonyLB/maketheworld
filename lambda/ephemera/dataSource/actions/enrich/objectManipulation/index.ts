@@ -6,9 +6,12 @@ import type {
     ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
 import { compileMembershipAtomic, type CompileMembershipAtomicDeps } from './compileMembershipAtomic'
-import { compileRelational, type CompileRelationalDeps } from './compileRelational'
-import { runFrameExtractStage, type FrameExtractStageDeps } from './frameExtract/runFrameExtractStage'
+import {
+    compileRelationalFromSkeleton,
+    type CompileRelationalFromSkeletonDeps,
+} from './compileRelationalFromSkeleton'
 import type { ManipulationFrameBuildInput } from './manipulationFrame'
+import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
 export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
@@ -19,7 +22,7 @@ export type EnrichObjectManipulationResult =
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
-export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & FrameExtractStageDeps & CompileRelationalDeps
+export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & CompileRelationalFromSkeletonDeps
 
 export async function enrichObjectManipulation(
     input: EnrichObjectManipulationInput,
@@ -27,11 +30,25 @@ export async function enrichObjectManipulation(
     deps: EnrichObjectManipulationDeps = {}
 ): Promise<EnrichObjectManipulationResult> {
     if (input.enrichRoute === 'relational') {
-        const extractResult = await runFrameExtractStage(input, deps)
-        if (extractResult.type === 'error') {
-            return { type: 'Error', errorMessage: extractResult.errorMessage }
+        // Step 2b step 6: relational's only live source is now Parse's skeleton, fed
+        // by parseCommand.ts's ObjectRelateIntent branch, which never calls this
+        // route without one (no frame-extract fallback -- see
+        // AGENT.parseTokenization.planning.md). Defensive only, not reachable today.
+        if (input.parseSkeleton === undefined) {
+            return { type: 'Error', errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch }
         }
-        return compileRelational(extractResult.frame, intentConfidence, deps)
+        return compileRelationalFromSkeleton(
+            {
+                command: input.command,
+                skeleton: input.parseSkeleton,
+                characterId: input.characterId,
+                hostRoomId: input.hostRoomId,
+                roomObjectCatalog: input.roomObjectCatalog,
+                heldInventoryCatalog: input.heldInventoryCatalog,
+            },
+            intentConfidence,
+            deps
+        )
     }
 
     if (input.verbClass === undefined) {

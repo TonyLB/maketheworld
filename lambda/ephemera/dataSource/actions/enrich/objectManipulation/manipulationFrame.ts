@@ -2,6 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 
 import type { ManipulationVerbClass, RelationalOperationKind } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+import type { ParseSkeleton } from './parse/parseToken'
 
 export type { RelationalOperationKind } from '../../baseClasses'
 
@@ -16,6 +17,8 @@ export type ManipulationFrameBuildInput = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** Step 2b step 6: Parse's skeleton, required on the relational route (native pipeline, no frame-extract fallback). */
+    parseSkeleton?: ParseSkeleton
 }
 
 /**
