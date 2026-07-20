@@ -23,23 +23,31 @@ async function parseCommandCore(
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type === 'ObjectMembershipIntent') {
-        // Step 2a (BD-21): Parse's tokenized skeleton replaces classify's inline objectSpans
-        // extraction as the source of rawObjectSpans, but only for commands that actually
-        // reached classify's LLM -- the deterministic fast path (take/get/drop) must stay
-        // zero-Bedrock, so it's re-checked here rather than calling Parse unconditionally.
-        // On Parse failure, fall back to classify's own rawObjectSpans (still populated
-        // pre-Step-3) rather than hard-failing the command -- an interim safety net removed
-        // once Step 3 deletes that field.
+        // Step 2a/Step 3 (BD-21): Parse's tokenized skeleton is the sole source of
+        // rawObjectSpans for commands that reach classify's LLM -- the deterministic fast
+        // path (take/get/drop) stays zero-Bedrock and supplies its own self-built spans
+        // (deterministicIntentChecks), re-checked here rather than calling Parse
+        // unconditionally. Classify's own inline objectSpans extraction has been retired
+        // (Step 3); on Parse failure for an LLM-routed command, hard-fail rather than
+        // falling back to it, mirroring the ObjectRelateIntent branch below.
         const tookDeterministicPath = deterministicIntentChecks(input) !== null
-        const parseResult = tookDeterministicPath
-            ? null
-            : await runParseStage(
+        let rawObjectSpans: string[]
+        if (tookDeterministicPath) {
+            rawObjectSpans = intentResult.rawObjectSpans
+        } else {
+            const parseResult = await runParseStage(
                 { command: input.command },
                 { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
             )
-        const rawObjectSpans = parseResult?.type === 'success'
-            ? objectSpansFromSkeleton(parseResult.tokens)
-            : intentResult.rawObjectSpans
+            if (parseResult.type !== 'success') {
+                return {
+                    result: { type: 'Error', errorMessage: parseResult.errorMessage },
+                    enrichReasoningMarkdown: '',
+                    enrichRawBody: undefined,
+                }
+            }
+            rawObjectSpans = objectSpansFromSkeleton(parseResult.tokens)
+        }
 
         const result = await enrichObjectManipulation(
             {
@@ -88,7 +96,10 @@ async function parseCommandCore(
             {
                 enrichRoute: 'relational',
                 command: input.command,
-                rawObjectSpans: intentResult.rawObjectSpans,
+                // Vestigial: the relational route resolves spans entirely from parseSkeleton
+                // (see enrich/objectManipulation/index.ts); this only satisfies
+                // ManipulationFrameBuildInput's shared required field.
+                rawObjectSpans: [],
                 parseSkeleton: parseResult.tokens,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,

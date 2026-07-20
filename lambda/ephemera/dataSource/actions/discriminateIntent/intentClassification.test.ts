@@ -75,16 +75,16 @@ describe('isParseCommandAcmeOrderIntentResult', () => {
 })
 
 describe('isParseCommandObjectMembershipIntentResult', () => {
-    it('accepts ObjectMembershipIntent with verbClass acquire or release, trimmed rawObjectSpans, and valid confidence', () => {
+    it('accepts ObjectMembershipIntent with verbClass acquire or release, empty rawObjectSpans (classify no longer extracts spans), and valid confidence', () => {
         expect(isParseCommandObjectMembershipIntentResult({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            rawObjectSpans: [],
             verbClass: 'acquire',
             confidence: 0.9,
         })).toBe(true)
         expect(isParseCommandObjectMembershipIntentResult({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['rope'],
+            rawObjectSpans: [],
             verbClass: 'release',
             confidence: 0.85,
         })).toBe(true)
@@ -93,24 +93,18 @@ describe('isParseCommandObjectMembershipIntentResult', () => {
     it('rejects missing or invalid verbClass', () => {
         expect(isParseCommandObjectMembershipIntentResult({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            rawObjectSpans: [],
             confidence: 0.9,
         } as unknown as Parameters<typeof isParseCommandObjectMembershipIntentResult>[0])).toBe(false)
         expect(isParseCommandObjectMembershipIntentResult({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            rawObjectSpans: [],
             verbClass: 'relational',
             confidence: 0.9,
         } as unknown as Parameters<typeof isParseCommandObjectMembershipIntentResult>[0])).toBe(false)
     })
 
-    it('rejects missing, empty, untrimmed, or invalid rawObjectSpans', () => {
-        expect(isParseCommandObjectMembershipIntentResult({
-            type: 'ObjectMembershipIntent',
-            rawObjectSpans: [],
-            verbClass: 'acquire',
-            confidence: 0.9,
-        })).toBe(false)
+    it('rejects untrimmed or invalid rawObjectSpans entries (deterministic-path spans still validated)', () => {
         expect(isParseCommandObjectMembershipIntentResult({
             type: 'ObjectMembershipIntent',
             rawObjectSpans: ['  '],
@@ -121,24 +115,17 @@ describe('isParseCommandObjectMembershipIntentResult', () => {
 })
 
 describe('isParseCommandObjectRelateIntentResult', () => {
-    it('accepts ObjectRelateIntent with trimmed rawObjectSpans and valid confidence', () => {
+    it('accepts ObjectRelateIntent with valid confidence (no object-span fields --- classify no longer extracts spans)', () => {
         expect(isParseCommandObjectRelateIntentResult({
             type: 'ObjectRelateIntent',
-            rawObjectSpans: ['broom'],
             confidence: 0.9,
         })).toBe(true)
     })
 
-    it('rejects missing, empty, or invalid rawObjectSpans', () => {
+    it('rejects invalid confidence', () => {
         expect(isParseCommandObjectRelateIntentResult({
             type: 'ObjectRelateIntent',
-            rawObjectSpans: [],
-            confidence: 0.9,
-        })).toBe(false)
-        expect(isParseCommandObjectRelateIntentResult({
-            type: 'ObjectRelateIntent',
-            rawObjectSpans: ['  '],
-            confidence: 0.9,
+            confidence: 2,
         })).toBe(false)
     })
 })
@@ -191,7 +178,6 @@ describe('buildIntentClassificationPrompt', () => {
         expect(prompt).toContain('order explosives and then go north')
         expect(prompt).toContain('go east, after which look around')
         expect(prompt).toContain('"orders": ["<product span>", ...]')
-        expect(prompt).toContain('"objectSpans": ["<object span>", ...]')
         expect(prompt).toContain('"verbClass": "acquire" | "release"')
         expect(prompt).toContain('verbClass')
     })
@@ -267,26 +253,25 @@ describe('interpretIntentClassificationBody', () => {
             confidence: 0.85,
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.92}'
+            '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.92}'
         )).toEqual({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            rawObjectSpans: [],
             verbClass: 'acquire',
             confidence: 0.92,
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["  heavy anvil  "],"verbClass":"release","confidence":0.88}'
+            '{"type":"ObjectMembershipIntent","verbClass":"release","confidence":0.88}'
         )).toEqual({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['heavy anvil'],
+            rawObjectSpans: [],
             verbClass: 'release',
             confidence: 0.88,
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectRelateIntent","objectSpans":["broom"],"confidence":0.91}'
+            '{"type":"ObjectRelateIntent","confidence":0.91}'
         )).toEqual({
             type: 'ObjectRelateIntent',
-            rawObjectSpans: ['broom'],
             confidence: 0.91,
         })
         expect(interpretIntentClassificationBody(
@@ -307,23 +292,7 @@ describe('interpretIntentClassificationBody', () => {
         )).toEqual({ type: 'Unknown', confidence: 0.25 })
     })
 
-    it('peels leading articles from LLM-parsed manipulation and Acme spans', () => {
-        expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["the broom"],"verbClass":"acquire","confidence":0.92}'
-        )).toEqual({
-            type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
-            verbClass: 'acquire',
-            confidence: 0.92,
-        })
-        expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["a"],"verbClass":"acquire","confidence":0.92}'
-        )).toEqual({
-            type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['a'],
-            verbClass: 'acquire',
-            confidence: 0.92,
-        })
+    it('peels leading articles from LLM-parsed Acme spans', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"AcmeOrder","orders":["an anvil"],"confidence":0.85}'
         )).toEqual({
@@ -348,43 +317,34 @@ describe('interpretIntentClassificationBody', () => {
         ).type).toBe('Error')
     })
 
-    it('rejects ObjectMembershipIntent when objectSpans array is missing, empty, or has invalid entries', () => {
+    it('rejects ObjectMembershipIntent when verbClass is missing or invalid', () => {
         expect(interpretIntentClassificationBody(
             '{"type":"ObjectMembershipIntent","confidence":0.9}'
         ).type).toBe('Error')
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"confidence":0.9}'
-        ).type).toBe('Error')
-        expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":[],"verbClass":"acquire","confidence":0.85}'
-        ).type).toBe('Error')
-        expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["  "],"verbClass":"acquire","confidence":0.85}'
-        ).type).toBe('Error')
-    })
-
-    it('rejects ObjectMembershipIntent when verbClass is missing or invalid', () => {
-        expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"relational","confidence":0.9}'
+            '{"type":"ObjectMembershipIntent","verbClass":"relational","confidence":0.9}'
         )).toEqual({
             type: 'Error',
             errorMessage: 'ObjectMembershipIntent intent verbClass must be acquire or release',
         })
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"takeHold","confidence":0.9}'
+            '{"type":"ObjectMembershipIntent","verbClass":"takeHold","confidence":0.9}'
         )).toEqual({
             type: 'Error',
             errorMessage: 'ObjectMembershipIntent intent verbClass must be acquire or release',
         })
     })
 
-    it('rejects ObjectMembershipIntent forbidden and legacy fields', () => {
+    it('rejects ObjectMembershipIntent forbidden, legacy, and retired objectSpans fields', () => {
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"operationKind":"takeHold","verbClass":"acquire","confidence":0.9}'
+            '{"type":"ObjectMembershipIntent","operationKind":"takeHold","verbClass":"acquire","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'ObjectMembershipIntent must not include operationKind, disposition, object ids, or routing fields',
+            errorMessage: 'ObjectMembershipIntent must not include objectSpans, operationKind, disposition, object ids, or routing fields',
         })
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.9}'
+        ).type).toBe('Error')
         expect(interpretIntentClassificationBody(
             '{"type":"ObjectMembershipIntent","rawObjectSpans":["broom"],"verbClass":"acquire","confidence":0.9}'
         ).type).toBe('Error')
@@ -395,11 +355,17 @@ describe('interpretIntentClassificationBody', () => {
 
     it('rejects ObjectRelateIntent when verbClass is present', () => {
         expect(interpretIntentClassificationBody(
-            '{"type":"ObjectRelateIntent","objectSpans":["broom"],"verbClass":"release","confidence":0.9}'
+            '{"type":"ObjectRelateIntent","verbClass":"release","confidence":0.9}'
         )).toEqual({
             type: 'Error',
             errorMessage: 'ObjectRelateIntent must not include verbClass',
         })
+    })
+
+    it('rejects ObjectRelateIntent retired objectSpans field', () => {
+        expect(interpretIntentClassificationBody(
+            '{"type":"ObjectRelateIntent","objectSpans":["broom"],"confidence":0.9}'
+        ).type).toBe('Error')
     })
 
     it('rejects legacy ObjectManipulationIntent umbrella type', () => {
@@ -465,7 +431,7 @@ describe('interpretIntentClassificationBody', () => {
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (objectSpans array of raw spans and verbClass acquire or release), ObjectRelateIntent (objectSpans array of raw spans only), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (verbClass acquire or release), ObjectRelateIntent, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -476,7 +442,7 @@ describe('interpretIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (objectSpans array of raw spans and verbClass acquire or release), ObjectRelateIntent (objectSpans array of raw spans only), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (verbClass acquire or release), ObjectRelateIntent, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 

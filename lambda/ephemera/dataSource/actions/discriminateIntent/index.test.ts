@@ -70,14 +70,14 @@ describe('discriminateIntent', () => {
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({
                     success: true,
-                    body: '{"type":"ObjectMembershipIntent","objectSpans":["broom"],"verbClass":"acquire","confidence":0.93}',
+                    body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.93}',
                 }),
             }
         )
 
         expect(result).toEqual({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            rawObjectSpans: [],
             verbClass: 'acquire',
             confidence: 0.93,
         })
