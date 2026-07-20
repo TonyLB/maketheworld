@@ -705,8 +705,6 @@ export type ParseCommandDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
     invokeBedrockObjectManipulationComplexityImpl?: typeof invokeBedrockObjectManipulationEnrich;
-    /** Bedrock frame-extract stage for relational object manipulation; tests may inject a mock. */
-    invokeBedrockObjectManipulationFrameExtractImpl?: typeof invokeBedrockObjectManipulationEnrich;
     /** Bedrock Parse stage (tokenized command skeleton, BD-21); tests may inject a mock. */
     invokeBedrockObjectManipulationParseImpl?: typeof invokeBedrockObjectManipulationParse;
     /** Injectable Positions reads for object manipulation membership pre-gates. */

@@ -1098,7 +1098,6 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
         const embedSpan = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1119,7 +1118,6 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockAcmeOrderEnrichImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 embedSpan,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
@@ -1135,7 +1133,6 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()
         expect(embedSpan).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
@@ -1148,7 +1145,6 @@ describe('parseCommand LLM path', () => {
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
             const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-            const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
             const embedSpan = jest.fn().mockResolvedValue({
                 success: true,
                 embedding: spanEmbedding,
@@ -1178,7 +1174,6 @@ describe('parseCommand LLM path', () => {
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
                     invokeBedrockObjectManipulationComplexityImpl,
-                    invokeBedrockObjectManipulationFrameExtractImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
@@ -1196,7 +1191,6 @@ describe('parseCommand LLM path', () => {
             expect(embedSpan).toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()
         })
 
         it('returns Consult for ambiguous exact membership pool (duplicate broom labels)', async () => {
@@ -1205,7 +1199,6 @@ describe('parseCommand LLM path', () => {
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
             const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-            const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
             const embedSpan = jest.fn()
 
             const result = await parseCommand(
@@ -1224,7 +1217,6 @@ describe('parseCommand LLM path', () => {
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
                     invokeBedrockObjectManipulationComplexityImpl,
-                    invokeBedrockObjectManipulationFrameExtractImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
@@ -1242,7 +1234,6 @@ describe('parseCommand LLM path', () => {
             expect(embedSpan).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()
         })
 
         it('returns DissolveRelation for relational dissolve via the native skeleton pipeline (Step 2b step 6)', async () => {
