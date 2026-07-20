@@ -148,17 +148,13 @@ that changes which positionGraph hosts the object (not an in-host relation betwe
 Examples (paraphrase, not an exhaustive verb list): "pick up the broom", "grab the anvil",
 "take hold of the crate", "drop the rope", "put down the hammer", "toss the pouch".
 
-For **ObjectMembershipIntent**, extract the object noun phrase(s) from the line and return them
-as an \`objectSpans\` array of raw strings. Strip leading articles (\`a\`, \`an\`, \`the\`, \`some\`);
-trim whitespace. These are unvalidated extractions - object id matching and operation details
-are handled downstream. Your job is only to identify the span(s) that name what the player is
-trying to manipulate.
-
-Also return \`verbClass\`: membership **language** direction only.
+Return \`verbClass\`: membership **language** direction only.
 - \`acquire\` --- pick-up / take-hold paraphrases (grab, pick up, take, get when manipulating an in-play object).
 - \`release\` --- drop / put-down / toss paraphrases (drop, put down, toss, release).
 
-**Do not** include \`operationKind\`, object ids, disposition, or graph proposal fields at this step.
+**Do not** include \`objectSpans\`, \`operationKind\`, object ids, disposition, or graph proposal
+fields at this step --- object noun phrases are extracted by a separate downstream Parse step,
+not here.
 
 ${objectContextBlock}
 
@@ -167,7 +163,7 @@ delivery). When the player wants Acme to deliver a second copy of something alre
 explicit order verbs (\`order <noun>\`, \`buy <noun>\`, etc.) remain **AcmeOrder**.
 
 Return:
-{ "type": "ObjectMembershipIntent", "objectSpans": ["<raw span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+{ "type": "ObjectMembershipIntent", "verbClass": "acquire" | "release", "confidence": <number> }
 
 ---
 
@@ -180,17 +176,14 @@ object relative to another, leaning, tying, wrapping, or removing such a relatio
 Examples (paraphrase, not an exhaustive preposition list): "put the broom on the table",
 "lean the ladder against the wall", "tie the cord around the crate", "take the rope off the crate".
 
-For **ObjectRelateIntent**, extract the object noun phrase(s) from the line and return them as
-an \`objectSpans\` array of raw strings. Strip leading articles; trim whitespace. Frame extraction
-and relation normalization are handled downstream.
-
-**Do not** include \`verbClass\`, \`operationKind\`, object ids, disposition, or graph proposal
-fields at this step.
+**Do not** include \`objectSpans\`, \`verbClass\`, \`operationKind\`, object ids, disposition, or
+graph proposal fields at this step --- object noun phrases and relation structure are extracted
+by a separate downstream Parse step, not here.
 
 ${objectContextBlock}
 
 Return:
-{ "type": "ObjectRelateIntent", "objectSpans": ["<raw span>", ...], "confidence": <number> }
+{ "type": "ObjectRelateIntent", "confidence": <number> }
 
 ---
 
@@ -356,8 +349,8 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 ## Outcomes (choose exactly one)
 
 1. **AcmeOrder** - Section A. Respond with \`type\`, \`orders\` (non-empty string array of raw product spans), and \`confidence\`.
-2. **ObjectMembershipIntent** - Section A2. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), \`verbClass\` (\`acquire\` or \`release\`), and \`confidence\`.
-3. **ObjectRelateIntent** - Section A2b. Respond with \`type\`, \`objectSpans\` (non-empty string array of raw object spans), and \`confidence\` only (no \`verbClass\`).
+2. **ObjectMembershipIntent** - Section A2. Respond with \`type\`, \`verbClass\` (\`acquire\` or \`release\`), and \`confidence\`.
+3. **ObjectRelateIntent** - Section A2b. Respond with \`type\` and \`confidence\` only (no \`verbClass\`).
 4. **NavigationIntent** - Section B. Respond with exactly \`type\`, \`exitCandidate\`, and \`confidence\`.
 5. **HomeIntent** - Section B2. Respond with **only** \`type\` and \`confidence\`.
 6. **AwaitRoadRunner** - Section C. Respond with **only** \`type\` and \`confidence\`.
@@ -376,7 +369,6 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 - Output **only** a single JSON object, no markdown fences, no explanation before or after.
 - \`confidence\` is a number from 0 through 1.
 - \`orders\` entries are raw extracted strings - do not validate, enrich, or add catalog fields.
-- \`objectSpans\` entries are raw extracted strings - do not validate, enrich, or add object ids.
 - \`verbClass\` on **ObjectMembershipIntent** must be exactly \`acquire\` or \`release\` (membership language direction only; not \`operationKind\`). **ObjectRelateIntent** must not include \`verbClass\`.
 
 ## Required JSON shapes
@@ -385,11 +377,11 @@ In the rare case where Sections A-G genuinely leave two intents tied:
 
 or
 
-{ "type": "ObjectMembershipIntent", "objectSpans": ["<object span>", ...], "verbClass": "acquire" | "release", "confidence": <number> }
+{ "type": "ObjectMembershipIntent", "verbClass": "acquire" | "release", "confidence": <number> }
 
 or
 
-{ "type": "ObjectRelateIntent", "objectSpans": ["<object span>", ...], "confidence": <number> }
+{ "type": "ObjectRelateIntent", "confidence": <number> }
 
 or
 

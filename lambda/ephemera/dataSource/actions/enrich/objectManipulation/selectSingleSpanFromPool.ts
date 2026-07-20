@@ -11,7 +11,7 @@ import type { SpanCandidatePool, SpanResolutionOutcome } from './spanResolution'
 /**
  * FT-2.1 bridge: single-span FT-5 auto-resolve on joint relevance floor + margin.
  * Membership superseded by FT-2.2 {@link selectMembershipFromPool}.
- * Relational superseded by FT-3.3 {@link selectRelationalFromPools}.
+ * Relational superseded by FT-3.3's native skeleton pipeline (see compileRelationalFromSkeleton.ts).
  * Retained for harness / unit history. Declines map to error, not Consult.
  */
 export function selectSingleSpanFromPool(pool: SpanCandidatePool): SpanResolutionOutcome {

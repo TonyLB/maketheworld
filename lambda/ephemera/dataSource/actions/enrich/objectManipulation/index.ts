@@ -30,10 +30,10 @@ export async function enrichObjectManipulation(
     deps: EnrichObjectManipulationDeps = {}
 ): Promise<EnrichObjectManipulationResult> {
     if (input.enrichRoute === 'relational') {
-        // Step 2b step 6: relational's only live source is now Parse's skeleton, fed
-        // by parseCommand.ts's ObjectRelateIntent branch, which never calls this
-        // route without one (no frame-extract fallback -- see
-        // AGENT.parseTokenization.planning.md). Defensive only, not reachable today.
+        // Relational's only live source is now Parse's skeleton, fed by
+        // parseCommand.ts's ObjectRelateIntent branch, which never calls this
+        // route without one (no frame-extract fallback -- see AGENT.md,
+        // relational branch). Defensive only, not reachable today.
         if (input.parseSkeleton === undefined) {
             return { type: 'Error', errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch }
         }

@@ -70,10 +70,7 @@ export function isParseCommandObjectMembershipIntentResult(
     if (!isManipulationVerbClass(result.verbClass)) {
         return false
     }
-    if (!Array.isArray(result.rawObjectSpans) || result.rawObjectSpans.length === 0) {
-        return false
-    }
-    return result.rawObjectSpans.every(
+    return Array.isArray(result.rawObjectSpans) && result.rawObjectSpans.every(
         (s) => typeof s === 'string' && s.trim().length > 0 && s === s.trim()
     )
 }
@@ -84,13 +81,5 @@ export function isParseCommandObjectRelateIntentResult(
     if (result.type !== 'ObjectRelateIntent') {
         return false
     }
-    if (!isParseConfidence(result.confidence)) {
-        return false
-    }
-    if (!Array.isArray(result.rawObjectSpans) || result.rawObjectSpans.length === 0) {
-        return false
-    }
-    return result.rawObjectSpans.every(
-        (s) => typeof s === 'string' && s.trim().length > 0 && s === s.trim()
-    )
+    return isParseConfidence(result.confidence)
 }

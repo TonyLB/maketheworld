@@ -1,6 +1,6 @@
 # Object manipulation: deterministic fast-path improvements (iteration 6)
 
-**Status:** Named, not started, deliberately sequenced after iterations 1-5. Split out 2026-07-19 from `AGENT.parseTokenization.planning.md`, where this content first came up as part of scoping Step 2b's step 3 (the native relational Plan matcher) --- caught before it shipped as scope creep: closing this gap isn't required for basic relational subject/target/operationKind matching, and building it now would mean designing against a hypothetical example rather than a concrete, currently-blocked command. See [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) for the full iteration ladder.
+**Status:** Named, not started, deliberately sequenced after iterations 1-5. Split out 2026-07-19 from the iteration-3 plan (since retired), where this content first came up as part of scoping Step 2b's step 3 (the native relational Plan matcher) --- caught before it shipped as scope creep: closing this gap isn't required for basic relational subject/target/operationKind matching, and building it now would mean designing against a hypothetical example rather than a concrete, currently-blocked command. See [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) for the full iteration ladder.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -11,7 +11,7 @@ Extend deterministic Plan-stage template matching beyond flat, whole-command tem
 ## Getting started
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) and [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md).
-2. Read [`AGENT.parseTokenization.planning.md`](AGENT.parseTokenization.planning.md)'s BD-21 (skeleton shape, `stableRefKey`) and Step 2b (the native Plan matcher this iteration extends) --- this iteration is additive to that matcher's design, not a replacement.
+2. Read the durable Parse/skeleton vocabulary in [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) (BD-21 skeleton shape, `stableRefKey`) and the shipped native Plan matcher `plan/matchRelationalTemplate.ts` (see [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md)) --- this iteration is additive to that matcher's design, not a replacement.
 3. Read the `Assertion`/`Referent` vocabulary: [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) ("Change vs. Assertion").
 4. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
 
@@ -26,7 +26,7 @@ Extend deterministic Plan-stage template matching beyond flat, whole-command tem
 Use `[ ]` for pending and `[X]` for complete.
 
 - [ ] **Do not begin implementation design until a concrete case demands it** --- per BD-14's own "expand as concrete cases demand" discipline (the same principle that kept `Assertion`'s union to one member until a second was actually needed). This row exists to hold that discipline visibly, not as a placeholder for "someone forgot to schedule this."
-- [ ] When a concrete case does demand it: extend iteration 3's native Plan matcher (`AGENT.parseTokenization.planning.md`, Step 2b step 3) with the `ObjectPhrase` compositional structure per BD-24, rather than building a parallel matcher.
+- [ ] When a concrete case does demand it: extend iteration 3's shipped native Plan matcher (`plan/matchRelationalTemplate.ts`) with the `ObjectPhrase` compositional structure per BD-24, rather than building a parallel matcher.
 - [ ] Wire the resulting location-disambiguating role into real `Assertion` emission, closing BD-14's gap for real.
 
 ## Verification

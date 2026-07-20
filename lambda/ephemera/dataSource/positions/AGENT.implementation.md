@@ -87,7 +87,7 @@ Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulat
 positionGraph/  <-- shared primitive
   ^-- manipulation/applyHostEffects, applyHostRelationalPatch, relational/planHostRelationalPatch
   ^-- membership/*TransactItems (fromRoomMeta/fromCharacterMeta + toStored)
-  ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelational (read-only)
+  ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelationalFromSkeleton (read-only)
 ```
 
 ### `navigate/` (shared execution + post-persist orchestration)

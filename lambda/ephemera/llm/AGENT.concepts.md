@@ -63,7 +63,7 @@ Deterministic code may close only over **closed-world inputs**:
 | **Closed-world input** (this doc) | Seam | Deterministic stage may **close** without Bedrock |
 | **Output trust / commit posture** (this doc) | Trust | Whether a hop's emission is **provisional** or **commit-worthy** for downstream |
 | **Trusted ingress / trusted ids** ([`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md), actions) | System boundary | Server-validated `EphemeraId` or assessed outcome post-parse; positions may apply without re-grounding |
-| **Validated handoff** (e.g. Coyote `narrowHandoff`, `interpretFrameExtract`) | Seam (+ structure) | Parser-narrowed JSON safe to **pass forward** to the next hop. Validated *structure* and allowed fields --- not permission for a downstream stage to invent semantics the owning hop omitted, and **not** the same as commit-worthy output |
+| **Validated handoff** (e.g. Coyote `narrowHandoff`, `interpretParse`) | Seam (+ structure) | Parser-narrowed JSON safe to **pass forward** to the next hop. Validated *structure* and allowed fields --- not permission for a downstream stage to invent semantics the owning hop omitted, and **not** the same as commit-worthy output |
 
 Validated handoff **to** an LLM and closed-world input **for** deterministic code answer different questions; both are normal in the same pipeline.
 
@@ -80,7 +80,7 @@ Downstream stages **must not invent** upstream semantics (no phrase-bucket fill-
 
 **Vacuum test (seam):** If a field is forbidden at stage N, stage N+1 (or the next semantic-reasoning hop that sees the command) **must** emit it. Do not fill the gap with regex or phrase buckets in the compiler.
 
-**Correction vs invention:** A downstream validation hop that rejects or replaces an identity pick is **correction** of the owning stage's job. A compiler that infers `operationKind` because frame extract omitted it is **invention** --- forbidden in both trust modes. **Omissions** generally require **backtrack** to the owner, not downstream correction.
+**Correction vs invention:** A downstream validation hop that rejects or replaces an identity pick is **correction** of the owning stage's job. A **downstream** stage (e.g. the compiler) inferring `operationKind` from phrase-buckets --- rather than receiving it from its owning stage --- is **invention**, forbidden in both trust modes. (Deterministic conclusion *at the owning stage* from a closed-world input is not invention --- see the fast-path examples below.) **Omissions** generally require **backtrack** to the owner, not downstream correction.
 
 ### Fast paths are not a second owner
 
@@ -89,8 +89,9 @@ A deterministic short-circuit **at the owning stage** is allowed when closed-wor
 - **Trusted-output:** fast path emits the **same commit artifact** and passes the **same terminal guards** as the semantic-reasoning path would (e.g. one `objectId` or resolve Error).
 - **Fault-tolerant:** fast path emits the **same provisional artifact shape** the owner uses in that mode (e.g. ranked shortlist + confidence, or high-confidence single pick with validation still allowed). Exact shapes are feature-owned; document them per hop.
 
-- **OK:** `get bag` in [`discriminateIntent/deterministicChecks.ts`](../dataSource/actions/discriminateIntent/deterministicChecks.ts) --- classify still owns `verbClass` / `objectSpans`; Bedrock is skipped because `get`/`take`/`drop` + noun is a closed template (with label gate for `get` vs AcmeOrder).
-- **Violation:** enrich/compiler inventing `operationKind` from phrase buckets because frame extract forbade it --- no owner, wrong stage.
+- **OK (membership):** `get bag` in [`discriminateIntent/deterministicChecks.ts`](../dataSource/actions/discriminateIntent/deterministicChecks.ts) --- classify still owns `verbClass` / `objectSpans`; Bedrock is skipped because `get`/`take`/`drop` + noun is a closed template (with label gate for `get` vs AcmeOrder).
+- **OK (relational):** relational `operationKind` in [`plan/matchRelationalTemplate.ts`](../dataSource/actions/enrich/objectManipulation/plan/matchRelationalTemplate.ts) --- the **Plan** stage owns it and concludes `establishRelation` / `dissolveRelation` from a closed verb set (positive-match-required, abstain on miss). Same shape as the membership fast path: the owning stage skipping Bedrock on a frozen-template match, not a downstream stage claiming the field. BD-19's plan-only / joint LLM fallback (iteration 2) will be Plan's *other* realization for template misses --- same owner, not a new one.
+- **Violation:** the compiler inventing `operationKind` from phrase-buckets to fill a gap Plan left --- no owner, wrong stage. (The distinction from the relational OK case: closed enumerated set + positive-match-required + abstain-on-miss, at the owning stage --- not "unrecognized verb defaults to establish" in a downstream compiler.)
 
 ---
 
@@ -199,7 +200,7 @@ All three **must** preserve **field ownership** and **forbid vacuum-fill** (inve
 Downstream (or a dedicated validation hop) **replaces** the owner's provisional output when it can conclude the same semantic job with the context already available.
 
 - **Example (deferred):** post-identity validation LLM --- judge span + command vs grounded `objectId` using catalog already in the prompt.
-- **Not correct:** compiler inferring `operationKind` because frame extract omitted it --- that is **invention**, not correction of a provisional pick.
+- **Not correct:** the compiler inferring `operationKind` from phrase-buckets to fill a gap Plan left --- that is **invention**, not correction of a provisional pick.
 
 #### Backtrack
 
@@ -268,7 +269,7 @@ Feature docs **should declare both** for each pipeline or hop:
 | --- | --- | --- | --- |
 | Classify | LLM chooses intent topology | Wrong intent -> wrong branch or terminal Error | Correctable via later validation or player feedback (future) |
 | Identity grounding | Hybrid: exact resolve, embed rank, LLM adjudication | One `objectId` or Error | Shortlist + confidence; validation/retry ([`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md)) |
-| Frame extract | LLM owns relational `operationKind` | Compiler trusts extract; legality Error on conflict | Extract as hypothesis; plan LLM or validation may revise (Phase D) |
+| Plan (relational) | Plan owns relational `operationKind`; deterministic closed-verb template (`matchRelationalTemplate`), LLM fallback for misses (BD-19, future) | Compiler trusts Plan's determination; legality Error on conflict | Template miss -> abstain today; plan-only/joint LLM fallback the second realization (iteration 2) |
 | Legality check | Code owns graph truth | Hard Error | Defer, surface uncertainty, or apply only after trusted compile |
 | Context packaging | Code packages catalog slice | Same | Same |
 
@@ -294,7 +295,7 @@ Short pointers --- feature docs hold instance detail. Each notes **seam** and **
 | **Coyote hypothesis** ([`hypothesis/AGENT.md`](../dataSource/coyoteGame/generators/pipelines/hypothesis/AGENT.md)) | Multi-hop semantic reasoning; deterministic context packaging; handoff contracts | Mostly trusted-output between hops (`selectedCandidate` required before narrative beat) |
 | **Object manipulation** ([`actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)) | Classify-through-enrich hop purposes; field ownership; BD-12 | **Fault-tolerant** enrich identity/selection (pools + FT-5 selector); **trusted-output** at terminal parse / positions commit; Consult/Abstain as first-class outcomes ([`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md)) |
 | **Membership parse** ([`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)) | Field tables, egress playbooks | Fault-tolerant selection; trusted-output at terminal parse / positions ingress (or terminal Consult/Abstain) |
-| **Relational parse** ([`actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)) | Frame extract + compiler chain | Fault-tolerant subject/target selection (FT-3.3); BD-10 defer -> Error stub until plan LLM |
+| **Relational parse** ([`actions/enrich/objectManipulation/AGENT.md`](../dataSource/actions/enrich/objectManipulation/AGENT.md)) | Native Parse-skeleton pipeline (Parse -> Plan match -> Identify -> Grounding -> Validation), frame-extract chain retired | Fault-tolerant subject/target selection; BD-10 defer -> Error stub until plan LLM fallback |
 | **Acme order** ([`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md)) | LLM proposes `stableKey`; deterministic finalize | Trusted-output at publish (deterministic uniqueness guarantee) |
 
 **Canonical seam incident (relational):** phrase-bucket `operationKind` inference --- negative closure from absent dissolve phrases defaulting to `establishRelation`. See [`AGENT.contract.md`](AGENT.contract.md).

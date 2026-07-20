@@ -59,6 +59,7 @@ const forbiddenObjectManipulationIntentFields = new Set([
     'destinationId',
     'exitCandidate',
     'orders',
+    'objectSpans',
     'rawObjectSpans',
 ])
 
@@ -113,39 +114,6 @@ function parseAcmeOrderIntentRawOrders(obj: Record<string, unknown>): { rawOrder
     return { rawOrders }
 }
 
-function parseObjectIntentRawObjectSpans(
-    obj: Record<string, unknown>,
-    intentTypeName: string
-): { rawObjectSpans: string[] } | { error: string } {
-    if ('rawObjectSpans' in obj) {
-        return { error: `${intentTypeName} intent payload must use objectSpans, not rawObjectSpans` }
-    }
-    if ('orders' in obj) {
-        return { error: `${intentTypeName} intent payload must not use orders field` }
-    }
-    if (!('objectSpans' in obj)) {
-        return { error: `${intentTypeName} intent payload must include objectSpans array of raw object spans` }
-    }
-    if (!Array.isArray(obj.objectSpans)) {
-        return { error: `${intentTypeName} intent objectSpans must be a non-empty array of strings` }
-    }
-    const rawObjectSpans: string[] = []
-    for (const element of obj.objectSpans) {
-        if (typeof element !== 'string') {
-            return { error: `${intentTypeName} intent objectSpans must contain only non-empty strings` }
-        }
-        const trimmed = element.trim()
-        if (trimmed.length === 0) {
-            return { error: `${intentTypeName} intent objectSpans entries must be non-empty after trim` }
-        }
-        rawObjectSpans.push(peelLeadingArticleWhenTail(trimmed))
-    }
-    if (rawObjectSpans.length === 0) {
-        return { error: `${intentTypeName} intent objectSpans array must be non-empty` }
-    }
-    return { rawObjectSpans }
-}
-
 function parseMembershipIntentVerbClass(
     obj: Record<string, unknown>
 ): { verbClass: ManipulationVerbClass } | { error: string } {
@@ -174,8 +142,8 @@ function extractJsonBody(raw: string): string {
 /**
  * Parses and validates LLM output for the intent-classification prompt.
  * Accepts **`MultipleCommands`**, **`PromptInjectionAttempt`**, **`AwaitRoadRunner`**, **`PredictHypothesis`**, **`AcmeOrder`** (with **`orders`**: raw product spans mapped to **`rawOrders`**),
- * **`ObjectMembershipIntent`** (with **`objectSpans`** + **`verbClass`**: raw object spans mapped to **`rawObjectSpans`**),
- * **`ObjectRelateIntent`** (with **`objectSpans`** only: raw object spans mapped to **`rawObjectSpans`**),
+ * **`ObjectMembershipIntent`** (with **`verbClass`** only --- object spans are no longer extracted here, see Parse hop),
+ * **`ObjectRelateIntent`** (no payload fields beyond `type`/`confidence` --- object spans are no longer extracted here, see Parse hop),
  * **`LookRoom`**, **`Help`**, **`NavigationIntent`**, **`HomeIntent`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
  * (**`CoyoteEngineTest`**, slash-only harness types, and deterministic **bare `look` / `l` / `help`** are handled before Bedrock in **`parseCommand`**.)
  */
@@ -319,12 +287,8 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         if (hasForbiddenObjectManipulationIntentField(obj)) {
             return {
                 type: 'Error',
-                errorMessage: 'ObjectMembershipIntent must not include operationKind, disposition, object ids, or routing fields',
+                errorMessage: 'ObjectMembershipIntent must not include objectSpans, operationKind, disposition, object ids, or routing fields',
             }
-        }
-        const parsedObjectSpans = parseObjectIntentRawObjectSpans(obj, 'ObjectMembershipIntent')
-        if ('error' in parsedObjectSpans) {
-            return { type: 'Error', errorMessage: parsedObjectSpans.error }
         }
         const parsedVerbClass = parseMembershipIntentVerbClass(obj)
         if ('error' in parsedVerbClass) {
@@ -332,7 +296,7 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         }
         const candidate: ParseCommandObjectMembershipIntentResult = {
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: parsedObjectSpans.rawObjectSpans,
+            rawObjectSpans: [],
             verbClass: parsedVerbClass.verbClass,
             confidence: obj.confidence as number,
         }
@@ -351,16 +315,11 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
         if (hasForbiddenObjectManipulationIntentField(obj)) {
             return {
                 type: 'Error',
-                errorMessage: 'ObjectRelateIntent must not include operationKind, disposition, object ids, or routing fields',
+                errorMessage: 'ObjectRelateIntent must not include objectSpans, operationKind, disposition, object ids, or routing fields',
             }
-        }
-        const parsedObjectSpans = parseObjectIntentRawObjectSpans(obj, 'ObjectRelateIntent')
-        if ('error' in parsedObjectSpans) {
-            return { type: 'Error', errorMessage: parsedObjectSpans.error }
         }
         const candidate: ParseCommandObjectRelateIntentResult = {
             type: 'ObjectRelateIntent',
-            rawObjectSpans: parsedObjectSpans.rawObjectSpans,
             confidence: obj.confidence as number,
         }
         if (isParseCommandObjectRelateIntentResult(candidate)) {
@@ -401,6 +360,6 @@ export function interpretIntentClassificationBody(body: string): IntentClassific
     return {
         type: 'Error',
         errorMessage:
-            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (objectSpans array of raw spans and verbClass acquire or release), ObjectRelateIntent (objectSpans array of raw spans only), LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
+            'Model JSON must be a valid MultipleCommands, PromptInjectionAttempt, AwaitRoadRunner, PredictHypothesis, AcmeOrder (orders array of raw spans), ObjectMembershipIntent (verbClass acquire or release), ObjectRelateIntent, LookRoom, Help, NavigationIntent, HomeIntent, Unimplemented, or Unknown payload (see prompt)',
     }
 }

@@ -22,8 +22,9 @@ export type ManipulationFrameBuildInput = {
 }
 
 /**
- * Role-tagged manipulation frame from frame-extract LLM (raw player language, not EphemeraIds).
- * See {@link MembershipManipulationFrame} for Phase A membership-atomic input.
+ * Role-tagged manipulation frame, still consumed by the unwired Phase C sandbox
+ * compiler ({@link ../plan/compileUngroundedPlan.ts}). See {@link MembershipManipulationFrame}
+ * for Phase A membership-atomic input.
  */
 export type ManipulationFrame = {
     command: string
@@ -37,30 +38,4 @@ export type ManipulationFrame = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-}
-
-export type ManipulationFrameExtractModelResponse = {
-    subjectSpan: string
-    targetSpan: string
-    relationSpan: string
-    operationKind: RelationalOperationKind
-}
-
-export function buildManipulationFrameFromExtract(
-    input: ManipulationFrameBuildInput,
-    extractResponse: ManipulationFrameExtractModelResponse
-): ManipulationFrame {
-    return {
-        command: input.command,
-        subjectSpan: extractResponse.subjectSpan,
-        targetSpan: extractResponse.targetSpan,
-        relationSpan: extractResponse.relationSpan,
-        operationKind: extractResponse.operationKind,
-        ...(input.verbClass !== undefined ? { verbClass: input.verbClass } : {}),
-        rawObjectSpans: input.rawObjectSpans,
-        characterId: input.characterId,
-        hostRoomId: input.hostRoomId,
-        roomObjectCatalog: input.roomObjectCatalog,
-        heldInventoryCatalog: input.heldInventoryCatalog,
-    }
 }
