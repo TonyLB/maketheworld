@@ -221,6 +221,21 @@ Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAs
 
 ---
 
+## `DeterministicTemplate` module (built, not yet wired)
+
+Vocabulary and design: [`AGENT.concepts.md`](./AGENT.concepts.md#deterministictemplate-shipped-2026-07-20). This section is the module map.
+
+- `dataSource/actions/deterministicTemplate/`:
+  - `deterministicTemplate.ts` --- `DeterministicTemplate` interface, `PatternElement`, `IntentFieldRole`, `DeterministicTemplateMatch`, `DeterministicTemplateDeferReason` types.
+  - `patternTemplate.ts` --- the two generic matching engines (`matchPatternAgainstString`/`matchPatternAgainstTokens`), the `assembleIntent` combinator, `synthesizeSkeletonFromPattern`, and both factories (`makePatternTemplate`, `makeDeferPatternTemplate`).
+  - `bareWordTemplates.ts` --- 4 pure-data rows (`look`/`l`, `help`, `home`, `predict`).
+  - `relationalTemplates.ts` --- 10 pure-data rows (6 enum `Against`/`Under`/`On` x verb-class, 2 custom, 2 containment/defer).
+  - `index.ts` --- the directory's real entry point (matches this codebase's no-barrel convention, cf. `discriminateIntent/index.ts`): `deterministicTemplateRegistry` (ordered, first-match-wins) and `matchDeterministicTemplate(command)` dispatch.
+- **Not wired:** `matchDeterministicTemplate` has no caller in `parseCommand.ts` or `discriminateIntent/index.ts` today. Wiring it in, and deciding whether a given live match is an *entry* (classification + skeleton, resolution stays downstream) or a *bypass* (fully resolved), is [`AGENT.classifyPlanGeneralization.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md)'s (CPG-1/CPG-3) remaining work.
+- Tests: `dataSource/actions/deterministicTemplate/*.test.ts` (169 tests as of 2026-07-20).
+
+---
+
 ## Acme `stableKey` implementation notes
 
 This section complements the normative contract in [`AGENT.md`](./AGENT.md).
