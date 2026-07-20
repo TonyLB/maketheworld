@@ -92,6 +92,23 @@ This sharpens where LLM cost is actually spent, compared to treating "fast path 
 
 ---
 
+## `DeterministicTemplate` (shipped 2026-07-20)
+
+**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific --- it generalizes `deterministicChecks.ts`'s bare-word fast path (`look`, `help`, `home`, `predict`, none of which are object manipulation) alongside relational templates. Documented here for now as iteration 7's CPG-1 owning artifact ([`AGENT.classifyPlanGeneralization.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md)); may move to a more general actions-level doc if/when CPG's cross-family plumbing lands.
+
+A **`DeterministicTemplate`** is a structural interface --- `matchString(command: string)` / `matchTokens(skeleton: ParseSkeleton)`, both returning a **`DeterministicTemplateMatch`** --- for recognizing a command deterministically, at zero Bedrock cost, from either raw text or an already-tokenized skeleton. Today's only implementation family is **pattern-driven**: a `PatternElement[]` (`templateText` closed-vocabulary gate, `objectSpan` referent slot, `capturedText` free-text slot) plus a constant `templateIntent`, closed over by one of two factories --- `makePatternTemplate` (produces `matched`) or `makeDeferPatternTemplate` (produces `defer` unconditionally on structural match). The interface deliberately leaves a seam for a future **context-dependent** implementation --- Navigation's exit resolution, `get`'s room-object-label gating --- whose emitted shape depends on live `ParseCommandInput` context rather than pattern data alone; that kind is **not built**, still CPG's job.
+
+**`DeterministicTemplateMatch`** is a three-arm result:
+- `{ type: 'noMatch' }` --- didn't recognize this at all.
+- `{ type: 'matched', skeleton: ParseSkeleton, intent: ParseCommandResult }` --- classification **and** a synthesized skeleton together, in one deterministic hit. Reuses `ParseCommandResult` rather than a new "intent info" type, since the union already discriminates cleanly across families by construction.
+- `{ type: 'defer', reason: DeterministicTemplateDeferReason }` --- recognized a known-but-structurally-unsupported shape (e.g. relational containment language, `in`/`inside`/`into`, which the current `On`/`Under`/`Against`/`Custom` positionGraph-edge relation model has no representation for) --- distinct from "didn't understand this at all."
+
+**One refinement worth recording:** relational templates' `templateIntent` stays the same minimal constant (`{ type: 'ObjectRelateIntent', confidence: 1 }`) across every relational row, matching `ParseCommandObjectRelateIntentResult`'s existing minimal shape (nothing downstream reads more than `type`/`confidence` off it today). Differentiation --- which verb, which relation phrase, subject/target spans --- lives entirely in the **synthesized skeleton**, recoverable downstream the same way `matchRelationalTemplate.ts` already recovers it from a Parse-produced skeleton.
+
+**Status:** built and tested as a standalone feature in `dataSource/actions/deterministicTemplate/` (module map + test locations: [`AGENT.implementation.md`](./AGENT.implementation.md)). **Not wired** into the live `discriminateIntent`/Parse path --- wiring, the entry-vs-bypass model decision, and the context-dependent implementation kind remain [`AGENT.classifyPlanGeneralization.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md)'s (CPG-1/CPG-3/CPG-6) open plumbing work.
+
+---
+
 ## Non-goals (for this file)
 
 - Does not specify the ungrounded-primitive type shape or referent grammar --- open, tracked in the parent plan's Phase C design debt, not here (implementation fork, not settled vocabulary).
