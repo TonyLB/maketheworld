@@ -5,6 +5,9 @@ export { navigationIntentErrorMessages } from './discriminateIntent/exitResoluti
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { enrichAcmeOrder } from './enrich/acmeOrder'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
+import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
+import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
+import { deterministicIntentChecks } from './discriminateIntent/deterministicChecks'
 
 /** Acme order enrich chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -20,11 +23,29 @@ async function parseCommandCore(
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type === 'ObjectMembershipIntent') {
+        // Step 2a (BD-21): Parse's tokenized skeleton replaces classify's inline objectSpans
+        // extraction as the source of rawObjectSpans, but only for commands that actually
+        // reached classify's LLM -- the deterministic fast path (take/get/drop) must stay
+        // zero-Bedrock, so it's re-checked here rather than calling Parse unconditionally.
+        // On Parse failure, fall back to classify's own rawObjectSpans (still populated
+        // pre-Step-3) rather than hard-failing the command -- an interim safety net removed
+        // once Step 3 deletes that field.
+        const tookDeterministicPath = deterministicIntentChecks(input) !== null
+        const parseResult = tookDeterministicPath
+            ? null
+            : await runParseStage(
+                { command: input.command },
+                { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
+            )
+        const rawObjectSpans = parseResult?.type === 'success'
+            ? objectSpansFromSkeleton(parseResult.tokens)
+            : intentResult.rawObjectSpans
+
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'membership',
                 command: input.command,
-                rawObjectSpans: intentResult.rawObjectSpans,
+                rawObjectSpans,
                 verbClass: intentResult.verbClass,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
@@ -35,7 +56,6 @@ async function parseCommandCore(
             {
                 invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 embedSpan: deps.embedSpan,
             }
@@ -44,11 +64,32 @@ async function parseCommandCore(
     }
 
     if (intentResult.type === 'ObjectRelateIntent') {
+        // Step 2b step 6 (BD-21/BD-22/BD-23): the relational route now runs entirely
+        // through the native pipeline (Plan match -> Identify -> Grounding ->
+        // Validation, see compileRelationalFromSkeleton.ts) instead of frame-extract +
+        // compileRelational.ts. Unlike Step 2a's membership wiring, Parse runs
+        // unconditionally here (deterministicIntentChecks never produces
+        // ObjectRelateIntent, so there's no zero-Bedrock path to protect) and there
+        // is deliberately no fallback to the legacy flow on Parse failure --- see
+        // AGENT.parseTokenization.planning.md's Step 2b step 6 context.
+        const parseResult = await runParseStage(
+            { command: input.command },
+            { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
+        )
+        if (parseResult.type === 'error') {
+            return {
+                result: { type: 'Error', errorMessage: parseResult.errorMessage },
+                enrichReasoningMarkdown: '',
+                enrichRawBody: undefined,
+            }
+        }
+
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
                 command: input.command,
                 rawObjectSpans: intentResult.rawObjectSpans,
+                parseSkeleton: parseResult.tokens,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,
@@ -56,9 +97,6 @@ async function parseCommandCore(
             },
             intentResult.confidence,
             {
-                invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationFrameExtractImpl: deps.invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 embedSpan: deps.embedSpan,
             }

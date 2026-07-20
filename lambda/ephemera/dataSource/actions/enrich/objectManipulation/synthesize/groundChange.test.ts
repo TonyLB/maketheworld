@@ -8,6 +8,8 @@ import { groundChange } from './groundChange'
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
+const BENCH_A_ID = 'OBJECT#BenchA' as EphemeraObjectId
+const BENCH_B_ID = 'OBJECT#BenchB' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
 const contextWith = (resolvedSpans: [string, ResolvedSpan][]): GroundingContext => ({
@@ -17,28 +19,28 @@ const contextWith = (resolvedSpans: [string, ResolvedSpan][]): GroundingContext 
 })
 
 describe('groundChange', () => {
-    it('grounds an establishRelation Change into an EstablishRelationStep', () => {
+    it('grounds an establishRelation Change into a single-candidate EstablishRelationStep list', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'establishRelation',
-            subject: objectSpanRef('tray'),
-            target: objectSpanRef('table'),
+            subject: objectSpanRef('tray', 'trayRef'),
+            target: objectSpanRef('table', 'tableRef'),
             relationKind: 'On',
         }
         const context = contextWith([
-            ['tray', { verdict: 'resolved', objectId: TRAY_ID }],
-            ['table', { verdict: 'resolved', objectId: TABLE_ID }],
+            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
+            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
         ])
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            step: {
+            candidates: [{
                 kind: 'establishRelation',
                 subjectId: TRAY_ID,
                 targetId: TABLE_ID,
                 relationKind: 'On',
                 hostRoomId: ROOM_ID,
-            },
+            }],
         })
     })
 
@@ -46,42 +48,71 @@ describe('groundChange', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'dissolveRelation',
-            subject: objectSpanRef('tray'),
-            target: objectSpanRef('table'),
+            subject: objectSpanRef('tray', 'trayRef'),
+            target: objectSpanRef('table', 'tableRef'),
             relationKind: 'Custom',
             relationLabel: 'balanced on',
         }
         const context = contextWith([
-            ['tray', { verdict: 'resolved', objectId: TRAY_ID }],
-            ['table', { verdict: 'resolved', objectId: TABLE_ID }],
+            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
+            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
         ])
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            step: {
+            candidates: [{
                 kind: 'dissolveRelation',
                 subjectId: TRAY_ID,
                 targetId: TABLE_ID,
                 relationKind: 'Custom',
                 relationLabel: 'balanced on',
                 hostRoomId: ROOM_ID,
-            },
+            }],
         })
     })
 
-    it('fails an establishRelation Change when the derived host is not a room', () => {
+    it('offers all 4 combinations, including both same-object ones, for two referents sharing a two-candidate pool (BD-23, "put bench on bench")', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'establishRelation',
-            subject: objectSpanRef('tray'),
-            target: objectSpanRef('table'),
+            subject: objectSpanRef('bench', 'benchRef1'),
+            target: objectSpanRef('bench', 'benchRef2'),
+            relationKind: 'On',
+        }
+        const context = contextWith([
+            ['benchRef1', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],
+            ['benchRef2', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],
+        ])
+
+        const result = groundChange(change, context)
+        expect(result.ok).toBe(true)
+        if (!result.ok) return
+
+        const pairs = result.candidates.map((step) => (
+            step.kind === 'establishRelation' ? [step.subjectId, step.targetId] : null
+        ))
+        expect(pairs).toEqual(expect.arrayContaining([
+            [BENCH_A_ID, BENCH_A_ID],
+            [BENCH_A_ID, BENCH_B_ID],
+            [BENCH_B_ID, BENCH_A_ID],
+            [BENCH_B_ID, BENCH_B_ID],
+        ]))
+        expect(result.candidates).toHaveLength(4)
+    })
+
+    it('fails an establishRelation Change when the derived host is not a room for any candidate', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'establishRelation',
+            subject: objectSpanRef('tray', 'trayRef'),
+            target: objectSpanRef('table', 'tableRef'),
             relationKind: 'On',
         }
         const context: GroundingContext = {
             actingCharacterId: CHARACTER_ID,
             resolvedSpans: new Map([
-                ['tray', { verdict: 'resolved', objectId: TRAY_ID }],
-                ['table', { verdict: 'resolved', objectId: TABLE_ID }],
+                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
+                ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
             ]),
             getCurrentHost: (componentId) => (componentId === CHARACTER_ID ? CHARACTER_ID : undefined),
         }
@@ -94,11 +125,11 @@ describe('groundChange', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'establishRelation',
-            subject: objectSpanRef('tray'),
-            target: objectSpanRef('table'),
+            subject: objectSpanRef('tray', 'trayRef'),
+            target: objectSpanRef('table', 'tableRef'),
             relationKind: 'On',
         }
-        const context = contextWith([['table', { verdict: 'resolved', objectId: TABLE_ID }]])
+        const context = contextWith([['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }]])
 
         const result = groundChange(change, context)
         expect(result.ok).toBe(false)
@@ -108,24 +139,24 @@ describe('groundChange', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
-            object: objectSpanRef('tray'),
-            from: currentHostRef(objectSpanRef('tray')),
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
             to: actingCharacterRef,
         }
         const context: GroundingContext = {
             actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([['tray', { verdict: 'resolved', objectId: TRAY_ID }]]),
+            resolvedSpans: new Map([['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }]]),
             getCurrentHost: (componentId) => (componentId === TRAY_ID ? ROOM_ID : undefined),
         }
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            step: {
+            candidates: [{
                 kind: 'transferMembership',
                 objectIds: new Set([TRAY_ID]),
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
-            },
+            }],
         })
     })
 
@@ -133,8 +164,8 @@ describe('groundChange', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
-            object: objectSpanRef('tray'),
-            from: currentHostRef(objectSpanRef('tray')),
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
             to: actingCharacterRef,
         }
         const context: GroundingContext = {

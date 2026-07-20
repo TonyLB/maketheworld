@@ -11,6 +11,14 @@ describe('Referent constructors', () => {
         expect(objectSpanRef('bag')).toEqual({ referentType: 'objectSpan', span: 'bag' })
     })
 
+    it('builds an objectSpan referent with a stableRefKey when provided', () => {
+        expect(objectSpanRef('bag', 'bagRef')).toEqual({
+            referentType: 'objectSpan',
+            span: 'bag',
+            stableRefKey: 'bagRef',
+        })
+    })
+
     it('builds the actingCharacter referent', () => {
         expect(actingCharacterRef).toEqual({ referentType: 'actingCharacter' })
     })

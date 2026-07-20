@@ -3,10 +3,25 @@ import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/e
 
 import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
 import { enrichObjectManipulation } from './index'
+import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import {
     buildCandidatesFromIdentityCase,
 } from './embeddingMatch/testing/mockVectors'
+
+const relationalSkeleton = (
+    verb: string,
+    subjectSpan: string,
+    subjectKey: string,
+    prep: string,
+    targetSpan: string,
+    targetKey: string
+): ParseSkeleton => [
+    { type: 'text', text: verb },
+    { type: 'objectSpan', span: subjectSpan, stableRefKey: subjectKey },
+    { type: 'text', text: prep },
+    { type: 'objectSpan', span: targetSpan, stableRefKey: targetKey },
+]
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
@@ -198,11 +213,7 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('routes relational commands through frame extract and compiler', async () => {
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"broom","targetSpan":"table","relationSpan":"on","operationKind":"establishRelation"}',
-        })
+    it('routes relational commands through the native skeleton pipeline (Step 2b step 6)', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
@@ -210,12 +221,13 @@ describe('enrichObjectManipulation', () => {
                 enrichRoute: 'relational',
                 command: 'put the broom on the table',
                 rawObjectSpans: ['broom'],
+                parseSkeleton: relationalSkeleton('put', 'broom', 'broomRef', 'on', 'table', 'tableRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
             },
             0.9,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: relationalPositionsReadDeps(),
             }
@@ -230,18 +242,12 @@ describe('enrichObjectManipulation', () => {
             hostId: roomId,
             confidence: 0.9,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('resolves a held-item relation when both subject and target are already held (BD-15/16 slice 4c)', async () => {
+    it('abstains on a held-item relation, since the native pipeline only grounds against the acting character\'s room (BD-6 default, character-inventory hosts not yet supported)', async () => {
         const stringId = 'OBJECT#String' as EphemeraObjectId
         const topId = 'OBJECT#Top' as EphemeraObjectId
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"string","targetSpan":"top","relationSpan":"around","operationKind":"establishRelation"}',
-        })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const heldGraph = testPositionGraph(characterId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: stringId },
@@ -255,6 +261,7 @@ describe('enrichObjectManipulation', () => {
                 enrichRoute: 'relational',
                 command: 'wrap the string around the top',
                 rawObjectSpans: ['string'],
+                parseSkeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
                 characterId,
                 hostRoomId: roomId,
                 heldInventoryCatalog: [
@@ -264,29 +271,14 @@ describe('enrichObjectManipulation', () => {
             },
             0.9,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph },
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: stringId,
-            targetId: topId,
-            relationKind: 'Custom',
-            relationLabel: 'around',
-            hostId: characterId,
-            confidence: 0.9,
-        })
+        expect(result.type).toBe('Abstain')
     })
 
-    it('frame-extracts lean rope against anvil fixture', async () => {
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"rope","targetSpan":"anvil","relationSpan":"against","operationKind":"establishRelation"}',
-        })
+    it('grounds lean rope against anvil via the native skeleton pipeline', async () => {
         const anvilCatalog = [
             { objectId: 'OBJECT#Rope' as EphemeraObjectId, normalizedShortName: 'rope' },
             { objectId: 'OBJECT#Anvil' as EphemeraObjectId, normalizedShortName: 'anvil' },
@@ -303,12 +295,13 @@ describe('enrichObjectManipulation', () => {
                 enrichRoute: 'relational',
                 command: 'lean rope against anvil',
                 rawObjectSpans: ['rope'],
+                parseSkeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
             },
             0.88,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
                     getPositionGraph: jest.fn().mockResolvedValue(anvilGraph),
@@ -325,22 +318,18 @@ describe('enrichObjectManipulation', () => {
             hostId: roomId,
             confidence: 0.88,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
     })
 
-    it('frame-extracts tie cord around crate fixture', async () => {
+    it('abstains on tie cord around crate, since "tie ... around ..." is not a closed-template verb (BD-24 out of scope)', async () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"cord","targetSpan":"crate","relationSpan":"around","operationKind":"establishRelation"}',
-        })
 
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
                 command: 'tie cord around crate',
                 rawObjectSpans: ['cord'],
+                parseSkeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cordId, normalizedShortName: 'cord' },
@@ -349,7 +338,6 @@ describe('enrichObjectManipulation', () => {
             },
             0.87,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
@@ -363,31 +351,23 @@ describe('enrichObjectManipulation', () => {
         )
 
         expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: cordId,
-            targetId: crateId,
-            relationKind: 'Custom',
-            relationLabel: 'around',
-            hostId: roomId,
+            type: 'Abstain',
             confidence: 0.87,
+            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
     })
 
-    it('frame-extracts dissolve fixture take rope off crate', async () => {
+    it('grounds dissolve fixture take rope off crate via the native skeleton pipeline', async () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"rope","targetSpan":"crate","relationSpan":"off","operationKind":"dissolveRelation"}',
-        })
 
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
                 command: 'take rope off crate',
                 rawObjectSpans: ['rope'],
+                parseSkeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: ropeId, normalizedShortName: 'rope' },
@@ -396,7 +376,6 @@ describe('enrichObjectManipulation', () => {
             },
             0.86,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
@@ -428,11 +407,7 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('returns nesting Error for containment frame extract', async () => {
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"coin","targetSpan":"jar","relationSpan":"in","operationKind":"establishRelation"}',
-        })
+    it('returns nesting Error for a containment preposition in the skeleton', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
@@ -440,11 +415,11 @@ describe('enrichObjectManipulation', () => {
                 enrichRoute: 'relational',
                 command: 'put the coin in the jar',
                 rawObjectSpans: ['coin'],
+                parseSkeleton: relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef'),
                 roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
             },
             0.9,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
             }
         )
@@ -453,8 +428,23 @@ describe('enrichObjectManipulation', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.nestingRelational,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns a defensive Error when the relational route is called without a parseSkeleton', async () => {
+        const result = await enrichObjectManipulation(
+            {
+                enrichRoute: 'relational',
+                command: 'put the coin in the jar',
+                rawObjectSpans: ['coin'],
+            },
+            0.9
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch,
+        })
     })
 
     it('invokes complexity LLM when exit edges touch object', async () => {
@@ -610,19 +600,17 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('routes relational enrichRoute without listed prepositions through frame extract', async () => {
+    it('routes relational enrichRoute with a non-enum preposition to a Custom relation via the native pipeline', async () => {
         const ladderId = 'OBJECT#Ladder' as EphemeraObjectId
         const wallId = 'OBJECT#Wall' as EphemeraObjectId
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"subjectSpan":"ladder","targetSpan":"wall","relationSpan":"leaning against","operationKind":"establishRelation"}',
-        })
 
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
-                command: 'lean the ladder against the wall',
+                command: 'lean the ladder leaning against the wall',
                 rawObjectSpans: ['ladder'],
+                parseSkeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: ladderId, normalizedShortName: 'ladder' },
@@ -631,7 +619,6 @@ describe('enrichObjectManipulation', () => {
             },
             0.9,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn(),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
@@ -653,11 +640,9 @@ describe('enrichObjectManipulation', () => {
             hostId: roomId,
             confidence: 0.9,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).toHaveBeenCalled()
     })
 
-    it('membership enrichRoute skips frame extract even when command contains a preposition word', async () => {
-        const invokeBedrockObjectManipulationFrameExtractImpl = jest.fn()
+    it('membership enrichRoute never touches the relational parseSkeleton field, even when command contains a preposition word', async () => {
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
@@ -675,7 +660,6 @@ describe('enrichObjectManipulation', () => {
             },
             0.92,
             {
-                invokeBedrockObjectManipulationFrameExtractImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: { getMembershipContainers, getPositionGraph },
@@ -688,6 +672,5 @@ describe('enrichObjectManipulation', () => {
             objectIds: [broomId],
             confidence: 0.92,
         })
-        expect(invokeBedrockObjectManipulationFrameExtractImpl).not.toHaveBeenCalled()
     })
 })
