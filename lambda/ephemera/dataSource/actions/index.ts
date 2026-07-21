@@ -115,6 +115,15 @@ const linesToRenderTree = (lines: string[]): RenderTree => (
 
 const parseErrorMessageForPlayer = (errorMessage?: string): string => {
     switch (errorMessage) {
+        // Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): these three player-copy branches
+        // are currently unreachable. They only ever fired from the post-classify NavigationIntent
+        // resolution block (discriminateIntent/index.ts), deleted when classify narrowed to 5
+        // outcomes -- deterministicChecks.ts's maybeDeterministicNavigationResult still calls
+        // resolveExitLabelToTargetId, but discards NoExitContext/NoMatch/AmbiguousMatch (falls
+        // through to classify) rather than surfacing one of these specific Error messages.
+        // Reconnect in Sub-iteration 2, alongside NavigationIntent's real command-plan dispatch
+        // entry -- see taskPlanning/lambda/ephemera/dataSource/actions/
+        // AGENT.classifyPlanGeneralization.planning.md, Sub-iteration 2's Recommended order.
         case navigationIntentErrorMessages.noExitContext:
             return 'You are not in a room, so you cannot go anywhere.'
         case navigationIntentErrorMessages.noMatch:

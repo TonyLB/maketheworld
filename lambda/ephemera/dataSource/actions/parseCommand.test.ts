@@ -1,18 +1,6 @@
-jest.mock('../apiEphemera', () => ({
-    sendPutThinkingJobCreate: jest.fn(),
-    sendPutThinkingSchedule: jest.fn(),
-    sendPutThinkingJobError: jest.fn(),
-}))
-
-import {
-    THINKING_RESULT_HEADER_TYPE,
-    isThinkingResultEvent,
-} from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/thinking'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../positions/positionGraph/testFixtures'
-import * as apiEphemera from '../apiEphemera'
-import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import { testPositionGraph } from '../positions/positionGraph/testFixtures'
 
 import {
     embeddingAtCosineSimilarity,
@@ -36,29 +24,10 @@ import {
 } from './baseClasses'
 import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
-import { ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE } from './enrich/acmeOrder'
-import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from './publishedEvents'
-import { ACME_ORDER_ENRICH_SEGMENT } from './enrich/acmeOrder/acmeOrderThinkingPersistence'
 import {
-    navigationIntentErrorMessages,
     objectManipulationErrorMessages,
     parseCommand,
-    parseCommandWithEnrichReasoning,
 } from './parseCommand'
-
-const sendPutThinkingJobCreate = apiEphemera.sendPutThinkingJobCreate as jest.MockedFunction<
-    typeof apiEphemera.sendPutThinkingJobCreate
->
-const sendPutThinkingSchedule = apiEphemera.sendPutThinkingSchedule as jest.MockedFunction<
-    typeof apiEphemera.sendPutThinkingSchedule
->
-const sendPutThinkingJobError = apiEphemera.sendPutThinkingJobError as jest.MockedFunction<
-    typeof apiEphemera.sendPutThinkingJobError
->
-
-const mockMessageBus = () => ({
-    publish: jest.fn(),
-})
 
 /** Slice 4b: both room and character graphs are now fetched before selection runs; respond by hostId. */
 const hostAwareGetPositionGraph = (overrides: Record<string, unknown> = {}) =>
@@ -88,54 +57,6 @@ const relationalPositionsReadDepsForTests = (
         nodes: objectIds.map((id) => ({ tag: 'Object' as const, universalKey: id })),
     })),
 })
-
-const findActionsThinkingResultMessages = (publish: jest.Mock): StreamingEventMessage[] =>
-    publish.mock.calls
-        .map((call) => call[0] as StreamingEventMessage)
-        .filter(
-            (msg) =>
-                msg?.type === 'StreamingEvent' &&
-                msg.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY &&
-                msg.header?.type === THINKING_RESULT_HEADER_TYPE
-        )
-
-const thinkingResultsOkFromBus = async (
-    publish: jest.Mock
-): Promise<Array<{ segment: string; ok: boolean; errorCode?: string }>> => {
-    const results: Array<{ segment: string; ok: boolean; errorCode?: string }> = []
-    for (const msg of findActionsThinkingResultMessages(publish)) {
-        const content = await msg.getContent()
-        if (isThinkingResultEvent(content)) {
-            results.push({
-                segment: content.segment,
-                ok: content.ok,
-                errorCode: content.errorCode,
-            })
-        }
-    }
-    return results
-}
-
-const schedulePutsByStatus = (status: string) =>
-    sendPutThinkingSchedule.mock.calls
-        .map((call) => call[2])
-        .filter((payload) => payload.scheduleStatus === status)
-
-const expectCompletedSchedulePutsMatchBootstrap = (segments: string[]) => {
-    const completed = schedulePutsByStatus('completed')
-    expect(completed).toHaveLength(segments.length)
-    expect(completed.map((p) => p.segment)).toEqual(segments)
-    for (const segment of segments) {
-        const scheduled = sendPutThinkingSchedule.mock.calls.find(
-            (call) => call[2].segment === segment && call[2].scheduleStatus === 'scheduled'
-        )?.[2]
-        const done = completed.find((p) => p.segment === segment)
-        expect(scheduled).toBeDefined()
-        expect(done).toBeDefined()
-        expect(done!.generationId).toBe(scheduled!.generationId)
-        expect(done!.workItemId).toBe(scheduled!.workItemId)
-    }
-}
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
@@ -812,20 +733,6 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('resolves HomeIntent from Bedrock into Home terminal result', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"HomeIntent","confidence":0.72}',
-        })
-
-        const result = await parseCommand(
-            { command: 'go home' },
-            { invokeBedrockParseCommandImpl }
-        )
-
-        expect(result).toEqual({ type: 'Home', confidence: 0.72 })
-    })
-
     it('returns deterministic Navigation for exact exit name without Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
@@ -890,12 +797,16 @@ describe('parseCommand LLM path', () => {
     it('returns interpreted body when Bedrock succeeds', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"Unimplemented","confidence":0.7}',
+            body: '{"type":"Command","confidence":0.7}',
+        })
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"use teleporter"}]}',
         })
 
         const result = await parseCommand(
             { command: 'use teleporter' },
-            { invokeBedrockParseCommandImpl }
+            { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
         )
 
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.7 })
@@ -938,114 +849,30 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns LookRoom from intent discrimination without Acme order enrich', async () => {
+    it('returns Unimplemented when a Command paraphrase does not match a recognized object-manipulation family (accepted regression, iteration 7 sub-iteration 1: classify no longer emits LookRoom/Help/Navigation family types directly)', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"LookRoom","confidence":0.91}',
+            body: '{"type":"Command","confidence":0.84}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"examine the room"}]}',
+        })
 
         const result = await parseCommand(
             { command: 'examine the room' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            {
+                ...depsCoyoteUnderCap,
+                invokeBedrockParseCommandImpl,
+                invokeBedrockAcmeOrderEnrichImpl,
+                invokeBedrockObjectManipulationParseImpl,
+            }
         )
 
-        expect(result).toEqual({ type: 'LookRoom', confidence: 0.91 })
+        expect(result).toEqual({ type: 'Unimplemented', confidence: 0.84 })
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns Help from intent discrimination without Acme order enrich', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"Help","confidence":0.84}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-
-        const result = await parseCommand(
-            { command: 'what can I do?' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({ type: 'Help', confidence: 0.84 })
-        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('resolves NavigationIntent from intent discrimination into Navigation using room exits', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-
-        const result = await parseCommand(
-            {
-                command: 'head north',
-                roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-            },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 0.64 })
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns stable Error when NavigationIntent has no exit context', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
-        })
-
-        const result = await parseCommand(
-            { command: 'head north', roomExits: [] },
-            { invokeBedrockParseCommandImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: navigationIntentErrorMessages.noExitContext,
-        })
-    })
-
-    it('returns stable Error when NavigationIntent has no matching exit', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"NavigationIntent","exitCandidate":"south","confidence":0.64}',
-        })
-
-        const result = await parseCommand(
-            { command: 'head south', roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
-            { invokeBedrockParseCommandImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: navigationIntentErrorMessages.noMatch,
-        })
-    })
-
-    it('returns stable Error when NavigationIntent is ambiguous across target rooms', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"NavigationIntent","exitCandidate":"north","confidence":0.64}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'head north',
-                roomExits: [
-                    { normalizedName: 'north', targetId: 'ROOM#northA' as EphemeraRoomId },
-                    { normalizedName: 'north', targetId: 'ROOM#northB' as EphemeraRoomId },
-                ],
-            },
-            { invokeBedrockParseCommandImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: navigationIntentErrorMessages.ambiguousMatch,
-        })
     })
 
     it('returns Error when Bedrock fails', async () => {
@@ -1059,24 +886,10 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'Error', errorMessage: 'ThrottlingException' })
     })
 
-    it('returns AwaitRoadRunner when the model emits it', async () => {
+    it('returns PredictHypothesis for WorldQuestion from intent discrimination (Sub-iteration 1: every WorldQuestion routes to PredictHypothesis handling)', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AwaitRoadRunner","confidence":0.88}',
-        })
-
-        const result = await parseCommand(
-            { command: 'wait for the bird' },
-            { invokeBedrockParseCommandImpl }
-        )
-
-        expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
-    })
-
-    it('returns PredictHypothesis from intent discrimination without Acme order enrich', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"PredictHypothesis","confidence":0.91}',
+            body: '{"type":"WorldQuestion","confidence":0.91}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
 
@@ -1089,11 +902,17 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns grounded ObjectManipulation from classify + enrich for takeHold', async () => {
+    it('routes get the broom through classify + Parse + classifySkeletonFamily to membership enrich when the catalog gate blocks the deterministic get fast path', async () => {
+        // "get" only bypasses classify when the object's normalized span is already in
+        // roomObjectLabels (deterministicChecks.ts); leaving it out here forces classify + Parse,
+        // exercising CPG-3's classifySkeletonFamily dispatch from a literal leading "get" token
+        // (Parse preserves the player's own words, per buildParsePrompt.ts, so this is a realistic
+        // non-deterministic route into membership --- unlike a "pick up"/"grab" paraphrase, which
+        // Parse would never rewrite into a bare take/get/drop token).
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.94}',
+            body: '{"type":"Command","confidence":0.94}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
@@ -1101,15 +920,15 @@ describe('parseCommand LLM path', () => {
         const embedSpan = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"tokens":[{"type":"text","text":"pick up"},{"type":"objectSpan","span":"broom"}]}',
+            body: '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"broom"}]}',
         })
 
         const result = await parseCommand(
             {
-                command: 'pick up the broom',
+                command: 'get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: ['broom'],
+                roomObjectLabels: [],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
             {
@@ -1241,7 +1060,7 @@ describe('parseCommand LLM path', () => {
             const crateId = 'OBJECT#Crate' as EphemeraObjectId
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
-                body: '{"type":"ObjectRelateIntent","confidence":0.86}',
+                body: '{"type":"Command","confidence":0.86}',
             })
             const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
             const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
@@ -1253,7 +1072,10 @@ describe('parseCommand LLM path', () => {
                 {
                     // Deliberately not starting with "take"/"get"/"drop" --- those hijack to the
                     // deterministic membership fast path (deterministicChecks.ts) before classify
-                    // ever runs, which would route this away from ObjectRelateIntent entirely.
+                    // ever runs. classifySkeletonFamily checks matchRelationalTemplate before the
+                    // bare-verb membership check, so this 4-token skeleton (remove/rope/off/crate)
+                    // still resolves to the relational route even though classify itself no longer
+                    // decides membership vs. relational (iteration 7, Sub-iteration 1).
                     command: 'remove the rope off the crate',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
@@ -1303,11 +1125,11 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns grounded ObjectManipulation drop from classify + enrich for held object', async () => {
+    it('returns Unimplemented for a release paraphrase whose skeleton leading token is not the bare "drop" verb (accepted regression, iteration 7 sub-iteration 1: unlike acquire\'s "get", literal "drop X" always hits the deterministic fast path, so there is no realistic non-deterministic route into a recognized release skeleton --- classifySkeletonFamily only recognizes a literal leading "drop")', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"release","confidence":0.9}',
+            body: '{"type":"Command","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1330,12 +1152,7 @@ describe('parseCommand LLM path', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'drop',
-            objectIds: [broomId],
-            confidence: 0.9,
-        })
+        expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
     })
 
     it('returns Error when drop targets in-room-only object', async () => {
@@ -1364,90 +1181,20 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('resolves pickUp from room catalog when same objectId appears in room and held catalogs', async () => {
+    it('returns Error when acquire (via realistic get-catalog-gate classify route) targets already-held object', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.94}',
+            body: '{"type":"Command","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"tokens":[{"type":"text","text":"pick up"},{"type":"objectSpan","span":"broom"}]}',
+            body: '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"broom"}]}',
         })
 
         const result = await parseCommand(
             {
-                command: 'pick up the broom',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: ['broom'],
-                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
-                heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'held broom' }],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [broomId],
-            confidence: 0.94,
-        })
-    })
-
-    it('returns grounded ObjectManipulation drop for held-only release paraphrase (toss the pouch)', async () => {
-        const pouchId = 'OBJECT#Pouch'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"release","confidence":0.88}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"toss"},{"type":"objectSpan","span":"pouch"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'toss the pouch',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
-                roomObjectCatalog: [],
-                heldInventoryCatalog: [{ objectId: pouchId, normalizedShortName: 'pouch' }],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'drop',
-            objectIds: [pouchId],
-            confidence: 0.88,
-        })
-    })
-
-    it('returns Error when acquire targets already-held object', async () => {
-        const broomId = 'OBJECT#Broom'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.9}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"pick up"},{"type":"objectSpan","span":"broom"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'pick up the broom',
+                command: 'get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
                 roomObjectLabels: [],
@@ -1472,7 +1219,7 @@ describe('parseCommand LLM path', () => {
         const tableId = 'OBJECT#Table'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectRelateIntent","confidence":0.9}',
+            body: '{"type":"Command","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
@@ -1517,7 +1264,7 @@ describe('parseCommand LLM path', () => {
         const benchId = 'OBJECT#Bench'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectRelateIntent","confidence":0.9}',
+            body: '{"type":"Command","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
@@ -1561,7 +1308,7 @@ describe('parseCommand LLM path', () => {
         const coinId = 'OBJECT#Coin'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"ObjectRelateIntent","confidence":0.9}',
+            body: '{"type":"Command","confidence":0.9}',
         })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
@@ -1588,97 +1335,6 @@ describe('parseCommand LLM path', () => {
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns Error for complex manipulation enrich disposition via edge-touch defer', async () => {
-        const broomId = 'OBJECT#Broom'
-        const roomId = 'ROOM#Bridge' as EphemeraRoomId
-        const tableId = 'OBJECT#Table'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.9}',
-        })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"pick up"},{"type":"objectSpan","span":"broom"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'pick up the broom',
-                characterId: 'CHARACTER#123',
-                hostRoomId: roomId,
-                roomObjectLabels: ['broom'],
-                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: {
-                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getPositionGraph: hostAwareGetPositionGraph({
-                        [roomId]: testPositionGraphFromEnvelope(roomId, {
-                            nodes: [],
-                            edges: [{
-                                tag: 'Exit',
-                                uuid: 'edge-1',
-                                from: broomId,
-                                to: tableId,
-                                payload: {},
-                            }],
-                        }),
-                    }),
-                },
-            }
-        )
-
-        expect(result.type).toBe('Error')
-        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
-    })
-
-    it('returns ObjectManipulation for grab paraphrase after enrich', async () => {
-        const anvilId = 'OBJECT#Anvil'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.9}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"grab"},{"type":"objectSpan","span":"anvil"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'grab anvil',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: ['anvil'],
-                roomObjectCatalog: [{ objectId: anvilId, normalizedShortName: 'anvil' }],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockAcmeOrderEnrichImpl,
-                invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [anvilId],
-            confidence: 0.9,
-        })
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
     })
 
     describe('deterministic manipulation fast paths (PA-5)', () => {
@@ -1758,7 +1414,7 @@ describe('parseCommand LLM path', () => {
             const mopId = 'OBJECT#Mop'
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
-                body: '{"type":"ObjectMembershipIntent","verbClass":"acquire","confidence":0.9}',
+                body: '{"type":"Command","confidence":0.9}',
             })
             const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
                 success: false,
@@ -1868,667 +1524,25 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('still routes get rocket skates through Bedrock classify for Acme', async () => {
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.86}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-                success: false,
-                errorMessage: 'enrich skipped in test',
-            })
-
-            await parseCommand(
-                {
-                    command: 'get rocket skates',
-                    roomObjectLabels: ['broom'],
-                },
-                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-            )
-
-            expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
-            expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-        })
     })
 
-    it('routes get rocket skates through Acme enrich when classify returns AcmeOrder', async () => {
+    it('returns Unimplemented for attack troll regression (accepted regression, iteration 7 sub-iteration 1: classify no longer emits AcmeOrder/AcmeOrderIntent --- Acme-paraphrase and other unrecognized commands now fall through Command\'s classifySkeletonFamily "none" arm to Unimplemented; enrichAcmeOrder is no longer reachable through parseCommand at all)', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.86}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: false,
-            errorMessage: 'enrich skipped in test',
-        })
-
-        await parseCommand(
-            {
-                command: 'get rocket skates',
-                roomObjectLabels: ['broom'],
-            },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-    })
-
-    it('returns Unimplemented for attack troll regression', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"Unimplemented","confidence":0.8}',
+            body: '{"type":"Command","confidence":0.8}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"attack"},{"type":"objectSpan","span":"troll"}]}',
+        })
 
         const result = await parseCommand(
             { command: 'attack troll' },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl, invokeBedrockObjectManipulationParseImpl }
         )
 
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.8 })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [
-                    {
-                        valid: true,
-                        name: 'dynamite sticks',
-                        stableKey: 'dynamite-sticks',
-                    },
-                    {
-                        valid: true,
-                        name: 'spring',
-                        stableKey: 'spring',
-                    },
-                ],
-                confidence: 0.9,
-            }),
-        })
-
-        const result = await parseCommand(
-            { command: 'mail order dynamite and a spring from acme' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [
-                {
-                    valid: true,
-                    name: 'dynamite sticks',
-                    stableKey: 'dynamite-sticks',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-                {
-                    valid: true,
-                    name: 'spring',
-                    stableKey: 'spring',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-            ],
-            confidence: 0.82 * 0.9,
-        })
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-    })
-
-    it('returns Error when Coyote placement count exceeds cap without calling Acme enrich', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const objects = Array.from({ length: 21 }, (_, i) => `OBJECT#cap${i}` as `OBJECT#${string}`)
-        const result = await parseCommand(
-            { command: 'order rope' },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockAcmeOrderEnrichImpl,
-                countCoyotePlacedObjectsAcrossRoomsDeps: {
-                    getGameRooms: async () => ['CapR'],
-                    getObjectIdsInRoom: async (roomId) =>
-                        (roomId === 'ROOM#CapR' ? objects : []),
-                },
-            }
-        )
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: ACME_ORDER_TOO_MANY_PLACED_OBJECTS_MESSAGE,
-        })
-    })
-
-    it('calls Acme enrich when placement count is exactly at cap', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [{
-                    valid: true,
-                    name: 'rope',
-                    stableKey: 'rope',
-                }],
-                confidence: 1,
-            }),
-        })
-        const objects = Array.from({ length: 20 }, (_, i) => `OBJECT#edge${i}` as `OBJECT#${string}`)
-        const result = await parseCommand(
-            { command: 'order rope' },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockAcmeOrderEnrichImpl,
-                countCoyotePlacedObjectsAcrossRoomsDeps: {
-                    getGameRooms: async () => ['CapE'],
-                    getObjectIdsInRoom: async (roomId) =>
-                        (roomId === 'ROOM#CapE' ? objects : []),
-                },
-            }
-        )
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [{
-                valid: true,
-                name: 'rope',
-                stableKey: 'rope',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-            confidence: 0.82,
-        })
-    })
-
-    it('passes occupiedStableKeys into enrich prompt dynamicSuffix', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [{
-                    valid: true,
-                    name: 'rope',
-                    stableKey: 'rope',
-                }],
-                confidence: 1,
-            }),
-        })
-        await parseCommand(
-            { command: 'order rope', occupiedStableKeys: ['rocket-taken', 'anvil'] },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-        const parts = invokeBedrockAcmeOrderEnrichImpl.mock.calls[0][0] as {
-            dynamicSuffix: string
-        }
-        expect(parts.dynamicSuffix).toContain('Coyote-wide stable keys already in use')
-        expect(parts.dynamicSuffix).toContain('- rocket-taken')
-        expect(parts.dynamicSuffix).toContain('- anvil')
-        expect(parts.dynamicSuffix).toContain('## Product spans to validate')
-        expect(parts.dynamicSuffix).toContain('- rope')
-    })
-
-    it('parseCommand omits enrich Markdown on AcmeOrder; parseCommandWithEnrichReasoning returns it separately', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-        })
-        const payload = JSON.stringify({
-            lines: [{
-                valid: true,
-                name: 'rope',
-                stableKey: 'rope',
-            }],
-            confidence: 0.95,
-        })
-        const body = `## Notes\nCheck catalog.\n\n\`\`\`json\n${payload}\n\`\`\``
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body,
-        })
-
-        const deps = { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-
-        const result = await parseCommand({ command: 'order rope' }, deps)
-        const withReason = await parseCommandWithEnrichReasoning({ command: 'order rope' }, deps)
-
-        expect(result.type).toBe('AcmeOrder')
-        if (result.type === 'AcmeOrder') {
-            expect(result).not.toHaveProperty('reasoningMarkdown')
-            expect(result.orders[0]?.name).toBe('rope')
-        }
-        expect(withReason.enrichReasoningMarkdown).toContain('Notes')
-        expect(withReason.result).toEqual(result)
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(2)
-    })
-
-    it('merges per-line: one good enrich line and one unparseable line still returns AcmeOrder with combined confidence', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [
-                    {
-                        valid: true,
-                        name: 'dynamite sticks',
-                        stableKey: 'dynamite-sticks',
-                    },
-                    { bad: true },
-                ],
-                confidence: 0.9,
-            }),
-        })
-
-        const result = await parseCommand(
-            { command: 'mail order dynamite and a spring from acme' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [
-                {
-                    valid: true,
-                    name: 'dynamite sticks',
-                    stableKey: 'dynamite-sticks',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-                {
-                    valid: true,
-                    name: 'line2',
-                    stableKey: 'line2',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-            ],
-            confidence: 0.82 * 0.9,
-        })
-    })
-
-    it('marks tropeAffinitiesFailed and keeps intent confidence when enrich Bedrock fails', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["anvil"],"confidence":0.75}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: false,
-            errorMessage: 'timeout',
-        })
-
-        const result = await parseCommand(
-            { command: 'order anvil from acme' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [{
-                valid: true,
-                name: 'order anvil from acme',
-                stableKey: 'order-anvil-from-acme',
-                tropeAffinities: [],
-                tropeAffinitiesFailed: true,
-            }],
-            confidence: 0.75,
-        })
-    })
-
-    describe('parseCommand Acme enrich thinking (messageBus)', () => {
-        beforeEach(() => {
-            jest.clearAllMocks()
-        })
-
-        it('bootstraps, emits success Thinking Result, and completes schedule when enrich succeeds', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: JSON.stringify({
-                    lines: [
-                        { valid: true, name: 'dynamite sticks', stableKey: 'dynamite-sticks' },
-                        { valid: true, name: 'spring', stableKey: 'spring' },
-                    ],
-                    confidence: 0.9,
-                }),
-            })
-
-            const result = await parseCommand(
-                {
-                    command: 'mail order dynamite and a spring from acme',
-                    occupiedStableKeys: ['rocket-taken', 'anvil'],
-                },
-                {
-                    ...depsCoyoteUnderCap,
-                    messageBus: bus,
-                    invokeBedrockParseCommandImpl,
-                    invokeBedrockAcmeOrderEnrichImpl,
-                }
-            )
-
-            expect(result.type).toBe('AcmeOrder')
-            expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            expect(sendPutThinkingJobCreate.mock.calls[0]).toHaveLength(3)
-            expect(sendPutThinkingSchedule.mock.calls[0]).toHaveLength(3)
-            expect(sendPutThinkingSchedule.mock.calls[0][2].scheduleStatus).toBe('scheduled')
-            expect(sendPutThinkingSchedule.mock.calls[0][2].segment).toBe(ACME_ORDER_ENRICH_SEGMENT)
-
-            expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-
-            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
-            expect(thinkingResults).toEqual([{ segment: ACME_ORDER_ENRICH_SEGMENT, ok: true }])
-            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(1)
-            expectCompletedSchedulePutsMatchBootstrap([ACME_ORDER_ENRICH_SEGMENT])
-            const completedScheduleCall = sendPutThinkingSchedule.mock.calls.find(
-                (call) => call[2].scheduleStatus === 'completed'
-            )
-            expect(completedScheduleCall).toBeDefined()
-            expect(completedScheduleCall).toHaveLength(3)
-            expect(sendPutThinkingJobError).not.toHaveBeenCalled()
-
-            const content = await findActionsThinkingResultMessages(bus.publish)[0]!.getContent()
-            if (isThinkingResultEvent(content)) {
-                expect(content.verbose).toMatchObject({
-                    command: 'mail order dynamite and a spring from acme',
-                    intentConfidence: 0.82,
-                    occupiedStableKeys: ['rocket-taken', 'anvil'],
-                    intentRawOrders: ['dynamite', 'spring'],
-                })
-            }
-        })
-
-        it('finalizes thinking on placement cap without calling enrich Bedrock', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-            const objects = Array.from({ length: 21 }, (_, i) => `OBJECT#cap${i}` as `OBJECT#${string}`)
-
-            const result = await parseCommand(
-                { command: 'order rope' },
-                {
-                    messageBus: bus,
-                    invokeBedrockParseCommandImpl,
-                    invokeBedrockAcmeOrderEnrichImpl,
-                    countCoyotePlacedObjectsAcrossRoomsDeps: {
-                        getGameRooms: async () => ['CapR'],
-                        getObjectIdsInRoom: async (roomId) =>
-                            (roomId === 'ROOM#CapR' ? objects : []),
-                    },
-                }
-            )
-
-            expect(result.type).toBe('Error')
-            expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-            expect(sendPutThinkingJobCreate).toHaveBeenCalledTimes(1)
-            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
-            expect(thinkingResults).toEqual([{
-                segment: ACME_ORDER_ENRICH_SEGMENT,
-                ok: false,
-                errorCode: 'acme_enrich_placed_objects_cap',
-            }])
-            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
-            expect(schedulePutsByStatus('completed')).toHaveLength(0)
-            expect(sendPutThinkingSchedule.mock.calls.filter(
-                (call) => call[2].scheduleStatus === 'scheduled'
-            )).toHaveLength(1)
-        })
-
-        it('returns AcmeOrder product but failed thinking when enrich Bedrock invoke fails', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["anvil"],"confidence":0.75}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-                success: false,
-                errorMessage: 'timeout',
-            })
-
-            const result = await parseCommand(
-                { command: 'order anvil from acme' },
-                {
-                    ...depsCoyoteUnderCap,
-                    messageBus: bus,
-                    invokeBedrockParseCommandImpl,
-                    invokeBedrockAcmeOrderEnrichImpl,
-                }
-            )
-
-            expect(result).toEqual({
-                type: 'AcmeOrder',
-                orders: [{
-                    valid: true,
-                    name: 'order anvil from acme',
-                    stableKey: 'order-anvil-from-acme',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                }],
-                confidence: 0.75,
-            })
-            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
-            expect(thinkingResults).toEqual([{
-                segment: ACME_ORDER_ENRICH_SEGMENT,
-                ok: false,
-                errorCode: 'acme_enrich_invoke_failed',
-            }])
-            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
-            expect(schedulePutsByStatus('completed')).toHaveLength(0)
-        })
-
-        it('finalizes thinking with parse_failed when enrich body is invalid JSON', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: 'not valid json at all',
-            })
-
-            const result = await parseCommand(
-                { command: 'order rope' },
-                {
-                    ...depsCoyoteUnderCap,
-                    messageBus: bus,
-                    invokeBedrockParseCommandImpl,
-                    invokeBedrockAcmeOrderEnrichImpl,
-                }
-            )
-
-            expect(result.type).toBe('AcmeOrder')
-            const thinkingResults = await thinkingResultsOkFromBus(bus.publish)
-            expect(thinkingResults).toEqual([{
-                segment: ACME_ORDER_ENRICH_SEGMENT,
-                ok: false,
-                errorCode: 'acme_enrich_parse_failed',
-            }])
-            expect(sendPutThinkingJobError).toHaveBeenCalledTimes(1)
-            expect(schedulePutsByStatus('completed')).toHaveLength(0)
-
-            const content = await findActionsThinkingResultMessages(bus.publish)[0]!.getContent()
-            if (isThinkingResultEvent(content)) {
-                expect(content.verbose).toMatchObject({
-                    parseFailureReason: expect.any(String),
-                    enrichRawBody: 'not valid json at all',
-                })
-            }
-        })
-
-        it('does not call thinking APIs when messageBus is omitted', async () => {
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AcmeOrder","orders":["rope"],"confidence":0.82}',
-            })
-            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: JSON.stringify({
-                    lines: [{ valid: true, name: 'rope', stableKey: 'rope' }],
-                    confidence: 1,
-                }),
-            })
-
-            await parseCommand(
-                { command: 'order rope' },
-                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-            )
-
-            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
-            expect(sendPutThinkingSchedule).not.toHaveBeenCalled()
-            expect(sendPutThinkingJobError).not.toHaveBeenCalled()
-        })
-
-        it('does not bootstrap thinking for non-AcmeOrder intents when messageBus is present', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"AwaitRoadRunner","confidence":0.88}',
-            })
-
-            const result = await parseCommand(
-                { command: 'wait for the bird' },
-                { messageBus: bus, invokeBedrockParseCommandImpl }
-            )
-
-            expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
-            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
-            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(0)
-        })
-
-        it('does not bootstrap thinking for PredictHypothesis when messageBus is present', async () => {
-            const bus = mockMessageBus()
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"PredictHypothesis","confidence":0.88}',
-            })
-
-            const result = await parseCommand(
-                { command: 'predict' },
-                { messageBus: bus, invokeBedrockParseCommandImpl }
-            )
-
-            expect(result).toEqual({ type: 'PredictHypothesis', confidence: 1 })
-            expect(sendPutThinkingJobCreate).not.toHaveBeenCalled()
-            expect(findActionsThinkingResultMessages(bus.publish)).toHaveLength(0)
-        })
-    })
-
-    it('returns AcmeOrder with multi-role enrich for beehive, shovel, and rope line items', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["BEES!","trench shovel","climbing rope"],"confidence":0.85}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [
-                    {
-                        valid: true,
-                        name: 'Beehive',
-                        stableKey: 'beehive',
-                    },
-                    {
-                        valid: true,
-                        name: 'Entrenching Shovel',
-                        stableKey: 'entrenching-shovel',
-                    },
-                    {
-                        valid: true,
-                        name: 'Climbing Rope',
-                        stableKey: 'climbing-rope',
-                    },
-                ],
-                confidence: 0.9,
-            }),
-        })
-
-        const result = await parseCommand(
-            { command: 'order BEES!, a trench shovel, and climbing rope from Acme' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [
-                {
-                    valid: true,
-                    name: 'Beehive',
-                    stableKey: 'beehive',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-                {
-                    valid: true,
-                    name: 'Entrenching Shovel',
-                    stableKey: 'entrenching-shovel',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-                {
-                    valid: true,
-                    name: 'Climbing Rope',
-                    stableKey: 'climbing-rope',
-                    tropeAffinities: [],
-                    tropeAffinitiesFailed: true,
-                },
-            ],
-            confidence: 0.85 * 0.9,
-        })
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
-    })
-
-    it('runs enrich when Acme order enrich returns only invalid catalog lines', async () => {
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"AcmeOrder","orders":["justice"],"confidence":0.8}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: JSON.stringify({
-                lines: [{
-                    valid: false,
-                    name: 'Justice',
-                    errorType: 'Not tangible',
-                }],
-                confidence: 1,
-            }),
-        })
-
-        const result = await parseCommand(
-            { command: 'order justice from acme' },
-            { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'AcmeOrder',
-            orders: [{
-                valid: false,
-                name: 'Justice',
-                errorType: 'Not tangible',
-            }],
-            confidence: 0.8,
-        })
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 })
