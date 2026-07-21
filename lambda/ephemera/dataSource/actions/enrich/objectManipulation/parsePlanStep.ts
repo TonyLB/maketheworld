@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -15,7 +15,9 @@ export type EstablishRelationStep = {
     targetId: EphemeraObjectId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
-    hostRoomId: EphemeraRoomId
+    // Widened from EphemeraRoomId (BD-16, 2026-07-21): sameHost repair can ground
+    // a relation onto a Character-inventory host, not just a Room.
+    hostRoomId: EphemeraMembershipHostId
 }
 
 export type DissolveRelationStep = {
@@ -24,7 +26,9 @@ export type DissolveRelationStep = {
     targetId: EphemeraObjectId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
-    hostRoomId: EphemeraRoomId
+    // Widened from EphemeraRoomId (BD-16, 2026-07-21): sameHost repair can ground
+    // a relation onto a Character-inventory host, not just a Room.
+    hostRoomId: EphemeraMembershipHostId
 }
 
 export type ParsePlanStep = TransferMembershipStep | EstablishRelationStep | DissolveRelationStep

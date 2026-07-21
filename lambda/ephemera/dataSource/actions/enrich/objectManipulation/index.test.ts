@@ -41,7 +41,7 @@ const roomGraphWithBroomAndTable = testPositionGraph(roomId, {
 })
 
 const relationalPositionsReadDeps = () => ({
-    getMembershipContainers: jest.fn(),
+    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
     getPositionGraph: jest.fn().mockResolvedValue(roomGraphWithBroomAndTable),
 })
 
@@ -245,7 +245,7 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('abstains on a held-item relation, since the native pipeline only grounds against the acting character\'s room (BD-6 default, character-inventory hosts not yet supported)', async () => {
+    it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, satisfied --- both items already share that host)', async () => {
         const stringId = 'OBJECT#String' as EphemeraObjectId
         const topId = 'OBJECT#Top' as EphemeraObjectId
         const heldGraph = testPositionGraph(characterId, {
@@ -271,11 +271,20 @@ describe('enrichObjectManipulation', () => {
             },
             0.9,
             {
-                positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph },
+                positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([characterId]), getPositionGraph },
             }
         )
 
-        expect(result.type).toBe('Abstain')
+        expect(result).toEqual({
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: stringId,
+            targetId: topId,
+            relationKind: 'Custom',
+            relationLabel: 'around',
+            hostId: characterId,
+            confidence: 0.9,
+        })
     })
 
     it('grounds lean rope against anvil via the native skeleton pipeline', async () => {
@@ -303,7 +312,7 @@ describe('enrichObjectManipulation', () => {
             0.88,
             {
                 positionsReadDeps: {
-                    getMembershipContainers: jest.fn(),
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
                     getPositionGraph: jest.fn().mockResolvedValue(anvilGraph),
                 },
             }
@@ -339,7 +348,7 @@ describe('enrichObjectManipulation', () => {
             0.87,
             {
                 positionsReadDeps: {
-                    getMembershipContainers: jest.fn(),
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: cordId },
@@ -377,7 +386,7 @@ describe('enrichObjectManipulation', () => {
             0.86,
             {
                 positionsReadDeps: {
-                    getMembershipContainers: jest.fn(),
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: ropeId },
@@ -620,7 +629,7 @@ describe('enrichObjectManipulation', () => {
             0.9,
             {
                 positionsReadDeps: {
-                    getMembershipContainers: jest.fn(),
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
                     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph(roomId, {
                         nodes: [
                             { tag: 'Object' as const, universalKey: ladderId },

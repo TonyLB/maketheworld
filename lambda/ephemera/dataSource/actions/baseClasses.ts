@@ -335,6 +335,8 @@ export type ParseCommandEstablishRelationResult = {
     /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
     hostId: EphemeraMembershipHostId
     confidence: ParseCommandConfidence
+    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
+    transferFromHostId?: EphemeraMembershipHostId
 }
 
 /**

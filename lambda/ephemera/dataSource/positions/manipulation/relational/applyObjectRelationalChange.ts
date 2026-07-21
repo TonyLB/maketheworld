@@ -6,6 +6,7 @@ import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { EphemeraPositionGraph } from '../../positionGraph'
 import { applyHostRelationalPatch, type ApplyHostRelationalPatchDependencies } from '../applyHostRelationalPatch'
+import { applyObjectRelationalChangeWithTransfer } from './applyObjectRelationalChangeWithTransfer'
 import { buildObjectRelationalFact } from './buildObjectRelationalFact'
 import { planHostRelationalPatch } from './planHostRelationalPatch'
 import { streamObjectRelationalFact } from './streamObjectRelationalFact'
@@ -39,6 +40,13 @@ export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,
     deps: ApplyObjectRelationalChangeDependencies
 ): Promise<RelationalApplyResult> => {
+    if (args.transferFromHostId !== undefined) {
+        return applyObjectRelationalChangeWithTransfer(
+            { ...args, transferFromHostId: args.transferFromHostId },
+            { messageBus: deps.messageBus, streamEvent: deps.streamEvent }
+        )
+    }
+
     const patch = planHostRelationalPatch(args)
 
     const kernelResult = await applyHostRelationalPatch(

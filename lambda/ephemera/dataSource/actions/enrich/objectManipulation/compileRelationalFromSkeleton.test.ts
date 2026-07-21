@@ -50,7 +50,7 @@ describe('compileRelationalFromSkeleton', () => {
                 ],
             },
             0.9,
-            { positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph } }
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getPositionGraph } }
         )
 
         expect(result).toEqual({
@@ -86,7 +86,7 @@ describe('compileRelationalFromSkeleton', () => {
                 ],
             },
             0.9,
-            { positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph } }
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getPositionGraph } }
         )
 
         expect(result.type).toBe('EstablishRelation')
@@ -185,7 +185,7 @@ describe('compileRelationalFromSkeleton', () => {
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
             },
             0.9,
-            { positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph } }
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getPositionGraph } }
         )
 
         expect(result.type).toBe('Abstain')
@@ -209,9 +209,81 @@ describe('compileRelationalFromSkeleton', () => {
             },
             0.9,
             {
-                positionsReadDeps: { getMembershipContainers: jest.fn(), getPositionGraph },
+                positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getPositionGraph },
                 embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: [0.01, 0.02, 0.03] }),
             }
+        )
+
+        expect(result.type).toBe('Abstain')
+    })
+
+    it('inserts a transferMembership repair when the subject is held but the target is in the room (BD-16 sameHost repaired)', async () => {
+        const trayId = 'OBJECT#Tray' as EphemeraObjectId
+        const roomGraph = testPositionGraph(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: tableId }],
+        })
+        const heldGraph = testPositionGraph(characterId, {
+            nodes: [{ tag: 'Object' as const, universalKey: trayId }],
+        })
+        const getPositionGraph = jest.fn().mockImplementation(async (hostId: string) => (
+            hostId === characterId ? heldGraph : roomGraph
+        ))
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => (
+            objectId === trayId ? [characterId] : [roomId]
+        ))
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'put tray on table',
+                skeleton: relationalSkeleton('put', 'tray', 'trayRef', 'on', 'table', 'tableRef'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
+                heldInventoryCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getPositionGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: trayId,
+            targetId: tableId,
+            relationKind: 'On',
+            hostId: roomId,
+            confidence: 0.9,
+            transferFromHostId: characterId,
+        })
+    })
+
+    it('drops a Custom-relation candidate whose subject/object hosts differ (sameHost defer --- no Consult path on this route)', async () => {
+        const charmId = 'OBJECT#Charm' as EphemeraObjectId
+        const necklaceId = 'OBJECT#Necklace' as EphemeraObjectId
+        const roomGraph = testPositionGraph(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: charmId }],
+        })
+        const heldGraph = testPositionGraph(characterId, {
+            nodes: [{ tag: 'Object' as const, universalKey: necklaceId }],
+        })
+        const getPositionGraph = jest.fn().mockImplementation(async (hostId: string) => (
+            hostId === characterId ? heldGraph : roomGraph
+        ))
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => (
+            objectId === necklaceId ? [characterId] : [roomId]
+        ))
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'wrap charm around necklace',
+                skeleton: relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: charmId, normalizedShortName: 'charm' }],
+                heldInventoryCatalog: [{ objectId: necklaceId, normalizedShortName: 'necklace' }],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getPositionGraph } }
         )
 
         expect(result.type).toBe('Abstain')
