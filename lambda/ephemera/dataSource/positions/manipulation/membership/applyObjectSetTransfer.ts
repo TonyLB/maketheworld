@@ -181,13 +181,15 @@ export const applyObjectSetTransfer = async (
 
     const beatAnchorTime = getCurrentTimestamp()
 
-    for (const diff of diffs) {
-        const fact = buildObjectMovedFact({ objectId: diff.objectId, diff, beatAnchorTime })
-        if (fact) {
-            await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
-        }
-    }
-
+    // Cache write-through + AffordanceRoomDeliverable invalidation must land before any
+    // "Object Moved" event is published below --- messageBus.publish is fire-and-forget,
+    // so the affordance-refresh chain it triggers (Object Moved -> affordanceOrchestration
+    // -> affordanceCache -> perception -> internalCache.AffordanceRoomDeliverable.get() ->
+    // internalCache.Positions.getPositionGraph()) can otherwise race ahead of this update
+    // during the streamObjectMembershipFact await below, reading (and memoizing) the
+    // pre-mutation position graph. Once memoized, AffordanceRoomDeliverable.get() only
+    // recomputes on a cache miss, so the later RoomUpdate-triggered refresh just serves
+    // the same stale entry --- observed as the room affordance lagging one action behind.
     seedGraphMemos([committedGraphs.sourceGraph, committedGraphs.destGraph])
 
     for (const objectId of args.objectIds) {
@@ -195,6 +197,13 @@ export const applyObjectSetTransfer = async (
             componentId: objectId,
             containers: [toHostId],
         })
+    }
+
+    for (const diff of diffs) {
+        const fact = buildObjectMovedFact({ objectId: diff.objectId, diff, beatAnchorTime })
+        if (fact) {
+            await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
+        }
     }
 
     if (isEphemeraRoomId(fromHostId)) {

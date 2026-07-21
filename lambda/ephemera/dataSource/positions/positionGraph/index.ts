@@ -87,14 +87,29 @@ export class EphemeraPositionGraph {
         })
     }
 
+    /**
+     * Plain-copies every node/edge (`{...node}`/`{...edge}`, not just `[...array]`) rather
+     * than retaining `payload`'s own element references. This matters when `payload` comes
+     * from an Immer `produce()` draft (every `MultiKeyUpdate` reducer in
+     * `mtw-utilities/ts/dynamoDB/mixins/transact.ts` builds one) --- Immer revokes all draft
+     * proxies synchronously the instant the reducer returns, so an `EphemeraPositionGraph`
+     * that merely re-wrapped the draft's own node/edge objects would carry revoked proxies
+     * the moment any caller retained it past the reducer's synchronous scope (e.g.
+     * `applyObjectSetTransfer.ts` assigning `committedGraphs` from the reducer, for use by
+     * the synchronous cache seed that runs after `transactWrite` resolves) --- "Cannot
+     * perform 'get' on a proxy that has been revoked" on first property read. Node/edge
+     * shapes are flat (`EphemeraPositionGraphNode`/`EphemeraPositionRelationalEdgeData` in
+     * `mtw-interfaces/ts/ephemeraMeta.ts`), so a shallow per-element copy fully severs the
+     * live reference.
+     */
     static fromFieldPayload(
         hostId: EphemeraMembershipHostId,
         payload: EphemeraPositionGraphFieldPayload
     ): EphemeraPositionGraph {
         return new EphemeraPositionGraph(
             hostId,
-            payload.nodes,
-            payload.edges !== undefined ? [...payload.edges] : undefined
+            payload.nodes.map((node) => ({ ...node })),
+            payload.edges !== undefined ? payload.edges.map((edge) => ({ ...edge })) : undefined
         )
     }
 

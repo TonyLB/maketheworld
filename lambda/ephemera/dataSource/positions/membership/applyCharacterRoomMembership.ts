@@ -111,6 +111,20 @@ export const applyCharacterRoomMembership = async (
     const getSessionId = deps.getSessionId ?? (() => internalCache.Global.get('SessionId'))
     const sessionId = await getSessionId()
 
+    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
+    // "Character Moved" fact is streamed below --- see applyObjectSetTransfer.ts's matching
+    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
+    // affordance-refresh chain can otherwise race ahead of this update and memoize a
+    // pre-mutation read.
+    const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
+    seedPositionsGraphMemos(kernelResult.postApplyGraphs)
+    const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)
+    internalCache.Positions.setMembershipContainers({
+        componentId: args.characterId,
+        containers: diff.to ? [diff.to] : [],
+    })
+    internalCache.CharacterMeta.invalidate(args.characterId)
+
     const fact = buildCharacterMovedFact({
         characterId: args.characterId,
         diff,
@@ -120,15 +134,6 @@ export const applyCharacterRoomMembership = async (
     if (fact) {
         await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
     }
-
-    const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
-    seedPositionsGraphMemos(kernelResult.postApplyGraphs)
-    const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)
-    internalCache.Positions.setMembershipContainers({
-        componentId: args.characterId,
-        containers: diff.to ? [diff.to] : [],
-    })
-    internalCache.CharacterMeta.invalidate(args.characterId)
 
     affectedRooms.forEach((roomId) => {
         deps.messageBus.publish({
