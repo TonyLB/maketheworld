@@ -137,7 +137,7 @@ Operator semantics: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../di
 
 Both types still exist (**`ParseCommandObjectMembershipIntentResult`**/**`ParseCommandObjectRelateIntentResult`** in [`baseClasses.ts`](baseClasses.ts)) as the shape enrich dispatches on --- only their *source* changed, from classify's LLM judgment to `classifySkeletonFamily`'s deterministic skeleton check (membership) or `matchRelationalTemplate`'s structural match (relational). A `Command`-routed skeleton matching **neither** family terminalizes as **`Unimplemented`** --- see the narrowed-classify pipeline sequence below (a deliberate, accepted Sub-iteration 1 regression for non-object-manipulation command families, not yet real dispatch targets).
 
-**Pipeline sequence (current, post-iteration-7-Sub-iteration-1):**
+**Pipeline sequence (current, post-iteration-7-Sub-iteration-2):**
 
 Enrich may be **provisional** until the FT-5 selector auto-resolves; egress is **trusted-output** (grounded stream) or terminal **Consult** / **Abstain** / **Error** (no positions stream).
 
@@ -147,7 +147,10 @@ Parse Requested
   -> parallel: internalCache.ObjectEmbedding.get(objectIds) + attachEmbeddingsToCatalogEntries
   -> [optional] deterministic fast path: minimal-verb take/drop/get -> ObjectMembershipIntent (skip Bedrock classify only)
   -> classify (LLM): Command (realness/shape narrowed to 5 outcomes, iteration 7 --- no family decision)
-  -> parseCommand's Command branch: runParseStage (unconditional) -> classifySkeletonFamily
+  -> parseCommand's Command branch:
+       [no Bedrock] matchNonObjectManipulationTemplate(command) -> Help | Home | AwaitRoadRunner terminal
+       [no Bedrock] matchNavigationParaphrase(input) -> Navigation terminal | navigation Error
+       -> runParseStage (unconditional Bedrock hop, once neither of the above hit) -> classifySkeletonFamily
   -> enrichObjectManipulation(enrichRoute), by classifySkeletonFamily's result:
        membership: Parse skeleton -> objectSpansFromSkeleton -> cardinality gate -> compileMembershipAtomic
             -> resolveCatalogSpanToPool -> selectMembershipFromPool (FT-2.2)
@@ -156,7 +159,8 @@ Parse Requested
        relational: Parse skeleton -> matchRelationalTemplate (Plan; deterministic operationKind/relationKind)
             -> identifySkeletonSpans (Identify) -> groundChange (Grounding) -> filterLegalRelationalCandidates (Validation)
             -> compileRelationalFromSkeleton -> EstablishRelation | Abstain | Error (no frame-extract fallback)
-       none: Unimplemented (accepted Sub-iteration 1 regression for non-object-manipulation families)
+       none: matchAcmeOrderFamily(skeleton, input) -> AcmeOrder | Error (Bedrock via enrichAcmeOrder)
+            no match -> Unimplemented (genuine miss, not one of the six reconnected families)
   -> terminal parse / egress (Object Take Hold | Object Drop | EstablishRelation stream) or Consult / Abstain / Error
 ```
 
@@ -221,18 +225,25 @@ Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAs
 
 ---
 
-## `DeterministicTemplate` module (built, not yet wired)
+## `DeterministicTemplate` module (bare-word subset wired, 2026-07-20)
 
 Vocabulary and design: [`AGENT.concepts.md`](./AGENT.concepts.md#deterministictemplate-shipped-2026-07-20). This section is the module map.
 
 - `dataSource/actions/deterministicTemplate/`:
   - `deterministicTemplate.ts` --- `DeterministicTemplate` interface, `PatternElement`, `IntentFieldRole`, `DeterministicTemplateMatch`, `DeterministicTemplateDeferReason` types.
   - `patternTemplate.ts` --- the two generic matching engines (`matchPatternAgainstString`/`matchPatternAgainstTokens`), the `assembleIntent` combinator, `synthesizeSkeletonFromPattern`, and both factories (`makePatternTemplate`, `makeDeferPatternTemplate`).
-  - `bareWordTemplates.ts` --- 4 pure-data rows (`look`/`l`, `help`, `home`, `predict`).
-  - `relationalTemplates.ts` --- 10 pure-data rows (6 enum `Against`/`Under`/`On` x verb-class, 2 custom, 2 containment/defer).
-  - `index.ts` --- the directory's real entry point (matches this codebase's no-barrel convention, cf. `discriminateIntent/index.ts`): `deterministicTemplateRegistry` (ordered, first-match-wins) and `matchDeterministicTemplate(command)` dispatch.
-- **Not wired:** `matchDeterministicTemplate` has no caller in `parseCommand.ts` or `discriminateIntent/index.ts` today. Wiring it in, and deciding whether a given live match is an *entry* (classification + skeleton, resolution stays downstream) or a *bypass* (fully resolved), is [`AGENT.classifyPlanGeneralization.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md)'s (CPG-1/CPG-3) remaining work.
-- Tests: `dataSource/actions/deterministicTemplate/*.test.ts` (169 tests as of 2026-07-20).
+  - `bareWordTemplates.ts` --- 5 pure-data rows: `look`/`l` (bare only, deliberately no paraphrase lexicon --- see below), `help` (+ paraphrase lexicon), `home` (+ paraphrase lexicon), `predict` (bare only, no Sub-iteration 2 producer needed --- `WorldQuestion` already routes to `PredictHypothesis`), `wait`/`awaitRoadRunnerTemplate` (bare + paraphrase lexicon, new in Sub-iteration 2 --- `wait` had no pre-classify producer before).
+  - `relationalTemplates.ts` --- 10 pure-data rows (6 enum `Against`/`Under`/`On` x verb-class, 2 custom, 2 containment/defer). Still not wired into the live path (see below).
+  - `index.ts` --- the directory's real entry point (matches this codebase's no-barrel convention, cf. `discriminateIntent/index.ts`): `deterministicTemplateRegistry` (all 15 entries, ordered, first-match-wins) and `matchDeterministicTemplate(command)` (unchanged, still has no live-path caller); plus **`nonObjectManipulationTemplateRegistry`** (3 entries: `help`/`home`/`awaitRoadRunner`, excluding `look`, `predict`, and the relational entries by construction) and **`matchNonObjectManipulationTemplate(command)`** --- the live-path entry point, called from `parseCommand.ts`'s `Command` branch before `runParseStage`.
+- **Wired (Sub-iteration 2, 2026-07-20):** the `help`/`home`/`awaitRoadRunner` subset only, via `matchNonObjectManipulationTemplate`. **Still not wired, each for its own reason:** `lookTemplate` --- `look`/`l` are always intercepted upstream by `deterministicChecks.ts` before classify ever runs (so a `Command`-routed input can never be bare `look` in the first place), and a review correction during this slice deliberately dropped its paraphrase lexicon (`peruse the room`, etc.) --- open-ended `look` paraphrases are free-form enough that a closed list isn't the right tool; that's LLM-fallback territory, not yet built. `predictTemplate` --- `PredictHypothesis` isn't one of the six families this registry closes the regression for. The relational entries (`relationalTemplateRegistry`) --- consuming a relational match would mean threading its synthesized skeleton into the same downstream enrich pipeline `runParseStage`'s output goes into (CPG-6's zero-Bedrock optimization), a distinct, nontrivial change with its own test surface, deliberately deferred again. And the *context-dependent* implementation kind (Navigation's exit resolution, `get`'s room-object-label gating) named in `deterministicTemplate.ts`'s own doc comment --- Sub-iteration 2 satisfied Navigation's underlying need with its own typed matcher ([`plan/matchNavigationParaphrase.ts`](plan/matchNavigationParaphrase.ts)) instead of widening the shared `DeterministicTemplate.matchString(command: string)` interface, since only one concrete case exists so far to generalize from.
+- Tests: `dataSource/actions/deterministicTemplate/*.test.ts` (extended for the paraphrase lexicons and the new registry/matcher in Sub-iteration 2).
+
+### Navigation and AcmeOrder paraphrase matchers (Sub-iteration 2, iteration 7, 2026-07-20)
+
+Two more command families reconnected alongside the `DeterministicTemplate` bare-word subset, each deliberately **not** a `DeterministicTemplate` entry (see rationale above and in [`AGENT.classifyPlanGeneralization.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md)):
+
+- **`plan/matchNavigationParaphrase.ts`** --- extends today's `go <exit>`-only deterministic prefix (`discriminateIntent/deterministicChecks.ts`'s `maybeDeterministicNavigationResult`, unchanged) with `head`/`walk`/`move`/`travel`/`enter`, calling the existing `resolveExitLabelToTargetId` (`discriminateIntent/exitResolution.ts`, unchanged). Runs pre-Parse in `parseCommand.ts`'s `Command` branch, right after the `DeterministicTemplate` bare-word check. On a resolved exit, returns the same terminal `ParseCommandNavigationResult` shape the pre-classify fast path already produces. On a failed resolution with an explicit movement verb present, surfaces a specific `Error` via `navigationIntentErrorMessages` (reconnecting `exitResolution.ts`'s previously-orphaned messages and `index.ts`'s `parseErrorMessageForPlayer` `case` branches) --- unlike the bare/verbless fast path, which stays lenient and silent-on-miss.
+- **`plan/matchAcmeOrderFamily.ts`** --- runs post-Parse, only when `classifySkeletonFamily` returns `none`. Matches the skeleton's leading `text` token against `order`/`buy`/`purchase`, requires at least one following `objectSpan` token, extracts their span text as `rawOrders`, and calls `enrichAcmeOrder` (`enrich/acmeOrder/index.ts`, unchanged internals) directly --- resolving CPG-4: `enrichAcmeOrder`'s existing LLM call (trope/catalog affinity resolution) is this family's Synthesize step as-is, no new hook needed.
 
 ---
 

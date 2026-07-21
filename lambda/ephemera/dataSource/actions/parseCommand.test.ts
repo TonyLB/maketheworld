@@ -849,7 +849,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Unimplemented when a Command paraphrase does not match a recognized object-manipulation family (accepted regression, iteration 7 sub-iteration 1: classify no longer emits LookRoom/Help/Navigation family types directly)', async () => {
+    it('returns Unimplemented when a Command paraphrase matches no recognized family at all (genuine miss, iteration 7 sub-iteration 2: not one of the six reconnected families either)', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Command","confidence":0.84}',
@@ -857,11 +857,11 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"tokens":[{"type":"text","text":"examine the room"}]}',
+            body: '{"tokens":[{"type":"text","text":"juggle flaming torches"}]}',
         })
 
         const result = await parseCommand(
-            { command: 'examine the room' },
+            { command: 'juggle flaming torches' },
             {
                 ...depsCoyoteUnderCap,
                 invokeBedrockParseCommandImpl,
@@ -873,6 +873,119 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.84 })
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    describe('Sub-iteration 2: non-object-manipulation Command family paraphrases', () => {
+        it('does not resolve a LookRoom paraphrase deterministically (deliberate scope call: open-ended look paraphrases are LLM-fallback territory, not a closed lexicon) -- falls through to Parse like any other unrecognized Command', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"tokens":[{"type":"text","text":"examine the room"}]}',
+            })
+
+            const result = await parseCommand(
+                { command: 'examine the room' },
+                { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+            )
+
+            expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
+            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        })
+
+        it('resolves a Help paraphrase without running Parse', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+
+            const result = await parseCommand({ command: 'help me' }, { invokeBedrockParseCommandImpl })
+
+            expect(result).toEqual({ type: 'Help', confidence: 1 })
+        })
+
+        it('resolves a Home paraphrase without running Parse', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+
+            const result = await parseCommand({ command: 'head back home' }, { invokeBedrockParseCommandImpl })
+
+            expect(result).toEqual({ type: 'Home', confidence: 1 })
+        })
+
+        it('resolves an AwaitRoadRunner paraphrase without running Parse', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+
+            const result = await parseCommand({ command: 'wait for the bird' }, { invokeBedrockParseCommandImpl })
+
+            expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
+        })
+
+        it('resolves a Navigation paraphrase (movement verb beyond bare "go") without running Parse', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+            const invokeBedrockObjectManipulationParseImpl = jest.fn()
+
+            const result = await parseCommand(
+                { command: 'head north', roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
+                { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+            )
+
+            expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        })
+
+        it('resolves an AcmeOrder paraphrase after Parse, once classifySkeletonFamily rules out membership/relational', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"type":"Command","confidence":0.9}',
+            })
+            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"tokens":[{"type":"text","text":"order"},{"type":"objectSpan","span":"a glue trap"}]}',
+            })
+            const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: `\`\`\`json
+{
+  "lines": [{ "valid": true, "name": "glue trap", "stableKey": "glue-trap", "tropeAffinities": [{ "trope": "Contraption", "aptness": "Good", "narrowing": "sticky trap" }] }],
+  "confidence": 0.9
+}
+\`\`\``,
+            })
+
+            const result = await parseCommand(
+                { command: 'order a glue trap' },
+                {
+                    ...depsCoyoteUnderCap,
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockObjectManipulationParseImpl,
+                    invokeBedrockAcmeOrderEnrichImpl,
+                }
+            )
+
+            expect(result).toEqual({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'glue trap',
+                    stableKey: 'glue-trap',
+                    tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'sticky trap' }],
+                    tropeAffinitiesFailed: false,
+                }],
+                confidence: 0.9 * 0.9,
+            })
+            expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalled()
+        })
     })
 
     it('returns Error when Bedrock fails', async () => {
@@ -1526,7 +1639,7 @@ describe('parseCommand LLM path', () => {
 
     })
 
-    it('returns Unimplemented for attack troll regression (accepted regression, iteration 7 sub-iteration 1: classify no longer emits AcmeOrder/AcmeOrderIntent --- Acme-paraphrase and other unrecognized commands now fall through Command\'s classifySkeletonFamily "none" arm to Unimplemented; enrichAcmeOrder is no longer reachable through parseCommand at all)', async () => {
+    it('returns Unimplemented for attack troll (genuine miss, iteration 7 sub-iteration 2: not order/buy/purchase-shaped, so matchAcmeOrderFamily does not match either)', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Command","confidence":0.8}',

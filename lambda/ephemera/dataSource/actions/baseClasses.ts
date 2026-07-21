@@ -137,16 +137,11 @@ export type ParseCommandAcmeOrderResult = {
 }
 
 /**
- * Coyote Game: wait-state for Road Runner encounter flows.
- *
- * **Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): zero producers today.** This was only
- * ever emitted by classify's old Section C ("AwaitRoadRunner"), retired when classify narrowed
- * to 5 outcomes; no deterministic check produces it either. A `Command`-routed "wait for the
- * bird"-style paraphrase now falls through `classifySkeletonFamily` to `Unimplemented` instead.
- * Reconnect in Sub-iteration 2, which adds real command-plan dispatch entries for
- * `AwaitRoadRunner` alongside `LookRoom`/`Help`/`AcmeOrder`/`NavigationIntent`/`HomeIntent` --- see
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
- * Sub-iteration 2's Recommended order.
+ * Coyote Game: wait-state for Road Runner encounter flows. Produced by
+ * `deterministicTemplate/bareWordTemplates.ts`'s `awaitRoadRunnerTemplate`
+ * (bare `wait`, plus a closed `wait for the roadrunner`/`road runner`/`the bird`
+ * paraphrase lexicon), wired into `parseCommand.ts`'s `Command` branch via
+ * `matchNonObjectManipulationTemplate` (iteration 7, Sub-iteration 2, 2026-07-20).
  */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'
@@ -279,62 +274,6 @@ export type ParseCommandPromptInjectionAttemptResult = {
  */
 export type ParseCommandMultipleCommandsResult = {
     type: 'MultipleCommands'
-    confidence: ParseCommandConfidence
-}
-
-/**
- * Intent discrimination only: model-classified movement intent before server-side exit resolution.
- * Final parse result still uses `Navigation` with `targetId` after resolution.
- *
- * **Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): zero producers today.** Only classify's
- * old Section B ("NavigationIntent") ever emitted this; retired when classify narrowed to 5
- * outcomes. Exact/bare exit-name navigation still works (unchanged, via
- * `deterministicChecks.ts`'s `maybeDeterministicNavigationResult`, which produces the terminal
- * `Navigation` type directly, not this one); a movement **paraphrase** now falls through
- * `classifySkeletonFamily` to `Unimplemented` instead. Reconnect in Sub-iteration 2 --- see
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
- * Sub-iteration 2's Recommended order.
- */
-export type ParseCommandNavigationIntentResult = {
-    type: 'NavigationIntent'
-    exitCandidate: string
-    confidence: ParseCommandConfidence
-}
-
-/**
- * Intent discrimination only: model-classified return-home intent before server-side HomeId resolution.
- * Final parse result uses `Home` after resolution.
- *
- * **Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): zero producers today.** Only classify's
- * old Section B2 ("HomeIntent") ever emitted this; retired when classify narrowed to 5 outcomes.
- * Bare `home` still works (unchanged, via `deterministicChecks.ts`, which produces the terminal
- * `Home` type directly, not this one); a "go home"/"head back home"-style paraphrase now falls
- * through `classifySkeletonFamily` to `Unimplemented` instead. Reconnect in Sub-iteration 2 --- see
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
- * Sub-iteration 2's Recommended order.
- */
-export type ParseCommandHomeIntentResult = {
-    type: 'HomeIntent'
-    confidence: ParseCommandConfidence
-}
-
-/**
- * Intent discrimination only: player intent is an Acme order with **raw** product spans from the classifier.
- * Catalog validation, tropes, and **`stableKey`** are produced by Acme order enrich into {@link ParseCommandAcmeOrderResult}.
- * `parseCommand` runs enrich next; enrich may return {@link ParseCommandErrorResult} (for example when Coyote placement count exceeds the cap).
- *
- * **Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): zero producers today.** Only classify's
- * old Section A ("AcmeOrder") ever emitted this; retired when classify narrowed to 5 outcomes.
- * `enrichAcmeOrder` ({@link enrich/acmeOrder/index.ts}) itself is untouched but has no caller from
- * `parseCommand.ts` anymore --- an Acme-order paraphrase ("order glue trap") now falls through
- * `classifySkeletonFamily` to `Unimplemented` instead. Reconnect in Sub-iteration 2 --- see
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
- * Sub-iteration 2's Recommended order.
- */
-export type ParseCommandAcmeOrderIntentResult = {
-    type: 'AcmeOrderIntent'
-    /** Unvalidated classifier-extracted product strings (trimmed). Not the same as {@link ParseCommandAcmeOrderResult.orders}. */
-    rawOrders: string[]
     confidence: ParseCommandConfidence
 }
 
