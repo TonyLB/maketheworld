@@ -13,6 +13,7 @@ export type ExecuteObjectDissolveRelationArgs = {
     hostId: EphemeraMembershipHostId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
+    transferFromHostId?: EphemeraMembershipHostId
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
 }
@@ -28,6 +29,7 @@ export const executeObjectDissolveRelation = async (
             hostId: args.hostId,
             relationKind: args.relationKind,
             relationLabel: args.relationLabel,
+            transferFromHostId: args.transferFromHostId,
             operation: 'dissolve',
         },
         {

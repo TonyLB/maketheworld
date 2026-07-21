@@ -52,7 +52,7 @@ const objectManipulationDropPositionsReadDepsForTests = () => ({
 const relationalPositionsReadDepsForTests = (
     objectIds: EphemeraObjectId[] = ['OBJECT#Broom' as EphemeraObjectId, 'OBJECT#Table' as EphemeraObjectId]
 ) => ({
-    getMembershipContainers: jest.fn(),
+    getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
     getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('ROOM#Bridge' as EphemeraRoomId, {
         nodes: objectIds.map((id) => ({ tag: 'Object' as const, universalKey: id })),
     })),
@@ -1203,7 +1203,7 @@ describe('parseCommand LLM path', () => {
                     invokeBedrockObjectManipulationComplexityImpl,
                     invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: {
-                        getMembershipContainers: jest.fn(),
+                        getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
                         getPositionGraph: jest.fn().mockResolvedValue(
                             testPositionGraph('ROOM#Bridge' as EphemeraRoomId, {
                                 nodes: [

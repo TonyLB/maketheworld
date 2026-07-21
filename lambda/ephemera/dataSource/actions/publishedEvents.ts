@@ -79,6 +79,8 @@ export type ObjectEstablishRelationPublishedPayload = {
     relationKind: HostRelationalEdgeKindPublished;
     relationLabel?: string;
     confidence?: number;
+    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
+    transferFromHostId?: EphemeraMembershipHostId;
 }
 
 export type ObjectDissolveRelationPublishedPayload = {
@@ -91,6 +93,8 @@ export type ObjectDissolveRelationPublishedPayload = {
     relationKind: HostRelationalEdgeKindPublished;
     relationLabel?: string;
     confidence?: number;
+    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
+    transferFromHostId?: EphemeraMembershipHostId;
 }
 
 const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
@@ -110,13 +114,19 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
         return false
     }
     if (v.relationKind === 'Custom') {
-        return typeof v.relationLabel === 'string' && v.relationLabel.length > 0
-    }
-    if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
+        if (!(typeof v.relationLabel === 'string' && v.relationLabel.length > 0)) {
+            return false
+        }
+    } else if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
         return false
     }
     if (v.confidence !== undefined) {
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    if (v.transferFromHostId !== undefined) {
+        if (typeof v.transferFromHostId !== 'string' || !isEphemeraMembershipHostId(v.transferFromHostId)) {
             return false
         }
     }
