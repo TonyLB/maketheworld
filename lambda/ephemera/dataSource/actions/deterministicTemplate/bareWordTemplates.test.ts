@@ -1,4 +1,4 @@
-import { helpTemplate, homeTemplate, lookTemplate, predictTemplate } from './bareWordTemplates'
+import { awaitRoadRunnerTemplate, helpTemplate, homeTemplate, lookTemplate, predictTemplate } from './bareWordTemplates'
 
 describe('lookTemplate', () => {
     it('matches "look" and "l" (case-insensitive) via matchString', () => {
@@ -22,6 +22,11 @@ describe('lookTemplate', () => {
         const result = lookTemplate.matchTokens([{ type: 'text', text: 'look' }])
         expect(result).toEqual({ type: 'matched', skeleton: [{ type: 'text', text: 'look' }], intent: { type: 'LookRoom', confidence: 1 } })
     })
+
+    it('deliberately has no paraphrase lexicon (Sub-iteration 2 scope call: open-ended paraphrases are LLM-fallback territory, not a closed deterministic list)', () => {
+        expect(lookTemplate.matchString('peruse the room').type).toBe('noMatch')
+        expect(lookTemplate.matchString('examine the room').type).toBe('noMatch')
+    })
 })
 
 describe('helpTemplate', () => {
@@ -32,11 +37,20 @@ describe('helpTemplate', () => {
 
     it('rejects near-misses', () => {
         expect(helpTemplate.matchString('helper').type).toBe('noMatch')
-        expect(helpTemplate.matchString('help me').type).toBe('noMatch')
     })
 
     it('matches via matchTokens', () => {
         expect(helpTemplate.matchTokens([{ type: 'text', text: 'help' }]).type).toBe('matched')
+    })
+
+    it('matches closed paraphrase lexicon (Sub-iteration 2)', () => {
+        for (const phrase of ['help me', 'i need help', 'show help']) {
+            expect(helpTemplate.matchString(phrase)).toEqual({
+                type: 'matched',
+                skeleton: [{ type: 'text', text: phrase }],
+                intent: { type: 'Help', confidence: 1 },
+            })
+        }
     })
 })
 
@@ -52,6 +66,37 @@ describe('homeTemplate', () => {
 
     it('matches via matchTokens', () => {
         expect(homeTemplate.matchTokens([{ type: 'text', text: 'home' }]).type).toBe('matched')
+    })
+
+    it('matches closed paraphrase lexicon (Sub-iteration 2)', () => {
+        for (const phrase of ['go home', 'head home', 'return home', 'head back home']) {
+            expect(homeTemplate.matchString(phrase)).toEqual({
+                type: 'matched',
+                skeleton: [{ type: 'text', text: phrase }],
+                intent: { type: 'Home', confidence: 1 },
+            })
+        }
+    })
+})
+
+describe('awaitRoadRunnerTemplate', () => {
+    it('matches bare "wait" and its closed paraphrase lexicon (Sub-iteration 2)', () => {
+        for (const phrase of ['wait', 'wait for the roadrunner', 'wait for road runner', 'wait for the bird']) {
+            expect(awaitRoadRunnerTemplate.matchString(phrase)).toEqual({
+                type: 'matched',
+                skeleton: [{ type: 'text', text: phrase }],
+                intent: { type: 'AwaitRoadRunner', confidence: 1 },
+            })
+        }
+    })
+
+    it('rejects near-misses', () => {
+        expect(awaitRoadRunnerTemplate.matchString('waiting').type).toBe('noMatch')
+        expect(awaitRoadRunnerTemplate.matchString('wait for it').type).toBe('noMatch')
+    })
+
+    it('matches via matchTokens', () => {
+        expect(awaitRoadRunnerTemplate.matchTokens([{ type: 'text', text: 'wait' }]).type).toBe('matched')
     })
 })
 

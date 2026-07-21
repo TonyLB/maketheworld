@@ -2,8 +2,8 @@
  * Acme order enrich: validate and enrich product spans for a **single** Acme-order action. Multi-command inputs are
  * filtered upstream by `discriminateIntent` as `MultipleCommands` and do not run this step.
  *
- * **Segmentation contract:** When **`intentRawOrders`** is non-empty, those strings (from
- * `ParseCommandAcmeOrderIntentResult.rawOrders`) are **authoritative** - emit one Step 1 row and one
+ * **Segmentation contract:** When **`intentRawOrders`** is non-empty, those strings (extracted from
+ * the Parse skeleton's `objectSpan` tokens by `plan/matchAcmeOrderFamily.ts`) are **authoritative** - emit one Step 1 row and one
  * `lines[]` entry per span; do not re-segment from the full player command. Intent and enrich share the
  * same conservative-merge rule upstream, so this avoids a second-guess pass that could disagree.
  * When **`intentRawOrders`** is omitted or empty (e.g. affinities harness), the prompt falls back to

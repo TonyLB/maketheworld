@@ -8,6 +8,9 @@ import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objec
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
 import { classifySkeletonFamily } from './enrich/objectManipulation/plan/classifySkeletonFamily'
 import { objectManipulationErrorMessages as relationalErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
+import { matchNonObjectManipulationTemplate } from './deterministicTemplate'
+import { matchNavigationParaphrase } from './plan/matchNavigationParaphrase'
+import { matchAcmeOrderFamily } from './plan/matchAcmeOrderFamily'
 
 /** Acme order enrich chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -50,13 +53,27 @@ async function parseCommandCore(
     }
 
     if (intentResult.type === 'Command') {
-        // Iteration 7, Sub-iteration 1: classify no longer decides command family --
-        // Parse runs unconditionally, then CPG-3's classifySkeletonFamily derives
-        // membership vs. relational (or neither) from the skeleton. Non-object-manipulation
-        // commands (Navigation/Home/AcmeOrder/LookRoom/Help/AwaitRoadRunner paraphrases,
-        // etc.) land on `none` here and terminalize as Unimplemented -- an accepted
-        // regression until Sub-iteration 2 builds real command-plan dispatch for those
-        // families. See AGENT.classifyPlanGeneralization.planning.md.
+        // Iteration 7, Sub-iteration 2: classify decides only realness/shape --
+        // Plan-stage dispatch now covers every command family, not just object
+        // manipulation. Zero-referent paraphrases (LookRoom/Help/Home/AwaitRoadRunner)
+        // and Navigation paraphrases resolve deterministically before Parse ever runs
+        // (zero Bedrock cost); AcmeOrder resolves after Parse, once classifySkeletonFamily
+        // has ruled out membership/relational. See AGENT.classifyPlanGeneralization.planning.md,
+        // Sub-iteration 2.
+        const nonObjectManipulationMatch = matchNonObjectManipulationTemplate(input.command)
+        if (nonObjectManipulationMatch.type === 'matched') {
+            return {
+                result: nonObjectManipulationMatch.intent,
+                enrichReasoningMarkdown: '',
+                enrichRawBody: undefined,
+            }
+        }
+
+        const navigationMatch = matchNavigationParaphrase(input)
+        if (navigationMatch) {
+            return { result: navigationMatch, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
         const parseResult = await runParseStage(
             { command: input.command },
             { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
@@ -126,6 +143,19 @@ async function parseCommandCore(
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
 
+        const acmeOrderMatch = await matchAcmeOrderFamily(
+            parseResult.tokens,
+            input,
+            intentResult.confidence,
+            {
+                invokeBedrockAcmeOrderEnrichImpl: deps.invokeBedrockAcmeOrderEnrichImpl,
+                countCoyotePlacedObjectsAcrossRoomsDeps: deps.countCoyotePlacedObjectsAcrossRoomsDeps,
+            }
+        )
+        if (acmeOrderMatch) {
+            return { result: acmeOrderMatch, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
         return {
             result: { type: 'Unimplemented', confidence: intentResult.confidence },
             enrichReasoningMarkdown: '',
@@ -144,22 +174,20 @@ async function parseCommandCore(
         }
     }
 
-    // Iteration 7, Sub-iteration 1: classify no longer emits AcmeOrderIntent (family
-    // decisions moved downstream) -- Acme-order paraphrases now fall through Command's
-    // classifySkeletonFamily `none` arm to Unimplemented, an accepted regression until
-    // a real command-plan dispatch entry exists for AcmeOrder (Sub-iteration 2).
-    // enrichAcmeOrder itself is unaffected and still used by the affinities harness
-    // (actionHandlers/runAcmeOrderAffinitiesHarness.ts), which calls it directly.
+    // Error / Unknown / PromptInjectionAttempt / MultipleCommands: no enrich, pass through.
     return { result: intentResult, enrichReasoningMarkdown: '', enrichRawBody: undefined }
 }
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectMembershipIntent`**: all without Bedrock classify.
- * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** runs Parse, then
- * dispatches to object manipulation's membership/relational enrich (or terminalizes as
- * **`Unimplemented`** when the skeleton matches neither family); **`WorldQuestion`** routes to
- * **`PredictHypothesis`** handling. **`PromptInjectionAttempt`**, **`Unknown`**, **`MultipleCommands`**,
- * and other terminal outcomes pass through without enrich.
+ * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** first tries
+ * deterministic Plan-stage dispatch (Sub-iteration 2) -- a closed paraphrase lexicon for
+ * **`LookRoom`**, **`Help`**, **`Home`**, and **`AwaitRoadRunner`**, then a movement-verb paraphrase
+ * matcher for **`Navigation`**, both zero-Bedrock -- before running Parse and dispatching to
+ * object manipulation's membership/relational enrich, or (on no family match) an **`AcmeOrder`**
+ * paraphrase matcher (Bedrock via `enrichAcmeOrder`), or finally **`Unimplemented`**;
+ * **`WorldQuestion`** routes to **`PredictHypothesis`** handling. **`PromptInjectionAttempt`**,
+ * **`Unknown`**, **`MultipleCommands`**, and other terminal outcomes pass through without enrich.
  * Enrich chain-of-reason Markdown is not attached to any result from this path; use
  * {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness, which calls
  * `enrichAcmeOrder` directly rather than through classify).

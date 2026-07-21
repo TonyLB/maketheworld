@@ -8,18 +8,13 @@ export type ExitResolutionResult =
     | { type: 'AmbiguousMatch' }
 
 /**
- * **Orphaned (iteration 7, Sub-iteration 1, 2026-07-20): nothing constructs an `Error` with
- * these messages today.** They were produced by the post-classify NavigationIntent resolution
- * block (deleted from `discriminateIntent/index.ts` when classify narrowed to 5 outcomes), which
- * mapped `resolveExitLabelToTargetId`'s three failure arms to these specific player-facing copy
- * keys. `deterministicChecks.ts`'s `maybeDeterministicNavigationResult` still calls
- * `resolveExitLabelToTargetId` and still sees these three failure arms, but discards them (falls
- * through to classify -> now `Command` -> `Unimplemented`) rather than surfacing a specific
- * Error. `index.ts`'s `parseErrorMessageForPlayer` still has matching (currently unreachable)
- * `case` branches. Reconnect in Sub-iteration 2, alongside NavigationIntent's real command-plan
- * dispatch entry --- see
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
- * Sub-iteration 2's Recommended order.
+ * Player-facing copy for `resolveExitLabelToTargetId`'s failure arms. Surfaced by
+ * `plan/matchNavigationParaphrase.ts` (iteration 7, Sub-iteration 2, 2026-07-20) when an
+ * explicit movement verb (`head`/`walk`/`move`/`travel`/`enter`) makes "this was a
+ * navigation attempt" unambiguous. `deterministicChecks.ts`'s
+ * `maybeDeterministicNavigationResult` (bare `go <exit>` or a bare exit name with no
+ * verb at all) stays lenient and discards these same failure arms instead of
+ * surfacing an Error, since a verbless candidate is genuinely ambiguous.
  */
 export const navigationIntentErrorMessages = {
     noExitContext: 'NavigationIntent resolution failed: no current room exit context',
