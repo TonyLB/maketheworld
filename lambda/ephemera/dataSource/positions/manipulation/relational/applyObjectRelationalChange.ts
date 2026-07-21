@@ -70,8 +70,13 @@ export const applyObjectRelationalChange = async (
         beatAnchorTime,
     })
 
-    await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
+    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
+    // "Object Related" fact is streamed below --- see applyObjectSetTransfer.ts's matching
+    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
+    // affordance-refresh chain can otherwise race ahead of this update and memoize a
+    // pre-mutation read.
     seedGraphMemos(kernelResult.postApplyGraphs)
+    await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
 
     if (isEphemeraRoomId(args.hostId)) {
         deps.messageBus.publish({

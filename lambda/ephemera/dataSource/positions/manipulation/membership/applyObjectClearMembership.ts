@@ -89,6 +89,18 @@ export const applyObjectClearMembership = async (
 
     const beatAnchorTime = getCurrentTimestamp()
 
+    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
+    // "Object Moved" fact is streamed below --- see applyObjectSetTransfer.ts's matching
+    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
+    // affordance-refresh chain can otherwise race ahead of this update and memoize a
+    // pre-mutation read.
+    seedRoomGraphMemos(kernelResult.postApplyGraphs)
+    seedCharacterGraphMemos(kernelResult.postApplyGraphs)
+    internalCache.Positions.setMembershipContainers({
+        componentId: args.objectId,
+        containers: [],
+    })
+
     const fact = buildObjectMovedFact({
         objectId: args.objectId,
         diff,
@@ -97,13 +109,6 @@ export const applyObjectClearMembership = async (
     if (fact) {
         await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
     }
-
-    seedRoomGraphMemos(kernelResult.postApplyGraphs)
-    seedCharacterGraphMemos(kernelResult.postApplyGraphs)
-    internalCache.Positions.setMembershipContainers({
-        componentId: args.objectId,
-        containers: [],
-    })
 
     roomIdsFromDiffFroms(diff.froms).forEach((roomId) => {
         deps.messageBus.publish({
