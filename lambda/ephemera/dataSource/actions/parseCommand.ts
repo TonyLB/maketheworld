@@ -3,11 +3,11 @@ import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
-import { enrichAcmeOrder } from './enrich/acmeOrder'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
 import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
-import { deterministicIntentChecks } from './discriminateIntent/deterministicChecks'
+import { classifySkeletonFamily } from './enrich/objectManipulation/plan/classifySkeletonFamily'
+import { objectManipulationErrorMessages as relationalErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 
 /** Acme order enrich chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
 export type ParseCommandWithEnrichReasoningResult = {
@@ -23,37 +23,15 @@ async function parseCommandCore(
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type === 'ObjectMembershipIntent') {
-        // Step 2a/Step 3 (BD-21): Parse's tokenized skeleton is the sole source of
-        // rawObjectSpans for commands that reach classify's LLM -- the deterministic fast
-        // path (take/get/drop) stays zero-Bedrock and supplies its own self-built spans
-        // (deterministicIntentChecks), re-checked here rather than calling Parse
-        // unconditionally. Classify's own inline objectSpans extraction has been retired
-        // (Step 3); on Parse failure for an LLM-routed command, hard-fail rather than
-        // falling back to it, mirroring the ObjectRelateIntent branch below.
-        const tookDeterministicPath = deterministicIntentChecks(input) !== null
-        let rawObjectSpans: string[]
-        if (tookDeterministicPath) {
-            rawObjectSpans = intentResult.rawObjectSpans
-        } else {
-            const parseResult = await runParseStage(
-                { command: input.command },
-                { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
-            )
-            if (parseResult.type !== 'success') {
-                return {
-                    result: { type: 'Error', errorMessage: parseResult.errorMessage },
-                    enrichReasoningMarkdown: '',
-                    enrichRawBody: undefined,
-                }
-            }
-            rawObjectSpans = objectSpansFromSkeleton(parseResult.tokens)
-        }
-
+        // Only reachable via deterministicIntentChecks's take/get/drop fast path
+        // (iteration 7, Sub-iteration 1) -- classify's LLM no longer emits this type,
+        // since it no longer decides command family. rawObjectSpans is always the
+        // deterministic path's self-built span.
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'membership',
                 command: input.command,
-                rawObjectSpans,
+                rawObjectSpans: intentResult.rawObjectSpans,
                 verbClass: intentResult.verbClass,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
@@ -71,20 +49,19 @@ async function parseCommandCore(
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
     }
 
-    if (intentResult.type === 'ObjectRelateIntent') {
-        // Step 2b step 6 (BD-21/BD-22/BD-23): the relational route now runs entirely
-        // through the native pipeline (Plan match -> Identify -> Grounding ->
-        // Validation, see compileRelationalFromSkeleton.ts) instead of frame-extract +
-        // compileRelational.ts. Unlike Step 2a's membership wiring, Parse runs
-        // unconditionally here (deterministicIntentChecks never produces
-        // ObjectRelateIntent, so there's no zero-Bedrock path to protect) and there
-        // is deliberately no fallback to the legacy flow on Parse failure --- see
-        // enrich/objectManipulation/AGENT.md (relational branch).
+    if (intentResult.type === 'Command') {
+        // Iteration 7, Sub-iteration 1: classify no longer decides command family --
+        // Parse runs unconditionally, then CPG-3's classifySkeletonFamily derives
+        // membership vs. relational (or neither) from the skeleton. Non-object-manipulation
+        // commands (Navigation/Home/AcmeOrder/LookRoom/Help/AwaitRoadRunner paraphrases,
+        // etc.) land on `none` here and terminalize as Unimplemented -- an accepted
+        // regression until Sub-iteration 2 builds real command-plan dispatch for those
+        // families. See AGENT.classifyPlanGeneralization.planning.md.
         const parseResult = await runParseStage(
             { command: input.command },
             { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
         )
-        if (parseResult.type === 'error') {
+        if (parseResult.type !== 'success') {
             return {
                 result: { type: 'Error', errorMessage: parseResult.errorMessage },
                 enrichReasoningMarkdown: '',
@@ -92,55 +69,100 @@ async function parseCommandCore(
             }
         }
 
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'relational',
-                command: input.command,
-                // Vestigial: the relational route resolves spans entirely from parseSkeleton
-                // (see enrich/objectManipulation/index.ts); this only satisfies
-                // ManipulationFrameBuildInput's shared required field.
-                rawObjectSpans: [],
-                parseSkeleton: parseResult.tokens,
-                characterId: input.characterId,
-                hostRoomId: input.hostRoomId,
-                roomObjectCatalog: input.roomObjectCatalog,
-                heldInventoryCatalog: input.heldInventoryCatalog,
-            },
-            intentResult.confidence,
-            {
-                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
-                embedSpan: deps.embedSpan,
+        const family = classifySkeletonFamily(parseResult.tokens)
+
+        if (family.type === 'relationalDefer') {
+            return {
+                result: { type: 'Error', errorMessage: relationalErrorMessages.nestingRelational },
+                enrichReasoningMarkdown: '',
+                enrichRawBody: undefined,
             }
-        )
-        return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-    }
-
-    if (intentResult.type !== 'AcmeOrderIntent') {
-        return { result: intentResult, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-    }
-
-    const { result, enrichReasoningMarkdown, enrichRawBody } = await enrichAcmeOrder(
-        {
-            command: input.command,
-            occupiedStableKeys: input.occupiedStableKeys ?? [],
-            intentRawOrders: intentResult.rawOrders,
-        },
-        intentResult.confidence,
-        {
-            messageBus: deps.messageBus,
-            invokeBedrockAcmeOrderEnrichImpl: deps.invokeBedrockAcmeOrderEnrichImpl,
-            countCoyotePlacedObjectsAcrossRoomsDeps: deps.countCoyotePlacedObjectsAcrossRoomsDeps,
         }
-    )
-    return { result, enrichReasoningMarkdown, enrichRawBody }
+
+        if (family.type === 'relational') {
+            const result = await enrichObjectManipulation(
+                {
+                    enrichRoute: 'relational',
+                    command: input.command,
+                    // Vestigial: the relational route resolves spans entirely from parseSkeleton
+                    // (see enrich/objectManipulation/index.ts); this only satisfies
+                    // ManipulationFrameBuildInput's shared required field.
+                    rawObjectSpans: [],
+                    parseSkeleton: parseResult.tokens,
+                    characterId: input.characterId,
+                    hostRoomId: input.hostRoomId,
+                    roomObjectCatalog: input.roomObjectCatalog,
+                    heldInventoryCatalog: input.heldInventoryCatalog,
+                },
+                intentResult.confidence,
+                {
+                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+                    embedSpan: deps.embedSpan,
+                }
+            )
+            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
+        if (family.type === 'membership') {
+            const result = await enrichObjectManipulation(
+                {
+                    enrichRoute: 'membership',
+                    command: input.command,
+                    rawObjectSpans: objectSpansFromSkeleton(parseResult.tokens),
+                    verbClass: family.verbClass,
+                    characterId: input.characterId,
+                    hostRoomId: input.hostRoomId,
+                    roomObjectCatalog: input.roomObjectCatalog,
+                    heldInventoryCatalog: input.heldInventoryCatalog,
+                },
+                intentResult.confidence,
+                {
+                    invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
+                    invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
+                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+                    embedSpan: deps.embedSpan,
+                }
+            )
+            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
+        return {
+            result: { type: 'Unimplemented', confidence: intentResult.confidence },
+            enrichReasoningMarkdown: '',
+            enrichRawBody: undefined,
+        }
+    }
+
+    if (intentResult.type === 'WorldQuestion') {
+        // Iteration 7, Sub-iteration 1: every WorldQuestion routes to PredictHypothesis
+        // handling -- accepted regression (a genuinely different world question is
+        // mis-routed) until Sub-iteration 3 builds real question-plan dispatch.
+        return {
+            result: { type: 'PredictHypothesis', confidence: intentResult.confidence },
+            enrichReasoningMarkdown: '',
+            enrichRawBody: undefined,
+        }
+    }
+
+    // Iteration 7, Sub-iteration 1: classify no longer emits AcmeOrderIntent (family
+    // decisions moved downstream) -- Acme-order paraphrases now fall through Command's
+    // classifySkeletonFamily `none` arm to Unimplemented, an accepted regression until
+    // a real command-plan dispatch entry exists for AcmeOrder (Sub-iteration 2).
+    // enrichAcmeOrder itself is unaffected and still used by the affinities harness
+    // (actionHandlers/runAcmeOrderAffinitiesHarness.ts), which calls it directly.
+    return { result: intentResult, enrichReasoningMarkdown: '', enrichRawBody: undefined }
 }
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectMembershipIntent`**: all without Bedrock classify.
- * Otherwise runs intent discrimination, then runs Acme order enrich when intent is **`AcmeOrderIntent`**
- * and object manipulation enrich when intent is **`ObjectMembershipIntent`** or **`ObjectRelateIntent`**. Intent outcomes
- * **`PromptInjectionAttempt`**, **`Unknown`**, **`Unimplemented`**, and others pass through without enrich.
- * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
+ * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** runs Parse, then
+ * dispatches to object manipulation's membership/relational enrich (or terminalizes as
+ * **`Unimplemented`** when the skeleton matches neither family); **`WorldQuestion`** routes to
+ * **`PredictHypothesis`** handling. **`PromptInjectionAttempt`**, **`Unknown`**, **`MultipleCommands`**,
+ * and other terminal outcomes pass through without enrich.
+ * Enrich chain-of-reason Markdown is not attached to any result from this path; use
+ * {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness, which calls
+ * `enrichAcmeOrder` directly rather than through classify).
  */
 export async function parseCommand(
     input: ParseCommandInput,

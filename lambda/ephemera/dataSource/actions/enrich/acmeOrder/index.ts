@@ -91,6 +91,16 @@ function buildVerboseInput(
     }
 }
 
+/**
+ * **Orphaned from the classify path (iteration 7, Sub-iteration 1, 2026-07-20):** classify no
+ * longer emits `AcmeOrderIntent` (narrowed to 5 outcomes), so `parseCommand.ts` no longer calls
+ * this function --- an Acme-order paraphrase now falls through `classifySkeletonFamily` to
+ * `Unimplemented` instead. This function itself is otherwise unchanged and still reachable
+ * directly from `actionHandlers/runAcmeOrderAffinitiesHarness.ts` (bypasses classify entirely).
+ * Reconnect to `parseCommand.ts`'s `Command` dispatch in Sub-iteration 2 --- see
+ * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md`,
+ * Sub-iteration 2's Recommended order (adds a real command-plan dispatch entry for `AcmeOrder`).
+ */
 export async function enrichAcmeOrder(
     input: EnrichAcmeOrderInput,
     intentConfidence: number,
