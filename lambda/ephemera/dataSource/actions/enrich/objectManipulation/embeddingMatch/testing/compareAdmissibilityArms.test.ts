@@ -10,11 +10,6 @@ import { lexicalRelevance } from '../lexicalRelevance'
 import { T_JOINT_ABS, T_JOINT_MARGIN } from '../thresholds'
 
 describe('compareAdmissibilityArms', () => {
-    it('identity corpus ranking is unchanged between legacy and alwaysActive', () => {
-        const verdict = evaluateAdmissibilityRetirement()
-        expect(verdict.identityRankingRegressions).toEqual([])
-    })
-
     it('ax/axolotl ranks above ax/coaxial on lexical relevance', () => {
         const axolotl = lexicalRelevance('ax', 'axolotl')
         const coaxial = lexicalRelevance('ax', 'coaxial')
@@ -37,10 +32,9 @@ describe('compareAdmissibilityArms', () => {
         expect(donLex).toBeCloseTo(gemLex, 9)
     })
 
-    it('gate-off (alwaysActive) retirement harness passes with revised fixture intent', () => {
+    it('admissibility regression harness passes with revised fixture intent', () => {
         const verdict = evaluateAdmissibilityRetirement(compareAllAdmissibilityArms())
         expect(verdict.pass).toBe(true)
-        expect(verdict.identityRankingRegressions).toEqual([])
         expect(verdict.shortSpanRegressions).toEqual([])
     })
 
@@ -60,7 +54,7 @@ describe('compareAdmissibilityArms', () => {
             (entry) => entry.caseId === 'short-pool-001-length-1-a'
         )
         expect(row).toBeDefined()
-        expect(row!.gateOff.topJointRelevance).toBeLessThan(T_JOINT_ABS)
+        expect(row!.metrics.topJointRelevance).toBeLessThan(T_JOINT_ABS)
     })
 })
 

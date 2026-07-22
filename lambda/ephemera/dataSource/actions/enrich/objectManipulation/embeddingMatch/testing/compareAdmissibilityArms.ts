@@ -1,18 +1,9 @@
-import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
-
 import { lexicalRelevance } from '../lexicalRelevance'
 import { simulateEmbeddingIdentityWithPool } from '../simulateEmbeddingIdentity'
 import type { RelevanceNormalizationParams } from '../thresholds'
 import { T_JOINT_ABS, T_JOINT_MARGIN } from '../thresholds'
 
-import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-
-import {
-    buildCandidatesFromIdentityCase,
-    buildShortSpanPoolVectors,
-    type IdentityCaseVectorPlan,
-} from './mockVectors'
-import { resolveLegacyLexicalChannelActive } from './legacyLexicalChannelGate'
+import { buildShortSpanPoolVectors } from './mockVectors'
 import {
     SHORT_SPAN_LEXICAL_CASES,
     SHORT_SPAN_POOL_CASES,
@@ -20,14 +11,7 @@ import {
     type ShortSpanPoolCase,
 } from './shortSpanCalibrationCases'
 
-/** Retirement baseline: pre-FT-1.3.1 catalog-derived gate (harness only). */
-export const RETIREMENT_BASELINE_POLICY = 'legacy' as const
-/** Retirement target: lexical always on (current production). */
-export const RETIREMENT_TARGET_POLICY = 'alwaysActive' as const
-
-export type LexicalChannelPolicy = typeof RETIREMENT_BASELINE_POLICY | typeof RETIREMENT_TARGET_POLICY
-
-export type AdmissibilityArmMetrics = {
+export type AdmissibilityMetrics = {
     topJointRelevance: number
     topMargin: number
     shortlistSize: number
@@ -36,45 +20,17 @@ export type AdmissibilityArmMetrics = {
     rankingLabels: readonly string[]
 }
 
-export type AdmissibilityArmComparison = {
+export type AdmissibilityComparison = {
     caseId: string
-    kind: 'identity-corpus' | 'short-span-lexical' | 'short-span-pool'
-    bucket?: string
-    /** Legacy gated policy (pre-retirement baseline). */
-    baseline: AdmissibilityArmMetrics
-    /** Gate-off retirement target (alwaysActive). */
-    gateOff: AdmissibilityArmMetrics
-    identityRankingRegression: boolean
+    kind: 'short-span-lexical' | 'short-span-pool'
+    metrics: AdmissibilityMetrics
     shortSpanRegression: boolean
     notes?: string
 }
 
-const vectorPlansByCaseId: Record<string, IdentityCaseVectorPlan> = {
-    'identity-001-absent-sword': { kind: 'orthogonal-to-catalog' },
-    'identity-002-unary-trap': {
-        kind: 'unary-below-floor',
-        similarity: 0.16,
-    },
-    'identity-003-broom-paraphrase': {
-        kind: 'resolve-index',
-        targetIndex: 0,
-        targetSimilarity: 0.95,
-        otherSimilarity: 0.5,
-    },
-    'identity-004-duplicate-shortname': { kind: 'duplicate-shortname' },
-    'identity-005-hard-negative-span': {
-        kind: 'below-multi-floor',
-        similarities: [0.11, 0.09],
-    },
-    'identity-006-synonym-unary': {
-        kind: 'unary-below-floor',
-        similarity: 0.16,
-    },
-}
-
 const metricsFromSimulation = (
     simulation: ReturnType<typeof simulateEmbeddingIdentityWithPool>
-): AdmissibilityArmMetrics => {
+): AdmissibilityMetrics => {
     const head = simulation.pool.candidates[0]
     return {
         topJointRelevance: simulation.metrics.topJointRelevance,
@@ -86,67 +42,10 @@ const metricsFromSimulation = (
     }
 }
 
-const simulateWithPolicy = (
-    spanEmbedding: SemanticEmbedding,
-    candidates: ReturnType<typeof buildCandidatesFromIdentityCase>['candidates'],
-    span: string,
-    policy: LexicalChannelPolicy,
-    params?: RelevanceNormalizationParams
-) => simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, {
-    params,
-    ...(policy === RETIREMENT_BASELINE_POLICY
-        ? { resolveLexicalChannelActive: resolveLegacyLexicalChannelActive }
-        : {}),
-})
-
-const identityRankingRegression = (
-    baseline: AdmissibilityArmMetrics,
-    gateOff: AdmissibilityArmMetrics
-): boolean => {
-    if (baseline.headLabel !== gateOff.headLabel) {
-        return true
-    }
-    const baselineOrder = baseline.rankingLabels.join('|')
-    const gateOffOrder = gateOff.rankingLabels.join('|')
-    return baselineOrder !== gateOffOrder
-}
-
-const compareIdentityCorpusCase = (
-    caseId: string,
-    params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison => {
-    const identityCase = EMBEDDING_CALIBRATION_IDENTITY_CASES.find((entry) => entry.id === caseId)
-    if (!identityCase) {
-        throw new Error(`Missing identity case ${caseId}`)
-    }
-    const vectorPlan = vectorPlansByCaseId[caseId]
-    if (!vectorPlan) {
-        throw new Error(`Missing vector plan for ${caseId}`)
-    }
-
-    const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(identityCase, vectorPlan)
-    const baseline = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, RETIREMENT_BASELINE_POLICY, params)
-    )
-    const gateOff = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, identityCase.span, RETIREMENT_TARGET_POLICY, params)
-    )
-
-    return {
-        caseId,
-        kind: 'identity-corpus',
-        bucket: identityCase.bucket,
-        baseline,
-        gateOff,
-        identityRankingRegression: identityRankingRegression(baseline, gateOff),
-        shortSpanRegression: false,
-    }
-}
-
 const compareShortSpanLexicalCase = (
     fixture: ShortSpanLexicalCase,
     params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison => {
+): AdmissibilityComparison => {
     const ranked = fixture.catalog.map((shortName) => ({
         shortName,
         lexicalScore: lexicalRelevance(fixture.span, shortName, params),
@@ -167,7 +66,7 @@ const compareShortSpanLexicalCase = (
         return false
     })()
 
-    const metrics: AdmissibilityArmMetrics = {
+    const metrics: AdmissibilityMetrics = {
         topJointRelevance: head?.lexicalScore ?? 0,
         topMargin: (head?.lexicalScore ?? 0) - (ranked[1]?.lexicalScore ?? 0),
         shortlistSize: ranked.length,
@@ -179,9 +78,7 @@ const compareShortSpanLexicalCase = (
     return {
         caseId: fixture.id,
         kind: 'short-span-lexical',
-        baseline: metrics,
-        gateOff: metrics,
-        identityRankingRegression: false,
+        metrics,
         shortSpanRegression,
         notes: fixture.notes,
     }
@@ -189,21 +86,21 @@ const compareShortSpanLexicalCase = (
 
 const poolFixtureRegression = (
     fixture: ShortSpanPoolCase,
-    gateOff: AdmissibilityArmMetrics
+    metrics: AdmissibilityMetrics
 ): boolean => {
-    if (fixture.expectHeadLabel && gateOff.headLabel !== fixture.expectHeadLabel) {
+    if (fixture.expectHeadLabel && metrics.headLabel !== fixture.expectHeadLabel) {
         return true
     }
 
     if (fixture.category === 'spurious-diverse-catalog') {
         const jointCeiling = fixture.expectTopJointBelow ?? T_JOINT_ABS
-        if (gateOff.topJointRelevance >= jointCeiling) {
+        if (metrics.topJointRelevance >= jointCeiling) {
             return true
         }
         if (
             fixture.expectTopMarginBelowWhenAboveFloor
-            && gateOff.topJointRelevance >= T_JOINT_ABS
-            && gateOff.topMargin >= T_JOINT_MARGIN
+            && metrics.topJointRelevance >= T_JOINT_ABS
+            && metrics.topMargin >= T_JOINT_MARGIN
         ) {
             return true
         }
@@ -215,73 +112,58 @@ const poolFixtureRegression = (
 const compareShortSpanPoolCase = (
     fixture: ShortSpanPoolCase,
     params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison => {
+): AdmissibilityComparison => {
     const { spanEmbedding, candidates } = buildShortSpanPoolVectors(
         fixture.catalog,
         `OBJECT#${fixture.id}`,
         fixture.vectorPlan
     )
 
-    const baseline = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, RETIREMENT_BASELINE_POLICY, params)
-    )
-    const gateOff = metricsFromSimulation(
-        simulateWithPolicy(spanEmbedding, candidates, fixture.span, RETIREMENT_TARGET_POLICY, params)
+    const metrics = metricsFromSimulation(
+        simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, fixture.span, { params })
     )
 
     return {
         caseId: fixture.id,
         kind: 'short-span-pool',
-        baseline,
-        gateOff,
-        identityRankingRegression: identityRankingRegression(baseline, gateOff),
-        shortSpanRegression: poolFixtureRegression(fixture, gateOff),
+        metrics,
+        shortSpanRegression: poolFixtureRegression(fixture, metrics),
         notes: fixture.notes,
     }
 }
 
-export const compareAdmissibilityArmsForIdentityCorpus = (
+/**
+ * FT-1.3.1 retirement housekeeping (2026-07-21): collapsed from a legacy-gated-baseline vs.
+ * gate-off differential comparison to gate-off-only regression fixtures. The differential half
+ * (identity-corpus ranking vs. a frozen pre-retirement lexical gate) was retired outright ---
+ * `simulateEmbeddingIdentityCorpus`'s locked invariants already pin absolute identity-corpus
+ * behavior independently of this file, and the differential only ever confirmed the two policies
+ * agreed, never catching anything on its own. What remains here are the two short-span fixture
+ * checks that were always genuine absolute-threshold regression guards, just previously badged as
+ * one arm of an A/B.
+ */
+export const compareAllAdmissibilityArms = (
     params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison[] => (
-    EMBEDDING_CALIBRATION_IDENTITY_CASES.map((identityCase) =>
-        compareIdentityCorpusCase(identityCase.id, params)
-    )
-)
-
-export const compareAdmissibilityArmsForShortSpanFixtures = (
-    params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison[] => [
+): AdmissibilityComparison[] => [
     ...SHORT_SPAN_LEXICAL_CASES.map((fixture) => compareShortSpanLexicalCase(fixture, params)),
     ...SHORT_SPAN_POOL_CASES.map((fixture) => compareShortSpanPoolCase(fixture, params)),
 ]
 
-export const compareAllAdmissibilityArms = (
-    params?: RelevanceNormalizationParams
-): AdmissibilityArmComparison[] => [
-    ...compareAdmissibilityArmsForIdentityCorpus(params),
-    ...compareAdmissibilityArmsForShortSpanFixtures(params),
-]
-
 export type AdmissibilityAbVerdict = {
     pass: boolean
-    identityRankingRegressions: string[]
     shortSpanRegressions: string[]
-    comparisons: AdmissibilityArmComparison[]
+    comparisons: AdmissibilityComparison[]
 }
 
 export const evaluateAdmissibilityRetirement = (
-    comparisons: readonly AdmissibilityArmComparison[] = compareAllAdmissibilityArms()
+    comparisons: readonly AdmissibilityComparison[] = compareAllAdmissibilityArms()
 ): AdmissibilityAbVerdict => {
-    const identityRankingRegressions = comparisons
-        .filter((entry) => entry.kind === 'identity-corpus' && entry.identityRankingRegression)
-        .map((entry) => entry.caseId)
     const shortSpanRegressions = comparisons
         .filter((entry) => entry.shortSpanRegression)
         .map((entry) => entry.caseId)
 
     return {
-        pass: identityRankingRegressions.length === 0 && shortSpanRegressions.length === 0,
-        identityRankingRegressions,
+        pass: shortSpanRegressions.length === 0,
         shortSpanRegressions,
         comparisons: [...comparisons],
     }
