@@ -149,7 +149,7 @@ describe('compileRelationalUngroundedPlan', () => {
         }))
         if (result.type !== 'success') throw new Error('expected success')
         const [assertion, change] = result.steps
-        if (assertion.kind !== 'assertion' || change.kind !== 'change' || change.primitive === 'transferMembership') {
+        if (assertion.kind !== 'assertion' || assertion.predicate !== 'sameHost' || change.kind !== 'change' || change.primitive === 'transferMembership') {
             throw new Error('expected [assertion, relational change]')
         }
         expect(assertion.predicate).toBe('sameHost')
