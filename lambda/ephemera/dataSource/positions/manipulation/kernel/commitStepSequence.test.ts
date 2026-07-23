@@ -82,7 +82,7 @@ describe('commitStepSequence', () => {
 
         const steps: KernelStep[] = [
             { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID, GLASS_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityIds: new Set([TRAY_ID, GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         const result = await commitStepSequence(
@@ -105,7 +105,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         const result = await commitStepSequence(
@@ -160,7 +160,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostId: ROOM_ID, toHostId: otherRoomId },
+            { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
         ]
 
         const result = await commitStepSequence(
@@ -182,7 +182,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         await commitStepSequence(
@@ -194,5 +194,93 @@ describe('commitStepSequence', () => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
         const keyedHosts = new Set(multiKeyItem.Keys.map((key: any) => key.EphemeraId))
         expect(keyedHosts).toEqual(new Set([ROOM_ID, CHARACTER_ID]))
+    })
+
+    describe('object-lifecycle Migrate row: pure remove, suppressRelationalFacts', () => {
+        it('destroy-shaped sequence (explicit dissolve + pure remove) commits, streams the dissolve fact, adjacency Delete-only', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Object', universalKey: TABLE_ID },
+                ],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+            })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const steps: KernelStep[] = [
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
+                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+
+            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+            expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
+
+            const movedUpdate = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+                .find((update: any) => update.type === 'Object Moved')
+            expect(movedUpdate).toEqual(
+                expect.objectContaining({ objectId: TRAY_ID, froms: [ROOM_ID], to: null })
+            )
+
+            const items = transactWrite.mock.calls[0][0]
+            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            expect(adjacencyItems).toEqual([{ Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
+        })
+
+        it('suppressRelationalFacts: true suppresses only the Object Relation Changed fact, Object Moved still streams', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Object', universalKey: TABLE_ID },
+                ],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+            })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const steps: KernelStep[] = [
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
+                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                {
+                    messageBus: messageBus as any,
+                    streamEvent,
+                    getCurrentHost: () => ROOM_ID,
+                    transactWrite,
+                    suppressRelationalFacts: true,
+                }
+            )
+
+            expect(result.ok).toBe(true)
+            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+            expect(eventTypes).toEqual(['Object Moved'])
+        })
+
+        it('pure add (spawn-shaped, fromHostIds empty): adds to destination, adjacency Put-only, no dissolve needed', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            const items = transactWrite.mock.calls[0][0]
+            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            expect(adjacencyItems).toEqual([{ Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
+        })
     })
 })

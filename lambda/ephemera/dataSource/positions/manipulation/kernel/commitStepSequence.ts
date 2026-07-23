@@ -23,6 +23,15 @@ export type CommitStepSequenceDeps = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
     transactWrite?: typeof ephemeraDB.transactWrite
+    /**
+     * Object-lifecycle Migrate row: gates only the `Object Relation Changed` half of the
+     * fact-streaming loop below (`Object Moved` is unaffected either way). Default `false` (facts
+     * stream) --- destroy/edit leaves this unset so BD-28's originally-silent dissolution finally
+     * becomes visible; a drift-consistency repair sets it `true` since its dissolves are a silent
+     * internal fixup, not a player-visible event, matching the precedent already set for other
+     * repair paths.
+     */
+    suppressRelationalFacts?: boolean
 }
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -51,8 +60,11 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * identically --- collapsed into one generic transact failure, matching today's two live kernels'
  * behavior, until BD-18's backtrack channel lands.
  *
- * Not wired to either live route this slice --- built and tested standalone, exactly as the
- * Synthesize executor was built standalone before its own (still-pending) migrate row.
+ * Now wired to every live route: `executeObjectTakeHold`/`executeObjectDrop` (take/drop),
+ * `applyObjectRelationalChange` (establish/dissolve), and --- object-lifecycle Migrate row ---
+ * `applyObjectClearMembership`/`applyObjectRoomMembership` (destroy/edit/spawn/place/drift-repair).
+ * Only `applyCharacterRoomMembership` (character navigate) still goes through the legacy
+ * `applyHostEffects` kernel, pending its own future migrate row.
  */
 export const commitStepSequence = async (
     args: { steps: readonly KernelStep[] },
@@ -67,6 +79,12 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraPositionGraph> | undefined
+    // Pre-apply snapshot, captured for fact-building only: a dissolveRelation step's endpoint can be
+    // entirely removed from the footprint by a later pure-remove transferMembership step in the same
+    // sequence (object-lifecycle destroy), leaving it absent from every post-apply graph. `factsForStep`
+    // falls back to this snapshot to re-derive that endpoint's host --- the host it actually held the
+    // edge on, right before removal --- rather than throwing.
+    let priorGraphs: Map<EphemeraMembershipHostId, EphemeraPositionGraph> | undefined
 
     const multiKeyItem: CommitStepSequenceTransactItem = {
         MultiKeyUpdate: {
@@ -83,6 +101,7 @@ export const commitStepSequence = async (
                     }
                     graphs.set(hostId, graphFromMeta(entry, hostId))
                 }
+                priorGraphs = graphs
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
@@ -106,13 +125,19 @@ export const commitStepSequence = async (
     // Adjacency rows (positionAdjacency#<hostId>) for every entity moved by a transferMembership
     // step, built as plain, unconditioned sibling items --- same convention as the two live
     // kernels (transfer set and hosts are known before the reducer runs, so nothing depends on
-    // the reducer's computed output; if the reducer throws, these never fire either).
+    // the reducer's computed output; if the reducer throws, these never fire either). A `Delete`
+    // per (entityId, fromHostId) pair across every departure host; a `Put` per entityId only when
+    // `toHostId` is non-null (a pure remove, e.g. destroy, has no arrival row to write).
     const adjacencyItems: CommitStepSequenceTransactItem[] = steps
         .filter((step): step is Extract<KernelStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
         .flatMap((step) =>
             [...step.entityIds].flatMap((entityId) => [
-                { Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(step.fromHostId) } },
-                { Put: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } },
+                ...[...step.fromHostIds].map((fromHostId) => ({
+                    Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
+                })),
+                ...(step.toHostId !== null
+                    ? [{ Put: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
+                    : []),
             ])
         )
 
@@ -151,16 +176,19 @@ export const commitStepSequence = async (
             continue
         }
         for (const entityId of step.entityIds) {
-            internalCache.Positions.setMembershipContainers({ componentId: entityId, containers: [step.toHostId] })
+            internalCache.Positions.setMembershipContainers({
+                componentId: entityId,
+                containers: step.toHostId !== null ? [step.toHostId] : [],
+            })
         }
     }
 
     for (const step of steps) {
-        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime)) {
+        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs)) {
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
             }
-            else {
+            else if (!deps.suppressRelationalFacts) {
                 await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
             }
         }

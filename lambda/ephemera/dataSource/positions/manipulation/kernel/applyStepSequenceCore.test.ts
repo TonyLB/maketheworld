@@ -33,7 +33,7 @@ describe('applyStepSequenceCore', () => {
         const destGraph = testPositionGraph(characterId, { nodes: [] })
         const steps: KernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))
@@ -53,7 +53,7 @@ describe('applyStepSequenceCore', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const destGraph = testPositionGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
             { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
         ]
 
@@ -98,7 +98,7 @@ describe('applyStepSequenceCore', () => {
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
             verdict: 'illegal',
@@ -110,7 +110,7 @@ describe('applyStepSequenceCore', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [] })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
             verdict: 'illegal',
@@ -137,7 +137,7 @@ describe('applyStepSequenceCore', () => {
         })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
             verdict: 'defer',
@@ -157,7 +157,7 @@ describe('applyStepSequenceCore', () => {
         const destGraph = testPositionGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
             verdict: 'illegal',
@@ -170,7 +170,7 @@ describe('applyStepSequenceCore', () => {
             const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
             const steps: KernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostId: roomId, toHostId: otherRoomId },
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))
@@ -193,7 +193,7 @@ describe('applyStepSequenceCore', () => {
                 {
                     kind: 'transferMembership',
                     entityIds: new Set<EphemeraObjectId | EphemeraCharacterId>([trayId, characterId]),
-                    fromHostId: roomId,
+                    fromHostIds: new Set([roomId]),
                     toHostId: otherRoomId,
                 },
             ]
@@ -211,7 +211,7 @@ describe('applyStepSequenceCore', () => {
             const sourceGraph = testPositionGraph(roomId, { nodes: [] })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
             const steps: KernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostId: roomId, toHostId: otherRoomId },
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))).toEqual({
                 verdict: 'illegal',
@@ -230,7 +230,7 @@ describe('applyStepSequenceCore', () => {
             })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
             const steps: KernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostId: roomId, toHostId: otherRoomId },
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))
@@ -239,6 +239,93 @@ describe('applyStepSequenceCore', () => {
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
             expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
+        })
+    })
+
+    describe('object-lifecycle Migrate row: pure remove / pure add / multi-from', () => {
+        it('pure remove (toHostId null): removes the object from every fromHostIds member, no destination graph needed', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+            const steps: KernelStep[] = [
+                {
+                    kind: 'transferMembership',
+                    entityIds: new Set([trayId]),
+                    fromHostIds: new Set([roomId, otherRoomId]),
+                    toHostId: null,
+                },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(false)
+            expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(false)
+        })
+
+        it('pure remove with a residual edge throws (removeObjectAsserted), not a silent strip', () => {
+            const roomGraph = testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object', universalKey: trayId },
+                    { tag: 'Object', universalKey: tableId },
+                ],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            })
+            // Bug-injection: no paired dissolveRelation step for the tray-table edge.
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
+            ]
+
+            expect(() => applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toThrow(
+                /still has a relational edge/
+            )
+        })
+
+        it('pure remove preceded by an explicit dissolveRelation succeeds (destroy-shaped sequence)', () => {
+            const roomGraph = testPositionGraph(roomId, {
+                nodes: [
+                    { tag: 'Object', universalKey: trayId },
+                    { tag: 'Object', universalKey: tableId },
+                ],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            })
+            const steps: KernelStep[] = [
+                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+                { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            const nextRoom = outcome.graphs.get(roomId)!
+            expect(nextRoom.objectIds.has(trayId)).toBe(false)
+            expect(nextRoom.objectIds.has(tableId)).toBe(true)
+            expect(nextRoom.relationalEdges).toEqual([])
+        })
+
+        it('pure add (fromHostIds empty): adds the object to toHostId only, no source graph needed', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set(), toHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
+        })
+
+        it('pure remove: illegal (staleTransferCandidate) when the object is already absent from a fromHostIds member', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'staleTransferCandidate',
+            })
         })
     })
 })

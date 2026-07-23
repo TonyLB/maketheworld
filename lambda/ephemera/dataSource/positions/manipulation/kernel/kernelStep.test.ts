@@ -19,7 +19,7 @@ describe('fromExecutorStep', () => {
         expect(fromExecutorStep(step)).toEqual({
             kind: 'transferMembership',
             entityIds: new Set([trayId, glassId]),
-            fromHostId: roomId,
+            fromHostIds: new Set([roomId]),
             toHostId: characterId,
         })
     })

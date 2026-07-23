@@ -11,9 +11,24 @@ const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('computeStepSequenceFootprint', () => {
-    it('a transferMembership step contributes fromHostId and toHostId directly', () => {
-        const step: KernelStep = { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId }
+    it('a transferMembership step contributes every fromHostIds member and toHostId directly', () => {
+        const step: KernelStep = { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId }
         expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId, characterId]))
+    })
+
+    it('a pure-remove transferMembership step (toHostId null) contributes only its fromHostIds', () => {
+        const step: KernelStep = {
+            kind: 'transferMembership',
+            entityIds: new Set([trayId]),
+            fromHostIds: new Set([roomId, otherRoomId]),
+            toHostId: null,
+        }
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId, otherRoomId]))
+    })
+
+    it('a pure-add transferMembership step (fromHostIds empty) contributes only toHostId', () => {
+        const step: KernelStep = { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set(), toHostId: roomId }
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
     it('a relational step derives both endpoints host via getCurrentHost', () => {
@@ -25,7 +40,7 @@ describe('computeStepSequenceFootprint', () => {
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: KernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostId: roomId, toHostId: characterId },
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         const getCurrentHost = () => roomId
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId]))

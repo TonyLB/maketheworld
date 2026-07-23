@@ -32,28 +32,42 @@ const findHostOf = (
  * (`buildCharacterMovedFact`) stays owned by `applyCharacterRoomMembership.ts` until its migrate row
  * decides whether to fold into this mapping or stay layered on top --- BD-36 generalizes kernel
  * *dispatch*, not fact-emission, for the character branch.
+ *
+ * One combined `Object Moved` fact per object, with `froms: [...fromHostIds]`/`to: toHostId` ---
+ * matching `buildObjectMovedFact`'s existing multi-`froms`/nullable-`to` diff shape --- rather than
+ * one fact per host, so the object-lifecycle routes' widened (plural-`froms`, nullable-`to`) steps
+ * keep the same single-fact-per-object behavior their non-kernel predecessors already had.
+ *
+ * `priorGraphs` (object-lifecycle Migrate row): a `dissolveRelation` step's endpoint can be entirely
+ * removed from the footprint by a later pure-remove `transferMembership` step in the same sequence
+ * (destroy), leaving it absent from `finalGraphs` altogether. Falls back to the pre-apply snapshot to
+ * re-derive the host it actually held the edge on, right before removal, rather than throwing ---
+ * defaults to `finalGraphs` itself so every other caller (a real transfer, where the object always
+ * lands on some footprint graph) is unaffected.
  */
 export const factsForStep = (
     step: KernelStep,
     finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>,
-    beatAnchorTime: number
+    beatAnchorTime: number,
+    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph> = finalGraphs
 ): (ObjectMovedPublishedPayload | ObjectRelationChangedPublishedPayload)[] => {
     if (step.kind === 'transferMembership') {
+        const froms = [...step.fromHostIds]
         return [...step.entityIds]
             .filter(isEphemeraObjectId)
             .map((objectId) =>
                 buildObjectMovedFact({
                     objectId,
-                    diff: { froms: [step.fromHostId], to: step.toHostId, changed: true },
+                    diff: { froms, to: step.toHostId, changed: true },
                     beatAnchorTime,
                 })
             )
             .filter((fact): fact is ObjectMovedPublishedPayload => fact !== undefined)
     }
 
-    const hostId = findHostOf(step.subjectId, finalGraphs)
+    const hostId = findHostOf(step.subjectId, finalGraphs) ?? findHostOf(step.subjectId, priorGraphs)
     if (hostId === undefined) {
-        throw new Error(`factsForStep: cannot re-derive host for ${step.subjectId} from the final graph map`)
+        throw new Error(`factsForStep: cannot re-derive host for ${step.subjectId} from the final or prior graph map`)
     }
     return [
         buildObjectRelationalFact({
