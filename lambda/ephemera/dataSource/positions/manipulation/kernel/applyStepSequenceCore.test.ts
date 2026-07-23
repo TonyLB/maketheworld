@@ -240,6 +240,50 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
             expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
         })
+
+        it('character-only pure remove (toHostId null, disconnect-shaped): removes the character from every fromHostIds member', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const steps: KernelStep[] = [
+                {
+                    kind: 'transferMembership',
+                    entityIds: new Set([characterId]),
+                    fromHostIds: new Set([roomId, otherRoomId]),
+                    toHostId: null,
+                },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(false)
+            expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(false)
+        })
+
+        it('character-only pure add (fromHostIds empty, connect-from-nowhere-shaped): adds the character to toHostId only', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set(), toHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(true)
+        })
+
+        it('character-only pure remove: illegal (staleTransferCandidate) when the character is already absent from a fromHostIds member', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: null },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'staleTransferCandidate',
+            })
+        })
     })
 
     describe('object-lifecycle Migrate row: pure remove / pure add / multi-from', () => {

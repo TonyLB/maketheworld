@@ -32,7 +32,7 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('a character in entityIds produces no fact --- explicit scope boundary', () => {
+    it('a character in entityIds produces both an Object Moved and a Character Moved fact (folded in, character-route Migrate row)', () => {
         const step: KernelStep = {
             kind: 'transferMembership',
             entityIds: new Set<EphemeraObjectId | EphemeraCharacterId>([trayId, characterId]),
@@ -42,6 +42,25 @@ describe('factsForStep', () => {
         const facts = factsForStep(step, graphsMap(), beatAnchorTime)
         expect(facts).toEqual([
             { type: 'Object Moved', objectId: trayId, froms: [roomId], to: roomId, beatAnchorTime },
+            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime },
+        ])
+    })
+
+    it('characterNames resolves the Character Moved fact\'s characterName; unresolved leaves it omitted', () => {
+        const step: KernelStep = {
+            kind: 'transferMembership',
+            entityIds: new Set([characterId]),
+            fromHostIds: new Set([roomId]),
+            toHostId: roomId,
+        }
+        const withName = factsForStep(step, graphsMap(), beatAnchorTime, undefined, new Map([[characterId, 'Alpha']]))
+        expect(withName).toEqual([
+            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime, characterName: 'Alpha' },
+        ])
+
+        const withoutName = factsForStep(step, graphsMap(), beatAnchorTime)
+        expect(withoutName).toEqual([
+            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime },
         ])
     })
 

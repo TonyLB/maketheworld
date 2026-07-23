@@ -292,10 +292,12 @@ export class EphemeraPositionGraph {
      * `removeObject` does. Play-only/exit edges are a distinct invariant, untouched by this
      * contract --- they keep `removeObject`'s existing silent-strip behavior here too.
      *
-     * Transient scaffold (BD-35, 2026-07-23): a separate method from `removeObject` because
-     * `applyHostEffects`'s legacy callers still depend on today's silent-strip contract until
-     * their own migrate row lands; only the new kernel path (`applyTransferSetAsserted.ts`) calls
-     * this one. A later migrate row retires `removeObject`, renaming this onto that name.
+     * Transient scaffold (BD-35, 2026-07-23): a separate method from `removeObject`, kept distinct
+     * even after `applyHostEffects` (its last legacy silent-strip caller) retired 2026-07-23 --- only
+     * the new kernel path (`applyTransferSetAsserted.ts`) calls this one; `removeObject` itself is now
+     * unreferenced by any live production caller (only `applyTransferSet.ts`, itself unreferenced,
+     * still calls it --- a residual cleanup surfaced but not addressed this slice, see the task plan).
+     * A later slice retires `removeObject`/`applyTransferSet.ts` and renames this onto that name.
      */
     removeObjectAsserted(objectId: EphemeraObjectId): EphemeraPositionGraph {
         this.assertNoRelationalEdgesReferencing(objectId)

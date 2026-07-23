@@ -153,7 +153,7 @@ describe('commitStepSequence', () => {
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
-    it('character-kind transfer commits correctly and emits no fact for the character subset', async () => {
+    it('character-kind transfer commits correctly and streams a Character Moved fact for the character subset', async () => {
         const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
         const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
         const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
@@ -165,11 +165,30 @@ describe('commitStepSequence', () => {
 
         const result = await commitStepSequence(
             { steps },
-            { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            {
+                messageBus: messageBus as any,
+                streamEvent,
+                getCurrentHost: () => ROOM_ID,
+                transactWrite,
+                characterNames: new Map([[CHARACTER_ID, 'Alpha']]),
+            }
         )
 
         expect(result.ok).toBe(true)
-        expect(streamEvent).not.toHaveBeenCalled()
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: CHARACTER_ID,
+            header: { type: 'Character Moved' },
+            update: expect.objectContaining({
+                type: 'Character Moved',
+                characterId: CHARACTER_ID,
+                froms: [ROOM_ID],
+                to: otherRoomId,
+                characterName: 'Alpha',
+            }),
+        })
+        // Character Moved streams before the kernel's own RoomUpdate publish loop, mirroring Object
+        // Moved's existing ordering guarantee --- see factsForStep.ts's doc comment.
+        expect(streamEvent.mock.invocationCallOrder[0]).toBeLessThan(messageBus.publish.mock.invocationCallOrder[0])
         expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
             componentId: CHARACTER_ID,
             containers: [otherRoomId],
@@ -281,6 +300,52 @@ describe('commitStepSequence', () => {
             const items = transactWrite.mock.calls[0][0]
             const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
             expect(adjacencyItems).toEqual([{ Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
+        })
+
+        it('character-only pure remove (disconnect-shaped, toHostId null): commits, adjacency Delete-only, streams Character Moved with to: null', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Character Moved' },
+                update: expect.objectContaining({ froms: [ROOM_ID], to: null }),
+            }))
+            const items = transactWrite.mock.calls[0][0]
+            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            expect(adjacencyItems).toEqual([{ Delete: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
+        })
+
+        it('character-only pure add (connect-from-nowhere-shaped, fromHostIds empty): commits, adjacency Put-only, streams Character Moved with froms: []', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const steps: KernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Character Moved' },
+                update: expect.objectContaining({ froms: [], to: ROOM_ID }),
+            }))
+            const items = transactWrite.mock.calls[0][0]
+            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            expect(adjacencyItems).toEqual([{ Put: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
     })
 })

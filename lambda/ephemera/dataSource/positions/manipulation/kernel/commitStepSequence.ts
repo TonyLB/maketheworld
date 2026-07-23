@@ -1,5 +1,5 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -11,6 +11,7 @@ import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { EphemeraPositionGraph, graphFromMeta, hostDataCategory } from '../../positionGraph'
 import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
+import { streamMembershipFact } from '../../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
@@ -32,6 +33,13 @@ export type CommitStepSequenceDeps = {
      * repair paths.
      */
     suppressRelationalFacts?: boolean
+    /**
+     * Character-route Migrate row: resolved character display names for any `transferMembership`
+     * step's character-kind `entityIds`, so `factsForStep` (synchronous) can build a fully-populated
+     * `Character Moved` fact without fetching anything itself. Only `applyCharacterRoomMembership.ts`
+     * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
+     */
+    characterNames?: ReadonlyMap<EphemeraCharacterId, string>
 }
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -61,10 +69,11 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * behavior, until BD-18's backtrack channel lands.
  *
  * Now wired to every live route: `executeObjectTakeHold`/`executeObjectDrop` (take/drop),
- * `applyObjectRelationalChange` (establish/dissolve), and --- object-lifecycle Migrate row ---
- * `applyObjectClearMembership`/`applyObjectRoomMembership` (destroy/edit/spawn/place/drift-repair).
- * Only `applyCharacterRoomMembership` (character navigate) still goes through the legacy
- * `applyHostEffects` kernel, pending its own future migrate row.
+ * `applyObjectRelationalChange` (establish/dissolve), the object-lifecycle Migrate row
+ * (`applyObjectClearMembership`/`applyObjectRoomMembership`, destroy/edit/spawn/place/drift-repair),
+ * and --- character-route Migrate row --- `applyCharacterRoomMembership` (navigate/connect/
+ * disconnect). `applyHostEffects` and its transact-item builders have no remaining callers and are
+ * retired.
  */
 export const commitStepSequence = async (
     args: { steps: readonly KernelStep[] },
@@ -184,9 +193,12 @@ export const commitStepSequence = async (
     }
 
     for (const step of steps) {
-        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs)) {
+        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
+            }
+            else if (fact.type === 'Character Moved') {
+                await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
             }
             else if (!deps.suppressRelationalFacts) {
                 await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })

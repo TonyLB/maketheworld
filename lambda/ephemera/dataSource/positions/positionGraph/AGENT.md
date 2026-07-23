@@ -75,7 +75,7 @@ Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and 
 
 | Consumer | Import | Rule |
 | --- | --- | --- |
-| `applyHostEffects`, `applyHostRelationalPatch` | class + simulation methods | Primary writers |
+| `manipulation/kernel/applyStepSequenceCore.ts` (via `commitStepSequence`) | class + simulation methods | Primary writer (`applyHostEffects`/`applyHostRelationalPatch` retired 2026-07-23) |
 | Transact reducers (`*TransactItems.ts`) | `fromRoomMeta` / `fromCharacterMeta`, `toStored()` | Dynamo read/write boundary |
 | `planHostRelationalPatch` | `fromPlayEnvelope`, `edgesMatch` | Planner observation |
 | `evaluateRelationalLegality`, `compileRelationalFromSkeleton` | read-only class methods | Actions lane; no persist |

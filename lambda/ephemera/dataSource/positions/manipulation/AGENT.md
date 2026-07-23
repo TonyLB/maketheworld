@@ -1,8 +1,8 @@
 # Positions manipulation
 
-Graph-first **membership transfer** and **host-local relational patch** persist for `mtw.ephemera.positions`: membership routes through a shared adapter -> **`applyHostEffects`** kernel; relational routes through **`applyHostRelationalPatch`**. Per-operator coordinators own fact/cache/bus bundles.
+Graph-first **membership transfer** and **host-local relational patch** persist for `mtw.ephemera.positions`: every route (navigate/connect/disconnect, object place/spawn/destroy/edit, take-hold/drop, establish/dissolve) now goes through a shared adapter -> **`kernel/commitStepSequence.ts`** (`applyHostEffects`/`applyHostRelationalPatch` retired 2026-07-23). Per-operator coordinators own fact/cache/bus bundles.
 
-**Status:** Membership transfer and host-local relational patch shipped. See [**AGENT.implementation.md**](AGENT.implementation.md). **Take-hold/drop/establish/dissolve superseded 2026-07-23** onto a general Synthesize executor + one general kernel entrypoint (`kernel/commitStepSequence.ts`) --- see the implementation doc's status note and `AGENT.synthesizeStepSequencing.planning.md`.
+**Status:** Membership transfer and host-local relational patch shipped. See [**AGENT.implementation.md**](AGENT.implementation.md). **All routes migrated onto one general kernel entrypoint (`kernel/commitStepSequence.ts`) as of 2026-07-23** (take-hold/drop/establish/dissolve, then object-lifecycle, then character navigate/connect/disconnect last) --- see the implementation doc's status note and `AGENT.synthesizeStepSequencing.planning.md`.
 
 ## Documentation
 
@@ -17,7 +17,7 @@ Graph-first **membership transfer** and **host-local relational patch** persist 
 ## Layering (steady state)
 
 ```text
-Per-operator ingress  ->  shared membership adapter  ->  applyHostEffects (kernel)  ->  coordinator fact bundle
+Per-operator ingress  ->  shared membership adapter  ->  commitStepSequence (kernel)  ->  coordinator fact bundle
 ```
 
-See [**AGENT.implementation.md --- Target layering**](AGENT.implementation.md#target-layering) for `HostEffect`, apply modes, and `RoomStack` bundling on navigate.
+See [**AGENT.implementation.md --- Target layering**](AGENT.implementation.md#target-layering) for `KernelStep`, apply modes, and `RoomStack` bundling on navigate.

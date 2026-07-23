@@ -3,14 +3,12 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
-import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
-import type { EphemeraPositionGraph } from '../positionGraph'
-import { buildCharacterMovedFact } from './buildCharacterMovedFact'
-import { streamMembershipFact } from './streamMembershipFact'
+import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
+import type { CommitStepSequenceDeps } from '../manipulation/kernel/commitStepSequence'
+import type { KernelStep } from '../manipulation/kernel/kernelStep'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
@@ -19,24 +17,13 @@ export type ApplyCharacterRoomMembershipDependencies = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: typeof internalCache.CharacterMeta.get;
-    kernelPersist?: ApplyHostEffectsDependencies;
+    transactWrite?: CommitStepSequenceDeps['transactWrite'];
     getSessionId?: () => Promise<string | undefined>;
 }
 
 const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> => {
     const containers = await internalCache.Positions.getMembershipContainers(characterId)
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
-}
-
-const seedPositionsGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
-    for (const graph of postApplyGraphs) {
-        if (!isEphemeraRoomId(graph.hostId)) {
-            continue
-        }
-        internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
-        internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
-        internalCache.Positions.set(graph)
-    }
 }
 
 const buildRoomRosterSnapshots = async (
@@ -61,6 +48,19 @@ const membershipDiffFromProjection = (projection: {
     changed: projection.changed,
 })
 
+/**
+ * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel,
+ * matching `applyObjectRoomMembership`/`applyObjectClearMembership`'s sibling migrations. Unlike the
+ * object routes, this route builds no `dissolveRelation` steps at all --- `HostRelationalEdge` is
+ * object-only (BD-36's character-relation widening is explicitly deferred), so a character can never
+ * be a relational-edge endpoint; there is nothing for `boundaryEdgeOutcomes` to sweep here, not just
+ * nothing found in practice. The bare `transferMembership` step is the whole sequence.
+ *
+ * `Character Moved` fact emission is folded into the kernel's own `commitStepSequence`/`factsForStep`
+ * (via the `characterNames` dep) rather than layered on top after the kernel call returns --- that's
+ * what keeps it streaming before `commitStepSequence`'s own `RoomUpdate` publish loop, mirroring
+ * `Object Moved`'s existing ordering guarantee (see `factsForStep.ts`'s doc comment).
+ */
 export const applyCharacterRoomMembership = async (
     args: MembershipApplyArgs,
     deps: ApplyCharacterRoomMembershipDependencies
@@ -89,58 +89,39 @@ export const applyCharacterRoomMembership = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const kernelResult = await applyHostEffects(
-        { hostEffects: plan.hostEffects },
-        deps.kernelPersist
+    const transferStep: KernelStep = {
+        kind: 'transferMembership',
+        entityIds: new Set([args.characterId]),
+        fromHostIds: new Set(diff.froms),
+        toHostId: diff.to,
+    }
+
+    const result = await commitStepSequence(
+        { steps: [transferStep] },
+        {
+            messageBus: deps.messageBus,
+            streamEvent: deps.streamEvent,
+            getCurrentHost: () => undefined,
+            transactWrite: deps.transactWrite,
+            characterNames: new Map([[args.characterId, characterMeta.Name]]),
+        }
     )
 
-    if (!kernelResult.ok) {
-        console.error(`[mtw.ephemera.positions] applyHostEffects failed: ${kernelResult.errorMessage}`)
+    if (!result.ok) {
+        console.error(`[mtw.ephemera.positions] applyCharacterRoomMembership failed: ${result.errorMessage}`)
         return {
             ok: false,
-            errorCode: kernelResult.errorCode,
-            errorMessage: kernelResult.errorMessage,
+            errorCode: result.errorCode,
+            errorMessage: result.errorMessage,
         }
     }
 
-    if (!kernelResult.persisted) {
-        return { ok: true, ...diff }
-    }
-
-    const beatAnchorTime = getCurrentTimestamp()
-    const getSessionId = deps.getSessionId ?? (() => internalCache.Global.get('SessionId'))
-    const sessionId = await getSessionId()
-
-    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
-    // "Character Moved" fact is streamed below --- see applyObjectSetTransfer.ts's matching
-    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
-    // affordance-refresh chain can otherwise race ahead of this update and memoize a
-    // pre-mutation read.
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
-    seedPositionsGraphMemos(kernelResult.postApplyGraphs)
     const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)
-    internalCache.Positions.setMembershipContainers({
-        componentId: args.characterId,
-        containers: diff.to ? [diff.to] : [],
-    })
     internalCache.CharacterMeta.invalidate(args.characterId)
 
-    const fact = buildCharacterMovedFact({
-        characterId: args.characterId,
-        diff,
-        beatAnchorTime,
-        characterName: characterMeta.Name,
-    })
-    if (fact) {
-        await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
-    }
-
-    affectedRooms.forEach((roomId) => {
-        deps.messageBus.publish({
-            type: 'RoomUpdate',
-            roomId,
-        })
-    })
+    const getSessionId = deps.getSessionId ?? (() => internalCache.Global.get('SessionId'))
+    const sessionId = await getSessionId()
 
     deps.messageBus.publish({
         type: 'EphemeraUpdate',
@@ -156,7 +137,7 @@ export const applyCharacterRoomMembership = async (
     return {
         ok: true,
         ...diff,
-        beatAnchorTime,
+        beatAnchorTime: result.beatAnchorTime,
         roomRosterSnapshots,
     }
 }
