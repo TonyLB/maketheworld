@@ -1,12 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testPositionGraph } from '../../positionGraph/testFixtures'
+import type { EphemeraPositionGraph } from '../../positionGraph'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
-import { EphemeraPositionGraph } from '../../positionGraph'
-import * as kernelPersist from '../applyHostRelationalPatch'
-
-jest.mock('../applyHostRelationalPatch', () => ({
-    applyHostRelationalPatch: jest.fn(),
-}))
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -15,6 +10,8 @@ jest.mock('../../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             set: jest.fn(),
+            setMembershipContainers: jest.fn(),
+            getPositionGraph: jest.fn(),
         },
     },
 }))
@@ -25,10 +22,6 @@ jest.mock('../../../../internalUtils/dateUtil', () => ({
 }))
 
 import internalCache from '../../../../internalCache'
-
-const applyHostRelationalPatchMock = kernelPersist.applyHostRelationalPatch as jest.MockedFunction<
-    typeof kernelPersist.applyHostRelationalPatch
->
 
 const BROOM_ID = 'OBJECT#Broom' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
@@ -41,6 +34,30 @@ const roomGraphWithObjects = testPositionGraph(ROOM_ID, {
     ],
 })
 
+/**
+ * Simulates `transactWrite`'s `MultiKeyUpdate` handling, matching
+ * `commitStepSequence.test.ts`'s convention.
+ */
+const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+    const transactWrite: any = jest.fn(async (items: any[]): Promise<void> => {
+        const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
+        if (!multiKeyItem) {
+            return
+        }
+        const draft: Record<string, any> = {}
+        multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
+            const graph = graphsByHost[key.EphemeraId]
+            draft[`${key.EphemeraId}#${key.DataCategory}`] = {
+                EphemeraId: key.EphemeraId,
+                DataCategory: key.DataCategory,
+                positionGraph: graph.toStored(),
+            }
+        })
+        multiKeyItem.reducer(draft)
+    })
+    return transactWrite
+}
+
 describe('applyObjectRelationalChange', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -49,32 +66,9 @@ describe('applyObjectRelationalChange', () => {
         jest.clearAllMocks()
     })
 
-    it('skips side-effect bundle when the kernel reports no change (BD-15/16 slice 3: decided live, not precomputed)', async () => {
-        applyHostRelationalPatchMock.mockResolvedValue({ ok: true, persisted: false, changed: false })
-
-        const result = await applyObjectRelationalChange(
-            {
-                subjectId: BROOM_ID,
-                targetId: TABLE_ID,
-                hostId: ROOM_ID,
-                relationKind: 'On',
-                operation: 'establish',
-            },
-            { messageBus: messageBus as any, streamEvent }
-        )
-
-        expect(result).toEqual({ ok: true, changed: false })
-        expect(applyHostRelationalPatchMock).toHaveBeenCalledTimes(1)
-        expect(messageBus.publish).not.toHaveBeenCalled()
-        expect(streamEvent).not.toHaveBeenCalled()
-    })
-
     it('surfaces a kernel failure', async () => {
-        applyHostRelationalPatchMock.mockResolvedValue({
-            ok: false,
-            errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED',
-            errorMessage: 'stale candidate',
-        })
+        const roomGraphMissingObjects = testPositionGraph(ROOM_ID, { nodes: [] })
+        const transactWrite = makeTransactWriteMock({ [ROOM_ID]: roomGraphMissingObjects })
 
         const result = await applyObjectRelationalChange(
             {
@@ -84,34 +78,15 @@ describe('applyObjectRelationalChange', () => {
                 relationKind: 'On',
                 operation: 'establish',
             },
-            { messageBus: messageBus as any, streamEvent }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
-        expect(result).toEqual({
-            ok: false,
-            errorCode: 'HOST_RELATIONAL_PATCH_TRANSACT_FAILED',
-            errorMessage: 'stale candidate',
-        })
+        expect(result.ok).toBe(false)
         expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
     it('runs relational-changed bundle on successful establish', async () => {
-        applyHostRelationalPatchMock.mockResolvedValue({
-            ok: true,
-            persisted: true,
-            changed: true,
-            postApplyGraphs: [
-                EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
-                    nodes: roomGraphWithObjects.toStored().nodes,
-                    edges: [{
-                        tag: 'Relational' as const,
-                        from: BROOM_ID,
-                        to: TABLE_ID,
-                        kind: 'On' as const,
-                    }],
-                }),
-            ],
-        })
+        const transactWrite = makeTransactWriteMock({ [ROOM_ID]: roomGraphWithObjects })
 
         const result = await applyObjectRelationalChange(
             {
@@ -121,7 +96,7 @@ describe('applyObjectRelationalChange', () => {
                 relationKind: 'On',
                 operation: 'establish',
             },
-            { messageBus: messageBus as any, streamEvent }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result).toEqual({
@@ -152,25 +127,13 @@ describe('applyObjectRelationalChange', () => {
         const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const TOP_ID = 'OBJECT#Top' as EphemeraObjectId
-        const characterGraph = EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, {
+        const characterGraph = testPositionGraph(CHARACTER_ID, {
             nodes: [
                 { tag: 'Object' as const, universalKey: STRING_ID },
                 { tag: 'Object' as const, universalKey: TOP_ID },
             ],
-            edges: [{
-                tag: 'Relational' as const,
-                from: STRING_ID,
-                to: TOP_ID,
-                kind: 'Custom' as const,
-                relationLabel: 'wrapped around',
-            }],
         })
-        applyHostRelationalPatchMock.mockResolvedValue({
-            ok: true,
-            persisted: true,
-            changed: true,
-            postApplyGraphs: [characterGraph],
-        })
+        const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: characterGraph })
 
         const result = await applyObjectRelationalChange(
             {
@@ -181,7 +144,7 @@ describe('applyObjectRelationalChange', () => {
                 relationLabel: 'wrapped around',
                 operation: 'establish',
             },
-            { messageBus: messageBus as any, streamEvent }
+            { messageBus: messageBus as any, streamEvent, transactWrite }
         )
 
         expect(result).toEqual({
@@ -193,5 +156,109 @@ describe('applyObjectRelationalChange', () => {
             expect.objectContaining({ hostId: CHARACTER_ID })
         )
         expect(messageBus.publish).not.toHaveBeenCalled()
+    })
+
+    describe('BD-16 repaired (transferFromHostId present)', () => {
+        const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
+
+        it('BD-16 worked example: moves the tray from the character to the room and establishes the relation, atomically', async () => {
+            const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === CHARACTER_ID ? heldGraph : roomGraph
+            )
+            const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
+
+            const result = await applyObjectRelationalChange(
+                {
+                    subjectId: TRAY_ID,
+                    targetId: TABLE_ID,
+                    hostId: ROOM_ID,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    transferFromHostId: CHARACTER_ID,
+                },
+                { messageBus: messageBus as any, streamEvent, transactWrite }
+            )
+
+            expect(result).toMatchObject({ ok: true, changed: true })
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                update: expect.objectContaining({ type: 'Object Moved', objectId: TRAY_ID, froms: [CHARACTER_ID], to: ROOM_ID }),
+            }))
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                update: expect.objectContaining({ type: 'Object Relation Changed', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID }),
+            }))
+            expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
+                componentId: TRAY_ID,
+                containers: [ROOM_ID],
+            })
+            expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_ID })
+        })
+
+        it('BD-28: repairing the transfer severs a boundary relation left behind on the character and streams the dissolve fact first', async () => {
+            const KEYRING_ID = 'OBJECT#Keyring' as EphemeraObjectId
+            const heldGraph = testPositionGraph(CHARACTER_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Object', universalKey: KEYRING_ID },
+                ],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: KEYRING_ID, kind: 'Against' }],
+            })
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === CHARACTER_ID ? heldGraph : roomGraph
+            )
+            const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
+
+            await applyObjectRelationalChange(
+                {
+                    subjectId: TRAY_ID,
+                    targetId: TABLE_ID,
+                    hostId: ROOM_ID,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    transferFromHostId: CHARACTER_ID,
+                },
+                { messageBus: messageBus as any, streamEvent, transactWrite }
+            )
+
+            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+            expect(eventTypes[0]).toBe('Object Relation Changed')
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                update: expect.objectContaining({
+                    type: 'Object Relation Changed',
+                    subjectId: TRAY_ID,
+                    targetId: KEYRING_ID,
+                    operation: 'dissolve',
+                }),
+            }))
+        })
+
+        it('aborts the whole transact --- no partial move, no partial relation, no fact streams --- when the subject is no longer on the source host at commit time', async () => {
+            const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === CHARACTER_ID ? heldGraph : roomGraph
+            )
+            const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
+
+            const result = await applyObjectRelationalChange(
+                {
+                    subjectId: TRAY_ID,
+                    targetId: TABLE_ID,
+                    hostId: ROOM_ID,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    transferFromHostId: CHARACTER_ID,
+                },
+                { messageBus: messageBus as any, streamEvent, transactWrite }
+            )
+
+            expect(result.ok).toBe(false)
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(messageBus.publish).not.toHaveBeenCalled()
+            expect(internalCache.Positions.setMembershipContainers).not.toHaveBeenCalled()
+        })
     })
 })

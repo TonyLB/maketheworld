@@ -7,12 +7,13 @@ import {
 } from './embeddingMatch/thresholds'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { evaluateSandboxPlan } from './sandboxPlan'
-import type { SandboxPlanStep } from './sandboxPlan'
 import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
-import { expandTransferMembership } from './synthesize/expandTransferMembership'
-import { relationalStepToSandboxPlanStep } from './synthesize/toSandboxPlanStep'
+import { actingCharacterRef, currentHostRef, objectSpanRef } from './plan/ungroundedPrimitive'
+import type { GroundingContext } from './synthesize/groundReferent'
+import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
+import { runExecutor, seedTransferMembership } from './synthesize/executor'
+import { validateMembershipPlanDryRun } from './validatePlanDryRun'
 import type { DryRunOutcome } from './validatePlanDryRun'
 
 export type ScoredPlanCandidate<T> = {
@@ -164,20 +165,23 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * Sandbox-mediated membership dry run (Slice 4b, Expansion wired in Slice 2 of
- * the Pipeline A -> B migration). Invokes `expandTransferMembership` (Synthesize's
- * Expansion sub-role) to compute the real carry-closed transfer set + any
- * required dissolve steps, instead of validating a naive single-object set ---
- * replacing BD-17's interim blanket rejection of any carry-classified boundary
- * edge with a real, KR-grounded computation. Grounding is a no-op here: Identify
- * already resolved this candidate to a concrete `objectId`, so the
- * `TransferMembershipStep` is built directly rather than via `groundChange`.
+ * Executor-mediated membership dry run (Migrate slice, 2026-07-23): invokes the
+ * general Synthesize executor (`seedTransferMembership` + `runExecutor`) in
+ * place of `expandTransferMembership` + `evaluateSandboxPlan`, so this dry run
+ * exercises exactly the same Grounding -> Expansion -> command-expansion path
+ * the live commit side (`executeObjectTakeHold`/`executeObjectDrop`) re-runs at
+ * commit time --- one instance of the general executor, not a route-specific
+ * one-off. `validateMembershipPlanDryRun`'s locus-vs-operationKind base check
+ * (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
+ * is orthogonal to Expansion's carry-closure/boundary-sweep and stays a
+ * separate up-front gate, run before the executor --- it is not part of what
+ * `evaluateSandboxPlan` retires.
  *
- * Slice 3 (2026-07-15, `MultiKeyUpdate` redesign): a legal multi-object transfer
- * is no longer declined here --- the real transfer set is threaded through via
- * `DryRunOutcome.objectIds` so the bus/`execute*` path (which now calls
- * `applyObjectSetTakeHold`/`applyObjectSetDrop`, built on `applyObjectSetTransfer`)
- * can actually apply it.
+ * Identify already resolved this candidate to a concrete `objectId`; Grounding
+ * here is trivial (a `resolvedSpans` map with exactly one entry), not a search
+ * --- the general executor is still the right vehicle rather than a bypass,
+ * since it is what actually threads the shared carry-closure/`isolatedFromRelations`
+ * machinery through to `DryRunOutcome.objectIds`.
  */
 export const sandboxMembershipDryRun = (
     candidate: IdentityPlanCandidate,
@@ -207,47 +211,53 @@ export const sandboxMembershipDryRun = (
         }
     }
 
-    const expandResult = expandTransferMembership(
-        { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId: sourceHostId, toHostId: destinationHostId },
-        (hostId) => state.get(hostId)
+    const baseOutcome = validateMembershipPlanDryRun(candidate, {
+        positionGraph: state.get(sourceHostId),
+        actorCharacterId,
+    })
+    if (baseOutcome.verdict !== 'legal') {
+        return baseOutcome
+    }
+
+    if (actorCharacterId === undefined) {
+        return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
+    }
+
+    const stableRefKey = 'sandboxMembershipDryRun/object'
+    const groundingContext: GroundingContext = {
+        actingCharacterId: actorCharacterId,
+        resolvedSpans: new Map([[stableRefKey, { verdict: 'resolved', candidateIds: [objectId] }]]),
+        getCurrentHost: (componentId) => (componentId === actorCharacterId ? roomId : undefined),
+    }
+    const seed = seedTransferMembership({
+        kind: 'change',
+        primitive: 'transferMembership',
+        object: objectSpanRef('object', stableRefKey),
+        from: locus.kind === 'room' ? currentHostRef(actingCharacterRef) : actingCharacterRef,
+        to: locus.kind === 'room' ? actingCharacterRef : currentHostRef(actingCharacterRef),
+    })
+    const env = createExpansionEnvironment(
+        (hostId) => state.get(hostId),
+        () => sourceHostId
     )
 
-    if (expandResult.verdict === 'error') {
-        return { verdict: 'illegal', decidable: true, reason: expandResult.reason }
-    }
-    if (expandResult.verdict === 'defer') {
-        return { verdict: 'defer', decidable: expandResult.decidable, reason: expandResult.reason }
-    }
+    const outcome = runExecutor(seed, env, groundingContext)
 
-    // expandResult.verdict === 'complete'. Dissolve steps are purely Expansion-derived (no
-    // pre-existing proposer candidate to preserve), so convert them via the standard converter.
-    // The transferMembership step keeps the *real* candidate (preserving its stated
-    // operationKind, which the sandbox's own legality check compares against `context`'s
-    // direction to catch e.g. "drop" claimed on a room-locus object) --- only the transferSet
-    // widens to Expansion's carry-closed result.
-    const dissolveConversions = expandResult.dissolveSteps.map(relationalStepToSandboxPlanStep)
-    const conversionFailure = dissolveConversions.find((result) => !result.ok)
-    if (conversionFailure && !conversionFailure.ok) {
-        return { verdict: 'illegal', decidable: true, reason: conversionFailure.reason }
+    if (outcome.verdict === 'error') {
+        return { verdict: 'illegal', decidable: true, reason: outcome.reason }
+    }
+    if (outcome.verdict === 'defer') {
+        return { verdict: 'defer', decidable: outcome.decidable, reason: outcome.reason }
     }
 
-    const planSteps: SandboxPlanStep[] = [
-        ...dissolveConversions.flatMap((result) => (result.ok ? [result.step] : [])),
-        {
-            kind: 'transferMembership',
-            candidate,
-            transferSet: expandResult.transferStep.objectIds,
-            context: { sourceHostId, destinationHostId },
-        },
-    ]
-
-    const outcome = evaluateSandboxPlan(state, planSteps)
-
-    if (outcome.verdict !== 'legal') {
-        return { verdict: outcome.verdict, decidable: outcome.decidable, reason: outcome.reason }
+    const transferStep = outcome.steps.find(
+        (step): step is Extract<typeof step, { kind: 'transferMembership' }> => step.kind === 'transferMembership'
+    )
+    if (!transferStep) {
+        return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.unimplementedAtomicOperation }
     }
 
-    return { verdict: 'legal', decidable: true, objectIds: [...expandResult.transferStep.objectIds] }
+    return { verdict: 'legal', decidable: true, objectIds: [...transferStep.objectIds] }
 }
 
 /**

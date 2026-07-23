@@ -1,101 +1,137 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+
 import internalCache from '../../../../internalCache'
-import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { EphemeraPositionGraph } from '../../positionGraph'
-import { applyHostRelationalPatch, type ApplyHostRelationalPatchDependencies } from '../applyHostRelationalPatch'
-import { applyObjectRelationalChangeWithTransfer } from './applyObjectRelationalChangeWithTransfer'
-import { buildObjectRelationalFact } from './buildObjectRelationalFact'
-import { planHostRelationalPatch } from './planHostRelationalPatch'
-import { streamObjectRelationalFact } from './streamObjectRelationalFact'
+import { boundaryEdgeOutcomes, computeCarryClosure } from '../../positionGraph/expandValidate/interactionUnderTransfer'
+import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
+import { fromExecutorStep } from '../kernel/kernelStep'
+import type { KernelStep } from '../kernel/kernelStep'
+import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { RelationalApplyResult, RelationalIngressArgs } from './types'
 
 export type ApplyObjectRelationalChangeDependencies = {
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
-    kernelPersist?: ApplyHostRelationalPatchDependencies
+    transactWrite?: typeof ephemeraDB.transactWrite
 }
 
 /**
- * Renamed from `seedRoomGraphMemos` (BD-15/16 slice 4) --- the old version `continue`d
- * past `internalCache.Positions.set(graph)` for any non-room graph, so a Character-hosted
- * relation would persist correctly but leave that character's cached `positionGraph` stale
- * for the rest of the warm container's lifetime. Matches `applyObjectSetTransfer.ts`'s
- * already-correct `seedGraphMemos`: `Positions.set` is unconditional; only the room-specific
- * cache invalidations are gated.
+ * Migrate slice (2026-07-23): collapses `applyObjectRelationalChange`'s old
+ * `args.transferFromHostId !== undefined` branch (`applyObjectRelationalChangeWithTransfer`
+ * vs. `planHostRelationalPatch` + `applyHostRelationalPatch`) into one
+ * `commitStepSequence` call over whatever `KernelStep[]` this route needs ---
+ * a satisfied `sameHost` produces `[establishRelation]`/`[dissolveRelation]`;
+ * a repaired one produces `[dissolveRelation*, transferMembership, establishRelation]`
+ * (BD-28's boundary dissolves precede the transfer, per the executor's own
+ * seeding order). `applyObjectRelationalChangeWithTransfer.ts`,
+ * `planHostRelationalPatch.ts`, and `applyHostRelationalPatch.ts` all retire
+ * from this call site.
+ *
+ * `transferFromHostId` (BD-16's repair signal) only ever carries a *host id*
+ * across the wire, not a pre-computed step list --- so this re-derives the
+ * repair transfer's carry-closure/boundary-sweep fresh at commit time, the
+ * same cross-snapshot recheck pattern `executeObjectTakeHold`/`executeObjectDrop`
+ * use (a later, second look at live state than whatever Plan-stage's
+ * `expandSameHost` saw). Calls the shared `computeCarryClosure`/
+ * `boundaryEdgeOutcomes` primitives directly rather than through the full
+ * executor worklist: this call site only ever seeds one fixed
+ * `isolatedFromRelations`/`transferMembership` pair with no other pending
+ * instruction, so the worklist's generality (multi-instruction scheduling,
+ * `GroundingContext`-mediated Grounding) buys nothing here --- both are the
+ * exact primitives `introduceRepairTransferMembership`'s command-expansion
+ * would call internally.
  */
-const seedGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
-    for (const graph of postApplyGraphs) {
-        if (isEphemeraRoomId(graph.hostId)) {
-            internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
-            internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
-        }
-        internalCache.Positions.set(graph)
-    }
-}
-
 export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,
     deps: ApplyObjectRelationalChangeDependencies
 ): Promise<RelationalApplyResult> => {
-    if (args.transferFromHostId !== undefined) {
-        return applyObjectRelationalChangeWithTransfer(
-            { ...args, transferFromHostId: args.transferFromHostId },
-            { messageBus: deps.messageBus, streamEvent: deps.streamEvent }
-        )
-    }
-
-    const patch = planHostRelationalPatch(args)
-
-    const kernelResult = await applyHostRelationalPatch(
-        { patches: [patch] },
-        deps.kernelPersist
-    )
-
-    if (!kernelResult.ok) {
-        console.error(`[mtw.ephemera.positions] applyHostRelationalPatch failed: ${kernelResult.errorMessage}`)
-        return {
-            ok: false,
-            errorCode: kernelResult.errorCode,
-            errorMessage: kernelResult.errorMessage,
-        }
-    }
-
-    if (!kernelResult.persisted || !kernelResult.changed) {
-        return { ok: true, changed: false }
-    }
-
-    const beatAnchorTime = getCurrentTimestamp()
-    const fact = buildObjectRelationalFact({
+    const relationalStep: KernelStep = {
+        kind: args.operation === 'establish' ? 'establishRelation' : 'dissolveRelation',
         subjectId: args.subjectId,
         targetId: args.targetId,
-        hostId: args.hostId,
         relationKind: args.relationKind,
-        relationLabel: args.relationLabel,
-        operation: args.operation,
-        beatAnchorTime,
-    })
-
-    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
-    // "Object Related" fact is streamed below --- see applyObjectSetTransfer.ts's matching
-    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
-    // affordance-refresh chain can otherwise race ahead of this update and memoize a
-    // pre-mutation read.
-    seedGraphMemos(kernelResult.postApplyGraphs)
-    await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
-
-    if (isEphemeraRoomId(args.hostId)) {
-        deps.messageBus.publish({
-            type: 'RoomUpdate',
-            roomId: args.hostId,
-        })
+        ...(args.relationLabel !== undefined ? { relationLabel: args.relationLabel } : {}),
     }
 
-    return {
-        ok: true,
-        changed: true,
-        beatAnchorTime,
+    let steps: KernelStep[]
+
+    if (args.transferFromHostId !== undefined) {
+        const fromHostId = args.transferFromHostId
+        const sourceGraph: EphemeraPositionGraph = await internalCache.Positions.getPositionGraph(fromHostId)
+
+        const closure = computeCarryClosure(args.subjectId, sourceGraph)
+        const outcomes = boundaryEdgeOutcomes(closure, sourceGraph)
+
+        const carryOutcome = outcomes.find((entry) => entry.outcome === 'carry')
+        if (carryOutcome !== undefined) {
+            return {
+                ok: false,
+                errorCode: 'RELATIONAL_TRANSFER_INCONSISTENT',
+                errorMessage: 'Carry closure left a carry-classified edge on the boundary --- internal inconsistency',
+            }
+        }
+        const deferOutcome = outcomes.find((entry) => entry.outcome === 'defer')
+        if (deferOutcome !== undefined) {
+            return {
+                ok: false,
+                errorCode: 'RELATIONAL_TRANSFER_DEFERRED',
+                errorMessage: 'Boundary edge interaction under transfer requires LLM validation (BD-10) --- stale repair candidate',
+            }
+        }
+
+        const dissolveSteps: KernelStep[] = outcomes
+            .filter((entry) => entry.outcome === 'dissolve')
+            .map((entry) => ({
+                kind: 'dissolveRelation',
+                subjectId: entry.edge.from,
+                targetId: entry.edge.to,
+                relationKind: entry.edge.kind,
+                ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+            }))
+
+        const transferStep: TransferMembershipStep = {
+            kind: 'transferMembership',
+            objectIds: closure,
+            fromHostId,
+            toHostId: args.hostId,
+        }
+
+        steps = [...dissolveSteps, fromExecutorStep(transferStep), relationalStep]
     }
+    else {
+        steps = [relationalStep]
+    }
+
+    // Pre-transaction current hosts: the relation's `targetId` is always already on the
+    // destination (`expandSameHost`'s repaired contract --- the subject is the one that
+    // moves); every other object this sequence can reference (the subject itself, and any
+    // boundary object a dissolve step names) is still on the transfer's source host, or on
+    // `hostId` outright when there is no repair transfer at all.
+    const transferFromHostId = args.transferFromHostId
+    const getCurrentHost = (id: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
+        transferFromHostId === undefined
+            ? args.hostId
+            : (id === args.targetId ? args.hostId : transferFromHostId)
+
+    const result = await commitStepSequence(
+        { steps },
+        {
+            messageBus: deps.messageBus,
+            streamEvent: deps.streamEvent,
+            getCurrentHost,
+            ...(deps.transactWrite !== undefined ? { transactWrite: deps.transactWrite } : {}),
+        }
+    )
+
+    if (!result.ok) {
+        console.error(`[mtw.ephemera.positions] applyObjectRelationalChange failed: ${result.errorMessage}`)
+        return { ok: false, errorCode: result.errorCode, errorMessage: result.errorMessage }
+    }
+
+    return { ok: true, changed: true, beatAnchorTime: result.beatAnchorTime }
 }

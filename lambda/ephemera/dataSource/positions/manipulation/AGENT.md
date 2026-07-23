@@ -2,7 +2,7 @@
 
 Graph-first **membership transfer** and **host-local relational patch** persist for `mtw.ephemera.positions`: membership routes through a shared adapter -> **`applyHostEffects`** kernel; relational routes through **`applyHostRelationalPatch`**. Per-operator coordinators own fact/cache/bus bundles.
 
-**Status:** Membership transfer and host-local relational patch shipped. See [**AGENT.implementation.md**](AGENT.implementation.md).
+**Status:** Membership transfer and host-local relational patch shipped. See [**AGENT.implementation.md**](AGENT.implementation.md). **Take-hold/drop/establish/dissolve superseded 2026-07-23** onto a general Synthesize executor + one general kernel entrypoint (`kernel/commitStepSequence.ts`) --- see the implementation doc's status note and `AGENT.synthesizeStepSequencing.planning.md`.
 
 ## Documentation
 
