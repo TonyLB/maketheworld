@@ -40,6 +40,22 @@ export const objectNode = (universalKey: EphemeraObjectId): EphemeraPositionGrap
     universalKey,
 })
 
+/**
+ * BD-33/BD-35's assert-and-throw contract: thrown by `removeObjectAsserted`/`removeCharacterAsserted`
+ * when a relational edge still references the id being removed --- a dedicated upstream Assertion +
+ * repair (`isolatedFromRelations`) was supposed to have severed it first via an explicit
+ * `DissolveRelationStep`. Exported for `instanceof` checks in callers/tests.
+ */
+export class RelationalEdgeStillReferencedError extends Error {
+    constructor(
+        public readonly id: EphemeraObjectId | EphemeraCharacterId,
+        public readonly hostId: EphemeraMembershipHostId
+    ) {
+        super(`${id} still has a relational edge on host ${hostId} --- an explicit DissolveRelationStep should have run first`)
+        this.name = 'RelationalEdgeStillReferencedError'
+    }
+}
+
 const extractPlayOnlyEdges = (envelope: PlayPositionGraph): PlayPositionGraph['edges'] => {
     const edges = envelope.edges ?? []
     const playOnly: NonNullable<PlayPositionGraph['edges']> = []
@@ -264,20 +280,63 @@ export class EphemeraPositionGraph {
         const withoutNode = this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId))
         )
-        return withoutNode.withoutEdgesReferencingObject(objectId)
+        return withoutNode
+            .withoutRelationalEdgesReferencingObject(objectId)
+            .withoutPlayOnlyEdgesReferencingObject(objectId)
     }
 
-    private withoutEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
-        let graph: EphemeraPositionGraph = this
-        if (this._edges !== undefined) {
-            const filtered = this._edges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
-            graph = graph.withEdges(filtered)
+    /**
+     * BD-33/BD-35 assert-and-throw contract: checks no relational edge still references `objectId`
+     * (throwing `RelationalEdgeStillReferencedError` if one does, since an explicit
+     * `DissolveRelationStep` should have run first) rather than silently stripping it as
+     * `removeObject` does. Play-only/exit edges are a distinct invariant, untouched by this
+     * contract --- they keep `removeObject`'s existing silent-strip behavior here too.
+     *
+     * Transient scaffold (BD-35, 2026-07-23): a separate method from `removeObject` because
+     * `applyHostEffects`'s legacy callers still depend on today's silent-strip contract until
+     * their own migrate row lands; only the new kernel path (`applyTransferSetAsserted.ts`) calls
+     * this one. A later migrate row retires `removeObject`, renaming this onto that name.
+     */
+    removeObjectAsserted(objectId: EphemeraObjectId): EphemeraPositionGraph {
+        this.assertNoRelationalEdgesReferencing(objectId)
+        const withoutNode = this.withNodes(
+            this._nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId))
+        )
+        return withoutNode.withoutPlayOnlyEdgesReferencingObject(objectId)
+    }
+
+    /**
+     * BD-36's character half of the assert-and-throw contract --- vacuously satisfied today, since
+     * `HostRelationalEdge` is `EphemeraObjectId`-typed and a character node can never be referenced
+     * by one (the widening that would make this load-bearing, character-relation authoring, is
+     * explicitly deferred). `removeCharacter` already does no edge-stripping of any kind, so this
+     * delegates straight through once the (currently vacuous) assert passes.
+     */
+    removeCharacterAsserted(characterId: EphemeraCharacterId): EphemeraPositionGraph {
+        this.assertNoRelationalEdgesReferencing(characterId)
+        return this.removeCharacter(characterId)
+    }
+
+    private assertNoRelationalEdgesReferencing(id: EphemeraObjectId | EphemeraCharacterId): void {
+        if (this.relationalEdges.some((edge) => edge.from === id || edge.to === id)) {
+            throw new RelationalEdgeStillReferencedError(id, this.hostId)
         }
-        if (this._playOnlyEdges !== undefined) {
-            const filtered = this._playOnlyEdges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
-            graph = graph.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
+    }
+
+    private withoutRelationalEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+        if (this._edges === undefined) {
+            return this
         }
-        return graph
+        const filtered = this._edges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
+        return this.withEdges(filtered)
+    }
+
+    private withoutPlayOnlyEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+        if (this._playOnlyEdges === undefined) {
+            return this
+        }
+        const filtered = this._playOnlyEdges.filter((edge) => !edgeReferencesObjectId(edge, objectId))
+        return this.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
     }
 
     addRelationalEdge(edge: HostRelationalEdge): EphemeraPositionGraph {

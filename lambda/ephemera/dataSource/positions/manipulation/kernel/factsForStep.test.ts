@@ -1,0 +1,109 @@
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+
+import { factsForStep } from './factsForStep'
+import type { KernelStep } from './kernelStep'
+import { testPositionGraph } from '../../positionGraph/testFixtures'
+import type { EphemeraPositionGraph } from '../../positionGraph'
+
+const trayId = 'OBJECT#Tray' as EphemeraObjectId
+const glassId = 'OBJECT#Glass' as EphemeraObjectId
+const tableId = 'OBJECT#Table' as EphemeraObjectId
+const roomId = 'ROOM#Cafe' as EphemeraRoomId
+const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const beatAnchorTime = 1_700_000_000_000
+
+const graphsMap = (
+    ...entries: [EphemeraMembershipHostId, EphemeraPositionGraph][]
+): Map<EphemeraMembershipHostId, EphemeraPositionGraph> => new Map(entries)
+
+describe('factsForStep', () => {
+    it('transferMembership with object-only entityIds produces one Object Moved fact per object', () => {
+        const step: KernelStep = {
+            kind: 'transferMembership',
+            entityIds: new Set([trayId, glassId]),
+            fromHostId: roomId,
+            toHostId: characterId,
+        }
+        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
+        expect(facts).toEqual([
+            { type: 'Object Moved', objectId: trayId, froms: [roomId], to: characterId, beatAnchorTime },
+            { type: 'Object Moved', objectId: glassId, froms: [roomId], to: characterId, beatAnchorTime },
+        ])
+    })
+
+    it('a character in entityIds produces no fact --- explicit scope boundary', () => {
+        const step: KernelStep = {
+            kind: 'transferMembership',
+            entityIds: new Set<EphemeraObjectId | EphemeraCharacterId>([trayId, characterId]),
+            fromHostId: roomId,
+            toHostId: roomId,
+        }
+        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
+        expect(facts).toEqual([
+            { type: 'Object Moved', objectId: trayId, froms: [roomId], to: roomId, beatAnchorTime },
+        ])
+    })
+
+    it('establishRelation produces one Object Relation Changed fact, host re-derived from finalGraphs', () => {
+        const finalGraph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: glassId },
+            ],
+            edges: [{ tag: 'Relational', from: trayId, to: glassId, kind: 'On' }],
+        })
+        const step: KernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }
+        const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
+        expect(facts).toEqual([
+            {
+                type: 'Object Relation Changed',
+                subjectId: trayId,
+                targetId: glassId,
+                hostId: roomId,
+                relationKind: 'On',
+                operation: 'establish',
+                beatAnchorTime,
+            },
+        ])
+    })
+
+    it('dissolveRelation maps operation to dissolve', () => {
+        const finalGraph = testPositionGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+        })
+        const step: KernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }
+        const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
+        expect(facts).toEqual([
+            {
+                type: 'Object Relation Changed',
+                subjectId: trayId,
+                targetId: tableId,
+                hostId: roomId,
+                relationKind: 'On',
+                operation: 'dissolve',
+                beatAnchorTime,
+            },
+        ])
+    })
+
+    it('a multi-step array processed via flatMap preserves output order (dissolve-before-move)', () => {
+        const finalSourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const finalDestGraph = testPositionGraph(characterId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: glassId },
+            ],
+        })
+        const steps: KernelStep[] = [
+            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+            { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostId: roomId, toHostId: characterId },
+        ]
+        const finalGraphs = graphsMap([roomId, finalSourceGraph], [characterId, finalDestGraph])
+        const facts = steps.flatMap((step) => factsForStep(step, finalGraphs, beatAnchorTime))
+        expect(facts.map((fact) => fact.type)).toEqual(['Object Relation Changed', 'Object Moved', 'Object Moved'])
+    })
+})
