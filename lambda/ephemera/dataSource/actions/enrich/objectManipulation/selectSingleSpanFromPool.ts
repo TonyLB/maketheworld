@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     T_JOINT_ABS,
@@ -6,7 +7,22 @@ import {
     T_JOINT_MARGIN,
 } from './embeddingMatch/thresholds'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import type { SpanCandidatePool, SpanResolutionOutcome } from './spanResolution'
+import type { ObjectSpanCandidate, SpanCandidatePool, SpanResolutionOutcome } from './spanResolution'
+
+/**
+ * `SpanResolutionOutcome` is membership-plan-facing (Object-only mutation machinery,
+ * CPG-5's Phase 2 deliberately leaves relational/membership steps Object-scoped) even
+ * though `ObjectSpanCandidate.id` widened to `EphemeraThingId` for Identify's own
+ * candidate representation --- assert-and-throw at this seam rather than widening
+ * `SpanResolutionOutcome.objectId`, since nothing downstream of this bridge can act on
+ * a Character/Feature id yet.
+ */
+const assertObjectCandidate = (candidate: ObjectSpanCandidate): EphemeraObjectId => {
+    if (!isEphemeraObjectId(candidate.id)) {
+        throw new Error(`selectSingleSpanFromPool: expected an Object candidate, got "${candidate.id}"`)
+    }
+    return candidate.id
+}
 
 /**
  * FT-2.1 bridge: single-span FT-5 auto-resolve on joint relevance floor + margin.
@@ -31,7 +47,7 @@ export function selectSingleSpanFromPool(pool: SpanCandidatePool): SpanResolutio
         const sole = exactCandidates[0]!
         return {
             verdict: 'resolved',
-            objectId: sole.id,
+            objectId: assertObjectCandidate(sole),
             locus: sole.locus,
         }
     }
@@ -50,7 +66,7 @@ export function selectSingleSpanFromPool(pool: SpanCandidatePool): SpanResolutio
     if (head.jointRelevance >= absFloor && marginPasses) {
         return {
             verdict: 'resolved',
-            objectId: head.id,
+            objectId: assertObjectCandidate(head),
             locus: head.locus,
         }
     }

@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ManipulationVerbClass, RelationalOperationKind } from '../../baseClasses'
 import type { NormalizedRelation } from './relationKind'
@@ -67,9 +68,19 @@ export function membershipOperationKindFromLocus(
     return undefined
 }
 
+/**
+ * `IdentityPlanIdentity.objectId` is membership/relational-plan-facing (Object-only
+ * mutation machinery, deliberately not widened by CPG-5's Phase 2) even though
+ * `ObjectSpanCandidate.id` now accepts `EphemeraThingId` --- assert-and-throw at this
+ * seam, since nothing downstream of a plan-candidate identity can act on a
+ * Character/Feature id yet.
+ */
 export function identityFromSpanCandidate(
     candidate: ObjectSpanCandidate
 ): IdentityPlanIdentity {
+    if (!isEphemeraObjectId(candidate.id)) {
+        throw new Error(`identityFromSpanCandidate: expected an Object candidate, got "${candidate.id}"`)
+    }
     return {
         objectId: candidate.id,
         label: candidate.label,

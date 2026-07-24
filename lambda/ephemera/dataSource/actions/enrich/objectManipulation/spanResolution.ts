@@ -8,6 +8,8 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogScope } from './catalogMerge'
+import type { EphemeraThingId } from './thing'
+import { isEphemeraThingId } from './thing'
 
 /**
  * FT-4 span-resolution artifacts (FT-0 skeleton).
@@ -23,7 +25,7 @@ export type SpanCandidateLocus =
 export type SpanRelevanceSourceTag = 'exact' | 'lexical' | 'embedding' | 'llm'
 
 export type ObjectSpanCandidate = {
-    id: EphemeraObjectId
+    id: EphemeraThingId
     label: string
     /** Absolute joint relevance in [0, 1] after FT-8 normalization (FT-1). */
     jointRelevance: number
@@ -105,7 +107,7 @@ export function isObjectSpanCandidate(value: unknown): value is ObjectSpanCandid
         return false
     }
     const record = value as Record<string, unknown>
-    if (typeof record.id !== 'string' || !isEphemeraObjectId(record.id)) {
+    if (typeof record.id !== 'string' || !isEphemeraThingId(record.id)) {
         return false
     }
     if (typeof record.label !== 'string' || record.label.trim().length === 0) {

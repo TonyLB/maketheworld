@@ -80,3 +80,17 @@ export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
         }
         : step
 }
+
+/**
+ * The positionGraph kernel's own type-guard filter (mirrors the perception kernel's
+ * planned `describe`-only filter, Phase 3): overload resolution on `fromExecutorStep`
+ * only picks the narrow `KernelMutationStep`-returning signature at direct call sites,
+ * not through `Array.prototype.map` (TS resolves the bare function reference against
+ * the general signature there, widening the result to `KernelStep[]`). Mutation-route
+ * call sites that map an executor step list through `fromExecutorStep` should filter
+ * through this guard rather than assume a `describe` step can't appear --- it's the same
+ * "shared list, per-kernel filter" discipline the perception kernel will use, applied on
+ * this side too, and self-documents the invariant instead of casting past it.
+ */
+export const isKernelMutationStep = (step: KernelStep): step is KernelMutationStep =>
+    step.kind === 'transferMembership' || step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
