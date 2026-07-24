@@ -62,4 +62,18 @@ describe('repairObjectPlacementDrift', () => {
             expect.objectContaining({ messageBus, streamEvent })
         )
     })
+
+    it('BD-35: multi-room scrub suppresses relational facts --- a drift fixup is a silent internal correction', async () => {
+        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
+            nodes: [{ tag: 'Object', universalKey: OBJECT_B }],
+        }))
+        getMembershipContainers.mockResolvedValue(['ROOM#Other', ROOM_ID])
+
+        await runRepair()
+
+        expect(applyMembership).toHaveBeenCalledWith(
+            { objectId: OBJECT_B, targetRoomId: ROOM_ID },
+            expect.objectContaining({ suppressRelationalFacts: true })
+        )
+    })
 })

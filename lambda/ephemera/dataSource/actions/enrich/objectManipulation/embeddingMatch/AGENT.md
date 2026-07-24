@@ -8,7 +8,7 @@
 
 **Calibration tooling:** [`../../../../../calibration/AGENT.md`](../../../../../calibration/AGENT.md) --- Bedrock-backed operator runs, Lambda console handlers, and committed snapshot JSON under `calibration/objectMatch/snapshots/`.
 
-**Mocked calibration harnesses:** [`testing/`](testing/) --- Jest sweeps, A/B retirement checks, and identity-ordering invariants on deterministic mock vectors. **Not** production runtime and **not** Lambda-invokable; they exercise production combine code locally. Durable numeric artifacts commit under `calibration/objectMatch/snapshots/` (e.g. via [`generatePoolCalibrationSnapshot.test.ts`](../../../../../calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts)).
+**Mocked calibration harnesses:** [`testing/`](testing/) --- Jest sweeps, absolute-threshold regression fixtures, and identity-ordering invariants on deterministic mock vectors. **Not** production runtime and **not** Lambda-invokable; they exercise production combine code locally. Durable numeric artifacts commit under `calibration/objectMatch/snapshots/` (e.g. via [`generatePoolCalibrationSnapshot.test.ts`](../../../../../calibration/objectMatch/generatePoolCalibrationSnapshot.test.ts)).
 
 ---
 
@@ -33,7 +33,7 @@ Rank-all candidate pool for fault-tolerant span grounding. **Wired to production
 | [`gapTrimShortlist`](gapTrimShortlist.ts) | Relative gap + Top-N ceiling shortlist |
 | [`relevanceCombine`](relevanceCombine.ts) | `weightedRmsJointRelevance` (absent-channel drop semantics) |
 | [`testing/simulateEmbeddingIdentityCorpus`](testing/simulateEmbeddingIdentityCorpus.ts) | Identity corpus pool-metrics harness (ordering invariants, not v1 resolve rate alone) |
-| [`testing/compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) | FT-1.3.1 retirement harness (legacy gate vs gate-off production) |
+| [`testing/compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) | Short-span-lexical + short-span-pool absolute-threshold regression fixtures (post-FT-1.3.1 gate retirement; C5, 2026-07-21, collapsed from a legacy-gate-vs-gate-off differential) |
 | [`testing/shortSpanCalibrationCases`](testing/shortSpanCalibrationCases.ts) | Length-1/2 + `ax`/`axolotl` fixtures |
 | [`testing/compareFlankCombineLegacy`](testing/compareFlankCombineLegacy.ts) | Legacy vs mitigated flank-combine score table |
 | [`testing/flankCombineBiasSweep`](testing/flankCombineBiasSweep.ts) | `biasMax` grid sweep + lock helper (FT-1.3.6) |
@@ -63,7 +63,6 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 | [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | OSA Sellers alignment of span in catalog `shortName` |
 | [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + `editDistanceRelevance` + `lexicalRelevanceFromMetrics` |
 | [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then edit gate * tanh flank combine |
-| [`testing/legacyLexicalChannelGate`](testing/legacyLexicalChannelGate.ts) | Pre-FT-1.3.1 gated baseline (harness only) |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
 | [`testing/simulateLexicalIdentityCorpus`](testing/simulateLexicalIdentityCorpus.ts) | Lexical-only identity corpus rank + tanh vs v1 A/B harness |
 
@@ -114,7 +113,7 @@ Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**,
 
 **FT-5 floors (wired on membership + relational selectors):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin when catalog is unary / high-margin.
 
-**Short-span admissibility (FT-1.3.1, 2026-07-09):** gate **retired**. [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) scores lexical for every non-empty normalized span; FT-5 `T_JOINT_*` owns auto-resolve gating downstream. **Spurious diverse-catalog length-1** (`a` vs multi-token catalog) stays below `T_JOINT_ABS` (~0.34 joint with weak embed). **Prefix shorthand** (`ax`/`rusty axe`, `a`/`axe`) may score moderately-to-highly --- desired pool behavior. Harness: [`compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) (legacy gated baseline vs gate-off production). Legacy gate logic: [`testing/legacyLexicalChannelGate`](testing/legacyLexicalChannelGate.ts).
+**Short-span admissibility (FT-1.3.1, 2026-07-09):** gate **retired**. [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) scores lexical for every non-empty normalized span; FT-5 `T_JOINT_*` owns auto-resolve gating downstream. **Spurious diverse-catalog length-1** (`a` vs multi-token catalog) stays below `T_JOINT_ABS` (~0.34 joint with weak embed). **Prefix shorthand** (`ax`/`rusty axe`, `a`/`axe`) may score moderately-to-highly --- desired pool behavior. Harness: [`compareAdmissibilityArms`](testing/compareAdmissibilityArms.ts) (absolute-threshold short-span-lexical + short-span-pool fixtures). **The pre-retirement legacy gate and its differential comparison were removed outright (C5, 2026-07-21)** --- the retirement harness had confirmed the two policies agreed for long enough that the differential no longer earned its keep; the injectable `resolveLexicalChannelActive` override was removed from production code alongside it.
 
 **Morphology invariant:** lexical is string geometry, not semantics. `gem/gemstones` and `don/wimbledon` are **precisely symmetric** (3-char span, 6-char adjoined flank, 9-char candidate, 3/9 coverage) --- scores must remain equal; tuning must not prefer one over the other lexically.
 

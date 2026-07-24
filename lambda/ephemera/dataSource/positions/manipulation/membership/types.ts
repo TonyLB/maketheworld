@@ -21,27 +21,6 @@ export type ObjectDropApplyArgs = {
     carriedEdges?: HostRelationalEdgeCarry[];
 }
 
-/**
- * Cross-host object-*set* membership apply (v1 takeHold: room -> character). A
- * carry-closed transfer set (BD-13) moves atomically via `applyObjectSetTransfer`'s
- * `MultiKeyUpdate`-based reducer (Pipeline A -> B migration slice 3, 2026-07-15),
- * which derives internal edges and re-validates boundary-edge classification
- * against freshly-fetched state at commit time --- no `carriedEdges` param, since
- * nothing is precomputed and passed in.
- */
-export type ObjectSetTakeHoldApplyArgs = {
-    objectIds: EphemeraObjectId[];
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-}
-
-/** Cross-host object-*set* membership apply (v1 drop: character -> room). */
-export type ObjectSetDropApplyArgs = {
-    objectIds: EphemeraObjectId[];
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-}
-
 /** Remove object from all membership hosts (destruction / clear). */
 export type ObjectClearMembershipApplyArgs = {
     objectId: EphemeraObjectId;
@@ -92,37 +71,6 @@ export type DropApplyErrorResult = {
 }
 
 export type DropApplyResult = DropApplySuccessResult | DropApplyErrorResult
-
-/** One object's membership diff within a set-apply call (Pipeline A -> B migration slice 1). */
-export type ObjectSetMembershipDiff = { objectId: EphemeraObjectId } & ObjectMembershipDiff
-
-export type TakeHoldSetApplySuccessResult = {
-    ok: true;
-    beatAnchorTime?: number;
-    diffs: ObjectSetMembershipDiff[];
-}
-
-export type TakeHoldSetApplyErrorResult = {
-    ok: false;
-    errorCode: string;
-    errorMessage: string;
-}
-
-export type TakeHoldSetApplyResult = TakeHoldSetApplySuccessResult | TakeHoldSetApplyErrorResult
-
-export type DropSetApplySuccessResult = {
-    ok: true;
-    beatAnchorTime?: number;
-    diffs: ObjectSetMembershipDiff[];
-}
-
-export type DropSetApplyErrorResult = {
-    ok: false;
-    errorCode: string;
-    errorMessage: string;
-}
-
-export type DropSetApplyResult = DropSetApplySuccessResult | DropSetApplyErrorResult
 
 export type ClearMembershipApplySuccessResult = {
     ok: true;

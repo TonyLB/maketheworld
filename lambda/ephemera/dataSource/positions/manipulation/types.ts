@@ -48,28 +48,19 @@ export type HostRelationalEdge = {
     relationLabel?: string
 }
 
-/** One add/remove of an in-host relational edge on a fixed host graph (Room or Character). */
+/**
+ * One add/remove of an in-host relational edge on a fixed host graph (Room or
+ * Character) --- `EphemeraPositionGraph.applyRelationalPatch`'s own input
+ * shape (`positionGraph/index.ts`), still load-bearing after
+ * `applyHostRelationalPatch.ts`/`planHostRelationalPatch.ts` retired (Migrate
+ * slice, 2026-07-23): every relational-effect call site builds one of these
+ * directly now instead of through that retired coordinator layer.
+ */
 export type HostRelationalPatch = {
     hostId: EphemeraMembershipHostId
     edge: HostRelationalEdge
     op: 'add' | 'remove'
 }
-
-export type ApplyHostRelationalPatchArgs = {
-    patches: HostRelationalPatch[]
-}
-
-export type ApplyHostRelationalPatchSuccess = {
-    ok: true
-    persisted: true
-    changed: boolean
-    postApplyGraphs: EphemeraPositionGraph[]
-}
-
-export type ApplyHostRelationalPatchResult =
-    | ApplyHostRelationalPatchSuccess
-    | { ok: true; persisted: false; changed: false }
-    | { ok: false; errorCode: string; errorMessage: string }
 
 /**
  * One relational edge carried along to a fixed destination host (Room or

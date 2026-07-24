@@ -56,9 +56,12 @@ export const repairObjectPlacementDrift = async (
         const containers = await getMembershipContainers(objectId)
 
         if (containers.length > 1) {
+            // BD-35: any relational edge severed by this scrub is a silent internal consistency fix,
+            // not a player-visible event --- suppress the newly-explicit dissolve fact (Object Moved
+            // still streams unaffected).
             const result = await applyMembership(
                 { objectId, targetRoomId: args.roomId },
-                { messageBus: args.messageBus, streamEvent: args.streamEvent }
+                { messageBus: args.messageBus, streamEvent: args.streamEvent, suppressRelationalFacts: true }
             )
             if (result.ok && result.changed) {
                 multiRoomScrubbed += 1

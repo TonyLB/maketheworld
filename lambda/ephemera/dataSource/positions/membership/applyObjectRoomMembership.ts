@@ -2,41 +2,31 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
-import getCurrentTimestamp from '../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { applyHostEffects, type ApplyHostEffectsDependencies } from '../manipulation/applyHostEffects'
+import { boundaryEdgeOutcomes } from '../positionGraph/expandValidate/interactionUnderTransfer'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
-import type { EphemeraPositionGraph } from '../positionGraph'
-import { buildObjectMovedFact } from './buildObjectMovedFact'
-import { streamObjectMembershipFact } from './streamObjectMembershipFact'
+import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
+import type { KernelStep } from '../manipulation/kernel/kernelStep'
 import type { MembershipApplyResult, MembershipDiff, ObjectMembershipApplyArgs } from './types'
 
 export type ApplyObjectRoomMembershipDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
-    kernelPersist?: ApplyHostEffectsDependencies;
+    /**
+     * Gates only the newly-explicit `Object Relation Changed` fact for a boundary edge severed by
+     * this call (`Object Moved` is unaffected). Ordinary place/spawn/remove leaves this unset (facts
+     * stream); `repairObjectPlacementDrift`'s multi-room scrub sets it `true` --- a drift-consistency
+     * fixup is a silent internal correction, not a player-visible event.
+     */
+    suppressRelationalFacts?: boolean;
 }
 
 const defaultGetMembershipContainers = async (objectId: EphemeraObjectId): Promise<EphemeraRoomId[]> => {
     const containers = await internalCache.Positions.getMembershipContainers(objectId)
     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
 }
-
-const seedPositionsGraphMemos = (postApplyGraphs: EphemeraPositionGraph[]): void => {
-    for (const graph of postApplyGraphs) {
-        if (!isEphemeraRoomId(graph.hostId)) {
-            continue
-        }
-        internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
-        internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
-        internalCache.Positions.set(graph)
-    }
-}
-
-const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
-    [...new Set([...froms, ...(to ? [to] : [])])]
 
 const membershipDiffFromProjection = (projection: {
     froms: EphemeraRoomId[];
@@ -48,6 +38,13 @@ const membershipDiffFromProjection = (projection: {
     changed: projection.changed,
 })
 
+/**
+ * Migrate row (object-lifecycle, BD-35): retired `applyHostEffects` in favor of the general kernel,
+ * matching `applyObjectClearMembership`'s sibling migration. Every departure room's edges referencing
+ * the object are swept explicitly via `boundaryEdgeOutcomes` on the singleton `{objectId}` set (no
+ * carry-closure growth --- there is no "everything riding along" partner for a place/remove/scrub, so
+ * every outcome collapses to "sever it", same reasoning as destroy/clear).
+ */
 export const applyObjectRoomMembership = async (
     args: ObjectMembershipApplyArgs,
     deps: ApplyObjectRoomMembershipDependencies
@@ -73,57 +70,53 @@ export const applyObjectRoomMembership = async (
         return { ok: true, ...diff }
     }
 
-    const kernelResult = await applyHostEffects(
-        { hostEffects: plan.hostEffects },
-        deps.kernelPersist
-    )
-
-    if (!kernelResult.ok) {
-        console.error(`[mtw.ephemera.positions] applyHostEffects failed: ${kernelResult.errorMessage}`)
-        return {
-            ok: false,
-            errorCode: kernelResult.errorCode,
-            errorMessage: kernelResult.errorMessage,
+    const hostByReferencedId = new Map<EphemeraObjectId, EphemeraRoomId>()
+    const dissolveSteps: KernelStep[] = []
+    for (const roomId of diff.froms) {
+        const graph = await internalCache.Positions.getPositionGraph(roomId)
+        const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
+        for (const { edge } of outcomes) {
+            hostByReferencedId.set(edge.from, roomId)
+            hostByReferencedId.set(edge.to, roomId)
+            dissolveSteps.push({
+                kind: 'dissolveRelation',
+                subjectId: edge.from,
+                targetId: edge.to,
+                relationKind: edge.kind,
+                ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
+            })
         }
     }
 
-    if (!kernelResult.persisted) {
-        return { ok: true, ...diff }
+    const transferStep: KernelStep = {
+        kind: 'transferMembership',
+        entityIds: new Set([args.objectId]),
+        fromHostIds: new Set(diff.froms),
+        toHostId: diff.to,
     }
 
-    const beatAnchorTime = getCurrentTimestamp()
+    const result = await commitStepSequence(
+        { steps: [...dissolveSteps, transferStep] },
+        {
+            messageBus: deps.messageBus,
+            streamEvent: deps.streamEvent,
+            getCurrentHost: (id) => hostByReferencedId.get(id),
+            ...(deps.suppressRelationalFacts !== undefined ? { suppressRelationalFacts: deps.suppressRelationalFacts } : {}),
+        }
+    )
 
-    // Cache write-through + AffordanceRoomDeliverable invalidation must land before the
-    // "Object Moved" fact is streamed below --- see applyObjectSetTransfer.ts's matching
-    // comment: messageBus.publish is fire-and-forget, so a stream event's downstream
-    // affordance-refresh chain can otherwise race ahead of this update and memoize a
-    // pre-mutation read.
-    const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
-    seedPositionsGraphMemos(kernelResult.postApplyGraphs)
-    internalCache.Positions.setMembershipContainers({
-        componentId: args.objectId,
-        containers: diff.to ? [diff.to] : [],
-    })
-
-    const fact = buildObjectMovedFact({
-        objectId: args.objectId,
-        diff,
-        beatAnchorTime,
-    })
-    if (fact) {
-        await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
+    if (!result.ok) {
+        console.error(`[mtw.ephemera.positions] applyObjectRoomMembership failed: ${result.errorMessage}`)
+        return {
+            ok: false,
+            errorCode: result.errorCode,
+            errorMessage: result.errorMessage,
+        }
     }
-
-    affectedRooms.forEach((roomId) => {
-        deps.messageBus.publish({
-            type: 'RoomUpdate',
-            roomId,
-        })
-    })
 
     return {
         ok: true,
         ...diff,
-        beatAnchorTime,
+        beatAnchorTime: result.beatAnchorTime,
     }
 }

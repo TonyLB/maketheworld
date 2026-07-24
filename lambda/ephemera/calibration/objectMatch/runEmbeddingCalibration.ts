@@ -5,7 +5,6 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { rankCatalogByCosineSimilarity } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/rankCatalogByCosineSimilarity'
-import type { ResolveLexicalChannelActive } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool'
 import { simulateEmbeddingIdentityWithPool } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/simulateEmbeddingIdentity'
 import { T_ABS, T_ABS_UNARY, T_JOINT_ABS, T_JOINT_MARGIN, T_MARGIN } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds'
 import type {
@@ -113,11 +112,6 @@ export type MarginRatioComparison = {
 }
 
 export type RunEmbeddingCalibrationDeps = EmbedNormalizedSemanticTextDeps
-
-export type RunEmbeddingCalibrationOptions = {
-    /** Harness-only: legacy gated lexical baseline. Production calibration omits. */
-    resolveLexicalChannelActive?: ResolveLexicalChannelActive
-}
 
 const headroomNoteForJointBucket = (
     bucket: EmbeddingCalibrationBucket,
@@ -324,8 +318,7 @@ const marginAndRatio = (
 
 export async function simulateIdentityCalibration(
     input: { span: string; catalog: readonly string[] },
-    deps: RunEmbeddingCalibrationDeps = {},
-    options: RunEmbeddingCalibrationOptions = {}
+    deps: RunEmbeddingCalibrationDeps = {}
 ): Promise<IdentityCalibrationResult | { error: string }> {
     const { span, catalog } = input
     if (!span || typeof span !== 'string') {
@@ -356,11 +349,7 @@ export async function simulateIdentityCalibration(
 
     const candidates = buildCalibrationCandidates(catalog, catalogEmbeddings)
     const rankedScores = rankCatalogByCosineSimilarity(spanEmbedding, candidates)
-    const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span, {
-        ...(options.resolveLexicalChannelActive
-            ? { resolveLexicalChannelActive: options.resolveLexicalChannelActive }
-            : {}),
-    })
+    const simulation = simulateEmbeddingIdentityWithPool(spanEmbedding, candidates, span)
     const decision = simulation.legacyDecision
     const { margin, ratio } = marginAndRatio(rankedScores)
     const corpusMatch = findMatchingCorpusCase(span, catalog)
@@ -391,8 +380,7 @@ export async function simulateIdentityCalibration(
 
 export async function runIdentityCorpus(
     bucket?: EmbeddingCalibrationBucket,
-    deps: RunEmbeddingCalibrationDeps = {},
-    options: RunEmbeddingCalibrationOptions = {}
+    deps: RunEmbeddingCalibrationDeps = {}
 ): Promise<{
     cases: IdentityCorpusCaseResult[]
     bucketSummaries: IdentityCorpusBucketSummary[]
@@ -404,8 +392,7 @@ export async function runIdentityCorpus(
     for (const identityCase of casesToRun) {
         const result = await simulateIdentityCalibration(
             { span: identityCase.span, catalog: identityCase.catalog },
-            deps,
-            options
+            deps
         )
         if ('error' in result) {
             throw new Error(`identity case ${identityCase.id}: ${result.error}`)
@@ -469,8 +456,7 @@ export async function runIdentityCorpus(
 
 export async function runFullEmbeddingCalibration(
     bucket?: EmbeddingCalibrationBucket,
-    deps: RunEmbeddingCalibrationDeps = {},
-    options: RunEmbeddingCalibrationOptions = {}
+    deps: RunEmbeddingCalibrationDeps = {}
 ): Promise<{
     metadata: CalibrationRunMetadata
     pairs: Awaited<ReturnType<typeof runPairCorpus>>
@@ -478,7 +464,7 @@ export async function runFullEmbeddingCalibration(
 }> {
     const [pairs, identity] = await Promise.all([
         runPairCorpus(bucket, deps),
-        runIdentityCorpus(bucket, deps, options),
+        runIdentityCorpus(bucket, deps),
     ])
     return {
         metadata: calibrationRunMetadata(),

@@ -1,10 +1,13 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { EphemeraPositionGraph } from '../../positionGraph'
-import * as kernelPersist from '../applyHostEffects'
 import { applyObjectClearMembership } from './applyObjectClearMembership'
+import { testPositionGraph } from '../../positionGraph/testFixtures'
+import type { EphemeraPositionGraph } from '../../positionGraph'
 
-jest.mock('../applyHostEffects', () => ({
-    applyHostEffects: jest.fn(),
+jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
+    ephemeraDB: {
+        transactWrite: jest.fn(),
+    },
+    exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => { await fn() }),
 }))
 
 jest.mock('../../../../internalCache', () => ({
@@ -14,6 +17,7 @@ jest.mock('../../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             getMembershipContainers: jest.fn(),
+            getPositionGraph: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -25,15 +29,40 @@ jest.mock('../../../../internalUtils/dateUtil', () => ({
     default: jest.fn(() => 1_700_000_000_000),
 }))
 
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
 
-const applyHostEffectsMock = kernelPersist.applyHostEffects as jest.MockedFunction<
-    typeof kernelPersist.applyHostEffects
->
-
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
+const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+
+/**
+ * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
+ * `commitStepSequence.test.ts`/`executeObjectTakeHold.test.ts` already establish. Exposes the
+ * mutated draft so a test can inspect final graph state directly, without re-invoking the reducer.
+ */
+const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+    const lastDraft: { current: Record<string, any> | undefined } = { current: undefined }
+    ;(ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {
+        const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
+        if (!multiKeyItem) {
+            return
+        }
+        const draft: Record<string, any> = {}
+        multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
+            const graph = graphsByHost[key.EphemeraId]
+            draft[`${key.EphemeraId}#${key.DataCategory}`] = {
+                EphemeraId: key.EphemeraId,
+                DataCategory: key.DataCategory,
+                positionGraph: graph.toStored(),
+            }
+        })
+        multiKeyItem.reducer(draft)
+        lastDraft.current = draft
+    })
+    return lastDraft
+}
 
 describe('applyObjectClearMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -57,33 +86,20 @@ describe('applyObjectClearMembership', () => {
             to: null,
             changed: false,
         })
-        expect(applyHostEffectsMock).not.toHaveBeenCalled()
+        expect(ephemeraDB.transactWrite).not.toHaveBeenCalled()
     })
 
     it('clears character inventory and streams Object Moved', async () => {
+        const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([CHARACTER_ID])
-        applyHostEffectsMock.mockResolvedValue({
-            ok: true,
-            persisted: true,
-            changed: true,
-            postApplyGraphs: [
-                EphemeraPositionGraph.fromFieldPayload(CHARACTER_ID, { nodes: [], edges: [] }),
-            ],
-        })
+        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(characterGraph)
+        wireTransactWrite({ [CHARACTER_ID]: characterGraph })
 
         const result = await applyObjectClearMembership(
             { objectId: OBJECT_ID },
             { messageBus: messageBus as any, streamEvent }
         )
 
-        expect(applyHostEffectsMock).toHaveBeenCalledWith(
-            {
-                hostEffects: [
-                    { hostId: CHARACTER_ID, identityId: OBJECT_ID, op: 'remove' },
-                ],
-            },
-            undefined
-        )
         expect(result).toEqual(expect.objectContaining({
             ok: true,
             froms: [CHARACTER_ID],
@@ -110,15 +126,10 @@ describe('applyObjectClearMembership', () => {
     })
 
     it('clears room placement and publishes RoomUpdate', async () => {
+        const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        applyHostEffectsMock.mockResolvedValue({
-            ok: true,
-            persisted: true,
-            changed: true,
-            postApplyGraphs: [
-                EphemeraPositionGraph.fromFieldPayload(FROM_ROOM, { nodes: [], edges: [] }),
-            ],
-        })
+        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(roomGraph)
+        wireTransactWrite({ [FROM_ROOM]: roomGraph })
 
         await applyObjectClearMembership(
             { objectId: OBJECT_ID },
@@ -129,5 +140,70 @@ describe('applyObjectClearMembership', () => {
             type: 'RoomUpdate',
             roomId: FROM_ROOM,
         })
+    })
+
+    it('BD-35: destroying an object with a relational edge dissolves it and streams Object Relation Changed --- dissolve only, no cascade', async () => {
+        const roomGraph = testPositionGraph(FROM_ROOM, {
+            nodes: [
+                { tag: 'Object', universalKey: OBJECT_ID },
+                { tag: 'Object', universalKey: TABLE_ID },
+            ],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
+        })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(roomGraph)
+        const lastDraft = wireTransactWrite({ [FROM_ROOM]: roomGraph })
+
+        const result = await applyObjectClearMembership(
+            { objectId: OBJECT_ID },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result.ok).toBe(true)
+        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                type: 'Object Relation Changed',
+                subjectId: OBJECT_ID,
+                targetId: TABLE_ID,
+                operation: 'dissolve',
+            }),
+        }))
+
+        // Dissolve only, no cascade: the table --- the other endpoint of the severed relation --- was
+        // never carried along or removed. It stays on the room's graph exactly as before.
+        const { EphemeraPositionGraph } = require('../../positionGraph')
+        const finalRoomGraph = EphemeraPositionGraph.fromFieldPayload(
+            FROM_ROOM,
+            lastDraft.current![`${FROM_ROOM}#Meta::Room`].positionGraph
+        )
+        expect(finalRoomGraph.objectIds.has(TABLE_ID)).toBe(true)
+        expect(finalRoomGraph.objectIds.has(OBJECT_ID)).toBe(false)
+    })
+
+    it('BD-35: destroying an object present on multiple hosts sweeps each host and clears from all', async () => {
+        const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID])
+        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === FROM_ROOM ? roomGraph : characterGraph
+        )
+        wireTransactWrite({ [FROM_ROOM]: roomGraph, [CHARACTER_ID]: characterGraph })
+
+        const result = await applyObjectClearMembership(
+            { objectId: OBJECT_ID },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result).toEqual(expect.objectContaining({
+            ok: true,
+            froms: [FROM_ROOM, CHARACTER_ID],
+            to: null,
+            changed: true,
+        }))
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({ type: 'Object Moved', froms: [FROM_ROOM, CHARACTER_ID], to: null }),
+        }))
     })
 })

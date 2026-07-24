@@ -65,7 +65,7 @@ describe('membership containers shared memo (slice 1c)', () => {
                     const containers = await internalCache.Positions.getMembershipContainers(characterId)
                     return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
                 },
-                kernelPersist: { transactWrite: jest.fn() },
+                transactWrite: jest.fn(),
             }
         )
 

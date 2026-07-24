@@ -15,25 +15,10 @@ import { weightedRmsJointRelevance } from './relevanceCombine'
 import type { RelevanceNormalizationParams } from './thresholds'
 import type { EmbeddingMatchCandidate } from './types'
 
-export type ResolveLexicalChannelActive = (
-    normalizedSpan: string,
-    candidates: readonly EmbeddingMatchCandidate[],
-    params: RelevanceNormalizationParams
-) => boolean
-
 export type BuildSpanCandidatePoolOptions = {
     spanEmbedding?: SemanticEmbedding
     params?: RelevanceNormalizationParams
-    /**
-     * Override lexical channel gating (harness-only). Production omits this --- lexical scores
-     * every non-empty normalized span (FT-1.3.1 gate retirement).
-     */
-    resolveLexicalChannelActive?: ResolveLexicalChannelActive
 }
-
-const defaultLexicalChannelActive: ResolveLexicalChannelActive = (normalizedSpan) => (
-    normalizedSpan.length > 0
-)
 
 const buildSourceTags = (
     lexicalChannelActive: boolean,
@@ -82,8 +67,7 @@ export function buildSpanCandidatePool(
 ): SpanCandidatePool {
     const params = options.params ?? {}
     const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const resolveActive = options.resolveLexicalChannelActive ?? defaultLexicalChannelActive
-    const lexicalChannelActive = resolveActive(normalizedSpan, candidates, params)
+    const lexicalChannelActive = normalizedSpan.length > 0
     const hasSpanEmbedding = options.spanEmbedding !== undefined
 
     const scored = candidates.map((candidate) => {

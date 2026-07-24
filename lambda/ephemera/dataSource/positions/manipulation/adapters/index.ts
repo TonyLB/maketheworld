@@ -1,7 +1,3 @@
 export { computeMembershipDiff } from './computeEndStateRoomDiff'
-export { computeDropDiff } from './computeDropDiff'
-export { computeTakeHoldDiff } from './computeTakeHoldDiff'
-export { hostEffectsFromObjectDropDiffs, hostEffectsFromObjectTakeHoldDiffs, hostEffectsFromRoomMembershipDiff } from './hostEffectsFromDiffs'
+export { hostEffectsFromRoomMembershipDiff } from './hostEffectsFromDiffs'
 export { planMembershipTransfer, type PlanMembershipTransferArgs } from './planMembershipTransfer'
-export { planObjectDropTransfer, type PlanObjectDropTransferArgs } from './planObjectDropTransfer'
-export { planObjectTakeHoldTransfer, type PlanObjectTakeHoldTransferArgs } from './planObjectTakeHoldTransfer'

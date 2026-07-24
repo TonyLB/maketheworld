@@ -1,7 +1,6 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { MembershipDiff } from '../../membership/types'
-import type { CharacterInventoryDiff } from '../membership/characterInventoryTransactItems'
 import type { HostEffect } from '../types'
 
 export const hostEffectsFromRoomMembershipDiff = (
@@ -47,62 +46,3 @@ export const hostEffectsFromRoomMembershipDiff = (
 
     return effects
 }
-
-export const hostEffectsFromObjectTakeHoldDiffs = (args: {
-    objectId: EphemeraObjectId
-    roomDiff: MembershipDiff
-    characterDiff: CharacterInventoryDiff
-}): HostEffect[] => {
-    const effects: HostEffect[] = []
-
-    if (args.roomDiff.changed) {
-        for (const departureRoomId of args.roomDiff.froms) {
-            effects.push({
-                hostId: departureRoomId,
-                identityId: args.objectId,
-                op: 'remove',
-            })
-        }
-    }
-
-    if (args.characterDiff.changed) {
-        for (const departureCharacterId of args.characterDiff.froms) {
-            effects.push({
-                hostId: departureCharacterId,
-                identityId: args.objectId,
-                op: 'remove',
-            })
-        }
-
-        if (args.characterDiff.to) {
-            effects.push({
-                hostId: args.characterDiff.to,
-                identityId: args.objectId,
-                op: 'add',
-            })
-        }
-    }
-
-    return effects
-}
-
-export const hostEffectsFromObjectDropDiffs = (args: {
-    objectId: EphemeraObjectId
-    roomDiff: MembershipDiff
-    characterDiff: CharacterInventoryDiff
-}): HostEffect[] => [
-    ...(args.characterDiff.changed
-        ? args.characterDiff.froms.map((departureCharacterId): HostEffect => ({
-            hostId: departureCharacterId,
-            identityId: args.objectId,
-            op: 'remove',
-        }))
-        : []),
-    ...(args.roomDiff.changed && args.roomDiff.to
-        ? [{
-            hostId: args.roomDiff.to,
-            identityId: args.objectId,
-            op: 'add',
-        } satisfies HostEffect]
-        : []),
-]

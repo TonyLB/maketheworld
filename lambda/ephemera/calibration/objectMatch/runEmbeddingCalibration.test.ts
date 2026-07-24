@@ -4,7 +4,6 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import { normalizeShortNameForEmbedding } from '../../dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh'
-import { resolveLegacyLexicalChannelActive } from '../../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/legacyLexicalChannelGate'
 import {
     bucketStats,
     compareEmbeddingPair,
@@ -136,20 +135,6 @@ describe('runEmbeddingCalibration', () => {
             count: expect.any(Number),
         })
         expect(summary!.suggestedJointFloorHeadroom).toContain('T_JOINT_ABS')
-    })
-
-    it('runIdentityCorpus gate-off default does not change ranking vs legacy gated baseline', async () => {
-        const legacyResult = await runIdentityCorpus(undefined, deps, {
-            resolveLexicalChannelActive: resolveLegacyLexicalChannelActive,
-        })
-        const gateOffResult = await runIdentityCorpus(undefined, deps)
-        for (const legacyCase of legacyResult.cases) {
-            const gateOffCase = gateOffResult.cases.find((entry) => entry.id === legacyCase.id)
-            expect(gateOffCase).toBeDefined()
-            expect(gateOffCase!.pool?.candidates.map((c) => c.label)).toEqual(
-                legacyCase.pool?.candidates.map((c) => c.label)
-            )
-        }
     })
 
     it('runFullEmbeddingCalibration returns metadata and both corpora', async () => {

@@ -1,6 +1,14 @@
 # Positions manipulation --- implementation map and kernel spec
 
-**Status:** Membership transfer and host-local relational patch shipped. Coordinators route through shared membership adapter + **`applyHostEffects`** kernel, or relational planner + **`applyHostRelationalPatch`** kernel.
+**Status:** Membership transfer and host-local relational patch shipped. **Coordinators now route through the shared membership adapter + [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts) (all routes, as of 2026-07-23) --- `applyHostEffects` is retired.** See the file-top superseded notes below for the migration history.
+
+**Superseded 2026-07-23 for take-hold/drop/establish/dissolve (the two player-command routes).** `applyObjectSetTakeHold.ts`/`applyObjectSetDrop.ts`/`applyObjectSetTransfer.ts` and `applyObjectRelationalChangeWithTransfer.ts`/`applyHostRelationalPatch.ts`/`planHostRelationalPatch.ts` --- everything this doc describes below as the live `MultiKeyUpdate` kernels for those four commands --- are **deleted**. `executeObjectTakeHold.ts`/`executeObjectDrop.ts` now seed and run the general Synthesize executor (`enrich/objectManipulation/synthesize/executor.ts`) fresh at execute time and commit via one general kernel entrypoint, [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts); `applyObjectRelationalChange.ts` collapsed its satisfied/repaired branch into the same `commitStepSequence` call.
+
+**Superseded 2026-07-23 for the object-lifecycle routes (destroy/edit/spawn/place/drift-repair) --- see the same Migrate row.** [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts) and [`../membership/applyObjectRoomMembership.ts`](../membership/applyObjectRoomMembership.ts) (used by [`../membership/repairObjectPlacementDrift.ts`](../membership/repairObjectPlacementDrift.ts) too) no longer call `applyHostEffects`. Each sweeps every departure host's edges referencing the object via `boundaryEdgeOutcomes` on the singleton `{objectId}` set --- no carry-closure growth, since there is no destination for a carry partner to move into, so every outcome (carry/dissolve/defer alike) collapses to "sever it" (dissolve-only, no cascade: a destroyed object's dependents have their relation severed, not swept along) --- then commits an explicit `dissolveRelation` + widened `transferMembership` step sequence via `commitStepSequence`, same as the player routes. This required widening `KernelTransferMembershipStep` (kernel-layer only, `kernelStep.ts`) from a singular non-null `fromHostId`/`toHostId` pair to `fromHostIds: ReadonlySet<HostId>` / `toHostId: HostId | null`, matching `MembershipDiff`'s existing `{froms, to}` shape --- one step kind now covers a real transfer (both populated), a pure add (`fromHostIds` empty, spawn), and a pure remove (`toHostId` null, destroy/clear/stray-room scrub); `applyStepSequenceCore.ts`/`computeStepSequenceFootprint.ts`/`factsForStep.ts`/`commitStepSequence.ts`'s adjacency-item builder all updated accordingly. `commitStepSequence` also gained an optional `suppressRelationalFacts` dep, gating only the `Object Relation Changed` fact (not `Object Moved`) --- destroy/edit leaves it unset (facts now stream, delivering BD-28's originally-silent dissolution), `repairObjectPlacementDrift`'s multi-room scrub sets it `true` (a silent consistency fixup, not a player-visible event).
+
+**Superseded 2026-07-23 for the character route (navigate/connect/disconnect), retiring the legacy pipeline entirely.** [`../membership/applyCharacterRoomMembership.ts`](../membership/applyCharacterRoomMembership.ts) --- the last live caller of `applyHostEffects` --- now builds a bare `transferMembership` `KernelStep` (`entityIds: {characterId}`) and commits via `commitStepSequence`, same kernel as every other route. Unlike the object routes, it builds **no** `dissolveRelation` steps at all: `HostRelationalEdge` is object-only (BD-36's character-relation widening is explicitly deferred), so a character can never be a relational-edge endpoint --- there is structurally nothing for `boundaryEdgeOutcomes` to sweep here, not just nothing found in practice. `Character Moved` fact emission is folded into `commitStepSequence`/`factsForStep` (via a new `characterNames` dep) rather than layered on top after the kernel call returns --- that's what keeps it streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s existing ordering guarantee (the route's own test suite asserts this ordering). With this route migrated, `applyHostEffects.ts`, `membership/objectPlacementTransactItems.ts`, `membership/characterRoomMembershipTransactItems.ts`, and `membership/characterInventoryTransactItems.ts` have no remaining callers and are **deleted**, along with the dead adapter subtree only reachable through them (`adapters/computeDropDiff.ts`, `adapters/computeTakeHoldDiff.ts`, `adapters/planObjectDropTransfer.ts`, `adapters/planObjectTakeHoldTransfer.ts`, and the two `Object*Diffs` exports from `adapters/hostEffectsFromDiffs.ts`) --- confirmed unreachable except via `adapters/index.ts`'s barrel before deletion. **Residual finding, surfaced this slice and resolved as an immediate same-day follow-up:** the pre-assert-and-throw `EphemeraPositionGraph.removeObject`/`applyMembershipEffect` and `positionGraph/expandValidate/applyTransferSet.ts` had zero remaining production callers, `applyHostEffects.ts` having been their last one --- deleted, and the surviving assert-and-throw implementations (`removeObjectAsserted`/`applyTransferSetAsserted.ts`) renamed onto the now-free plain names (`removeObject`/`applyTransferSet.ts`), since each is the only implementation left. `removeCharacterAsserted` similarly merged into `removeCharacter` (one method, assert-and-throw always, vacuously satisfied until BD-36's character-relation widening lands).
+
+The sections below describing the now-deleted/superseded files are kept as historical record of the design they superseded, not as current fact; see `kernel/commitStepSequence.ts`, `kernel/applyStepSequenceCore.ts`, and `kernel/kernelStep.ts` for the shipped replacement.
 
 **Play graph model (P2):** [`../positionGraph/`](../positionGraph/) is the shared in-memory primitive. Kernels load via **`EphemeraPositionGraph.fromPlayEnvelope`**, simulate with **`applyMembershipEffect`** / **`applyRelationalPatch`**, and return **`postApplyGraphs: EphemeraPositionGraph[]`**. Transact reducers assemble host-bound graphs at the Dynamo read boundary (`fromRoomMeta` / `fromCharacterMeta`) and persist via **`toStored()`**. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
 
@@ -64,7 +72,7 @@ type HostEffect =
 | Host row | Room hosts: `Meta::Room`; character inventory hosts: `Meta::Character` |
 | Edges | Membership-node effects only in **`applyHostEffects`** --- relational edges use **`applyHostRelationalPatch`** (shipped) |
 
-**Reference transact builders today:** [`objectPlacementTransactItems.ts`](../membership/objectPlacementTransactItems.ts) (room + object), [`characterInventoryTransactItems.ts`](membership/characterInventoryTransactItems.ts) (character + object). Phase 4a kernel should reuse or wrap these builders rather than duplicating reducers.
+**Reference transact builders (historical, Phase 4a):** `objectPlacementTransactItems.ts` (room + object), `characterInventoryTransactItems.ts` (character + object) --- both retired 2026-07-23 along with `applyHostEffects.ts`; the shipped kernel (`kernel/commitStepSequence.ts`) builds its own adjacency items directly, see [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts).
 
 ### `applyHostEffects` contract
 
@@ -275,7 +283,7 @@ Decisions **M1**--**M5**, **M7**, **M8**, **M2** are recorded in [`../AGENT.cont
 3. **Cross-host takeHold** --- coordinator `applyObjectTakeHold` -> `planObjectTakeHoldTransfer` -> `applyHostEffects` (historical; **superseded 2026-07-15** by [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) -> [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) -> `MultiKeyUpdate`, see below).
 4. **Cross-host drop** --- coordinator `applyObjectDrop` -> `planObjectDropTransfer` -> `applyHostEffects` (historical; **superseded 2026-07-15** by [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) -> `MultiKeyUpdate`, see below).
 
-Legacy `update*PositionGraphs` wrappers **removed** in Phase 4c (2026-06-26). Persist tests: [`planMembershipTransfer.characterPersist.test.ts`](../membership/planMembershipTransfer.characterPersist.test.ts), [`planMembershipTransfer.objectPersist.test.ts`](../membership/planMembershipTransfer.objectPersist.test.ts).
+Legacy `update*PositionGraphs` wrappers **removed** in Phase 4c (2026-06-26). Persist tests (historical; retired 2026-07-23 with `applyHostEffects` --- see [`applyStepSequenceCore.test.ts`](kernel/applyStepSequenceCore.test.ts)/[`commitStepSequence.test.ts`](kernel/commitStepSequence.test.ts) for the shipped equivalent): `planMembershipTransfer.characterPersist.test.ts`, `planMembershipTransfer.objectPersist.test.ts`.
 
 ---
 
@@ -286,6 +294,8 @@ Legacy `update*PositionGraphs` wrappers **removed** in Phase 4c (2026-06-26). Pe
 Peer review: spec covers all three shipped apply paths without contradicting [`../AGENT.contract.md`](../AGENT.contract.md). Cross-check **M2** against actions parse steady-state and cross-host membership-changed bundle.
 
 ### Phase 4a (kernel + adapter scaffold)
+
+**Stale as a runnable command (2026-07-23): `applyHostEffects.test.ts` is deleted along with `applyHostEffects.ts` --- see file-top note.** Kept below as historical record of what Phase 4a originally verified; use [`kernel/`](kernel/)'s own test suites (`applyStepSequenceCore.test.ts`, `commitStepSequence.test.ts`, etc.) for the shipped replacement's equivalent coverage.
 
 ```bash
 npm --prefix lambda/ephemera run test -- --watchAll=false \
@@ -303,11 +313,11 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
   dataSource/positions/manipulation/
 ```
 
-**No parallel persist paths (Phase 4c):**
+**No parallel persist paths (Phase 4c)** (the first `rg` target below no longer exists post-2026-07-23 --- `applyHostEffects.ts` deleted; check `kernel/commitStepSequence.ts` for the equivalent invariant instead):
 
 ```bash
 rg -n "getMembershipContainers" \
-  lambda/ephemera/dataSource/positions/manipulation/applyHostEffects.ts 2>/dev/null || true
+  lambda/ephemera/dataSource/positions/manipulation/kernel/commitStepSequence.ts 2>/dev/null || true
 
 rg -n "computeTakeHoldDiff|computeDropDiff|computeMembershipDiff|updatePositionGraphs|updateObjectPositionGraphs|updateTakeHoldPositionGraphs|updateDropPositionGraphs" \
   lambda/ephemera/dataSource/positions/
@@ -319,13 +329,14 @@ Goal: transfer planners live in **shared adapter**; kernel has no `getMembership
 
 | Ingress | Coordinator | Adapter | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
-| Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
-| Improvisational object spawn (objects lane) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | `applyHostEffects` |
-| **`takeHold`** (superseded 2026-07-15) | [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) | n/a --- reducer re-derives live | [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (`MultiKeyUpdate`) |
-| **`drop`** (superseded 2026-07-15) | [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) | n/a --- reducer re-derives live | [`applyObjectSetTransfer`](membership/applyObjectSetTransfer.ts) (`MultiKeyUpdate`) |
+| Navigate / connect / disconnect / home (**superseded 2026-07-23**, see file-top note) | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
+| Object room place / remove / drift repair (**superseded 2026-07-23**, see file-top note) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
+| Improvisational object spawn (objects lane) (**superseded 2026-07-23**) | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
+| Object destroy/edit (**superseded 2026-07-23**) | [`applyObjectClearMembership`](membership/applyObjectClearMembership.ts) | `planObjectClearFromAllHosts` (end-state, target null) | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
+| **`takeHold`** (superseded 2026-07-15, then 2026-07-23 --- see file-top note) | stale: [`applyObjectSetTakeHold`](membership/applyObjectSetTakeHold.ts) --- **deleted**; live entry is [`executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | n/a --- reducer re-derives live | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
+| **`drop`** (superseded 2026-07-15, then 2026-07-23 --- see file-top note) | stale: [`applyObjectSetDrop`](membership/applyObjectSetDrop.ts) --- **deleted**; live entry is [`executeObjectDrop.ts`](membership/executeObjectDrop.ts) | n/a --- reducer re-derives live | [`commitStepSequence`](kernel/commitStepSequence.ts) (`MultiKeyUpdate`) |
 
-**Kernel invariant:** [`applyHostEffects.ts`](applyHostEffects.ts) does **not** call `getMembershipContainers`.
+**Kernel invariant (now enforced by [`commitStepSequence.ts`](kernel/commitStepSequence.ts) --- `applyHostEffects.ts` deleted 2026-07-23):** the kernel does **not** call `getMembershipContainers`.
 
 **Documented exceptions (not membership-transfer parallel paths):**
 

@@ -11,7 +11,6 @@ import {
     embeddingAtCosineSimilarity,
     makeEmbeddingFromAxis,
 } from './testing/mockVectors'
-import { resolveLegacyLexicalChannelActive } from './testing/legacyLexicalChannelGate'
 
 const objectA = 'OBJECT#a' as EphemeraObjectId
 const objectB = 'OBJECT#b' as EphemeraObjectId
@@ -84,18 +83,6 @@ describe('buildSpanCandidatePool', () => {
         const pool = buildSpanCandidatePool('ax', candidates, { spanEmbedding })
         expect(pool.candidates[0]!.lexRelevance).toBeDefined()
         expect(pool.candidates[0]!.jointRelevance).toBeGreaterThanOrEqual(T_JOINT_ABS)
-    })
-
-    it('legacy harness resolver omits lex when pre-FT-1.3.1 gate would be inactive', () => {
-        const base = makeEmbeddingFromAxis(0)
-        const candidates = [catalogEntry(objectA, 'axe', base)]
-        const spanEmbedding = embeddingAtCosineSimilarity(base, 0.2)
-
-        const pool = buildSpanCandidatePool('a', candidates, {
-            spanEmbedding,
-            resolveLexicalChannelActive: resolveLegacyLexicalChannelActive,
-        })
-        expect(pool.candidates[0]!.lexRelevance).toBeUndefined()
     })
 
     it('assigns marginToRunnerUp on ranked candidates', () => {

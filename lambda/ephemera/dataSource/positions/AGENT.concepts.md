@@ -93,12 +93,12 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPositionGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
-- **Persist primitives (slice 1):** [`manipulation/membership/characterInventoryTransactItems.ts`](manipulation/membership/characterInventoryTransactItems.ts) --- character-host graph + adjacency transact items.
+- **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence` (slice-1 `characterInventoryTransactItems.ts` retired 2026-07-23).
 - **Cross-host apply:** [`manipulation/membership/applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped). [`manipulation/membership/applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) --- atomic character-remove + room-add on **`drop`** (shipped). Both use shared adapter + kernel --- **no** new `update*PositionGraphs` fork.
 
 ### Manipulation layering (membership transfer)
 
-Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`applyHostEffects`** kernel. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`commitStepSequence`** kernel (`applyHostEffects` retired 2026-07-23). Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
 
 ```text
 Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)

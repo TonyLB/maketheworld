@@ -37,7 +37,9 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 - **`PlayPositionGraph`** **must** be topology only (alias of `StandardPositionGraphData`); **must not** carry roster display fields or reverse-membership encodings on the forward graph.
 - Forward **`getPositionGraph`** **must** return stored topology only on Dynamo load; **`Positions.set`** **must** accept topology-only graphs.
 
-**Deferred (edge-reference cleanup):** object removal prunes incident edges on hosts participating in the removal transaction only. Cross-host or edge-only references without a node-removal path are not swept by membership adjacency today. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)** and [`../objects/AGENT.md`](../objects/AGENT.md) **Deferred (cross-host edge references)**.
+**Deferred (edge-reference cleanup):** object removal prunes play-only (Exit) edges on hosts participating in the removal transaction only (Relational edges are assert-and-throw, not pruned --- caller must dissolve them explicitly first). Cross-host or edge-only references without a node-removal path are not swept by membership adjacency today. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)** and [`../objects/AGENT.md`](../objects/AGENT.md) **Deferred (cross-host edge references)**.
+
+**Deferred (character-relation widening, BD-36):** `HostRelationalEdge` endpoints are `EphemeraObjectId`-typed only --- a character can never hold a Relational edge, so `removeCharacter`'s assert-and-throw is vacuously satisfied today. Widening to admit `EphemeraCharacterId` waits for a KR-write path that authors character relations, which does not exist yet. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)**.
 
 ---
 
@@ -47,10 +49,10 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 
 **Architectural (shipped Phase 4c):**
 
-- Membership transfer persist **must** converge on one graph-grounded path: **shared membership adapter** plans -> **`applyHostEffects`** kernel transacts.
-- Kernel **must** accept explicit **`HostEffect[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
+- Membership transfer persist **must** converge on one graph-grounded path: **shared membership adapter** plans -> **`commitStepSequence`** kernel transacts (`applyHostEffects` retired 2026-07-23 --- every route migrated onto the general kernel, see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) file-top note).
+- Kernel **must** accept explicit **`KernelStep[]`** only; **must not** call **`getMembershipContainers`** to discover priors.
 - **Must not** add parallel persist paths (new `update*PositionGraphs` with bundled planner + transact; per-verb diff computers outside [`manipulation/adapters/`](manipulation/adapters/)).
-- **Shipped kernels:** membership-node add/remove via **`applyHostEffects`** (**`HostEffect[]`**); in-host relational edge add/remove via **`applyHostRelationalPatch`** (**`HostRelationalPatch[]`**) --- [Host-local relational patch](#host-local-relational-patch-phase-b-shipped-b4).
+- **Shipped kernel:** one general **`commitStepSequence`** (**`KernelStep[]`**) covers membership-node add/remove (`transferMembership`, entity-kind-general per BD-36) and in-host relational edge add/remove (`establishRelation`/`dissolveRelation`) --- see [`manipulation/kernel/`](manipulation/kernel/).
 - Positions kernel in-memory graph simulation **must** use **`EphemeraPositionGraph`** / **`EphemeraPositionGraph[]`** --- **must not** reintroduce bare **`EphemeraPositionGraphFieldPayload`** simulation or ad-hoc merge helpers outside [`positionGraph/`](positionGraph/). Mental model: [`AGENT.concepts.md`](AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope); module spec: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
 - Actions **may** import **`EphemeraPositionGraph`** read-only for observation/legality; actions **must not** persist graphs or build transact items.
 
@@ -67,7 +69,7 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 | **bounded** (room) + **end-state** (character hosts) | **`takeHold`** | Room: scrub **only** trusted ingress `roomId` when object is on that room; character: end-state on character inventory hosts |
 | **bounded** (character) + **bounded** (room) | **`drop`** | Character: scrub **only** trusted ingress `characterId` when object is on that character; room: add at trusted ingress `roomId` when object is not already on that room --- **must not** end-state scrub other room or character hosts |
 
-Module paths (Phase 4a shipped): [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/applyHostEffects.ts`](manipulation/applyHostEffects.ts) (kernel). Fact emission: adapter **`MembershipTransferProjection`** on successful persist (provisional; see [`manipulation/AGENT.implementation.md` --- Fact emission](manipulation/AGENT.implementation.md#fact-emission-projection-first-provisional)). Migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
+Module paths: [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/kernel/`](manipulation/kernel/) (kernel --- `commitStepSequence.ts`, `applyStepSequenceCore.ts`, `kernelStep.ts`). Fact emission: adapter **`MembershipTransferProjection`** on successful persist (provisional; see [`manipulation/AGENT.implementation.md` --- Fact emission](manipulation/AGENT.implementation.md#fact-emission-projection-first-provisional)). Migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d--decided-decisions-m4-m5-m7-m8-m2).
 
 ---
 
@@ -80,7 +82,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist (**S2-4**).
 - **Result:** `{ froms, to, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play). **`froms`** is required (same semantics as **`MembershipDiff`** / bus fact).
 - **Navigate orchestration:** [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result for presentation (`characterMove` header, render kicks). Does **not** publish **`MapUpdate`** (server map runtime retired; see [`../maps/AGENT.md`](../maps/AGENT.md)). Multi-departure leave is fan-in's job (**F2-2**). Leave/arrive world lines are **not** emitted from navigate orchestration (membership fan-in owns them).
-- **Graph persist path:** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`applyHostEffects`](manipulation/applyHostEffects.ts) (graph + adjacency only).
+- **Graph persist path (superseded 2026-07-23):** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`), not `applyHostEffects` --- a bare `transferMembership` step only (no `dissolveRelation` steps: a character can never be a relational-edge endpoint, `HostRelationalEdge` being object-only). `Character Moved` fact emission is folded into `commitStepSequence`/`factsForStep` rather than layered on top by the coordinator. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) file-top note.
 
 ### Graph apply (S2-4)
 
@@ -136,7 +138,7 @@ Membership host transfer projection --- coordinators **must** derive fact fields
 All improvisational **object room-placement** mutations **must** go through [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts).
 
 - **Args:** `{ objectId, targetRoomId: EphemeraRoomId | null }` --- `null` = removed from all rooms.
-- **Graph persist path:** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`applyHostEffects`](manipulation/applyHostEffects.ts).
+- **Graph persist path (superseded 2026-07-23):** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`), not `applyHostEffects` --- every departure room's edges referencing the object are swept explicitly first (`boundaryEdgeOutcomes` on the singleton object set, no carry-closure growth) and dissolved via an explicit step, rather than silently stripped. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) file-top note.
 - **Must** persist **`positionGraph`** + adjacency in the same transact; on conflict **`positionGraph` wins** (mirror S2-4 character rule).
 - **Spawn initial placement (objects-lane coordinator):** improvisational **existence** (pair + **`Meta::Object`**) is objects-lane owned; **initial room placement** at spawn **must** call [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) from the objects coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)) --- same adapter + kernel path as place/remove/drift repair. **Two atomic steps**, not one cross-lane transact (**I1** cross-lane spawn bundle retired).
 - **S1 compensating delete:** if placement fails after successful existence create, objects coordinator **must** call `persistDeleteImprovisationObject` before treating the row as failed. If compensation delete also fails, **must** `console.error` with `objectId`, placement error, and delete error **and** emit **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** via [`streamSpawnCompensationProblem`](../objects/problemReports.ts). Diagnostics intake runs [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep/); when litmus confirms orphan, **must** emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`** (sweep contract: [`lambda/diagnostics/AGENT.md`](../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**). Objects lane **must** subscribe to the finding and call **`persistDeleteImprovisationObject`** (delete-only repair; see [`objects/AGENT.md`](../objects/AGENT.md) **Diagnostics repair**).
@@ -164,7 +166,7 @@ When object room-only **`MembershipDiff.changed`** after successful graph persis
 3. **`setMembershipContainers(objectId)`** from apply diff.
 4. Publish **`RoomUpdate`** per affected room.
 
-**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts).
+**Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts). A severed boundary relation now streams **`Object Relation Changed`** too (previously silent) --- suppressed only when the caller passes `suppressRelationalFacts: true` (e.g. `repairObjectPlacementDrift`'s consistency scrub); `applyObjectClearMembership.ts` (destroy/edit --- `{ objectId }`, always end-state-to-null across every prior host) follows the identical kernel path and fact rule, leaving `suppressRelationalFacts` unset.
 
 ### Cross-host object membership-changed bundle (v1 `takeHold`)
 
@@ -208,7 +210,7 @@ When relational apply **`changed: true`** after successful graph persist, the co
 ### Object placement drift repair
 
 - **Steady state:** at most one room per **`OBJECT#`**; multi-room adjacency is drift.
-- **Graph-forward repair:** [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts) --- adjacency-only via [`syncObjectMembershipAdjacencyToRoom`](membership/syncObjectMembershipAdjacency.ts); multi-container scrub via **`applyObjectRoomMembership`** retaining the finding room. Applies when a graph **`Object`** node exists (adjacency lag); **not** for existence-without-placement orphans (pair + meta without graph node --- see **Orphan vs adjacency lag** above and [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep/)).
+- **Graph-forward repair:** [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts) --- adjacency-only via [`syncObjectMembershipAdjacencyToRoom`](membership/syncObjectMembershipAdjacency.ts); multi-container scrub via **`applyObjectRoomMembership`** retaining the finding room, with `suppressRelationalFacts: true` --- a severed boundary relation here is a silent consistency fixup, not a player-visible event, so it must not stream **`Object Relation Changed`** (`Object Moved` streams unaffected). Applies when a graph **`Object`** node exists (adjacency lag); **not** for existence-without-placement orphans (pair + meta without graph node --- see **Orphan vs adjacency lag** above and [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep/)).
 - **Deferred:** `Object Placement Drift Finding` diagnostics sweep (character analog: [`roomOccupancyDriftSweep`](../../../diagnostics/roomOccupancyDriftSweep/)).
 
 ---
