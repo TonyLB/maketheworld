@@ -3,7 +3,7 @@ import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interface
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionGraph } from '../../positionGraph'
-import { applyTransferSetAsserted } from '../../positionGraph/expandValidate/applyTransferSetAsserted'
+import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
 import type { KernelStep } from './kernelStep'
 import type { KernelApplyOutcome } from './types'
 
@@ -30,25 +30,24 @@ const findHostOf = (
  * `transferMembership` (BD-36-generalized, and object-lifecycle-Migrate-row-widened): splits
  * `entityIds` by kind, then dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
  * (`fromHostIds` has exactly one member, `toHostId` non-null): unchanged from before this slice ---
- * the object subset routes through `applyTransferSetAsserted` (full boundary-edge legality
- * machinery), the character subset is a direct `removeCharacterAsserted`/`addCharacter` swap (a
- * character can never carry a relational edge, BD-36's widening deferred). **Pure remove**
- * (`toHostId === null`): for each host in `fromHostIds`, a presence-check then
- * `removeObjectAsserted`/`removeCharacterAsserted` directly --- no boundary-sweep here, since the
- * caller is responsible for having already seeded explicit `dissolveRelation` steps for every edge
- * the entity carried (an object-lifecycle route uses `boundaryEdgeOutcomes` on a singleton set,
- * collapsing every outcome to "sever it", since there's no destination to carry into or defer
- * against); a residual edge means `removeObjectAsserted` throws, the fail-loud contract BD-33 wants.
- * **Pure add** (`fromHostIds` empty): `addObject`/`addCharacter` onto `destGraph` only --- a freshly
- * spawned entity has no prior edges, so no assert is needed.
+ * the object subset routes through `applyTransferSet` (full boundary-edge legality machinery), the
+ * character subset is a direct `removeCharacter`/`addCharacter` swap (a character can never carry a
+ * relational edge, BD-36's widening deferred). **Pure remove** (`toHostId === null`): for each host
+ * in `fromHostIds`, a presence-check then `removeObject`/`removeCharacter` directly --- no
+ * boundary-sweep here, since the caller is responsible for having already seeded explicit
+ * `dissolveRelation` steps for every edge the entity carried (an object-lifecycle route uses
+ * `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to "sever it", since there's
+ * no destination to carry into or defer against); a residual edge means `removeObject` throws, the
+ * fail-loud contract BD-33 wants. **Pure add** (`fromHostIds` empty): `addObject`/`addCharacter`
+ * onto `destGraph` only --- a freshly spawned entity has no prior edges, so no assert is needed.
  *
  * `establishRelation`/`dissolveRelation`: derives the shared host live from the graph map (BD-33
  * assert-and-throw --- these steps carry no host field), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransferSetAsserted`/`removeObjectAsserted`/`removeCharacterAsserted`) throw,
- * uniformly in both modes --- not a `KernelApplyOutcome` verdict. Legitimate legality outcomes (stale
- * candidate, `Custom`-edge defer, `unresolvedDissolveEdge`) return through the discriminated result.
+ * inside `applyTransferSet`/`removeObject`/`removeCharacter`) throw, uniformly in both modes --- not
+ * a `KernelApplyOutcome` verdict. Legitimate legality outcomes (stale candidate, `Custom`-edge defer,
+ * `unresolvedDissolveEdge`) return through the discriminated result.
  */
 export const applyStepSequenceCore = (
     steps: readonly KernelStep[],
@@ -96,7 +95,7 @@ export const applyStepSequenceCore = (
                             return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                         }
                     }
-                    const outcome = applyTransferSetAsserted(nextSourceGraph, nextDestGraph, objectIds)
+                    const outcome = applyTransferSet(nextSourceGraph, nextDestGraph, objectIds)
                     if (outcome.verdict === 'illegal') {
                         return { verdict: 'illegal', reasonCode: outcome.reasonCode }
                     }
@@ -110,7 +109,7 @@ export const applyStepSequenceCore = (
                 for (const id of characterIds) {
                     // No boundary-sweep, no carry-closure --- HostRelationalEdge is object-only
                     // (BD-36's widening deferred), so a character can never have a relational edge.
-                    nextSourceGraph = nextSourceGraph.removeCharacterAsserted(id)
+                    nextSourceGraph = nextSourceGraph.removeCharacter(id)
                     nextDestGraph = nextDestGraph.addCharacter(id)
                 }
 
@@ -133,13 +132,13 @@ export const applyStepSequenceCore = (
                     if (!nextSourceGraph.objectIds.has(id)) {
                         return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                     }
-                    nextSourceGraph = nextSourceGraph.removeObjectAsserted(id)
+                    nextSourceGraph = nextSourceGraph.removeObject(id)
                 }
                 for (const id of characterIds) {
                     if (!nextSourceGraph.characterIds.has(id)) {
                         return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                     }
-                    nextSourceGraph = nextSourceGraph.removeCharacterAsserted(id)
+                    nextSourceGraph = nextSourceGraph.removeCharacter(id)
                 }
                 graphs.set(fromHostId, nextSourceGraph)
             }

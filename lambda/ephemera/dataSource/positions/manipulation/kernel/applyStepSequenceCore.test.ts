@@ -127,7 +127,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    it('defer propagation: an underlying applyTransferSetAsserted defer (Custom boundary edge) surfaces unchanged', () => {
+    it('defer propagation: an underlying applyTransferSet defer (Custom boundary edge) surfaces unchanged', () => {
         const sourceGraph = testPositionGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -219,7 +219,7 @@ describe('applyStepSequenceCore', () => {
             })
         })
 
-        it("removeCharacterAsserted's vacuous assert never spuriously fires on an unrelated object-object edge", () => {
+        it("removeCharacter's vacuous assert never spuriously fires on an unrelated object-object edge", () => {
             const sourceGraph = testPositionGraph(roomId, {
                 nodes: [
                     { tag: 'Character', universalKey: characterId },
@@ -307,7 +307,7 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(false)
         })
 
-        it('pure remove with a residual edge throws (removeObjectAsserted), not a silent strip', () => {
+        it('pure remove with a residual edge throws (removeObject), not a silent strip', () => {
             const roomGraph = testPositionGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },

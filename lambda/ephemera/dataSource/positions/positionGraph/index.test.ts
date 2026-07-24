@@ -57,14 +57,6 @@ describe('EphemeraPositionGraph', () => {
     })
 
     describe('membership nodes', () => {
-        it('removeCharacter removes matching node', () => {
-            const graph = seedFromActiveCharacters([
-                { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
-                { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
-            ], HOST_ID)
-            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([characterNode(CHARACTER_B)])
-        })
-
         it('addCharacter appends new node', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
             expect(graph.addCharacter(CHARACTER_B).toStored().nodes).toEqual([
@@ -99,80 +91,22 @@ describe('EphemeraPositionGraph', () => {
             expect(graph.addObject(OBJECT_A)).toBe(graph)
         })
 
-        it('removeObject removes matching node and incident edges', () => {
-            const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
-                nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
-                edges: [],
-            })
-            expect(graph.removeObject(OBJECT_A).toStored().nodes).toEqual([characterNode(CHARACTER_A)])
-        })
-
-        it('removeObject prunes relational edges touching the object', () => {
-            const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
-                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
-            })
-            expect(graph.removeObject(OBJECT_A).toStored()).toEqual({
-                nodes: [objectNode(OBJECT_B)],
-                edges: [],
-            })
-        })
-
-        it('removeObject prunes exit edges touching the object', () => {
-            const exitEdge: StandardExitEdgeData = {
-                tag: 'Exit',
-                uuid: 'edge-1',
-                from: OBJECT_A,
-                to: OBJECT_B,
-                payload: {},
-            }
-            const graph = EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, {
-                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [exitEdge],
-            })
-            expect(graph.removeObject(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
-        })
-
-        it('removeObject prunes dangling exit edges when node already absent', () => {
-            const exitEdge: StandardExitEdgeData = {
-                tag: 'Exit',
-                uuid: 'edge-2',
-                from: OBJECT_B,
-                to: OBJECT_A,
-                payload: {},
-            }
-            const graph = EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, {
-                nodes: [objectNode(OBJECT_B)],
-                edges: [exitEdge],
-            })
-            expect(graph.removeObject(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
-        })
-
-        it('removeObject preserves unrelated edges', () => {
-            const relational = { tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_C, kind: 'On' as const }
-            const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
-                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
-                edges: [relational],
-            })
-            expect(graph.removeObject(OBJECT_B).toStored().edges).toEqual([relational])
-        })
-
         it('objectIds returns set of object universal keys', () => {
             const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, { nodes: [objectNode(OBJECT_A)], edges: [] })
             expect(graph.objectIds).toEqual(new Set([OBJECT_A]))
         })
     })
 
-    describe('removeObjectAsserted (BD-33/BD-35 assert-and-throw)', () => {
+    describe('removeObject (BD-33/BD-35 assert-and-throw)', () => {
         it('throws RelationalEdgeStillReferencedError when a relational edge still references the object', () => {
             const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
-            expect(() => graph.removeObjectAsserted(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
+            expect(() => graph.removeObject(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
             try {
-                graph.removeObjectAsserted(OBJECT_A)
-                throw new Error('expected removeObjectAsserted to throw')
+                graph.removeObject(OBJECT_A)
+                throw new Error('expected removeObject to throw')
             }
             catch (error) {
                 expect(error).toBeInstanceOf(RelationalEdgeStillReferencedError)
@@ -186,7 +120,7 @@ describe('EphemeraPositionGraph', () => {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_B, to: OBJECT_A, kind: 'On' }],
             })
-            expect(() => graph.removeObjectAsserted(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
+            expect(() => graph.removeObject(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
         })
 
         it('succeeds and removes the node when no relational edge references the object', () => {
@@ -194,7 +128,7 @@ describe('EphemeraPositionGraph', () => {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [],
             })
-            expect(graph.removeObjectAsserted(OBJECT_A).toStored().nodes).toEqual([objectNode(OBJECT_B)])
+            expect(graph.removeObject(OBJECT_A).toStored().nodes).toEqual([objectNode(OBJECT_B)])
         })
 
         it('still silently strips a play-only (exit) edge referencing the object when no relational edge remains', () => {
@@ -209,8 +143,8 @@ describe('EphemeraPositionGraph', () => {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [exitEdge],
             })
-            expect(() => graph.removeObjectAsserted(OBJECT_A)).not.toThrow()
-            expect(graph.removeObjectAsserted(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
+            expect(() => graph.removeObject(OBJECT_A)).not.toThrow()
+            expect(graph.removeObject(OBJECT_A).toPlayEnvelope().edges ?? []).toEqual([])
         })
 
         it('preserves unrelated relational edges after a successful assert', () => {
@@ -219,25 +153,25 @@ describe('EphemeraPositionGraph', () => {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
                 edges: [relational],
             })
-            expect(graph.removeObjectAsserted(OBJECT_B).toStored().edges).toEqual([relational])
+            expect(graph.removeObject(OBJECT_B).toStored().edges).toEqual([relational])
         })
     })
 
-    describe('removeCharacterAsserted (BD-36, vacuous today)', () => {
+    describe('removeCharacter (BD-36 assert-and-throw, vacuous today)', () => {
         it('never throws --- relational edges cannot reference a character, so the assert is always satisfied', () => {
             const graph = EphemeraPositionGraph.fromFieldPayload(HOST_ID, {
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
-            expect(() => graph.removeCharacterAsserted(CHARACTER_A)).not.toThrow()
+            expect(() => graph.removeCharacter(CHARACTER_A)).not.toThrow()
         })
 
-        it('removes the character node exactly as removeCharacter does', () => {
+        it('removes the matching character node', () => {
             const graph = seedFromActiveCharacters([
                 { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
             ], HOST_ID)
-            expect(graph.removeCharacterAsserted(CHARACTER_A).toStored().nodes).toEqual([characterNode(CHARACTER_B)])
+            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([characterNode(CHARACTER_B)])
         })
     })
 
@@ -427,33 +361,6 @@ describe('EphemeraPositionGraph', () => {
         it('removeRelationalEdge filters by match', () => {
             const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
             expect(graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' }).toStored().edges).toEqual([])
-        })
-    })
-
-    describe('applyMembershipEffect', () => {
-        it('adds and removes character on room host', () => {
-            const graph = EphemeraPositionGraph.empty(HOST_ID)
-            const added = graph.applyMembershipEffect({
-                hostId: HOST_ID,
-                identityId: CHARACTER_A,
-                op: 'add',
-            })
-            expect(added.characterIds).toEqual(new Set([CHARACTER_A]))
-            const removed = added.applyMembershipEffect({
-                hostId: HOST_ID,
-                identityId: CHARACTER_A,
-                op: 'remove',
-            })
-            expect(removed.characterIds).toEqual(new Set())
-        })
-
-        it('rejects wrong hostId', () => {
-            const graph = EphemeraPositionGraph.empty(HOST_ID)
-            expect(() => graph.applyMembershipEffect({
-                hostId: OTHER_HOST_ID,
-                identityId: CHARACTER_A,
-                op: 'add',
-            })).toThrow(/does not match graph hostId/)
         })
     })
 

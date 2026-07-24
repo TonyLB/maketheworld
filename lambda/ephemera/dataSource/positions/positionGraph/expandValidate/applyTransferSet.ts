@@ -5,23 +5,27 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 
 export type ApplyTransferSetOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraPositionGraph; destGraph: EphemeraPositionGraph }
-    | { verdict: 'illegal'; reasonCode: 'incompleteTransferSet' }
+    | { verdict: 'illegal'; reasonCode: 'incompleteTransferSet' | 'unresolvedDissolveEdge' }
     | { verdict: 'defer'; decidable: boolean; reasonCode: 'transferInteractionDefer' }
 
 /**
- * Expand+Validate core for a membership transfer (BD-13): given a transfer set already
- * believed complete, and the source/destination graphs, confirm the set really is
- * complete against these graphs (no unaccounted boundary edge) and produce the mutated
- * state. Shared by the compiler's sandbox (`sandboxStep.ts`, wrapping this with its own
- * locus/exit-edge check) and, in a follow-on step, the persistence kernel's commit-time
- * re-verification --- the same graph-dependent question asked at two different moments,
- * against two different snapshots of live state.
+ * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
+ * edge that should dissolve has already been severed by an explicit `DissolveRelationStep` earlier
+ * in the same kernel-apply loop --- it does not rely on `EphemeraPositionGraph.removeObject`'s
+ * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
+ * boundary edge still present at this point is therefore treated as `illegal`
+ * (`unresolvedDissolveEdge`), not silently resolved.
  *
- * Never expands `transferSet` itself (matches the sandbox's existing contract): a `carry`
- * boundary outcome means the caller under-specified the set --- illegal, not an invitation
- * to grow it further. Returns a reason *code*, not player-facing text, so this module has
- * zero dependency on the compiler layer's error-message vocabulary; callers translate the
- * code into whatever text or log message is appropriate for their context.
+ * Never expands `transferSet` itself: a `carry` boundary outcome means the caller under-specified
+ * the set --- illegal, not an invitation to grow it further.
+ *
+ * Renamed from `applyTransferSetAsserted` (2026-07-23): originally a new sibling module rather than
+ * a change to a pre-assert-and-throw `applyTransferSet.ts` in place, back when that older function's
+ * two commit-time callers (`applyObjectSetTransfer.ts`, `applyObjectRelationalChangeWithTransfer.ts`)
+ * still depended on `removeObject`'s silent-strip. Both callers, `removeObject`, and the older
+ * `applyTransferSet.ts` are now deleted --- this is the only implementation, so it took back the
+ * plain name; only [`applyStepSequenceCore.ts`](../../manipulation/kernel/applyStepSequenceCore.ts)
+ * calls it.
  */
 export function applyTransferSet(
     sourceGraph: EphemeraPositionGraph,
@@ -44,11 +48,25 @@ export function applyTransferSet(
         }
     }
 
+    // A dissolve-classified boundary edge still present here means an explicit
+    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not.
+    const dissolveOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'dissolve')
+    if (dissolveOutcome !== undefined) {
+        return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
+    }
+
     const internalEdges = sourceGraph.relationalEdges.filter(
         (edge) => transferSet.has(edge.from) && transferSet.has(edge.to)
     )
 
+    // Internal edges are stripped from sourceGraph *before* the per-object removeObject loop, since
+    // removeObject throws if any relational edge --- including an internal one to a sibling not yet
+    // removed --- still references the object being removed.
     let nextSourceGraph = sourceGraph
+    for (const edge of internalEdges) {
+        nextSourceGraph = nextSourceGraph.removeRelationalEdge(edge)
+    }
+
     let nextDestGraph = destGraph
     for (const objectId of transferSet) {
         nextSourceGraph = nextSourceGraph.removeObject(objectId)

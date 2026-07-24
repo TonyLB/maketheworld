@@ -37,7 +37,9 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 - **`PlayPositionGraph`** **must** be topology only (alias of `StandardPositionGraphData`); **must not** carry roster display fields or reverse-membership encodings on the forward graph.
 - Forward **`getPositionGraph`** **must** return stored topology only on Dynamo load; **`Positions.set`** **must** accept topology-only graphs.
 
-**Deferred (edge-reference cleanup):** object removal prunes incident edges on hosts participating in the removal transaction only. Cross-host or edge-only references without a node-removal path are not swept by membership adjacency today. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)** and [`../objects/AGENT.md`](../objects/AGENT.md) **Deferred (cross-host edge references)**.
+**Deferred (edge-reference cleanup):** object removal prunes play-only (Exit) edges on hosts participating in the removal transaction only (Relational edges are assert-and-throw, not pruned --- caller must dissolve them explicitly first). Cross-host or edge-only references without a node-removal path are not swept by membership adjacency today. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)** and [`../objects/AGENT.md`](../objects/AGENT.md) **Deferred (cross-host edge references)**.
+
+**Deferred (character-relation widening, BD-36):** `HostRelationalEdge` endpoints are `EphemeraObjectId`-typed only --- a character can never hold a Relational edge, so `removeCharacter`'s assert-and-throw is vacuously satisfied today. Widening to admit `EphemeraCharacterId` waits for a KR-write path that authors character relations, which does not exist yet. See [`positionGraph/AGENT.md`](positionGraph/AGENT.md) **Known limitation (deferred)**.
 
 ---
 
