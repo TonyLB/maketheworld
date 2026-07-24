@@ -7,7 +7,7 @@ import type { PositionsPublishedPayload } from '../publishedEvents'
 import { boundaryEdgeOutcomes } from '../positionGraph/expandValidate/interactionUnderTransfer'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
-import type { KernelStep } from '../manipulation/kernel/kernelStep'
+import type { KernelMutationStep } from '../manipulation/kernel/kernelStep'
 import type { MembershipApplyResult, MembershipDiff, ObjectMembershipApplyArgs } from './types'
 
 export type ApplyObjectRoomMembershipDependencies = {
@@ -71,7 +71,7 @@ export const applyObjectRoomMembership = async (
     }
 
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraRoomId>()
-    const dissolveSteps: KernelStep[] = []
+    const dissolveSteps: KernelMutationStep[] = []
     for (const roomId of diff.froms) {
         const graph = await internalCache.Positions.getPositionGraph(roomId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
@@ -88,7 +88,7 @@ export const applyObjectRoomMembership = async (
         }
     }
 
-    const transferStep: KernelStep = {
+    const transferStep: KernelMutationStep = {
         kind: 'transferMembership',
         entityIds: new Set([args.objectId]),
         fromHostIds: new Set(diff.froms),

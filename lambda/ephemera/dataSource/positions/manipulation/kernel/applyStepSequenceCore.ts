@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraPositionGraph } from '../../positionGraph'
 import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
-import type { KernelStep } from './kernelStep'
+import type { KernelMutationStep } from './kernelStep'
 import type { KernelApplyOutcome } from './types'
 
 const findHostOf = (
@@ -20,7 +20,7 @@ const findHostOf = (
 }
 
 /**
- * BD-27c's shared, pure apply core: walks an ordered `KernelStep[]` once, dispatching per specific
+ * BD-27c's shared, pure apply core: walks an ordered `KernelMutationStep[]` once, dispatching per specific
  * primitive (never per `kind` grouping, mirroring the Synthesize executor's own `commandExpand`
  * dispatch). Applying the array in-order (not resorting it) is what makes the sequencing contract
  * hold: a paired `dissolveRelation` step always mutates the graph map before a following
@@ -50,7 +50,7 @@ const findHostOf = (
  * `unresolvedDissolveEdge`) return through the discriminated result.
  */
 export const applyStepSequenceCore = (
-    steps: readonly KernelStep[],
+    steps: readonly KernelMutationStep[],
     initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
 ): KernelApplyOutcome => {
     const graphs = new Map(initialGraphs)

@@ -1,7 +1,7 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraPositionGraph } from '../../positionGraph'
-import type { KernelStep } from './kernelStep'
+import type { KernelMutationStep } from './kernelStep'
 
 export type StepSequenceFootprint = ReadonlySet<EphemeraMembershipHostId>
 
@@ -18,5 +18,5 @@ export type KernelApplyOutcome =
     | { verdict: 'defer'; decidable: boolean; reasonCode: string }
 
 export type KernelCommitResult =
-    | { ok: true; beatAnchorTime: number; steps: readonly KernelStep[] }
+    | { ok: true; beatAnchorTime: number; steps: readonly KernelMutationStep[] }
     | { ok: false; errorCode: string; errorMessage: string }

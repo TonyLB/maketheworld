@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { applyStepSequenceCore } from './applyStepSequenceCore'
-import type { KernelStep } from './kernelStep'
+import type { KernelMutationStep } from './kernelStep'
 import { testPositionGraph } from '../../positionGraph/testFixtures'
 import type { EphemeraPositionGraph } from '../../positionGraph'
 
@@ -31,7 +31,7 @@ describe('applyStepSequenceCore', () => {
             ],
         })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
@@ -52,7 +52,7 @@ describe('applyStepSequenceCore', () => {
     it('BD-16 repaired: transferMembership before establishRelation lands the relation on the shared destination host', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const destGraph = testPositionGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
             { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
         ]
@@ -74,7 +74,7 @@ describe('applyStepSequenceCore', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
         })
-        const steps: KernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }]
+        const steps: KernelMutationStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
 
@@ -88,7 +88,7 @@ describe('applyStepSequenceCore', () => {
     it('BD-33 structural throw: relational step whose endpoints resolve to different hosts throws (not a verdict)', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const otherGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
-        const steps: KernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
+        const steps: KernelMutationStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
 
         expect(() => applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, otherGraph]))).toThrow(
             /do not share a host/
@@ -97,7 +97,7 @@ describe('applyStepSequenceCore', () => {
 
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
@@ -109,7 +109,7 @@ describe('applyStepSequenceCore', () => {
     it('illegal (staleTransferCandidate, object): object absent from source host', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [] })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
@@ -120,7 +120,7 @@ describe('applyStepSequenceCore', () => {
 
     it('illegal (staleRelationalCandidate): a relational step endpoint unresolvable across the footprint graphs', () => {
         const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const steps: KernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
+        const steps: KernelMutationStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
             verdict: 'illegal',
             reasonCode: 'staleRelationalCandidate',
@@ -136,7 +136,7 @@ describe('applyStepSequenceCore', () => {
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
@@ -156,7 +156,7 @@ describe('applyStepSequenceCore', () => {
         })
         const destGraph = testPositionGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.
-        const steps: KernelStep[] = [
+        const steps: KernelMutationStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
@@ -169,7 +169,7 @@ describe('applyStepSequenceCore', () => {
         it('character-only transferMembership: legal via addCharacter/removeCharacter, no boundary-edge involvement', () => {
             const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
 
@@ -189,7 +189,7 @@ describe('applyStepSequenceCore', () => {
                 ],
             })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 {
                     kind: 'transferMembership',
                     entityIds: new Set<EphemeraObjectId | EphemeraCharacterId>([trayId, characterId]),
@@ -210,7 +210,7 @@ describe('applyStepSequenceCore', () => {
         it('stale character candidate: character absent from source host', () => {
             const sourceGraph = testPositionGraph(roomId, { nodes: [] })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))).toEqual({
@@ -229,7 +229,7 @@ describe('applyStepSequenceCore', () => {
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
             const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
 
@@ -244,7 +244,7 @@ describe('applyStepSequenceCore', () => {
         it('character-only pure remove (toHostId null, disconnect-shaped): removes the character from every fromHostIds member', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 {
                     kind: 'transferMembership',
                     entityIds: new Set([characterId]),
@@ -263,7 +263,7 @@ describe('applyStepSequenceCore', () => {
 
         it('character-only pure add (fromHostIds empty, connect-from-nowhere-shaped): adds the character to toHostId only', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set(), toHostId: roomId },
             ]
 
@@ -276,7 +276,7 @@ describe('applyStepSequenceCore', () => {
 
         it('character-only pure remove: illegal (staleTransferCandidate) when the character is already absent from a fromHostIds member', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
@@ -290,7 +290,7 @@ describe('applyStepSequenceCore', () => {
         it('pure remove (toHostId null): removes the object from every fromHostIds member, no destination graph needed', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
             const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 {
                     kind: 'transferMembership',
                     entityIds: new Set([trayId]),
@@ -316,7 +316,7 @@ describe('applyStepSequenceCore', () => {
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
             // Bug-injection: no paired dissolveRelation step for the tray-table edge.
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
 
@@ -333,7 +333,7 @@ describe('applyStepSequenceCore', () => {
                 ],
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
@@ -350,7 +350,7 @@ describe('applyStepSequenceCore', () => {
 
         it('pure add (fromHostIds empty): adds the object to toHostId only, no source graph needed', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set(), toHostId: roomId },
             ]
 
@@ -363,7 +363,7 @@ describe('applyStepSequenceCore', () => {
 
         it('pure remove: illegal (staleTransferCandidate) when the object is already absent from a fromHostIds member', () => {
             const roomGraph = testPositionGraph(roomId, { nodes: [] })
-            const steps: KernelStep[] = [
+            const steps: KernelMutationStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
