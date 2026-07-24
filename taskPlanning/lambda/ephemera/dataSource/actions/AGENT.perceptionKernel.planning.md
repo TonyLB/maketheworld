@@ -49,10 +49,11 @@ cd lambda/ephemera && npm run test -- --watchAll=false \
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step. Nothing below is built yet; all lines start `[ ]`.
 
-- [ ] **Phase 1. Widen the grounded-instruction vocabulary.**
+- [X] **Phase 1. Widen the grounded-instruction vocabulary.**
   - [X] Decide where a new `describe` instruction kind lives: widen `KernelStep`/`ExecutorParsePlanStep` directly, or a sibling type the two kernels share. Must carry a resolved referent (id + kind: room/object/character/feature/knowledge) --- parameterize over referent kind the same way `KernelTransferMembershipStep` already generalized over entity kind (BD-36), rather than one step shape per look-variant.
     - **Decided (2026-07-24): widen directly.** Added `ExecutorDescribeStep` (`executorTypes.ts`) --- `{ kind: 'describe', referentId, referentKind: 'room'|'object'|'character'|'feature'|'knowledge' }`, singular referent (no carry-closure concept for a read) --- to `ExecutorParsePlanStep` and `isExecutorParsePlanStep`. Widened `KernelStep` (`kernelStep.ts`) to `KernelMutationStep | ExecutorDescribeStep`, reusing the describe step verbatim (no kernel-layer widening needed, same as relational steps). Split out `KernelMutationStep` (today's pre-widening shape) as the type the positionGraph kernel's commit machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`, `computeStepSequenceFootprint.ts`, `factsForStep.ts`, `types.ts`, plus all four mutation-route call sites) keeps accepting --- a `describe` step must never reach that machinery, so those signatures stay narrow rather than widen to the shared list's type. `fromExecutorStep` is overloaded so mutation-only callers still get `KernelMutationStep` back without a cast. All touched suites green (195 tests, 18 suites).
-  - [ ] Decide whether `ParseCommandLookComponentResult` widens its `componentId` union to include `EphemeraObjectId` (and `EphemeraCharacterId`, if character-directed look is in scope), or whether object/character-directed look becomes its own terminal result type. Note it is explicitly documented today as "Not produced by Bedrock parse" --- widening it changes that invariant and needs its own confirmation, not an assumption.
+  - [X] Decide whether `ParseCommandLookComponentResult` widens its `componentId` union to include `EphemeraObjectId` (and `EphemeraCharacterId`, if character-directed look is in scope), or whether object/character-directed look becomes its own terminal result type. Note it is explicitly documented today as "Not produced by Bedrock parse" --- widening it changes that invariant and needs its own confirmation, not an assumption.
+    - **Decided (2026-07-24): widens.** `ParseCommandLookComponentResult.componentId` widens to `EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId` --- object-directed look reuses this same result type rather than getting its own terminal type. The "Not produced by Bedrock parse" invariant changes: Phase 4's new Plan-stage matcher becomes a second producer alongside `routeTrustedUiAction.ts`. Character-directed look is not decided here --- left to PK-3's scope call; if in scope, `EphemeraCharacterId` joins this same union rather than forcing a separate result type.
 - [ ] **Phase 2. Resolve CPG-5 concretely for this one case.**
   - [ ] Build (or extend) a referent catalog that covers Object (and Character, if in scope) for the look family, reusing Grounding rather than a bespoke resolver --- mirroring the shape `mergeObjectManipulationCatalogs` already has for room-vs-held.
   - [ ] Close the two concrete gaps standing between `AGENT.concepts.md`'s Object/Character sibling-tag finding and working code: (1) `RoomInPlayObjectCatalogEntry` (`roomObjectCatalogForCharacter.ts`) is `EphemeraObjectId`-typed only and never scans Character nodes --- a character-inclusive catalog needs building, the same shape of work `mergeObjectManipulationCatalogs` already does for room-vs-held; (2) `EphemeraObjectId`/`EphemeraCharacterId` are distinct branded types throughout, so a referent that could resolve to either needs a widened id union. Resolve only as far as this iteration's concrete referent needs require --- do not build a fully general cross-family `Identify` abstraction speculatively.
@@ -69,7 +70,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
 | PK-1 | Exact shape/location of the new `describe` instruction kind (widen `KernelStep` vs. sibling type) | Phase 1 | Resolved 2026-07-24: widened `KernelStep`/`ExecutorParsePlanStep` directly (see Phase 1 note) |
-| PK-2 | Whether `ParseCommandLookComponentResult` widens, or object/character-directed look gets its own result type | Phase 1, Phase 4 | Open |
+| PK-2 | Whether `ParseCommandLookComponentResult` widens, or object/character-directed look gets its own result type | Phase 1, Phase 4 | Resolved 2026-07-24: widens `componentId` to include `EphemeraObjectId`; character inclusion deferred to PK-3 |
 | PK-3 | How far Phase 2's referent-catalog work goes --- object-only, or object+character | Phase 2 | Open |
 | PK-4 | Perception kernel's output delivery path --- reuse `LookRoom`'s existing lane-ordering mechanism, or a new one | Phase 3 | Open |
 | PK-5 | Whether the `LookRoom`-paraphrase LLM-fallback gap (iteration 7 sub-iteration 2's deliberately-unclosed regression) folds into this iteration's scope or stays a separate, later concern | None yet --- named so it isn't silently assumed either way | Open |
@@ -89,7 +90,7 @@ npm run build
 | Milestone | Status |
 | --- | --- |
 | Design confirmed through conversation (shared instruction list + per-kernel filter, sequential invocation, lightweight perception kernel) | Done (2026-07-24) |
-| Phase 1 (instruction vocabulary widening) | Not started |
+| Phase 1 (instruction vocabulary widening) | Done (2026-07-24) |
 | Phase 2 (CPG-5 resolved for this case) | Not started |
 | Phase 3 (perception kernel + sequential orchestration) | Not started |
 | Phase 4 (Plan-stage dispatch for object-directed look) | Not started |
