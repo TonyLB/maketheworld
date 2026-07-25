@@ -6,7 +6,7 @@
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
-import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
@@ -62,6 +62,7 @@ import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysD
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
+import { executeStepSequence } from '../positions/manipulation/kernel/executeStepSequence'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
@@ -392,17 +393,46 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandLookComponentResult(parseResult)) {
-        await streamEvent({
-            streamKey: characterId,
-            header: { type: 'Look Command Requested' },
-            update: {
-                type: 'Look Command Requested',
+        if (isEphemeraObjectId(parseResult.componentId)) {
+            // Iteration 9, Phase 4: object-directed look routes through the perception
+            // kernel (executeStepSequence -> commitStepSequence + perceiveStepSequence),
+            // in-process, rather than publishing 'Look Command Requested' directly here
+            // the way Room/Feature/Knowledge look still does. Not a bus hop to
+            // positions/index.ts: perceiveStepSequence's 'Look Command Requested' publish
+            // must carry dataSourceKey 'mtw.ephemera.actions' (renderOrchestration's
+            // subscription is keyed to it), and a DataSource's streamEvent always stamps
+            // its own dataSourceKey -- positions/index.ts's streamEvent could never
+            // produce that header, so this call has to happen from here, where
+            // streamEvent is already 'mtw.ephemera.actions'-bound. The commit leg is
+            // never actually invoked (zero mutation steps for a pure describe), so its
+            // deps are structural only.
+            const objectId = parseResult.componentId
+            await executeStepSequence(
+                [{ kind: 'describe', referentId: objectId, referentKind: 'object' }],
                 characterId,
-                componentId: parseResult.componentId,
-                confidence: parseResult.confidence,
-                ...(parseResult.directResponse ? { directResponse: true } : {}),
-            },
-        })
+                {
+                    commit: {
+                        messageBus,
+                        streamEvent: async () => {},
+                        getCurrentHost: () => undefined,
+                    },
+                    perceive: { streamEvent },
+                }
+            )
+        }
+        else {
+            await streamEvent({
+                streamKey: characterId,
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId,
+                    componentId: parseResult.componentId,
+                    confidence: parseResult.confidence,
+                    ...(parseResult.directResponse ? { directResponse: true } : {}),
+                },
+            })
+        }
     }
     else if (isParseCommandCharacterSpokeResult(parseResult)) {
         await streamEvent({

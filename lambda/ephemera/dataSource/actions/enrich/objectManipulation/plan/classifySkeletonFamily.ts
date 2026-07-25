@@ -1,11 +1,13 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import type { ManipulationVerbClass } from '../../../baseClasses'
+import { matchLookTemplate } from './matchLookTemplate'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
 
 export type SkeletonFamilyMatch =
     | { type: 'membership'; verbClass: ManipulationVerbClass }
     | { type: 'relational' }
     | { type: 'relationalDefer' }
+    | { type: 'look' }
     | { type: 'none' }
 
 /**
@@ -29,6 +31,11 @@ export function classifySkeletonFamily(skeleton: ParseSkeleton): SkeletonFamilyM
     }
     if (relational.type === 'nestingDefer') {
         return { type: 'relationalDefer' }
+    }
+
+    const look = matchLookTemplate(skeleton)
+    if (look.type === 'matched') {
+        return { type: 'look' }
     }
 
     const [firstToken] = skeleton

@@ -60,6 +60,7 @@ export type ObjectDropPublishedPayload = {
     confidence?: number;
 }
 
+
 export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
 
 const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([
