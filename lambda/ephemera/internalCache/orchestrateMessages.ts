@@ -34,36 +34,6 @@ export class OrchestrateMessagesData {
         return messageGroupId
     }
 
-    next(root: MessageGroupId): MessageGroupId {
-        if (!(root in this.OrchestrateMessagesById)) {
-            throw new Error('root meesageGroupId not in cache in next call')
-        }
-        const messageGroupId = this.newMessageGroup(root)
-
-        this.OrchestrateMessagesById[root].during = [...this.OrchestrateMessagesById[root].during, messageGroupId]
-        return messageGroupId
-    }
-
-    before(root: MessageGroupId): MessageGroupId {
-        if (!(root in this.OrchestrateMessagesById)) {
-            throw new Error('root meesageGroupId not in cache in next call')
-        }
-        const messageGroupId = this.newMessageGroup(root)
-
-        this.OrchestrateMessagesById[root].before = [messageGroupId, ...this.OrchestrateMessagesById[root].before]
-        return messageGroupId
-    }
-
-    after(root: MessageGroupId): MessageGroupId {
-        if (!(root in this.OrchestrateMessagesById)) {
-            throw new Error('root meesageGroupId not in cache in next call')
-        }
-        const messageGroupId = this.newMessageGroup(root)
-
-        this.OrchestrateMessagesById[root].after = [...this.OrchestrateMessagesById[root].after, messageGroupId]
-        return messageGroupId
-    }
-
     allOffsets(): Record<MessageGroupId, number> {
         const startingRoots = Object.assign({}, 
             ...Object.entries(this.OrchestrateMessagesById)
