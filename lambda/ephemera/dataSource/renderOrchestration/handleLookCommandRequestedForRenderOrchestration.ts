@@ -8,11 +8,14 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import {
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
+import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
+import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
 
 export const prepareLookOrchestrationPerspective = async (
     characterId: EphemeraCharacterId,
@@ -80,5 +83,26 @@ export async function handleLookCommandRequestedForRenderOrchestration(
             },
             streamEvent,
         })
+        return
+    }
+
+    if (isEphemeraObjectId(componentId)) {
+        // Object description stub (AGENT.perceptionKernel.planning.md, PK-6): reuses the same
+        // register-then-orchestrate pipeline as Room/Feature/Knowledge, swapping in
+        // ensureObjectShortNameCacheRecord for the real (blueprint-versioned) ensureAuthoredCatalog
+        // --- see that file's doc comment for why. Delivers shortName only; real <Render>/<Example>
+        // authoring support for Object is separate, deferred work.
+        const prepared = await prepareObjectRenderForCharacter(characterId, componentId)
+        internalCache.PerceptionThreads.register(prepared.threadRegisterCommand)
+        await orchestrateRenderRequest(
+            {
+                payload: {
+                    type: 'RenderRequested',
+                    ...prepared.renderCommand,
+                },
+                streamEvent,
+            },
+            { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
+        )
     }
 }

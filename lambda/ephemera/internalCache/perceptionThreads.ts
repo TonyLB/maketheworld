@@ -74,6 +74,19 @@ export type KnowledgeDescriptionPerceptionThread = {
     cacheId?: string;
 }
 
+/**
+ * Object description (stub, PK-6): correlated full-description fan-in, mirrors
+ * featureDescription/knowledgeDescription's lifecycle exactly. Content is shortName only until real
+ * `<Render>`/`<Example>` authoring support exists for Object.
+ */
+export type ObjectDescriptionPerceptionThread = {
+    kind: 'objectDescription';
+    status: 'Initial' | 'Generating' | 'Terminal';
+    messageId?: string;
+    createdTime?: number;
+    cacheId?: string;
+}
+
 export type PerceptionThread =
     | RoomDescriptionPerceptionThread
     | RoomHeaderBroadcastPerceptionThread
@@ -82,6 +95,7 @@ export type PerceptionThread =
     | CharacterMovePerceptionThread
     | FeatureDescriptionPerceptionThread
     | KnowledgeDescriptionPerceptionThread
+    | ObjectDescriptionPerceptionThread
 
 export function isRoomDescriptionPerceptionThread(value: unknown): value is RoomDescriptionPerceptionThread {
     if (!value || typeof value !== 'object') {
@@ -244,6 +258,14 @@ export function isKnowledgeDescriptionPerceptionThread(value: unknown): value is
     return v.kind === 'knowledgeDescription' && isDescriptionPerceptionThreadShape(value)
 }
 
+export function isObjectDescriptionPerceptionThread(value: unknown): value is ObjectDescriptionPerceptionThread {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return v.kind === 'objectDescription' && isDescriptionPerceptionThreadShape(value)
+}
+
 export function isPerceptionThread(value: unknown): value is PerceptionThread {
     return (
         isRoomDescriptionPerceptionThread(value)
@@ -253,6 +275,7 @@ export function isPerceptionThread(value: unknown): value is PerceptionThread {
         || isCharacterMovePerceptionThread(value)
         || isFeatureDescriptionPerceptionThread(value)
         || isKnowledgeDescriptionPerceptionThread(value)
+        || isObjectDescriptionPerceptionThread(value)
     )
 }
 
@@ -312,6 +335,14 @@ export type KnowledgeDescriptionPerceptionThreadPatch = {
     cacheId?: string;
 }
 
+export type ObjectDescriptionPerceptionThreadPatch = {
+    threadKind: 'objectDescription';
+    status?: ObjectDescriptionPerceptionThread['status'];
+    messageId?: string;
+    createdTime?: number;
+    cacheId?: string;
+}
+
 export type PerceptionThreadPatch =
     | RoomDescriptionPerceptionThreadPatch
     | RoomHeaderBroadcastPerceptionThreadPatch
@@ -320,6 +351,7 @@ export type PerceptionThreadPatch =
     | CharacterMovePerceptionThreadPatch
     | FeatureDescriptionPerceptionThreadPatch
     | KnowledgeDescriptionPerceptionThreadPatch
+    | ObjectDescriptionPerceptionThreadPatch
 
 const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
@@ -328,6 +360,7 @@ const SESSION_ORIENTATION_AFFORDANCES_PATCH_KEYS = new Set<string>(['threadKind'
 const CHARACTER_MOVE_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const FEATURE_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 const KNOWLEDGE_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
+const OBJECT_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'createdTime', 'cacheId'])
 
 export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is RoomDescriptionPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -489,9 +522,9 @@ export function isCharacterMovePerceptionThreadPatch(value: unknown): value is C
 
 function isDescriptionPerceptionThreadPatch(
     value: unknown,
-    threadKind: 'featureDescription' | 'knowledgeDescription',
+    threadKind: 'featureDescription' | 'knowledgeDescription' | 'objectDescription',
     allowedKeys: Set<string>,
-): value is FeatureDescriptionPerceptionThreadPatch | KnowledgeDescriptionPerceptionThreadPatch {
+): value is FeatureDescriptionPerceptionThreadPatch | KnowledgeDescriptionPerceptionThreadPatch | ObjectDescriptionPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
     }
@@ -531,6 +564,12 @@ export function isKnowledgeDescriptionPerceptionThreadPatch(
     return isDescriptionPerceptionThreadPatch(value, 'knowledgeDescription', KNOWLEDGE_DESCRIPTION_PATCH_KEYS)
 }
 
+export function isObjectDescriptionPerceptionThreadPatch(
+    value: unknown
+): value is ObjectDescriptionPerceptionThreadPatch {
+    return isDescriptionPerceptionThreadPatch(value, 'objectDescription', OBJECT_DESCRIPTION_PATCH_KEYS)
+}
+
 export function isPerceptionThreadPatch(value: unknown): value is PerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
@@ -556,6 +595,9 @@ export function isPerceptionThreadPatch(value: unknown): value is PerceptionThre
     }
     if (p.threadKind === 'knowledgeDescription') {
         return isKnowledgeDescriptionPerceptionThreadPatch(value)
+    }
+    if (p.threadKind === 'objectDescription') {
+        return isObjectDescriptionPerceptionThreadPatch(value)
     }
     return false
 }
@@ -671,6 +713,21 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
             }
             return merged
         }
+        case 'objectDescription': {
+            if (base.kind !== 'objectDescription') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: objectDescription patch requires objectDescription thread'
+                )
+            }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
+            if (!isObjectDescriptionPerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged objectDescription thread failed validation'
+                )
+            }
+            return merged
+        }
         default: {
             const _never: never = patch
             void _never
@@ -733,6 +790,14 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
         if (thread.kind !== 'knowledgeDescription') {
             throw new Error(
                 'PerceptionThreads.update: registration.threadKind knowledgeDescription does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    if (registration.threadKind === 'objectDescription') {
+        if (thread.kind !== 'objectDescription') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind objectDescription does not match stored thread.kind'
             )
         }
         return
@@ -807,6 +872,9 @@ export default class PerceptionThreadsData {
                 break
             case 'knowledgeDescription':
                 thread = { kind: 'knowledgeDescription', status: 'Initial' }
+                break
+            case 'objectDescription':
+                thread = { kind: 'objectDescription', status: 'Initial' }
                 break
         }
         const entry: PerceptionThreadEntry = {

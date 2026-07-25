@@ -8,10 +8,12 @@ import { isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
+    EphemeraObjectId,
     EphemeraRoomId,
     EphemeraSituationId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
     isEphemeraSituationId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -31,6 +33,7 @@ export type EphemeraCacheComponentId =
     | EphemeraRoomId
     | EphemeraFeatureId
     | EphemeraKnowledgeId
+    | EphemeraObjectId
 
 //
 // markState: Mark UUID to Match string pairs (shared via mtw-interfaces)

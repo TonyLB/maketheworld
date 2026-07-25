@@ -7,10 +7,12 @@ import {
     isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
     type EphemeraCharacterId,
     type EphemeraFeatureId,
     type EphemeraKnowledgeId,
+    type EphemeraObjectId,
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
@@ -24,7 +26,7 @@ export type CharacterPerceptionRequestedCommand = {
 }
 
 export const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheComponentId => (
-    isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
+    isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value) || isEphemeraObjectId(value)
 )
 
 /** Room examine / correlated full-description fan-in (requires viewer characterId). */
@@ -109,6 +111,16 @@ export type PerceptionThreadRegisterKnowledgeDescriptionCommand = {
     registrationId?: string;
 }
 
+/** Object link / look correlated description fan-in (requires viewer characterId). Stub: shortName only. */
+export type PerceptionThreadRegisterObjectDescriptionCommand = {
+    threadKind: 'objectDescription';
+    componentId: EphemeraObjectId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
 /** Discriminated command for `Perception Thread Registered` ingress and PerceptionThreads.register. */
 export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomDescriptionCommand
@@ -118,6 +130,7 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterCharacterMoveCommand
     | PerceptionThreadRegisterFeatureDescriptionCommand
     | PerceptionThreadRegisterKnowledgeDescriptionCommand
+    | PerceptionThreadRegisterObjectDescriptionCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
 
@@ -147,6 +160,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         && v.threadKind !== 'characterMove'
         && v.threadKind !== 'featureDescription'
         && v.threadKind !== 'knowledgeDescription'
+        && v.threadKind !== 'objectDescription'
     ) {
         return false
     }
@@ -204,6 +218,13 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             && typeof v.characterId === 'string'
             && isEphemeraCharacterId(v.characterId)
             && (v.directResponse === undefined || typeof v.directResponse === 'boolean')
+        )
+    }
+    if (v.threadKind === 'objectDescription') {
+        return (
+            isEphemeraObjectId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
         )
     }
     return false

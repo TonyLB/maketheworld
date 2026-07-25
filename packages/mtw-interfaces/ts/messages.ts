@@ -230,6 +230,10 @@ export type PerceptionFeatureMetaData = PerceptionMessageMetaDataBase & {
     componentUUID: `FEATURE#${string}`;
 }
 
+export type PerceptionObjectMetaData = PerceptionMessageMetaDataBase & {
+    componentUUID: `OBJECT#${string}`;
+}
+
 export type PerceptionKnowledgeMetaData = PerceptionMessageMetaDataBase & {
     componentUUID: `KNOWLEDGE#${string}`;
 }
@@ -275,10 +279,11 @@ export type PerceptionAssetMetaData = PerceptionMessageMetaDataBase & {
 }
 
 // Discriminated union of all metadata types
-export type PerceptionMessageMetaData = 
-    | PerceptionRoomMetaData 
-    | PerceptionFeatureMetaData 
-    | PerceptionKnowledgeMetaData 
+export type PerceptionMessageMetaData =
+    | PerceptionRoomMetaData
+    | PerceptionFeatureMetaData
+    | PerceptionObjectMetaData
+    | PerceptionKnowledgeMetaData
     | PerceptionCharacterMetaData
     | PerceptionExampleMetaData
     | PerceptionMapMetaData
@@ -307,6 +312,10 @@ export const resolvedPerceptionRoomChannel = (meta: PerceptionRoomMetaData): Per
 
 export const isPerceptionFeatureMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionFeatureMetaData => {
     return metaData.componentUUID.startsWith('FEATURE#');
+}
+
+export const isPerceptionObjectMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionObjectMetaData => {
+    return metaData.componentUUID.startsWith('OBJECT#');
 }
 
 export const isPerceptionKnowledgeMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionKnowledgeMetaData => {

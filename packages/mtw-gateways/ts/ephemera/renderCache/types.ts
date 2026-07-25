@@ -4,6 +4,7 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
+    EphemeraObjectId,
     EphemeraRoomId,
     EphemeraSituationId,
     isEphemeraFeatureId,
@@ -23,6 +24,7 @@ export type EphemeraCacheComponentId =
     | EphemeraRoomId
     | EphemeraFeatureId
     | EphemeraKnowledgeId
+    | EphemeraObjectId
 
 export type { EphemeraCacheMarkState }
 

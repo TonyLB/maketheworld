@@ -8,15 +8,19 @@
  * the authored example / cache key), intake uses empty **`markValue`** and sets **`allowGeneration: false`** so resolve is
  * cache-only (no slow-path generation).
  *
- * **Feature/Knowledge hosts:** no `Meta::Room`; always **`markState: { markValue: [] }`** and **`allowGeneration: false`**
- * (authored cache only); **`pointerHint`** from catalog row only via {@link resolvePerspectivePointer}.
+ * **Feature/Knowledge/Object hosts:** no `Meta::Room`; always **`markState: { markValue: [] }`** and **`allowGeneration: false`**
+ * (cache only --- authored for Feature/Knowledge, the Object description stub's shortName-derived row for Object;
+ * see `renderCache/ensureObjectShortNameCacheRecord.ts`); **`pointerHint`** from catalog row only via
+ * {@link resolvePerspectivePointer}.
  */
 import {
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
     type EphemeraFeatureId,
     type EphemeraKnowledgeId,
+    type EphemeraObjectId,
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../internalCache'
@@ -41,14 +45,14 @@ const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaR
 
 type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
 
-type FeatureKnowledgeComponentId = EphemeraFeatureId | EphemeraKnowledgeId
+type CacheOnlyComponentId = EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId
 
-const isFeatureOrKnowledgeHost = (componentId: string): componentId is FeatureKnowledgeComponentId => (
-    isEphemeraFeatureId(componentId) || isEphemeraKnowledgeId(componentId)
+const isCacheOnlyHost = (componentId: string): componentId is CacheOnlyComponentId => (
+    isEphemeraFeatureId(componentId) || isEphemeraKnowledgeId(componentId) || isEphemeraObjectId(componentId)
 )
 
-const intakeFeatureOrKnowledge = async (
-    componentId: FeatureKnowledgeComponentId,
+const intakeCacheOnlyHost = async (
+    componentId: CacheOnlyComponentId,
     payload: RenderRequested,
     deps: RequestIntakeDepsResolved,
 ): Promise<RenderResolveInputSuccess> => {
@@ -136,8 +140,8 @@ export const intakeRenderRequested = async (
         resolvePerspectivePointer: _deps?.resolvePerspectivePointer ?? resolvePerspectivePointer,
     }
 
-    if (isFeatureOrKnowledgeHost(payload.componentId)) {
-        return intakeFeatureOrKnowledge(payload.componentId, payload, deps)
+    if (isCacheOnlyHost(payload.componentId)) {
+        return intakeCacheOnlyHost(payload.componentId, payload, deps)
     }
 
     if (!isEphemeraRoomId(payload.componentId)) {

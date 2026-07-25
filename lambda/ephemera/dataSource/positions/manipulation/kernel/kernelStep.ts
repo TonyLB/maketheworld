@@ -94,3 +94,11 @@ export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
  */
 export const isKernelMutationStep = (step: KernelStep): step is KernelMutationStep =>
     step.kind === 'transferMembership' || step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
+
+/**
+ * The perception kernel's own type-guard filter (Phase 3, mirrors `isKernelMutationStep` above):
+ * pulls the `describe` steps a shared `KernelStep[]` list carries out for `perceiveStepSequence`,
+ * the same "shared list, per-kernel filter" discipline applied on this side.
+ */
+export const isDescribeStep = (step: KernelStep): step is ExecutorDescribeStep =>
+    step.kind === 'describe'
