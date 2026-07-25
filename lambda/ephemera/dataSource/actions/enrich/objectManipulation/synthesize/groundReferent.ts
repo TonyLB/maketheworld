@@ -1,10 +1,11 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { Referent } from '../plan/ungroundedPrimitive'
+import type { EphemeraThingId } from '../thing'
 
 export type ResolvedSpan =
-    | { verdict: 'resolved'; candidateIds: readonly (EphemeraObjectId | EphemeraCharacterId)[] }
+    | { verdict: 'resolved'; candidateIds: readonly EphemeraThingId[] }
     | { verdict: 'unresolved'; reason: string }
 
 /**
@@ -20,7 +21,7 @@ export type GroundingContext = {
     actingCharacterId: EphemeraCharacterId
     resolvedSpans: ReadonlyMap<string, ResolvedSpan>
     getCurrentHost: (
-        componentId: EphemeraObjectId | EphemeraCharacterId | EphemeraMembershipHostId
+        componentId: EphemeraThingId | EphemeraMembershipHostId
     ) => EphemeraMembershipHostId | undefined
 }
 
@@ -34,7 +35,7 @@ export type GroundingContext = {
  * a third outcome later.
  */
 export type GroundReferentResult =
-    | { ok: true; candidates: readonly (EphemeraObjectId | EphemeraCharacterId | EphemeraMembershipHostId)[] }
+    | { ok: true; candidates: readonly (EphemeraThingId | EphemeraMembershipHostId)[] }
     | { ok: false; reason: string }
 
 /**

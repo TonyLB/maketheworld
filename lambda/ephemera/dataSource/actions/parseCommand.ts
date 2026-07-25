@@ -3,6 +3,7 @@ import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
+import { compileDescribeFromSkeleton } from './enrich/objectManipulation/compileDescribeFromSkeleton'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
 import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
@@ -139,6 +140,21 @@ async function parseCommandCore(
                     positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                     embedSpan: deps.embedSpan,
                 }
+            )
+            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
+        if (family.type === 'look') {
+            const result = await compileDescribeFromSkeleton(
+                {
+                    command: input.command,
+                    skeleton: parseResult.tokens,
+                    characterId: input.characterId,
+                    roomObjectCatalog: input.roomObjectCatalog,
+                    heldInventoryCatalog: input.heldInventoryCatalog,
+                },
+                intentResult.confidence,
+                { embedSpan: deps.embedSpan }
             )
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }

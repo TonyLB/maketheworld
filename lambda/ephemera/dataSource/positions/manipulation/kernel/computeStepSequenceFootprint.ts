@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { KernelStep } from './kernelStep'
+import type { KernelMutationStep } from './kernelStep'
 import type { StepSequenceFootprint } from './types'
 
 /**
@@ -18,7 +18,7 @@ import type { StepSequenceFootprint } from './types'
  * function never is trusted as ground truth by itself, only as the lock-set declaration.
  */
 export const computeStepSequenceFootprint = (
-    steps: readonly KernelStep[],
+    steps: readonly KernelMutationStep[],
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
 ): StepSequenceFootprint => {
     const hosts = new Set<EphemeraMembershipHostId>()

@@ -7,7 +7,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { boundaryEdgeOutcomes } from '../../positionGraph/expandValidate/interactionUnderTransfer'
 import { planObjectClearFromAllHosts } from '../adapters/planObjectClearFromAllHosts'
 import { commitStepSequence } from '../kernel/commitStepSequence'
-import type { KernelStep } from '../kernel/kernelStep'
+import type { KernelMutationStep } from '../kernel/kernelStep'
 import type { ClearMembershipApplyResult, ObjectClearMembershipApplyArgs } from './types'
 
 export type ApplyObjectClearMembershipDependencies = {
@@ -51,7 +51,7 @@ export const applyObjectClearMembership = async (
     }
 
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
-    const dissolveSteps: KernelStep[] = []
+    const dissolveSteps: KernelMutationStep[] = []
     for (const hostId of diff.froms) {
         const graph = await internalCache.Positions.getPositionGraph(hostId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
@@ -68,7 +68,7 @@ export const applyObjectClearMembership = async (
         }
     }
 
-    const transferStep: KernelStep = {
+    const transferStep: KernelMutationStep = {
         kind: 'transferMembership',
         entityIds: new Set([args.objectId]),
         fromHostIds: new Set(diff.froms),

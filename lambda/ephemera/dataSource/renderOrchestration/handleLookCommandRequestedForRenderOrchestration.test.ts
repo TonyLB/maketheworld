@@ -3,6 +3,8 @@ import internalCache from '../../internalCache'
 import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
 import * as prepareFeatureKnowledge from './prepareFeatureKnowledgeRenderForCharacter'
+import * as prepareObject from './prepareObjectRenderForCharacter'
+import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
 import {
     handleLookCommandRequestedForRenderOrchestration,
     prepareLookOrchestrationPerspective,
@@ -22,6 +24,12 @@ jest.mock('./orchestrationHandler', () => ({
 jest.mock('./prepareFeatureKnowledgeRenderForCharacter', () => ({
     prepareFeatureKnowledgeRenderForCharacter: jest.fn(),
 }))
+jest.mock('./prepareObjectRenderForCharacter', () => ({
+    prepareObjectRenderForCharacter: jest.fn(),
+}))
+jest.mock('../renderCache/ensureObjectShortNameCacheRecord', () => ({
+    ensureObjectShortNameCacheRecord: jest.fn(),
+}))
 
 const internalCacheMock = jest.mocked(internalCache, true as any)
 const mockResolveCanonAssetStackForRoom = resolveCanonAssetStackForRoom as jest.MockedFunction<typeof resolveCanonAssetStackForRoom>
@@ -29,6 +37,7 @@ const mockResolveRoomAssetStackForRoom = resolveRoomAssetStackForRoom as jest.Mo
 const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacterAssets as jest.MockedFunction<typeof filterRoomCanonStackByCharacterAssets>
 const mockOrchestrateRenderRequest = orchestrationHandler.orchestrateRenderRequest as jest.MockedFunction<typeof orchestrationHandler.orchestrateRenderRequest>
 const mockPrepareFeatureKnowledgeRenderForCharacter = prepareFeatureKnowledge.prepareFeatureKnowledgeRenderForCharacter as jest.MockedFunction<typeof prepareFeatureKnowledge.prepareFeatureKnowledgeRenderForCharacter>
+const mockPrepareObjectRenderForCharacter = prepareObject.prepareObjectRenderForCharacter as jest.MockedFunction<typeof prepareObject.prepareObjectRenderForCharacter>
 
 describe('handleLookCommandRequestedForRenderOrchestration', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -190,5 +199,55 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
                 directResponse: true,
             })
         )
+    })
+
+    it('registers objectDescription and orchestrates with the ensureObjectShortNameCacheRecord override for object look (PK-6 stub)', async () => {
+        mockPrepareObjectRenderForCharacter.mockResolvedValue({
+            componentId: 'OBJECT#Tray',
+            characterId: 'CHARACTER#C',
+            perspective: { assetStack: ['ASSET#A'] },
+            perspectiveKey: 'pk-object',
+            threadRegisterCommand: {
+                threadKind: 'objectDescription',
+                componentId: 'OBJECT#Tray',
+                perspectiveKey: 'pk-object',
+                characterId: 'CHARACTER#C',
+            },
+            renderCommand: {
+                componentId: 'OBJECT#Tray',
+                perspective: { assetStack: ['ASSET#A'] },
+                characterId: 'CHARACTER#C',
+                allowGeneration: false,
+            },
+        })
+
+        await handleLookCommandRequestedForRenderOrchestration({
+            type: 'Look Command Requested',
+            characterId: 'CHARACTER#C',
+            componentId: 'OBJECT#Tray',
+            confidence: 1,
+        }, streamEvent)
+
+        expect(mockPrepareObjectRenderForCharacter).toHaveBeenCalledWith('CHARACTER#C', 'OBJECT#Tray')
+        expect(internalCacheMock.PerceptionThreads.register).toHaveBeenCalledWith({
+            threadKind: 'objectDescription',
+            componentId: 'OBJECT#Tray',
+            perspectiveKey: 'pk-object',
+            characterId: 'CHARACTER#C',
+        })
+        expect(mockOrchestrateRenderRequest).toHaveBeenCalledWith(
+            {
+                streamEvent,
+                payload: {
+                    type: 'RenderRequested',
+                    componentId: 'OBJECT#Tray',
+                    perspective: { assetStack: ['ASSET#A'] },
+                    characterId: 'CHARACTER#C',
+                    allowGeneration: false,
+                },
+            },
+            { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
+        )
+        expect(mockPrepareFeatureKnowledgeRenderForCharacter).not.toHaveBeenCalled()
     })
 })

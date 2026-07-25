@@ -8,7 +8,7 @@ import type { PositionsPublishedPayload } from '../publishedEvents'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../manipulation/kernel/commitStepSequence'
-import type { KernelStep } from '../manipulation/kernel/kernelStep'
+import type { KernelMutationStep } from '../manipulation/kernel/kernelStep'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
@@ -89,7 +89,7 @@ export const applyCharacterRoomMembership = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const transferStep: KernelStep = {
+    const transferStep: KernelMutationStep = {
         kind: 'transferMembership',
         entityIds: new Set([args.characterId]),
         fromHostIds: new Set(diff.froms),

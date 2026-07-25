@@ -1372,6 +1372,40 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns LookComponent for object-directed look via the native skeleton pipeline (Phase 4)', async () => {
+        const rocketSkatesId = 'OBJECT#RocketSkates'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Command","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"look"},{"type":"objectSpan","span":"rocket skates"}]}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'look rocket skates',
+                characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                roomObjectCatalog: [
+                    { objectId: rocketSkatesId, normalizedShortName: 'rocket skates' },
+                ],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationParseImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'LookComponent',
+            componentId: rocketSkatesId,
+            confidence: 0.9,
+        })
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+    })
+
     it('returns EstablishRelation for under relational route via the native skeleton pipeline', async () => {
         const broomId = 'OBJECT#Broom'
         const benchId = 'OBJECT#Bench'

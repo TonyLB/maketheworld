@@ -16,7 +16,7 @@ import { streamObjectRelationalFact } from '../relational/streamObjectRelational
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
 import { factsForStep } from './factsForStep'
-import type { KernelStep } from './kernelStep'
+import type { KernelMutationStep } from './kernelStep'
 import type { KernelCommitResult } from './types'
 
 export type CommitStepSequenceDeps = {
@@ -60,7 +60,7 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * rather than two route-specific thin wrappers (splitting by route would recreate, one layer up,
  * the exact organization BD-27c exists to retire). Structurally cloned from those two kernels'
  * existing `MultiKeyUpdate`/`exponentialBackoffWrapper`/`seedGraphMemos` shape, generalized to walk
- * an arbitrary `KernelStep[]` through one shared `applyStepSequenceCore` reducer body instead of
+ * an arbitrary `KernelMutationStep[]` through one shared `applyStepSequenceCore` reducer body instead of
  * each kernel inlining its own.
  *
  * BD-31 interim policy: non-`legal` verdicts from `applyStepSequenceCore` and the structural throws
@@ -76,7 +76,7 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * retired.
  */
 export const commitStepSequence = async (
-    args: { steps: readonly KernelStep[] },
+    args: { steps: readonly KernelMutationStep[] },
     deps: CommitStepSequenceDeps
 ): Promise<KernelCommitResult> => {
     const { steps } = args
@@ -138,7 +138,7 @@ export const commitStepSequence = async (
     // per (entityId, fromHostId) pair across every departure host; a `Put` per entityId only when
     // `toHostId` is non-null (a pure remove, e.g. destroy, has no arrival row to write).
     const adjacencyItems: CommitStepSequenceTransactItem[] = steps
-        .filter((step): step is Extract<KernelStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
+        .filter((step): step is Extract<KernelMutationStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
         .flatMap((step) =>
             [...step.entityIds].flatMap((entityId) => [
                 ...[...step.fromHostIds].map((fromHostId) => ({

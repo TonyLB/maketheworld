@@ -17,8 +17,10 @@ import {
     EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraMapId,
+    EphemeraObjectId,
     EphemeraRoomId,
-    isEphemeraMapId
+    isEphemeraMapId,
+    isEphemeraObjectId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 
@@ -269,6 +271,7 @@ export type RenderComponentId =
     | EphemeraFeatureId
     | EphemeraKnowledgeId
     | EphemeraMapId
+    | EphemeraObjectId
 
 export const isRenderComponentId = (value: unknown): value is RenderComponentId => (
     typeof value === 'string'
@@ -277,6 +280,7 @@ export const isRenderComponentId = (value: unknown): value is RenderComponentId 
         || isEphemeraFeatureId(value)
         || isEphemeraKnowledgeId(value)
         || isEphemeraMapId(value)
+        || isEphemeraObjectId(value)
     )
 )
 

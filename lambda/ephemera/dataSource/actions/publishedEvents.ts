@@ -60,6 +60,7 @@ export type ObjectDropPublishedPayload = {
     confidence?: number;
 }
 
+
 export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
 
 const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([
@@ -175,8 +176,8 @@ export type PredictHypothesisPublishedPayload = {
 export type LookCommandRequestedPublishedPayload = {
     type: 'Look Command Requested';
     characterId: EphemeraCharacterId;
-    /** Room, Feature, or Knowledge host for this look. */
-    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId;
+    /** Room, Feature, Knowledge, or Object (stub, shortName only --- see PK-6) host for this look. */
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId;
     confidence: number;
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean;
@@ -407,6 +408,7 @@ export const isLookCommandRequestedPublishedPayload = (
         !isEphemeraRoomId(v.componentId)
         && !isEphemeraFeatureId(v.componentId)
         && !isEphemeraKnowledgeId(v.componentId)
+        && !isEphemeraObjectId(v.componentId)
     ) {
         return false
     }

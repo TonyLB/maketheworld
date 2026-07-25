@@ -891,6 +891,47 @@ describe('ephemeraActionsDataSource', () => {
                 },
             })
         })
+
+        it('routes an object component through the perception kernel, publishing Look Command Requested (Phase 4)', async () => {
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Action Assessed',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123' as const,
+                        assessed: {
+                            type: 'LookComponent' as const,
+                            componentId: 'OBJECT#rocketSkates' as const,
+                            confidence: 0.9,
+                        },
+                        source: 'link' as const,
+                    }),
+                } as any],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            // perceiveStepSequence hardcodes confidence: 1 on delivery (Phase 3 behavior,
+            // unrelated to parseResult.confidence, which only gates whether Plan matched at all).
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
+                    characterId: 'CHARACTER#123',
+                    componentId: 'OBJECT#rocketSkates',
+                    confidence: 1,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        })
     })
 
     describe('Action Assessed CharacterSpoke', () => {

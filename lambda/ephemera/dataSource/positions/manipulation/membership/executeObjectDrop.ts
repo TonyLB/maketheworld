@@ -11,7 +11,7 @@ import {
 import type { GroundingContext } from '../../../actions/enrich/objectManipulation/synthesize/groundReferent'
 import { createExpansionEnvironment } from '../../../actions/enrich/objectManipulation/synthesize/expansionEnvironment'
 import { runExecutor, seedTransferMembership } from '../../../actions/enrich/objectManipulation/synthesize/executor'
-import { fromExecutorStep } from '../kernel/kernelStep'
+import { fromExecutorStep, isKernelMutationStep } from '../kernel/kernelStep'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { EphemeraPositionGraph } from '../../positionGraph'
 
@@ -66,7 +66,7 @@ export const executeObjectDrop = async (args: ExecuteObjectDropArgs): Promise<vo
     }
 
     await commitStepSequence(
-        { steps: outcome.steps.map(fromExecutorStep) },
+        { steps: outcome.steps.map(fromExecutorStep).filter(isKernelMutationStep) },
         {
             messageBus: args.messageBus,
             streamEvent: args.streamEvent,

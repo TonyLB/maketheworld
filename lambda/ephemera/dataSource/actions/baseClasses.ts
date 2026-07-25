@@ -166,10 +166,15 @@ export type ParseCommandLookRoomResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Trusted component look (UI click, link API) with explicit EphemeraId. Not produced by Bedrock parse. */
+/**
+ * Trusted component look (UI click, link API) with explicit EphemeraId, or a grounded
+ * object-directed look ("look/examine <object>") from the Plan-stage `matchLookTemplate`
+ * matcher (iteration 9, Phase 4) --- the latter is the one producer of this type that
+ * *is* reachable from Bedrock parse; the doc comment below only describes the other three.
+ */
 export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
-    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId
     confidence: ParseCommandConfidence
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean
@@ -474,6 +479,7 @@ export function isParseCommandLookComponentResult(
         !isEphemeraRoomId(result.componentId)
         && !isEphemeraFeatureId(result.componentId)
         && !isEphemeraKnowledgeId(result.componentId)
+        && !isEphemeraObjectId(result.componentId)
     ) {
         return false
     }
