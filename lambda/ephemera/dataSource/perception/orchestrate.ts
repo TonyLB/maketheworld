@@ -221,7 +221,6 @@ function publishCharacterMoveGeneratingHeader(
         messageGroupId: registration.messageGroupId,
         messageId: args.messageId,
         createdTime: args.t0,
-        deliveryMode: 'immediate',
     })
 }
 
@@ -437,7 +436,6 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
                 createdTime: terminalCreatedTime({ createdTime: t0 }),
-                deliveryMode: 'immediate',
             })
             publishedCharacterMove += 1
         }
@@ -820,7 +818,6 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             messageGroupId: registration.messageGroupId,
             messageId,
             createdTime: terminalCreatedTime(thread),
-            deliveryMode: 'immediate',
         })
 
         internalCache.PerceptionThreads.remove({

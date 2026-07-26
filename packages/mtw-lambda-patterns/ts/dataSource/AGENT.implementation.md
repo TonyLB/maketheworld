@@ -185,7 +185,7 @@ for (const envelope of events) {
 
 #### Deferral interaction with coalescers
 
-[`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). Ephemera registers outbound coalescers (e.g. [`publishMessage/coalescer.ts`](../../../../lambda/ephemera/publishMessage/coalescer.ts)) that flush deferred WebSocket batches IO-only at the same tail.
+[`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). Ephemera registers outbound coalescers (e.g. [`checkLocation/coalescer.ts`](../../../../lambda/ephemera/checkLocation/coalescer.ts)) that flush deferred WebSocket batches IO-only at the same tail. (Ephemera's `publishMessage/coalescer.ts` was one such example until it was removed in its entirety, 2026-07-26 --- see [`AGENT.messageOrchestrationConsolidation.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md) MO-8.)
 
 - Fan-in `afterSettled` may invoke handlers that publish derived side effects (e.g. bus messages).
 - Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.

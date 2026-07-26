@@ -312,7 +312,6 @@ describe('objectManipulationPresentationFanIn', () => {
                     message: ['Alice picks up broom'],
                     createdTime: ANCHOR_TIME,
                     targets: [ROOM, CHARACTER],
-                    deliveryMode: 'deferred',
                 })
             })
 
@@ -399,7 +398,6 @@ describe('objectManipulationPresentationFanIn', () => {
                     message: ['Alice drops broom'],
                     createdTime: ANCHOR_TIME,
                     targets: [ROOM, CHARACTER],
-                    deliveryMode: 'deferred',
                 })
             })
 
@@ -465,7 +463,6 @@ describe('objectManipulationPresentationFanIn', () => {
                     message: ['Alice puts broom on table'],
                     createdTime: ANCHOR_TIME,
                     targets: [ROOM, CHARACTER],
-                    deliveryMode: 'deferred',
                 })
             })
 

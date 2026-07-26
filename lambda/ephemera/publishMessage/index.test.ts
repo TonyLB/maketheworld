@@ -15,7 +15,6 @@ jest.mock('../internalCache/hydrateRoomRoster', () => ({
 import { getRoomCharacterList } from '../internalCache/hydrateRoomRoster'
 
 import publishMessage from './index'
-import { publishMessageCoalescer } from './coalescer'
 
 const messageDeltaDBMock = messageDeltaDB as jest.Mocked<typeof messageDeltaDB>
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -30,7 +29,6 @@ describe('PublishMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        publishMessageCoalescer.reset()
         uuidMock.mockReturnValue('UUID')
         const dateNowStub = jest.fn(() => 1000000000000)
         global.Date.now = dateNowStub
@@ -566,109 +564,6 @@ describe('PublishMessage', () => {
         })
     })
 
-    it('does not send wire during handler when deliveryMode is deferred', async () => {
-        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({
-            'UUID#1': 0,
-            'UUID#2': 1,
-            'UUID#3': -1
-        })
-        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
-        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
-        await publishMessage({
-            payloads: [{
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#3',
-                deliveryMode: 'deferred',
-                message: ['Test leaves']
-            },
-            {
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#2',
-                deliveryMode: 'deferred',
-                message: ['Test arrives']
-            },
-            {
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#1',
-                deliveryMode: 'deferred',
-                message: ['Room description']
-            }]
-        })
-        expect(messageDeltaDBMock.putItem).toHaveBeenCalled()
-        expect(apiClientMock.send).not.toHaveBeenCalled()
-    })
-
-    it('flushes deferred rows in CreatedTime order on coalescer flush', async () => {
-        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({
-            'UUID#1': 0,
-            'UUID#2': 1,
-            'UUID#3': -1
-        })
-        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
-        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
-        await publishMessage({
-            payloads: [{
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#3',
-                deliveryMode: 'deferred',
-                message: ['Test leaves']
-            },
-            {
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#2',
-                deliveryMode: 'deferred',
-                message: ['Test arrives']
-            },
-            {
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                messageGroupId: 'UUID#1',
-                deliveryMode: 'deferred',
-                message: ['Room description']
-            }]
-        })
-        expect(apiClientMock.send).not.toHaveBeenCalled()
-        await publishMessageCoalescer.flushDeferred()
-        expect(apiClientMock.send).toHaveBeenCalledWith({
-            ConnectionId: 'Y123',
-            Data: JSON.stringify({
-                messageType: 'Messages',
-                messages: [{
-                    Target: "CHARACTER#123",
-                    MessageId: 'MESSAGE#UUID',
-                    CreatedTime: 999999999999,
-                    Message: ['Test leaves'],
-                    DisplayProtocol: 'WorldMessage'
-                },
-                {
-                    Target: "CHARACTER#123",
-                    MessageId: 'MESSAGE#UUID',
-                    CreatedTime: 1000000000000,
-                    Message: ['Room description'],
-                    DisplayProtocol: 'WorldMessage'
-                },
-                {
-                    Target: "CHARACTER#123",
-                    MessageId: 'MESSAGE#UUID',
-                    CreatedTime: 1000000000001,
-                    Message: ['Test arrives'],
-                    DisplayProtocol: 'WorldMessage'
-                }]
-            })
-        })
-    })
-
     it('sends immediate PerceptionMessage revisions in separate wire calls', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
@@ -685,7 +580,6 @@ describe('PublishMessage', () => {
                 displayProtocol: 'PerceptionMessage',
                 messageId: 'MESSAGE#SHARED',
                 createdTime: 1000000000000,
-                deliveryMode: 'immediate',
                 wmlContent: '<Asset uuid=(render)><Room uuid=(ROOM#TEST)><Render><DisplayName>Generating...</DisplayName></Render></Room></Asset>',
                 metaData: perceptionMeta,
             }]
@@ -697,7 +591,6 @@ describe('PublishMessage', () => {
                 displayProtocol: 'PerceptionMessage',
                 messageId: 'MESSAGE#SHARED',
                 createdTime: 1000000000001,
-                deliveryMode: 'immediate',
                 wmlContent: '<Asset uuid=(render)><Room uuid=(ROOM#TEST)><Render><DisplayName>Done</DisplayName></Render></Room></Asset>',
                 metaData: perceptionMeta,
             }]
@@ -743,24 +636,6 @@ describe('PublishMessage', () => {
                 roomChannel: 'render',
             },
         })
-    })
-
-    it('reset clears deferred rows so flush sends nothing', async () => {
-        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
-        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
-        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
-        await publishMessage({
-            payloads: [{
-                type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldMessage',
-                deliveryMode: 'deferred',
-                message: ['Deferred only']
-            }]
-        })
-        publishMessageCoalescer.reset()
-        await publishMessageCoalescer.flushDeferred()
-        expect(apiClientMock.send).not.toHaveBeenCalled()
     })
 
 })

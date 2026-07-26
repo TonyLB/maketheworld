@@ -13,7 +13,6 @@ import {
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
-import { publishMessageCoalescer } from '../publishMessage/coalescer'
 import ephemeraUpdate from '../ephemeraUpdate'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import perceptionMessage from '../perception'
@@ -80,7 +79,6 @@ messageBus.subscribe({
     callback: mapUpdateMessage
 })
 
-publishMessageCoalescer.registerDeferral(messageBus)
 registerReturnValueCollector(messageBus)
 
 export default messageBus

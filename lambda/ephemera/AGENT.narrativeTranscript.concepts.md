@@ -55,7 +55,7 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 | --- | --- |
 | **Websocket packet order** | Client and server both sort by **`CreatedTime`** before display. |
 | **Same lambda invocation** | Rows may publish from different handlers or invocations if transcript times are assigned coherently. |
-| **Single batched publish** | Deferred coalescing ([`publishMessage/coalescer.ts`](publishMessage/coalescer.ts)) batches at settle for convenience --- not a client contract. |
+| **Single batched publish** | `messageOrchestration`'s bundle flush ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) delivers a bundle's slots as one wire push once all are resolved --- a convenience of that mechanism, not a client contract (removed, 2026-07-26: the previous `publishMessage/coalescer.ts` deferred-batching mechanism, which had no genuine remaining use once every producer had a real reason for immediate delivery --- see MO-8). |
 | **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)). |
 | **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes sharing an **`OrchestrateMessages`** tree (or explicit times). |
 
@@ -86,7 +86,7 @@ Today **`characterMove`** registers a targeting-only PerceptionThreads row after
 **Anti-patterns to avoid when designing fan-in specs:**
 
 - Requiring all legs of a cluster to publish in one handler pass "so order is right"
-- Treating deferred coalescer batching as the only way to get narrative order
+- Treating wire-batching convenience as the only way to get narrative order (the retired `publishMessage/coalescer.ts` deferred-batching mechanism was exactly this anti-pattern; see MO-8)
 - Using side-band registration order as a substitute for explicit transcript times
 - Conflating **`clusterKey`** with **`messageGroupId`** unless deliberately chosen
 
@@ -108,7 +108,7 @@ Channels are **semantically independent** on the wire; the client merges them fo
 | --- | --- | --- |
 | **`OrchestrateMessages` offsets** | [`publishMessage/index.ts`](publishMessage/index.ts) | Relative beat ordering within an invocation |
 | **Explicit `createdTime` on bus payload** | Perception orchestration, some render threads | Generating/terminal overwrite timing |
-| **`deliveryMode: 'deferred'`** | `publishObjectManipulationPresentation.ts` (take-hold/drop/relational transcripts) | Hold until settle; still sorted by **`CreatedTime`** on flush. Move cluster and membership leave/arrive legs moved to **`'immediate'`** (2026-07-26, Phase 4 of [`AGENT.messageOrchestrationConsolidation.planning.md`](../../taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md)) --- deferred pooling delayed the Generating placeholder's visibility until end-of-invocation, defeating the placeholder/terminal distinction now that both happen in-invocation. Phase 5 of that plan investigates whether the two remaining sites above are the last genuine users, or whether the coalescer should retire entirely (MO-8). |
+| **`messageOrchestration` bundle sequential assignment** | [`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts) | `MessageOrchestrationFanInCluster.handler` assigns each flushed message's `CreatedTime` itself at flush time, sequential in declared order, 1ms apart --- overwriting whatever `CreatedTime` a slot's message arrived with |
 | **Character-voice room broadcast** | [`dataSource/narration/handleCharacterSpoke.ts`](dataSource/narration/handleCharacterSpoke.ts) | Terminal **`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`** (no fan-in) |
 | **Client `presentation` overload** | [`charcoal-client/src/slices/messages/index.ts`](../../charcoal-client/src/slices/messages/index.ts) | Stable position for revised bodies |
 

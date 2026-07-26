@@ -623,7 +623,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(mid).toMatch(/^MESSAGE#/)
         const genCreatedTime = (genPublish![0] as { createdTime?: number }).createdTime
         expect(genCreatedTime).toBe(1000000000000)
-        expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         const worldMessages = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; displayProtocol?: string }
             return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
@@ -661,7 +660,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
-        expect((terminalPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
@@ -722,7 +720,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(content).toMatchObject({
             bundleId: 'BUNDLE#test',
             slotId: 'header',
-            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />', deliveryMode: 'immediate' }),
+            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />' }),
         })
 
         schemaSpy.mockRestore()
@@ -756,7 +754,6 @@ describe('mtw.ephemera.perception DataSource', () => {
             slotId: 'header',
             message: expect.objectContaining({
                 metaData: expect.objectContaining({ status: 'generating' }),
-                deliveryMode: 'immediate',
             }),
         })
         const placeholderMessageId = (slotContent.message as { messageId?: string }).messageId
@@ -770,7 +767,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         expect(standaloneTerminal).toBeDefined()
         expect((standaloneTerminal![0] as { messageId?: string }).messageId).toBe(placeholderMessageId)
-        expect((standaloneTerminal![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
 
         const slotReportsAfterTerminal = publishSpy.mock.calls
             .map((c) => c[0])
@@ -859,7 +855,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(BEAT_ANCHOR)
-        expect((terminalPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
@@ -1384,7 +1379,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice picks up broom'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })
@@ -1427,7 +1421,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice drops broom'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })
@@ -1550,7 +1543,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice puts broom on table'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })

@@ -57,7 +57,6 @@ export const publishObjectManipulationPresentation = (
         displayProtocol: 'WorldMessage',
         message: [buildObjectManipulationWorldMessage(plan)],
         createdTime: plan.beatAnchorTime,
-        deliveryMode: 'deferred',
     })
 }
 
@@ -71,6 +70,5 @@ export const publishObjectRelationalPresentation = (
         displayProtocol: 'WorldMessage',
         message: [buildObjectRelationalWorldMessage(plan)],
         createdTime: plan.beatAnchorTime,
-        deliveryMode: 'deferred',
     })
 }

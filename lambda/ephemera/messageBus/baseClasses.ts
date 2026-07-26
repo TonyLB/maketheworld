@@ -65,8 +65,6 @@ export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: PublishTarget[];
     messageGroupId?: MessageGroupId;
-    /** Websocket egress timing. Default `immediate`. */
-    deliveryMode?: 'immediate' | 'deferred';
 }
 
 export type PublishWorldMessage = PublishMessageBase & {
