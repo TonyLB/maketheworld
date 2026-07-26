@@ -10,6 +10,8 @@ export type AfterCharacterMembershipNavigateChangedArgs = {
     characterId: EphemeraCharacterId;
     characterMeta: CharacterMetaItem;
     result: MembershipApplyResult;
+    /** messageOrchestration bundle correlation id; when omitted (connect/disconnect callers), orchestrateCharacterNavigate mints its own. */
+    bundleId?: string;
     messageBus: MessageBus;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
@@ -37,6 +39,7 @@ export const afterCharacterMembershipNavigateChanged = async ({
     characterId,
     characterMeta,
     result,
+    bundleId,
     messageBus,
     getRoomAssets,
     getCanonAssets,
@@ -72,6 +75,7 @@ export const afterCharacterMembershipNavigateChanged = async ({
             froms: result.froms,
             to,
             beatAnchorTime: result.beatAnchorTime,
+            bundleId,
             messageBus,
         }),
     ])

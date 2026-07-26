@@ -10,6 +10,8 @@ import { afterCharacterMembershipNavigateChanged } from './afterCharacterMembers
 export type ExecuteCharacterNavigateArgs = {
     characterId: EphemeraCharacterId;
     targetRoomId: EphemeraRoomId;
+    /** messageOrchestration bundle correlation id; when omitted (connect/disconnect/repair callers), orchestrateCharacterNavigate mints its own --- those paths have no fan-in intent leg carrying a matching bundleId anyway, so leave/arrive slots (if any) fall back to direct publish. */
+    bundleId?: string;
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
 }
@@ -21,6 +23,7 @@ export type ExecuteCharacterNavigateArgs = {
 export const executeCharacterNavigate = async ({
     characterId,
     targetRoomId,
+    bundleId,
     messageBus,
     streamEvent,
 }: ExecuteCharacterNavigateArgs): Promise<MembershipApplyResult> => {
@@ -34,6 +37,7 @@ export const executeCharacterNavigate = async ({
         characterId,
         characterMeta,
         result,
+        bundleId,
         messageBus,
     })
 

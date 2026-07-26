@@ -32,8 +32,9 @@ import {
     isSessionOrientationRenderPerceptionThread,
 } from '../../internalCache/perceptionThreads'
 import type { PerceptionThreadRegisterKnowledgeDescriptionCommand } from './localApiEvents'
-import type { PublishTarget } from '../../messageBus/baseClasses'
+import type { PublishMessage, PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
+import { sendMessageSlotReported } from '../messageOrchestration/subscribedEvents'
 import {
     featureRenderWmlFromCacheRecord,
     knowledgeRenderWmlFromCacheRecord,
@@ -155,6 +156,23 @@ async function resolveFallbackRenderTargetsForPerspective(
 function terminalCreatedTime(thread: { createdTime?: number }): number {
     const t0 = thread.createdTime ?? getCurrentTimestamp()
     return Math.max(t0 + 1, getCurrentTimestamp())
+}
+
+/** Reports the characterMove header slot when the thread row carries bundleId/slotId (see MO-3), else publishes directly as today. */
+function deliverCharacterMoveMessage(
+    bus: MessageBus,
+    registration: { bundleId?: string; slotId?: string },
+    message: PublishMessage
+): void {
+    if (registration.bundleId && registration.slotId) {
+        sendMessageSlotReported(bus, registration.bundleId, {
+            bundleId: registration.bundleId,
+            slotId: registration.slotId,
+            message,
+        })
+        return
+    }
+    bus.publish(message)
 }
 
 /** Model A beat anchor: Generating placeholder at T0 (cache-hit may skip Generation Started). */
@@ -398,7 +416,7 @@ async function handleRenderPertains(
             )
         }
         if (targets.length) {
-            bus.publish({
+            deliverCharacterMoveMessage(bus, registration, {
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
@@ -782,7 +800,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         const roomId = payload.componentId
         const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        bus.publish({
+        deliverCharacterMoveMessage(bus, registration, {
             type: 'PublishMessage',
             targets,
             displayProtocol: 'PerceptionMessage',

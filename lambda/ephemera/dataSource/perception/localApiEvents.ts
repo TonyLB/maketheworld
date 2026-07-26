@@ -87,6 +87,9 @@ export type PerceptionThreadRegisterCharacterMoveCommand = {
     messageId?: string;
     /** Fictional anchor time for header revision (Model A / F1-4). */
     createdTime?: number;
+    /** messageOrchestration bundle correlation (see dataSource/messageOrchestration/AGENT.md); when present, the terminal render reports this slot instead of publishing directly. */
+    bundleId?: string;
+    slotId?: string;
 }
 
 /** Feature link / look correlated description fan-in (requires viewer characterId). */
@@ -203,6 +206,8 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             && isNonEmptyPublishTargetArray(v.targets)
             && (v.messageId === undefined || typeof v.messageId === 'string')
             && (v.createdTime === undefined || typeof v.createdTime === 'number')
+            && (v.bundleId === undefined || typeof v.bundleId === 'string')
+            && (v.slotId === undefined || typeof v.slotId === 'string')
         )
     }
     if (v.threadKind === 'featureDescription') {

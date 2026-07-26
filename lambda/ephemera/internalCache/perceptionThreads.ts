@@ -47,13 +47,20 @@ export type SessionOrientationAffordancesPerceptionThread = {
     cacheId?: string;
 }
 
-/** Character move: targeting-only registration for mover arrival-room header render fan-in. */
+/**
+ * Character move: targeting-only registration for mover arrival-room header render fan-in.
+ * Optional `bundleId`/`slotId` correlate this row's terminal render to a messageOrchestration
+ * bundle slot (see dataSource/messageOrchestration/AGENT.md) --- when present, the terminal
+ * publish reports the slot instead of publishing directly.
+ */
 export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
     status: 'Initial' | 'Generating' | 'Terminal';
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
+    bundleId?: string;
+    slotId?: string;
 }
 
 /** Feature description: correlated full-description fan-in (mirrors roomDescription lifecycle). */
@@ -213,6 +220,12 @@ export function isCharacterMovePerceptionThread(value: unknown): value is Charac
         return false
     }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
+        return false
+    }
+    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
+        return false
+    }
+    if (v.slotId !== undefined && typeof v.slotId !== 'string') {
         return false
     }
     return true
@@ -865,6 +878,8 @@ export default class PerceptionThreadsData {
                     status: 'Initial',
                     ...(cmd.messageId !== undefined ? { messageId: cmd.messageId } : {}),
                     ...(cmd.createdTime !== undefined ? { createdTime: cmd.createdTime } : {}),
+                    ...(cmd.bundleId !== undefined ? { bundleId: cmd.bundleId } : {}),
+                    ...(cmd.slotId !== undefined ? { slotId: cmd.slotId } : {}),
                 }
                 break
             case 'featureDescription':

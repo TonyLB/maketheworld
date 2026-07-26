@@ -1,10 +1,12 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { MessageBus } from '../../messageBus/baseClasses'
+import type { MessageBus, PublishMessage } from '../../messageBus/baseClasses'
 import type {
     MembershipEmissionCopyKind,
     MembershipEmissionPlan,
     MembershipEmissionShape,
 } from './membershipPresentationFanIn'
+import { sendMessageSlotReported } from '../messageOrchestration/subscribedEvents'
+import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID } from '../positions/navigate/navigateBundleSlotIds'
 
 export const MEMBERSHIP_BEAT_EPSILON_MS = 1
 
@@ -61,6 +63,20 @@ const leaveCopyKindForFrom = (
     return 'genericFactOnly'
 }
 
+/** Reports a resolved slot into the plan's bundle when bundleId is present, else publishes directly (fact-only-at-settle / non-navigate intents keep today's behavior). */
+const deliverMembershipMessage = (
+    messageBus: MessageBus,
+    bundleId: string | undefined,
+    slotId: string,
+    message: PublishMessage
+): void => {
+    if (bundleId) {
+        sendMessageSlotReported(messageBus, bundleId, { bundleId, slotId, message })
+        return
+    }
+    messageBus.publish(message)
+}
+
 const publishLeaveWorldMessage = (
     messageBus: MessageBus,
     args: {
@@ -68,9 +84,10 @@ const publishLeaveWorldMessage = (
         from: EphemeraRoomId;
         message: string;
         createdTime: number;
+        bundleId?: string;
     }
 ): void => {
-    messageBus.publish({
+    deliverMembershipMessage(messageBus, args.bundleId, navigateLeaveSlotId(args.from), {
         type: 'PublishMessage',
         targets: [args.from, args.characterId],
         displayProtocol: 'WorldMessage',
@@ -87,9 +104,10 @@ const publishArriveWorldMessage = (
         to: EphemeraRoomId;
         message: string;
         createdTime: number;
+        bundleId?: string;
     }
 ): void => {
-    messageBus.publish({
+    deliverMembershipMessage(messageBus, args.bundleId, NAVIGATE_ARRIVE_SLOT_ID, {
         type: 'PublishMessage',
         targets: [args.to, args.characterId],
         displayProtocol: 'WorldMessage',
@@ -109,6 +127,7 @@ const publishLeaves = (messageBus: MessageBus, plan: MembershipEmissionPlan): vo
             from: fromRoom,
             message: `${name}${buildMembershipLeaveSuffix(leaveCopyKind, plan.exitName)}`,
             createdTime,
+            bundleId: plan.bundleId,
         })
     }
 }
@@ -128,6 +147,7 @@ const publishForShape = (
             to: plan.to,
             message: `${name}${buildMembershipArriveSuffix(plan.copyKind)}`,
             createdTime: anchor + MEMBERSHIP_BEAT_EPSILON_MS,
+            bundleId: plan.bundleId,
         })
         return
     }
@@ -143,6 +163,7 @@ const publishForShape = (
             to: plan.to,
             message: `${name}${buildMembershipArriveSuffix(plan.copyKind)}`,
             createdTime: anchor + MEMBERSHIP_BEAT_EPSILON_MS,
+            bundleId: plan.bundleId,
         })
     }
 }

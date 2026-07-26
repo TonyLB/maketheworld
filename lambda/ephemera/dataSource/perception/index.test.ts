@@ -669,6 +669,65 @@ describe('mtw.ephemera.perception DataSource', () => {
         publishSpy.mockRestore()
     })
 
+    it('characterMove terminal Render Pertains reports a messageOrchestration slot instead of publishing directly when the thread carries bundleId/slotId', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+        })
+        await messageBus.flushAndSettle()
+
+        const tsCache = Date.now()
+        messageBus.publish({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsCache,
+            header: {
+                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsCache,
+                type: 'Render Pertains',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                }),
+        })
+        await messageBus.flushAndSettle()
+
+        const directPublishes = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveBundled />'
+        })
+        expect(directPublishes).toHaveLength(0)
+
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(1)
+        const content = await (slotReports[0] as any).getContent()
+        expect(content).toMatchObject({
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />' }),
+        })
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
     it('characterMove cache hit synthesizes Generating at beat anchor then terminal Render Pertains', async () => {
         const BEAT_ANCHOR = 1_700_000_000_000
         mockGetCurrentTimestamp.mockImplementation(() => BEAT_ANCHOR + 5)

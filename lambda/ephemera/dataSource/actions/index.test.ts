@@ -325,6 +325,7 @@ describe('ephemeraActionsDataSource', () => {
                     fromRoomId: from,
                     toRoomId: dest,
                     exitName: 'north',
+                    bundleId: expect.any(String),
                 },
             })
             expect(mockedParseCommand).toHaveBeenCalledWith(
@@ -449,6 +450,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     fromRoomId: from,
                     toRoomId: home,
+                    bundleId: expect.any(String),
                 },
             })
         })
@@ -532,6 +534,7 @@ describe('ephemeraActionsDataSource', () => {
                     fromRoomId: from,
                     toRoomId: dest,
                     exitName: 'north',
+                    bundleId: expect.any(String),
                 },
             })
             expect(mockMessageBus.publish).toHaveBeenCalledWith({
@@ -625,6 +628,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     fromRoomId: from,
                     toRoomId: home,
+                    bundleId: expect.any(String),
                 },
             })
             expect(mockMessageBus.publish).toHaveBeenCalledWith({

@@ -120,6 +120,7 @@ export const toMembershipPresentationLeg = async (
             fromRoomId: content.fromRoomId,
             toRoomId: content.toRoomId,
             ...(content.exitName !== undefined ? { exitName: content.exitName } : {}),
+            bundleId: content.bundleId,
         }
     }
 
@@ -134,6 +135,7 @@ export const toMembershipPresentationLeg = async (
             characterId: content.characterId,
             fromRoomId: content.fromRoomId,
             toRoomId: content.toRoomId,
+            bundleId: content.bundleId,
         }
     }
 
