@@ -175,18 +175,39 @@ function deliverCharacterMoveMessage(
     bus.publish(message)
 }
 
-/** Model A beat anchor: Generating placeholder at T0 (cache-hit may skip Generation Started). */
+/**
+ * Either the placeholder or the terminal can complete a characterMove slot, whichever is
+ * processed first for the thread (thread.status === 'Initial'). If the terminal arrives second
+ * (the placeholder already filled the slot), it delivers standalone --- a direct publish, never
+ * re-entering the bundle, reusing the thread's already-assigned messageId. A late placeholder
+ * arriving after the terminal is not handled here: the terminal handlers remove the thread row
+ * immediately, so handleGenerationStarted never finds the entry to publish against.
+ */
+function deliverCharacterMoveTerminal(
+    bus: MessageBus,
+    thread: { status: 'Initial' | 'Generating' | 'Terminal' },
+    registration: { bundleId?: string; slotId?: string },
+    message: PublishMessage
+): void {
+    if (thread.status === 'Initial') {
+        deliverCharacterMoveMessage(bus, registration, message)
+        return
+    }
+    bus.publish(message)
+}
+
+/** Model A beat anchor: Generating placeholder at T0. Fills the bundle slot when bundleId/slotId are present (see deliverCharacterMoveTerminal for the symmetric terminal-side rule). */
 function publishCharacterMoveGeneratingHeader(
     bus: MessageBus,
+    registration: { bundleId?: string; slotId?: string; messageGroupId?: MessageGroupId },
     args: {
         roomId: EphemeraRoomId;
         targets: PublishTarget[];
-        messageGroupId?: MessageGroupId;
         messageId: string;
         t0: number;
     }
 ): void {
-    bus.publish({
+    deliverCharacterMoveMessage(bus, registration, {
         type: 'PublishMessage',
         targets: args.targets,
         displayProtocol: 'PerceptionMessage',
@@ -197,10 +218,10 @@ function publishCharacterMoveGeneratingHeader(
             status: 'generating',
             roomChannel: 'render',
         },
-        messageGroupId: args.messageGroupId,
+        messageGroupId: registration.messageGroupId,
         messageId: args.messageId,
         createdTime: args.t0,
-        deliveryMode: 'deferred',
+        deliveryMode: 'immediate',
     })
 }
 
@@ -402,21 +423,8 @@ async function handleRenderPertains(
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         const t0 = thread.createdTime ?? getCurrentTimestamp()
-        if (thread.status === 'Initial') {
-            publishCharacterMoveGeneratingHeader(bus, {
-                roomId,
-                targets,
-                messageGroupId: registration.messageGroupId,
-                messageId,
-                t0,
-            })
-            internalCache.PerceptionThreads.update(
-                { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-                { threadKind: 'characterMove', status: 'Generating', messageId, createdTime: t0 }
-            )
-        }
         if (targets.length) {
-            deliverCharacterMoveMessage(bus, registration, {
+            deliverCharacterMoveTerminal(bus, thread, registration, {
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
@@ -429,7 +437,7 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
                 createdTime: terminalCreatedTime({ createdTime: t0 }),
-                deliveryMode: 'deferred',
+                deliveryMode: 'immediate',
             })
             publishedCharacterMove += 1
         }
@@ -641,10 +649,9 @@ async function handleGenerationStarted(
         const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         const t0 = thread.createdTime ?? getCurrentTimestamp()
-        publishCharacterMoveGeneratingHeader(bus, {
+        publishCharacterMoveGeneratingHeader(bus, registration, {
             roomId,
             targets,
-            messageGroupId: registration.messageGroupId,
             messageId,
             t0,
         })
@@ -800,7 +807,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         const roomId = payload.componentId
         const targets = registration.targets
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        deliverCharacterMoveMessage(bus, registration, {
+        deliverCharacterMoveTerminal(bus, thread, registration, {
             type: 'PublishMessage',
             targets,
             displayProtocol: 'PerceptionMessage',
@@ -813,7 +820,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             messageGroupId: registration.messageGroupId,
             messageId,
             createdTime: terminalCreatedTime(thread),
-            deliveryMode: 'deferred',
+            deliveryMode: 'immediate',
         })
 
         internalCache.PerceptionThreads.remove({

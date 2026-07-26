@@ -623,7 +623,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(mid).toMatch(/^MESSAGE#/)
         const genCreatedTime = (genPublish![0] as { createdTime?: number }).createdTime
         expect(genCreatedTime).toBe(1000000000000)
-        expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
+        expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         const worldMessages = publishSpy.mock.calls.filter((c) => {
             const m = c[0] as { type?: string; displayProtocol?: string }
             return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
@@ -661,6 +661,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
+        expect((terminalPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
@@ -721,14 +722,104 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(content).toMatchObject({
             bundleId: 'BUNDLE#test',
             slotId: 'header',
-            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />' }),
+            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />', deliveryMode: 'immediate' }),
         })
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
     })
 
-    it('characterMove cache hit synthesizes Generating at beat anchor then terminal Render Pertains', async () => {
+    it('characterMove bundled: placeholder fills the slot on Generation Started, terminal delivers standalone reusing the placeholder messageId', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+        })
+        await messageBus.flushAndSettle()
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
+
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(1)
+        const slotContent = await (slotReports[0] as any).getContent()
+        expect(slotContent).toMatchObject({
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+            message: expect.objectContaining({
+                metaData: expect.objectContaining({ status: 'generating' }),
+                deliveryMode: 'immediate',
+            }),
+        })
+        const placeholderMessageId = (slotContent.message as { messageId?: string }).messageId
+        expect(placeholderMessageId).toMatch(/^MESSAGE#/)
+
+        await sendRenderPertainsStreamingEvent()
+
+        const standaloneTerminal = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveBundled />'
+        })
+        expect(standaloneTerminal).toBeDefined()
+        expect((standaloneTerminal![0] as { messageId?: string }).messageId).toBe(placeholderMessageId)
+        expect((standaloneTerminal![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
+
+        const slotReportsAfterTerminal = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReportsAfterTerminal).toHaveLength(1)
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove terminal-arrives-first: a late Generation Started is silently discarded because the thread was already removed', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+        })
+        await messageBus.flushAndSettle()
+
+        await sendRenderPertainsStreamingEvent()
+
+        const slotReportsBeforeLatePlaceholder = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReportsBeforeLatePlaceholder).toHaveLength(1)
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
+
+        const headerPublishesAfterLatePlaceholder = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header'
+        })
+        expect(headerPublishesAfterLatePlaceholder).toHaveLength(0)
+        const slotReportsAfterLatePlaceholder = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReportsAfterLatePlaceholder).toHaveLength(1)
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove cache hit (no Generation Started) delivers the terminal alone, with no synthesized Generating placeholder', async () => {
         const BEAT_ANCHOR = 1_700_000_000_000
         mockGetCurrentTimestamp.mockImplementation(() => BEAT_ANCHOR + 5)
 
@@ -753,22 +844,22 @@ describe('mtw.ephemera.perception DataSource', () => {
             const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header' && m?.metaData?.status === 'generating'
         })
-        expect(genPublish).toBeDefined()
-        expect((genPublish![0] as { createdTime?: number }).createdTime).toBe(BEAT_ANCHOR)
-        expect((genPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
+        expect(genPublish).toBeUndefined()
+
+        const headerPublishes = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header'
+        })
+        expect(headerPublishes).toHaveLength(1)
 
         const terminalPublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string; status?: string } }
-            return (
-                m?.type === 'PublishMessage'
-                && m?.wmlContent === '<HeaderMoveTerminal />'
-                && m?.metaData?.displayMode === 'header'
-                && m?.metaData?.status !== 'generating'
-            )
+            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveTerminal />' && m?.metaData?.displayMode === 'header'
         })
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(BEAT_ANCHOR)
+        expect((terminalPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('immediate')
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])

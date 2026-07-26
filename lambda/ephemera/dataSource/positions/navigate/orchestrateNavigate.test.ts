@@ -65,8 +65,8 @@ describe('orchestrateCharacterNavigate', () => {
             slots: [
                 { slotId: navigateLeaveSlotId('ROOM#VORTEX'), expectedPublishType: 'WorldMessage' },
                 { slotId: navigateLeaveSlotId('ROOM#TestThree'), expectedPublishType: 'WorldMessage' },
-                { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
                 { slotId: NAVIGATE_HEADER_SLOT_ID, expectedPublishType: 'PerceptionMessage' },
+                { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
             ],
         })
     })

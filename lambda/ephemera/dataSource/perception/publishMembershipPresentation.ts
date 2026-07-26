@@ -93,7 +93,7 @@ const publishLeaveWorldMessage = (
         displayProtocol: 'WorldMessage',
         message: [args.message],
         createdTime: args.createdTime,
-        deliveryMode: 'deferred',
+        deliveryMode: 'immediate',
     })
 }
 
@@ -113,7 +113,7 @@ const publishArriveWorldMessage = (
         displayProtocol: 'WorldMessage',
         message: [args.message],
         createdTime: args.createdTime,
-        deliveryMode: 'deferred',
+        deliveryMode: 'immediate',
     })
 }
 

@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
-import type { MessageBus, PublishMessage } from '../../messageBus/baseClasses'
+import type { MessageBus, PublishWorldMessage } from '../../messageBus/baseClasses'
 import {
     createMessageOrchestrationFanInHandlerContext,
     createMessageOrchestrationFanInStore,
@@ -9,7 +9,7 @@ import {
 
 const BUNDLE_A = 'bundle-a'
 
-const worldMessage = (text: string): PublishMessage => ({
+const worldMessage = (text: string): PublishWorldMessage => ({
     type: 'PublishMessage',
     targets: ['ROOM#a'],
     displayProtocol: 'WorldMessage',
@@ -77,6 +77,65 @@ describe('messageOrchestrationFanIn', () => {
                 ['Alice has left.'],
                 ['Alice has arrived.'],
             ])
+        })
+    })
+
+    describe('CreatedTime assignment at flush', () => {
+        it('assigns sequential CreatedTime, 1ms apart, in declared order --- overwriting whatever CreatedTime each slot arrived with', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            await store.route(declareLeg(['leave', 'header', 'arrive']))
+            // Reports arrive out of order and with wildly inconsistent CreatedTime values of their
+            // own (e.g. a stale beat anchor for leave/arrive, real wall-clock "now" for header) ---
+            // the bundle must not trust any of that; it assigns its own sequence at flush.
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'arrive',
+                message: { ...worldMessage('Alice has arrived.'), createdTime: 1_700_000_000_001 },
+            })
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'header',
+                message: { ...worldMessage('Room Header'), createdTime: 9_999_999_999_999 },
+            })
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'leave',
+                message: { ...worldMessage('Alice has left.'), createdTime: 1_700_000_000_000 },
+            })
+
+            const published = publishedMessages(ctx.messageBus)
+            expect(published.map((m) => m.message)).toEqual([
+                ['Alice has left.'],
+                ['Room Header'],
+                ['Alice has arrived.'],
+            ])
+            const times = published.map((m) => m.createdTime as number)
+            expect(times[1]).toBe(times[0] + 1)
+            expect(times[2]).toBe(times[1] + 1)
+        })
+
+        it('skips an unresolved slot without leaving a gap in the assigned sequence', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            await store.route(declareLeg(['leave', 'header', 'arrive']))
+            await store.route(reportLeg('leave', 'Alice has left.'))
+            await store.route(reportLeg('arrive', 'Alice has arrived.'))
+            expect(store.getOpenPartialCount()).toBe(1)
+
+            await store.settleDeferrals()
+
+            const published = publishedMessages(ctx.messageBus)
+            expect(published.map((m) => m.message)).toEqual([['Alice has left.'], ['Alice has arrived.']])
+            const times = published.map((m) => m.createdTime as number)
+            expect(times[1]).toBe(times[0] + 1)
         })
     })
 

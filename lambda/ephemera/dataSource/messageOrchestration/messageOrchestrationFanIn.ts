@@ -1,5 +1,6 @@
 import { FanInCluster, FanInHandlerOptions } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInCluster'
 import { FanInClusterStore } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInClusterStore'
+import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import type { MessageBus, PublishMessage } from '../../messageBus/baseClasses'
 import type { MessageOrchestrationSlotSpec } from './localApiEvents'
 
@@ -89,14 +90,24 @@ export class MessageOrchestrationFanInCluster extends FanInCluster<
         return this.declaredSlots.every((slot) => this.reports.has(slot.slotId))
     }
 
+    /**
+     * The bundle is the single place that knows the full ordered, resolved slot set --- so it
+     * assigns each message's CreatedTime here, sequential in declared order (1ms apart), rather
+     * than requiring every producer to compute a mutually-consistent time independently (which
+     * degenerates into beat-anchor/clamp arithmetic that's easy to get wrong). Whatever
+     * CreatedTime a slot's message arrived with is overwritten at flush.
+     */
     async handler(ctx: MessageOrchestrationFanInHandlerContext, _options: FanInHandlerOptions): Promise<void> {
         if (this.declaredSlots === null) {
             return
         }
+        const baseTime = getCurrentTimestamp()
+        let offset = 0
         for (const slot of this.declaredSlots) {
             const message = this.reports.get(slot.slotId)
             if (message) {
-                ctx.messageBus.publish(message)
+                ctx.messageBus.publish({ ...message, createdTime: baseTime + offset } as PublishMessage)
+                offset += 1
             }
         }
     }

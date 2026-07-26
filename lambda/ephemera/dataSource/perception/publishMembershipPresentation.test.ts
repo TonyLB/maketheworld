@@ -54,7 +54,7 @@ describe('publishMembershipPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice has left.'],
             createdTime: ANCHOR - MEMBERSHIP_BEAT_EPSILON_MS,
-            deliveryMode: 'deferred',
+            deliveryMode: 'immediate',
         })
         expect(messageBus.publish).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
@@ -62,7 +62,7 @@ describe('publishMembershipPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice has arrived.'],
             createdTime: ANCHOR + MEMBERSHIP_BEAT_EPSILON_MS,
-            deliveryMode: 'deferred',
+            deliveryMode: 'immediate',
         })
     })
 

@@ -54,10 +54,10 @@ export const orchestrateCharacterNavigate = async ({
         ...((shape === 'leaveOnly' || shape === 'leaveAndArrive')
             ? froms.map((roomId) => ({ slotId: navigateLeaveSlotId(roomId), expectedPublishType: 'WorldMessage' as const }))
             : []),
+        ...(perspectiveKey ? [{ slotId: NAVIGATE_HEADER_SLOT_ID, expectedPublishType: 'PerceptionMessage' as const }] : []),
         ...((shape === 'arriveOnly' || shape === 'leaveAndArrive')
             ? [{ slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' as const }]
             : []),
-        ...(perspectiveKey ? [{ slotId: NAVIGATE_HEADER_SLOT_ID, expectedPublishType: 'PerceptionMessage' as const }] : []),
     ]
     if (slots.length > 0) {
         sendMessageBundleDeclared(messageBus, bundleId, { bundleId, slots })
