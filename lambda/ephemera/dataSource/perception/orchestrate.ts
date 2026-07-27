@@ -35,6 +35,8 @@ import type { PerceptionThreadRegisterKnowledgeDescriptionCommand } from './loca
 import type { PublishMessage, PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import { sendMessageSlotReported } from '../messageOrchestration/subscribedEvents'
+import { findDeclaredSlotMatch, consumeSlotMatch } from '../messageOrchestration'
+import type { SlotMatchEntry } from '../messageOrchestration/slotMatchIndex'
 import {
     featureRenderWmlFromCacheRecord,
     knowledgeRenderWmlFromCacheRecord,
@@ -158,18 +160,39 @@ function terminalCreatedTime(thread: { createdTime?: number }): number {
     return Math.max(t0 + 1, getCurrentTimestamp())
 }
 
-/** Reports the characterMove header slot when the thread row carries bundleId/slotId (see MO-3), else publishes directly as today. */
+/** Disambiguates a multi-candidate slot match by exact targets equality (order-independent). Not expected in practice for characterMove --- logs and falls back to the first candidate if it ever occurs. */
+function disambiguateCharacterMoveMatch(candidates: SlotMatchEntry[], targets: PublishTarget[]): SlotMatchEntry | undefined {
+    if (candidates.length === 0) {
+        return undefined
+    }
+    if (candidates.length === 1) {
+        return candidates[0]
+    }
+    const targetsEqual = (a: PublishTarget[] = [], b: PublishTarget[]) =>
+        a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index])
+    const exact = candidates.find((candidate) => targetsEqual(candidate.spec.targets, targets))
+    if (exact) {
+        return exact
+    }
+    console.warn(`characterMove slot match ambiguous: ${candidates.length} candidates, no exact targets match`)
+    return candidates[0]
+}
+
+/** Reports the characterMove header slot when messageOrchestration has a declared slot matching (componentId, perspectiveKey, 'characterMove') (see MO-9), else publishes directly as today. */
 function deliverCharacterMoveMessage(
     bus: MessageBus,
-    registration: { bundleId?: string; slotId?: string },
+    registration: { componentId: string; perspectiveKey: string },
     message: PublishMessage
 ): void {
-    if (registration.bundleId && registration.slotId) {
-        sendMessageSlotReported(bus, registration.bundleId, {
-            bundleId: registration.bundleId,
-            slotId: registration.slotId,
+    const candidates = findDeclaredSlotMatch(registration.componentId, registration.perspectiveKey, 'characterMove')
+    const match = disambiguateCharacterMoveMatch(candidates, message.targets)
+    if (match) {
+        sendMessageSlotReported(bus, match.bundleId, {
+            bundleId: match.bundleId,
+            slotId: match.spec.slotId,
             message,
         })
+        consumeSlotMatch(registration.componentId, registration.perspectiveKey, match.bundleId, match.spec.slotId)
         return
     }
     bus.publish(message)
@@ -186,7 +209,7 @@ function deliverCharacterMoveMessage(
 function deliverCharacterMoveTerminal(
     bus: MessageBus,
     thread: { status: 'Initial' | 'Generating' | 'Terminal' },
-    registration: { bundleId?: string; slotId?: string },
+    registration: { componentId: string; perspectiveKey: string },
     message: PublishMessage
 ): void {
     if (thread.status === 'Initial') {
@@ -196,10 +219,10 @@ function deliverCharacterMoveTerminal(
     bus.publish(message)
 }
 
-/** Model A beat anchor: Generating placeholder at T0. Fills the bundle slot when bundleId/slotId are present (see deliverCharacterMoveTerminal for the symmetric terminal-side rule). */
+/** Model A beat anchor: Generating placeholder at T0. Fills the bundle slot when messageOrchestration has a declared match (see deliverCharacterMoveTerminal for the symmetric terminal-side rule). */
 function publishCharacterMoveGeneratingHeader(
     bus: MessageBus,
-    registration: { bundleId?: string; slotId?: string; messageGroupId?: MessageGroupId },
+    registration: { componentId: string; perspectiveKey: string; messageGroupId?: MessageGroupId },
     args: {
         roomId: EphemeraRoomId;
         targets: PublishTarget[];

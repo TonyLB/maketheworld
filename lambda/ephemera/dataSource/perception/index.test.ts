@@ -35,6 +35,7 @@ import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
+import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
 import * as orchestrateModule from './orchestrate'
 import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
@@ -220,6 +221,21 @@ describe('mtw.ephemera.perception DataSource', () => {
                     cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
                     cacheRecord: passThroughFixtureMinimalDynamoItem,
                 }),
+        })
+        await messageBus.flushAndSettle()
+    }
+
+    async function declareCharacterMoveBundle(bundleId: string, slotId: string): Promise<void> {
+        sendMessageBundleDeclared(messageBus, bundleId, {
+            bundleId,
+            slots: [{
+                slotId,
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#viewer'],
+                threadKind: 'characterMove',
+            }],
         })
         await messageBus.flushAndSettle()
     }
@@ -668,18 +684,17 @@ describe('mtw.ephemera.perception DataSource', () => {
         publishSpy.mockRestore()
     })
 
-    it('characterMove terminal Render Pertains reports a messageOrchestration slot instead of publishing directly when the thread carries bundleId/slotId', async () => {
+    it('characterMove terminal Render Pertains reports a messageOrchestration slot instead of publishing directly when messageOrchestration has a matching declared slot', async () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
 
+        await declareCharacterMoveBundle('BUNDLE#test', 'header')
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'characterMove',
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
             targets: ['CHARACTER#viewer'],
-            bundleId: 'BUNDLE#test',
-            slotId: 'header',
         })
         await messageBus.flushAndSettle()
 
@@ -731,14 +746,13 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
 
+        await declareCharacterMoveBundle('BUNDLE#test', 'header')
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'characterMove',
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
             targets: ['CHARACTER#viewer'],
-            bundleId: 'BUNDLE#test',
-            slotId: 'header',
         })
         await messageBus.flushAndSettle()
 
@@ -781,14 +795,13 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
 
+        await declareCharacterMoveBundle('BUNDLE#test', 'header')
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'characterMove',
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
             targets: ['CHARACTER#viewer'],
-            bundleId: 'BUNDLE#test',
-            slotId: 'header',
         })
         await messageBus.flushAndSettle()
 
@@ -810,6 +823,48 @@ describe('mtw.ephemera.perception DataSource', () => {
             .map((c) => c[0])
             .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
         expect(slotReportsAfterLatePlaceholder).toHaveLength(1)
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove ambiguous match: two declared slots share (componentId, perspectiveKey, threadKind); the one with matching targets is used', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveAmbiguous />')
+
+        sendMessageBundleDeclared(messageBus, 'BUNDLE#other', {
+            bundleId: 'BUNDLE#other',
+            slots: [{
+                slotId: 'header-other',
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#someone-else'],
+                threadKind: 'characterMove',
+            }],
+        })
+        await declareCharacterMoveBundle('BUNDLE#test', 'header')
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
+        })
+        await messageBus.flushAndSettle()
+
+        await sendRenderPertainsStreamingEvent()
+
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(1)
+        const content = await (slotReports[0] as any).getContent()
+        expect(content).toMatchObject({
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+            message: expect.objectContaining({ wmlContent: '<HeaderMoveAmbiguous />', targets: ['CHARACTER#viewer'] }),
+        })
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()

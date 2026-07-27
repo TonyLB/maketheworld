@@ -54,7 +54,14 @@ export const orchestrateCharacterNavigate = async ({
         ...((shape === 'leaveOnly' || shape === 'leaveAndArrive')
             ? froms.map((roomId) => ({ slotId: navigateLeaveSlotId(roomId), expectedPublishType: 'WorldMessage' as const }))
             : []),
-        ...(perspectiveKey ? [{ slotId: NAVIGATE_HEADER_SLOT_ID, expectedPublishType: 'PerceptionMessage' as const }] : []),
+        ...(perspectiveKey ? [{
+            slotId: NAVIGATE_HEADER_SLOT_ID,
+            expectedPublishType: 'PerceptionMessage' as const,
+            componentId: to,
+            perspectiveKey,
+            targets: [characterId],
+            threadKind: 'characterMove' as const,
+        }] : []),
         ...((shape === 'arriveOnly' || shape === 'leaveAndArrive')
             ? [{ slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' as const }]
             : []),
@@ -75,8 +82,6 @@ export const orchestrateCharacterNavigate = async ({
             characterId,
             targets: [characterId],
             registrationId,
-            bundleId,
-            slotId: NAVIGATE_HEADER_SLOT_ID,
             ...(headerMessageId !== undefined ? { messageId: headerMessageId } : {}),
             ...(beatAnchorTime !== undefined ? { createdTime: beatAnchorTime } : {}),
         })

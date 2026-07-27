@@ -49,9 +49,10 @@ export type SessionOrientationAffordancesPerceptionThread = {
 
 /**
  * Character move: targeting-only registration for mover arrival-room header render fan-in.
- * Optional `bundleId`/`slotId` correlate this row's terminal render to a messageOrchestration
- * bundle slot (see dataSource/messageOrchestration/AGENT.md) --- when present, the terminal
- * publish reports the slot instead of publishing directly.
+ * Terminal-render correlation to a messageOrchestration bundle slot is resolved by the
+ * render-completion handler itself, querying messageOrchestration's own registry by
+ * (componentId, perspectiveKey, threadKind) --- see dataSource/messageOrchestration/AGENT.md
+ * and MO-9 --- not by fields carried on this row.
  */
 export type CharacterMovePerceptionThread = {
     kind: 'characterMove';
@@ -59,8 +60,6 @@ export type CharacterMovePerceptionThread = {
     messageId?: string;
     createdTime?: number;
     cacheId?: string;
-    bundleId?: string;
-    slotId?: string;
 }
 
 /** Feature description: correlated full-description fan-in (mirrors roomDescription lifecycle). */
@@ -220,12 +219,6 @@ export function isCharacterMovePerceptionThread(value: unknown): value is Charac
         return false
     }
     if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
-        return false
-    }
-    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
-        return false
-    }
-    if (v.slotId !== undefined && typeof v.slotId !== 'string') {
         return false
     }
     return true
@@ -878,8 +871,6 @@ export default class PerceptionThreadsData {
                     status: 'Initial',
                     ...(cmd.messageId !== undefined ? { messageId: cmd.messageId } : {}),
                     ...(cmd.createdTime !== undefined ? { createdTime: cmd.createdTime } : {}),
-                    ...(cmd.bundleId !== undefined ? { bundleId: cmd.bundleId } : {}),
-                    ...(cmd.slotId !== undefined ? { slotId: cmd.slotId } : {}),
                 }
                 break
             case 'featureDescription':

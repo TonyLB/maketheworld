@@ -50,8 +50,9 @@ describe('orchestrateCharacterNavigate', () => {
             threadKind: 'characterMove',
             characterId: 'CHARACTER#Test',
             targets: ['CHARACTER#Test'],
-            bundleId: 'BUNDLE#test',
-            slotId: NAVIGATE_HEADER_SLOT_ID,
+        }))
+        expect(register).not.toHaveBeenCalledWith(expect.objectContaining({
+            bundleId: expect.anything(),
         }))
         expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
             type: 'MapUpdate',
@@ -65,7 +66,14 @@ describe('orchestrateCharacterNavigate', () => {
             slots: [
                 { slotId: navigateLeaveSlotId('ROOM#VORTEX'), expectedPublishType: 'WorldMessage' },
                 { slotId: navigateLeaveSlotId('ROOM#TestThree'), expectedPublishType: 'WorldMessage' },
-                { slotId: NAVIGATE_HEADER_SLOT_ID, expectedPublishType: 'PerceptionMessage' },
+                {
+                    slotId: NAVIGATE_HEADER_SLOT_ID,
+                    expectedPublishType: 'PerceptionMessage',
+                    componentId: 'ROOM#TestTwo',
+                    perspectiveKey: 'perspective-key',
+                    targets: ['CHARACTER#Test'],
+                    threadKind: 'characterMove',
+                },
                 { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
             ],
         })
@@ -90,9 +98,19 @@ describe('orchestrateCharacterNavigate', () => {
 
         expect(register).toHaveBeenCalledWith(expect.objectContaining({
             threadKind: 'characterMove',
-            bundleId: expect.any(String),
-            slotId: NAVIGATE_HEADER_SLOT_ID,
         }))
-        expect(bundleDeclares()).toHaveLength(1)
+        expect(register).not.toHaveBeenCalledWith(expect.objectContaining({
+            bundleId: expect.anything(),
+        }))
+        const declares = bundleDeclares()
+        expect(declares).toHaveLength(1)
+        const content = await declares[0].getContent()
+        expect(content.slots).toContainEqual(expect.objectContaining({
+            slotId: NAVIGATE_HEADER_SLOT_ID,
+            componentId: 'ROOM#TestTwo',
+            perspectiveKey: 'perspective-key',
+            targets: ['CHARACTER#Test'],
+            threadKind: 'characterMove',
+        }))
     })
 })
