@@ -74,7 +74,6 @@ export const afterCharacterMembershipNavigateChanged = async ({
             characterMeta,
             froms: result.froms,
             to,
-            beatAnchorTime: result.beatAnchorTime,
             bundleId,
             messageBus,
         }),

@@ -87,7 +87,6 @@ describe('afterCharacterMembershipNavigateChanged', () => {
             characterMeta,
             froms: [FROM_ROOM],
             to: TO_ROOM,
-            beatAnchorTime: BEAT_ANCHOR_TIME,
             messageBus,
         })
     })

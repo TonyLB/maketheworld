@@ -9,8 +9,16 @@
 import type { PublishMessage } from '../../messageBus/baseClasses'
 import type { MessageOrchestrationSlotSpec } from './localApiEvents'
 
+/**
+ * A plain `Omit` over the `PublishMessage` union isn't distributive (it collapses to only the
+ * fields common to every variant, via `keyof` on a union) --- this distributes `Omit` over each
+ * member instead, via the standard naked-type-parameter conditional idiom, otherwise
+ * variant-specific fields like `wmlContent`/`metaData` disappear from the resulting type.
+ */
+type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never
+
 /** Shared render content, before any listener's own targets/messageId is baked in. */
-export type RenderContent = Omit<PublishMessage, 'targets' | 'messageId'>
+export type RenderContent = DistributiveOmit<PublishMessage, 'targets' | 'messageId'>
 
 export type IngressListener = {
     bundleId: string;

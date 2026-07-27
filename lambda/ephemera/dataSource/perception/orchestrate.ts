@@ -23,7 +23,6 @@ import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import {
-    isCharacterMovePerceptionThread,
     isFeatureDescriptionPerceptionThread,
     isKnowledgeDescriptionPerceptionThread,
     isObjectDescriptionPerceptionThread,
@@ -32,11 +31,9 @@ import {
     isSessionOrientationRenderPerceptionThread,
 } from '../../internalCache/perceptionThreads'
 import type { PerceptionThreadRegisterKnowledgeDescriptionCommand } from './localApiEvents'
-import type { PublishMessage, PublishTarget } from '../../messageBus/baseClasses'
-import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
-import { sendMessageSlotReported } from '../messageOrchestration/subscribedEvents'
-import { findDeclaredSlotMatch, consumeSlotMatch } from '../messageOrchestration'
-import type { SlotMatchEntry } from '../messageOrchestration/slotMatchIndex'
+import type { PublishTarget } from '../../messageBus/baseClasses'
+import { reportIngressContent } from '../messageOrchestration'
+import type { RenderContent } from '../messageOrchestration/contentIngress'
 import {
     featureRenderWmlFromCacheRecord,
     knowledgeRenderWmlFromCacheRecord,
@@ -160,93 +157,6 @@ function terminalCreatedTime(thread: { createdTime?: number }): number {
     return Math.max(t0 + 1, getCurrentTimestamp())
 }
 
-/** Disambiguates a multi-candidate slot match by exact targets equality (order-independent). Not expected in practice for characterMove --- logs and falls back to the first candidate if it ever occurs. */
-function disambiguateCharacterMoveMatch(candidates: SlotMatchEntry[], targets: PublishTarget[]): SlotMatchEntry | undefined {
-    if (candidates.length === 0) {
-        return undefined
-    }
-    if (candidates.length === 1) {
-        return candidates[0]
-    }
-    const targetsEqual = (a: PublishTarget[] = [], b: PublishTarget[]) =>
-        a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index])
-    const exact = candidates.find((candidate) => targetsEqual(candidate.spec.targets, targets))
-    if (exact) {
-        return exact
-    }
-    console.warn(`characterMove slot match ambiguous: ${candidates.length} candidates, no exact targets match`)
-    return candidates[0]
-}
-
-/** Reports the characterMove header slot when messageOrchestration has a declared slot matching (componentId, perspectiveKey, 'characterMove') (see MO-9), else publishes directly as today. */
-function deliverCharacterMoveMessage(
-    bus: MessageBus,
-    registration: { componentId: string; perspectiveKey: string },
-    message: PublishMessage
-): void {
-    const candidates = findDeclaredSlotMatch(registration.componentId, registration.perspectiveKey, 'characterMove')
-    const match = disambiguateCharacterMoveMatch(candidates, message.targets)
-    if (match) {
-        sendMessageSlotReported(bus, match.bundleId, {
-            bundleId: match.bundleId,
-            slotId: match.spec.slotId,
-            message,
-        })
-        consumeSlotMatch(registration.componentId, registration.perspectiveKey, match.bundleId, match.spec.slotId)
-        return
-    }
-    bus.publish(message)
-}
-
-/**
- * Either the placeholder or the terminal can complete a characterMove slot, whichever is
- * processed first for the thread (thread.status === 'Initial'). If the terminal arrives second
- * (the placeholder already filled the slot), it delivers standalone --- a direct publish, never
- * re-entering the bundle, reusing the thread's already-assigned messageId. A late placeholder
- * arriving after the terminal is not handled here: the terminal handlers remove the thread row
- * immediately, so handleGenerationStarted never finds the entry to publish against.
- */
-function deliverCharacterMoveTerminal(
-    bus: MessageBus,
-    thread: { status: 'Initial' | 'Generating' | 'Terminal' },
-    registration: { componentId: string; perspectiveKey: string },
-    message: PublishMessage
-): void {
-    if (thread.status === 'Initial') {
-        deliverCharacterMoveMessage(bus, registration, message)
-        return
-    }
-    bus.publish(message)
-}
-
-/** Model A beat anchor: Generating placeholder at T0. Fills the bundle slot when messageOrchestration has a declared match (see deliverCharacterMoveTerminal for the symmetric terminal-side rule). */
-function publishCharacterMoveGeneratingHeader(
-    bus: MessageBus,
-    registration: { componentId: string; perspectiveKey: string; messageGroupId?: MessageGroupId },
-    args: {
-        roomId: EphemeraRoomId;
-        targets: PublishTarget[];
-        messageId: string;
-        t0: number;
-    }
-): void {
-    deliverCharacterMoveMessage(bus, registration, {
-        type: 'PublishMessage',
-        targets: args.targets,
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: roomHeaderGeneratingPlaceholderWml(args.roomId),
-        metaData: {
-            componentUUID: args.roomId,
-            displayMode: 'header',
-            status: 'generating',
-            roomChannel: 'render',
-        },
-        messageGroupId: registration.messageGroupId,
-        messageId: args.messageId,
-        createdTime: args.t0,
-    })
-}
-
 export async function orchestrateRoomDescriptionStreams(
     raw: unknown,
     bus: MessageBus
@@ -297,10 +207,6 @@ async function handleRenderPertains(
     let publishedSessionOrientationRender = 0
     let skippedSessionOrientationRenderTerminal = 0
     let skippedSessionOrientationRenderEmptyTargets = 0
-    let publishedCharacterMove = 0
-    let skippedCharacterMoveTerminal = 0
-    let skippedCharacterMoveEmptyTargets = 0
-
     for (const entry of entries) {
         if (!isRoomDescriptionPerceptionThread(entry.thread)) {
             continue
@@ -428,54 +334,27 @@ async function handleRenderPertains(
         })
     }
 
-    for (const entry of entries) {
-        if (!isCharacterMovePerceptionThread(entry.thread)) {
-            continue
-        }
-        const { thread, registration, registrationId } = entry
-        if (registration.threadKind !== 'characterMove') {
-            continue
-        }
-        if (thread.status === 'Terminal') {
-            logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
-            skippedCharacterMoveTerminal += 1
-            continue
-        }
-        const targets = registration.targets
-        const roomId = payload.componentId
-        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        const t0 = thread.createdTime ?? getCurrentTimestamp()
-        if (targets.length) {
-            deliverCharacterMoveTerminal(bus, thread, registration, {
-                type: 'PublishMessage',
-                targets,
-                displayProtocol: 'PerceptionMessage',
-                wmlContent: terminalHeaderWml,
-                metaData: {
-                    componentUUID: roomId,
-                    displayMode: 'header',
-                    roomChannel: 'render',
-                },
-                messageGroupId: registration.messageGroupId,
-                messageId,
-                createdTime: terminalCreatedTime({ createdTime: t0 }),
-            })
-            publishedCharacterMove += 1
-        }
-        else {
-            skippedCharacterMoveEmptyTargets += 1
-        }
-
-        internalCache.PerceptionThreads.remove({
-            componentId: payload.componentId,
-            perspectiveKey: payload.perspectiveKey,
-            registrationId,
-        })
+    const characterMoveContent: RenderContent = {
+        type: 'PublishMessage',
+        displayProtocol: 'PerceptionMessage',
+        wmlContent: terminalHeaderWml,
+        metaData: {
+            componentUUID: payload.componentId,
+            displayMode: 'header',
+            roomChannel: 'render',
+        },
     }
+    const publishedCharacterMove = reportIngressContent(
+        bus,
+        payload.componentId,
+        payload.perspectiveKey,
+        'characterMove',
+        characterMoveContent
+    )
 
     let fallbackPublished = 0
     let fallbackTargetsMatched = 0
-    if (entries.length === 0) {
+    if (entries.length === 0 && publishedCharacterMove === 0) {
         const fallbackTargets = await resolveFallbackRenderTargetsForPerspective(
             payload.componentId,
             payload.perspectiveKey
@@ -512,13 +391,11 @@ async function handleRenderPertains(
         skippedSessionOrientationRenderTerminal,
         skippedSessionOrientationRenderEmptyTargets,
         publishedCharacterMove,
-        skippedCharacterMoveTerminal,
-        skippedCharacterMoveEmptyTargets,
         fallbackTargetsMatched,
         fallbackPublished,
     }
-    if (entries.length === 0) {
-        console.warn('[mtw.ephemera.perception] handleRenderPertains: no PerceptionThreads rows for bucket; fallback attempted', summary)
+    if (entries.length === 0 && publishedCharacterMove === 0) {
+        console.warn('[mtw.ephemera.perception] handleRenderPertains: no PerceptionThreads rows or messageOrchestration listeners for bucket; fallback attempted', summary)
     }
     else {
         console.log('[mtw.ephemera.perception] handleRenderPertains', summary)
@@ -654,34 +531,17 @@ async function handleGenerationStarted(
         )
     }
 
-    for (const entry of entries) {
-        if (!isCharacterMovePerceptionThread(entry.thread)) {
-            continue
-        }
-        const { thread, registration, registrationId } = entry
-        if (registration.threadKind !== 'characterMove') {
-            continue
-        }
-        if (thread.status === 'Terminal') {
-            logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
-            continue
-        }
-        const roomId = payload.componentId
-        const targets = registration.targets
-        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        const t0 = thread.createdTime ?? getCurrentTimestamp()
-        publishCharacterMoveGeneratingHeader(bus, registration, {
-            roomId,
-            targets,
-            messageId,
-            t0,
-        })
-
-        internalCache.PerceptionThreads.update(
-            { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { threadKind: 'characterMove', status: 'Generating', messageId, createdTime: t0 }
-        )
-    }
+    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'characterMove', {
+        type: 'PublishMessage',
+        displayProtocol: 'PerceptionMessage',
+        wmlContent: roomHeaderGeneratingPlaceholderWml(payload.componentId),
+        metaData: {
+            componentUUID: payload.componentId,
+            displayMode: 'header',
+            status: 'generating',
+            roomChannel: 'render',
+        },
+    })
 }
 
 type ErrorLikePayload =
@@ -813,42 +673,16 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         })
     }
 
-    for (const entry of entries) {
-        if (!isCharacterMovePerceptionThread(entry.thread)) {
-            continue
-        }
-        const { thread, registration, registrationId } = entry
-        if (registration.threadKind !== 'characterMove') {
-            continue
-        }
-        if (thread.status === 'Terminal') {
-            logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
-            continue
-        }
-        const roomId = payload.componentId
-        const targets = registration.targets
-        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
-        deliverCharacterMoveTerminal(bus, thread, registration, {
-            type: 'PublishMessage',
-            targets,
-            displayProtocol: 'PerceptionMessage',
-            wmlContent: roomHeaderErrorPlaceholderWml(roomId),
-            metaData: {
-                componentUUID: roomId,
-                displayMode: 'header',
-                roomChannel: 'render',
-            },
-            messageGroupId: registration.messageGroupId,
-            messageId,
-            createdTime: terminalCreatedTime(thread),
-        })
-
-        internalCache.PerceptionThreads.remove({
-            componentId: payload.componentId,
-            perspectiveKey: payload.perspectiveKey,
-            registrationId,
-        })
-    }
+    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'characterMove', {
+        type: 'PublishMessage',
+        displayProtocol: 'PerceptionMessage',
+        wmlContent: roomHeaderErrorPlaceholderWml(payload.componentId),
+        metaData: {
+            componentUUID: payload.componentId,
+            displayMode: 'header',
+            roomChannel: 'render',
+        },
+    })
 }
 
 async function handleFeatureKnowledgeRenderPertains(

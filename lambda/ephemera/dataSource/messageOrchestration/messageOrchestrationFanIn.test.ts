@@ -247,4 +247,44 @@ describe('messageOrchestrationFanIn', () => {
             expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'header')).toBeUndefined()
         })
     })
+
+    describe('messageId mint-and-carry-forward in registerLeg (MO-10)', () => {
+        it('mints a stable messageId on a slot\'s first report and carries it forward across a later overwriting report for the same slot, neither supplying its own', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            // Two slots so the bundle stays open across both 'header' reports (a one-slot bundle
+            // would complete and flush --- evicting the cluster --- on the first report).
+            await store.route(declareLeg(['header', 'other']))
+            await store.route(reportLeg('header', 'Generating...'))
+            await store.route(reportLeg('header', 'Real content.'))
+            await store.route(reportLeg('other', 'Unrelated.'))
+
+            const published = publishedMessages(ctx.messageBus)
+            const header = published.find((m) => (m.message as string[])[0] === 'Real content.')
+            expect(header).toBeDefined()
+            expect((header as { messageId?: string }).messageId).toMatch(/^MESSAGE#/)
+        })
+
+        it('an explicitly-supplied messageId on a later report for the same slot wins over a previously-minted one', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            await store.route(declareLeg(['header', 'other']))
+            await store.route(reportLeg('header', 'Generating...'))
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'header',
+                message: worldMessageWithId('Real content.', ['ROOM#a'], 'MESSAGE#explicit'),
+            })
+            await store.route(reportLeg('other', 'Unrelated.'))
+
+            const published = publishedMessages(ctx.messageBus)
+            const header = published.find((m) => (m.message as string[])[0] === 'Real content.')
+            expect((header as { messageId?: string }).messageId).toBe('MESSAGE#explicit')
+        })
+    })
 })

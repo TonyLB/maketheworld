@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { FanInCluster, FanInHandlerOptions } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInCluster'
 import { FanInClusterStore } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInClusterStore'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
@@ -73,12 +74,22 @@ export class MessageOrchestrationFanInCluster extends FanInCluster<
         }
     }
 
+    /**
+     * A slot-report's messageId is minted lazily on its first report and carried forward on any
+     * later overwriting report for the same slot (multiple waves --- e.g. a placeholder then a
+     * terminal --- may report the same slot before the bundle flushes; MO-10's Delivery layer is
+     * the single source of truth for keeping that id stable across them, not the producer).
+     */
     registerLeg(leg: MessageOrchestrationLeg): void {
         if (leg.kind === 'bundle-declare') {
             this.declaredSlots = leg.slots
             return
         }
-        this.reports.set(leg.slotId, leg.message)
+        const existing = this.reports.get(leg.slotId)
+        const suppliedMessageId = 'messageId' in leg.message ? leg.message.messageId : undefined
+        const existingMessageId = existing && 'messageId' in existing ? existing.messageId : undefined
+        const messageId = suppliedMessageId ?? existingMessageId ?? `MESSAGE#${uuidv4()}`
+        this.reports.set(leg.slotId, { ...leg.message, messageId } as PublishMessage)
     }
 
     clusterIdentity(): string | null {

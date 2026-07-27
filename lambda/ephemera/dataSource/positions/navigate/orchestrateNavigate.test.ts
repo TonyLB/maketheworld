@@ -1,8 +1,6 @@
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../messageOrchestration', () => ({
     __esModule: true,
-    default: {
-        PerceptionThreads: { register: jest.fn() },
-    },
+    registerIngressSlot: jest.fn(),
 }))
 
 jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
@@ -10,16 +8,19 @@ jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
     kickPassiveRenderRequestedForCharacterInRoom: jest.fn(async () => false),
 }))
 
-import internalCache from '../../../internalCache'
+import { registerIngressSlot } from '../../messageOrchestration'
+import { getCharacterRoomPerspectiveKey, kickPassiveRenderRequestedForCharacterInRoom } from '../../perception/kickRoomHeaderBroadcast'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID, NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 
 describe('orchestrateCharacterNavigate', () => {
     const messageBus = { publish: jest.fn() }
-    const register = internalCache.PerceptionThreads.register as jest.Mock
+    const registerIngressSlotMock = registerIngressSlot as jest.Mock
+    const getCharacterRoomPerspectiveKeyMock = getCharacterRoomPerspectiveKey as jest.Mock
 
     beforeEach(() => {
         jest.clearAllMocks()
+        getCharacterRoomPerspectiveKeyMock.mockResolvedValue('perspective-key')
     })
 
     const bundleDeclares = () => (
@@ -41,19 +42,22 @@ describe('orchestrateCharacterNavigate', () => {
             },
             froms: ['ROOM#VORTEX', 'ROOM#TestThree'],
             to: 'ROOM#TestTwo',
-            beatAnchorTime: 1_700_000_000_000,
             bundleId: 'BUNDLE#test',
             messageBus: messageBus as any,
         })
 
-        expect(register).toHaveBeenCalledWith(expect.objectContaining({
-            threadKind: 'characterMove',
-            characterId: 'CHARACTER#Test',
-            targets: ['CHARACTER#Test'],
-        }))
-        expect(register).not.toHaveBeenCalledWith(expect.objectContaining({
-            bundleId: expect.anything(),
-        }))
+        expect(registerIngressSlotMock).toHaveBeenCalledWith(
+            messageBus,
+            'BUNDLE#test',
+            expect.objectContaining({
+                slotId: NAVIGATE_HEADER_SLOT_ID,
+                componentId: 'ROOM#TestTwo',
+                perspectiveKey: 'perspective-key',
+                targets: ['CHARACTER#Test'],
+                threadKind: 'characterMove',
+            }),
+            expect.any(Function)
+        )
         expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({
             type: 'MapUpdate',
         }))
@@ -92,16 +96,15 @@ describe('orchestrateCharacterNavigate', () => {
             },
             froms: [],
             to: 'ROOM#TestTwo',
-            beatAnchorTime: 1_700_000_000_000,
             messageBus: messageBus as any,
         })
 
-        expect(register).toHaveBeenCalledWith(expect.objectContaining({
-            threadKind: 'characterMove',
-        }))
-        expect(register).not.toHaveBeenCalledWith(expect.objectContaining({
-            bundleId: expect.anything(),
-        }))
+        expect(registerIngressSlotMock).toHaveBeenCalledWith(
+            messageBus,
+            expect.any(String),
+            expect.objectContaining({ threadKind: 'characterMove' }),
+            expect.any(Function)
+        )
         const declares = bundleDeclares()
         expect(declares).toHaveLength(1)
         const content = await declares[0].getContent()
@@ -111,6 +114,61 @@ describe('orchestrateCharacterNavigate', () => {
             perspectiveKey: 'perspective-key',
             targets: ['CHARACTER#Test'],
             threadKind: 'characterMove',
+        }))
+    })
+
+    it('registerIngressSlot\'s kickoff callback invokes kickPassiveRenderRequestedForCharacterInRoom', async () => {
+        await orchestrateCharacterNavigate({
+            characterId: 'CHARACTER#Test',
+            characterMeta: {
+                EphemeraId: 'CHARACTER#Test',
+                Name: 'Test',
+                RoomId: 'ROOM#Fallback',
+                RoomStack: [{ asset: 'primitives', RoomId: 'Fallback' }],
+                HomeId: 'ROOM#Fallback',
+                assets: ['primitives'],
+            },
+            froms: [],
+            to: 'ROOM#TestTwo',
+            bundleId: 'BUNDLE#test',
+            messageBus: messageBus as any,
+        })
+
+        const kickoff = registerIngressSlotMock.mock.calls[0][3]
+        await kickoff()
+
+        expect(kickPassiveRenderRequestedForCharacterInRoom).toHaveBeenCalledWith(expect.objectContaining({
+            roomId: 'ROOM#TestTwo',
+            characterId: 'CHARACTER#Test',
+            assets: ['primitives'],
+        }))
+    })
+
+    it('falls back to a direct Perception message when there is no valid perspective (no header slot to register)', async () => {
+        getCharacterRoomPerspectiveKeyMock.mockResolvedValueOnce(null)
+
+        await orchestrateCharacterNavigate({
+            characterId: 'CHARACTER#Test',
+            characterMeta: {
+                EphemeraId: 'CHARACTER#Test',
+                Name: 'Test',
+                RoomId: 'ROOM#Fallback',
+                RoomStack: [{ asset: 'primitives', RoomId: 'Fallback' }],
+                HomeId: 'ROOM#Fallback',
+                assets: ['primitives'],
+            },
+            froms: [],
+            to: 'ROOM#TestTwo',
+            bundleId: 'BUNDLE#test',
+            messageBus: messageBus as any,
+        })
+
+        expect(registerIngressSlotMock).not.toHaveBeenCalled()
+        expect(messageBus.publish).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'Perception',
+            characterId: 'CHARACTER#Test',
+            ephemeraId: 'ROOM#TestTwo',
+            header: true,
         }))
     })
 })
