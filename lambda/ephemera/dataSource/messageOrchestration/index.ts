@@ -19,12 +19,10 @@ import {
     createMessageOrchestrationFanInHandlerContext,
     createMessageOrchestrationFanInStore,
 } from './messageOrchestrationFanIn'
-import { SlotMatchIndex, type SlotMatchEntry } from './slotMatchIndex'
 import { DeliveredSlotIndex } from './deliveredSlotIndex'
 import { ContentIngressIndex, type RenderContent } from './contentIngress'
 
 const messageOrchestrationFanInStore = createMessageOrchestrationFanInStore()
-const slotMatchIndex = new SlotMatchIndex()
 const deliveredSlotIndex = new DeliveredSlotIndex()
 const contentIngressIndex = new ContentIngressIndex()
 
@@ -82,20 +80,9 @@ export function reportIngressContent(
     return listeners.length
 }
 
-/** Pull-model query for a render-completion handler to self-match against a declared bundle slot (see MO-9). Iteration-1 bridge; not a subscription (MO-5). */
-export function findDeclaredSlotMatch(componentId: string, perspectiveKey: string, threadKind: string): SlotMatchEntry[] {
-    return slotMatchIndex.findDeclaredSlotMatch(componentId, perspectiveKey, threadKind)
-}
-
-/** Consumes a matched slot once its render completion has been reported, so a later event for the same key can't re-match it. */
-export function consumeSlotMatch(componentId: string, perspectiveKey: string, bundleId: string, slotId: string): void {
-    slotMatchIndex.consumeMatch(componentId, perspectiveKey, bundleId, slotId)
-}
-
 messageBus.registerDeferral('fanIn-mtw.ephemera.messageOrchestration', {
     onClear: () => {
         messageOrchestrationFanInStore.clear()
-        slotMatchIndex.clear()
         deliveredSlotIndex.clear()
         contentIngressIndex.clear()
     },
@@ -121,9 +108,6 @@ export const ephemeraMessageOrchestrationDataSource = new EphemeraDataSource<
         for (const event of events) {
             const raw = await event.getContent()
             if (isMessageBundleDeclareCommand(raw)) {
-                for (const slot of raw.slots) {
-                    slotMatchIndex.registerSlot(raw.bundleId, slot)
-                }
                 await messageOrchestrationFanInStore.route({
                     kind: 'bundle-declare',
                     bundleId: raw.bundleId,

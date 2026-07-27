@@ -142,7 +142,6 @@ After membership persist, **three decoupled** presentation legs may run when **`
 | **`roomDescription`** | **`characterId`** (single viewer), routing | Generating/Terminal + **`messageId`**, optional **`createdTime`** | [`orchestrate.ts`](orchestrate.ts) |
 | **`roomHeaderBroadcast`** | **`targets`**, routing | same | [`orchestrate.ts`](orchestrate.ts) |
 | **`sessionOrientationRender`** | **`targets`**, routing | same | [`orchestrate.ts`](orchestrate.ts) |
-| **`characterMove`** | *(retired from `PerceptionThreads` --- MO-10, 2026-07-27)* | n/a | see `messageOrchestration`'s Ingress/Delivery seam instead --- [`dataSource/messageOrchestration/AGENT.md`](../messageOrchestration/AGENT.md) |
 | **`sessionOrientationAffordances`** | **`targets`**, routing | Terminal only (no Generating pipeline) | [`handleAffordancesPertain.ts`](handleAffordancesPertain.ts) |
 | **`featureDescription`** | **`characterId`** (single viewer), routing | Generating/Terminal + **`messageId`**, optional **`createdTime`** | [`orchestrate.ts`](orchestrate.ts) |
 | **`knowledgeDescription`** | **`characterId`**, routing, optional **`directResponse`** (session targeting) | same | [`orchestrate.ts`](orchestrate.ts) |

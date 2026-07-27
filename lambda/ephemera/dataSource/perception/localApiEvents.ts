@@ -72,23 +72,6 @@ export type PerceptionThreadRegisterSessionOrientationAffordancesCommand = {
     registrationId?: string;
 }
 
-/** Character move: targeting-only registration for mover arrival-room header render fan-in.
- * Optional messageId + createdTime anchor header revision to the position-move fact time (Model A).
- */
-export type PerceptionThreadRegisterCharacterMoveCommand = {
-    threadKind: 'characterMove';
-    componentId: EphemeraRoomId;
-    perspectiveKey: string;
-    characterId: EphemeraCharacterId;
-    targets: PublishTarget[];
-    messageGroupId?: MessageGroupId;
-    registrationId?: string;
-    /** Pre-assigned header MessageId (Model A). */
-    messageId?: string;
-    /** Fictional anchor time for header revision (Model A / F1-4). */
-    createdTime?: number;
-}
-
 /** Feature link / look correlated description fan-in (requires viewer characterId). */
 export type PerceptionThreadRegisterFeatureDescriptionCommand = {
     threadKind: 'featureDescription';
@@ -127,7 +110,6 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomHeaderBroadcastCommand
     | PerceptionThreadRegisterSessionOrientationRenderCommand
     | PerceptionThreadRegisterSessionOrientationAffordancesCommand
-    | PerceptionThreadRegisterCharacterMoveCommand
     | PerceptionThreadRegisterFeatureDescriptionCommand
     | PerceptionThreadRegisterKnowledgeDescriptionCommand
     | PerceptionThreadRegisterObjectDescriptionCommand
@@ -157,7 +139,6 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         && v.threadKind !== 'roomHeaderBroadcast'
         && v.threadKind !== 'sessionOrientationRender'
         && v.threadKind !== 'sessionOrientationAffordances'
-        && v.threadKind !== 'characterMove'
         && v.threadKind !== 'featureDescription'
         && v.threadKind !== 'knowledgeDescription'
         && v.threadKind !== 'objectDescription'
@@ -193,16 +174,6 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
             && typeof v.characterId === 'string'
             && isEphemeraCharacterId(v.characterId)
             && isNonEmptyPublishTargetArray(v.targets)
-        )
-    }
-    if (v.threadKind === 'characterMove') {
-        return (
-            isEphemeraRoomId(v.componentId)
-            && typeof v.characterId === 'string'
-            && isEphemeraCharacterId(v.characterId)
-            && isNonEmptyPublishTargetArray(v.targets)
-            && (v.messageId === undefined || typeof v.messageId === 'string')
-            && (v.createdTime === undefined || typeof v.createdTime === 'number')
         )
     }
     if (v.threadKind === 'featureDescription') {

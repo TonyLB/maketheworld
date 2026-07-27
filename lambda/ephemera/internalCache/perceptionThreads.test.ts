@@ -1,5 +1,4 @@
 import PerceptionThreadsData, {
-    isCharacterMovePerceptionThread,
     isFeatureDescriptionPerceptionThread,
     isKnowledgeDescriptionPerceptionThread,
     isPerceptionThread,
@@ -55,18 +54,6 @@ const makeSessionOrientationAffordancesRegistration = (
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#viewer',
     targets: ['SESSION#session-1'],
-    ...overrides,
-})
-
-const makeCharacterMoveRegistration = (
-    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'characterMove' }>> = {}
-): Extract<PerceptionThreadRegisterCommand, { threadKind: 'characterMove' }> => ({
-    threadKind: 'characterMove',
-    componentId: 'ROOM#test',
-    perspectiveKey: 'pk-one',
-    characterId: 'CHARACTER#mover',
-    targets: ['CHARACTER#mover'],
-    messageGroupId: 'MSG#root',
     ...overrides,
 })
 
@@ -205,9 +192,9 @@ describe('PerceptionThreadsData', () => {
         expect(() =>
             cache.update(
                 { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
-                { threadKind: 'characterMove', status: 'Generating' }
+                { threadKind: 'featureDescription', status: 'Generating' }
             )
-        ).toThrow('characterMove patch requires characterMove thread')
+        ).toThrow('featureDescription patch requires featureDescription thread')
     })
 
     it('update throws on roomDescription patch with invalid status', () => {
@@ -345,35 +332,6 @@ describe('PerceptionThreadsData', () => {
         })
     })
 
-    it('register characterMove stores Initial thread and targets', () => {
-        cache.register(makeCharacterMoveRegistration())
-        const listed = cache.list('ROOM#test', 'pk-one')
-        expect(listed).toHaveLength(1)
-        expect(listed[0].thread).toEqual({ kind: 'characterMove', status: 'Initial' })
-        expect(listed[0].registration.threadKind).toBe('characterMove')
-        if (listed[0].registration.threadKind === 'characterMove') {
-            expect(listed[0].registration.targets).toEqual(['CHARACTER#mover'])
-        }
-    })
-
-    it('update merges characterMove thread', () => {
-        cache.register(makeCharacterMoveRegistration())
-        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
-        const ok = cache.update(
-            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
-            {
-                threadKind: 'characterMove',
-                status: 'Generating',
-                messageId: 'MESSAGE#cm1',
-            }
-        )
-        expect(ok).toBe(true)
-        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
-            kind: 'characterMove',
-            status: 'Generating',
-            messageId: 'MESSAGE#cm1',
-        })
-    })
 })
 
 describe('PerceptionThreadsData featureDescription', () => {
@@ -605,22 +563,6 @@ describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
     })
 })
 
-describe('mergePerceptionThreadPatch characterMove', () => {
-    it('merges status and messageId', () => {
-        const base = { kind: 'characterMove' as const, status: 'Initial' as const }
-        const merged = mergePerceptionThreadPatch(base, {
-            threadKind: 'characterMove',
-            status: 'Generating',
-            messageId: 'MESSAGE#cm',
-        })
-        expect(merged).toEqual({
-            kind: 'characterMove',
-            status: 'Generating',
-            messageId: 'MESSAGE#cm',
-        })
-    })
-})
-
 describe('isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
     it('accepts roomDescription shape', () => {
         const t = roomDescriptionInitial()
@@ -631,12 +573,6 @@ describe('isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
     it('accepts roomHeaderBroadcast shape', () => {
         const t = roomHeaderBroadcastInitial()
         expect(isRoomHeaderBroadcastPerceptionThread(t)).toBe(true)
-        expect(isPerceptionThread(t)).toBe(true)
-    })
-
-    it('accepts characterMove shape', () => {
-        const t = { kind: 'characterMove' as const, status: 'Initial' as const }
-        expect(isCharacterMovePerceptionThread(t)).toBe(true)
         expect(isPerceptionThread(t)).toBe(true)
     })
 

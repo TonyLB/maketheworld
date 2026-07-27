@@ -32,9 +32,9 @@ On completion (all slots reported) or settle (deferral tail fires with some slot
 
 `expectedPublishType` on each declared slot is carried through but **not validated** against the reported message's `displayProtocol` in this slice --- there is no caller yet that could violate it; deferred, not silently dropped.
 
-## Slot match index (MO-9, superseded for `characterMove` by MO-10)
+## Slot match index (MO-9, removed)
 
-[`slotMatchIndex.ts`](slotMatchIndex.ts)'s `SlotMatchIndex` (bucket-per-`(componentId, perspectiveKey)`, `findDeclaredSlotMatch`/`consumeSlotMatch` exported from `index.ts`) was the original MO-9 single-match mechanism: a render-completion handler queried it for one declared slot, disambiguating multiple candidates by exact `targets` equality. **As of the MO-10 migration, `orchestrate.ts` no longer calls `findDeclaredSlotMatch`/`consumeSlotMatch` for `characterMove`** --- that role is now `ContentIngressIndex`'s (below), which fans out to *every* matching listener instead of disambiguating down to one. `index.ts`'s `receiveEvents` still populates `SlotMatchIndex` on every bundle-declare (harmless, unused dead work for `characterMove`) since `findDeclaredSlotMatch`/`consumeSlotMatch` remain exported for whichever Phase 7 threadKind migrates next; `SlotMatchIndex` itself, and the population call, are slated for removal once nothing references them --- the next Recommended-order sub-item ("Retreat `PerceptionThreads` to reactive-broadcast-only").
+`SlotMatchIndex` (`slotMatchIndex.ts`, bucket-per-`(componentId, perspectiveKey)`, `findDeclaredSlotMatch`/`consumeSlotMatch` exported from `index.ts`) was the original MO-9 single-match mechanism: a render-completion handler queried it for one declared slot, disambiguating multiple candidates by exact `targets` equality. MO-10 superseded it for `characterMove` with `ContentIngressIndex`'s fan-out-to-every-listener model (below); once that migration shipped, nothing called `findDeclaredSlotMatch`/`consumeSlotMatch` any more, and `index.ts`'s `receiveEvents` only kept populating the index on every bundle-declare as unused dead work. **Removed entirely** (2026-07-27, the "Retreat `PerceptionThreads` to reactive-broadcast-only" slice): `slotMatchIndex.ts` deleted, along with its import, instantiation, the two exported query functions, the bundle-declare population call, and its `onClear` entry in `index.ts`. Whichever Phase 7 threadKind migrates next builds against the `ContentIngressIndex`/`DeliveredSlotIndex` seam (below) directly, not this retired mechanism.
 
 ## Content ingress / delivery seam (MO-10)
 
@@ -51,8 +51,8 @@ MO-10's fan-out fix (single-flight kickoff; shared *content* reported once, each
 
 ## Explicit non-goals (this slice)
 
-- `characterMove` is the only threadKind wired through Ingress/Delivery so far --- Phase 7 (object-look's perception kernel and the other directed-consequence threadKinds) migrates the rest later.
-- `PerceptionThreads`' `CharacterMovePerceptionThread` type and its `register`/`list`/`update`/`remove` support for `characterMove` are unchanged (now dead code for this threadKind) --- removal is the next Recommended-order sub-item.
+- `characterMove` is the only threadKind wired through Ingress/Delivery so far --- Phase 7 (object-look's perception kernel and the other directed-consequence threadKinds: `roomDescription`, `featureDescription`, `knowledgeDescription`, `objectDescription`, `sessionOrientationRender`, `sessionOrientationAffordances`) migrates the rest later. Those threadKinds still register/list/update/remove directly on `internalCache.PerceptionThreads`, unchanged by this slice --- migrating them is Phase 7's job, not a gap here.
+- `PerceptionThreads`' `CharacterMovePerceptionThread` type and its `register`/`list`/`update`/`remove` support for `characterMove` are removed (2026-07-27, this slice) --- `PerceptionThreads` now serves only the still-unmigrated directed-consequence threadKinds above plus its permanent reactive-broadcast role (`roomHeaderBroadcast`, the `entries.length === 0` roster fallback).
 - No `CreatedTime`/offset computation for `publishMessage`'s separate `allOffsets()`-based non-bundled traffic (Phase 6).
 - No EventBridge / DataSource-to-DataSource subscription --- API Ingress only for this iteration (MO-5 in the planning doc, deliberately deferred).
 - No outbound stream events --- output is a direct `messageBus.publish` call, not a further stream republish ([`publishedEvents.ts`](publishedEvents.ts) is a `busOnly` placeholder).
