@@ -6,6 +6,7 @@ import {
     type MessageOrchestrationBundleDeclareLeg,
     type MessageOrchestrationSlotReportLeg,
 } from './messageOrchestrationFanIn'
+import { DeliveredSlotIndex } from './deliveredSlotIndex'
 
 const BUNDLE_A = 'bundle-a'
 
@@ -14,6 +15,14 @@ const worldMessage = (text: string): PublishWorldMessage => ({
     targets: ['ROOM#a'],
     displayProtocol: 'WorldMessage',
     message: [text],
+})
+
+const worldMessageWithId = (text: string, targets: string[], messageId: string): PublishWorldMessage => ({
+    type: 'PublishMessage',
+    targets: targets as PublishWorldMessage['targets'],
+    displayProtocol: 'WorldMessage',
+    message: [text],
+    messageId,
 })
 
 const declareLeg = (slotIds: string[]): MessageOrchestrationBundleDeclareLeg => ({
@@ -30,7 +39,7 @@ const reportLeg = (slotId: string, text: string): MessageOrchestrationSlotReport
 })
 
 describe('messageOrchestrationFanIn', () => {
-    const makeCtx = () => createMessageOrchestrationFanInHandlerContext({ publish: jest.fn() } as any)
+    const makeCtx = () => createMessageOrchestrationFanInHandlerContext({ publish: jest.fn() } as any, new DeliveredSlotIndex())
 
     const publishedMessages = (messageBus: { publish: jest.Mock | MessageBus['publish'] }) => (
         (messageBus.publish as jest.Mock).mock.calls.map((call) => call[0])
@@ -194,6 +203,48 @@ describe('messageOrchestrationFanIn', () => {
             await bus.flushAndSettle()
 
             expect(publishedMessages(ctx.messageBus).map((m) => m.message)).toEqual([['Alice has left.']])
+        })
+    })
+
+    describe('deliveredSlotIndex snapshot at flush (MO-10 seam)', () => {
+        it('records targets/messageId for every slot that actually resolved by flush time', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            await store.route(declareLeg(['leave', 'arrive']))
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'leave',
+                message: worldMessageWithId('Alice has left.', ['ROOM#a'], 'MESSAGE#leave'),
+            })
+            await store.route({
+                kind: 'slot-report',
+                bundleId: BUNDLE_A,
+                slotId: 'arrive',
+                message: worldMessageWithId('Alice has arrived.', ['ROOM#b'], 'MESSAGE#arrive'),
+            })
+
+            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'leave')).toEqual({ targets: ['ROOM#a'], messageId: 'MESSAGE#leave' })
+            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'arrive')).toEqual({ targets: ['ROOM#b'], messageId: 'MESSAGE#arrive' })
+        })
+
+        it('does not record a slot that was declared but never reported (tolerantly failed --- nothing to standalone against)', async () => {
+            const store = createMessageOrchestrationFanInStore()
+            const ctx = makeCtx()
+            store.setHandlerContext(ctx)
+
+            await store.route(declareLeg(['leave', 'header', 'arrive']))
+            await store.route(reportLeg('leave', 'Alice has left.'))
+            await store.route(reportLeg('arrive', 'Alice has arrived.'))
+            expect(store.getOpenPartialCount()).toBe(1)
+
+            await store.settleDeferrals()
+
+            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'leave')).toBeDefined()
+            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'arrive')).toBeDefined()
+            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'header')).toBeUndefined()
         })
     })
 })

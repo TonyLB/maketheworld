@@ -17,9 +17,11 @@ import {
     createMessageOrchestrationFanInStore,
 } from './messageOrchestrationFanIn'
 import { SlotMatchIndex, type SlotMatchEntry } from './slotMatchIndex'
+import { DeliveredSlotIndex } from './deliveredSlotIndex'
 
 const messageOrchestrationFanInStore = createMessageOrchestrationFanInStore()
 const slotMatchIndex = new SlotMatchIndex()
+const deliveredSlotIndex = new DeliveredSlotIndex()
 
 /** Pull-model query for a render-completion handler to self-match against a declared bundle slot (see MO-9). Iteration-1 bridge; not a subscription (MO-5). */
 export function findDeclaredSlotMatch(componentId: string, perspectiveKey: string, threadKind: string): SlotMatchEntry[] {
@@ -35,6 +37,7 @@ messageBus.registerDeferral('fanIn-mtw.ephemera.messageOrchestration', {
     onClear: () => {
         messageOrchestrationFanInStore.clear()
         slotMatchIndex.clear()
+        deliveredSlotIndex.clear()
     },
     afterSettled: async () => {
         if (messageOrchestrationFanInStore.getOpenPartialCount() > 0) {
@@ -53,7 +56,7 @@ export const ephemeraMessageOrchestrationDataSource = new EphemeraDataSource<
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isMessageOrchestrationSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
-        const ctx = createMessageOrchestrationFanInHandlerContext(messageBus)
+        const ctx = createMessageOrchestrationFanInHandlerContext(messageBus, deliveredSlotIndex)
         messageOrchestrationFanInStore.setHandlerContext(ctx)
         for (const event of events) {
             const raw = await event.getContent()

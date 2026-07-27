@@ -3,6 +3,7 @@ import { FanInClusterStore } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fan
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import type { MessageBus, PublishMessage } from '../../messageBus/baseClasses'
 import type { MessageOrchestrationSlotSpec } from './localApiEvents'
+import { DeliveredSlotIndex } from './deliveredSlotIndex'
 
 export type MessageOrchestrationBundleDeclareLeg = {
     kind: 'bundle-declare';
@@ -21,6 +22,7 @@ export type MessageOrchestrationLeg = MessageOrchestrationBundleDeclareLeg | Mes
 
 export type MessageOrchestrationFanInHandlerContext = {
     messageBus: MessageBus;
+    deliveredSlotIndex: DeliveredSlotIndex;
 }
 
 /**
@@ -103,13 +105,23 @@ export class MessageOrchestrationFanInCluster extends FanInCluster<
         }
         const baseTime = getCurrentTimestamp()
         let offset = 0
+        const deliveredSlots: { slotId: string; targets: PublishMessage['targets']; messageId?: string }[] = []
         for (const slot of this.declaredSlots) {
             const message = this.reports.get(slot.slotId)
             if (message) {
-                ctx.messageBus.publish({ ...message, createdTime: baseTime + offset } as PublishMessage)
+                const published = { ...message, createdTime: baseTime + offset } as PublishMessage
+                ctx.messageBus.publish(published)
+                deliveredSlots.push({
+                    slotId: slot.slotId,
+                    targets: published.targets,
+                    messageId: 'messageId' in published ? published.messageId : undefined,
+                })
                 offset += 1
             }
         }
+        // A slot that never resolved by flush time (tolerantly failed) has nothing to standalone
+        // against later, so it is deliberately not recorded here.
+        ctx.deliveredSlotIndex.record(this.bundleId, deliveredSlots)
     }
 }
 
@@ -128,7 +140,9 @@ export const createMessageOrchestrationFanInStore = () => new FanInClusterStore<
 ])
 
 export const createMessageOrchestrationFanInHandlerContext = (
-    messageBus: MessageBus
+    messageBus: MessageBus,
+    deliveredSlotIndex: DeliveredSlotIndex
 ): MessageOrchestrationFanInHandlerContext => ({
     messageBus,
+    deliveredSlotIndex,
 })
