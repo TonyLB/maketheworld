@@ -122,7 +122,7 @@ export const ephemeraMessageOrchestrationDataSource = new EphemeraDataSource<
                         ...raw.message,
                         targets: already.targets,
                         ...(already.messageId !== undefined ? { messageId: already.messageId } : {}),
-                        createdTime: getCurrentTimestamp(),
+                        createdTime: Math.max(already.createdTime + 1, getCurrentTimestamp()),
                     } as PublishMessage)
                     continue
                 }

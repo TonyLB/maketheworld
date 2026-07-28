@@ -728,7 +728,10 @@ describe('mtw.ephemera.perception DataSource', () => {
         // Confirmed design decision (MO-10 migration): unlike the old PerceptionThreads.remove()
         // hard-stop, ContentIngressIndex never removes a listener, so a repeat/out-of-order wave
         // for an already-fully-delivered slot gets a redundant standalone re-publish (same
-        // messageId, fresh createdTime) rather than being silently dropped.
+        // messageId) rather than being silently dropped. Its createdTime is a genuinely later,
+        // distinct transcript event --- not a reuse of the original terminal's value --- but it is
+        // anchored to that recorded value (`max(t0+1, now)`) rather than an unrelated wall-clock
+        // read, so it is guaranteed to sort strictly after it.
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
 
@@ -743,6 +746,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         expect(terminalPublish).toBeDefined()
         const terminalMessageId = (terminalPublish![0] as { messageId?: string }).messageId
+        const terminalCreatedTime = (terminalPublish![0] as { createdTime?: number }).createdTime
 
         await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
 
@@ -752,6 +756,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         expect(latePlaceholderPublishes).toHaveLength(1)
         expect((latePlaceholderPublishes[0][0] as { messageId?: string }).messageId).toBe(terminalMessageId)
+        expect((latePlaceholderPublishes[0][0] as { createdTime?: number }).createdTime).toBeGreaterThan(terminalCreatedTime!)
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()

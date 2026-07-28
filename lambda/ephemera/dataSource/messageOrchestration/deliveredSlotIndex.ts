@@ -12,12 +12,14 @@ import type { PublishTarget } from '../../messageBus/baseClasses'
 export type DeliveredSlotRecord = {
     targets: PublishTarget[];
     messageId?: string;
+    createdTime: number;
 }
 
 export type DeliveredSlotInput = {
     slotId: string;
     targets: PublishTarget[];
     messageId?: string;
+    createdTime: number;
 }
 
 export class DeliveredSlotIndex {
@@ -27,7 +29,7 @@ export class DeliveredSlotIndex {
     record(bundleId: string, slots: DeliveredSlotInput[]): void {
         const bundleRecords = { ...(this.records[bundleId] ?? {}) }
         for (const slot of slots) {
-            bundleRecords[slot.slotId] = { targets: slot.targets, messageId: slot.messageId }
+            bundleRecords[slot.slotId] = { targets: slot.targets, messageId: slot.messageId, createdTime: slot.createdTime }
         }
         this.records = { ...this.records, [bundleId]: bundleRecords }
     }

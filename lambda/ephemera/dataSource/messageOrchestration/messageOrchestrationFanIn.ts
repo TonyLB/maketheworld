@@ -116,16 +116,18 @@ export class MessageOrchestrationFanInCluster extends FanInCluster<
         }
         const baseTime = getCurrentTimestamp()
         let offset = 0
-        const deliveredSlots: { slotId: string; targets: PublishMessage['targets']; messageId?: string }[] = []
+        const deliveredSlots: { slotId: string; targets: PublishMessage['targets']; messageId?: string; createdTime: number }[] = []
         for (const slot of this.declaredSlots) {
             const message = this.reports.get(slot.slotId)
             if (message) {
-                const published = { ...message, createdTime: baseTime + offset } as PublishMessage
+                const createdTime = baseTime + offset
+                const published = { ...message, createdTime } as PublishMessage
                 ctx.messageBus.publish(published)
                 deliveredSlots.push({
                     slotId: slot.slotId,
                     targets: published.targets,
                     messageId: 'messageId' in published ? published.messageId : undefined,
+                    createdTime,
                 })
                 offset += 1
             }

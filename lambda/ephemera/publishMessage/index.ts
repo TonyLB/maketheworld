@@ -193,9 +193,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     let dbPromises: Promise<void>[] = []
     let messagesByConnectionId: Record<string, any[]> = {}
 
-    const offsetsByMessageId = internalCache.OrchestrateMessages.allOffsets()
-    const pastOffsets = Math.max(-1, ...Object.values(offsetsByMessageId)) + 1
-
     const enqueueWireRow = (connectionId: string, row: Record<string, unknown>) => {
         if (!(connectionId in messagesByConnectionId)) {
             messagesByConnectionId[connectionId] = []
@@ -240,7 +237,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
-        const computedCreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
+        const computedCreatedTime = baseTime + index
         if (isPublishWorldLineMessage(payload) || isPublishCoyoteGameHypothesisMessage(payload) || isPublishCommandTranscriptMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
             const MessageId = payload.messageId ?? `MESSAGE#${uuidv4()}`

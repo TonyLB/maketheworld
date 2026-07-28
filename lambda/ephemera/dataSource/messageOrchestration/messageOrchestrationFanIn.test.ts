@@ -226,8 +226,13 @@ describe('messageOrchestrationFanIn', () => {
                 message: worldMessageWithId('Alice has arrived.', ['ROOM#b'], 'MESSAGE#arrive'),
             })
 
-            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'leave')).toEqual({ targets: ['ROOM#a'], messageId: 'MESSAGE#leave' })
-            expect(ctx.deliveredSlotIndex.find(BUNDLE_A, 'arrive')).toEqual({ targets: ['ROOM#b'], messageId: 'MESSAGE#arrive' })
+            const leaveRecord = ctx.deliveredSlotIndex.find(BUNDLE_A, 'leave')
+            const arriveRecord = ctx.deliveredSlotIndex.find(BUNDLE_A, 'arrive')
+            expect(leaveRecord).toEqual({ targets: ['ROOM#a'], messageId: 'MESSAGE#leave', createdTime: expect.any(Number) })
+            expect(arriveRecord).toEqual({ targets: ['ROOM#b'], messageId: 'MESSAGE#arrive', createdTime: expect.any(Number) })
+            // Declared order is [leave, arrive]; the bundle assigns sequential CreatedTime values
+            // 1ms apart, and the snapshot must carry the same value the flush actually published.
+            expect(arriveRecord!.createdTime).toBe(leaveRecord!.createdTime + 1)
         })
 
         it('does not record a slot that was declared but never reported (tolerantly failed --- nothing to standalone against)', async () => {
