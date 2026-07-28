@@ -23,14 +23,20 @@ type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : nev
 /**
  * Shared content, before any listener's own targets/messageId is baked in (MO-10), and --- per
  * MO-11's content-vs-envelope split --- before format-specific projection is applied (Phase 6.5):
- * 'literal' content is already fully built WML with no cache record behind it (a placeholder or
- * error message) and is delivered as-is regardless of listener format; 'roomRender' content is
- * the raw cache record, projected into header/full WML per-listener in deliverListenerContent
- * (index.ts).
+ * 'literal' content is already fully built WML with no cache record behind it, in a shape that
+ * does not vary by format (feature/knowledge/object placeholders and errors --- these kinds have
+ * only one possible listener format today) and is delivered as-is; 'roomRender' content is the
+ * raw cache record, projected into header/full WML per-listener; 'roomPlaceholder' content is an
+ * un-formatted placeholder/error body for a room, projected into header- or full-shaped WML
+ * per-listener the same way (Phase 7: once roomDescription (`format:'full'`) shares a bucket with
+ * characterMove/sessionOrientationRender (`format:'header'`), the room's Generating/Error
+ * placeholder needs the same per-listener projection its terminal content already gets). All
+ * projection happens in deliverListenerContent (index.ts).
  */
 export type RenderContent =
     | { kind: 'literal'; message: DistributiveOmit<PublishMessage, 'targets' | 'messageId'> }
     | { kind: 'roomRender'; componentId: EphemeraRoomId; renderedContent: EphemeraCacheRenderedContent }
+    | { kind: 'roomPlaceholder'; componentId: EphemeraRoomId; bodyText: string; status?: 'generating' }
 
 export type IngressListener = {
     bundleId: string;

@@ -65,7 +65,7 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, Rende
                 if (!isLookCommandRequestedPublishedPayload(lookPayload)) {
                     return
                 }
-                await handleLookCommandRequestedForRenderOrchestration(lookPayload, streamEvent)
+                await handleLookCommandRequestedForRenderOrchestration(messageBus, lookPayload, streamEvent)
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {

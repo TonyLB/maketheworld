@@ -22,6 +22,8 @@ import {
 import { DeliveredSlotIndex } from './deliveredSlotIndex'
 import { ContentIngressIndex, type RenderContent } from './contentIngress'
 import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from '../perception/roomRenderWmlFromCacheRecord'
+import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from '../perception/roomHeaderPlaceholderWml'
+import { placeholderRoomFullWml } from '../perception/roomFullPlaceholderWml'
 
 const messageOrchestrationFanInStore = createMessageOrchestrationFanInStore()
 const deliveredSlotIndex = new DeliveredSlotIndex()
@@ -29,9 +31,12 @@ const contentIngressIndex = new ContentIngressIndex()
 
 /**
  * Packages one listener's addressed envelope from shared content and reports it as a slot.
- * 'literal' content (a placeholder/error message with no cache record behind it) is delivered
- * as-is; 'roomRender' content (a raw cache record) is projected into header/full WML per the
- * listener's own spec.format --- the MO-11 content-vs-envelope split, Phase 6.5.
+ * 'literal' content (a placeholder/error message with no cache record behind it, in a shape that
+ * does not vary by format) is delivered as-is; 'roomRender' content (a raw cache record) and
+ * 'roomPlaceholder' content (an un-formatted room placeholder/error body) are each projected into
+ * header/full WML per the listener's own spec.format --- the MO-11 content-vs-envelope split
+ * (Phase 6.5), extended to room placeholders (Phase 7) once roomDescription (`format:'full'`)
+ * started sharing a bucket with characterMove/sessionOrientationRender (`format:'header'`).
  */
 function deliverListenerContent(
     bus: MessageBus,
@@ -39,9 +44,12 @@ function deliverListenerContent(
     spec: MessageOrchestrationSlotSpec,
     content: RenderContent
 ): void {
-    const message: PublishMessage = content.kind === 'literal'
-        ? { ...content.message, targets: spec.targets ?? [] } as PublishMessage
-        : {
+    let message: PublishMessage
+    if (content.kind === 'literal') {
+        message = { ...content.message, targets: spec.targets ?? [] } as PublishMessage
+    }
+    else if (content.kind === 'roomRender') {
+        message = {
             type: 'PublishMessage',
             displayProtocol: 'PerceptionMessage',
             targets: spec.targets ?? [],
@@ -54,6 +62,25 @@ function deliverListenerContent(
                 roomChannel: 'render',
             },
         }
+    }
+    else {
+        message = {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            targets: spec.targets ?? [],
+            wmlContent: spec.format === 'full'
+                ? placeholderRoomFullWml(content.componentId, content.bodyText)
+                : (content.status === 'generating'
+                    ? roomHeaderGeneratingPlaceholderWml(content.componentId)
+                    : roomHeaderErrorPlaceholderWml(content.componentId)),
+            metaData: {
+                componentUUID: content.componentId,
+                displayMode: spec.format === 'full' ? 'full' : 'header',
+                ...(content.status === 'generating' ? { status: 'generating' as const } : {}),
+                roomChannel: 'render',
+            },
+        }
+    }
     sendMessageSlotReported(bus, bundleId, {
         bundleId,
         slotId: spec.slotId,

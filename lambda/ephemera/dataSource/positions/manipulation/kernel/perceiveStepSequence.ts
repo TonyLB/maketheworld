@@ -24,12 +24,15 @@ export type PerceiveStepSequenceDeps = {
  * Delivery reuses the existing `Look Command Requested` pipeline verbatim (PK-4, resolved
  * 2026-07-24: reuse, not a new mechanism) --- the same event `routeTrustedUiAction.ts` / bare
  * `look`/`l` parse already publish, already consumed unchanged by
- * `renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts`. Room/Feature/Knowledge
- * referents get real end-to-end delivery this way; Object referents get a **stub** delivery (PK-6):
- * `ensureObjectShortNameCacheRecord.ts` publishes `shortName` only, since `StandardObjectData` has
- * no `render` field yet --- real `<Render>`/`<Example>` authoring support is separate, deferred work.
- * Character referents still have no render content model at all and throw a named, honest error
- * rather than silently no-op or attempt partial rendering.
+ * `renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts`, which declares its own
+ * messageOrchestration bundle per event (Phase 7) --- no bundle correlation is threaded through
+ * here, since nothing today produces more than one describe step per call (see that phase's
+ * planning doc note on why this was simplified back out of a declare-upstream shape). Room/Feature/
+ * Knowledge referents get real end-to-end delivery this way; Object referents get a **stub**
+ * delivery (PK-6): `ensureObjectShortNameCacheRecord.ts` publishes `shortName` only, since
+ * `StandardObjectData` has no `render` field yet --- real `<Render>`/`<Example>` authoring support
+ * is separate, deferred work. Character referents still have no render content model at all and
+ * throw a named, honest error rather than silently no-op or attempt partial rendering.
  */
 export const perceiveStepSequence = async (
     steps: readonly KernelStep[],

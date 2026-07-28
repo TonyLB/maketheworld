@@ -145,10 +145,10 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
 
         sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
-            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
         })
         await messageBus.flushAndSettle()
 
@@ -156,14 +156,14 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(listed).toHaveLength(1)
         const entry = listed[0]
         expect(entry.thread).toMatchObject({
-            kind: 'roomDescription',
+            kind: 'roomHeaderBroadcast',
             status: 'Initial',
         })
         expect(entry.registration).toMatchObject({
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
-            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
         })
         expect(publishSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage')).toBe(false)
         publishSpy.mockRestore()
@@ -272,16 +272,46 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
     }
 
+    /**
+     * Phase 7: roomDescription/featureDescription/knowledgeDescription/objectDescription/
+     * sessionOrientationRender all register against messageOrchestration's ingress registry now
+     * instead of PerceptionThreads --- roomDescription shares the exact same
+     * (componentId, perspectiveKey, 'render') bucket characterMove/sessionOrientationRender use,
+     * differing only by `format:'full'`. Same declare-then-register, don't-flush-until-the-real-
+     * trigger-event pattern as declareCharacterMoveBundle/registerCharacterMoveIngress above.
+     */
+    function declareRoomDescriptionBundle(bundleId: string, slotId: string): void {
+        sendMessageBundleDeclared(messageBus, bundleId, {
+            bundleId,
+            slots: [{
+                slotId,
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#viewer'],
+                contentStream: 'render',
+                format: 'full',
+            }],
+        })
+    }
+
+    async function registerRoomDescriptionIngress(bundleId: string, slotId: string, targets: string[] = ['CHARACTER#viewer']): Promise<void> {
+        await registerIngressSlot(messageBus, bundleId, {
+            slotId,
+            expectedPublishType: 'PerceptionMessage',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            targets: targets as any,
+            contentStream: 'render',
+            format: 'full',
+        })
+    }
+
     it('roomDescription Generation Started publishes render-channel full-room WML with Render placeholder (no Example)', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
 
@@ -303,16 +333,11 @@ describe('mtw.ephemera.perception DataSource', () => {
         publishSpy.mockRestore()
     })
 
-    it('roomDescription Orchestration Error publishes full-room Render placeholder and removes thread', async () => {
+    it('roomDescription Orchestration Error publishes full-room Render placeholder', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughOrchestrationErrorPayload())
 
@@ -326,22 +351,14 @@ describe('mtw.ephemera.perception DataSource', () => {
             passThroughFixtureRoomId,
             'Error'
         )
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
-            []
-        )
         publishSpy.mockRestore()
     })
 
-    it('roomDescription Generation Deferred publishes full-room Render placeholder and removes thread', async () => {
+    it('roomDescription Generation Deferred publishes full-room Render placeholder', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughGenerationDeferredPayload())
 
@@ -355,22 +372,14 @@ describe('mtw.ephemera.perception DataSource', () => {
             passThroughFixtureRoomId,
             'Error'
         )
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
-            []
-        )
         publishSpy.mockRestore()
     })
 
-    it('room thread receives Generation Started then terminal Render Pertains with stable messageId', async () => {
+    it('room slot receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
@@ -388,12 +397,6 @@ describe('mtw.ephemera.perception DataSource', () => {
             getContent: () => Promise.resolve(genStarted),
         })
         await messageBus.flushAndSettle()
-
-        const listedAfterGen = internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        expect(listedAfterGen[0]?.thread).toMatchObject({
-            status: 'Generating',
-            createdTime: 1000000000000,
-        })
 
         const genPublish = publishSpy.mock.calls.find((c) => {
             const m = c[0] as { type?: string; metaData?: { status?: string } }
@@ -442,7 +445,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
@@ -538,15 +540,8 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
 
-        const targets = ['CHARACTER#viewer'] as const
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'sessionOrientationRender',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-            targets: [...targets],
-        })
-        await messageBus.flushAndSettle()
+        declareCharacterMoveBundle('BUNDLE#sessionOrientationRender', 'header')
+        await registerCharacterMoveIngress('BUNDLE#sessionOrientationRender', 'header')
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
@@ -616,9 +611,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
@@ -1113,10 +1105,10 @@ describe('mtw.ephemera.perception DataSource', () => {
                 toRoomId: MEMBERSHIP_ROOM_B,
             })
             sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
-                threadKind: 'roomDescription',
+                threadKind: 'roomHeaderBroadcast',
                 componentId: 'ROOM#REG',
                 perspectiveKey: 'view-1',
-                characterId: 'CHARACTER#viewer',
+                targets: ['CHARACTER#viewer'],
             })
             await messageBus.flushAndSettle()
 
@@ -1124,7 +1116,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             const listed = internalCache.PerceptionThreads.list('ROOM#REG', 'view-1')
             expect(listed).toHaveLength(1)
             expect(listed[0].registration).toMatchObject({
-                threadKind: 'roomDescription',
+                threadKind: 'roomHeaderBroadcast',
                 componentId: 'ROOM#REG',
             })
             orchestrateSpy.mockRestore()

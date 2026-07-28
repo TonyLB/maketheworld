@@ -58,12 +58,6 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
         expect(prepared.perspectiveKey).toEqual(
             computePerspectiveKey(['ASSET#Canon', 'ASSET#Overlay']),
         )
-        expect(prepared.threadRegisterCommand).toEqual({
-            threadKind: 'featureDescription',
-            componentId: 'FEATURE#Feat',
-            perspectiveKey: prepared.perspectiveKey,
-            characterId: 'CHARACTER#Test',
-        })
         expect(prepared.renderCommand).toEqual({
             componentId: 'FEATURE#Feat',
             perspective: prepared.perspective,
@@ -72,7 +66,7 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
         })
     })
 
-    it('uses knowledgeDescription thread kind for Knowledge hosts', async () => {
+    it('resolves componentId/perspective for Knowledge hosts', async () => {
         const prepared = await prepareFeatureKnowledgeRenderForCharacter(
             'CHARACTER#Test',
             'KNOWLEDGE#Know',
@@ -82,28 +76,8 @@ describe('prepareFeatureKnowledgeRenderForCharacter', () => {
             }),
         )
 
-        expect(prepared.threadRegisterCommand).toMatchObject({
-            threadKind: 'knowledgeDescription',
-            componentId: 'KNOWLEDGE#Know',
-        })
+        expect(prepared.componentId).toBe('KNOWLEDGE#Know')
         expect(prepared.perspective.assetStack).toEqual(['ASSET#Canon'])
-    })
-
-    it('includes directResponse on knowledgeDescription registration when requested', async () => {
-        const prepared = await prepareFeatureKnowledgeRenderForCharacter(
-            'CHARACTER#Test',
-            'KNOWLEDGE#Know',
-            baseDeps(),
-            { directResponse: true },
-        )
-
-        expect(prepared.threadRegisterCommand).toEqual({
-            threadKind: 'knowledgeDescription',
-            componentId: 'KNOWLEDGE#Know',
-            perspectiveKey: prepared.perspectiveKey,
-            characterId: 'CHARACTER#Test',
-            directResponse: true,
-        })
     })
 
     it('excludes character-owned assets not in the vertical', async () => {

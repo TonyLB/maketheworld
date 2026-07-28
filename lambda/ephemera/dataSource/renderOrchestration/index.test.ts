@@ -72,6 +72,7 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
 
         expect(lookSpy).toHaveBeenCalledTimes(1)
         expect(lookSpy).toHaveBeenCalledWith(
+            expect.anything(),
             expect.objectContaining({
                 type: 'Look Command Requested',
                 characterId: 'CHARACTER#c',
