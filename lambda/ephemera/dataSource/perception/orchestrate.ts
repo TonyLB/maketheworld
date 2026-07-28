@@ -335,20 +335,15 @@ async function handleRenderPertains(
     }
 
     const characterMoveContent: RenderContent = {
-        type: 'PublishMessage',
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: terminalHeaderWml,
-        metaData: {
-            componentUUID: payload.componentId,
-            displayMode: 'header',
-            roomChannel: 'render',
-        },
+        kind: 'roomRender',
+        componentId: payload.componentId,
+        renderedContent: payload.cacheRecord.renderedContent,
     }
     const publishedCharacterMove = reportIngressContent(
         bus,
         payload.componentId,
         payload.perspectiveKey,
-        'characterMove',
+        'render',
         characterMoveContent
     )
 
@@ -531,15 +526,18 @@ async function handleGenerationStarted(
         )
     }
 
-    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'characterMove', {
-        type: 'PublishMessage',
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: roomHeaderGeneratingPlaceholderWml(payload.componentId),
-        metaData: {
-            componentUUID: payload.componentId,
-            displayMode: 'header',
-            status: 'generating',
-            roomChannel: 'render',
+    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderGeneratingPlaceholderWml(payload.componentId),
+            metaData: {
+                componentUUID: payload.componentId,
+                displayMode: 'header',
+                status: 'generating',
+                roomChannel: 'render',
+            },
         },
     })
 }
@@ -673,14 +671,17 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         })
     }
 
-    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'characterMove', {
-        type: 'PublishMessage',
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: roomHeaderErrorPlaceholderWml(payload.componentId),
-        metaData: {
-            componentUUID: payload.componentId,
-            displayMode: 'header',
-            roomChannel: 'render',
+    reportIngressContent(bus, payload.componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderErrorPlaceholderWml(payload.componentId),
+            metaData: {
+                componentUUID: payload.componentId,
+                displayMode: 'header',
+                roomChannel: 'render',
+            },
         },
     })
 }

@@ -247,7 +247,8 @@ describe('mtw.ephemera.perception DataSource', () => {
                 componentId: passThroughFixtureRoomId,
                 perspectiveKey: passThroughFixturePerspectiveKey,
                 targets: ['CHARACTER#viewer'],
-                threadKind: 'characterMove',
+                contentStream: 'render',
+                format: 'header',
             }],
         })
     }
@@ -266,7 +267,8 @@ describe('mtw.ephemera.perception DataSource', () => {
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             targets: targets as any,
-            threadKind: 'characterMove',
+            contentStream: 'render',
+            format: 'header',
         })
     }
 
@@ -780,7 +782,8 @@ describe('mtw.ephemera.perception DataSource', () => {
                 componentId: passThroughFixtureRoomId,
                 perspectiveKey: passThroughFixturePerspectiveKey,
                 targets: ['CHARACTER#two'],
-                threadKind: 'characterMove',
+                contentStream: 'render',
+                format: 'header',
             }],
         })
         await registerCharacterMoveIngress('BUNDLE#two', 'header', ['CHARACTER#two'])

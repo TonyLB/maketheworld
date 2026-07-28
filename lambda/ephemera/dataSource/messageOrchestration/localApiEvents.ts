@@ -6,10 +6,16 @@
 import type { PublishMessage, PublishTarget } from '../../messageBus/baseClasses'
 
 /**
- * componentId/perspectiveKey/targets/threadKind are optional: only slots a render-completion
+ * componentId/perspectiveKey/targets/contentStream are optional: only slots a render-completion
  * handler needs to self-match against (e.g. navigate's header slot) populate them. Slots
  * resolved by a producer that already knows its own bundleId/slotId statically (e.g. navigate's
  * leave/arrive slots, reported by publishMembershipPresentation.ts) leave these unset.
+ *
+ * contentStream/format (MO-11, Phase 6.5) replace the earlier threadKind field: contentStream is
+ * content identity (which pipeline/cache a listener wants --- 'render' | 'affordances', exactly
+ * the normative roomChannel binary), format is an envelope property of one listener (header vs
+ * full projection of the same shared content), not part of the ingress key. See
+ * dataSource/messageOrchestration/AGENT.md.
  */
 export type MessageOrchestrationSlotSpec = {
     slotId: string;
@@ -17,8 +23,11 @@ export type MessageOrchestrationSlotSpec = {
     componentId?: string;
     perspectiveKey?: string;
     targets?: PublishTarget[];
-    threadKind?: string;
-}
+} & (
+    | { contentStream: 'render'; format: 'header' | 'full' }
+    | { contentStream: 'affordances'; format: 'default' }
+    | { contentStream?: undefined; format?: undefined }
+)
 
 /** Declares a bundle's full, compiled-order slot list. Identity = bundleId. */
 export type MessageBundleDeclareCommand = {
@@ -47,8 +56,13 @@ const isMessageOrchestrationSlotSpec = (value: unknown): value is MessageOrchest
     if (v.perspectiveKey !== undefined && typeof v.perspectiveKey !== 'string') {
         return false
     }
-    if (v.threadKind !== undefined && typeof v.threadKind !== 'string') {
-        return false
+    if (v.contentStream !== undefined) {
+        if (v.contentStream !== 'render' && v.contentStream !== 'affordances') {
+            return false
+        }
+        if (typeof v.format !== 'string') {
+            return false
+        }
     }
     if (v.targets !== undefined && !(Array.isArray(v.targets) && v.targets.every((target) => typeof target === 'string'))) {
         return false

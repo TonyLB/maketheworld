@@ -21,22 +21,43 @@ import {
 } from './messageOrchestrationFanIn'
 import { DeliveredSlotIndex } from './deliveredSlotIndex'
 import { ContentIngressIndex, type RenderContent } from './contentIngress'
+import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from '../perception/roomRenderWmlFromCacheRecord'
 
 const messageOrchestrationFanInStore = createMessageOrchestrationFanInStore()
 const deliveredSlotIndex = new DeliveredSlotIndex()
 const contentIngressIndex = new ContentIngressIndex()
 
-/** Packages one listener's addressed envelope from shared content and reports it as a slot. */
+/**
+ * Packages one listener's addressed envelope from shared content and reports it as a slot.
+ * 'literal' content (a placeholder/error message with no cache record behind it) is delivered
+ * as-is; 'roomRender' content (a raw cache record) is projected into header/full WML per the
+ * listener's own spec.format --- the MO-11 content-vs-envelope split, Phase 6.5.
+ */
 function deliverListenerContent(
     bus: MessageBus,
     bundleId: string,
     spec: MessageOrchestrationSlotSpec,
     content: RenderContent
 ): void {
+    const message: PublishMessage = content.kind === 'literal'
+        ? { ...content.message, targets: spec.targets ?? [] } as PublishMessage
+        : {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            targets: spec.targets ?? [],
+            wmlContent: spec.format === 'full'
+                ? roomRenderWmlFromCacheRecord(content.componentId, content.renderedContent)
+                : roomHeaderWmlFromCacheRecord(content.componentId, content.renderedContent),
+            metaData: {
+                componentUUID: content.componentId,
+                displayMode: spec.format === 'full' ? 'full' : 'header',
+                roomChannel: 'render',
+            },
+        }
     sendMessageSlotReported(bus, bundleId, {
         bundleId,
         slotId: spec.slotId,
-        message: { ...content, targets: spec.targets ?? [] } as PublishMessage,
+        message,
     })
 }
 
@@ -63,17 +84,17 @@ export async function registerIngressSlot(
 
 /**
  * Reports resolved content once; fans it out to every slot currently registered for
- * (componentId, perspectiveKey, threadKind), each building its own addressed envelope. Returns
- * the number of listeners delivered to. See MO-10.
+ * (componentId, perspectiveKey, contentStream), each building its own addressed envelope.
+ * Returns the number of listeners delivered to. See MO-10/MO-11.
  */
 export function reportIngressContent(
     bus: MessageBus,
     componentId: string,
     perspectiveKey: string,
-    threadKind: string,
+    contentStream: 'render' | 'affordances',
     content: RenderContent
 ): number {
-    const listeners = contentIngressIndex.reportContent(componentId, perspectiveKey, threadKind, content)
+    const listeners = contentIngressIndex.reportContent(componentId, perspectiveKey, contentStream, content)
     for (const { bundleId, spec } of listeners) {
         deliverListenerContent(bus, bundleId, spec, content)
     }

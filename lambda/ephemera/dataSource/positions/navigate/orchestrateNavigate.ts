@@ -53,7 +53,8 @@ export const orchestrateCharacterNavigate = async ({
         componentId: to,
         perspectiveKey,
         targets: [characterId],
-        threadKind: 'characterMove',
+        contentStream: 'render',
+        format: 'header',
     } : null
 
     const slots: MessageOrchestrationSlotSpec[] = [

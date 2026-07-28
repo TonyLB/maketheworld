@@ -54,7 +54,8 @@ describe('orchestrateCharacterNavigate', () => {
                 componentId: 'ROOM#TestTwo',
                 perspectiveKey: 'perspective-key',
                 targets: ['CHARACTER#Test'],
-                threadKind: 'characterMove',
+                contentStream: 'render',
+                format: 'header',
             }),
             expect.any(Function)
         )
@@ -76,7 +77,8 @@ describe('orchestrateCharacterNavigate', () => {
                     componentId: 'ROOM#TestTwo',
                     perspectiveKey: 'perspective-key',
                     targets: ['CHARACTER#Test'],
-                    threadKind: 'characterMove',
+                    contentStream: 'render',
+                    format: 'header',
                 },
                 { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
             ],
@@ -102,7 +104,7 @@ describe('orchestrateCharacterNavigate', () => {
         expect(registerIngressSlotMock).toHaveBeenCalledWith(
             messageBus,
             expect.any(String),
-            expect.objectContaining({ threadKind: 'characterMove' }),
+            expect.objectContaining({ contentStream: 'render', format: 'header' }),
             expect.any(Function)
         )
         const declares = bundleDeclares()
@@ -113,7 +115,8 @@ describe('orchestrateCharacterNavigate', () => {
             componentId: 'ROOM#TestTwo',
             perspectiveKey: 'perspective-key',
             targets: ['CHARACTER#Test'],
-            threadKind: 'characterMove',
+            contentStream: 'render',
+            format: 'header',
         }))
     })
 

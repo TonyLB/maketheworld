@@ -1,12 +1,15 @@
 /**
  * Ingress side of the MO-10 Ingress/Delivery seam: content resolution, kickoff single-flight,
  * and replay --- deliberately ignorant of addressed envelopes (targets/messageId) and of
- * messageBus. Bucket-per-(componentId, perspectiveKey, threadKind), mirroring SlotMatchIndex's
- * key shape but never draining listeners on content arrival --- both a placeholder wave and a
- * later terminal wave broadcast to the same, still-full listener list. See AGENT.md and MO-10 in
+ * messageBus. Bucket-per-(componentId, perspectiveKey, contentStream) (MO-11, Phase 6.5: keyed by
+ * content identity, not the finer threadKind), never draining listeners on content arrival ---
+ * both a placeholder wave and a later terminal wave broadcast to the same, still-full listener
+ * list. See AGENT.md and MO-10/MO-11 in
  * taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md.
  */
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PublishMessage } from '../../messageBus/baseClasses'
+import type { EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
 import type { MessageOrchestrationSlotSpec } from './localApiEvents'
 
 /**
@@ -17,8 +20,17 @@ import type { MessageOrchestrationSlotSpec } from './localApiEvents'
  */
 type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never
 
-/** Shared render content, before any listener's own targets/messageId is baked in. */
-export type RenderContent = DistributiveOmit<PublishMessage, 'targets' | 'messageId'>
+/**
+ * Shared content, before any listener's own targets/messageId is baked in (MO-10), and --- per
+ * MO-11's content-vs-envelope split --- before format-specific projection is applied (Phase 6.5):
+ * 'literal' content is already fully built WML with no cache record behind it (a placeholder or
+ * error message) and is delivered as-is regardless of listener format; 'roomRender' content is
+ * the raw cache record, projected into header/full WML per-listener in deliverListenerContent
+ * (index.ts).
+ */
+export type RenderContent =
+    | { kind: 'literal'; message: DistributiveOmit<PublishMessage, 'targets' | 'messageId'> }
+    | { kind: 'roomRender'; componentId: EphemeraRoomId; renderedContent: EphemeraCacheRenderedContent }
 
 export type IngressListener = {
     bundleId: string;
@@ -38,8 +50,8 @@ type IngressBucket = {
 export class ContentIngressIndex {
     private buckets: Record<string, IngressBucket> = {}
 
-    private static makeKey(componentId: string, perspectiveKey: string, threadKind: string): string {
-        return `${componentId}::${perspectiveKey}::${threadKind}`
+    private static makeKey(componentId: string, perspectiveKey: string, contentStream: string): string {
+        return `${componentId}::${perspectiveKey}::${contentStream}`
     }
 
     /**
@@ -52,10 +64,10 @@ export class ContentIngressIndex {
      * (see deliveredSlotIndex.ts), not an Ingress one.
      */
     registerSlot(bundleId: string, spec: MessageOrchestrationSlotSpec): RegisterSlotResult {
-        if (!spec.componentId || !spec.perspectiveKey || !spec.threadKind) {
+        if (!spec.componentId || !spec.perspectiveKey || !spec.contentStream) {
             return { shouldKickoff: false, replay: [] }
         }
-        const key = ContentIngressIndex.makeKey(spec.componentId, spec.perspectiveKey, spec.threadKind)
+        const key = ContentIngressIndex.makeKey(spec.componentId, spec.perspectiveKey, spec.contentStream)
         const bucket = this.buckets[key]
         if (!bucket) {
             this.buckets[key] = { live: true, events: [], listeners: [{ bundleId, spec }] }
@@ -71,8 +83,8 @@ export class ContentIngressIndex {
      * the listener list --- a placeholder wave and a later terminal wave for the same key both
      * see the full, unchanged listener set.
      */
-    reportContent(componentId: string, perspectiveKey: string, threadKind: string, content: RenderContent): IngressListener[] {
-        const key = ContentIngressIndex.makeKey(componentId, perspectiveKey, threadKind)
+    reportContent(componentId: string, perspectiveKey: string, contentStream: string, content: RenderContent): IngressListener[] {
+        const key = ContentIngressIndex.makeKey(componentId, perspectiveKey, contentStream)
         const bucket = this.buckets[key]
         if (!bucket) {
             return []
