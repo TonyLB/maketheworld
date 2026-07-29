@@ -4,8 +4,8 @@
  * permanently drops a cluster once completed (see fanInClusterStore.ts's completeReadyPartials),
  * so a slot-report leg arriving after flush (the terminal, once the placeholder already
  * completed the bundle) has nothing left to standalone against without this --- populated by
- * MessageOrchestrationFanInCluster.handler() at the moment it flushes. See AGENT.md and MO-10 in
- * taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md.
+ * MessageOrchestrationFanInCluster.handler() at the moment it flushes. See AGENT.md's
+ * "Content ingress / delivery seam (MO-10)" section.
  */
 import type { PublishTarget } from '../../messageBus/baseClasses'
 

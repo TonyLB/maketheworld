@@ -185,7 +185,7 @@ for (const envelope of events) {
 
 #### Deferral interaction with coalescers
 
-[`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). Ephemera registers outbound coalescers (e.g. [`checkLocation/coalescer.ts`](../../../../lambda/ephemera/checkLocation/coalescer.ts)) that flush deferred WebSocket batches IO-only at the same tail. (Ephemera's `publishMessage/coalescer.ts` was one such example until it was removed in its entirety, 2026-07-26 --- see [`AGENT.messageOrchestrationConsolidation.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md) MO-8.)
+[`InternalMessageBus.runDeferrals`](../messageBus/index.ts) runs all `afterSettled` hooks **concurrently** (`Promise.allSettled`). An outbound coalescer --- `registerDeferral` + an IO-only `afterSettled` hook that flushes a batched WebSocket send at the same tail --- is a legitimate use of the same mechanism fan-in stores use, distinct from fan-in's settle-time cluster completion. No lambda currently registers one; see [Fan-in cluster pattern](#fan-in-cluster-pattern-multi-leg-ingress-correlation) above for the pattern that is live today.
 
 - Fan-in `afterSettled` may invoke handlers that publish derived side effects (e.g. bus messages).
 - Do **not** assume fan-in settle runs before coalescer flush --- deferrals are parallel.
@@ -226,24 +226,18 @@ Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/epheme
 
 **Correlation:** **`clusterIdentity()`** is fact-authoritative (`characterId` + canonical sorted **`froms`** + **`to`**). Intent **`fromRoomId`** is non-authoritative; correlate when **`intent.fromRoomId in fact.froms`**. Plural **`froms`** may yield multi-leave emission (exit-aware only for the entry matching correlated intent).
 
-**Render-blind emission (intentional):** membership fan-in correlates only intent + fact. It publishes leave/arrive **without** waiting on mover header render success, failure, or deferral. Header placeholders stay on the **`PerceptionThreads`** / orchestrate path --- decoupled from membership emission.
+**Render-blind emission (intentional):** membership fan-in correlates only intent + fact. It publishes leave/arrive **without** waiting on mover header render success, failure, or deferral. The mover's arrival-room header is a separate concern, registered against `mtw.ephemera.messageOrchestration`'s ingress registry (not `PerceptionThreads` --- see [`dataSource/messageOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md)), decoupled from membership emission.
 
 **Fact producer contract:** [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#character-moved-fact-f1-8-steady-state) --- descriptive graph-diff emit at persistence apply; positions does not own emission copy policy.
 
-#### Shipped vs deferred (membership fan-in initiative)
+**Covers:** navigate, home, connect, and disconnect all emit through this fan-in; connect/disconnect carry no intent-side `exitName` and fall back to generic copy. Legacy home via imperative `MoveCharacter` does not exist --- `actions` streams `Character Home`, positions executes it.
 
-| Topic | Status |
-| --- | --- |
-| Framework (`FanInCluster` + store + deferral) | **Shipped** |
-| Membership emission (navigate, home, connect, disconnect) | **Shipped** |
-| Plural **`froms`** / multi-leave consumer | **Shipped** |
-| Phase 2: retire `characterMove` pre-baked leave/arrive | **Shipped** |
-| Phase 3: slim **`PerceptionThreads`** (targeting-only) | **Shipped** |
-| Optional render-outcome legs on fan-in (render-aware leave/arrive policy) | **Deferred** until product asks |
-| **`requestId`** on `characterMove` render kick | **Deferred** --- `registrationId` sufficient while orchestrate correlates on routing identity only |
-| Positions-stream **`Object Moved`** affordance consumer | **Deferred** --- see positions contract F3-2 |
-| Admin teleport intent leg | **Deferred** --- fact-only deferral yields generic copy |
-| Legacy home via imperative `MoveCharacter` | **Shipped / retired** --- actions streams `Character Home`; positions executes |
+**Explicit non-goals:**
+
+- **No render-outcome legs on this fan-in.** Leave/arrive emission does not vary by header render success, failure, or deferral (render-blind emission, above). Whether it ever should is an open product question, not a scheduled change.
+- **No `requestId` on the arrival-room render kick.** `messageOrchestration`'s ingress registry correlates on `(componentId, perspectiveKey, contentStream)`, which is sufficient today.
+- **No positions-stream `Object Moved` affordance consumer here.** Affordance refresh for object moves is a separate concern from membership emission; see [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)'s post-move presentation split.
+- **No admin teleport intent leg.** A teleport with no membership fan-in intent falls back to fact-only, generic copy.
 
 ### **Header/Content Envelope Model**
 

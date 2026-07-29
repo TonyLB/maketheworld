@@ -4,8 +4,8 @@
  * messageBus. Bucket-per-(componentId, perspectiveKey, contentStream) (MO-11, Phase 6.5: keyed by
  * content identity, not the finer threadKind), never draining listeners on content arrival ---
  * both a placeholder wave and a later terminal wave broadcast to the same, still-full listener
- * list. See AGENT.md and MO-10/MO-11 in
- * taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md.
+ * list. See AGENT.md's "Content ingress / delivery seam (MO-10)" and "Ingress key:
+ * contentStream/format, not threadKind (MO-11)" sections.
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PublishMessage } from '../../messageBus/baseClasses'

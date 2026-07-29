@@ -9,8 +9,8 @@
  * cache-record content shape, deferred). Every directed-consequence render kind
  * (`roomDescription`/`featureDescription`/`knowledgeDescription`/`objectDescription`/
  * `sessionOrientationRender`) now registers against `messageOrchestration`'s ingress registry
- * instead (`dataSource/messageOrchestration/contentIngress.ts`) --- see
- * `taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md` Phase 7.
+ * instead (`dataSource/messageOrchestration/contentIngress.ts`) --- see that package's
+ * `AGENT.md`, "Phase 7: all directed render kinds migrated".
  */
 import { v4 as uuidv4 } from 'uuid'
 import {
