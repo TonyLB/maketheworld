@@ -206,7 +206,7 @@ Two concerns are often conflated in perception-heavy flows. Keep them separate:
 
 Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) (fictional **`CreatedTime`**, delivery looseness vs correlation), [`dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads).
 
-#### Reference consumer: membership presentation emission (shipped)
+#### Reference consumer: membership presentation emission
 
 **DataSource:** [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md).
 

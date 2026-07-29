@@ -19,7 +19,7 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
 | **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**. Roster display hydrates at read time. |
-| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
+| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
 | **`EphemeraPositionGraph`** | Host-bound in-memory play manipulation model (class in [`positionGraph/`](positionGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
 
@@ -64,7 +64,7 @@ Relational edge **wire types** should stay aligned between **`EphemeraPositionRe
 
 ## Shipped mental model (aligned with play truth today)
 
-### Room play graph + adjacency reverse index (slice 2)
+### Room play graph + adjacency reverse index
 
 **The stance:** the room play graph and its reverse adjacency index are the **sole authority** for play membership. The legacy projections --- **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the graph; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
 
@@ -79,7 +79,7 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 
 A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule at Phase 4 (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
 
-### Object room placement (Phase 4; nodes only)
+### Object room placement (nodes only)
 
 Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation:
 
@@ -143,7 +143,7 @@ Area **topology**, **room membership**, and the **eviction ladder** answer diffe
 
 Exit topology does **not** imply roster membership. Membership does **not** define exits. The ladder is **not** roster membership --- it is **character-local evidence** for resolving a legal membership endpoint. Consumers that need several views compose **separate projections**.
 
-### Eviction ladder (shipped)
+### Eviction ladder
 
 When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. **`Meta::Character.RoomStack`** answers one question under that constraint:
 

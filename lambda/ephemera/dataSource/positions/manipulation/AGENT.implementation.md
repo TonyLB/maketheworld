@@ -122,7 +122,7 @@ Relational ops **do not** route through the **shared membership adapter**. Membe
 | **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
 | **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
 | **Types** | `HostRelationalPatch` in [`types.ts`](types.ts) --- `hostId: EphemeraMembershipHostId` (widened from `EphemeraRoomId`, BD-15/16 slice 3) |
-| **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4) |
+| **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
 
 **Kernel contract:** explicit **`HostRelationalPatch[]`** only; reducer re-runs `EphemeraPositionGraph.applyRelationalPatch` (the shared legality authority, including `bothObjectsOnGraph`) against freshly-fetched graphs, one `MultiKeyUpdate` key per distinct affected host (Room or Character); **`op: 'add'`** idempotent when exact edge present (detected live); reject **`op: 'remove'`** when absent; throws to abort the whole transact on any staleness/illegality (single error code, `HOST_RELATIONAL_PATCH_TRANSACT_FAILED`, for all failures --- same collapse-to-failure precedent as `applyObjectSetTransfer.ts`, same BD-18 caveat: interim, not permanent); **`postApplyGraphs`** output; **no** adjacency dual-write.
 
@@ -193,10 +193,10 @@ Phase 4a adapter tests assert `planMembershipTransfer` / `planObjectTakeHoldTran
 
 ### Parse alignment (M2 gate)
 
-Actions parse steady-state ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped---membership-aware-classify--enrich--egress)) guarantees:
+Actions parse steady-state ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents)) guarantees:
 
 - Atomic **`takeHold`** egress supplies trusted `objectId` + ingress `roomId` (`fromRoomId`).
-- Atomic **`drop`** egress supplies trusted `objectId`, `characterId`, and destination `roomId` from actions **`Parse Requested`** ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#objectmanipulationintent-steady-state-shipped----membership-aware-classify--enrich--egress)).
+- Atomic **`drop`** egress supplies trusted `objectId`, `characterId`, and destination `roomId` from actions **`Parse Requested`** ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents)).
 - **`multiPresent`** (`containers.length > 1`) terminalizes before egress.
 - Zero-host objects terminalize before egress.
 

@@ -48,7 +48,7 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 
 ## Object manipulation (actions stream vs positions execution)
 
-- Parse-based pick-up (**`Parse Requested`** -> classify **`ObjectMembershipIntent`** -> split-stage enrich (identity, membership observation, complexity pre-gates) -> **`Object Take Hold`**) is **stream-only** from actions; graph apply is owned by **`mtw.ephemera.positions`** ([`manipulation/membership/executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts)). Pipeline detail: [**Object manipulation classify + enrich steady-state**](./AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents).
+- Parse-based pick-up (**`Parse Requested`** -> classify **`ObjectMembershipIntent`** -> split-stage enrich (identity, membership observation, complexity pre-gates) -> **`Object Take Hold`**) is **stream-only** from actions; graph apply is owned by **`mtw.ephemera.positions`** ([`manipulation/membership/executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts)). Pipeline detail: [**Object manipulation classify + enrich steady-state**](./AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents).
 - v1 ingress is **`Parse Requested`** only (no **`Action Assessed`** branch for manipulation).
 - Payload: `{ type: 'Object Take Hold', characterId, objectId, roomId, confidence? }` --- trusted ids post-parse. Contract detail: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md) (**`Object Take Hold`** ingress).
 - Transcript copy is owned by **object-manipulation fan-in** on **`mtw.ephemera.perception`** ([`../perception/AGENT.md`](../perception/AGENT.md)).
@@ -90,7 +90,7 @@ Hypothesis / plan prompts format staged objects from **`shortName`** plus trope 
 
 ### Downstream
 
-Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**[Clustering and combine (design)](../coyoteGame/AGENT.md#clustering-and-combine-design)**).
+Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**[Stage-one candidate seam](../coyoteGame/generators/pipelines/hypothesis/AGENT.md#stage-one-candidate-seam-tropeassignments)**).
 
 ---
 

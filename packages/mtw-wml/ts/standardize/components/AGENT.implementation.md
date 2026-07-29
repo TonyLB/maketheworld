@@ -111,14 +111,14 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 
 [`HasDisplayName`](./abstract.ts) and [`hasDisplayName`](../index.ts) apply to **displayName only** — not a general shortName guard.
 
-### **StandardObject** (shipped v1)
+### **StandardObject**
 
 - **Purpose**: Improvisational first-class object merge body (**`shortName`** only on pair JSON; Coyote **`stableKey`** / tropes on **`Meta::Object`**, not here)
 - **Content Properties**: `shortName` (`StandardLiteral`)
 - **Storage / merge**: ephemeraDB pair row under **`ASSET#IMPROVISATION`**; read via **`internalCache.ImprovisationComponentData`** and ephemera composite **`internalCache.ComponentData`**; **`ComponentAggregate`** merges when **`ASSET#IMPROVISATION`** is last in participation order (append via **`appendImprovisationToPerspective`** when objects in scope)
 - **Wire**: Room-nested **`<Object>`** under **`<Room>`** feeds **`StandardRoom.objects[]`** for affordance emit (**I6**); top-level **`<Object>`** under **`<Asset>`** in **ephemeraWire** is **`StandardObject`** for merge/storage. Asset mode rejects both room **`objects[]`** and top-level **`StandardObject`**.
 - **Tests**: [`object.test.ts`](./object.test.ts), [`object.ephemeraWire.integration.test.ts`](./object.ephemeraWire.integration.test.ts)
-- **Related**: [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md`](../../../../../packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md), [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#object-room-placement-phase-4-nodes-only)
+- **Related**: [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md), [`packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md`](../../../../../packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md), [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#object-room-placement-nodes-only)
 
 ## Component Types
 

@@ -4,7 +4,7 @@
 
 Non-replayable [`AssetsDataSource`](../../abstract.ts) **[`index.ts`](./index.ts)** subscribes to **`mtw.assets`** component lifecycle events and maintains **derived** DynamoDB rows that describe each **cross-asset import hop** for a **universal component identity** (`ROOM#...`, `FEATURE#...`, etc.). Authoritative component bodies remain on cache / primary component rows written by **`cacheAsset`**; this source **only** owns **`Meta::Import::...`** items under each universal-key partition.
 
-## Dynamo schema (v1)
+## Dynamo schema
 
 Single-table assets store ([`assetDB`](../../../../../packages/mtw-utilities/ts/dynamoDB/index.ts)); keys match existing conventions (`AssetId`, `DataCategory`).
 

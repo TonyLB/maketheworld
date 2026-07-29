@@ -100,7 +100,7 @@ Corpus definitions: [`objectMatch/corpus.ts`](objectMatch/corpus.ts). Pure score
 
 ## Interpreting output
 
-### Absolute floors (v1 production shim --- raw cosine)
+### Absolute floors (production shim --- raw cosine)
 
 | Constant | Role |
 | --- | --- |

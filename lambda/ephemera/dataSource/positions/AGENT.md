@@ -2,7 +2,7 @@
 
 Ephemera lane for **positions in play** --- runtime truth about where entities are and how they relate in the game world. `dataSourceKey: 'mtw.ephemera.positions'`, registered from [`../../app.ts`](../../app.ts).
 
-Play membership authority is **`Meta::Room.positionGraph`** + adjacency index --- the legacy **`activeCharacters`** / **`RoomId`** projections are not truth and are no longer written. Roster display hydrates at read time; occupancy drift is repaired by a diagnostics sweep. See [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index-slice-2).
+Play membership authority is **`Meta::Room.positionGraph`** + adjacency index --- the legacy **`activeCharacters`** / **`RoomId`** projections are not truth and are no longer written. Roster display hydrates at read time; occupancy drift is repaired by a diagnostics sweep. See [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 
 ## Documentation
 

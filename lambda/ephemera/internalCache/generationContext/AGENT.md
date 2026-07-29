@@ -46,7 +46,7 @@ provenance metadata. Add fields explicitly as generation inputs, not as copies o
 - [`../../generateExample/buildRoomDescriptionPrompt.ts`](../../generateExample/buildRoomDescriptionPrompt.ts):
   prompt builder that consumes the `StandardForm` passed from `generateRoomPreview`
 
-## Implementation (shipped)
+## Implementation
 
 - **Lookup:** `GenerationContext.get(roomId, assetStack)` merges `StandardRoom` metadata across assets in
   **`assetStack` order** (not `Object.values` order). See unit tests in [`index.test.ts`](index.test.ts).

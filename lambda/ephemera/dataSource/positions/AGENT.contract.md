@@ -1,8 +1,8 @@
-# Positions --- contracts (slice 2 + Phase 4 object nodes)
+# Positions --- contracts
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse) as sole authority --- see [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index-slice-2). **`Character Moved`** and **`Object Moved`** are **membership host transfer** projections on the bus --- `froms[]` / `to` describe eligible host endpoints, not kernel **`HostEffect[]`** granularity, and the fact bus shape uses plural **`froms[]`**.
+Play membership persistence uses **`Meta::Room.positionGraph`** (forward) + **adjacency index** (reverse) as sole authority --- see [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index). **`Character Moved`** and **`Object Moved`** are **membership host transfer** projections on the bus --- `froms[]` / `to` describe eligible host endpoints, not kernel **`HostEffect[]`** granularity, and the fact bus shape uses plural **`froms[]`**.
 
 ---
 
@@ -73,7 +73,7 @@ Module paths: [`manipulation/adapters/`](manipulation/adapters/) (transfer plann
 
 ---
 
-## Membership persistence API (slice 2)
+## Membership persistence API
 
 All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
@@ -88,7 +88,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 - **Must** use pure end-state apply on **`targetRoomId`** only.
 - **Must** derive **`MembershipDiff.froms`** from observed prior containers removed (may be **`length > 1`** on drift repair).
-- **Must** maintain **`positionGraph`** + adjacency in the same **`transactWrite`** bundle; **must not** write legacy **`activeCharacters`** / **`RoomId`** membership projections. Mental model: [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index-slice-2).
+- **Must** maintain **`positionGraph`** + adjacency in the same **`transactWrite`** bundle; **must not** write legacy **`activeCharacters`** / **`RoomId`** membership projections. Mental model: [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 - On conflict between graph and adjacency, **`positionGraph` wins** (diagnostics repair from graph).
 
 ### Membership-changed bundle
@@ -108,7 +108,7 @@ When **`changed`** is false: **must** skip the entire bundle (no fact stream, no
 
 ### Eviction ladder (`RoomStack` storage)
 
-Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped). Code map: [`AGENT.implementation.md` --- Eviction ladder](AGENT.implementation.md#eviction-ladder-roomstack-storage).
+Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder). Code map: [`AGENT.implementation.md` --- Eviction ladder](AGENT.implementation.md#eviction-ladder-roomstack-storage).
 
 - **Must not** expose eviction ladder edits on **`MembershipApplyArgs`** --- public apply remains `{ characterId, targetRoomId | null }` only. Ladder shape is internal to persist / resolution helpers.
 - **Legal placement resolution:** trim `RoomStack` to accessible assets; surviving top frame is the proposed `targetRoomId`. **Connect** --- place from nowhere (`froms: []`). **Asset visibility loss** --- relocate from an illegal occupancy when top frame differs from current membership.
@@ -133,7 +133,7 @@ Membership host transfer projection --- coordinators **must** derive fact fields
 - **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`.
 - Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fan-in consumer: [`../perception/membershipPresentationFanIn.ts`](../perception/membershipPresentationFanIn.ts).
 
-### Object room membership (Phase 4; nodes only)
+### Object room membership (nodes only)
 
 All improvisational **object room-placement** mutations **must** go through [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts).
 
@@ -168,7 +168,7 @@ When object room-only **`MembershipDiff.changed`** after successful graph persis
 
 **Must skip** the entire bundle when **`changed: false`**. Code path: [`applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts). A severed boundary relation now streams **`Object Relation Changed`** too (previously silent) --- suppressed only when the caller passes `suppressRelationalFacts: true` (e.g. `repairObjectPlacementDrift`'s consistency scrub); `applyObjectClearMembership.ts` (destroy/edit --- `{ objectId }`, always end-state-to-null across every prior host) follows the identical kernel path and fact rule, leaving `suppressRelationalFacts` unset.
 
-### Cross-host object membership-changed bundle (v1 `takeHold`)
+### Cross-host object membership-changed bundle (`takeHold`)
 
 Bounded apply (**M2**): room remove **only** when object is on trusted ingress `roomId` --- **must not** end-state scrub other room hosts. Character add at target; remove from other character inventory hosts when present. Graph persist: coordinator -> [`planObjectTakeHoldTransfer`](manipulation/adapters/planObjectTakeHoldTransfer.ts) -> [`applyHostEffects`](manipulation/applyHostEffects.ts) ([`computeTakeHoldDiff`](manipulation/adapters/computeTakeHoldDiff.ts)).
 
@@ -181,7 +181,7 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 
 **Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectTakeHold.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeTakeHoldDiff`.
 
-### Cross-host object membership-changed bundle (v1 `drop`)
+### Cross-host object membership-changed bundle (`drop`)
 
 Bounded apply: character remove **only** when object is on trusted ingress `characterId` --- **must not** end-state scrub other character hosts. Room add at trusted ingress `roomId` when object is not already on that room; **must not** end-state scrub other room hosts. Graph persist: coordinator -> [`planObjectDropTransfer`](manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](manipulation/applyHostEffects.ts) ([`computeDropDiff`](manipulation/adapters/computeDropDiff.ts)). **Must not** introduce `updateDropPositionGraphs` or any new `update*PositionGraphs` fork.
 
@@ -194,7 +194,7 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 
 **Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectDrop.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeDropDiff`. Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
 
-### Host-local relational-changed bundle (v1 `establishRelation` / `dissolveRelation`)
+### Host-local relational-changed bundle (`establishRelation` / `dissolveRelation`)
 
 Graph persist: coordinator -> [`planHostRelationalPatch`](manipulation/relational/planHostRelationalPatch.ts) -> [`applyHostRelationalPatch`](manipulation/applyHostRelationalPatch.ts). Code path: [`applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts).
 
@@ -215,7 +215,7 @@ When relational apply **`changed: true`** after successful graph persist, the co
 
 ---
 
-## Host-local relational patch (Phase B; shipped B4)
+## Host-local relational patch
 
 **Status:** Shipped (**BD-2**, **BD-3**, **BD-6**, **BD-7**, **BD-9**). Kernel: [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts). Coordinators: [`manipulation/relational/`](manipulation/relational/). Code map: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
 
@@ -286,11 +286,11 @@ type HostRelationalPatch = {
 
 Actions **must** publish **`Object Establish Relation`** and **`Object Dissolve Relation`** on grounded **`EstablishRelation`** parse from **`Parse Requested`** ([`../actions/index.ts`](../actions/index.ts); payload + guards in [`../actions/publishedEvents.ts`](../actions/publishedEvents.ts)). Positions **must** subscribe in [`subscribedEvents.ts`](subscribedEvents.ts) and delegate to coordinators under [`manipulation/relational/`](manipulation/relational/). Normative handler rules: [Ingress --- `Object Establish Relation`](#object-establish-relation-positions-owned), [Ingress --- `Object Dissolve Relation`](#object-dissolve-relation-positions-owned). Coordinators **must** trust actions-resolved **`subjectId`**, **`targetId`**, **`relationKind`**, optional **`relationLabel`**, and **`hostId`** (Room or Character, BD-15/16 slice 4 --- was Room-only **`roomId`**) --- no catalog re-resolve in positions v1. Production ingress can now genuinely produce a Character **`hostId`** when subject and target already share the acting character's inventory graph (BD-15/16 slice 4c); a cross-host case needing repair (compound atomic apply, C2, not yet built) is declined at the compiler, never reaches ingress.
 
-### `Object Relation Changed` fact (shipped)
+### `Object Relation Changed` fact
 
 - Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
 - Streamed from coordinator on successful persist when **`changed: true`**; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
-- Post-persist bundle detail: [Host-local relational-changed bundle](#host-local-relational-changed-bundle-v1-establishrelation--dissolverelation).
+- Post-persist bundle detail: [Host-local relational-changed bundle](#host-local-relational-changed-bundle-establishrelation--dissolverelation).
 
 **Must not** route relational patch through **`applyObjectRoomMembership`** or membership adapter **`planMembershipTransfer`**.
 
@@ -405,13 +405,13 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 ## Read surface (forward graph vs reverse containers)
 
 - Steady-state roster reads (**affordance compose**, perception fan-out, membership snapshots) **must** use **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)), not raw `ephemeraDB` `activeCharacters` and not any gateway roster API.
-- **`getRoomCharacterList`** **must** derive on each call from **`internalCache.Positions.getPositionGraph(roomId)`** -> **`graph.characterIds`** -> **`hydrateRoomRosterFromCharacterIds`** (`CharacterMeta` + `CharacterSessions`); **must not** read stored **`activeCharacters`** from Dynamo on the steady path. Compose pipeline: [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md#membership-presentation-and-roster-steady-state).
+- **`getRoomCharacterList`** **must** derive on each call from **`internalCache.Positions.getPositionGraph(roomId)`** -> **`graph.characterIds`** -> **`hydrateRoomRosterFromCharacterIds`** (`CharacterMeta` + `CharacterSessions`); **must not** read stored **`activeCharacters`** from Dynamo on the steady path. Compose pipeline: [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md#membership-presentation-and-roster).
 - After membership apply when **`changed`**, the coordinator **must** seed **`Positions.set(postApplyGraph)`** from kernel **`postApplyGraphs`** (each graph is **`EphemeraPositionGraph`**); **`roomRosterSnapshots`** on the apply result **must** come from **`getRoomCharacterList`** after graph memo seed; **must not** use transact **`successCallback`** on **`activeCharacters`** for snapshot capture.
 - **Roster display** **must** hydrate at read time from **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`) via [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts); membership topology from stored **`positionGraph`** nodes only.
 - **Character forward `getPositionGraph`** **must** read stored **`Meta::Character.positionGraph`** topology only (D16); empty topology when absent. **Must not** use character forward read for room-membership / reverse reads.
 - **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in coordinators) **must** use **`internalCache.Positions.getMembershipContainers`** (adjacency index only), not raw `Meta::Character.RoomId` or `CharacterMeta.RoomId`.
 - **Reverse object placement reads** **must** use **`internalCache.Positions.getMembershipContainers(objectId)`** (adjacency only); returns eligible host ids (`ROOM#`, `CHARACTER#` in v1). Empty adjacency means out of play (`[]`). Room-only apply paths **must** filter to **`ROOM#`** hosts when computing room placement diffs.
-- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** topology only; when graph absent, return empty topology; **must not** merge stored **`activeCharacters`** on gateway forward load for roster display ([sole-authority stance](AGENT.concepts.md#room-play-graph--adjacency-reverse-index-slice-2)). Forward graph **must** include **`Object`** nodes when present.
+- **Forward room graph** **must** read stored **`Meta::Room.positionGraph`** topology only; when graph absent, return empty topology; **must not** merge stored **`activeCharacters`** on gateway forward load for roster display ([sole-authority stance](AGENT.concepts.md#room-play-graph--adjacency-reverse-index)). Forward graph **must** include **`Object`** nodes when present.
 - **Forward character inventory graph** **must** read stored **`Meta::Character.positionGraph`** topology only (D16); v1 nodes are **`Object`** membership only; empty topology when absent.
 - **Affordance compose** **must** derive in-room object ids via **`graph.objectIds`** on **`Positions.getPositionGraph`** ([`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts)); **`shortName`** from improvisation merge, not room meta.
 - **Reverse membership** **must** read adjacency rows only; empty adjacency means out of play (`[]`).
@@ -430,7 +430,7 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 - **Must not** write play membership fields outside [`membership/`](membership/).
 - **Must not** publish **`CheckLocation`** (retired).
 
-### Disconnect ingress (slice 4)
+### Disconnect ingress
 
 - **Must** consume disconnect only via **`mtw.connections.characters`** / **`Character Disconnected`** (not legacy `Disconnect Character` EventBridge or ephemera `disconnectMessage`).
 - **`unregistercharacter`** WebSocket ingress is **connections-owned** (`service: connections`); ephemera does not handle it.

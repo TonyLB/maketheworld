@@ -120,7 +120,7 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 - **Rooms first (v2)**: bus and orchestration event shapes use **`componentId`**. **`RenderComponentId`** (`messageBus/baseClasses.ts`) is `ROOM#` | `FEATURE#` | `KNOWLEDGE#` | `MAP#`; shared guard **`isRenderComponentId`** is the canonical runtime check. Intake resolve input (**`RenderResolveInputSuccess`**) and **`findRender`** / handler cache deps use **`componentId: EphemeraCacheComponentId`** (room | feature | knowledge). Slow-path **`generateRoomPreview`** remains room-only.
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); **`mtw-interfaces`** not required for this internal handoff (see [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)).
 
-## Feature / Knowledge render pipeline (shipped)
+## Feature / Knowledge render pipeline
 
 Authored prose delivery for **`FEATURE#`** / **`KNOWLEDGE#`** uses the same passive orchestration stack as rooms (intake -> **`ensureAuthoredCatalog`** -> **`findRender`**) with **authored-only** policy (**`allowGeneration: false`**; cache miss -> **`Generation Deferred`**, no **`generateRoomPreview`**).
 
@@ -164,7 +164,7 @@ Feature and Knowledge renders are **character-scoped call-and-response** (link A
 
 Do **not** copy room header broadcast or state-change machinery for F/K.
 
-### Out of scope (v1)
+### Out of scope
 
 - LLM slow-path generation for Feature / Knowledge
 - State-change fan-out, passive refresh, or current-room coupling for F/K perspective

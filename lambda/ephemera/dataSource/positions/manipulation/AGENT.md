@@ -14,7 +14,7 @@ Graph-first **membership transfer** and **host-local relational patch** persist 
 | [`../../actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md) | Object manipulation parse steady-state; atomic operator egress playbook |
 | [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md) | Shipped operator fiction (`takeHold`, `drop`, `establishRelation`, `dissolveRelation`) |
 
-## Layering (steady state)
+## Layering
 
 ```text
 Per-operator ingress  ->  shared membership adapter  ->  commitStepSequence (kernel)  ->  coordinator fact bundle

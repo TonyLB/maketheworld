@@ -71,7 +71,7 @@ Maintain strict separation between internal messageBus events and external Event
 - **Serializer Pattern**: Class-based converters that transform between formats at the EventBridge boundary
 - **Type Safety**: Full TypeScript support for both internal and external event structures
 
-See [Implementation Details](AGENT.implementation.md#eventbridge-serialization) for serializer patterns and usage examples. For **where to define types** for **outgoing** `streamEvent` payloads, see [Implementation Details](AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**): **`eventBridge+bus`** uses **`mtw-interfaces`**; **`busOnly`** uses **`publishedEvents.ts`** per DataSource directory.
+See [Implementation Details](AGENT.implementation.md#eventbridge-integration-patterns) for serializer patterns and usage examples. For **where to define types** for **outgoing** `streamEvent` payloads, see [Implementation Details](AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**): **`eventBridge+bus`** uses **`mtw-interfaces`**; **`busOnly`** uses **`publishedEvents.ts`** per DataSource directory.
 
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently

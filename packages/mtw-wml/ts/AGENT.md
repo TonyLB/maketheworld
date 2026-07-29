@@ -32,11 +32,15 @@ WML uses XML-like syntax with custom tags and attributes:
 
 ### Core Concepts
 
-#### **Tags**: These are XML-style elements like `<Asset>`, `<Room>`, `<Exit>`, or `<Description>`. These can represent
+#### **Tags**
+
+These are XML-style elements like `<Asset>`, `<Room>`, `<Exit>`, or `<Description>`. These can represent
 both objects and properties *of* objects (depending upon the tag). Any tag with a **key** (and, more importantly, with a
 **uuid**) is a **component**.
 
-#### **Assets**: These are collections of elements, which can be manipulated (themselves) as first-class objects. In
+#### **Assets**
+
+These are collections of elements, which can be manipulated (themselves) as first-class objects. In
 practice, Assets most often group "layers" of information about a setting: For instance, everybody might see the
 coffee shop and fountain in a market square, while *only members of the criminal underworld* would need to see the
 dark alley that leads to their thieves district. The goal of layering Assets (rather than storing all components in
@@ -44,7 +48,9 @@ a single homogenous collection) is to allow the representation of many different
 with different access and interest. Assets are also very useful for helping progress chunks of proposed change through
 the process of being reviewed, refined, and finally accepted (on some level) into the shared world.
 
-#### **Components**: These are the "things" of the Make the World world semantics: Rooms, Features, Knowledge items,
+#### **Components**
+
+These are the "things" of the Make the World world semantics: Rooms, Features, Knowledge items,
 Messages, etc. They have a semantic weight that influences how they are parsed in the WML hierarchy.
 
 Specifically, it is important to recognize that components can appear at *multiple places* in a WML file, and any
@@ -136,13 +142,17 @@ For detailed information about all component types and their APIs, see [`standar
 
 **Imported / third-party asset packs:** If you merge WML authored elsewhere, validate that Room display prose does not depend on serialized Room **`examples`** or nested Example ownership. Re-run targeted searches (see **`AGENT.testing.mtw-wml-typescript.md`**) if you suspect legacy shapes.
 
-#### **Keys and UUIDs**: Any component *can* have a key or UUID (or both) and *must* have one or the other. The
+#### **Keys and UUIDs**
+
+Any component *can* have a key or UUID (or both) and *must* have one or the other. The
 key and UUID specify the component as itself, even when it appears in multiple places. The two serve different
 purposes: The UUID is a **global** identifier, which uniquely identifies a given component whatever Asset it is
 being referenced in. The key is a **local** identifier, which provides a more human-friendly (and shorter) way
 to refer to the component within the scope of a specific asset.
 
-#### **Properties**: In addition to key and uuid, tags can have other properties to convey short snippets of
+#### **Properties**
+
+In addition to key and uuid, tags can have other properties to convey short snippets of
 information about them. WML supports several property value syntaxes:
 
 - **Parentheses `(value)`**: Used for key references to components or other identifiers
@@ -161,7 +171,9 @@ For instance, in the following:
 
 Properties using curly braces `{value}` are validated during parsing and converted to the appropriate data type. The specific validation rules and target type depend on the tag and property definition. Invalid values will result in parsing errors, ensuring type safety.
 
-#### **References**: WML allows components to be connected to each other in several ways. The simplest is
+#### **References**
+
+WML allows components to be connected to each other in several ways. The simplest is
 to put a reference to a child component (just the tag) nested inside of a parent component. This can be
 without any data (as in a `Message` tag which includes `Room` tags that tell it which rooms the message
 should be delivered to when activated) or with data relevant only in the context of the parent tag (as with
@@ -170,14 +182,18 @@ the `Map` example above).
 There are also **tags** which themselves act as ways to represent *data associated with* a link between two
 components. **Area topology** uses **`<Exit uuid=(...)>`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** on **`positionGraph.edges`** (canonical authoring). Legacy room-local **`<Exit to=(...)>`** parses for ephemeraWire but is **forbidden in asset authoring**; live play exits are projected from Area edges. See [`standardize/keys/edges/AGENT.edges.md`](./standardize/keys/edges/AGENT.edges.md). A **`Link`** tag represents a connection to another component used to style text in a description.
 
-#### **Content**: In addition to tags nested in tags, WML also allows free text that associates content with
+#### **Content**
+
+In addition to tags nested in tags, WML also allows free text that associates content with
 a parent tag (usually `Description` or `Name` or the like). As mentioned above (in **References**), that free
 text can *itself* include tags within it, when the tags are used for styling.
 
 For detailed information about how rich text content is processed and standardized, see
 [`standardize/render/AGENT.md`](./standardize/render/AGENT.md).
 
-#### **Edit Tags**: WML includes special tags for recording changes to be merged into existing content. These
+#### **Edit Tags**
+
+WML includes special tags for recording changes to be merged into existing content. These
 edit tags allow the language to be used for both storage and transmission of modifications:
 
 - **`<Replace>`**: Specifies content to be replaced, paired with a `<With>` tag containing the new content

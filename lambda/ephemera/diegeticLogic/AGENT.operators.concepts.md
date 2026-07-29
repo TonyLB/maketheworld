@@ -20,7 +20,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 
 ---
 
-## `takeHold` (shipped)
+## `takeHold`
 
 **Player fiction:** The character picks up an object that is present in the current room. The object leaves the room's play membership graph and enters the character's inventory graph in **one** atomic apply --- not a separate "in plain sight" fiction with unchanged storage.
 
@@ -55,7 +55,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 ---
 
-## `drop` (shipped)
+## `drop`
 
 **Player fiction:** The character releases a held object. The object leaves the character's inventory graph and enters the current room's play membership graph in **one** atomic apply --- symmetric inverse of pick-up, not a separate "in plain sight" fiction with unchanged storage.
 
@@ -92,7 +92,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 ---
 
-## `establishRelation` (shipped)
+## `establishRelation`
 
 **Player fiction:** The character places or arranges one in-room object relative to another on the **room host graph** without changing membership host --- e.g. putting a broom on a table or leaning a ladder against a wall.
 
@@ -127,7 +127,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 ---
 
-## `dissolveRelation` (shipped)
+## `dissolveRelation`
 
 **Player fiction:** The character removes an existing in-host relational link between two objects on the room graph --- e.g. taking a rope off a crate. Membership hosts are unchanged.
 
@@ -154,7 +154,7 @@ Implementation: same fan-in modules as **`establishRelation`**.
 
 ---
 
-## Still out of scope (Phase B)
+## Out of scope
 
 These finalize to terminal parse **`Error`** --- no stream, no positions ingress:
 

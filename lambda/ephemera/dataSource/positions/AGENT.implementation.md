@@ -25,7 +25,7 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | [`manipulation/kernel/`](manipulation/kernel/) | Manipulation kernel (**M5**, **M4**) --- `applyHostEffects.ts` retired 2026-07-23, see `manipulation/AGENT.implementation.md` file-top note |
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`, `drop`) |
 
-#### Relational patch (Phase B; shipped B4)
+#### Relational patch
 
 | Path | Role |
 | --- | --- |
@@ -54,7 +54,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
 
-3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts), [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts). Contract: [Cross-host object membership-changed bundle (v1 `takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-takehold), [Cross-host object membership-changed bundle (v1 `drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-v1-drop).
+3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts), [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts). Contract: [Cross-host object membership-changed bundle (v1 `takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-takehold), [Cross-host object membership-changed bundle (v1 `drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-drop).
 
 4. **Graph transact** --- coordinator -> shared adapter -> **`commitStepSequence`** only (`applyHostEffects` retired 2026-07-23). **Must not** add `update*PositionGraphs` forks. Room side reuses room membership transact patterns from [`membership/`](membership/) via kernel.
 
@@ -96,7 +96,7 @@ positionGraph/  <-- shared primitive
 | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) | Parallel tail: `persistRoomStackNavigate` + `orchestrateCharacterNavigate` when `changed && to !== null` |
 | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (arrival-room header slot, render kicks) |
 
-### `membership/` (slice 2 graph persist + fact emit)
+### `membership/` (graph persist + fact emit)
 
 | File | Role |
 | --- | --- |
@@ -178,7 +178,7 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 
 ## Eviction ladder (`RoomStack` storage)
 
-Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- character-local state for **legal placement** under asset access. Contract: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
+Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder) --- character-local state for **legal placement** under asset access. Contract: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 | Concern | Location |
 | --- | --- |
@@ -193,7 +193,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder-shipped) --- ch
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).
 
-**Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder-shipped).
+**Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder).
 
 **Navigate persist:** after successful graph persist, callers run [`afterCharacterMembershipNavigateChanged`](navigate/afterCharacterMembershipNavigateChanged.ts) --- `Promise.all([persistRoomStackNavigate, orchestrateCharacterNavigate])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve. **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack`; no merge. Normative rules: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
 

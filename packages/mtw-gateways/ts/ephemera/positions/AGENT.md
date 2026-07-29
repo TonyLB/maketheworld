@@ -39,7 +39,7 @@ Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/intern
 
 Handler API unchanged from slice 1c.
 
-## Storage schema (slice 2; types landed)
+## Storage schema
 
 Play membership persistence converges on two authoritative structures. **Conflict policy:** stored **`positionGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch. Persist writers route through [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering) (adapter plans membership host transfer; kernel applies graph-grounded **`HostEffect[]`**).
 

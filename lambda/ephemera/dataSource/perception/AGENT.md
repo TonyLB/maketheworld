@@ -172,7 +172,7 @@ These paths **enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../..
 - **Route** new audience-facing room and room-header work through this DataSource when it matches [Delivery paths (correlated vs imperative)](#delivery-paths-correlated-vs-imperative); keep imperative [`perceptionMessage`](../../perception/index.ts) accurate for remaining entry points. Keep [`perception/AGENT.md`](../../perception/AGENT.md) aligned as routing evolves.
 - **Prefer** the same DataSource patterns as [`renderOrchestration`](../renderOrchestration/) and [`renderCache`](../renderCache/) where they fit (**`api.ephemera`** ingress helpers, **`subscribedEvents`** / **`publishedEvents`**, **`EphemeraDataSource`** + **`subscribe()`**). Perception-specific fan-in will not map one-to-one to every orchestration or cache concern; use those trees as **reference implementations**, not a spec to force-fit.
 
-### Imperative `perceptionMessage` baseline (v1)
+### Imperative `perceptionMessage` baseline
 
 Policy for the imperative handler in [`perception/index.ts`](../../perception/index.ts) (orthogonal to **`mtw.ephemera.perception`** fan-in, but affects what still hits the bus):
 
@@ -210,7 +210,7 @@ F/K threads (**`featureDescription`**, **`knowledgeDescription`**) are **simpler
 - **Generating / Error / terminal:** Fan-in in [`orchestrate.ts`](orchestrate.ts) mirrors **`roomDescription`**: **`Generation Started`** -> Generating placeholder **`PublishMessage`** (same **`messageId`** overwrite where applicable); **`Orchestration Error`** / **`Generation Deferred`** -> Error placeholder; **`Render Pertains`** -> terminal WML from **`cacheRecord.renderedContent`** via [`featureKnowledgeRenderWmlFromCacheRecord.ts`](featureKnowledgeRenderWmlFromCacheRecord.ts).
 - **Targeting:** **`[characterId]`** by default; Knowledge **`directResponse`** -> **`SESSION#...`** on terminal delivery when applicable.
 - **`metaData`:** **`componentUUID`** only (no **`roomChannel`**).
-- **Imperative retire:** **`perceptionMessage`** does **not** deliver Feature or Knowledge; legacy **`Perception`** payloads with F/K ids are no-ops. Perspective, mark state, and orchestration policy: [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md#feature--knowledge-render-pipeline-shipped).
+- **Imperative retire:** **`perceptionMessage`** does **not** deliver Feature or Knowledge; legacy **`Perception`** payloads with F/K ids are no-ops. Perspective, mark state, and orchestration policy: [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md#feature--knowledge-render-pipeline).
 
 ### Generating traffic and quiescence
 
