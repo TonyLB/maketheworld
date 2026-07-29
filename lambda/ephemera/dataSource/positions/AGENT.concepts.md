@@ -18,7 +18,7 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index** (**S2-6**). Roster display hydrates at read time (**S2-6-H**). |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**. Roster display hydrates at read time. |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder-shipped). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
 | **`EphemeraPositionGraph`** | Host-bound in-memory play manipulation model (class in [`positionGraph/`](positionGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
@@ -52,7 +52,7 @@ Five names, five roles --- same `{ nodes, edges }` shape, different **authority*
 
 **Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraPositionGraph`** -> simulate -> `toStored()` persist; **`internalCache.Positions.getPositionGraph`** -> wrapper **`fromPlayEnvelope`** -> class. Module detail: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`** (**S2-6-H**), not from stored `positionGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`**, not from stored `positionGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
 
 #### WML convergence (future)
 
@@ -66,14 +66,18 @@ Relational edge **wire types** should stay aligned between **`EphemeraPositionRe
 
 ### Room play graph + adjacency reverse index (slice 2)
 
+**The stance:** the room play graph and its reverse adjacency index are the **sole authority** for play membership. The legacy projections --- **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the graph; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
+
+This is why several rules downstream look redundant but are not: forward reads must return empty topology rather than fall back to `activeCharacters`, reverse reads must consult adjacency rather than a stored `RoomId`, and roster *display* fields must be hydrated at read time rather than persisted alongside membership. Each is the same stance applied at a different surface.
+
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
 - Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes** (slice 2 character; Phase 4 object) plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom` --- Phase B shipped).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
-- **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row (**S2-6-H** / **S2-6**).
+- **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
 
-A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply (**S2-4**). Objects follow the same steady-state rule at Phase 4 (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
+A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule at Phase 4 (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
 
 ### Object room placement (Phase 4; nodes only)
 
@@ -155,7 +159,7 @@ When the world is built from **layered assets** (canon plus temporary or persona
 | --- | --- | --- |
 | **Resolve legal placement** | After trim, what room is legal? | Connect (place **from nowhere**); asset visibility loss (move **from a room they can no longer occupy**) |
 | **Maintain stack on intentional moves** | While placing at `targetRoomId`, keep frames aligned for future resolution | Navigate (extend / rewrite-tail / fork in same transact as membership) |
-| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when top frame still matches current membership (**S1-9** --- no `Character Moved`) |
+| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when top frame still matches current membership (no `Character Moved`) |
 
 **Resolution triggers** share the same mechanics (`trimRoomStackToAccessibleAssets`, top frame, membership apply when endpoint changes). They differ mainly in **starting membership state**:
 
@@ -176,7 +180,7 @@ When the world is built from **layered assets** (canon plus temporary or persona
 
 Example (asset visibility): while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (for example suburbs in canon, not a vanished circus tent).
 
-**Relationship to room membership:** membership is **where the character is now** (roster, fan-in, `Character Moved`). The ladder is **how we compute a legal endpoint** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that only fixes the ladder while the membership endpoint stays the same is not a membership change (**S1-9**). A trim or connect resolution that changes the endpoint is a real move --- membership apply owns that placement.
+**Relationship to room membership:** membership is **where the character is now** (roster, fan-in, `Character Moved`). The ladder is **how we compute a legal endpoint** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that only fixes the ladder while the membership endpoint stays the same is not a membership change. A trim or connect resolution that changes the endpoint is a real move --- membership apply owns that placement.
 
 Code paths: [`AGENT.implementation.md`](AGENT.implementation.md#eviction-ladder-roomstack-storage). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#eviction-ladder-roomstack-storage).
 

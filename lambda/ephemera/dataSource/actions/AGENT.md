@@ -44,7 +44,7 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 - Parse-based home (**bare `home`**, **`HomeIntent`**, **`Parse Requested`**) and trusted home (**`Action Assessed`** **`Home`** from [`routeTrustedUiAction`](../routeTrustedUiAction.ts), `source: 'uiHome'`) **`streamEvent`** **`Character Home`**; positions executes via the same **`executeCharacterNavigate`** path as navigate.
 - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) and `Character Home` (`characterId`, `fromRoomId`, `toRoomId` from `CharacterMeta.HomeId`) for fan-in intent legs and positions execution.
 - **Disconnect** and **connect** intent legs come from **`mtw.connections.characters`**; positions owns membership apply. Leave/arrive world copy is owned by **membership fan-in** on **`mtw.ephemera.perception`** ([`../perception/AGENT.md`](../perception/AGENT.md)).
-- Asset visibility repair (**`repairCharacterLegalPlacement`**) is available under [`positions/membership/`](../positions/membership/repairCharacterLegalPlacement.ts) for future canon/zone ingress; **`CheckLocation` bus adapter retired** at Close **S2-6-DR**.
+- Asset visibility repair (**`repairCharacterLegalPlacement`**) is available under [`positions/membership/`](../positions/membership/repairCharacterLegalPlacement.ts) for future canon/zone ingress; **`CheckLocation` bus adapter retired**.
 
 ## Object manipulation (actions stream vs positions execution)
 

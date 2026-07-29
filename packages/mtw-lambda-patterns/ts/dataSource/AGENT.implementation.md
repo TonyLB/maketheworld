@@ -228,7 +228,7 @@ Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/epheme
 
 **Render-blind emission (intentional):** membership fan-in correlates only intent + fact. It publishes leave/arrive **without** waiting on mover header render success, failure, or deferral. The mover's arrival-room header is a separate concern, registered against `mtw.ephemera.messageOrchestration`'s ingress registry (not `PerceptionThreads` --- see [`dataSource/messageOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md)), decoupled from membership emission.
 
-**Fact producer contract:** [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#character-moved-fact-f1-8-steady-state) --- descriptive graph-diff emit at persistence apply; positions does not own emission copy policy.
+**Fact producer contract:** [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#character-moved-fact) --- descriptive graph-diff emit at persistence apply; positions does not own emission copy policy.
 
 **Covers:** navigate, home, connect, and disconnect all emit through this fan-in; connect/disconnect carry no intent-side `exitName` and fall back to generic copy. Legacy home via imperative `MoveCharacter` does not exist --- `actions` streams `Character Home`, positions executes it.
 

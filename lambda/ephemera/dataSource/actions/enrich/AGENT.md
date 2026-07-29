@@ -35,7 +35,7 @@ Current implementation:
 - [`objectManipulation/relationKind.ts`](./objectManipulation/relationKind.ts) - **`HostRelationalEdgeKind`**, **`NormalizedRelation`**, **`NormalizeRelationOutcome`** types (BD-2 / BD-3).
 - [`objectManipulation/normalizeRelationSpan.ts`](./objectManipulation/normalizeRelationSpan.ts) - deterministic **`relationSpan`** -> enum | **`Custom`** + label | nesting defer (B2).
 - [`objectManipulation/compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts) - membership-atomic orchestrator: merged identity, pre-gates, agreement gate, complexity LLM defer.
-- [`objectManipulation/verbMembershipAgreement.ts`](./objectManipulation/verbMembershipAgreement.ts) - **`verbClass`** vs **`operationKind`** agreement gate and PA-4 confidence cap helper.
+- [`objectManipulation/verbMembershipAgreement.ts`](./objectManipulation/verbMembershipAgreement.ts) - **`verbClass`** vs **`operationKind`** agreement gate and confidence cap helper.
 - [`objectManipulation/catalogMerge.ts`](./objectManipulation/catalogMerge.ts) - merge room + held catalogs with **`catalogScope`** tagging.
 - [`objectManipulation/identityStage.ts`](./objectManipulation/identityStage.ts) - per-span deterministic resolve + optional identity LLM.
 - [`objectManipulation/interpretIdentity.ts`](./objectManipulation/interpretIdentity.ts) - identity LLM JSON parse (`objectId` allowed).

@@ -1,6 +1,6 @@
 # EphemeraPositionGraph (play manipulation model)
 
-Host-bound in-memory model for play manipulation `positionGraph` truth. Sole positions-lane primitive for membership node and relational edge simulation (EPG-5 legacy delete complete).
+Host-bound in-memory model for play manipulation `positionGraph` truth. Sole positions-lane primitive for membership node and relational edge simulation.
 
 **Status:** P4 authority documentation complete. Initiative shipped; task plan retired (git history).
 
@@ -10,7 +10,7 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 
 **This module** owns the host-bound manipulation **class** --- `EphemeraPositionGraph` --- with immutable simulation API. Canonical JSON lives in `@tonylb/mtw-interfaces`; gateway read envelope in `@tonylb/mtw-gateways`; authored blueprint in `@tonylb/mtw-wml`.
 
-### Relational edge names (EPG-3)
+### Relational edge names
 
 | Name | Layer | Role |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 | File | Role |
 | --- | --- |
 | `index.ts` | **`EphemeraPositionGraph` class** (immutable instance methods) + module-level factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) + node builders |
-| `baseClasses.ts` | **`HostRelationalEdge`** parsed in-memory view (EPG-3); relational parse/match/serialize helpers |
+| `baseClasses.ts` | **`HostRelationalEdge`** parsed in-memory view; relational parse/match/serialize helpers |
 | `index.test.ts` | Unit tests |
 
 ## Public API
@@ -47,7 +47,7 @@ class EphemeraPositionGraph {
 }
 ```
 
-Factory helpers on module boundary (EPG-6, not class methods): `fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`.
+Factory helpers on module boundary (not class methods): `fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`.
 
 Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`.
 
@@ -84,7 +84,7 @@ Multi-host simulation (Phase C): caller holds **`EphemeraPositionGraph[]`** and 
 | `planHostRelationalPatch` | `fromPlayEnvelope`, `edgesMatch` | Planner observation |
 | `evaluateRelationalLegality`, `compileRelationalFromSkeleton` | read-only class methods | Actions lane; no persist |
 | `internalCache.Positions` | wrapper `get` / `set` | Ephemera read/write boundary; `fromPlayEnvelope` / `toPlayEnvelope` inside [`positionsCache.ts`](../../../../internalCache/positionsCache.ts) |
-| Gateways | via `fromPlayEnvelope` / `toPlayEnvelope` only | EPG-4 --- no duplicated projection |
+| Gateways | via `fromPlayEnvelope` / `toPlayEnvelope` only | No duplicated projection |
 
 Class does **not** own: adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge.
 

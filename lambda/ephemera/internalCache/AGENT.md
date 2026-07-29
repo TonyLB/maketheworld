@@ -39,7 +39,7 @@ Play **membership** on the affordances channel is **not** stored as display fiel
 
 **Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) uses **`getMembershipContainers`** for the character room endpoint only --- not hydrated roster.
 
-Normative read rules and D3 must-not guard: [`dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#read-surface-s1-5-s1-15-slice-2).
+Normative read rules and D3 must-not guard: [`dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
 
 ### Per-invocation process state (not only deferred loads)
 
