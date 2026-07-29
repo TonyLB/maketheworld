@@ -9,7 +9,7 @@ const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('fromExecutorStep', () => {
-    it('converts a TransferMembershipStep to a KernelTransferMembershipStep with the same object ids as entityIds', () => {
+    it('converts a TransferMembershipStep to a MutationKernelTransferStep with the same object ids as entityIds', () => {
         const step: ExecutorParsePlanStep = {
             kind: 'transferMembership',
             objectIds: new Set([trayId, glassId]),

@@ -11,7 +11,7 @@ import type {
     ObjectMovedPublishedPayload,
     ObjectRelationChangedPublishedPayload,
 } from '../../publishedEvents'
-import type { KernelMutationStep } from './kernelStep'
+import type { MutationKernelStep } from './kernelStep'
 
 const findHostOf = (
     objectId: EphemeraObjectId,
@@ -55,7 +55,7 @@ const findHostOf = (
  * lands on some footprint graph) is unaffected.
  */
 export const factsForStep = (
-    step: KernelMutationStep,
+    step: MutationKernelStep,
     finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>,
     beatAnchorTime: number,
     priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph> = finalGraphs,

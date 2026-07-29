@@ -921,7 +921,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            // perceiveStepSequence hardcodes confidence: 1 on delivery (Phase 3 behavior,
+            // presentStepSequence hardcodes confidence: 1 on delivery (Phase 3 behavior,
             // unrelated to parseResult.confidence, which only gates whether Plan matched at all).
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',

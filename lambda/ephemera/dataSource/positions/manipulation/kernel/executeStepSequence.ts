@@ -1,21 +1,21 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { commitStepSequence, type CommitStepSequenceDeps } from './commitStepSequence'
-import { perceiveStepSequence, type PerceiveStepSequenceDeps } from './perceiveStepSequence'
+import { presentStepSequence, type PresentStepSequenceDeps } from './presentStepSequence'
 import { isKernelMutationStep, type KernelStep } from './kernelStep'
-import type { KernelCommitResult } from './types'
+import type { MutationKernelCommitResult } from './types'
 
 /**
  * `commit`/`perceive` stay two separate dependency bags (not one merged `streamEvent`) because they
  * publish onto genuinely different bus payload scopes --- `commitStepSequence` streams
  * `PositionsPublishedPayload` (`Object Moved`/`Character Moved`/`Object Relation Changed`),
- * `perceiveStepSequence` streams `ActionsPublishedPayload` (`Look Command Requested`). Intersecting
+ * `presentStepSequence` streams `ActionsPublishedPayload` (`Look Command Requested`). Intersecting
  * them under one `streamEvent` field would force a caller to hand-construct a function satisfying
  * both `StreamEventFunction` instantiations at once, which isn't the actual shape of the bus.
  */
 export type ExecuteStepSequenceDeps = {
     commit: CommitStepSequenceDeps
-    perceive: PerceiveStepSequenceDeps
+    perceive: PresentStepSequenceDeps
 }
 
 /**
@@ -36,14 +36,14 @@ export const executeStepSequence = async (
     steps: readonly KernelStep[],
     characterId: EphemeraCharacterId,
     deps: ExecuteStepSequenceDeps
-): Promise<KernelCommitResult> => {
+): Promise<MutationKernelCommitResult> => {
     const mutationSteps = steps.filter(isKernelMutationStep)
     const commitResult = await commitStepSequence({ steps: mutationSteps }, deps.commit)
     if (!commitResult.ok) {
         return commitResult
     }
 
-    await perceiveStepSequence(steps, characterId, deps.perceive)
+    await presentStepSequence(steps, characterId, deps.perceive)
 
     return commitResult
 }

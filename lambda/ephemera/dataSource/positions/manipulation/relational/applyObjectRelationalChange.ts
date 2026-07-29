@@ -10,7 +10,7 @@ import type { EphemeraPositionGraph } from '../../positionGraph'
 import { boundaryEdgeOutcomes, computeCarryClosure } from '../../positionGraph/expandValidate/interactionUnderTransfer'
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import { fromExecutorStep } from '../kernel/kernelStep'
-import type { KernelMutationStep } from '../kernel/kernelStep'
+import type { MutationKernelStep } from '../kernel/kernelStep'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { RelationalApplyResult, RelationalIngressArgs } from './types'
 
@@ -24,7 +24,7 @@ export type ApplyObjectRelationalChangeDependencies = {
  * Migrate slice (2026-07-23): collapses `applyObjectRelationalChange`'s old
  * `args.transferFromHostId !== undefined` branch (`applyObjectRelationalChangeWithTransfer`
  * vs. `planHostRelationalPatch` + `applyHostRelationalPatch`) into one
- * `commitStepSequence` call over whatever `KernelMutationStep[]` this route needs ---
+ * `commitStepSequence` call over whatever `MutationKernelStep[]` this route needs ---
  * a satisfied `sameHost` produces `[establishRelation]`/`[dissolveRelation]`;
  * a repaired one produces `[dissolveRelation*, transferMembership, establishRelation]`
  * (BD-28's boundary dissolves precede the transfer, per the executor's own
@@ -50,7 +50,7 @@ export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,
     deps: ApplyObjectRelationalChangeDependencies
 ): Promise<RelationalApplyResult> => {
-    const relationalStep: KernelMutationStep = {
+    const relationalStep: MutationKernelStep = {
         kind: args.operation === 'establish' ? 'establishRelation' : 'dissolveRelation',
         subjectId: args.subjectId,
         targetId: args.targetId,
@@ -58,7 +58,7 @@ export const applyObjectRelationalChange = async (
         ...(args.relationLabel !== undefined ? { relationLabel: args.relationLabel } : {}),
     }
 
-    let steps: KernelMutationStep[]
+    let steps: MutationKernelStep[]
 
     if (args.transferFromHostId !== undefined) {
         const fromHostId = args.transferFromHostId
@@ -84,7 +84,7 @@ export const applyObjectRelationalChange = async (
             }
         }
 
-        const dissolveSteps: KernelMutationStep[] = outcomes
+        const dissolveSteps: MutationKernelStep[] = outcomes
             .filter((entry) => entry.outcome === 'dissolve')
             .map((entry) => ({
                 kind: 'dissolveRelation',

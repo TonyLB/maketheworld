@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { perceiveStepSequence } from './perceiveStepSequence'
+import { presentStepSequence } from './presentStepSequence'
 import type { KernelStep } from './kernelStep'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -10,7 +10,7 @@ const KNOWLEDGE_ID = 'KNOWLEDGE#Lore' as EphemeraKnowledgeId
 const OBJECT_ID = 'OBJECT#Tray' as EphemeraObjectId
 const OTHER_CHARACTER_ID = 'CHARACTER#Beta' as EphemeraCharacterId
 
-describe('perceiveStepSequence', () => {
+describe('presentStepSequence', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
@@ -20,7 +20,7 @@ describe('perceiveStepSequence', () => {
     it('publishes a Look Command Requested event for a room describe step', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: ROOM_ID, referentKind: 'room' }]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).toHaveBeenCalledWith({
             streamKey: CHARACTER_ID,
@@ -37,7 +37,7 @@ describe('perceiveStepSequence', () => {
     it('publishes a Look Command Requested event for a feature describe step', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: FEATURE_ID, referentKind: 'feature' }]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).toHaveBeenCalledWith(
             expect.objectContaining({ update: expect.objectContaining({ componentId: FEATURE_ID }) })
@@ -47,7 +47,7 @@ describe('perceiveStepSequence', () => {
     it('publishes a Look Command Requested event for a knowledge describe step', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: KNOWLEDGE_ID, referentKind: 'knowledge' }]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).toHaveBeenCalledWith(
             expect.objectContaining({ update: expect.objectContaining({ componentId: KNOWLEDGE_ID }) })
@@ -61,7 +61,7 @@ describe('perceiveStepSequence', () => {
             { kind: 'describe', referentId: FEATURE_ID, referentKind: 'feature' },
         ]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).toHaveBeenCalledTimes(2)
         expect(streamEvent.mock.calls[0][0].update.componentId).toBe(ROOM_ID)
@@ -71,7 +71,7 @@ describe('perceiveStepSequence', () => {
     it('publishes a Look Command Requested event for an object describe step (PK-6 stub, shortName only)', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: OBJECT_ID, referentKind: 'object' }]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).toHaveBeenCalledWith(
             expect.objectContaining({ update: expect.objectContaining({ componentId: OBJECT_ID }) })
@@ -81,12 +81,12 @@ describe('perceiveStepSequence', () => {
     it('throws a named error for a character describe step rather than silently skipping it', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: OTHER_CHARACTER_ID, referentKind: 'character' }]
 
-        await expect(perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })).rejects.toThrow(/not yet supported/)
+        await expect(presentStepSequence(steps, CHARACTER_ID, { streamEvent })).rejects.toThrow(/not yet supported/)
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
     it('is a clean no-op for an empty step list', async () => {
-        await perceiveStepSequence([], CHARACTER_ID, { streamEvent })
+        await presentStepSequence([], CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).not.toHaveBeenCalled()
     })
@@ -96,7 +96,7 @@ describe('perceiveStepSequence', () => {
             { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
-        await perceiveStepSequence(steps, CHARACTER_ID, { streamEvent })
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent })
 
         expect(streamEvent).not.toHaveBeenCalled()
     })

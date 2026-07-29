@@ -4,8 +4,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraPositionGraph } from '../../positionGraph'
 import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
-import type { KernelMutationStep } from './kernelStep'
-import type { KernelApplyOutcome } from './types'
+import type { MutationKernelStep } from './kernelStep'
+import type { MutationKernelApplyOutcome } from './types'
 
 const findHostOf = (
     id: EphemeraObjectId,
@@ -20,7 +20,7 @@ const findHostOf = (
 }
 
 /**
- * BD-27c's shared, pure apply core: walks an ordered `KernelMutationStep[]` once, dispatching per specific
+ * BD-27c's shared, pure apply core: walks an ordered `MutationKernelStep[]` once, dispatching per specific
  * primitive (never per `kind` grouping, mirroring the Synthesize executor's own `commandExpand`
  * dispatch). Applying the array in-order (not resorting it) is what makes the sequencing contract
  * hold: a paired `dissolveRelation` step always mutates the graph map before a following
@@ -46,13 +46,13 @@ const findHostOf = (
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
  * inside `applyTransferSet`/`removeObject`/`removeCharacter`) throw, uniformly in both modes --- not
- * a `KernelApplyOutcome` verdict. Legitimate legality outcomes (stale candidate, `Custom`-edge defer,
+ * a `MutationKernelApplyOutcome` verdict. Legitimate legality outcomes (stale candidate, `Custom`-edge defer,
  * `unresolvedDissolveEdge`) return through the discriminated result.
  */
 export const applyStepSequenceCore = (
-    steps: readonly KernelMutationStep[],
+    steps: readonly MutationKernelStep[],
     initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
-): KernelApplyOutcome => {
+): MutationKernelApplyOutcome => {
     const graphs = new Map(initialGraphs)
 
     for (const step of steps) {

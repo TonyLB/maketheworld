@@ -398,10 +398,10 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandLookComponentResult(parseResult)) {
         if (isEphemeraObjectId(parseResult.componentId)) {
             // Iteration 9, Phase 4: object-directed look routes through the perception
-            // kernel (executeStepSequence -> commitStepSequence + perceiveStepSequence),
+            // kernel (executeStepSequence -> commitStepSequence + presentStepSequence),
             // in-process, rather than publishing 'Look Command Requested' directly here
             // the way Room/Feature/Knowledge look still does. Not a bus hop to
-            // positions/index.ts: perceiveStepSequence's 'Look Command Requested' publish
+            // positions/index.ts: presentStepSequence's 'Look Command Requested' publish
             // must carry dataSourceKey 'mtw.ephemera.actions' (renderOrchestration's
             // subscription is keyed to it), and a DataSource's streamEvent always stamps
             // its own dataSourceKey -- positions/index.ts's streamEvent could never
