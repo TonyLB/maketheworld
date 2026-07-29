@@ -25,7 +25,7 @@ import type {
  * `EphemeraObjectId`-typed this iteration (BD-36's character-relation widening is explicitly
  * deferred), so there is nothing to generalize there.
  */
-export type KernelTransferMembershipStep = {
+export type MutationKernelTransferStep = {
     kind: 'transferMembership'
     entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
@@ -41,34 +41,50 @@ export type KernelTransferMembershipStep = {
  * excludes it before a step sequence is ever built, so this alias --- not the widened `KernelStep`
  * --- is what those files' signatures should keep using.
  */
-export type KernelMutationStep = KernelTransferMembershipStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
+export type MutationKernelStep = MutationKernelTransferStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
 
 /**
  * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
- * widened directly (rather than a sibling type) to add the perception kernel's read-only
+ * widened directly (rather than a sibling type) to add the presentation kernel's read-only
  * `ExecutorDescribeStep`, reused verbatim --- it carries no host-transfer concern for BD-36's
  * entity-kind generalization to apply to. Each kernel filters this shared list down to the steps it
- * owns; the positionGraph kernel's filter yields `KernelMutationStep[]` (never widened), and the
- * perception kernel's filter yields `ExecutorDescribeStep[]`.
+ * owns; the mutation kernel's filter yields `MutationKernelStep[]` (never widened), and the
+ * presentation kernel's filter yields `PresentationKernelStep[]`.
+ *
+ * `KernelStep` itself stays unprefixed, deliberately (PB-K): it is the shared, cross-kernel
+ * vocabulary, belonging to neither kernel alone, so it takes no kernel's name. Every other type in
+ * this file is specific to one kernel and is named accordingly (`MutationKernel*` /
+ * `PresentationKernel*`) --- prefixing `KernelStep` too would erase the one distinction this naming
+ * scheme exists to preserve.
  */
-export type KernelStep = KernelMutationStep | ExecutorDescribeStep
+export type KernelStep = MutationKernelStep | ExecutorDescribeStep
+
+/**
+ * The presentation kernel's own filtered view of `KernelStep` (PB-L): today just `ExecutorDescribeStep`,
+ * the shipped describe branch (`presentStepSequence.ts`). A single-member union rather than a bare
+ * alias because a future narration step (`AGENT.presentationKernel.planning.md` Phase 2) joins it
+ * here, not by widening `KernelStep` again --- `ExecutorDescribeStep` and the narration step are both
+ * "things the presentation kernel filters for," the same relationship `MutationKernelStep` already has
+ * to its own members.
+ */
+export type PresentationKernelStep = ExecutorDescribeStep
 
 /**
  * Adapter from the executor's shipped output shape to the kernel's own step vocabulary. The
  * executor's `TransferMembershipStep` always carries exactly one non-null `fromHostId`/`toHostId`
  * (a real player-command transfer), so this just wraps `fromHostId` in a one-element set --- the
  * object-lifecycle routes' pure-add/pure-remove/multi-host shapes are constructed directly as
- * `KernelTransferMembershipStep` literals, not through this adapter, since they never go through the
+ * `MutationKernelTransferStep` literals, not through this adapter, since they never go through the
  * Synthesize executor at all. `describe` steps pass through unchanged, same as the relational kinds.
  *
  * Overloaded (not just declared as `ExecutorParsePlanStep => KernelStep`) so that the positionGraph
  * kernel's mutation-only call sites --- which only ever pass a `TransferMembershipStep`/relational
- * step, never a `describe` step --- get `KernelMutationStep` back statically, with no cast needed at
+ * step, never a `describe` step --- get `MutationKernelStep` back statically, with no cast needed at
  * the call site.
  */
 export function fromExecutorStep(
     step: TransferMembershipStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
-): KernelMutationStep
+): MutationKernelStep
 export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep
 export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
     return step.kind === 'transferMembership'
@@ -82,22 +98,22 @@ export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
 }
 
 /**
- * The positionGraph kernel's own type-guard filter (mirrors the perception kernel's
- * planned `describe`-only filter, Phase 3): overload resolution on `fromExecutorStep`
- * only picks the narrow `KernelMutationStep`-returning signature at direct call sites,
+ * The mutation kernel's own type-guard filter (mirrors the presentation kernel's
+ * `describe`-only filter below): overload resolution on `fromExecutorStep`
+ * only picks the narrow `MutationKernelStep`-returning signature at direct call sites,
  * not through `Array.prototype.map` (TS resolves the bare function reference against
  * the general signature there, widening the result to `KernelStep[]`). Mutation-route
  * call sites that map an executor step list through `fromExecutorStep` should filter
  * through this guard rather than assume a `describe` step can't appear --- it's the same
- * "shared list, per-kernel filter" discipline the perception kernel will use, applied on
+ * "shared list, per-kernel filter" discipline the presentation kernel uses, applied on
  * this side too, and self-documents the invariant instead of casting past it.
  */
-export const isKernelMutationStep = (step: KernelStep): step is KernelMutationStep =>
+export const isKernelMutationStep = (step: KernelStep): step is MutationKernelStep =>
     step.kind === 'transferMembership' || step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
 
 /**
- * The perception kernel's own type-guard filter (Phase 3, mirrors `isKernelMutationStep` above):
- * pulls the `describe` steps a shared `KernelStep[]` list carries out for `perceiveStepSequence`,
+ * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):
+ * pulls the `describe` steps a shared `KernelStep[]` list carries out for `presentStepSequence`,
  * the same "shared list, per-kernel filter" discipline applied on this side.
  */
 export const isDescribeStep = (step: KernelStep): step is ExecutorDescribeStep =>

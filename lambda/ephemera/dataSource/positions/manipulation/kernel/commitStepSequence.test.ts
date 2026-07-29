@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { commitStepSequence } from './commitStepSequence'
-import type { KernelMutationStep } from './kernelStep'
+import type { MutationKernelStep } from './kernelStep'
 import { testPositionGraph } from '../../positionGraph/testFixtures'
 import type { EphemeraPositionGraph } from '../../positionGraph'
 
@@ -80,7 +80,7 @@ describe('commitStepSequence', () => {
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
-        const steps: KernelMutationStep[] = [
+        const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([TRAY_ID, GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
@@ -104,7 +104,7 @@ describe('commitStepSequence', () => {
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
-        const steps: KernelMutationStep[] = [
+        const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
@@ -133,7 +133,7 @@ describe('commitStepSequence', () => {
             'ROOM#Kitchen': otherRoomGraph,
         })
 
-        const steps: KernelMutationStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, relationKind: 'On' }]
 
         const result = await commitStepSequence(
             {
@@ -159,7 +159,7 @@ describe('commitStepSequence', () => {
         const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
 
-        const steps: KernelMutationStep[] = [
+        const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
         ]
 
@@ -200,7 +200,7 @@ describe('commitStepSequence', () => {
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
-        const steps: KernelMutationStep[] = [
+        const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
@@ -226,7 +226,7 @@ describe('commitStepSequence', () => {
             })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
-            const steps: KernelMutationStep[] = [
+            const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
@@ -262,7 +262,7 @@ describe('commitStepSequence', () => {
             })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
-            const steps: KernelMutationStep[] = [
+            const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
@@ -287,7 +287,7 @@ describe('commitStepSequence', () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [] })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
-            const steps: KernelMutationStep[] = [
+            const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
             ]
 
@@ -306,7 +306,7 @@ describe('commitStepSequence', () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
-            const steps: KernelMutationStep[] = [
+            const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
@@ -329,7 +329,7 @@ describe('commitStepSequence', () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [] })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
-            const steps: KernelMutationStep[] = [
+            const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
             ]
 

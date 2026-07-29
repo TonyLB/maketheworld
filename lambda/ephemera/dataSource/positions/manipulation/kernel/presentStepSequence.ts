@@ -10,16 +10,21 @@ import {
 import type { ActionsPublishedPayload, LookCommandRequestedPublishedPayload } from '../../../actions/publishedEvents'
 import { isDescribeStep, type KernelStep } from './kernelStep'
 
-export type PerceiveStepSequenceDeps = {
+export type PresentStepSequenceDeps = {
     streamEvent: StreamEventFunction<ActionsPublishedPayload>
 }
 
 /**
- * Iteration 9/Phase 3's perception kernel: NOT a second `commitStepSequence`. It owns no
+ * The presentation kernel's describe branch (shipped iteration 9/Phase 3 as "the perception kernel";
+ * renamed under PB-L --- see `AGENT.presentationKernel.planning.md` --- because every `*Presentation*`
+ * identifier elsewhere in this codebase already means "publishing into the transcript," and this
+ * function does exactly that): NOT a second `commitStepSequence`. It owns no
  * `transactWrite`, no footprint locking, no retry --- those exist only to make a *write* atomic
  * across hosts, and a `describe` step never mutates anything. This is a straight publish loop over
  * a shared, already-grounded `KernelStep[]` list, filtered down to the `describe` steps it owns
- * (mirrors the positionGraph kernel's own `isKernelMutationStep` filter --- see `kernelStep.ts`).
+ * (mirrors the mutation kernel's own `isKernelMutationStep` filter --- see `kernelStep.ts`). The
+ * narration branch that joins it as the presentation kernel's other half is not built yet (Phase 2 of
+ * the same plan).
  *
  * Delivery reuses the existing `Look Command Requested` pipeline verbatim (PK-4, resolved
  * 2026-07-24: reuse, not a new mechanism) --- the same event `routeTrustedUiAction.ts` / bare
@@ -34,10 +39,10 @@ export type PerceiveStepSequenceDeps = {
  * is separate, deferred work. Character referents still have no render content model at all and
  * throw a named, honest error rather than silently no-op or attempt partial rendering.
  */
-export const perceiveStepSequence = async (
+export const presentStepSequence = async (
     steps: readonly KernelStep[],
     characterId: EphemeraCharacterId,
-    deps: PerceiveStepSequenceDeps
+    deps: PresentStepSequenceDeps
 ): Promise<void> => {
     const describeSteps = steps.filter(isDescribeStep)
 
@@ -46,7 +51,7 @@ export const perceiveStepSequence = async (
 
         if (referentKind === 'character') {
             throw new Error(
-                `perceiveStepSequence: '${referentKind}' describe steps are not yet supported --- no render content model exists for Character referents yet (see AGENT.perceptionKernel.planning.md Phase 3 context)`
+                `presentStepSequence: '${referentKind}' describe steps are not yet supported --- no render content model exists for Character referents yet (see AGENT.perceptionKernel.planning.md Phase 3 context)`
             )
         }
 
@@ -57,7 +62,7 @@ export const perceiveStepSequence = async (
             || isEphemeraObjectId(referentId)
         )) {
             throw new Error(
-                `perceiveStepSequence: describe step referentKind '${referentKind}' does not match a Room/Feature/Knowledge/Object referentId (${referentId})`
+                `presentStepSequence: describe step referentKind '${referentKind}' does not match a Room/Feature/Knowledge/Object referentId (${referentId})`
             )
         }
 

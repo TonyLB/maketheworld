@@ -39,7 +39,7 @@ export type ExecutorDissolveRelationStep = {
 
 /**
  * Referent-kind tag for a `describe` step --- parameterizes over referent kind the same way
- * `KernelTransferMembershipStep` (`kernelStep.ts`) already generalized `transferMembership` over
+ * `MutationKernelTransferStep` (`kernelStep.ts`) already generalized `transferMembership` over
  * entity kind (BD-36), rather than one step shape per look-variant (room look vs. object look vs.
  * feature look, etc).
  */
