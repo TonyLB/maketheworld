@@ -32,12 +32,6 @@ describe('prepareObjectRenderForCharacter', () => {
 
         expect(prepared.perspective.assetStack).toEqual(['ASSET#Canon'])
         expect(prepared.perspectiveKey).toEqual(computePerspectiveKey(['ASSET#Canon']))
-        expect(prepared.threadRegisterCommand).toEqual({
-            threadKind: 'objectDescription',
-            componentId: 'OBJECT#Tray',
-            perspectiveKey: prepared.perspectiveKey,
-            characterId: 'CHARACTER#Test',
-        })
         expect(prepared.renderCommand).toEqual({
             componentId: 'OBJECT#Tray',
             perspective: prepared.perspective,

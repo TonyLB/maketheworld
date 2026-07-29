@@ -144,6 +144,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await executeCharacterNavigate({
                     characterId: content.characterId,
                     targetRoomId: content.toRoomId,
+                    bundleId: content.bundleId,
                     messageBus,
                     streamEvent,
                 })
@@ -157,6 +158,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await executeCharacterNavigate({
                     characterId: content.characterId,
                     targetRoomId: content.toRoomId,
+                    bundleId: content.bundleId,
                     messageBus,
                     streamEvent,
                 })

@@ -71,7 +71,6 @@ export async function handleAffordancesPertain(
             }
             return [{
                 targets: registration.targets,
-                messageGroupId: registration.messageGroupId,
                 registrationId,
             }]
         })
@@ -80,9 +79,8 @@ export async function handleAffordancesPertain(
             await publishAffordancePerceptionForPerspective({
                 roomId,
                 perspectiveKey,
-                deliveries: deliveries.map(({ targets, messageGroupId }) => ({
+                deliveries: deliveries.map(({ targets }) => ({
                     targets,
-                    messageGroupId,
                 })),
                 messageBus: bus,
             })

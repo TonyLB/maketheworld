@@ -1,27 +1,29 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
 import internalCache from '../../../internalCache'
-import type { StreamingEventMessage } from '../../../messageBus/baseClasses'
-import type { PerceptionThreadRegisterCommand } from '../../perception/localApiEvents'
+import type { MessageBus } from '../../../messageBus/baseClasses'
 import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from '../../renderOrchestration/fanOutStateChangedToPassiveRenders'
-import { sendPerceptionThreadRegistered } from '../../perception/subscribedEvents'
 import { sendRenderRequested } from '../../renderOrchestration/subscribedEvents'
 import type { RenderRequestedCommand } from '../../renderOrchestration/localApiEvents'
+import { sendMessageBundleDeclared } from '../../messageOrchestration/subscribedEvents'
+import { registerIngressSlot } from '../../messageOrchestration'
 
-type MessageBusLike = { publish: (payload: StreamingEventMessage) => void }
+const ROOM_DESCRIPTION_SLOT_ID = 'roomDescription'
 
 export type PreparedFullRoomDescriptionRender = {
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
-    threadRegisterCommand: PerceptionThreadRegisterCommand;
+    perspectiveKey: string;
     renderCommand: RenderRequestedCommand;
 }
 
 /**
- * Resolve room perspective, room form WML, and commands for `roomDescription` thread + passive render.
- * Shared by {@link requestFullRoomDescriptionForCharacter} and event-driven look in render orchestration.
+ * Resolve room perspective, room form WML, and the render command for the full (non-header) room
+ * view. Shared by {@link requestFullRoomDescriptionForCharacter} and event-driven look in render
+ * orchestration.
  */
 export async function prepareFullRoomDescriptionRenderForCharacter(
     characterId: EphemeraCharacterId,
@@ -38,12 +40,6 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
     const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, characterAssets, roomCanonStack)
     const perspective = { assetStack: filteredAssetStack }
     const perspectiveKey = computePerspectiveKey(perspective.assetStack)
-    const threadRegisterCommand: PerceptionThreadRegisterCommand = {
-        threadKind: 'roomDescription',
-        componentId: roomId,
-        perspectiveKey,
-        characterId,
-    }
     const renderCommand: RenderRequestedCommand = {
         componentId: roomId,
         perspective,
@@ -52,21 +48,43 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
     return {
         roomId,
         characterId,
-        threadRegisterCommand,
+        perspectiveKey,
         renderCommand,
     }
 }
 
 /**
- * Register a `roomDescription` perception thread and request a render for the full (non-header) room view,
- * matching the trusted UI `look` path when `EphemeraId` is a room.
+ * Declare a one-slot messageOrchestration bundle, register its ingress slot, and request a render
+ * for the full (non-header) room view --- matching the trusted UI `look` path when `EphemeraId` is
+ * a room. Phase 7: registers against messageOrchestration's ingress registry (`format:'full'`,
+ * the same `(componentId, perspectiveKey, 'render')` bucket `roomDescription`/`characterMove`/
+ * `sessionOrientationRender` all share) instead of `PerceptionThreads`.
  */
 export async function requestFullRoomDescriptionForCharacter(
-    bus: MessageBusLike,
+    bus: MessageBus,
     characterId: EphemeraCharacterId,
     roomId: EphemeraRoomId,
 ): Promise<void> {
     const prepared = await prepareFullRoomDescriptionRenderForCharacter(characterId, roomId)
-    sendPerceptionThreadRegistered(bus, prepared.roomId, prepared.threadRegisterCommand)
-    sendRenderRequested(bus, prepared.roomId, prepared.renderCommand)
+    const bundleId = uuidv4()
+    sendMessageBundleDeclared(bus, bundleId, {
+        bundleId,
+        slots: [{ slotId: ROOM_DESCRIPTION_SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
+    })
+    await registerIngressSlot(
+        bus,
+        bundleId,
+        {
+            slotId: ROOM_DESCRIPTION_SLOT_ID,
+            expectedPublishType: 'PerceptionMessage',
+            componentId: prepared.roomId,
+            perspectiveKey: prepared.perspectiveKey,
+            targets: [characterId],
+            contentStream: 'render',
+            format: 'full',
+        },
+        async () => {
+            sendRenderRequested(bus, prepared.roomId, prepared.renderCommand)
+        }
+    )
 }

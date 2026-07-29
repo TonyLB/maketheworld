@@ -54,7 +54,6 @@ describe('publishMembershipPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice has left.'],
             createdTime: ANCHOR - MEMBERSHIP_BEAT_EPSILON_MS,
-            deliveryMode: 'deferred',
         })
         expect(messageBus.publish).toHaveBeenNthCalledWith(2, {
             type: 'PublishMessage',
@@ -62,7 +61,6 @@ describe('publishMembershipPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice has arrived.'],
             createdTime: ANCHOR + MEMBERSHIP_BEAT_EPSILON_MS,
-            deliveryMode: 'deferred',
         })
     })
 
@@ -134,6 +132,31 @@ describe('publishMembershipPresentation', () => {
             message: ['Alice has connected.'],
             createdTime: ANCHOR + MEMBERSHIP_BEAT_EPSILON_MS,
         }))
+    })
+
+    it('reports leave/arrive as messageOrchestration slots instead of publishing directly when plan.bundleId is present', async () => {
+        const messageBus = { publish: jest.fn() }
+
+        publishMembershipPresentation(messageBus as any, basePlan({ bundleId: 'BUNDLE#test' }))
+
+        expect(messageBus.publish).toHaveBeenCalledTimes(2)
+        const slotReports = messageBus.publish.mock.calls
+            .map((call) => call[0])
+            .filter((message) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(2)
+        const contents = await Promise.all(slotReports.map((envelope) => envelope.getContent()))
+        expect(contents).toEqual([
+            {
+                bundleId: 'BUNDLE#test',
+                slotId: `leave:${ROOM_A}`,
+                message: expect.objectContaining({ message: ['Alice has left.'] }),
+            },
+            {
+                bundleId: 'BUNDLE#test',
+                slotId: 'arrive',
+                message: expect.objectContaining({ message: ['Alice has arrived.'] }),
+            },
+        ])
     })
 
     it('skips publish when shape is none', () => {

@@ -17,7 +17,6 @@ describe('perception subscribedEvents', () => {
             {
                 characterId: 'CHARACTER#VIEWER',
                 ephemeraId: 'CHARACTER#VIEWED',
-                messageGroupId: 'UUID#group',
             }
         )
         expect(sent).toHaveLength(1)
@@ -28,7 +27,6 @@ describe('perception subscribedEvents', () => {
         expect(await sent[0].getContent()).toMatchObject({
             characterId: 'CHARACTER#VIEWER',
             ephemeraId: 'CHARACTER#VIEWED',
-            messageGroupId: 'UUID#group',
         })
     })
 
@@ -65,10 +63,10 @@ describe('perception subscribedEvents', () => {
             { publish: (payload) => published.push(payload) },
             'ROOM#ROOM1',
             {
-                threadKind: 'roomDescription',
+                threadKind: 'roomHeaderBroadcast',
                 componentId: 'ROOM#ROOM1',
                 perspectiveKey: 'persp-a',
-                characterId: 'CHARACTER#VIEWER',
+                targets: ['CHARACTER#VIEWER'],
             }
         )
         expect(published).toHaveLength(1)
@@ -77,10 +75,10 @@ describe('perception subscribedEvents', () => {
         expect(published[0].streamKey).toBe('ROOM#ROOM1')
         expect(published[0].header.type).toBe('Perception Thread Registered')
         expect(await published[0].getContent()).toMatchObject({
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#ROOM1',
             perspectiveKey: 'persp-a',
-            characterId: 'CHARACTER#VIEWER',
+            targets: ['CHARACTER#VIEWER'],
         })
     })
 

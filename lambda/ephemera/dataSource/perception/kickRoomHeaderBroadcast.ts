@@ -6,7 +6,6 @@ import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/
 import internalCache from '../../internalCache'
 import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import {
     filterRoomCanonStackByCharacterAssets,
@@ -19,9 +18,8 @@ import { sendPerceptionThreadRegistered } from './subscribedEvents'
 export async function kickRoomHeaderBroadcastForRoom(options: {
     roomId: EphemeraRoomId;
     messageBus: MessageBus;
-    messageGroupId?: MessageGroupId;
 }): Promise<void> {
-    const { roomId, messageBus, messageGroupId } = options
+    const { roomId, messageBus } = options
     const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
     })
@@ -56,13 +54,11 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
             componentId: roomId,
             perspectiveKey,
             targets: characterIds,
-            messageGroupId,
         })
         sendRenderRequested(messageBus, roomId, {
             componentId: roomId,
             perspective: { assetStack },
             targets: characterIds,
-            messageGroupId,
         })
     }
 }

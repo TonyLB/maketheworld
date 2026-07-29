@@ -42,10 +42,10 @@ describe('InternalCache', () => {
 
     it('clear resets PerceptionThreads', () => {
         internalCache.PerceptionThreads.register({
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#C',
             perspectiveKey: 'p',
-            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
         })
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(1)
         internalCache.clear()

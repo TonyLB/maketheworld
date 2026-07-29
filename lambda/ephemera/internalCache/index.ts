@@ -53,7 +53,6 @@ import ObjectEphemeraMetaData from './objectEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
-import OrchestrateMessagesData from './orchestrateMessages';
 import CacheCharacterSessionsData from './characterSessions';
 import { CacheSessionConnectionsData } from '@tonylb/mtw-sessions/ts/sessionCache';
 import CachePlayerSessionsData from './playerSessions';
@@ -94,7 +93,6 @@ export class InternalCache {
     AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
     Positions: EphemeraPositionsCacheData = createEphemeraPositionsCacheData(ephemeraDB)
     PlayerMeta: CachePlayerMetaData;
-    OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
     AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
@@ -186,7 +184,6 @@ export class InternalCache {
         this.Global.clear()
         this.CoyoteGame.clear()
         this.PlayerMeta.clear()
-        this.OrchestrateMessages.clear()
         this.PerceptionThreads.clear()
         this.CharacterMeta.clear()
         this.AssetRooms.clear()

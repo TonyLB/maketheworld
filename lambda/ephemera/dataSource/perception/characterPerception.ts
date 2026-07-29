@@ -22,7 +22,7 @@ export async function handleCharacterPerceptionRequested(
     command: CharacterPerceptionRequestedCommand,
     messageBus: MessageBus
 ): Promise<void> {
-    const { characterId, ephemeraId, messageGroupId } = command
+    const { characterId, ephemeraId } = command
 
     const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
         Key: {
@@ -54,6 +54,5 @@ export async function handleCharacterPerceptionRequested(
         metaData: {
             componentUUID: ephemeraId,
         },
-        messageGroupId,
     })
 }

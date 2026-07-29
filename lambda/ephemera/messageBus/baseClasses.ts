@@ -24,7 +24,6 @@ import {
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClientMessageEphemeraUpdateCharacterInPlayInactive, EphemeraClientMessageEphemeraUpdateMapClear, EphemeraClientMessageEphemeraUpdateMapItem } from "@tonylb/mtw-interfaces/ts/ephemera"
 
-import { MessageGroupId } from "../internalCache/orchestrateMessages"
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 export type PublishTargetRoom = `ROOM#${string}`
@@ -64,9 +63,6 @@ export const isNonEmptyPublishTargetArray = (value: unknown): value is PublishTa
 export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: PublishTarget[];
-    messageGroupId?: MessageGroupId;
-    /** Websocket egress timing. Default `immediate`. */
-    deliveryMode?: 'immediate' | 'deferred';
 }
 
 export type PublishWorldMessage = PublishMessageBase & {
@@ -197,7 +193,6 @@ export type FetchImportDefaultsMessage = {
 
 type PerceptionBase = {
     type: 'Perception';
-    messageGroupId?: MessageGroupId;
 }
 
 export type PerceptionAssetMessage = {
@@ -287,7 +282,6 @@ export const isRenderComponentId = (value: unknown): value is RenderComponentId 
 type RenderTargetContext = {
     characterId?: EphemeraCharacterId;
     targets?: PublishTarget[];
-    messageGroupId?: MessageGroupId;
 }
 
 export type RenderComponentPerspective = {
@@ -303,7 +297,7 @@ export type RenderRequested = RenderTargetContext & RenderComponentPerspective &
 
 export type RenderRequestedBusDeliveryFields = Pick<
     RenderRequested,
-    'componentId' | 'perspective' | 'characterId' | 'targets' | 'messageGroupId'
+    'componentId' | 'perspective' | 'characterId' | 'targets'
 >
 
 export type RenderGenerationStarted = RenderTargetContext & RenderComponentPerspective & {

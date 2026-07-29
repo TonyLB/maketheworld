@@ -4,7 +4,6 @@ import type {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { mergeParticipationOrderFromImportVerticalHops } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { ImportVerticalHop } from '@tonylb/mtw-gateways/ts/assets/components/verticals'
@@ -12,7 +11,6 @@ import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
-import type { PerceptionThreadRegisterCommand } from '../perception/localApiEvents'
 import type { RenderRequestedCommand } from './localApiEvents'
 
 export type FeatureKnowledgeComponentId = EphemeraFeatureId | EphemeraKnowledgeId
@@ -22,7 +20,6 @@ export type PreparedFeatureKnowledgeRender = {
     characterId: EphemeraCharacterId;
     perspective: Perspective;
     perspectiveKey: string;
-    threadRegisterCommand: PerceptionThreadRegisterCommand;
     renderCommand: RenderRequestedCommand;
 }
 
@@ -63,19 +60,16 @@ export function intersectParticipationOrderWithCharacterVisibility(
     return participationOrder.filter((assetId) => visible.has(AssetKey(assetId) as AssetUUID))
 }
 
-export type PrepareFeatureKnowledgeRenderOptions = {
-    directResponse?: boolean;
-}
-
 /**
- * Resolve Feature/Knowledge perspective and commands for correlated description thread + passive render.
- * Perspective = character-visible assets intersected with component vertical participation order.
+ * Resolve Feature/Knowledge perspective and the render command for correlated description +
+ * passive render. Perspective = character-visible assets intersected with component vertical
+ * participation order. `directResponse` (SESSION#... targeting for Knowledge) is resolved by the
+ * caller against messageOrchestration's ingress registry (Phase 7), not here.
  */
 export async function prepareFeatureKnowledgeRenderForCharacter(
     characterId: EphemeraCharacterId,
     componentId: FeatureKnowledgeComponentId,
     deps: PrepareFeatureKnowledgeRenderDeps = defaultDeps(),
-    options: PrepareFeatureKnowledgeRenderOptions = {},
 ): Promise<PreparedFeatureKnowledgeRender> {
     const [characterVisibleAssets, hops] = await Promise.all([
         loadCharacterVisibleAssetIds(characterId, deps),
@@ -88,20 +82,6 @@ export async function prepareFeatureKnowledgeRenderForCharacter(
     )
     const perspective = { assetStack }
     const perspectiveKey = computePerspectiveKey(perspective.assetStack)
-    const threadRegisterCommand: PerceptionThreadRegisterCommand = isEphemeraKnowledgeId(componentId)
-        ? {
-            threadKind: 'knowledgeDescription',
-            componentId,
-            perspectiveKey,
-            characterId,
-            ...(options.directResponse ? { directResponse: true } : {}),
-        }
-        : {
-            threadKind: 'featureDescription',
-            componentId,
-            perspectiveKey,
-            characterId,
-        }
     const renderCommand: RenderRequestedCommand = {
         componentId,
         perspective,
@@ -113,7 +93,6 @@ export async function prepareFeatureKnowledgeRenderForCharacter(
         characterId,
         perspective,
         perspectiveKey,
-        threadRegisterCommand,
         renderCommand,
     }
 }

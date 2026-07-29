@@ -117,15 +117,23 @@ export class FanInClusterStore<
         }, [])
     }
 
+    /**
+     * Splits ready-vs-still-open and removes the ready ones from `openPartials` synchronously,
+     * before awaiting any handler --- `route()` can be re-entered (via a nested `bus.publish()`
+     * triggering another subscriber callback) while a handler's `await` is pending, so two
+     * overlapping `route()` calls must not both see the same partial as "ready" in `openPartials`
+     * and both flush it. Splitting first (no `await` between reading `this.openPartials` and
+     * reassigning it) keeps that decision atomic with respect to JS's single-threaded interleaving,
+     * which only occurs at `await` boundaries.
+     */
     private async completeReadyPartials(ctx: Ctx): Promise<void> {
-        const stillOpen: Cluster[] = []
-        for (const partial of this.openPartials) {
-            if (partial.completed) {
-                await partial.handler(ctx, { deferralExecution: false })
-            } else {
-                stillOpen.push(partial)
-            }
+        const ready = this.openPartials.filter((partial) => partial.completed)
+        if (ready.length === 0) {
+            return
         }
-        this.openPartials = stillOpen
+        this.openPartials = this.openPartials.filter((partial) => !ready.includes(partial))
+        for (const partial of ready) {
+            await partial.handler(ctx, { deferralExecution: false })
+        }
     }
 }

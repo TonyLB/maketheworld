@@ -35,6 +35,8 @@ import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
+import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
+import { registerIngressSlot } from '../messageOrchestration'
 import { ephemeraPerceptionDataSource } from './index'
 import * as orchestrateModule from './orchestrate'
 import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
@@ -143,10 +145,10 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
 
         sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
-            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
         })
         await messageBus.flushAndSettle()
 
@@ -154,14 +156,14 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(listed).toHaveLength(1)
         const entry = listed[0]
         expect(entry.thread).toMatchObject({
-            kind: 'roomDescription',
+            kind: 'roomHeaderBroadcast',
             status: 'Initial',
         })
         expect(entry.registration).toMatchObject({
-            threadKind: 'roomDescription',
+            threadKind: 'roomHeaderBroadcast',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
-            characterId: 'CHARACTER#viewer',
+            targets: ['CHARACTER#viewer'],
         })
         expect(publishSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage')).toBe(false)
         publishSpy.mockRestore()
@@ -224,16 +226,92 @@ describe('mtw.ephemera.perception DataSource', () => {
         await messageBus.flushAndSettle()
     }
 
+    /**
+     * Deliberately does NOT flush --- messageOrchestration's deferral tail force-settles (and
+     * evicts) any still-open, incomplete bundle partial on every flushAndSettle() call, per its
+     * own "tolerantly failed" settle design. Declaring a bundle and then separately flushing
+     * before its slots have reported would prematurely evict it, orphaning every later
+     * slot-report leg. Production never does this (orchestrateNavigate.ts declares, registers,
+     * and kicks off resolution all within one invocation, with exactly one flush at the very
+     * end) --- these test helpers mirror that: call declareCharacterMoveBundle/
+     * registerCharacterMoveIngress for setup, then let the first real trigger event's own flush
+     * (e.g. sendOrchestrationStreamingEvent/sendRenderPertainsStreamingEvent) process everything
+     * queued so far together.
+     */
+    function declareCharacterMoveBundle(bundleId: string, slotId: string): void {
+        sendMessageBundleDeclared(messageBus, bundleId, {
+            bundleId,
+            slots: [{
+                slotId,
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#viewer'],
+                contentStream: 'render',
+                format: 'header',
+            }],
+        })
+    }
+
+    /**
+     * Ingress-side registration for a characterMove header slot --- mirrors what
+     * orchestrateNavigate.ts does in production (always paired with declareCharacterMoveBundle,
+     * since every real characterMove header render goes through both the Delivery bundle and the
+     * Ingress listener registration together). Deliberately does not flush --- see
+     * declareCharacterMoveBundle's comment above.
+     */
+    async function registerCharacterMoveIngress(bundleId: string, slotId: string, targets: string[] = ['CHARACTER#viewer']): Promise<void> {
+        await registerIngressSlot(messageBus, bundleId, {
+            slotId,
+            expectedPublishType: 'PerceptionMessage',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            targets: targets as any,
+            contentStream: 'render',
+            format: 'header',
+        })
+    }
+
+    /**
+     * Phase 7: roomDescription/featureDescription/knowledgeDescription/objectDescription/
+     * sessionOrientationRender all register against messageOrchestration's ingress registry now
+     * instead of PerceptionThreads --- roomDescription shares the exact same
+     * (componentId, perspectiveKey, 'render') bucket characterMove/sessionOrientationRender use,
+     * differing only by `format:'full'`. Same declare-then-register, don't-flush-until-the-real-
+     * trigger-event pattern as declareCharacterMoveBundle/registerCharacterMoveIngress above.
+     */
+    function declareRoomDescriptionBundle(bundleId: string, slotId: string): void {
+        sendMessageBundleDeclared(messageBus, bundleId, {
+            bundleId,
+            slots: [{
+                slotId,
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#viewer'],
+                contentStream: 'render',
+                format: 'full',
+            }],
+        })
+    }
+
+    async function registerRoomDescriptionIngress(bundleId: string, slotId: string, targets: string[] = ['CHARACTER#viewer']): Promise<void> {
+        await registerIngressSlot(messageBus, bundleId, {
+            slotId,
+            expectedPublishType: 'PerceptionMessage',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            targets: targets as any,
+            contentStream: 'render',
+            format: 'full',
+        })
+    }
+
     it('roomDescription Generation Started publishes render-channel full-room WML with Render placeholder (no Example)', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
 
@@ -255,16 +333,11 @@ describe('mtw.ephemera.perception DataSource', () => {
         publishSpy.mockRestore()
     })
 
-    it('roomDescription Orchestration Error publishes full-room Render placeholder and removes thread', async () => {
+    it('roomDescription Orchestration Error publishes full-room Render placeholder', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughOrchestrationErrorPayload())
 
@@ -278,22 +351,14 @@ describe('mtw.ephemera.perception DataSource', () => {
             passThroughFixtureRoomId,
             'Error'
         )
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
-            []
-        )
         publishSpy.mockRestore()
     })
 
-    it('roomDescription Generation Deferred publishes full-room Render placeholder and removes thread', async () => {
+    it('roomDescription Generation Deferred publishes full-room Render placeholder', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         await sendOrchestrationStreamingEvent(makePassThroughGenerationDeferredPayload())
 
@@ -307,22 +372,14 @@ describe('mtw.ephemera.perception DataSource', () => {
             passThroughFixtureRoomId,
             'Error'
         )
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
-            []
-        )
         publishSpy.mockRestore()
     })
 
-    it('room thread receives Generation Started then terminal Render Pertains with stable messageId', async () => {
+    it('room slot receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const publishSpy = spyPublish()
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'roomDescription',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-        })
-        await messageBus.flushAndSettle()
+        declareRoomDescriptionBundle('BUNDLE#roomDescription', 'full')
+        await registerRoomDescriptionIngress('BUNDLE#roomDescription', 'full')
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
@@ -340,12 +397,6 @@ describe('mtw.ephemera.perception DataSource', () => {
             getContent: () => Promise.resolve(genStarted),
         })
         await messageBus.flushAndSettle()
-
-        const listedAfterGen = internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        expect(listedAfterGen[0]?.thread).toMatchObject({
-            status: 'Generating',
-            createdTime: 1000000000000,
-        })
 
         const genPublish = publishSpy.mock.calls.find((c) => {
             const m = c[0] as { type?: string; metaData?: { status?: string } }
@@ -394,7 +445,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
-        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
@@ -490,15 +540,8 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
 
-        const targets = ['CHARACTER#viewer'] as const
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'sessionOrientationRender',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-            targets: [...targets],
-        })
-        await messageBus.flushAndSettle()
+        declareCharacterMoveBundle('BUNDLE#sessionOrientationRender', 'header')
+        await registerCharacterMoveIngress('BUNDLE#sessionOrientationRender', 'header')
 
         const genStarted = makePassThroughGenerationStartedPayload()
         const tsOrch = Date.now()
@@ -568,125 +611,201 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
     })
 
-    it('characterMove receives Generation Started then terminal Render Pertains with stable messageId (mover header)', async () => {
+    it('characterMove: a registered Ingress listener suppresses the roster-broadcast fallback even though PerceptionThreads has zero entries', async () => {
+        // Regression guard for the fix made in the MO-10 migration: once characterMove stopped
+        // registering with PerceptionThreads, handleRenderPertains's `entries.length === 0`
+        // roster-broadcast fallback would otherwise fire on every navigate header render (nothing
+        // else registers for this key) --- gated on `publishedCharacterMove === 0` too now.
         const publishSpy = spyPublish()
-        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveNoFallback />')
+        const rosterSpy = jest.spyOn(hydrateRoomRoster, 'getRoomCharacterList')
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'characterMove',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-            targets: ['CHARACTER#viewer'],
-            messageGroupId: 'MSG#root',
-        })
-        await messageBus.flushAndSettle()
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
 
-        const genStarted = makePassThroughGenerationStartedPayload()
-        const tsOrch = Date.now()
-        messageBus.publish({
-            type: 'StreamingEvent',
-            dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
-            streamKey: passThroughFixtureRoomId,
-            timestamp: tsOrch,
-            header: {
-                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
-                streamKey: passThroughFixtureRoomId,
-                timestamp: tsOrch,
-                type: 'Generation Started',
-            },
-            getContent: () => Promise.resolve(genStarted),
-        })
-        await messageBus.flushAndSettle()
+        await sendRenderPertainsStreamingEvent()
 
-        const genPublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string }; targets?: string[] }
-            return (
-                m?.type === 'PublishMessage'
-                && m?.metaData?.displayMode === 'header'
-                && m?.metaData?.status === 'generating'
-                && m?.targets?.length === 1
-                && m.targets[0] === 'CHARACTER#viewer'
-            )
-        })
-        expect(genPublish).toBeDefined()
-        expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
-        const mid = (genPublish![0] as { messageId?: string }).messageId
-        expect(mid).toMatch(/^MESSAGE#/)
-        const genCreatedTime = (genPublish![0] as { createdTime?: number }).createdTime
-        expect(genCreatedTime).toBe(1000000000000)
-        expect((genPublish![0] as { deliveryMode?: string }).deliveryMode).toBe('deferred')
-        const worldMessages = publishSpy.mock.calls.filter((c) => {
-            const m = c[0] as { type?: string; displayProtocol?: string }
-            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-        })
-        expect(worldMessages).toHaveLength(0)
+        expect(rosterSpy).not.toHaveBeenCalled()
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(1)
 
-        const tsCache = Date.now()
-        messageBus.publish({
-            type: 'StreamingEvent',
-            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
-            streamKey: passThroughFixtureRoomId,
-            timestamp: tsCache,
-            header: {
-                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
-                streamKey: passThroughFixtureRoomId,
-                timestamp: tsCache,
-                type: 'Render Pertains',
-            },
-            getContent: () =>
-                Promise.resolve({
-                    type: 'Render Pertains',
-                    componentId: passThroughFixtureRoomId,
-                    perspectiveKey: passThroughFixturePerspectiveKey,
-                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
-                    cacheRecord: passThroughFixtureMinimalDynamoItem,
-                }),
+        rosterSpy.mockRestore()
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove single-slot bundle: terminal-only content is reported as a slot and flows through the bundle to a correctly-addressed publish', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
+
+        await sendRenderPertainsStreamingEvent()
+
+        // The content is reported as a slot (not published as an unaddressed direct bypass) ---
+        // a single-slot bundle completes (and flushes) the instant its one slot's first report
+        // lands, so the eventual publish carries the bundle-assigned, correctly-addressed result.
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(1)
+        const content = await (slotReports[0] as any).getContent()
+        expect(content).toMatchObject({
+            bundleId: 'BUNDLE#test',
+            slotId: 'header',
+            message: expect.objectContaining({ wmlContent: '<HeaderMoveBundled />' }),
         })
-        await messageBus.flushAndSettle()
+
+        const published = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveBundled />'
+        })
+        expect(published).toBeDefined()
+        expect((published![0] as { targets?: string[] }).targets).toEqual(['CHARACTER#viewer'])
+        expect((published![0] as { messageId?: string }).messageId).toMatch(/^MESSAGE#/)
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove bundled: placeholder fills the slot on Generation Started, terminal delivers standalone reusing the placeholder messageId', async () => {
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
+
+        // A one-slot bundle completes (and flushes) the instant its one slot's first report
+        // lands --- so the placeholder is already a real, published PublishMessage here (with a
+        // cluster-minted messageId, per the MO-10 messageId mint-and-carry-forward design), not
+        // just a pending StreamingEvent to inspect.
+        const placeholderPublish = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { status?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.status === 'generating'
+        })
+        expect(placeholderPublish).toBeDefined()
+        const placeholderMessageId = (placeholderPublish![0] as { messageId?: string }).messageId
+        expect(placeholderMessageId).toMatch(/^MESSAGE#/)
+
+        await sendRenderPertainsStreamingEvent()
+
+        const standaloneTerminal = publishSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveBundled />'
+        })
+        expect(standaloneTerminal).toBeDefined()
+        expect((standaloneTerminal![0] as { messageId?: string }).messageId).toBe(placeholderMessageId)
+
+        // Both waves still report a slot (Ingress broadcasts unconditionally); the terminal's
+        // report is what index.ts's dispatch recognizes as already-delivered and redirects to a
+        // standalone publish, rather than never being reported at all.
+        const slotReportsAfterTerminal = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReportsAfterTerminal).toHaveLength(2)
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove: a late Generation Started after the terminal already flushed the bundle delivers standalone instead of being silently discarded', async () => {
+        // Confirmed design decision (MO-10 migration): unlike the old PerceptionThreads.remove()
+        // hard-stop, ContentIngressIndex never removes a listener, so a repeat/out-of-order wave
+        // for an already-fully-delivered slot gets a redundant standalone re-publish (same
+        // messageId) rather than being silently dropped. Its createdTime is a genuinely later,
+        // distinct transcript event --- not a reuse of the original terminal's value --- but it is
+        // anchored to that recorded value (`max(t0+1, now)`) rather than an unrelated wall-clock
+        // read, so it is guaranteed to sort strictly after it.
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveBundled />')
+
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
+
+        await sendRenderPertainsStreamingEvent()
 
         const terminalPublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string } }
-            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveTerminal />' && m?.metaData?.displayMode === 'header'
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveBundled />'
         })
         expect(terminalPublish).toBeDefined()
-        expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
-        expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
-        expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(genCreatedTime!)
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
+        const terminalMessageId = (terminalPublish![0] as { messageId?: string }).messageId
+        const terminalCreatedTime = (terminalPublish![0] as { createdTime?: number }).createdTime
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
+
+        const latePlaceholderPublishes = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { status?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.status === 'generating'
+        })
+        expect(latePlaceholderPublishes).toHaveLength(1)
+        expect((latePlaceholderPublishes[0][0] as { messageId?: string }).messageId).toBe(terminalMessageId)
+        expect((latePlaceholderPublishes[0][0] as { createdTime?: number }).createdTime).toBeGreaterThan(terminalCreatedTime!)
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
     })
 
-    it('characterMove cache hit synthesizes Generating at beat anchor then terminal Render Pertains', async () => {
-        const BEAT_ANCHOR = 1_700_000_000_000
-        mockGetCurrentTimestamp.mockImplementation(() => BEAT_ANCHOR + 5)
+    it('characterMove: two movers sharing (componentId, perspectiveKey) each get their own addressed slot-report from the same shared content', async () => {
+        // The direct MO-10 motivating scenario: two bundles (movers) registered against the same
+        // (componentId, perspectiveKey, threadKind) key. Content resolves once and fans out to
+        // both listeners, each building its own addressed envelope from its own targets ---
+        // there is no "pick one candidate" disambiguation step anymore.
+        const publishSpy = spyPublish()
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveShared />')
 
+        declareCharacterMoveBundle('BUNDLE#one', 'header')
+        await registerCharacterMoveIngress('BUNDLE#one', 'header', ['CHARACTER#one'])
+        sendMessageBundleDeclared(messageBus, 'BUNDLE#two', {
+            bundleId: 'BUNDLE#two',
+            slots: [{
+                slotId: 'header',
+                expectedPublishType: 'PerceptionMessage',
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                targets: ['CHARACTER#two'],
+                contentStream: 'render',
+                format: 'header',
+            }],
+        })
+        await registerCharacterMoveIngress('BUNDLE#two', 'header', ['CHARACTER#two'])
+
+        await sendRenderPertainsStreamingEvent()
+
+        const slotReports = publishSpy.mock.calls
+            .map((c) => c[0])
+            .filter((m) => m?.type === 'StreamingEvent' && m?.header?.type === 'Message Slot Reported')
+        expect(slotReports).toHaveLength(2)
+        const reportContents = await Promise.all(slotReports.map((r: any) => r.getContent()))
+        expect(reportContents.map((c) => c.bundleId).sort()).toEqual(['BUNDLE#one', 'BUNDLE#two'])
+
+        const publishedHeaders = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveShared />'
+        })
+        expect(publishedHeaders).toHaveLength(2)
+        expect(publishedHeaders.map((c) => (c[0] as { targets?: string[] }).targets).sort()).toEqual([['CHARACTER#one'], ['CHARACTER#two']])
+
+        schemaSpy.mockRestore()
+        publishSpy.mockRestore()
+    })
+
+    it('characterMove cache hit (no Generation Started) delivers the terminal alone, with no synthesized Generating placeholder', async () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'characterMove',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-            targets: ['CHARACTER#viewer'],
-            messageGroupId: 'MSG#root',
-            messageId: 'MESSAGE#move-header',
-            createdTime: BEAT_ANCHOR,
-        })
-        await messageBus.flushAndSettle()
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
 
         await sendRenderPertainsStreamingEvent()
 
@@ -694,25 +813,20 @@ describe('mtw.ephemera.perception DataSource', () => {
             const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string } }
             return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header' && m?.metaData?.status === 'generating'
         })
-        expect(genPublish).toBeDefined()
-        expect((genPublish![0] as { createdTime?: number }).createdTime).toBe(BEAT_ANCHOR)
-        expect((genPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
+        expect(genPublish).toBeUndefined()
+
+        const headerPublishes = publishSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'header'
+        })
+        expect(headerPublishes).toHaveLength(1)
 
         const terminalPublish = publishSpy.mock.calls.find((c) => {
-            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string; status?: string } }
-            return (
-                m?.type === 'PublishMessage'
-                && m?.wmlContent === '<HeaderMoveTerminal />'
-                && m?.metaData?.displayMode === 'header'
-                && m?.metaData?.status !== 'generating'
-            )
+            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveTerminal />' && m?.metaData?.displayMode === 'header'
         })
         expect(terminalPublish).toBeDefined()
-        expect((terminalPublish![0] as { messageId?: string }).messageId).toBe('MESSAGE#move-header')
-        expect((terminalPublish![0] as { createdTime?: number }).createdTime).toBeGreaterThan(BEAT_ANCHOR)
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
+        expect((terminalPublish![0] as { messageId?: string }).messageId).toMatch(/^MESSAGE#/)
 
         schemaSpy.mockRestore()
         publishSpy.mockRestore()
@@ -722,15 +836,8 @@ describe('mtw.ephemera.perception DataSource', () => {
         const publishSpy = spyPublish()
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
 
-        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
-            threadKind: 'characterMove',
-            componentId: passThroughFixtureRoomId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: 'CHARACTER#viewer',
-            targets: ['CHARACTER#viewer'],
-            messageGroupId: 'MSG#root',
-        })
-        await messageBus.flushAndSettle()
+        declareCharacterMoveBundle('BUNDLE#test', 'header')
+        await registerCharacterMoveIngress('BUNDLE#test', 'header')
 
         const generationEvent = () => {
             const tsOrch = Date.now()
@@ -998,10 +1105,10 @@ describe('mtw.ephemera.perception DataSource', () => {
                 toRoomId: MEMBERSHIP_ROOM_B,
             })
             sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
-                threadKind: 'roomDescription',
+                threadKind: 'roomHeaderBroadcast',
                 componentId: 'ROOM#REG',
                 perspectiveKey: 'view-1',
-                characterId: 'CHARACTER#viewer',
+                targets: ['CHARACTER#viewer'],
             })
             await messageBus.flushAndSettle()
 
@@ -1009,7 +1116,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             const listed = internalCache.PerceptionThreads.list('ROOM#REG', 'view-1')
             expect(listed).toHaveLength(1)
             expect(listed[0].registration).toMatchObject({
-                threadKind: 'roomDescription',
+                threadKind: 'roomHeaderBroadcast',
                 componentId: 'ROOM#REG',
             })
             orchestrateSpy.mockRestore()
@@ -1234,7 +1341,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice picks up broom'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })
@@ -1277,7 +1383,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice drops broom'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })
@@ -1400,7 +1505,6 @@ describe('mtw.ephemera.perception DataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['Alice puts broom on table'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
-                deliveryMode: 'deferred',
             })
             publishSpy.mockRestore()
         })

@@ -16,6 +16,8 @@ export type MembershipIntentLeg = {
     fromRoomId?: EphemeraRoomId
     toRoomId?: EphemeraRoomId
     exitName?: string
+    /** messageOrchestration bundle correlation id (navigate/home only); absent for connect/disconnect and fact-only settle. */
+    bundleId?: string
 }
 
 export type MembershipFactLeg = {
@@ -50,6 +52,8 @@ export type MembershipEmissionPlan = {
     to: MembershipEndpoint
     intentFromRoomId?: EphemeraRoomId
     characterName?: string
+    /** messageOrchestration bundle correlation id, sourced from the intent leg when present. */
+    bundleId?: string
 }
 
 export type MembershipFanInHandlerContext = {
@@ -167,6 +171,7 @@ export const buildMembershipEmissionPlan = (
         to: factLeg.to,
         intentFromRoomId: intentLeg?.fromRoomId,
         characterName: factLeg.characterName,
+        bundleId: intentLeg?.bundleId,
     }
 }
 

@@ -133,7 +133,6 @@ Triggers room header updates when assets change:
     type: 'Perception',
     characterId?: EphemeraCharacterId,
     ephemeraId: EphemeraAssetId,       // Asset that changed
-    messageGroupId?: MessageGroupId
 }
 ```
 
@@ -151,7 +150,6 @@ Displays room descriptions to characters:
     characterId?: EphemeraCharacterId,
     ephemeraId: EphemeraRoomId,        // Room to describe
     header?: boolean,                   // Header-only or full description
-    messageGroupId?: MessageGroupId
 }
 ```
 
@@ -183,7 +181,6 @@ Displays component descriptions. **Character** is the only component type still 
     characterId?: EphemeraCharacterId,
     ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId,
     directResponse?: boolean,           // For knowledge: direct to session (legacy bus shape; steady-state uses correlated ingress)
-    messageGroupId?: MessageGroupId
 }
 ```
 
@@ -200,7 +197,6 @@ Displays component descriptions. **Character** is the only component type still 
     characterId: EphemeraCharacterId,   // Required for maps
     ephemeraId: EphemeraMapId,         // Map to display
     mustIncludeRoomId?: EphemeraRoomId, // Optional room filter
-    messageGroupId?: MessageGroupId
 }
 ```
 
@@ -331,7 +327,6 @@ await perceptionMessage({
 ### **Message Optimization**
 - **Targeted Sending**: Only sends messages to relevant characters
 - **Asset Filtering**: Reduces unnecessary message generation
-- **Group Management**: Uses messageGroupId for coordinated updates
 
 ## Navigation Tips
 

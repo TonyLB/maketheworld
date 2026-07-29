@@ -33,6 +33,8 @@ export type CharacterNavigatePublishedPayload = {
     toRoomId: EphemeraRoomId;
     /** Normalized exit label when parse matched a named exit (fan-in exit-aware copy). */
     exitName?: string;
+    /** messageOrchestration bundle correlation id, minted once here; shared by the positions execution tail and the perception membership fan-in intent leg. Optional so pre-migration/synthetic payloads degrade gracefully to direct-publish rather than dropping the leg. */
+    bundleId?: string;
 }
 
 export type CharacterHomePublishedPayload = {
@@ -40,6 +42,8 @@ export type CharacterHomePublishedPayload = {
     characterId: EphemeraCharacterId;
     fromRoomId: EphemeraRoomId;
     toRoomId: EphemeraRoomId;
+    /** messageOrchestration bundle correlation id, minted once here; shared by the positions execution tail and the perception membership fan-in intent leg. Optional so pre-migration/synthetic payloads degrade gracefully to direct-publish rather than dropping the leg. */
+    bundleId?: string;
 }
 
 /** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary take-hold. */
@@ -309,6 +313,9 @@ export const isCharacterNavigatePublishedPayload = (
             return false
         }
     }
+    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
+        return false
+    }
     return true
 }
 
@@ -383,6 +390,9 @@ export const isCharacterHomePublishedPayload = (
         return false
     }
     if (typeof v.toRoomId !== 'string') {
+        return false
+    }
+    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
         return false
     }
     return true

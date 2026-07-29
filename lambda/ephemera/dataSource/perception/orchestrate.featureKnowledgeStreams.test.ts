@@ -4,12 +4,17 @@ jest.mock('../../internalUtils/dateUtil', () => ({
     __esModule: true,
     default: () => mockGetCurrentTimestamp(),
 }))
+jest.mock('../../publishMessage', () => ({
+    __esModule: true,
+    default: jest.fn().mockResolvedValue(undefined),
+}))
 
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../internalCache'
-import type { MessageBus } from '../../messageBus/baseClasses'
+import messageBus from '../../messageBus'
 import {
     passThroughFixtureAuthoredEmptyMarksDynamoItem,
     passThroughFixtureFeatureId,
@@ -19,6 +24,8 @@ import {
     passThroughFixturePerspectiveKey,
 } from '../passThroughContractFixtures'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
+import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
+import { registerIngressSlot } from '../messageOrchestration'
 
 const TERMINAL_RENDERED_CONTENT = {
     displayName: ['Terminal title'],
@@ -40,11 +47,6 @@ function knowledgeTerminalCacheRecord() {
     }
 }
 const VIEWER = 'CHARACTER#viewer' as const
-const MOCK_SESSION_ID = 'sess-test-123'
-
-function makeBusStub(): MessageBus {
-    return { publish: jest.fn() } as unknown as MessageBus
-}
 
 function assertFeatureRenderDescription(wmlContent: string, featureId: string, expectedDescription: string): void {
     const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
@@ -60,37 +62,48 @@ function assertKnowledgeRenderDescription(wmlContent: string, knowledgeId: strin
     expect((knowledge as StandardKnowledge).render?.description).toEqual([expectedDescription])
 }
 
-function findPublishMessage(
-    bus: MessageBus,
-    predicate: (msg: {
-        type?: string;
-        metaData?: { status?: string; componentUUID?: string };
-        wmlContent?: string;
-        targets?: unknown[];
-        messageId?: string;
-        createdTime?: number;
-    }) => boolean
-): {
+function spyPublish() {
+    return jest.spyOn(messageBus, 'publish')
+}
+
+type PublishMessageLike = {
     type?: string;
     metaData?: { status?: string; componentUUID?: string };
     wmlContent?: string;
     targets?: unknown[];
     messageId?: string;
     createdTime?: number;
-} | undefined {
-    const publish = bus.publish as jest.Mock
-    const match = publish.mock.calls.find((call) => {
-        const msg = call[0] as {
-            type?: string;
-            metaData?: { status?: string; componentUUID?: string };
-            wmlContent?: string;
-            targets?: unknown[];
-            messageId?: string;
-            createdTime?: number;
-        }
+}
+
+function findPublishMessage(
+    spy: ReturnType<typeof spyPublish>,
+    predicate: (msg: PublishMessageLike) => boolean
+): PublishMessageLike | undefined {
+    const match = spy.mock.calls.find((call) => {
+        const msg = call[0] as PublishMessageLike
         return msg?.type === 'PublishMessage' && predicate(msg)
     })
-    return match ? match[0] : undefined
+    return match ? (match[0] as PublishMessageLike) : undefined
+}
+
+/** Declares a one-slot bundle and registers its ingress listener --- the Phase 7 feature/knowledge equivalent of dataSource/perception/index.test.ts's declareCharacterMoveBundle/registerCharacterMoveIngress. */
+async function registerRenderSlot(componentId: string, perspectiveKey: string, targets: string[] = [VIEWER]): Promise<string> {
+    const bundleId = uuidv4()
+    const slotId = 'slot'
+    sendMessageBundleDeclared(messageBus, bundleId, {
+        bundleId,
+        slots: [{ slotId, expectedPublishType: 'PerceptionMessage' }],
+    })
+    await registerIngressSlot(messageBus, bundleId, {
+        slotId,
+        expectedPublishType: 'PerceptionMessage',
+        componentId: componentId as any,
+        perspectiveKey,
+        targets: targets as any,
+        contentStream: 'render',
+        format: 'full',
+    })
+    return bundleId
 }
 
 describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
@@ -99,16 +112,12 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
         let timestamp = 1_000_000_000_000
         mockGetCurrentTimestamp.mockImplementation(() => timestamp++)
         internalCache.clear()
+        messageBus.clear()
     })
 
-    it('featureDescription Generation Started publishes Generating placeholder and updates thread', async () => {
-        const bus = makeBusStub()
-        internalCache.PerceptionThreads.register({
-            threadKind: 'featureDescription',
-            componentId: passThroughFixtureFeatureId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-        })
+    it('featureDescription Generation Started reports a Generating placeholder to the registered listener', async () => {
+        const publishSpy = spyPublish()
+        await registerRenderSlot(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -118,10 +127,11 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 perspectiveKey: passThroughFixturePerspectiveKey,
                 phase: 'generating',
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        const genPublish = findPublishMessage(bus, (m) => m.metaData?.status === 'generating')
+        const genPublish = findPublishMessage(publishSpy, (m) => m.metaData?.status === 'generating')
         expect(genPublish).toBeDefined()
         expect(genPublish?.metaData).toEqual({
             componentUUID: passThroughFixtureFeatureId,
@@ -133,26 +143,12 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
             passThroughFixtureFeatureId,
             'Generating'
         )
-
-        const listed = internalCache.PerceptionThreads.list(
-            passThroughFixtureFeatureId,
-            passThroughFixturePerspectiveKey
-        )
-        expect(listed[0]?.thread).toMatchObject({
-            status: 'Generating',
-            createdTime: 1_000_000_000_000,
-        })
-        expect(listed[0]?.thread.messageId).toMatch(/^MESSAGE#/)
+        expect(genPublish?.messageId).toMatch(/^MESSAGE#/)
     })
 
-    it('featureDescription Render Pertains terminal overwrites with stable messageId and removes thread', async () => {
-        const bus = makeBusStub()
-        internalCache.PerceptionThreads.register({
-            threadKind: 'featureDescription',
-            componentId: passThroughFixtureFeatureId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-        })
+    it('featureDescription Render Pertains terminal overwrites the placeholder with a stable messageId', async () => {
+        const publishSpy = spyPublish()
+        await registerRenderSlot(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -162,10 +158,11 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 perspectiveKey: passThroughFixturePerspectiveKey,
                 phase: 'generating',
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        const genPublish = findPublishMessage(bus, (m) => m.metaData?.status === 'generating')
+        const genPublish = findPublishMessage(publishSpy, (m) => m.metaData?.status === 'generating')
         const messageId = genPublish?.messageId as string
         const genCreatedTime = genPublish?.createdTime as number
 
@@ -177,11 +174,12 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 cacheId: passThroughFixtureMinimalCacheId,
                 cacheRecord: featureTerminalCacheRecord(),
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
         const terminalPublish = findPublishMessage(
-            bus,
+            publishSpy,
             (m) => m.metaData?.status !== 'generating' && typeof m.wmlContent === 'string'
         )
         expect(terminalPublish).toBeDefined()
@@ -194,21 +192,12 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
             passThroughFixtureFeatureId,
             'Test description.'
         )
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
     })
 
-    it('knowledgeDescription directResponse targets SESSION# from Global.get(SessionId)', async () => {
-        const bus = makeBusStub()
-        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(MOCK_SESSION_ID)
-        internalCache.PerceptionThreads.register({
-            threadKind: 'knowledgeDescription',
-            componentId: passThroughFixtureKnowledgeId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-            directResponse: true,
-        })
+    it('knowledgeDescription delivers to whatever targets the listener registered (SESSION# resolution now happens at registration, in handleLookCommandRequestedForRenderOrchestration.ts)', async () => {
+        const publishSpy = spyPublish()
+        const MOCK_SESSION_ID = 'sess-test-123'
+        await registerRenderSlot(passThroughFixtureKnowledgeId, passThroughFixturePerspectiveKey, [`SESSION#${MOCK_SESSION_ID}`])
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -218,10 +207,11 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 cacheId: passThroughFixtureMinimalCacheId,
                 cacheRecord: knowledgeTerminalCacheRecord(),
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        const terminalPublish = findPublishMessage(bus, () => true)
+        const terminalPublish = findPublishMessage(publishSpy, () => true)
         expect(terminalPublish?.targets).toEqual([`SESSION#${MOCK_SESSION_ID}`])
         expect(terminalPublish?.metaData).toEqual({ componentUUID: passThroughFixtureKnowledgeId })
         assertKnowledgeRenderDescription(
@@ -231,14 +221,9 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
         )
     })
 
-    it('featureDescription Orchestration Error publishes Error placeholder and removes thread', async () => {
-        const bus = makeBusStub()
-        internalCache.PerceptionThreads.register({
-            threadKind: 'featureDescription',
-            componentId: passThroughFixtureFeatureId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-        })
+    it('featureDescription Orchestration Error delivers an Error placeholder', async () => {
+        const publishSpy = spyPublish()
+        await registerRenderSlot(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -249,29 +234,22 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 errorCode: 'CONTEXT_REQUIRED',
                 errorMessage: 'Generation context required',
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        const errPublish = findPublishMessage(bus, () => true)
+        const errPublish = findPublishMessage(publishSpy, () => true)
         expect(errPublish).toBeDefined()
         assertFeatureRenderDescription(
             errPublish!.wmlContent as string,
             passThroughFixtureFeatureId,
             'Error'
         )
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
     })
 
-    it('featureDescription Generation Deferred publishes Error placeholder and removes thread', async () => {
-        const bus = makeBusStub()
-        internalCache.PerceptionThreads.register({
-            threadKind: 'featureDescription',
-            componentId: passThroughFixtureFeatureId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-        })
+    it('featureDescription Generation Deferred delivers an Error placeholder', async () => {
+        const publishSpy = spyPublish()
+        await registerRenderSlot(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -282,42 +260,21 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 reason: 'NO_CACHE_MATCH_AND_GENERATION_NOT_RUN',
                 policy: 'costCap',
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        const defPublish = findPublishMessage(bus, () => true)
+        const defPublish = findPublishMessage(publishSpy, () => true)
         expect(defPublish).toBeDefined()
         assertFeatureRenderDescription(
             defPublish!.wmlContent as string,
             passThroughFixtureFeatureId,
             'Error'
         )
-        expect(
-            internalCache.PerceptionThreads.list(passThroughFixtureFeatureId, passThroughFixturePerspectiveKey)
-        ).toEqual([])
     })
 
-    it('skips Generation Started when featureDescription thread is already Terminal', async () => {
-        const bus = makeBusStub()
-        internalCache.PerceptionThreads.register({
-            threadKind: 'featureDescription',
-            componentId: passThroughFixtureFeatureId,
-            perspectiveKey: passThroughFixturePerspectiveKey,
-            characterId: VIEWER,
-            registrationId: 'reg-terminal',
-        })
-        internalCache.PerceptionThreads.update(
-            {
-                componentId: passThroughFixtureFeatureId,
-                perspectiveKey: passThroughFixturePerspectiveKey,
-                registrationId: 'reg-terminal',
-            },
-            {
-                threadKind: 'featureDescription',
-                status: 'Terminal',
-                messageId: 'MESSAGE#prior',
-            }
-        )
+    it('with no registered listener, reports content to zero listeners and publishes nothing', async () => {
+        const publishSpy = spyPublish()
 
         await orchestrateRoomDescriptionStreams(
             {
@@ -327,9 +284,10 @@ describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {
                 perspectiveKey: passThroughFixturePerspectiveKey,
                 phase: 'generating',
             },
-            bus
+            messageBus
         )
+        await messageBus.flushAndSettle()
 
-        expect((bus.publish as jest.Mock).mock.calls).toHaveLength(0)
+        expect(publishSpy.mock.calls.map((c) => c[0]).filter((m: any) => m?.type === 'PublishMessage')).toHaveLength(0)
     })
 })

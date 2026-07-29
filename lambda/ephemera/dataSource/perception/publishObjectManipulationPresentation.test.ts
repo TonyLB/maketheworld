@@ -44,7 +44,6 @@ describe('publishObjectManipulationPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice picks up broom'],
             createdTime: ANCHOR,
-            deliveryMode: 'deferred',
         })
     })
 
@@ -60,7 +59,6 @@ describe('publishObjectManipulationPresentation', () => {
             displayProtocol: 'WorldMessage',
             message: ['Alice drops broom'],
             createdTime: ANCHOR,
-            deliveryMode: 'deferred',
         })
     })
 

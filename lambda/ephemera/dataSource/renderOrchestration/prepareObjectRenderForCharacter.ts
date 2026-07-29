@@ -3,7 +3,6 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 import internalCache from '../../internalCache'
-import type { PerceptionThreadRegisterCommand } from '../perception/localApiEvents'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import type { RenderRequestedCommand } from './localApiEvents'
 
@@ -12,7 +11,6 @@ export type PreparedObjectRender = {
     characterId: EphemeraCharacterId;
     perspective: Perspective;
     perspectiveKey: string;
-    threadRegisterCommand: PerceptionThreadRegisterCommand;
     renderCommand: RenderRequestedCommand;
 }
 
@@ -54,12 +52,6 @@ export async function prepareObjectRenderForCharacter(
     }
     const { perspective, perspectiveKey } = resolved
 
-    const threadRegisterCommand: PerceptionThreadRegisterCommand = {
-        threadKind: 'objectDescription',
-        componentId,
-        perspectiveKey,
-        characterId,
-    }
     const renderCommand: RenderRequestedCommand = {
         componentId,
         perspective,
@@ -71,7 +63,6 @@ export async function prepareObjectRenderForCharacter(
         characterId,
         perspective,
         perspectiveKey,
-        threadRegisterCommand,
         renderCommand,
     }
 }

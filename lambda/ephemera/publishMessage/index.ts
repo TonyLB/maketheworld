@@ -12,7 +12,6 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RoomCharacterListItem } from '../internalCache/baseClasses'
 import { getRoomCharacterList } from '../internalCache/hydrateRoomRoster'
 import { batchMessages, normalizeConnectionId } from './batchMessages'
-import { publishMessageCoalescer } from './coalescer'
 
 const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime: number; Targets: string[] }>({ MessageId, CreatedTime, Targets, ...rest }: T): Promise<void> => {
     await Promise.all(Targets
@@ -194,24 +193,15 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     let dbPromises: Promise<void>[] = []
     let messagesByConnectionId: Record<string, any[]> = {}
 
-    const offsetsByMessageId = internalCache.OrchestrateMessages.allOffsets()
-    const pastOffsets = Math.max(-1, ...Object.values(offsetsByMessageId)) + 1
-
-    const enqueueWireRow = (connectionId: string, row: Record<string, unknown>, deferred: boolean) => {
-        if (deferred) {
-            publishMessageCoalescer.enqueue(connectionId, row as { CreatedTime: number })
+    const enqueueWireRow = (connectionId: string, row: Record<string, unknown>) => {
+        if (!(connectionId in messagesByConnectionId)) {
+            messagesByConnectionId[connectionId] = []
         }
-        else {
-            if (!(connectionId in messagesByConnectionId)) {
-                messagesByConnectionId[connectionId] = []
-            }
-            messagesByConnectionId[connectionId].push(row)
-        }
+        messagesByConnectionId[connectionId].push(row)
     }
 
     const pushToQueues = async <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>(
-        { Targets, ...rest }: T,
-        deferred: boolean
+        { Targets, ...rest }: T
     ) => {
         if (Targets.length) {
             const characterTargets = await mapper.resolveToCharacterTargets(Targets)
@@ -229,26 +219,25 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                     enqueueWireRow(connectionId, {
                         Target: target,
                         ...rest
-                    }, deferred)
+                    })
                 })
             }))
 
             const bareSessionTargets = await mapper.resolvePublishTargets(sessionOrConnectionTargets)
             bareSessionTargets.forEach((connectionId) => {
-                enqueueWireRow(connectionId, rest, deferred)
+                enqueueWireRow(connectionId, rest)
             })
         }
         else {
             const connectionId = await internalCache.Global.get("ConnectionId")
             if (connectionId) {
-                enqueueWireRow(connectionId, rest, deferred)
+                enqueueWireRow(connectionId, rest)
             }
         }
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
-        const deferred = payload.deliveryMode === 'deferred'
-        const computedCreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
+        const computedCreatedTime = baseTime + index
         if (isPublishWorldLineMessage(payload) || isPublishCoyoteGameHypothesisMessage(payload) || isPublishCommandTranscriptMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
             const MessageId = payload.messageId ?? `MESSAGE#${uuidv4()}`
@@ -258,7 +247,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
-            }, deferred)
+            })
         }
         //
         // Character name on the wire matches MessageCharacterInfo (`DisplayName` in
@@ -276,7 +265,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CharacterId: payload.characterId,
                 Color: payload.color,
                 fileURL
-            }, deferred)
+            })
         }
         if (isPerceptionPublishMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
@@ -287,7 +276,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
                 metaData: payload.metaData
-            }, deferred)
+            })
         }
         if (isPublishCoyoteGameHelpMessage(payload)) {
             const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
@@ -296,7 +285,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
-            }, deferred)
+            })
         }
     }))
 

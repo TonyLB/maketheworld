@@ -1,7 +1,6 @@
 import { Perspective, isPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { isEphemeraCharacterId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type {
     PublishTarget,
     RenderComponentId,
@@ -21,7 +20,6 @@ import { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 type RenderTargetContext = {
     characterId?: EphemeraCharacterId;
     targets?: PublishTarget[];
-    messageGroupId?: MessageGroupId;
 }
 
 /**
@@ -43,7 +41,6 @@ export const toRenderError = (
     perspective: payload.perspective,
     characterId: payload.characterId,
     targets: payload.targets,
-    messageGroupId: payload.messageGroupId,
     errorCode,
     errorMessage,
 })
@@ -69,7 +66,6 @@ export const toRenderInvalidate = (
     perspective: payload.perspective,
     characterId: payload.characterId,
     targets: payload.targets,
-    messageGroupId: payload.messageGroupId,
     ...(reason !== undefined ? { reason } : {}),
 })
 
@@ -86,7 +82,6 @@ export const toRenderReady = (
     perspective: payload.perspective,
     characterId: payload.characterId,
     targets: payload.targets,
-    messageGroupId: payload.messageGroupId,
     cacheId,
     cacheRecord,
 })
@@ -104,9 +99,6 @@ const hasValidTargetContext = (value: Record<string, unknown>): boolean => {
         && value.targets !== undefined
         && (!Array.isArray(value.targets) || !value.targets.every((target) => (typeof target === 'string')))
     ) {
-        return false
-    }
-    if ('messageGroupId' in value && value.messageGroupId !== undefined && typeof value.messageGroupId !== 'string') {
         return false
     }
     return true
