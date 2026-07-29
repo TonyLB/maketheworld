@@ -16,7 +16,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 
 ### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
 
-Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md) (Phase 4c **Done** 2026-06-26). Shared play graph primitive: [`positionGraph/`](#positiongraph-play-manipulation-model) below. Ingress audit: [`manipulation/AGENT.implementation.md` --- Phase 4c](manipulation/AGENT.implementation.md#phase-4c-ingress-audit-shipped-2026-06-26).
+Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Shared play graph primitive: [`positionGraph/`](#positiongraph-play-manipulation-model) below. Per-route ingress map: [`manipulation/AGENT.implementation.md` --- Per-route ingress map](manipulation/AGENT.implementation.md#per-route-ingress-map).
 
 | Path | Role |
 | --- | --- |
@@ -34,7 +34,7 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | [`manipulation/relational/planHostRelationalPatch.ts`](manipulation/relational/planHostRelationalPatch.ts) | Ingress -> patch + changed gate |
 | [`manipulation/relational/applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts) | Relational-changed bundle (fact, cache memo, **`RoomUpdate`**) |
 
-Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
+Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch).
 
 #### `manipulation/membership/` (cross-host object manipulation apply)
 

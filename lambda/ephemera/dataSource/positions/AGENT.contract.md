@@ -69,7 +69,7 @@ Mental model: [**Manipulation layering**](AGENT.concepts.md#manipulation-layerin
 | **bounded** (room) + **end-state** (character hosts) | **`takeHold`** | Room: scrub **only** trusted ingress `roomId` when object is on that room; character: end-state on character inventory hosts |
 | **bounded** (character) + **bounded** (room) | **`drop`** | Character: scrub **only** trusted ingress `characterId` when object is on that character; room: add at trusted ingress `roomId` when object is not already on that room --- **must not** end-state scrub other room or character hosts |
 
-Module paths: [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/kernel/`](manipulation/kernel/) (kernel --- `commitStepSequence.ts`, `applyStepSequenceCore.ts`, `kernelStep.ts`). Fact emission: adapter **`MembershipTransferProjection`** on successful persist (provisional; see [`manipulation/AGENT.implementation.md` --- Fact emission](manipulation/AGENT.implementation.md#fact-emission-projection-first-provisional)). Migration order: [`manipulation/AGENT.implementation.md` --- Section D](manipulation/AGENT.implementation.md#section-d-----migration-decisions-graduated-to-durable-docs).
+Module paths: [`manipulation/adapters/`](manipulation/adapters/) (transfer planner), [`manipulation/kernel/`](manipulation/kernel/) (kernel --- `commitStepSequence.ts`, `applyStepSequenceCore.ts`, `kernelStep.ts`). Fact emission: adapter **`MembershipTransferProjection`** on successful persist (provisional; see [`manipulation/AGENT.implementation.md` --- Fact emission](manipulation/AGENT.implementation.md#fact-emission-projection-first-provisional)). Kernel invariants: [`manipulation/AGENT.implementation.md` --- Kernel invariants](manipulation/AGENT.implementation.md#kernel-invariants).
 
 ---
 
@@ -192,7 +192,7 @@ When **`ObjectMembershipDiff.changed`** after successful cross-host graph persis
 3. **`setMembershipContainers(objectId)`** -> `[ROOM#...]`.
 4. Publish **`RoomUpdate`** for destination room only (character **`froms`** does not trigger room affordance refresh).
 
-**Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectDrop.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeDropDiff`. Playbook: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#bounded--drop-nuance-shipped-computedropdiff).
+**Must skip** the entire bundle when **`changed: false`**. **Superseded (Pipeline A -> B migration Slice 3, 2026-07-15):** the singular `applyObjectDrop.ts` coordinator this section describes is deleted; the same bundle (per object in the transfer set) now ships from [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) -> [`applyObjectSetTransfer.ts`](manipulation/membership/applyObjectSetTransfer.ts), which re-derives the diff live inside a `MultiKeyUpdate` reducer rather than via `computeDropDiff`. Playbook: [`manipulation/AGENT.implementation.md` --- Apply modes](manipulation/AGENT.implementation.md#apply-modes).
 
 ### Host-local relational-changed bundle (`establishRelation` / `dissolveRelation`)
 
@@ -217,7 +217,7 @@ When relational apply **`changed: true`** after successful graph persist, the co
 
 ## Host-local relational patch
 
-**Status:** Shipped (**BD-2**, **BD-3**, **BD-6**, **BD-7**, **BD-9**). Kernel: [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts). Coordinators: [`manipulation/relational/`](manipulation/relational/). Code map: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4).
+**Status:** Shipped (**BD-2**, **BD-3**, **BD-6**, **BD-7**, **BD-9**). Kernel: [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts). Coordinators: [`manipulation/relational/`](manipulation/relational/). Code map: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch).
 
 Mental model: [**Host-local relational patch**](AGENT.concepts.md#manipulation-layering-membership-transfer) (in-host topology without membership-host change). Distinct from membership transfer (**`HostEffect[]`**) and from adjacency reverse index (**no** adjacency dual-write for relational edges).
 
@@ -238,7 +238,7 @@ Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optiona
 
 ### Edge persist shape (BD-3; host widened BD-15/16 slice 3, 2026-07-15)
 
-Relational mutations **must** persist on a **fixed host** **`Meta::Room.positionGraph`** or **`Meta::Character.positionGraph`** forward graph only --- **`hostId`** was Room-only through B4 (v1 host: actor's current room --- **BD-6**); the kernel now accepts either (BD-15/16: a held-item relation can target the acting character's own inventory graph). Production ingress (`RelationalIngressArgs.roomId`, the compiler, and the bus payload) still only ever supplies a Room id today --- widening those to reach the held-item case end-to-end is BD-15/16 slice 4, not yet shipped; this slice only made the kernel structurally capable. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4)).
+Relational mutations **must** persist on a **fixed host** **`Meta::Room.positionGraph`** or **`Meta::Character.positionGraph`** forward graph only --- **`hostId`** was Room-only through B4 (v1 host: actor's current room --- **BD-6**); the kernel now accepts either (BD-15/16: a held-item relation can target the acting character's own inventory graph). Production ingress (`RelationalIngressArgs.roomId`, the compiler, and the bus payload) still only ever supplies a Room id today --- widening those to reach the held-item case end-to-end is BD-15/16 slice 4, not yet shipped; this slice only made the kernel structurally capable. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch)).
 
 **`HostRelationalPatch`** (kernel input; one add or remove on one host):
 

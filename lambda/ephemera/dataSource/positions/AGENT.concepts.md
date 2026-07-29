@@ -123,7 +123,7 @@ Per-operator coordinators       membership host transfer fact projection, stream
 | --- | --- |
 | **Manipulation kernel** | Graph-grounded persist executor: accept **`HostEffect[]`**, read affected hosts' `positionGraph`, validate, transact, dual-write adjacency |
 | **Host effect** | One alteration on a fixed host: add/remove identity node on `positionGraph` + matching adjacency dual-write |
-| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host; second kernel primitive (shipped). [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch-phase-b-shipped-b4) |
+| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host; second kernel primitive (shipped). [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
 | **Shared membership adapter** | Reusable **transfer planner**: membership observation + apply mode (`end-state` / `bounded`) -> **`HostEffect[]`** + projected `froms`/`to` |
 | **Per-operator coordinator** | Verb-specific ingress wrapper: calls shared adapter, then kernel; owns fact/cache/bus bundle |
 | **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); planned by shared adapter; projected to bus facts as `froms[]` / `to` |

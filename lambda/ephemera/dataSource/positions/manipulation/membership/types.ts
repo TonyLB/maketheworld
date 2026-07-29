@@ -1,25 +1,5 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { HostRelationalEdgeCarry } from '../types'
-
-/** Cross-host object membership apply (v1 takeHold: room -> character). */
-export type ObjectTakeHoldApplyArgs = {
-    objectId: EphemeraObjectId;
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-    /** Internal relational edges (BD-13) carried with the object to the destination host. */
-    carriedEdges?: HostRelationalEdgeCarry[];
-}
-
-/** Cross-host object membership apply (v1 drop: character -> room). */
-export type ObjectDropApplyArgs = {
-    objectId: EphemeraObjectId;
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-    /** Internal relational edges (BD-13) carried with the object to the destination host. */
-    carriedEdges?: HostRelationalEdgeCarry[];
-}
 
 /** Remove object from all membership hosts (destruction / clear). */
 export type ObjectClearMembershipApplyArgs = {
@@ -32,45 +12,6 @@ export type ObjectMembershipDiff = {
     to: EphemeraMembershipHostId | null;
     changed: boolean;
 }
-
-export type TakeHoldGraphPersistSuccess = {
-    ok: true;
-    persisted: true;
-    diff: ObjectMembershipDiff;
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>;
-    postApplyCharacterGraphs: Partial<Record<EphemeraCharacterId, EphemeraPositionGraphFieldPayload>>;
-}
-
-export type UpdateTakeHoldPositionGraphsResult =
-    | TakeHoldGraphPersistSuccess
-    | { ok: true; persisted: false; diff: ObjectMembershipDiff }
-    | { ok: false; errorCode: string; errorMessage: string }
-
-export type TakeHoldApplySuccessResult = {
-    ok: true;
-    beatAnchorTime?: number;
-} & ObjectMembershipDiff
-
-export type TakeHoldApplyErrorResult = {
-    ok: false;
-    errorCode: string;
-    errorMessage: string;
-}
-
-export type TakeHoldApplyResult = TakeHoldApplySuccessResult | TakeHoldApplyErrorResult
-
-export type DropApplySuccessResult = {
-    ok: true;
-    beatAnchorTime?: number;
-} & ObjectMembershipDiff
-
-export type DropApplyErrorResult = {
-    ok: false;
-    errorCode: string;
-    errorMessage: string;
-}
-
-export type DropApplyResult = DropApplySuccessResult | DropApplyErrorResult
 
 export type ClearMembershipApplySuccessResult = {
     ok: true;
