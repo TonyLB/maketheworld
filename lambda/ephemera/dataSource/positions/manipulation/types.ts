@@ -2,12 +2,6 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-/** One graph-grounded membership-node add/remove on a fixed host (M4 v1). */
-export type HostEffect =
-    | { hostId: EphemeraRoomId; identityId: EphemeraCharacterId; op: 'add' | 'remove' }
-    | { hostId: EphemeraRoomId; identityId: EphemeraObjectId; op: 'add' | 'remove' }
-    | { hostId: EphemeraCharacterId; identityId: EphemeraObjectId; op: 'add' | 'remove' }
-
 /** Membership host transfer semantics for bus facts and coordinator changed gates. */
 export type MembershipTransferProjection = {
     froms: EphemeraMembershipHostId[]
@@ -15,9 +9,8 @@ export type MembershipTransferProjection = {
     changed: boolean
 }
 
-/** Forward adapter output: kernel input + coordinator/fact fields from one planning pass. */
+/** Forward adapter output: the coordinator/fact projection from one planning pass. */
 export type MembershipTransferPlan = {
-    hostEffects: HostEffect[]
     projection: MembershipTransferProjection
 }
 

@@ -20,8 +20,8 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
-| [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `hostEffectsFromDiffs`, `planObjectClearFromAllHosts` |
+| [`manipulation/types.ts`](manipulation/types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
+| [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts` |
 | [`manipulation/kernel/`](manipulation/kernel/) | The one persist kernel --- `commitStepSequence`, `applyStepSequenceCore`, `kernelStep`, `computeStepSequenceFootprint`, `factsForStep`, plus the read-only `perceiveStepSequence` |
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host ingress (`takeHold`, `drop`) + destroy/edit clear |
 

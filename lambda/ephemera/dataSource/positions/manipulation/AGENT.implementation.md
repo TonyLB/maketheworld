@@ -6,7 +6,7 @@ Graph-grounded persist for `mtw.ephemera.positions`. Every membership and relati
 
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 
-**Vocabulary:** Layered terms (host effect, membership host transfer, graph-grounded persist) live in [`../AGENT.concepts.md` --- Manipulation layering](../AGENT.concepts.md#manipulation-layering-membership-transfer) and [`../AGENT.contract.md` --- Manipulation persist layering](../AGENT.contract.md#manipulation-persist-layering).
+**Vocabulary:** Layered terms (step sequence, membership host transfer, graph-grounded persist) live in [`../AGENT.concepts.md` --- Manipulation layering](../AGENT.concepts.md#manipulation-layering-membership-transfer) and [`../AGENT.contract.md` --- Manipulation persist layering](../AGENT.contract.md#manipulation-persist-layering).
 
 ---
 
@@ -138,7 +138,7 @@ Delivery reuses the existing `Look Command Requested` pipeline verbatim --- the 
 
 ## Section B --- Shared membership adapter (`adapters/`)
 
-The adapter plans *room-host* membership transfers for the routes that do not go through the Synthesize executor. Its whole public surface is three exports from [`adapters/index.ts`](adapters/index.ts): `computeMembershipDiff`, `hostEffectsFromRoomMembershipDiff`, and `planMembershipTransfer`.
+The adapter plans *room-host* membership transfers for the routes that do not go through the Synthesize executor. Its whole public surface is `computeMembershipDiff`, `planMembershipTransfer`, and `planObjectClearFromAllHosts`. There is deliberately **no barrel** --- call sites import the concrete module they need.
 
 ### Planner inputs
 
@@ -166,7 +166,6 @@ Both modes filter `priorContainers` to **room hosts** before diffing --- this pl
 
 ```typescript
 type MembershipTransferPlan = {
-    hostEffects: HostEffect[];
     projection: {
         froms: EphemeraMembershipHostId[];
         to: EphemeraMembershipHostId | null;
@@ -175,11 +174,11 @@ type MembershipTransferPlan = {
 }
 ```
 
-**`projection` is what live coordinators consume** --- membership transfer semantics for bus facts and `changed` gates. `hostEffects` is vestigial --- it fed a host-effect-shaped kernel that no longer exists, and no current caller reads it.
+The projection is the planner's whole output --- membership transfer semantics for bus facts and coordinator `changed` gates. It deliberately carries **no per-host effect list**: the kernel derives its own footprint and per-host mutations from the step's `fromHostIds`/`toHostId`, so a planner that also enumerated them would be a second, staleable source of truth for the same thing.
 
 ### Clear-from-all-hosts
 
-[`planObjectClearFromAllHosts`](adapters/planObjectClearFromAllHosts.ts) is the destroy/edit counterpart: it takes an object's prior containers of *either* host kind and projects `{ froms: all priors, to: null, changed }`. Not barrel-exported --- imported directly by [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts).
+[`planObjectClearFromAllHosts`](adapters/planObjectClearFromAllHosts.ts) is the destroy/edit counterpart: it takes an object's prior containers of *either* host kind and projects `{ froms: all priors, to: null, changed }`. Imported by [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts).
 
 ### Parse alignment
 
@@ -314,11 +313,9 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`adapters/index.ts`](adapters/index.ts) | Public surface: `computeMembershipDiff`, `hostEffectsFromRoomMembershipDiff`, `planMembershipTransfer` |
 | [`adapters/planMembershipTransfer.ts`](adapters/planMembershipTransfer.ts) | End-state / bounded room-host transfer planner |
 | [`adapters/computeEndStateRoomDiff.ts`](adapters/computeEndStateRoomDiff.ts) | End-state room `MembershipDiff` |
-| [`adapters/hostEffectsFromDiffs.ts`](adapters/hostEffectsFromDiffs.ts) | Diff -> `HostEffect[]` |
-| [`adapters/planObjectClearFromAllHosts.ts`](adapters/planObjectClearFromAllHosts.ts) | Destroy/edit clear projection (not barrel-exported) |
+| [`adapters/planObjectClearFromAllHosts.ts`](adapters/planObjectClearFromAllHosts.ts) | Destroy/edit clear projection |
 
 ### `membership/`
 
@@ -344,7 +341,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`types.ts`](types.ts) | `HostEffect`, `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` (the last is `EphemeraPositionGraph.applyRelationalPatch`'s own input shape) |
+| [`types.ts`](types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` (the last is `EphemeraPositionGraph.applyRelationalPatch`'s own input shape) |
 
 ---
 
