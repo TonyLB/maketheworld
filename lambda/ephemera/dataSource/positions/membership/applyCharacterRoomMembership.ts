@@ -70,8 +70,6 @@ export const applyCharacterRoomMembership = async (
 
     const priorContainers = await getMembershipContainers(args.characterId)
     const plan = planMembershipTransfer({
-        entityId: args.characterId,
-        entityKind: 'character',
         applyMode: 'end-state',
         target: args.targetRoomId,
         priorContainers,

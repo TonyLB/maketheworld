@@ -12,7 +12,7 @@ Shared read surfaces from [`@tonylb/mtw-gateways`](../../../packages/mtw-gateway
 
 **Blueprint stack (hydrate consumers):** use **`internalCache.ComponentData.getAcrossAssets`** at the caller-supplied participation stack (pair-addressed reads). Steady-state hydrate calls **`internalCache.ComponentExamples.get(...)`** from [`ensureAuthoredCatalog`](../dataSource/renderCache/ensureAuthoredCatalog.ts) (orchestration resolve only in v1) --- not **`assembleComponentExamplesAtPerspective`**. Affordance-topology hydrate (**`ensureAffordanceTopology`** in [`affordanceCache`](../dataSource/affordanceCache/ensureAffordanceTopology.ts)) calls **`internalCache.ComponentTopology.get(...)`** on stale catalog reads only --- **not** on **`TopologyInvalidated`** receive (mirror **`handleExampleInvalidated`**). Feature/Knowledge perspective reads vertical hops via **`internalCache.ComponentVerticals.get`** in [`prepareFeatureKnowledgeRenderForCharacter`](../dataSource/renderOrchestration/prepareFeatureKnowledgeRenderForCharacter.ts). See [`packages/mtw-gateways/AGENT.md`](../../../packages/mtw-gateways/AGENT.md), [`renderCache/AGENT.md`](../dataSource/renderCache/AGENT.md) (**On-demand authored examples**), and [`affordanceCache/AGENT.md`](../dataSource/affordanceCache/AGENT.md).
 
-### Area topology and affordance exits (steady state)
+### Area topology and affordance exits
 
 Navigational exits on the affordances channel are **not** read from room blueprint **`StandardRoom.exits`** rows. The steady-state path:
 
@@ -27,9 +27,9 @@ Navigational exits on the affordances channel are **not** read from room bluepri
 
 **Production note:** Room-local blueprint exits were cleared; navigable exits come from merged Area **`positionGraph.edges`** via **`projectRoomExits`**. Production Coyote topology uses the overlay-asset pattern in [`AGENT.CoyoteGame.implementation.md`](../../../AGENT.CoyoteGame.implementation.md) (**Overlay asset topology**; play-mode verified 2026-06-09). Edge authoring rules: [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
-### Membership presentation and roster (steady state)
+### Membership presentation and roster
 
-Play **membership** on the affordances channel is **not** stored as display fields on `Meta::Room.positionGraph`. The steady-state path (parallel to [exit presentation](#area-topology-and-affordance-exits-steady-state) above):
+Play **membership** on the affordances channel is **not** stored as display fields on `Meta::Room.positionGraph`. The steady-state path (parallel to [exit presentation](#area-topology-and-affordance-exits) above):
 
 1. **Play manipulation truth** --- **`internalCache.Positions.getPositionGraph`** returns host-bound **`EphemeraPositionGraph`** (gateway **`PlayPositionGraph`** adapted at the cache wrapper); **`getMembershipContainers`** loads adjacency ([`dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority)). **`getMembershipContainers`** accepts **`CHARACTER#`** or **`OBJECT#`** PKs.
 2. **Roster hydration** --- **`getRoomCharacterList`** ([`hydrateRoomRoster.ts`](hydrateRoomRoster.ts)) reads topology via **`internalCache.Positions.getPositionGraph`** -> **`graph.characterIds`**, then **`hydrateRoomRosterFromCharacterIds`** joins **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`).
@@ -39,11 +39,11 @@ Play **membership** on the affordances channel is **not** stored as display fiel
 
 **Navigation:** [`getRoomExitTargetsForCharacter`](../dataSource/actions/roomExitTargetsForCharacter.ts) uses **`getMembershipContainers`** for the character room endpoint only --- not hydrated roster.
 
-Normative read rules and D3 must-not guard: [`dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#read-surface-s1-5-s1-15-slice-2).
+Normative read rules and D3 must-not guard: [`dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
 
 ### Per-invocation process state (not only deferred loads)
 
-Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.
+Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`PerceptionThreads`](perceptionThreads.ts) for the render targeting registry (below). Message ordering is **not** such a handler: it lives in [`dataSource/messageOrchestration`](../dataSource/messageOrchestration/AGENT.md), which owns per-bundle ordering and `CreatedTime` assignment.
 
 **Shipped (step 3 foundation):** **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](perceptionThreads.ts)) --- **render targeting registry** for **`mtw.ephemera.perception`** (distinct from membership **`FanInClusterStore`** fan-in on the same DataSource); **multiple** independent entries per **`componentId` + `perspectiveKey`**; **`register(cmd)`** takes a **`threadKind`**-discriminated **`PerceptionThreadRegisterCommand`** (see [`localApiEvents.ts`](../dataSource/perception/localApiEvents.ts)); **`update`** accepts a **`PerceptionThreadPatch`** (required **`threadKind`**, aligned with thread body **`kind`**) validated by **`isPerceptionThreadPatch`**, merged via **`mergePerceptionThreadPatch`**; returns **`false`** only when the row is missing; throws on invalid patch or kind mismatch; `clear()` wired from `InternalCache.clear()`, **no** `flush()`. Why perception owns this state, which flows register threads ([**Delivery paths**](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)), per-`threadKind` fields ([**Render targeting registry**](../dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads)), plus **routing key**, **obligations**, and **verification**: [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) (**Normative decisions and obligations**).
 

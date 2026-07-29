@@ -23,7 +23,7 @@ Player-facing messages use **`CreatedTime`** as **where the line belongs in the 
 - The server assigns **`CreatedTime`** at publish time (see [`publishMessage/index.ts`](publishMessage/index.ts)).
 - Dynamo **`message_delta`** keys rows as **`DeltaId = CreatedTime::MessageId`**.
 - The client sorts and sections the transcript by **`(CreatedTime, MessageId)`** ([`charcoal-client/src/slices/messages/index.ts`](../../charcoal-client/src/slices/messages/index.ts)).
-- **`OrchestrateMessages`** ([`internalCache/orchestrateMessages.ts`](internalCache/orchestrateMessages.ts)) expresses **relative** positions within a beat: **`before`** / root / **`after`** groups become negative / zero / positive offsets on a shared invocation **`baseTime`** ([`publishMessage/README.md`](publishMessage/README.md)).
+- **`messageOrchestration`'s bundle** ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) expresses **relative** positions within a beat: a bundle declares its slots up front in compiled order, and at flush assigns each resolved slot's **`CreatedTime`** itself --- sequential in declared order, 1ms apart --- **overwriting** whatever value the slot's message arrived with.
 
 **Implication:** Backend latency, handler order, and websocket packet order are **implementation details**. What matters for display is that each row carries the **intended transcript position**.
 
@@ -55,7 +55,7 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 | --- | --- |
 | **Websocket packet order** | Client and server both sort by **`CreatedTime`** before display. |
 | **Same lambda invocation** | Rows may publish from different handlers or invocations if transcript times are assigned coherently. |
-| **Single batched publish** | `messageOrchestration`'s bundle flush ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) delivers a bundle's slots as one wire push once all are resolved --- a convenience of that mechanism, not a client contract (removed, 2026-07-26: the previous `publishMessage/coalescer.ts` deferred-batching mechanism, which had no genuine remaining use once every producer had a real reason for immediate delivery --- see MO-8). |
+| **Single batched publish** | `messageOrchestration`'s bundle flush ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) delivers a bundle's slots as one wire push once all are resolved --- a convenience of that mechanism, not a client contract. There is no general deferred-batching path: `publishMessage` delivers immediately and correctness rests on `CreatedTime`. |
 | **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)). |
 | **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes; ordering comes from the `messageOrchestration` bundle's declared-order `CreatedTime` assignment (or other explicit times), not a shared grouping id. |
 
@@ -79,14 +79,14 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 
 ## Relation to PerceptionThreads and fan-in
 
-Today **`characterMove`** registers a targeting-only PerceptionThreads row after membership persist so async header render can correlate to a bucket ([`orchestrateNavigate.ts`](dataSource/positions/navigate/orchestrateNavigate.ts), [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)). That registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
+Directed perception (a specific actor's command producing perception aimed at them --- navigate's arrival header, an explicit `look`) registers an ingress slot with **`messageOrchestration`** so async render can correlate back to a bundle ([`orchestrateNavigate.ts`](dataSource/positions/navigate/orchestrateNavigate.ts), [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)). Reactive broadcast (room content changed, roster changed --- no actor) stays on **`PerceptionThreads`**. Either way that registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
 
-**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`CreatedTime`** assignments --- `messageOrchestration`'s bundle now owns this assignment directly (`baseTime + offset` in declared order), superseding the retired `OrchestrateMessagesData`/`messageGroupId` mechanism entirely (see [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)). Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
+**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`CreatedTime`** assignments --- `messageOrchestration`'s bundle owns that assignment for directed presentation (`baseTime + offset` in declared order; see [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)); other producers set explicit `createdTime`. Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
 
 **Anti-patterns to avoid when designing fan-in specs:**
 
 - Requiring all legs of a cluster to publish in one handler pass "so order is right"
-- Treating wire-batching convenience as the only way to get narrative order (the retired `publishMessage/coalescer.ts` deferred-batching mechanism was exactly this anti-pattern; see MO-8)
+- Treating wire-batching convenience as the only way to get narrative order (a deferred wire-batching buffer is exactly this anti-pattern)
 - Using side-band registration order as a substitute for explicit transcript times
 - Conflating **`clusterKey`** with a shared grouping id unless deliberately chosen
 

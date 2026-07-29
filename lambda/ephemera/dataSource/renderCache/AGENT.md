@@ -160,7 +160,7 @@ Stored directly in DynamoDB:
 
 ## Perspective and asset stacks
 
-### Perspective and matcher-based matching (Phase 5.7)
+### Perspective and matcher-based matching
 
 Examples are authored against a **stack of assets** (inheritance chain). The same logical Example can render differently depending on which assets are in the stack and in what order. We treat each **distinct render** as a separate cache record and identify the context by a **perspective**:
 

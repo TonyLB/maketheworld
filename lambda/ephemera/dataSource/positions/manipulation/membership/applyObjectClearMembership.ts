@@ -39,10 +39,7 @@ export const applyObjectClearMembership = async (
     const getMembershipContainers = deps.getMembershipContainers ?? defaultGetMembershipContainers
 
     const priorContainers = await getMembershipContainers(args.objectId)
-    const plan = planObjectClearFromAllHosts({
-        objectId: args.objectId,
-        priorContainers,
-    })
+    const plan = planObjectClearFromAllHosts({ priorContainers })
 
     const diff = plan.projection
 

@@ -4,7 +4,7 @@ This folder owns post-classify enrichment for **`ObjectMembershipIntent`** and *
 
 Parent docs:
 
-- Actions implementation (field tables, egress, playbooks): [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
+- Actions implementation (field tables, egress, playbooks): [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents)
 - Enrich module inventory: [`../AGENT.md`](../AGENT.md)
 - LLM design (two axes): [`../../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md), [`../../../llm/AGENT.contract.md`](../../../llm/AGENT.contract.md)
 - Operator semantics: [`../../../diegeticLogic/AGENT.operators.concepts.md`](../../../diegeticLogic/AGENT.operators.concepts.md)
@@ -211,6 +211,6 @@ Authority: [`../../../../AGENT.testing.md`](../../../../AGENT.testing.md).
 
 ## Navigation
 
-- Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents)
+- Full pipeline sequence + egress tables: [`../../AGENT.implementation.md`](../../AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents)
 - Identify / Plan / Synthesize decomposition (Target vocabulary): [`../../AGENT.concepts.md`](../../AGENT.concepts.md)
 - Phase C--D planning (Plan IR, plan LLM): [`../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.manipulationFrameAndRelational.planning.md) (Phase C unblocked --- Gateway exit complete; see **Phase C design debt** in that plan)

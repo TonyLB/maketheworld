@@ -17,7 +17,7 @@ Implementation: [`index.ts`](./index.ts). Each lambda uses a single `InternalMes
 
 **Subscription `priority`:** retained on the subscribe type for documentation; **`publish` does not enforce priority ordering**. Matching subscribers run concurrently.
 
-**Defer buffer (orchestration outbound coalescing):** not a second subscriber queue. **`registerDeferral`** + per-need aggregators at module load; **`afterSettled`** hooks are **IO-only** (no `publish` from registrants). Examples: [`checkLocation/coalescer.ts`](../../../lambda/ephemera/checkLocation/coalescer.ts), [`returnValue/collector.ts`](../../../lambda/ephemera/returnValue/collector.ts). (Ephemera's `publishMessage/coalescer.ts` --- a `deliveryMode: 'deferred'`-driven example of this pattern --- was removed in its entirety 2026-07-26, [`AGENT.messageOrchestrationConsolidation.planning.md`](../../../../taskPlanning/lambda/ephemera/AGENT.messageOrchestrationConsolidation.planning.md) MO-8: no remaining producer had a genuine reason to hold delivery.) DataSource fan-in stores ([`FanInClusterStore`](../dataSource/fanInClusterStore.ts)) also register deferrals for settle-time incomplete clusters; see [Fan-in cluster pattern](../dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation).
+**Defer buffer (orchestration outbound coalescing):** not a second subscriber queue. **`registerDeferral`** + per-need aggregators at module load; **`afterSettled`** hooks are **IO-only** (no `publish` from registrants), flushing a batched WebSocket send at the same tail. No lambda currently registers one --- distinct from the **boundary response collector** below (assembles `ReturnValue`/`Error`, not an outbound batch) and from **DataSource fan-in stores** ([`FanInClusterStore`](../dataSource/fanInClusterStore.ts)), which also register deferrals but for settle-time incomplete clusters, not outbound batching; see [Fan-in cluster pattern](../dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation).
 
 ## Boundary response collector
 
@@ -30,7 +30,7 @@ Implementation: [`boundaryResponseCollector.ts`](./boundaryResponseCollector.ts)
 - **Subscriptions:** priority **16** by default (`ReturnValueCollector`, `ErrorCollector`).
 - **Deferral:** registers `onClear: reset` so `messageBus.clear()` at ingress resets per-invocation buffers.
 
-**`extractReturnValue` stays per-lambda.** The package collects fragments; each lambda owns HTTP/API Gateway shaping (RequestId, default Success, WebSocket route-response passthrough, etc.). Reference consumers: [`lambda/diagnostics/returnValue/`](../../../lambda/diagnostics/returnValue/), [`lambda/ephemera/returnValue/`](../../../lambda/ephemera/returnValue/).
+**`extractReturnValue` stays per-lambda.** The package collects fragments; each lambda owns HTTP/API Gateway shaping (RequestId, default Success, WebSocket route-response passthrough, etc.). Reference consumers: [`lambda/diagnostics/returnValue/`](../../../../lambda/diagnostics/returnValue/), [`lambda/ephemera/returnValue/`](../../../../lambda/ephemera/returnValue/).
 
 ```ts
 import {
@@ -68,7 +68,7 @@ Mechanical steps to migrate a lambda from hand-rolled `returnValue/collector.ts`
 | 5 | Slim `returnValue/collector.test.ts` to integration-only (`extractReturnValue` policy); generic merge/reset/register tests live in [`boundaryResponseCollector.test.ts`](./boundaryResponseCollector.test.ts). |
 | 6 | Run lambda tests + package `boundaryResponseCollector.test.ts`. |
 
-**Reference consumers:** [`lambda/diagnostics/returnValue/`](../../../lambda/diagnostics/returnValue/), [`lambda/ephemera/returnValue/`](../../../lambda/ephemera/returnValue/), [`lambda/assets/returnValue/`](../../../lambda/assets/returnValue/), [`lambda/wml/returnValue/`](../../../lambda/wml/returnValue/), [`lambda/connections/returnValue/`](../../../lambda/connections/returnValue/).
+**Reference consumers:** [`lambda/diagnostics/returnValue/`](../../../../lambda/diagnostics/returnValue/), [`lambda/ephemera/returnValue/`](../../../../lambda/ephemera/returnValue/), [`lambda/assets/returnValue/`](../../../../lambda/assets/returnValue/), [`lambda/wml/returnValue/`](../../../../lambda/wml/returnValue/), [`lambda/connections/returnValue/`](../../../../lambda/connections/returnValue/).
 
 **Per-lambda notes:** assets keeps SNS side-effect `ReturnValue` handler at priority 9; connections `extractReturnValue` has WebSocket route-response passthrough; ephemera keeps `ReturnValue`-encoded app errors separate from bus `Error`; diagnostics returns raw invoke bodies without default Success.
 
@@ -80,8 +80,8 @@ await messageBus.settle()  // test harness drain only; not production handler bo
 // Lambda boundary drain
 await messageBus.flushAndSettle()  // settle loop, then runDeferrals()
 
-// Deferral registration (module load)
-checkLocationCoalescer.registerDeferral(messageBus)
+// Deferral registration (module load), e.g. a fan-in store's settle-time flush
+someFanInClusterStore.registerDeferral(messageBus)
 ```
 
 **DataSource outbounds:** [`streamEvent` / `streamEnvelope`](../dataSource/index.ts) always call `messageBus.publish` for bus delivery. See **Message bus integration** in [`../dataSource/AGENT.implementation.md`](../dataSource/AGENT.implementation.md).

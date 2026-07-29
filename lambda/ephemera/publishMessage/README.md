@@ -17,49 +17,16 @@ The Ephemera lambda needs a simple abstraction with which to deliver messages to
 ---
 ---
 
-# OrchestrateMessage IntenralCache
+# Message ordering (not this package's job)
 
-The OrchestrateMessage internalCache class is the interface by which the system can order messages relative to
-one another, so that they are delivered in the proper sequence.
+Ordering messages relative to one another --- e.g. "Tess leaves" delivered fractionally before the room
+perception message for the place Tess is arriving to, and "Tess arrives" fractionally after it --- belongs to
+[`dataSource/messageOrchestration`](../dataSource/messageOrchestration/AGENT.md), which declares a bundle's
+slots up front in compiled order and assigns each flushed message's `createdTime` itself (sequential in
+declared order, 1ms apart).
 
----
+This package assigns `CreatedTime` only for payloads that carry none of their own: `baseTime + index` in
+payload-array order. It has no notion of message groups, relative offsets, or deferred batching.
 
-## Needs Addressed
-
----
-
-Some messages need to be delivered before or after other messages: e.g., "Tess leaves" should be delivered
-fractionally before the Room perception message for the place Tess is arriving to, and "Tess arrives" should
-be delivered fractionally after that perception event.
-
-Narrative ordering uses **fictional transcript time** (`CreatedTime`), not wire packet order. See [`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md).
-
----
-
-## Tree fragments
-
-Messages can be tagged with a "MessageGroup" UUID that associates them with a certain group of messages.
-These messageGroups are stored in the internalCache (and generated from its class functions) along with
-their relations with each other.
-
-```js
-type MessageGroupId = string;
-
-type OrchestrateMessagesGroup = {
-    messageGroupId: MessageGroupId;
-    parentGroupId: MessageGroupId;
-    before: MessageGroupId[];           // A list of child messageGroups that must occur before this one, with no necessary ordering relative to each other
-    after: MessageGroupId[];            // A list of child messageGroups that must occur after this one, with no necessary ordering relative to each other
-    during: MessageGroupId[];           // A list of child messageGroups that must be reported, in sequence order, after all "before" items and before all "after"
-}
-```
-
----
-
-## Orchestration
-
-As part of the handling of Publish Message, the "allOffsets" method of the OrchestrateMessage cache is called, returning a list
-of time-offsets for each messageGroup in the cache. These offsets will be both positive and negative, with the root node of each
-tree being at offset zero, before branches being offset into the past and after branches into the future. Each publishMessage
-that has a messageGroupId assigned will have the relevant time-offset applied when the message is delivered, ensuring that message
-order is presented as intended.
+Narrative ordering uses **fictional transcript time** (`CreatedTime`), not wire packet order --- see
+[`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md).

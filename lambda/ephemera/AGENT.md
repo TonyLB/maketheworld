@@ -60,7 +60,7 @@ The Ephemera Lambda integrates with other system components through:
 - **EventBridge Events**: Receives assets update events for blueprint reconciliation and diagnostics findings for self-healing intake
 - **Client Applications**: Maintains persistent WebSocket connections for real-time interaction
 
-#### **Diagnostics occupancy drift (S2-6-DR)**
+#### **Diagnostics occupancy drift**
 
 Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-only sweep: [`lambda/diagnostics/roomOccupancyDriftSweep/`](../../diagnostics/roomOccupancyDriftSweep/)). Downstream repair is owned by **`mtw.ephemera.positions`** via [`repairRoomOccupancyDrift`](dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward scan, sessions gate, adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
 

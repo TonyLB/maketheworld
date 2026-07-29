@@ -44,11 +44,11 @@ Post-discrimination enrichment flows live under [`enrich/`](./enrich/), with Acm
 - Parse-based home (**bare `home`**, **`HomeIntent`**, **`Parse Requested`**) and trusted home (**`Action Assessed`** **`Home`** from [`routeTrustedUiAction`](../routeTrustedUiAction.ts), `source: 'uiHome'`) **`streamEvent`** **`Character Home`**; positions executes via the same **`executeCharacterNavigate`** path as navigate.
 - actions emits `Character Navigate` (`characterId`, `fromRoomId`, `toRoomId`, optional `exitName` when parse matched a named exit) and `Character Home` (`characterId`, `fromRoomId`, `toRoomId` from `CharacterMeta.HomeId`) for fan-in intent legs and positions execution.
 - **Disconnect** and **connect** intent legs come from **`mtw.connections.characters`**; positions owns membership apply. Leave/arrive world copy is owned by **membership fan-in** on **`mtw.ephemera.perception`** ([`../perception/AGENT.md`](../perception/AGENT.md)).
-- Asset visibility repair (**`repairCharacterLegalPlacement`**) is available under [`positions/membership/`](../positions/membership/repairCharacterLegalPlacement.ts) for future canon/zone ingress; **`CheckLocation` bus adapter retired** at Close **S2-6-DR**.
+- Asset visibility repair (**`repairCharacterLegalPlacement`**) is available under [`positions/membership/`](../positions/membership/repairCharacterLegalPlacement.ts) for future canon/zone ingress; **`CheckLocation` bus adapter retired**.
 
 ## Object manipulation (actions stream vs positions execution)
 
-- Parse-based pick-up (**`Parse Requested`** -> classify **`ObjectMembershipIntent`** -> split-stage enrich (identity, membership observation, complexity pre-gates) -> **`Object Take Hold`**) is **stream-only** from actions; graph apply is owned by **`mtw.ephemera.positions`** ([`manipulation/membership/executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts)). Pipeline detail: [**Object manipulation classify + enrich steady-state**](./AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents).
+- Parse-based pick-up (**`Parse Requested`** -> classify **`ObjectMembershipIntent`** -> split-stage enrich (identity, membership observation, complexity pre-gates) -> **`Object Take Hold`**) is **stream-only** from actions; graph apply is owned by **`mtw.ephemera.positions`** ([`manipulation/membership/executeObjectTakeHold`](../positions/manipulation/membership/executeObjectTakeHold.ts)). Pipeline detail: [**Object manipulation classify + enrich steady-state**](./AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents).
 - v1 ingress is **`Parse Requested`** only (no **`Action Assessed`** branch for manipulation).
 - Payload: `{ type: 'Object Take Hold', characterId, objectId, roomId, confidence? }` --- trusted ids post-parse. Contract detail: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md) (**`Object Take Hold`** ingress).
 - Transcript copy is owned by **object-manipulation fan-in** on **`mtw.ephemera.perception`** ([`../perception/AGENT.md`](../perception/AGENT.md)).
@@ -90,7 +90,7 @@ Hypothesis / plan prompts format staged objects from **`shortName`** plus trope 
 
 ### Downstream
 
-Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**[Clustering and combine (design)](../coyoteGame/AGENT.md#clustering-and-combine-design)**).
+Clustering / combine behavior is documented under **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**[Stage-one candidate seam](../coyoteGame/generators/pipelines/hypothesis/AGENT.md#stage-one-candidate-seam-tropeassignments)**).
 
 ---
 

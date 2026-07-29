@@ -72,7 +72,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 2. **Classify (usually unchanged for new atomics)** --- **`ObjectMembershipIntent`** + **`verbClass`** (`acquire` | `release`); object spans come from **Parse** (LLM route) or self-built by the deterministic fast path ([`deterministicChecks.ts`](discriminateIntent/deterministicChecks.ts)), **not** from classify since iteration 3's Step 3. Thread **`movementObjectLabels`** (union of room + held labels from parallel fetch) into the classify prompt via [`roomObjectLabelsFromCatalog`](roomObjectCatalogForCharacter.ts).
 
-3. **Enrich (membership path only)** --- **`parseCommand`** routes **`ObjectMembershipIntent`** -> **`compileMembershipAtomic`**. Membership complexity defer may yield terminal **`Error`** stubs (`multiObject`, `multiPresent`, **`relationalPlacement`** on membership path only). See [Object manipulation classify + enrich steady-state](#object-manipulation-classify--enrich-steady-state-shipped---b25-split-intents) for full pipeline.
+3. **Enrich (membership path only)** --- **`parseCommand`** routes **`ObjectMembershipIntent`** -> **`compileMembershipAtomic`**. Membership complexity defer may yield terminal **`Error`** stubs (`multiObject`, `multiPresent`, **`relationalPlacement`** on membership path only). See [Object manipulation classify + enrich steady-state](#object-manipulation-classify--enrich-steady-state-b25-split-intents) for full pipeline.
 
 4. **Identity resolve (FT-2.2 membership / native skeleton relational)** --- pool emission in [`identityStage.ts`](enrich/objectManipulation/identityStage.ts) via [`resolveCatalogSpanToPool`](enrich/objectManipulation/resolveCatalogSpanToPool.ts) (exact -> single-candidate pool; non-exact -> [`buildSpanCandidatePool`](enrich/objectManipulation/embeddingMatch/buildSpanCandidatePool.ts)). **Membership:** [`selectMembershipFromPool`](enrich/objectManipulation/selectMembershipFromPool.ts) (propose-N + FT-5 legality-gated tuple selector + existence guard; thin-margin -> terminal **`Consult`**; grey-band -> **`Abstain`**). **Relational (iteration 3):** [`identifySkeletonSpans.ts`](enrich/objectManipulation/identifySkeletonSpans.ts) runs the same `identityStage` resolver over the skeleton's `objectSpan` tokens, rekeyed onto `stableRefKey`; Grounding ([`synthesize/groundChange.ts`](enrich/objectManipulation/synthesize/groundChange.ts)) builds the joint candidate space and Validation ([`synthesize/filterLegalRelationalCandidates.ts`](enrich/objectManipulation/synthesize/filterLegalRelationalCandidates.ts)) filters it (candidate ranking among survivors is a deliberately naive `candidates[0]` placeholder --- BD-25, iteration 2). Identity LLM + bridge [`selectSingleSpanFromPool`](enrich/objectManipulation/selectSingleSpanFromPool.ts) retired from production. Calibration: [`enrich/objectManipulation/embeddingMatch/AGENT.md`](enrich/objectManipulation/embeddingMatch/AGENT.md).
 
@@ -88,7 +88,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 Use when a player command commits an **in-host relational edge** on the actor's current room **`positionGraph`** via **`mtw.ephemera.positions`** (not membership-host transfer; not nested containment). Shipped operators: **`establishRelation`** (`op: 'add'`), **`dissolveRelation`** (`op: 'remove'`).
 
-Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Operator fiction: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Positions apply: [`../positions/manipulation/relational/`](../positions/manipulation/relational/). Normative ingress: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md#host-local-relational-patch-phase-b-shipped-b4).
+Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Operator fiction: [`../../diegeticLogic/AGENT.operators.concepts.md`](../../diegeticLogic/AGENT.operators.concepts.md). Positions apply: [`../positions/manipulation/relational/`](../positions/manipulation/relational/). Normative ingress: [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md#host-local-relational-patch).
 
 1. **When to use this path** --- subject and target are both objects on the room host graph; relation is a forward-graph edge (`On`, `Under`, `Against`, or `Custom` + label). **Not** membership transfer. **Not** containment (`in` / `inside` / `into`) --- routes to **`nestingRelational`** Error until nested-container operator ships.
 
@@ -122,7 +122,7 @@ Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLo
 
 ## Affordance design notes
 
-### Object manipulation classify + enrich steady-state (shipped --- B2.5 split intents)
+### Object manipulation classify + enrich steady-state (B2.5 split intents)
 
 **Pipeline design (general):** [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md), [`../../llm/AGENT.contract.md`](../../llm/AGENT.contract.md). **Hop-purpose narrative (Coyote-style):** [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md). This section documents the **instance** (field ownership table below).
 
@@ -227,7 +227,7 @@ Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAs
 
 ## `DeterministicTemplate` module (bare-word subset wired, 2026-07-20)
 
-Vocabulary and design: [`AGENT.concepts.md`](./AGENT.concepts.md#deterministictemplate-shipped-2026-07-20). This section is the module map.
+Vocabulary and design: [`AGENT.concepts.md`](./AGENT.concepts.md#deterministictemplate). This section is the module map.
 
 - `dataSource/actions/deterministicTemplate/`:
   - `deterministicTemplate.ts` --- `DeterministicTemplate` interface, `PatternElement`, `IntentFieldRole`, `DeterministicTemplateMatch`, `DeterministicTemplateDeferReason` types.

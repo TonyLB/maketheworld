@@ -2,7 +2,7 @@
 
 This file indexes **cross-cutting mental models** for player-visible delivery and related ephemera behavior. Normative rules live in sibling **`*.contract.md`** files or under package **`AGENT.contract.md`** files. Package-local vocabulary (for example positions graphs) stays in package **`AGENT.concepts.md`** files under [`dataSource/`](dataSource/). **Diegetic logic** (play-semantics design) lives in [`diegeticLogic/`](diegeticLogic/).
 
-**Task planning:** open implementation forks stay in [`taskPlanning/`](../../taskPlanning/) --- not here ([`taskPlanning/AGENT.md`](../../taskPlanning/AGENT.md#open-decisions-implementation--plan-only)).
+**Task planning:** open implementation forks stay in [`taskPlanning/`](../../taskPlanning/) --- not here ([`taskPlanning/AGENT.md`](../../taskPlanning/AGENT.md#open-decisions-implementation-----plan-only)).
 
 ---
 

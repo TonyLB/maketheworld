@@ -1,15 +1,12 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { computeMembershipDiff } from './computeEndStateRoomDiff'
 import type { MembershipDiff } from '../../membership/types'
 import type { MembershipTransferPlan } from '../types'
-import { hostEffectsFromRoomMembershipDiff } from './hostEffectsFromDiffs'
 
 export type PlanMembershipTransferArgs = {
-    entityId: EphemeraCharacterId | EphemeraObjectId
-    entityKind: 'character' | 'object'
     applyMode: 'end-state' | 'bounded'
     target: EphemeraMembershipHostId | null
     boundedHostIds?: EphemeraMembershipHostId[]
@@ -48,12 +45,7 @@ export const planMembershipTransfer = (args: PlanMembershipTransferArgs): Member
         diff = computeBoundedRoomDiff(priorRooms, args.boundedHostIds, args.target)
     }
 
-    const hostEffects = diff.changed
-        ? hostEffectsFromRoomMembershipDiff(args.entityId, args.entityKind, diff)
-        : []
-
     return {
-        hostEffects,
         projection: {
             froms: diff.froms,
             to: diff.to,
