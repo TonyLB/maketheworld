@@ -72,12 +72,12 @@ This is why several rules downstream look redundant but are not: forward reads m
 
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes** (slice 2 character; Phase 4 object) plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom` --- Phase B shipped).
+- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes**, plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom`).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
 
-A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule at Phase 4 (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
+A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
 
 ### Object room placement (nodes only)
 
@@ -87,7 +87,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 - **Where** the object is in play: **`Object`** node on the delivery room **`positionGraph`** + **`OBJECT#`** adjacency row (**I5**).
 - **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
 - **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
-- **In-host relational edges:** [`applyHostRelationalPatch`](manipulation/applyHostRelationalPatch.ts) via [`manipulation/relational/`](manipulation/relational/) coordinators; emits **`Object Relation Changed`** (Phase B shipped). Containment (`in` / inside) deferred to future nesting operator.
+- **In-host relational edges:** [`manipulation/relational/`](manipulation/relational/) coordinators build relational steps for the kernel; emits **`Object Relation Changed`**. Containment (`in` / inside) deferred to a future nesting operator.
 - Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
 
 ### Character inventory graph (D16; object nodes only)
@@ -97,39 +97,44 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPositionGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
-- **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence` (slice-1 `characterInventoryTransactItems.ts` retired 2026-07-23).
-- **Cross-host apply:** [`manipulation/membership/applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`** (shipped). [`manipulation/membership/applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) --- atomic character-remove + room-add on **`drop`** (shipped). Both use shared adapter + kernel --- **no** new `update*PositionGraphs` fork.
+- **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
+- **Cross-host apply:** [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`**. [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) --- atomic character-remove + room-add on **`drop`**. Both ground their transfer set through the Synthesize executor and commit through the kernel --- **no** new `update*PositionGraphs` fork.
 
 ### Manipulation layering (membership transfer)
 
-Membership transfer persist is organized in four layers. Coordinators call the shared adapter + **`commitStepSequence`** kernel (`applyHostEffects` retired 2026-07-23). Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+Every graph mutation is expressed as an ordered **step sequence** and committed through one kernel entrypoint. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
 
 ```text
 Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)
         |
         v
-Shared membership adapter       froms/to planning, apply mode, membership observation -> HostEffect[]
+Planning                        shared membership adapter (fixed room-host targets)
+        |                       or Synthesize executor, re-run at execute time (live grounding)
+        v
+Kernel step sequence            transferMembership | establishRelation | dissolveRelation
         |
         v
-Manipulation kernel             validate + apply HostEffect[] on affected positionGraphs only
+commitStepSequence              lock footprint -> one transactWrite -> re-validate live -> stream facts
         |
         v
-Per-operator coordinators       membership host transfer fact projection, stream/cache/bus bundles
+Per-operator coordinators       verb-specific follow-on only (the kernel owns the common bundle)
 ```
 
-**Invariant:** the manipulation kernel does **not** discover priors via **`getMembershipContainers`** --- transfer planning lives in the shared membership adapter upstream.
+**Invariant:** the kernel does **not** discover priors via **`getMembershipContainers`** --- planning always happens upstream.
 
 | Term | Meaning |
 | --- | --- |
-| **Manipulation kernel** | Graph-grounded persist executor: accept **`HostEffect[]`**, read affected hosts' `positionGraph`, validate, transact, dual-write adjacency |
+| **Manipulation kernel** | Graph-grounded persist executor: accept an explicit step sequence, lock the affected hosts, re-validate against freshly-fetched graphs, transact, dual-write adjacency, stream facts |
+| **Step sequence** | The ordered instruction list the kernel executes. Order is meaningful and never resorted --- a `dissolveRelation` step mutates the graph before a following `transferMembership` step reads it |
 | **Host effect** | One alteration on a fixed host: add/remove identity node on `positionGraph` + matching adjacency dual-write |
-| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host; second kernel primitive (shipped). [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
-| **Shared membership adapter** | Reusable **transfer planner**: membership observation + apply mode (`end-state` / `bounded`) -> **`HostEffect[]`** + projected `froms`/`to` |
-| **Per-operator coordinator** | Verb-specific ingress wrapper: calls shared adapter, then kernel; owns fact/cache/bus bundle |
-| **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); planned by shared adapter; projected to bus facts as `froms[]` / `to` |
-| **Apply mode: end-state** | Planner scrubs all prior membership hosts, places at target |
-| **Apply mode: bounded** | Planner scrubs **only** hosts named by trusted ingress (v1 **`takeHold`**: passed `roomId` only --- not end-state multi-room scrub) |
-| **Layered vocabulary** | **Kernel** docs: host effects, graph-grounded persist. **Adapter** docs: transfer planning, apply modes. **Bus facts** docs: membership host transfer projection |
+| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host. [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
+| **Shared membership adapter** | Reusable **transfer planner** for routes with fixed room-host targets: membership observation + apply mode (`end-state` / `bounded`) -> projected `froms`/`to` |
+| **Per-operator coordinator** | Verb-specific ingress wrapper: plans (or runs the executor), then commits; owns only the follow-on effects specific to its verb |
+| **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); projected to bus facts as `froms[]` / `to` |
+| **Apply mode: end-state** | Planner scrubs all prior room hosts, places at target |
+| **Apply mode: bounded** | Planner scrubs **only** the trusted-ingress hosts the entity actually occupies --- not an end-state multi-host scrub |
+| **Cross-snapshot recheck** | Re-deriving a plan against a later snapshot than the one that selected it (the executor at execute time; the reducer at commit time). A safety property, not duplicated work |
+| **Layered vocabulary** | **Kernel** docs: step sequences, graph-grounded persist. **Adapter** docs: transfer planning, apply modes. **Bus facts** docs: membership host transfer projection |
 
 ### Three play-time questions
 

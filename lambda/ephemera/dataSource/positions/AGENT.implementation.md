@@ -14,25 +14,23 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
 | [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts); `Object Drop` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
 
-### `manipulation/` (adapter + kernel shipped Phase 4a--4c)
+### `manipulation/` (planning adapters + kernel)
 
 Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGENT.contract.md#manipulation-persist-layering). Kernel + shared adapter: [`manipulation/AGENT.md`](manipulation/AGENT.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Shared play graph primitive: [`positionGraph/`](#positiongraph-play-manipulation-model) below. Per-route ingress map: [`manipulation/AGENT.implementation.md` --- Per-route ingress map](manipulation/AGENT.implementation.md#per-route-ingress-map).
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferPlan` |
-| [`manipulation/adapters/`](manipulation/adapters/) | Shared transfer planner (**M8**): `planMembershipTransfer`, `planObjectTakeHoldTransfer`, `planObjectDropTransfer`, `computeEndStateRoomDiff`, `computeTakeHoldDiff`, `computeDropDiff`, `hostEffectsFromDiffs` |
-| [`manipulation/kernel/`](manipulation/kernel/) | Manipulation kernel (**M5**, **M4**) --- `applyHostEffects.ts` retired 2026-07-23, see `manipulation/AGENT.implementation.md` file-top note |
-| [`manipulation/membership/`](manipulation/membership/) | Cross-host coordinators (`takeHold`, `drop`) |
+| [`manipulation/types.ts`](manipulation/types.ts) | `HostEffect`, `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
+| [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `hostEffectsFromDiffs`, `planObjectClearFromAllHosts` |
+| [`manipulation/kernel/`](manipulation/kernel/) | The one persist kernel --- `commitStepSequence`, `applyStepSequenceCore`, `kernelStep`, `computeStepSequenceFootprint`, `factsForStep`, plus the read-only `perceiveStepSequence` |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host ingress (`takeHold`, `drop`) + destroy/edit clear |
 
 #### Relational patch
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/applyHostRelationalPatch.ts`](manipulation/applyHostRelationalPatch.ts) | Second kernel primitive: host-local edge add/remove |
 | [`manipulation/relational/`](manipulation/relational/) | Relational coordinators (`establish` / `dissolve`) |
-| [`manipulation/relational/planHostRelationalPatch.ts`](manipulation/relational/planHostRelationalPatch.ts) | Ingress -> patch + changed gate |
-| [`manipulation/relational/applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts) | Relational-changed bundle (fact, cache memo, **`RoomUpdate`**) |
+| [`manipulation/relational/applyObjectRelationalChange.ts`](manipulation/relational/applyObjectRelationalChange.ts) | Builds the relational step sequence (including repair carries) and commits it |
 
 Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](manipulation/AGENT.implementation.md#host-local-relational-patch).
 
@@ -40,11 +38,10 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 | File | Role |
 | --- | --- |
-| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`** ingress entry; delegates to coordinator |
-| [`manipulation/membership/applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
-| [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) | **`Object Drop`** ingress entry; delegates to coordinator |
-| [`manipulation/membership/applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts) | Cross-host membership-changed bundle (fact, cache memo, **`RoomUpdate`**) |
-| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Cross-host diff + apply result types |
+| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`**: runs the Synthesize executor at execute time, commits the step sequence |
+| [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) | **`Object Drop`**: the same, character -> room |
+| [`manipulation/membership/applyObjectClearMembership.ts`](manipulation/membership/applyObjectClearMembership.ts) | Destroy/edit clear: explicit boundary sweep + `dissolveRelation` + end-state-to-null transfer |
+| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | `ObjectMembershipDiff` + clear-membership apply result |
 
 #### Adding a cross-host manipulation apply coordinator
 
@@ -54,20 +51,20 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
 
-3. **Coordinator bundle** --- on **`changed: true`**: stream **`Object Moved`** fact first, memo **`internalCache.Positions`**, invalidate affordance deliverable, publish **`RoomUpdate`** (same register as object room membership). Reference: [`applyObjectSetTakeHold.ts`](manipulation/membership/applyObjectSetTakeHold.ts), [`applyObjectSetDrop.ts`](manipulation/membership/applyObjectSetDrop.ts). Contract: [Cross-host object membership-changed bundle (v1 `takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-takehold), [Cross-host object membership-changed bundle (v1 `drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-drop).
+3. **Post-persist bundle** --- do **not** write one. The kernel already streams **`Object Moved`** first, seeds **`internalCache.Positions`** on every committed graph, invalidates the affordance deliverable for Room hosts, and publishes **`RoomUpdate`**. Add only what is genuinely verb-specific. Contract: [Cross-host object membership-changed bundle (`takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-takehold), [Cross-host object membership-changed bundle (`drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-drop).
 
-4. **Graph transact** --- coordinator -> shared adapter -> **`commitStepSequence`** only (`applyHostEffects` retired 2026-07-23). **Must not** add `update*PositionGraphs` forks. Room side reuses room membership transact patterns from [`membership/`](membership/) via kernel.
+4. **Graph transact** --- plan (shared adapter, or the Synthesize executor when the operator needs live grounding), then **`commitStepSequence`** only. **Must not** add `update*PositionGraphs` forks or a route-specific wrapper over the kernel.
 
 5. **Fact shape** --- extend [`buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) for eligible host ids; **must not** introduce a parallel fact type for membership-only moves.
 
 6. **Per-operator checklist**
 
-| Operator | Host direction | Intent payload | Adapter + kernel | `RoomUpdate` / affordance scope |
+| Operator | Host direction | Intent payload | Planning + kernel | `RoomUpdate` / affordance scope |
 | --- | --- | --- | --- | --- |
-| **`takeHold`** (shipped) | room -> character | `objectId`, `roomId`, `characterId` | `planObjectTakeHoldTransfer` -> `applyHostEffects` | **`froms`** rooms only |
-| **`drop`** (shipped) | character -> room | `objectId`, `roomId`, `characterId` | `planObjectDropTransfer` -> `applyHostEffects` | destination room |
+| **`takeHold`** | room -> character | `objectIds`, `roomId`, `characterId` | Synthesize executor -> `commitStepSequence` | Room hosts only |
+| **`drop`** | character -> room | `objectIds`, `roomId`, `characterId` | Synthesize executor -> `commitStepSequence` | destination room |
 
-7. **Tests** --- coordinator unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
+7. **Tests** --- ingress unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
 
 ### `positionGraph/` (play manipulation model)
 
@@ -83,9 +80,10 @@ Host-bound **`EphemeraPositionGraph`** class --- membership + relational simulat
 
 ```text
 positionGraph/  <-- shared primitive
-  ^-- manipulation/applyHostEffects, applyHostRelationalPatch, relational/planHostRelationalPatch
-  ^-- membership/*TransactItems (fromRoomMeta/fromCharacterMeta + toStored)
+  ^-- manipulation/kernel/ (applyStepSequenceCore simulation; graphFromMeta + toStored at the Dynamo boundary)
+  ^-- manipulation/relational/ (edge helpers, edgesMatch)
   ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelationalFromSkeleton (read-only)
+  ^-- actions/enrich/objectManipulation/synthesize/ (selection-time sandbox; shares applyTransferSet with the kernel)
 ```
 
 ### `navigate/` (shared execution + post-persist orchestration)
@@ -136,11 +134,10 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + navigate tail; disconnect routes through coordinator |
 | [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / **`Object Drop`** / drift finding) |
-| [`manipulation/membership/applyObjectTakeHold.test.ts`](manipulation/membership/applyObjectTakeHold.test.ts) | Cross-host coordinator bundle on `changed` (fact, cache memo, `RoomUpdate`) |
-| [`manipulation/membership/executeObjectTakeHold.test.ts`](manipulation/membership/executeObjectTakeHold.test.ts) | **`Object Take Hold`** ingress entry delegates to coordinator |
-| [`manipulation/membership/applyObjectDrop.test.ts`](manipulation/membership/applyObjectDrop.test.ts) | Cross-host **`drop`** coordinator bundle on `changed` (fact, cache memo, `RoomUpdate`) |
-| [`manipulation/membership/executeObjectDrop.test.ts`](manipulation/membership/executeObjectDrop.test.ts) | **`Object Drop`** ingress entry delegates to coordinator |
-| [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes (`applyHostEffects.test.ts` retired 2026-07-23) |
+| [`manipulation/membership/executeObjectTakeHold.test.ts`](manipulation/membership/executeObjectTakeHold.test.ts) | **`Object Take Hold`**: executor grounding + committed step sequence |
+| [`manipulation/membership/executeObjectDrop.test.ts`](manipulation/membership/executeObjectDrop.test.ts) | **`Object Drop`**: the same, character -> room |
+| [`manipulation/membership/applyObjectClearMembership.test.ts`](manipulation/membership/applyObjectClearMembership.test.ts) | Destroy/edit clear: boundary sweep, dissolve steps, end-state-to-null transfer |
+| [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |

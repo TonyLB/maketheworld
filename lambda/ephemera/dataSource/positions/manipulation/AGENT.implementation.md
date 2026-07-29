@@ -175,7 +175,7 @@ type MembershipTransferPlan = {
 }
 ```
 
-**`projection` is what live coordinators consume** --- membership transfer semantics for bus facts and `changed` gates. `hostEffects` is a vestigial field from the retired `applyHostEffects` kernel; no current caller reads it.
+**`projection` is what live coordinators consume** --- membership transfer semantics for bus facts and `changed` gates. `hostEffects` is vestigial --- it fed a host-effect-shaped kernel that no longer exists, and no current caller reads it.
 
 ### Clear-from-all-hosts
 
