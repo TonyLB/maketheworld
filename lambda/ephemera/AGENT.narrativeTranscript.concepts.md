@@ -57,7 +57,7 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 | **Same lambda invocation** | Rows may publish from different handlers or invocations if transcript times are assigned coherently. |
 | **Single batched publish** | `messageOrchestration`'s bundle flush ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) delivers a bundle's slots as one wire push once all are resolved --- a convenience of that mechanism, not a client contract (removed, 2026-07-26: the previous `publishMessage/coalescer.ts` deferred-batching mechanism, which had no genuine remaining use once every producer had a real reason for immediate delivery --- see MO-8). |
 | **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)). |
-| **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes sharing an **`OrchestrateMessages`** tree (or explicit times). |
+| **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes; ordering comes from the `messageOrchestration` bundle's declared-order `CreatedTime` assignment (or other explicit times), not a shared grouping id. |
 
 **Example:** Room header at transcript time **X**, leave at **X - 1 ms**, arrive at **X + 1 ms** --- even if leave arrives on the wire a second after the header, the user sees leave, then header context, then arrive.
 
@@ -81,14 +81,14 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 
 Today **`characterMove`** registers a targeting-only PerceptionThreads row after membership persist so async header render can correlate to a bucket ([`orchestrateNavigate.ts`](dataSource/positions/navigate/orchestrateNavigate.ts), [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)). That registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
 
-**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`messageGroupId`** / **`CreatedTime`** assignments. Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
+**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`CreatedTime`** assignments --- `messageOrchestration`'s bundle now owns this assignment directly (`baseTime + offset` in declared order), superseding the retired `OrchestrateMessagesData`/`messageGroupId` mechanism entirely (see [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)). Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
 
 **Anti-patterns to avoid when designing fan-in specs:**
 
 - Requiring all legs of a cluster to publish in one handler pass "so order is right"
 - Treating wire-batching convenience as the only way to get narrative order (the retired `publishMessage/coalescer.ts` deferred-batching mechanism was exactly this anti-pattern; see MO-8)
 - Using side-band registration order as a substitute for explicit transcript times
-- Conflating **`clusterKey`** with **`messageGroupId`** unless deliberately chosen
+- Conflating **`clusterKey`** with a shared grouping id unless deliberately chosen
 
 ---
 

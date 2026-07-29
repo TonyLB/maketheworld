@@ -37,7 +37,6 @@ export const perceptionMessage = async ({
                         kickRoomHeaderBroadcastForRoom({
                             roomId,
                             messageBus,
-                            messageGroupId: payload.messageGroupId,
                         })
                     )
             )
@@ -61,7 +60,6 @@ export const perceptionMessage = async ({
                             displayMode: payload.header ? 'header' : 'full',
                             roomChannel: 'render',
                         },
-                        messageGroupId: payload.messageGroupId
                     })
                 }
             }
@@ -72,7 +70,6 @@ export const perceptionMessage = async ({
                 sendCharacterPerceptionRequested(messageBus, ephemeraId, {
                     characterId,
                     ephemeraId,
-                    messageGroupId: payload.messageGroupId,
                 })
             }
         }
@@ -94,10 +91,9 @@ type SendRoomGeneratingHeaderArgs = {
     roomId: EphemeraRoomId;
     characterIds: EphemeraCharacterId[];
     messageBus: MessageBus;
-    messageGroupId?: string;
 }
 
-export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, messageGroupId }: SendRoomGeneratingHeaderArgs): void => {
+export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus }: SendRoomGeneratingHeaderArgs): void => {
     if (!characterIds.length) {
         return
     }
@@ -114,7 +110,6 @@ export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, mes
             status: 'generating',
             roomChannel: 'render',
         },
-        messageGroupId,
         messageId: `MESSAGE#${uuidv4()}`,
         createdTime: getCurrentTimestamp(),
     })

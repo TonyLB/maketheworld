@@ -19,13 +19,11 @@ import {
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
-import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
 
 export type CharacterPerceptionRequestedCommand = {
     characterId: EphemeraCharacterId;
     ephemeraId: EphemeraCharacterId;
-    messageGroupId?: MessageGroupId;
 }
 
 export const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheComponentId => (
@@ -38,7 +36,6 @@ export type PerceptionThreadRegisterRoomHeaderBroadcastCommand = {
     componentId: EphemeraRoomId;
     perspectiveKey: string;
     targets: PublishTarget[];
-    messageGroupId?: MessageGroupId;
     registrationId?: string;
 }
 
@@ -49,7 +46,6 @@ export type PerceptionThreadRegisterSessionOrientationAffordancesCommand = {
     perspectiveKey: string;
     characterId: EphemeraCharacterId;
     targets: PublishTarget[];
-    messageGroupId?: MessageGroupId;
     registrationId?: string;
 }
 
@@ -88,9 +84,6 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         return false
     }
     if (typeof v.perspectiveKey !== 'string' || v.perspectiveKey.length === 0) {
-        return false
-    }
-    if (v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
         return false
     }
     if (v.registrationId !== undefined && typeof v.registrationId !== 'string') {

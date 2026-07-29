@@ -6,11 +6,9 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import internalCache from '../../internalCache'
 import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
-import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 
 export type AffordancePerceptionDelivery = {
     targets: readonly PublishTarget[];
-    messageGroupId?: MessageGroupId;
 }
 
 export type PublishAffordancePerceptionForPerspectiveArgs = {
@@ -18,7 +16,6 @@ export type PublishAffordancePerceptionForPerspectiveArgs = {
     perspectiveKey: string;
     deliveries: readonly AffordancePerceptionDelivery[];
     messageBus: MessageBus;
-    messageGroupId?: MessageGroupId;
 }
 
 export async function publishAffordancePerceptionForPerspective({
@@ -26,7 +23,6 @@ export async function publishAffordancePerceptionForPerspective({
     perspectiveKey,
     deliveries,
     messageBus,
-    messageGroupId,
 }: PublishAffordancePerceptionForPerspectiveArgs): Promise<void> {
     const nonEmpty = deliveries.filter((delivery) => delivery.targets.length > 0)
     if (!nonEmpty.length) {
@@ -34,7 +30,7 @@ export async function publishAffordancePerceptionForPerspective({
     }
     const merged = await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
     const wmlContent = schemaToWML([merged.schema])
-    for (const { targets, messageGroupId: deliveryMessageGroupId } of nonEmpty) {
+    for (const { targets } of nonEmpty) {
         messageBus.publish({
             type: 'PublishMessage',
             targets: [...targets],
@@ -45,7 +41,6 @@ export async function publishAffordancePerceptionForPerspective({
                 displayMode: 'header',
                 roomChannel: 'affordances',
             },
-            messageGroupId: deliveryMessageGroupId ?? messageGroupId,
             messageId: `MESSAGE#${uuidv4()}`,
         })
     }
@@ -56,7 +51,6 @@ export type PublishAffordancePerceptionForTargetsArgs = {
     perspectiveKey: string;
     targets: readonly PublishTarget[];
     messageBus: MessageBus;
-    messageGroupId?: MessageGroupId;
 }
 
 export async function publishAffordancePerceptionForTargets({
@@ -64,14 +58,12 @@ export async function publishAffordancePerceptionForTargets({
     perspectiveKey,
     targets,
     messageBus,
-    messageGroupId,
 }: PublishAffordancePerceptionForTargetsArgs): Promise<void> {
     await publishAffordancePerceptionForPerspective({
         roomId,
         perspectiveKey,
         deliveries: [{ targets }],
         messageBus,
-        messageGroupId,
     })
 }
 
@@ -80,7 +72,6 @@ export type PublishAffordancePerceptionForCharactersArgs = {
     perspectiveKey: string;
     characterIds: readonly EphemeraCharacterId[];
     messageBus: MessageBus;
-    messageGroupId?: MessageGroupId;
 }
 
 export async function publishAffordancePerceptionForCharacters({
@@ -88,7 +79,6 @@ export async function publishAffordancePerceptionForCharacters({
     perspectiveKey,
     characterIds,
     messageBus,
-    messageGroupId,
 }: PublishAffordancePerceptionForCharactersArgs): Promise<void> {
     if (!characterIds.length) {
         return
@@ -98,6 +88,5 @@ export async function publishAffordancePerceptionForCharacters({
         perspectiveKey,
         deliveries: characterIds.map((characterId) => ({ targets: [characterId] })),
         messageBus,
-        messageGroupId,
     })
 }

@@ -188,7 +188,6 @@ async function handleRenderPertains(
                     displayMode: 'header',
                     roomChannel: 'render',
                 },
-                messageGroupId: registration.messageGroupId,
                 messageId,
                 createdTime: terminalCreatedTime(thread),
             })
@@ -309,7 +308,6 @@ async function handleGenerationStarted(
                 status: 'generating',
                 roomChannel: 'render',
             },
-            messageGroupId: registration.messageGroupId,
             messageId,
             createdTime: t0,
         })
@@ -370,7 +368,6 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
                 displayMode: 'header',
                 roomChannel: 'render',
             },
-            messageGroupId: registration.messageGroupId,
             messageId,
             createdTime: terminalCreatedTime(thread),
         })

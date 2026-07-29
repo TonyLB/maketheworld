@@ -227,7 +227,6 @@ describe('Perception message', () => {
                 roomId: 'ROOM#TEST',
                 characterIds: ['CHARACTER#TESS'],
                 messageBus: messageBusMock,
-                messageGroupId: 'UUID#group',
             })
 
             expect(messageBusMock.publish).toHaveBeenCalledWith(
@@ -250,7 +249,6 @@ describe('Perception message', () => {
                         status: 'generating',
                         roomChannel: 'render',
                     },
-                    messageGroupId: 'UUID#group',
                     createdTime: 1000000000000,
                 })
             )

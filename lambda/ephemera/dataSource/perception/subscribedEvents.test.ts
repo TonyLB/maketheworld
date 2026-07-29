@@ -17,7 +17,6 @@ describe('perception subscribedEvents', () => {
             {
                 characterId: 'CHARACTER#VIEWER',
                 ephemeraId: 'CHARACTER#VIEWED',
-                messageGroupId: 'UUID#group',
             }
         )
         expect(sent).toHaveLength(1)
@@ -28,7 +27,6 @@ describe('perception subscribedEvents', () => {
         expect(await sent[0].getContent()).toMatchObject({
             characterId: 'CHARACTER#VIEWER',
             ephemeraId: 'CHARACTER#VIEWED',
-            messageGroupId: 'UUID#group',
         })
     })
 
