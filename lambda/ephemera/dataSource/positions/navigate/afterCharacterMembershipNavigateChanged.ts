@@ -12,6 +12,10 @@ export type AfterCharacterMembershipNavigateChangedArgs = {
     result: MembershipApplyResult;
     /** messageOrchestration bundle correlation id; when omitted (connect/disconnect callers), orchestrateCharacterNavigate mints its own. */
     bundleId?: string;
+    /** Threaded to `orchestrateCharacterNavigate`'s narration compile (Phase 2) --- see `executeCharacterNavigate.ts`. */
+    intentKind?: 'navigate' | 'home';
+    intentFromRoomId?: EphemeraRoomId;
+    exitName?: string;
     messageBus: MessageBus;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
@@ -40,6 +44,9 @@ export const afterCharacterMembershipNavigateChanged = async ({
     characterMeta,
     result,
     bundleId,
+    intentKind,
+    intentFromRoomId,
+    exitName,
     messageBus,
     getRoomAssets,
     getCanonAssets,
@@ -75,6 +82,10 @@ export const afterCharacterMembershipNavigateChanged = async ({
             froms: result.froms,
             to,
             bundleId,
+            intentKind,
+            intentFromRoomId,
+            exitName,
+            captures: result.captures,
             messageBus,
         }),
     ])

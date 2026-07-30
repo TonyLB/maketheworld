@@ -8,10 +8,18 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ActionsPublishedPayload, LookCommandRequestedPublishedPayload } from '../../../actions/publishedEvents'
-import { isDescribeStep, type KernelStep } from './kernelStep'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
+import { sendMessageSlotReported } from '../../../messageOrchestration/subscribedEvents'
+import {
+    buildMembershipArriveSuffix,
+    buildMembershipLeaveSuffix,
+} from '../../../perception/publishMembershipPresentation'
+import { isDescribeStep, isNarrateStep, type KernelStep } from './kernelStep'
+import type { MutationKernelCaptures } from './types'
 
 export type PresentStepSequenceDeps = {
     streamEvent: StreamEventFunction<ActionsPublishedPayload>
+    messageBus: MessageBus
 }
 
 /**
@@ -23,7 +31,7 @@ export type PresentStepSequenceDeps = {
  * across hosts, and a `describe` step never mutates anything. This is a straight publish loop over
  * a shared, already-grounded `KernelStep[]` list, filtered down to the `describe` steps it owns
  * (mirrors the mutation kernel's own `isKernelMutationStep` filter --- see `kernelStep.ts`). The
- * narration branch that joins it as the presentation kernel's other half is not built yet (Phase 2 of
+ * narration branch that joins it as the presentation kernel's other half is built below (Phase 2 of
  * the same plan).
  *
  * Delivery reuses the existing `Look Command Requested` pipeline verbatim (PK-4, resolved
@@ -42,7 +50,8 @@ export type PresentStepSequenceDeps = {
 export const presentStepSequence = async (
     steps: readonly KernelStep[],
     characterId: EphemeraCharacterId,
-    deps: PresentStepSequenceDeps
+    deps: PresentStepSequenceDeps,
+    captures: MutationKernelCaptures = new Map()
 ): Promise<void> => {
     const describeSteps = steps.filter(isDescribeStep)
 
@@ -76,6 +85,28 @@ export const presentStepSequence = async (
             streamKey: characterId,
             header: { type: 'Look Command Requested' },
             update: payload,
+        })
+    }
+
+    const narrateSteps = steps.filter(isNarrateStep)
+
+    for (const step of narrateSteps) {
+        const audience = captures.get(step.captureId) ?? []
+        const name = step.characterName || 'Someone'
+        const suffix = step.direction === 'leave'
+            ? buildMembershipLeaveSuffix(step.copyKind, step.exitName)
+            : buildMembershipArriveSuffix(step.copyKind)
+
+        sendMessageSlotReported(deps.messageBus, step.bundleId, {
+            bundleId: step.bundleId,
+            slotId: step.slotId,
+            message: {
+                type: 'PublishMessage',
+                targets: [step.roomId, ...audience],
+                displayProtocol: 'WorldMessage',
+                message: [`${name}${suffix}`],
+                createdTime: 0,
+            },
         })
     }
 }

@@ -163,6 +163,13 @@ export const toMembershipPresentationLeg = async (
         if (!isCharacterMovedPublishedPayload(content)) {
             return undefined
         }
+        // Phase 2 (`AGENT.presentationKernel.planning.md`): navigate's kernel narration already
+        // published this move synchronously --- drop the fact leg so this async fan-in never
+        // completes a cluster for it (its deferral/settle path would otherwise double-publish).
+        // Connect/disconnect/home never set this flag, so they are unaffected.
+        if (content.narratedInline) {
+            return undefined
+        }
         return {
             kind: 'fact',
             characterId: content.characterId,

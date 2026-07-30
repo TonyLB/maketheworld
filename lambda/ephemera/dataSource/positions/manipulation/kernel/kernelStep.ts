@@ -8,6 +8,7 @@ import type {
     ExecutorEstablishRelationStep,
     ExecutorParsePlanStep,
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
+import type { MembershipEmissionCopyKind } from '../../../perception/membershipPresentationFanIn'
 
 /**
  * BD-27c/BD-36's kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize
@@ -77,18 +78,50 @@ export type MutationKernelStep =
  * this file is specific to one kernel and is named accordingly (`MutationKernel*` /
  * `PresentationKernel*`) --- prefixing `KernelStep` too would erase the one distinction this naming
  * scheme exists to preserve.
+ *
+ * Widened again (Phase 2) to admit `PresentationKernelNarrateStep`, alongside `ExecutorDescribeStep`
+ * --- both presentation-kernel-owned, neither ever reaching the mutation kernel's own filter.
  */
-export type KernelStep = MutationKernelStep | ExecutorDescribeStep
+export type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 
 /**
- * The presentation kernel's own filtered view of `KernelStep` (PB-L): today just `ExecutorDescribeStep`,
- * the shipped describe branch (`presentStepSequence.ts`). A single-member union rather than a bare
- * alias because a future narration step (`AGENT.presentationKernel.planning.md` Phase 2) joins it
- * here, not by widening `KernelStep` again --- `ExecutorDescribeStep` and the narration step are both
- * "things the presentation kernel filters for," the same relationship `MutationKernelStep` already has
- * to its own members.
+ * Positional narration (`AGENT.presentationKernel.planning.md` PB-J/PB-L, Phase 2): a read-only
+ * presentation-kernel step, never entering the mutation walk. Emitted only by the compiler
+ * (`compile/compilePositionKernelOp.ts`) --- PB-I --- which is why it carries no built `message`
+ * (PB-2): the ingredients (`direction`, `characterName`, `copyKind`, `exitName`) travel with the
+ * step, and `presentStepSequence` assembles the actual copy at flush time, alongside resolving
+ * `captureId` against the commit's captured audience. `captureId` carries identity only, never
+ * position --- the capture step's own array position is what makes the snapshot positional, not
+ * this reference to it.
+ *
+ * `kind` is the single, flat `'narrate'` --- mirroring `describe`'s own shape in this file
+ * (`kind: 'describe'` at the walk-dispatch level, `referentKind` as the nested classifier only the
+ * describe handler reads): no kernel-walking consumer (`isKernelMutationStep`, the mutation walk,
+ * the footprint) ever needs to distinguish a leave narration from an arrive one --- that question
+ * belongs entirely to the copy-generator (`presentStepSequence`'s narration branch), which is why
+ * `direction` lives as a plain data field here rather than being folded into `kind`. Splitting `kind`
+ * into `'narrate-leave'`/`'narrate-arrive'` would make the walk-dispatch discriminant carry
+ * copy-generation concerns it never asks about.
  */
-export type PresentationKernelStep = ExecutorDescribeStep
+export type PresentationKernelNarrateStep = {
+    kind: 'narrate'
+    direction: 'leave' | 'arrive'
+    captureId: string
+    roomId: EphemeraMembershipHostId
+    characterName: string
+    copyKind: MembershipEmissionCopyKind
+    exitName?: string
+    bundleId: string
+    slotId: string
+}
+
+/**
+ * The presentation kernel's own filtered view of `KernelStep` (PB-L): `ExecutorDescribeStep` (the
+ * shipped describe branch, `presentStepSequence.ts`) and `PresentationKernelNarrateStep` (the
+ * narration branch, Phase 2) --- both "things the presentation kernel filters for," the same
+ * relationship `MutationKernelStep` already has to its own members.
+ */
+export type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateStep
 
 /**
  * Adapter from the executor's shipped output shape to the kernel's own step vocabulary. The
@@ -142,3 +175,10 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
  */
 export const isDescribeStep = (step: KernelStep): step is ExecutorDescribeStep =>
     step.kind === 'describe'
+
+/**
+ * The presentation kernel's narration filter (Phase 2, sibling to `isDescribeStep` above): pulls the
+ * `narrate-leave`/`narrate-arrive` steps a shared `KernelStep[]` list carries.
+ */
+export const isNarrateStep = (step: KernelStep): step is PresentationKernelNarrateStep =>
+    step.kind === 'narrate'

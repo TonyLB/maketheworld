@@ -59,12 +59,18 @@ describe('executeCharacterNavigate', () => {
         await executeCharacterNavigate({
             characterId: 'CHARACTER#Test',
             targetRoomId: 'ROOM#TestTwo',
+            intentFromRoomId: 'ROOM#VORTEX',
             messageBus: messageBusMock,
             streamEvent,
         })
 
         expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
-            { characterId: 'CHARACTER#Test', targetRoomId: 'ROOM#TestTwo' },
+            {
+                characterId: 'CHARACTER#Test',
+                targetRoomId: 'ROOM#TestTwo',
+                compileMutationSteps: expect.any(Function),
+                narrationHandledInline: true,
+            },
             expect.objectContaining({
                 messageBus: messageBusMock,
                 streamEvent,
@@ -78,8 +84,28 @@ describe('executeCharacterNavigate', () => {
                 changed: true,
                 to: 'ROOM#TestTwo',
             }),
+            bundleId: expect.any(String),
+            intentKind: 'navigate',
+            intentFromRoomId: 'ROOM#VORTEX',
+            exitName: undefined,
             messageBus: messageBusMock,
         })
+    })
+
+    it('compiles a capture-wrapped mutation step sequence for the committed diff', async () => {
+        await executeCharacterNavigate({
+            characterId: 'CHARACTER#Test',
+            targetRoomId: 'ROOM#TestTwo',
+            intentFromRoomId: 'ROOM#VORTEX',
+            exitName: 'north',
+            messageBus: messageBusMock,
+            streamEvent,
+        })
+
+        const { compileMutationSteps } = applyCharacterRoomMembershipMock.mock.calls[0][0] as any
+        const steps = compileMutationSteps({ froms: ['ROOM#VORTEX'], to: 'ROOM#TestTwo', changed: true })
+
+        expect(steps.map((step: any) => step.kind)).toEqual(['capture', 'transferMembership', 'capture'])
     })
 
     it('still invokes tail helper when membership apply is a no-op', async () => {

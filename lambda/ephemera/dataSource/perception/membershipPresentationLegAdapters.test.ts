@@ -241,6 +241,20 @@ describe('membershipPresentationLegAdapters', () => {
             })
         })
 
+        it('drops the fact leg when narratedInline is set (Phase 2, navigate already narrated synchronously)', async () => {
+            const leg = await toMembershipPresentationLeg(
+                envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Character Moved', {
+                    type: 'Character Moved',
+                    characterId: CHARACTER,
+                    froms: [ROOM_A],
+                    to: ROOM_B,
+                    beatAnchorTime: ANCHOR_TIME,
+                    narratedInline: true,
+                })
+            )
+            expect(leg).toBeUndefined()
+        })
+
         it('returns undefined for non-membership envelopes', async () => {
             const leg = await toMembershipPresentationLeg(
                 envelope('api.ephemera', 'Character Perception Requested', {

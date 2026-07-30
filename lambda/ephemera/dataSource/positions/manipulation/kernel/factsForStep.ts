@@ -62,7 +62,8 @@ export const factsForStep = (
     finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>,
     beatAnchorTime: number,
     priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph> = finalGraphs,
-    characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map()
+    characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map(),
+    narratedInline?: boolean
 ): (ObjectMovedPublishedPayload | CharacterMovedPublishedPayload | ObjectRelationChangedPublishedPayload)[] => {
     if (step.kind === 'capture') {
         return []
@@ -92,6 +93,7 @@ export const factsForStep = (
                     diff: roomDiff,
                     beatAnchorTime,
                     characterName: characterNames.get(characterId),
+                    ...(narratedInline !== undefined ? { narratedInline } : {}),
                 })
             )
             .filter((fact): fact is CharacterMovedPublishedPayload => fact !== undefined)

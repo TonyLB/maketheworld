@@ -22,6 +22,8 @@ export type CharacterMovedPublishedPayload = {
     beatAnchorTime: number;
     legalExits?: string[];
     characterName?: string;
+    /** Set only when the caller's own compiled step sequence already narrated this move synchronously (Phase 2, navigate) --- signals `membershipPresentationLegAdapters.ts` to drop the fact leg rather than let the async membership fan-in double-publish. Absent/false for connect/disconnect/home, unchanged. */
+    narratedInline?: boolean;
 }
 
 export type ObjectMovedPublishedPayload = {
@@ -90,6 +92,9 @@ export const isCharacterMovedPublishedPayload = (
         }
     }
     if (v.characterName !== undefined && typeof v.characterName !== 'string') {
+        return false
+    }
+    if (v.narratedInline !== undefined && typeof v.narratedInline !== 'boolean') {
         return false
     }
     return true

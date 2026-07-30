@@ -6,8 +6,10 @@ export const buildCharacterMovedFact = (args: {
     diff: MembershipDiff;
     beatAnchorTime: number;
     characterName?: string;
+    /** Phase 2: set when the caller's own compiled step sequence already narrated this move synchronously --- see `CharacterMovedPublishedPayload.narratedInline`. */
+    narratedInline?: boolean;
 }): CharacterMovedPublishedPayload | undefined => {
-    const { characterId, diff, beatAnchorTime, characterName } = args
+    const { characterId, diff, beatAnchorTime, characterName, narratedInline } = args
     if (!diff.changed || !beatAnchorTime) {
         return undefined
     }
@@ -18,5 +20,6 @@ export const buildCharacterMovedFact = (args: {
         to: diff.to,
         beatAnchorTime,
         ...(characterName !== undefined ? { characterName } : {}),
+        ...(narratedInline !== undefined ? { narratedInline } : {}),
     }
 }

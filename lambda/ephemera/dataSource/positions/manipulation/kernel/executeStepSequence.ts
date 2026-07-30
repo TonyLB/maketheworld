@@ -43,7 +43,7 @@ export const executeStepSequence = async (
         return commitResult
     }
 
-    await presentStepSequence(steps, characterId, deps.perceive)
+    await presentStepSequence(steps, characterId, deps.perceive, commitResult.captures)
 
     return commitResult
 }

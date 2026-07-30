@@ -43,6 +43,8 @@ describe('orchestrateCharacterNavigate', () => {
             froms: ['ROOM#VORTEX', 'ROOM#TestThree'],
             to: 'ROOM#TestTwo',
             bundleId: 'BUNDLE#test',
+            intentKind: 'navigate',
+            intentFromRoomId: 'ROOM#VORTEX',
             messageBus: messageBus as any,
         })
 

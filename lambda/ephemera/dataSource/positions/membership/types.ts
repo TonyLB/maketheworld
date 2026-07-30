@@ -14,6 +14,22 @@ export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */
     targetRoomId: EphemeraRoomId | null;
+    /**
+     * Phase 2 (`AGENT.presentationKernel.planning.md`): when supplied, called with the resolved
+     * `MembershipDiff` once planning determines it (before commit) to build the committed step
+     * sequence --- the compiler's `[capture, transfer, capture]` shape --- instead of a hand-built
+     * bare `transferMembership` step. A callback, not a pre-built array, because the diff (`froms`/
+     * `to`) is only known after this coordinator's own `planMembershipTransfer` call, which the
+     * contract keeps here rather than duplicating in the caller. Navigate's route only, today; unset
+     * for connect/disconnect/home, whose behavior is unchanged.
+     */
+    compileMutationSteps?: (diff: MembershipDiff) => readonly import('../manipulation/kernel/kernelStep').MutationKernelStep[];
+    /**
+     * Phase 2: set only by callers whose own compiled step sequence narrates this move synchronously
+     * (navigate) --- suppresses the async membership-presentation fan-in's fact leg for this commit
+     * (see `CharacterMovedPublishedPayload.narratedInline`) so it doesn't also publish. Default `false`.
+     */
+    narrationHandledInline?: boolean;
 }
 
 /** Object room placement apply (Phase 4). */
@@ -49,6 +65,8 @@ export type MembershipApplySuccessResult = {
     beatAnchorTime?: number;
     /** Room roster snapshots after apply; derived via getRoomCharacterList after graph memo seed. */
     roomRosterSnapshots?: Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>;
+    /** Phase 2: the commit's captured rosters (`MutationKernelCaptures`), passed through so a caller whose `compileMutationSteps` included capture steps can feed `presentStepSequence`'s narration branch. Empty when the committed steps carried no capture steps (every route but navigate today). */
+    captures?: import('../manipulation/kernel/types').MutationKernelCaptures;
 } & MembershipDiff
 
 export type MembershipApplyErrorResult = {

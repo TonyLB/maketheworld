@@ -21,7 +21,7 @@ const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const OBJECT_ID = 'OBJECT#Tray' as EphemeraObjectId
 
 const commitDeps = { messageBus: {} as any, streamEvent: jest.fn(), getCurrentHost: () => ROOM_ID }
-const perceiveDeps = { streamEvent: jest.fn() }
+const perceiveDeps = { streamEvent: jest.fn(), messageBus: {} as any }
 
 describe('executeStepSequence', () => {
     beforeEach(() => {
@@ -52,7 +52,7 @@ describe('executeStepSequence', () => {
             { steps: [steps[0]] },
             commitDeps
         )
-        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps)
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
     })
 
     it('does not invoke presentStepSequence when commitStepSequence reports ok:false', async () => {
@@ -80,7 +80,7 @@ describe('executeStepSequence', () => {
         await executeStepSequence(steps, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(commitStepSequence).toHaveBeenCalledWith({ steps }, commitDeps)
-        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps)
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
     })
 
     it('a pure-describe list calls commitStepSequence with zero mutation steps (no transactWrite fires for it)', async () => {
@@ -92,6 +92,6 @@ describe('executeStepSequence', () => {
         await executeStepSequence(steps, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(commitStepSequence).toHaveBeenCalledWith({ steps: [] }, commitDeps)
-        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps)
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
     })
 })
