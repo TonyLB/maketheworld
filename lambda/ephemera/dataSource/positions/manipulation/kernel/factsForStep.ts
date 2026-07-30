@@ -53,6 +53,9 @@ const findHostOf = (
  * re-derive the host it actually held the edge on, right before removal, rather than throwing ---
  * defaults to `finalGraphs` itself so every other caller (a real transfer, where the object always
  * lands on some footprint graph) is unaffected.
+ *
+ * `capture` (PB-J) yields no facts --- it is not a world event, just a read of one already reflected
+ * (or not yet reflected) by whatever mutation facts stream around it.
  */
 export const factsForStep = (
     step: MutationKernelStep,
@@ -61,6 +64,10 @@ export const factsForStep = (
     priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph> = finalGraphs,
     characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map()
 ): (ObjectMovedPublishedPayload | CharacterMovedPublishedPayload | ObjectRelationChangedPublishedPayload)[] => {
+    if (step.kind === 'capture') {
+        return []
+    }
+
     if (step.kind === 'transferMembership') {
         const froms = [...step.fromHostIds]
         const diff = { froms, to: step.toHostId, changed: true }

@@ -48,14 +48,30 @@ const findHostOf = (
  * inside `applyTransferSet`/`removeObject`/`removeCharacter`) throw, uniformly in both modes --- not
  * a `MutationKernelApplyOutcome` verdict. Legitimate legality outcomes (stale candidate, `Custom`-edge defer,
  * `unresolvedDissolveEdge`) return through the discriminated result.
+ *
+ * `capture` (PB-J): snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
+ * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
+ * position (not resorted, same as every other step here) is what makes the snapshot positional rather
+ * than terminal. A host missing from the map --- not locked into the footprint --- is the same
+ * `hostNotInFootprint` illegality every other host-lookup miss in this function already returns.
  */
 export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
     initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
 ): MutationKernelApplyOutcome => {
     const graphs = new Map(initialGraphs)
+    const captures = new Map<string, readonly EphemeraCharacterId[]>()
 
     for (const step of steps) {
+        if (step.kind === 'capture') {
+            const hostGraph = graphs.get(step.hostId)
+            if (!hostGraph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            captures.set(step.captureId, [...hostGraph.characterIds])
+            continue
+        }
+
         if (step.kind === 'transferMembership') {
             const fromHostIds = [...step.fromHostIds]
             const toHostId = step.toHostId
@@ -191,5 +207,5 @@ export const applyStepSequenceCore = (
         graphs.set(subjectHost, patched)
     }
 
-    return { verdict: 'legal', graphs }
+    return { verdict: 'legal', graphs, captures }
 }

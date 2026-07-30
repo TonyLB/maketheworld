@@ -80,7 +80,7 @@ describe('applyCharacterRoomMembership', () => {
 
     it('runs membership-changed bundle when endpoint changes: bare transferMembership step, no dissolve steps', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [] })
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
         const result = await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
@@ -126,7 +126,7 @@ describe('applyCharacterRoomMembership', () => {
 
     it('runs side-effect bundle for all froms on drift scrub', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, ROOM_C])
-        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [] })
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
         await applyCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },

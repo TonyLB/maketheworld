@@ -1,7 +1,8 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ExecutorParsePlanStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import { fromExecutorStep } from './kernelStep'
+import { fromExecutorStep, isKernelMutationStep } from './kernelStep'
+import type { KernelStep } from './kernelStep'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -42,5 +43,17 @@ describe('fromExecutorStep', () => {
             relationKind: 'On',
         }
         expect(fromExecutorStep(step)).toEqual(step)
+    })
+})
+
+describe('isKernelMutationStep', () => {
+    it('accepts a capture step (PB-J)', () => {
+        const step: KernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
+        expect(isKernelMutationStep(step)).toBe(true)
+    })
+
+    it('rejects a describe step', () => {
+        const step: KernelStep = { kind: 'describe', referentId: roomId, referentKind: 'room' }
+        expect(isKernelMutationStep(step)).toBe(false)
     })
 })
