@@ -10,10 +10,10 @@ export type AfterCharacterMembershipNavigateChangedArgs = {
     characterId: EphemeraCharacterId;
     characterMeta: CharacterMetaItem;
     result: MembershipApplyResult;
-    /** messageOrchestration bundle correlation id; when omitted (connect/disconnect callers), orchestrateCharacterNavigate mints its own. */
+    /** messageOrchestration bundle correlation id; when omitted, orchestrateCharacterNavigate mints its own. */
     bundleId?: string;
-    /** Threaded to `orchestrateCharacterNavigate`'s narration compile (Phase 2) --- see `executeCharacterNavigate.ts`. */
-    intentKind?: 'navigate' | 'home';
+    /** Threaded to `orchestrateCharacterNavigate`'s narration compile --- see `executeCharacterNavigate.ts` (navigate/home) and `handleConnectionsCharactersPresence.ts` (connect, Phase 3). */
+    intentKind?: 'navigate' | 'home' | 'connect';
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
     messageBus: MessageBus;

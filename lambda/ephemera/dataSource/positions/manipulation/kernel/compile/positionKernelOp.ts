@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
-import type { MembershipEmissionCopyKind } from '../../../../perception/membershipPresentationFanIn'
+import type { MembershipEmissionCopyKind } from '../kernelStep'
 
 /**
  * `AGENT.presentationKernel.planning.md` PB-I/PB-6: the abstract-op vocabulary the compiler

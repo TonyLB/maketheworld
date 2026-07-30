@@ -14,6 +14,17 @@ jest.mock('./membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
+jest.mock('./membership/orchestrateCharacterDisconnect', () => ({
+    orchestrateCharacterDisconnect: jest.fn(),
+}))
+
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        CharacterMeta: { get: jest.fn() },
+    },
+}))
+
 jest.mock('./navigate/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
@@ -35,9 +46,11 @@ jest.mock('./manipulation/relational/executeObjectDissolveRelation', () => ({
 }))
 
 import messageBus from '../../messageBus'
+import internalCache from '../../internalCache'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
+import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
 import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
@@ -54,6 +67,12 @@ const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunc
 >
 const repairRoomOccupancyDriftMock = repairRoomOccupancyDrift as jest.MockedFunction<
     typeof repairRoomOccupancyDrift
+>
+const orchestrateCharacterDisconnectMock = orchestrateCharacterDisconnect as jest.MockedFunction<
+    typeof orchestrateCharacterDisconnect
+>
+const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
+    typeof internalCache.CharacterMeta.get
 >
 const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
     typeof executeCharacterNavigate
@@ -129,6 +148,16 @@ describe('positions receive paths (integration)', () => {
         executeObjectTakeHoldMock.mockResolvedValue(undefined)
         executeObjectDropMock.mockResolvedValue(undefined)
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
+        orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
+        characterMetaGetMock.mockResolvedValue({
+            EphemeraId: CHARACTER_ID,
+            Name: 'Alpha',
+            RoomId: ROOM_A,
+            RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            HomeId: 'ROOM#VORTEX',
+            assets: [],
+            Pronouns: 'they/them',
+        } as any)
     })
 
     describe('Character Disconnected', () => {
@@ -143,7 +172,12 @@ describe('positions receive paths (integration)', () => {
             await messageBus.flushAndSettle()
 
             expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
-                { characterId: CHARACTER_ID, targetRoomId: null },
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    targetRoomId: null,
+                    narrationHandledInline: true,
+                    compileMutationSteps: expect.any(Function),
+                }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
@@ -164,7 +198,12 @@ describe('positions receive paths (integration)', () => {
 
             expect(resolveConnectTargetRoomMock).toHaveBeenCalledWith(CHARACTER_ID)
             expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
-                { characterId: CHARACTER_ID, targetRoomId: ROOM_A },
+                expect.objectContaining({
+                    characterId: CHARACTER_ID,
+                    targetRoomId: ROOM_A,
+                    narrationHandledInline: true,
+                    compileMutationSteps: expect.any(Function),
+                }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
             )
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()

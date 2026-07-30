@@ -22,7 +22,7 @@ export type CharacterMovedPublishedPayload = {
     beatAnchorTime: number;
     legalExits?: string[];
     characterName?: string;
-    /** Set only when the caller's own compiled step sequence already narrated this move synchronously (Phase 2, navigate) --- signals `membershipPresentationLegAdapters.ts` to drop the fact leg rather than let the async membership fan-in double-publish. Absent/false for connect/disconnect/home, unchanged. */
+    /** Set when the caller's own compiled step sequence already narrated this move synchronously (every membership route as of Phase 3). Historically signaled the now-retired async membership-presentation fan-in to drop its fact leg; kept on the fact payload as a record of narration provenance. */
     narratedInline?: boolean;
 }
 

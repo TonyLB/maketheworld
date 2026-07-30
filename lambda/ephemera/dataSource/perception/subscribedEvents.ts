@@ -23,17 +23,8 @@ import {
     AFFORDANCE_CACHE_DATA_SOURCE_KEY,
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
-import type { CharacterHomePublishedPayload } from '../actions/publishedEvents'
-import type { CharacterNavigatePublishedPayload, ObjectDissolveRelationPublishedPayload, ObjectDropPublishedPayload, ObjectEstablishRelationPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
-import type { ConnectionsCharactersEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterMovedPublishedPayload, ObjectMovedPublishedPayload, ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
-import {
-    isPerceptionActionsCharacterHomeEnvelope,
-    isPerceptionActionsCharacterNavigateEnvelope,
-    isPerceptionConnectionsCharactersEnvelope,
-    isPerceptionPositionsCharacterMovedEnvelope,
-    toMembershipPresentationLeg,
-} from './membershipPresentationLegAdapters'
+import type { ObjectDissolveRelationPublishedPayload, ObjectDropPublishedPayload, ObjectEstablishRelationPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import type { ObjectMovedPublishedPayload, ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
     isPerceptionActionsObjectDissolveRelationEnvelope,
     isPerceptionActionsObjectDropEnvelope,
@@ -43,14 +34,6 @@ import {
     isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
-
-export {
-    isPerceptionActionsCharacterHomeEnvelope,
-    isPerceptionActionsCharacterNavigateEnvelope,
-    isPerceptionConnectionsCharactersEnvelope,
-    isPerceptionPositionsCharacterMovedEnvelope,
-    toMembershipPresentationLeg,
-} from './membershipPresentationLegAdapters'
 
 export {
     isPerceptionActionsObjectDissolveRelationEnvelope,
@@ -112,10 +95,6 @@ export type PerceptionSubscribedContent =
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
     | AffordancesPertainPayload
-    | CharacterNavigatePublishedPayload
-    | CharacterHomePublishedPayload
-    | ConnectionsCharactersEventUpdate
-    | CharacterMovedPublishedPayload
     | ObjectTakeHoldPublishedPayload
     | ObjectDropPublishedPayload
     | ObjectEstablishRelationPublishedPayload
@@ -152,10 +131,6 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
-        || isPerceptionActionsCharacterNavigateEnvelope(envelope)
-        || isPerceptionActionsCharacterHomeEnvelope(envelope)
-        || isPerceptionConnectionsCharactersEnvelope(envelope)
-        || isPerceptionPositionsCharacterMovedEnvelope(envelope)
         || isPerceptionActionsObjectTakeHoldEnvelope(envelope)
         || isPerceptionActionsObjectDropEnvelope(envelope)
         || isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
