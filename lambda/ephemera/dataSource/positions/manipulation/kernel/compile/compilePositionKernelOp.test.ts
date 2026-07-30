@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
+import { isNarrateStep } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID, NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 
@@ -34,8 +35,8 @@ describe('compilePositionKernelOp', () => {
             'narrate',
             'narrate',
         ])
-        const narrateSteps = plan.steps.filter((step) => step.kind === 'narrate') as any[]
-        expect(narrateSteps.map((step) => step.direction)).toEqual(['leave', 'arrive'])
+        const narrateSteps = plan.steps.filter(isNarrateStep)
+        expect(narrateSteps.map((step) => step.narration.direction)).toEqual(['leave', 'arrive'])
     })
 
     it('declares slots in delivery order [leave, header, arrive]', () => {
@@ -67,26 +68,26 @@ describe('compilePositionKernelOp', () => {
             },
         }))
 
-        const leaveStep = plan.steps.find((step) => step.kind === 'narrate' && (step as any).direction === 'leave') as any
-        expect(leaveStep).toMatchObject({
+        const leaveStep = plan.steps.filter(isNarrateStep).find((step) => step.narration.direction === 'leave')
+        expect(leaveStep?.narration).toMatchObject({
             characterName: 'Tess',
             copyKind: 'exitAware',
             exitName: 'north',
         })
-        expect(leaveStep.message).toBeUndefined()
+        expect((leaveStep as any).message).toBeUndefined()
     })
 
     it('produces no leave step/slot when froms is empty (connect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ froms: [] }))
 
-        expect(plan.steps.some((step) => step.kind === 'narrate' && (step as any).direction === 'leave')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'leave')).toBe(false)
         expect(plan.slots.some((slot) => slot.slotId.startsWith('leave:'))).toBe(false)
     })
 
     it('produces no arrive step/slot/capture-to when to is null (disconnect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ to: null }))
 
-        expect(plan.steps.some((step) => step.kind === 'narrate' && (step as any).direction === 'arrive')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'arrive')).toBe(false)
         expect(plan.steps.filter((step) => step.kind === 'capture')).toHaveLength(1)
         expect(plan.slots.some((slot) => slot.slotId === NAVIGATE_ARRIVE_SLOT_ID)).toBe(false)
     })

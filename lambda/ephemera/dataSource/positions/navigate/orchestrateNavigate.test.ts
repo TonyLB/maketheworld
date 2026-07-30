@@ -45,6 +45,15 @@ describe('orchestrateCharacterNavigate', () => {
             bundleId: 'BUNDLE#test',
             intentKind: 'navigate',
             intentFromRoomId: 'ROOM#VORTEX',
+            //  Narration compiled ==> the commit produced a capture per host the compiler bracketed.
+            //  Production always satisfies this (commitStepSequence's success result types `captures`
+            //  as required); presentStepSequence throws rather than falling back to a live roster if
+            //  it ever doesn't, so the fixture supplies what a real commit would have.
+            captures: new Map([
+                ['capture:from:ROOM#VORTEX', ['CHARACTER#Test']],
+                ['capture:from:ROOM#TestThree', ['CHARACTER#Test']],
+                ['capture:to', ['CHARACTER#Test']],
+            ]) as any,
             messageBus: messageBus as any,
         })
 

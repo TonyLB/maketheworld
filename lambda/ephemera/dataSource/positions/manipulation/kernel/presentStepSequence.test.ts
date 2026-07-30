@@ -116,11 +116,13 @@ describe('presentStepSequence', () => {
             const captures = new Map([['capture:from', [CHARACTER_ID, OTHER_CHARACTER_ID]]])
             const steps: KernelStep[] = [{
                 kind: 'narrate',
-                direction: 'leave',
+                narration: {
+                    kind: 'membershipMove',
+                    direction: 'leave',
+                    characterName: 'Tess',
+                    copyKind: 'genericNavigate',
+                },
                 captureId: 'capture:from',
-                roomId: DEPARTURE_ROOM_ID,
-                characterName: 'Tess',
-                copyKind: 'genericNavigate',
                 bundleId: 'BUNDLE#test',
                 slotId: 'leave:ROOM#Departure',
             }]
@@ -130,19 +132,24 @@ describe('presentStepSequence', () => {
             const reports = slotReports()
             expect(reports).toHaveLength(1)
             const content = await reports[0].getContent()
-            expect(content.message.targets).toEqual([DEPARTURE_ROOM_ID, CHARACTER_ID, OTHER_CHARACTER_ID])
+            expect(content.message.targets).toEqual([CHARACTER_ID, OTHER_CHARACTER_ID])
             expect(content.message.targets).not.toContain(ARRIVAL_ROOM_ID)
+            //  The captured roster is the sole audience --- no live-expanding ROOM# target rides
+            //  along, which would re-bind delivery terminally (see kernelStep.ts).
+            expect(content.message.targets).not.toContain(DEPARTURE_ROOM_ID)
         })
 
         it('departure-room occupants do not receive the arrive line', async () => {
             const captures = new Map([['capture:to', [CHARACTER_ID]]])
             const steps: KernelStep[] = [{
                 kind: 'narrate',
-                direction: 'arrive',
+                narration: {
+                    kind: 'membershipMove',
+                    direction: 'arrive',
+                    characterName: 'Tess',
+                    copyKind: 'genericNavigate',
+                },
                 captureId: 'capture:to',
-                roomId: ARRIVAL_ROOM_ID,
-                characterName: 'Tess',
-                copyKind: 'genericNavigate',
                 bundleId: 'BUNDLE#test',
                 slotId: 'arrive',
             }]
@@ -152,8 +159,9 @@ describe('presentStepSequence', () => {
             const reports = slotReports()
             expect(reports).toHaveLength(1)
             const content = await reports[0].getContent()
-            expect(content.message.targets).toEqual([ARRIVAL_ROOM_ID, CHARACTER_ID])
+            expect(content.message.targets).toEqual([CHARACTER_ID])
             expect(content.message.targets).not.toContain(DEPARTURE_ROOM_ID)
+            expect(content.message.targets).not.toContain(ARRIVAL_ROOM_ID)
         })
 
         it('builds message text from the copy-kind ingredients (exitAware leave, connect arrive)', async () => {
@@ -164,22 +172,26 @@ describe('presentStepSequence', () => {
             const steps: KernelStep[] = [
                 {
                     kind: 'narrate',
-                direction: 'leave',
+                    narration: {
+                        kind: 'membershipMove',
+                        direction: 'leave',
+                        characterName: 'Tess',
+                        copyKind: 'exitAware',
+                        exitName: 'north',
+                    },
                     captureId: 'capture:from',
-                    roomId: DEPARTURE_ROOM_ID,
-                    characterName: 'Tess',
-                    copyKind: 'exitAware',
-                    exitName: 'north',
                     bundleId: 'BUNDLE#test',
                     slotId: 'leave:ROOM#Departure',
                 },
                 {
                     kind: 'narrate',
-                direction: 'arrive',
+                    narration: {
+                        kind: 'membershipMove',
+                        direction: 'arrive',
+                        characterName: 'Tess',
+                        copyKind: 'connect',
+                    },
                     captureId: 'capture:to',
-                    roomId: ARRIVAL_ROOM_ID,
-                    characterName: 'Tess',
-                    copyKind: 'connect',
                     bundleId: 'BUNDLE#test',
                     slotId: 'arrive',
                 },
@@ -193,23 +205,47 @@ describe('presentStepSequence', () => {
             expect(contents[1].message.message).toEqual(['Tess has connected.'])
         })
 
-        it('resolves an empty audience (mover excluded) when the captureId has no matching capture', async () => {
+        it('throws rather than falling back to a live room roster when the captureId has no matching capture', async () => {
             const steps: KernelStep[] = [{
                 kind: 'narrate',
-                direction: 'leave',
+                narration: {
+                    kind: 'membershipMove',
+                    direction: 'leave',
+                    characterName: 'Tess',
+                    copyKind: 'genericNavigate',
+                },
                 captureId: 'capture:missing',
-                roomId: DEPARTURE_ROOM_ID,
-                characterName: 'Tess',
-                copyKind: 'genericNavigate',
                 bundleId: 'BUNDLE#test',
                 slotId: 'leave:ROOM#Departure',
             }]
 
-            await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, new Map())
+            await expect(
+                presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, new Map())
+            ).rejects.toThrow(/capture:missing/)
+            expect(slotReports()).toHaveLength(0)
+        })
+
+        it('delivers to a genuinely empty captured roster without throwing (empty is not missing)', async () => {
+            const captures = new Map<string, EphemeraCharacterId[]>([['capture:from', []]])
+            const steps: KernelStep[] = [{
+                kind: 'narrate',
+                narration: {
+                    kind: 'membershipMove',
+                    direction: 'leave',
+                    characterName: 'Tess',
+                    copyKind: 'genericNavigate',
+                },
+                captureId: 'capture:from',
+                bundleId: 'BUNDLE#test',
+                slotId: 'leave:ROOM#Departure',
+            }]
+
+            await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures)
 
             const reports = slotReports()
+            expect(reports).toHaveLength(1)
             const content = await reports[0].getContent()
-            expect(content.message.targets).toEqual([DEPARTURE_ROOM_ID])
+            expect(content.message.targets).toEqual([])
         })
     })
 })

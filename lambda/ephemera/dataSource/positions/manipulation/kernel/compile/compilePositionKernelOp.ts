@@ -74,12 +74,14 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const narrateLeaveSteps: KernelStep[] = op.froms.map((hostId) => ({
         kind: 'narrate',
-        direction: 'leave',
+        narration: {
+            kind: 'membershipMove',
+            direction: 'leave',
+            characterName: narration.characterName,
+            copyKind: narration.leaveCopyKind(hostId),
+            ...(narration.exitName !== undefined ? { exitName: narration.exitName } : {}),
+        },
         captureId: captureIdForFrom(hostId),
-        roomId: hostId,
-        characterName: narration.characterName,
-        copyKind: narration.leaveCopyKind(hostId),
-        ...(narration.exitName !== undefined ? { exitName: narration.exitName } : {}),
         bundleId: op.bundleId,
         slotId: navigateLeaveSlotId(asRoomId(hostId)),
     }))
@@ -87,11 +89,13 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     const narrateArriveStep: KernelStep[] = op.to
         ? [{
             kind: 'narrate',
-            direction: 'arrive',
+            narration: {
+                kind: 'membershipMove',
+                direction: 'arrive',
+                characterName: narration.characterName,
+                copyKind: narration.arriveCopyKind,
+            },
             captureId: CAPTURE_ID_TO,
-            roomId: op.to,
-            characterName: narration.characterName,
-            copyKind: narration.arriveCopyKind,
             bundleId: op.bundleId,
             slotId: NAVIGATE_ARRIVE_SLOT_ID,
         }]
