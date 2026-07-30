@@ -8,8 +8,6 @@ import type {
     ExecutorEstablishRelationStep,
     ExecutorParsePlanStep,
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { MembershipEmissionCopyKind } from '../../../perception/membershipPresentationFanIn'
-
 /**
  * BD-27c/BD-36's kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize
  * executor's `ExecutorParsePlanStep`. The transfer case widens twice: `entityIds` admits both
@@ -118,6 +116,22 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * ride inside `KernelStep[]` through structural test comparison and Immer-adjacent reducer code,
  * all of which plain data survives and class instances do not.
  */
+/**
+ * Membership narration copy-kind vocabulary --- shared by `buildMembershipMoveOp.ts` (which selects
+ * it per leave/arrive) and `publishMembershipPresentation.ts`'s suffix builders (which render it to
+ * copy). Lives here, not in `perception/`, because this is where `MembershipNarrationSpec` --- its
+ * only structural consumer --- is defined; the old home (`perception/membershipPresentationFanIn.ts`)
+ * was retired in Phase 3 (`AGENT.presentationKernel.planning.md`) once it had nothing left in it but
+ * this type.
+ */
+export type MembershipEmissionCopyKind =
+    | 'exitAware'
+    | 'home'
+    | 'connect'
+    | 'disconnect'
+    | 'genericNavigate'
+    | 'genericFactOnly'
+
 export type MembershipNarrationSpec = {
     kind: 'membershipMove'
     direction: 'leave' | 'arrive'

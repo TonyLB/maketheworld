@@ -40,7 +40,7 @@ export type CommitStepSequenceDeps = {
      * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
-    /** Phase 2: set when the caller's own compiled step sequence already narrated this move synchronously (navigate) --- passed through to every `Character Moved` fact this commit streams, so `membershipPresentationLegAdapters.ts` can drop the fact leg rather than let the async membership fan-in double-publish. Unset for connect/disconnect/home. */
+    /** Set when the caller's own compiled step sequence already narrated this move synchronously (every membership route as of Phase 3) --- passed through to every `Character Moved` fact this commit streams. Historically signaled the now-retired async membership-presentation fan-in to drop its fact leg; kept on the fact payload as a record of narration provenance. */
     narratedInline?: boolean
 }
 
