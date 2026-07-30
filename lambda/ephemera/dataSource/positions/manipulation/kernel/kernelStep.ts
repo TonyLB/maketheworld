@@ -33,15 +33,36 @@ export type MutationKernelTransferStep = {
 }
 
 /**
+ * Positional capture (`AGENT.presentationKernel.planning.md` PB-J): a read-only walk step that
+ * snapshots a host's roster mid-walk, so narration built later can reflect "who was there at this
+ * beat" rather than final committed state. It carries no write payload --- that shape constraint is
+ * what makes it safe to admit into the mutation kernel's own `transactWrite` walk (a step that could
+ * write would need to join the transact item set; this one never does). `captureId` is caller-
+ * assigned identity, never position --- the walk's array position is what makes the snapshot
+ * positional, not the id.
+ */
+export type MutationKernelCaptureStep = {
+    kind: 'capture'
+    hostId: EphemeraMembershipHostId
+    captureId: string
+}
+
+/**
  * The positionGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
  * `computeStepSequenceFootprint.ts`, `factsForStep.ts`) --- `transactWrite` bundling, footprint
- * locking, fact-streaming --- exists only to solve mutation problems, so it keeps accepting exactly
- * this narrower type, unchanged in shape from before the `describe` widening below. A `describe`
- * step must never reach any of these; the positionGraph kernel's own type-guard filter (Phase 3)
- * excludes it before a step sequence is ever built, so this alias --- not the widened `KernelStep`
- * --- is what those files' signatures should keep using.
+ * locking, fact-streaming --- exists only to solve mutation problems, so it keeps accepting this
+ * narrower type. `MutationKernelCaptureStep` joins it (PB-J), widening it for the first time since
+ * the `describe` widening was drawn *against* --- capture reads a host's roster, so it needs the same
+ * footprint-locking and reducer-walk machinery every other mutation step gets, even though it writes
+ * nothing. A `describe` step must never reach any of these; the positionGraph kernel's own type-guard
+ * filter (Phase 3) excludes it before a step sequence is ever built, so this alias --- not the widened
+ * `KernelStep` --- is what those files' signatures should keep using.
  */
-export type MutationKernelStep = MutationKernelTransferStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
+export type MutationKernelStep =
+    | MutationKernelTransferStep
+    | ExecutorEstablishRelationStep
+    | ExecutorDissolveRelationStep
+    | MutationKernelCaptureStep
 
 /**
  * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
@@ -109,7 +130,10 @@ export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
  * this side too, and self-documents the invariant instead of casting past it.
  */
 export const isKernelMutationStep = (step: KernelStep): step is MutationKernelStep =>
-    step.kind === 'transferMembership' || step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
+    step.kind === 'transferMembership' ||
+    step.kind === 'establishRelation' ||
+    step.kind === 'dissolveRelation' ||
+    step.kind === 'capture'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):

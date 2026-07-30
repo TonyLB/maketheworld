@@ -17,7 +17,7 @@ import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
 import { factsForStep } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
-import type { MutationKernelCommitResult } from './types'
+import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
 
 export type CommitStepSequenceDeps = {
     messageBus: MessageBus
@@ -81,13 +81,17 @@ export const commitStepSequence = async (
 ): Promise<MutationKernelCommitResult> => {
     const { steps } = args
     if (steps.length === 0) {
-        return { ok: true, beatAnchorTime: getCurrentTimestamp(), steps: [] }
+        return { ok: true, beatAnchorTime: getCurrentTimestamp(), steps: [], captures: new Map() }
     }
 
     const transactWrite = deps.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraPositionGraph> | undefined
+    // PB-D: assignment, not append --- the reducer body can run more than once under
+    // `exponentialBackoffWrapper`'s retry, so this is overwritten whole on every invocation, never
+    // accumulated across attempts.
+    let committedCaptures: MutationKernelCaptures | undefined
     // Pre-apply snapshot, captured for fact-building only: a dissolveRelation step's endpoint can be
     // entirely removed from the footprint by a later pure-remove transferMembership step in the same
     // sequence (object-lifecycle destroy), leaving it absent from every post-apply graph. `factsForStep`
@@ -127,6 +131,9 @@ export const commitStepSequence = async (
                     entry.positionGraph = graph.toStored()
                 }
                 committedGraphs = new Map(outcome.graphs)
+                // PB-F/PB-E: capture values are already plain `EphemeraCharacterId[]`, never Immer
+                // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
+                committedCaptures = new Map(outcome.captures)
             },
         },
     } as CommitStepSequenceTransactItem
@@ -166,7 +173,7 @@ export const commitStepSequence = async (
         return { ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: message }
     }
 
-    if (!persisted || !committedGraphs) {
+    if (!persisted || !committedGraphs || !committedCaptures) {
         return {
             ok: false,
             errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED',
@@ -212,5 +219,5 @@ export const commitStepSequence = async (
         }
     }
 
-    return { ok: true, beatAnchorTime, steps }
+    return { ok: true, beatAnchorTime, steps, captures: committedCaptures }
 }

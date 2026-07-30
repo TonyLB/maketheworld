@@ -175,4 +175,9 @@ describe('factsForStep', () => {
             { type: 'Object Moved', objectId: trayId, froms: [], to: roomId, beatAnchorTime },
         ])
     })
+
+    it('a capture step yields no facts --- it is not a world event (PB-J)', () => {
+        const step: MutationKernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
+        expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
+    })
 })

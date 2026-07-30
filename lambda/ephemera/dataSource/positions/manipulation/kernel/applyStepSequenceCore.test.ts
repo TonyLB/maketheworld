@@ -372,4 +372,57 @@ describe('applyStepSequenceCore', () => {
             })
         })
     })
+
+    describe('capture step (PB-J)', () => {
+        it('a capture before a mutation step snapshots the entity as still present', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'capture', hostId: roomId, captureId: 'before' },
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.captures.get('before')).toEqual([characterId])
+        })
+
+        it('the same capture placed after the mutation does not see the entity', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                { kind: 'capture', hostId: roomId, captureId: 'after' },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.captures.get('after')).toEqual([])
+        })
+
+        it('a capture naming a host absent from the graphs map is illegal (hostNotInFootprint)', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: otherRoomId, captureId: 'missing' }]
+
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'hostNotInFootprint',
+            })
+        })
+
+        it('a capture step never contributes to the returned graphs map', () => {
+            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: roomId, captureId: 'only' }]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)).toBe(roomGraph)
+        })
+    })
 })

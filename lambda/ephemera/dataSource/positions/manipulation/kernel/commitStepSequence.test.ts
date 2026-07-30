@@ -348,4 +348,107 @@ describe('commitStepSequence', () => {
             expect(adjacencyItems).toEqual([{ Put: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
     })
+
+    describe('capture step (PB-J)', () => {
+        it('a legal commit returns the captured roster keyed by captureId', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
+
+            const steps: MutationKernelStep[] = [
+                { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
+                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) return
+            expect(result.captures.get('departure')).toEqual([CHARACTER_ID])
+        })
+
+        it('a capture naming a host no mutation step touches still locks that host into the footprint', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
+            const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
+            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
+
+            const steps: MutationKernelStep[] = [
+                { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
+                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) return
+            expect(result.captures.get('onlooker')).toEqual([CHARACTER_ID])
+
+            const items = transactWrite.mock.calls[0][0]
+            const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+            const keyedHosts = new Set(multiKeyItem.Keys.map((key: any) => key.EphemeraId))
+            expect(keyedHosts).toEqual(new Set([ROOM_ID, otherRoomId]))
+        })
+
+        it('an illegal commit discards captures entirely', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [] }) // stale: tray not actually present
+            const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
+
+            const steps: MutationKernelStep[] = [
+                { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
+                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(false)
+        })
+
+        it('PB-D: a forced reducer retry does not duplicate the captured roster', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            let attempt = 0
+            const transactWrite: any = jest.fn(async (items: any[]) => {
+                const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
+                const draft: Record<string, any> = {}
+                multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
+                    draft[`${key.EphemeraId}#${key.DataCategory}`] = {
+                        EphemeraId: key.EphemeraId,
+                        DataCategory: key.DataCategory,
+                        positionGraph: roomGraph.toStored(),
+                    }
+                })
+                multiKeyItem.reducer(draft)
+                attempt += 1
+                if (attempt === 1) {
+                    const error: any = new Error('stale --- retry')
+                    error.errorType = 'TransactionCanceledException'
+                    throw error
+                }
+            })
+
+            const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: ROOM_ID, captureId: 'before' }]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(transactWrite).toHaveBeenCalledTimes(2)
+            expect(result.ok).toBe(true)
+            if (!result.ok) return
+            expect(result.captures.size).toBe(1)
+            expect(result.captures.get('before')).toEqual([CHARACTER_ID])
+        })
+    })
 })

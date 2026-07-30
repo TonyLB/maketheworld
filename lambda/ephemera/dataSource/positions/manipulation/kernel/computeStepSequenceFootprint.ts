@@ -16,6 +16,11 @@ import type { StepSequenceFootprint } from './types'
  * is derived via the injected resolver. The reducer that actually applies the sequence separately
  * re-verifies each relational step's shared host against the freshly-fetched, locked graphs --- this
  * function never is trusted as ground truth by itself, only as the lock-set declaration.
+ *
+ * `capture` (PB-J) contributes its `hostId` unconditionally --- the decisive reason capture had to
+ * become a walk step rather than a side-table: `MultiKeyUpdate` cannot lock a newly-discovered host
+ * mid-reducer, so a capture against a host no mutation step in the same sequence touches would
+ * otherwise see `graphs.get(hostId)` come back `undefined` inside `applyStepSequenceCore`.
  */
 export const computeStepSequenceFootprint = (
     steps: readonly MutationKernelStep[],
@@ -23,6 +28,10 @@ export const computeStepSequenceFootprint = (
 ): StepSequenceFootprint => {
     const hosts = new Set<EphemeraMembershipHostId>()
     for (const step of steps) {
+        if (step.kind === 'capture') {
+            hosts.add(step.hostId)
+            continue
+        }
         if (step.kind === 'transferMembership') {
             for (const fromHostId of step.fromHostIds) {
                 hosts.add(fromHostId)
