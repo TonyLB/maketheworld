@@ -8,10 +8,42 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ActionsPublishedPayload, LookCommandRequestedPublishedPayload } from '../../../actions/publishedEvents'
-import { isDescribeStep, type KernelStep } from './kernelStep'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
+import { sendMessageSlotReported } from '../../../messageOrchestration/subscribedEvents'
+import {
+    buildMembershipArriveSuffix,
+    buildMembershipLeaveSuffix,
+} from '../../../perception/publishMembershipPresentation'
+import { isDescribeStep, isNarrateStep, type KernelStep, type NarrationSpecification } from './kernelStep'
+import type { MutationKernelCaptures } from './types'
+
+/**
+ * The presentation kernel's copy-generator: the *only* consumer of a narration step's `narration`
+ * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin ---
+ * when a second family lands (Phase 4's object take/drop, PB-3), the expectation is a new `case`
+ * delegating to a per-family module, not another block of copy logic inlined here. See
+ * `kernelStep.ts`'s `NarrationSpecification` doc for the conditions under which this dispatcher
+ * should give way to polymorphism instead.
+ *
+ * Takes only the spec today. A family needing to reason over the commit's captured rosters (rather
+ * than just be delivered to them) is a signature change --- add `captures` as a second argument ---
+ * not a reason to move copy-building onto the step itself.
+ */
+const buildNarrationCopy = (narration: NarrationSpecification): string => {
+    switch (narration.kind) {
+        case 'membershipMove': {
+            const name = narration.characterName || 'Someone'
+            const suffix = narration.direction === 'leave'
+                ? buildMembershipLeaveSuffix(narration.copyKind, narration.exitName)
+                : buildMembershipArriveSuffix(narration.copyKind)
+            return `${name}${suffix}`
+        }
+    }
+}
 
 export type PresentStepSequenceDeps = {
     streamEvent: StreamEventFunction<ActionsPublishedPayload>
+    messageBus: MessageBus
 }
 
 /**
@@ -23,7 +55,7 @@ export type PresentStepSequenceDeps = {
  * across hosts, and a `describe` step never mutates anything. This is a straight publish loop over
  * a shared, already-grounded `KernelStep[]` list, filtered down to the `describe` steps it owns
  * (mirrors the mutation kernel's own `isKernelMutationStep` filter --- see `kernelStep.ts`). The
- * narration branch that joins it as the presentation kernel's other half is not built yet (Phase 2 of
+ * narration branch that joins it as the presentation kernel's other half is built below (Phase 2 of
  * the same plan).
  *
  * Delivery reuses the existing `Look Command Requested` pipeline verbatim (PK-4, resolved
@@ -42,7 +74,8 @@ export type PresentStepSequenceDeps = {
 export const presentStepSequence = async (
     steps: readonly KernelStep[],
     characterId: EphemeraCharacterId,
-    deps: PresentStepSequenceDeps
+    deps: PresentStepSequenceDeps,
+    captures: MutationKernelCaptures = new Map()
 ): Promise<void> => {
     const describeSteps = steps.filter(isDescribeStep)
 
@@ -76,6 +109,38 @@ export const presentStepSequence = async (
             streamKey: characterId,
             header: { type: 'Look Command Requested' },
             update: payload,
+        })
+    }
+
+    const narrateSteps = steps.filter(isNarrateStep)
+
+    for (const step of narrateSteps) {
+        /**
+         * Hard error, never a fallback. `captureId`s are minted only by
+         * `compile/compilePositionKernelOp.ts` (PB-I), paired with a capture step in the same
+         * compiled plan, so a miss here means the plan reaching the presentation kernel is not the
+         * plan the compiler emitted --- an internal inconsistency. The tempting recovery (fall back
+         * to a live `ROOM#` target) is precisely the terminal binding this step type exists to
+         * avoid, and would convert a structural bug into a silently-wrong audience; an empty
+         * audience would hide it just as thoroughly, only quieter.
+         */
+        if (!captures.has(step.captureId)) {
+            throw new Error(
+                `presentStepSequence: narrate step references captureId '${step.captureId}', which the commit produced no capture for --- narration audiences are positionally bound and have no live-roster fallback (see kernelStep.ts's PresentationKernelNarrateStep)`
+            )
+        }
+        const audience = captures.get(step.captureId) ?? []
+
+        sendMessageSlotReported(deps.messageBus, step.bundleId, {
+            bundleId: step.bundleId,
+            slotId: step.slotId,
+            message: {
+                type: 'PublishMessage',
+                targets: [...audience],
+                displayProtocol: 'WorldMessage',
+                message: [buildNarrationCopy(step.narration)],
+                createdTime: 0,
+            },
         })
     }
 }

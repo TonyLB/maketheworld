@@ -124,6 +124,44 @@ describe('applyCharacterRoomMembership', () => {
         expect(commitStepSequenceMock.mock.calls[0][0].steps).toHaveLength(1)
     })
 
+    it('honors compileMutationSteps when supplied, threading narrationHandledInline to the commit and captures back out (Phase 2)', async () => {
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        const captures = new Map([['capture:from', [CHARACTER_ID]]])
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures })
+
+        const compiledSteps = [
+            { kind: 'capture' as const, hostId: FROM_ROOM, captureId: 'capture:from' },
+            { kind: 'transferMembership' as const, entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
+            { kind: 'capture' as const, hostId: TO_ROOM, captureId: 'capture:to' },
+        ]
+        const compileMutationSteps = jest.fn().mockReturnValue(compiledSteps)
+
+        const result = await applyCharacterRoomMembership(
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, compileMutationSteps, narrationHandledInline: true },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(compileMutationSteps).toHaveBeenCalledWith({ froms: [FROM_ROOM], to: TO_ROOM, changed: true })
+        expect(commitStepSequenceMock).toHaveBeenCalledWith(
+            { steps: compiledSteps },
+            expect.objectContaining({ narratedInline: true })
+        )
+        expect(result).toEqual(expect.objectContaining({ ok: true, captures }))
+    })
+
+    it('defaults to a bare transferMembership step and no narratedInline dep when compileMutationSteps is not supplied', async () => {
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
+
+        await applyCharacterRoomMembership(
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        const deps = commitStepSequenceMock.mock.calls[0][1]
+        expect(deps).not.toHaveProperty('narratedInline')
+    })
+
     it('runs side-effect bundle for all froms on drift scrub', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, ROOM_C])
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })

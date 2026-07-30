@@ -54,7 +54,8 @@ const membershipDiffFromProjection = (projection: {
  * object routes, this route builds no `dissolveRelation` steps at all --- `HostRelationalEdge` is
  * object-only (BD-36's character-relation widening is explicitly deferred), so a character can never
  * be a relational-edge endpoint; there is nothing for `boundaryEdgeOutcomes` to sweep here, not just
- * nothing found in practice. The bare `transferMembership` step is the whole sequence.
+ * nothing found in practice. The bare `transferMembership` step is the whole sequence, unless the
+ * caller supplies `compileMutationSteps` (Phase 2, navigate) --- see that argument's doc comment.
  *
  * `Character Moved` fact emission is folded into the kernel's own `commitStepSequence`/`factsForStep`
  * (via the `characterNames` dep) rather than layered on top after the kernel call returns --- that's
@@ -87,21 +88,22 @@ export const applyCharacterRoomMembership = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const transferStep: MutationKernelStep = {
+    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [{
         kind: 'transferMembership',
         entityIds: new Set([args.characterId]),
         fromHostIds: new Set(diff.froms),
         toHostId: diff.to,
-    }
+    }]
 
     const result = await commitStepSequence(
-        { steps: [transferStep] },
+        { steps },
         {
             messageBus: deps.messageBus,
             streamEvent: deps.streamEvent,
             getCurrentHost: () => undefined,
             transactWrite: deps.transactWrite,
             characterNames: new Map([[args.characterId, characterMeta.Name]]),
+            ...(args.narrationHandledInline ? { narratedInline: true } : {}),
         }
     )
 
@@ -137,5 +139,6 @@ export const applyCharacterRoomMembership = async (
         ...diff,
         beatAnchorTime: result.beatAnchorTime,
         roomRosterSnapshots,
+        captures: result.captures,
     }
 }

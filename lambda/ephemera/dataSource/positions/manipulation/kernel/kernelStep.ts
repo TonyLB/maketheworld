@@ -8,6 +8,7 @@ import type {
     ExecutorEstablishRelationStep,
     ExecutorParsePlanStep,
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
+import type { MembershipEmissionCopyKind } from '../../../perception/membershipPresentationFanIn'
 
 /**
  * BD-27c/BD-36's kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize
@@ -77,18 +78,104 @@ export type MutationKernelStep =
  * this file is specific to one kernel and is named accordingly (`MutationKernel*` /
  * `PresentationKernel*`) --- prefixing `KernelStep` too would erase the one distinction this naming
  * scheme exists to preserve.
+ *
+ * Widened again (Phase 2) to admit `PresentationKernelNarrateStep`, alongside `ExecutorDescribeStep`
+ * --- both presentation-kernel-owned, neither ever reaching the mutation kernel's own filter.
  */
-export type KernelStep = MutationKernelStep | ExecutorDescribeStep
+export type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 
 /**
- * The presentation kernel's own filtered view of `KernelStep` (PB-L): today just `ExecutorDescribeStep`,
- * the shipped describe branch (`presentStepSequence.ts`). A single-member union rather than a bare
- * alias because a future narration step (`AGENT.presentationKernel.planning.md` Phase 2) joins it
- * here, not by widening `KernelStep` again --- `ExecutorDescribeStep` and the narration step are both
- * "things the presentation kernel filters for," the same relationship `MutationKernelStep` already has
- * to its own members.
+ * Everything the copy-generator needs and nothing the presentation kernel's plumbing does --- the
+ * structural form of the same boundary `kind: 'narrate'` draws at the walk-dispatch level (see
+ * `PresentationKernelNarrateStep` below). Discriminated on narration *family*, deliberately not on
+ * `direction`: `direction` is a membership-narration concept (leave/arrive between positionGraph
+ * hosts), not a universal property of narration, and the axis a second member actually arrives along
+ * is family --- Phase 4's object take/drop narration (PB-3) would share none of the fields here,
+ * carrying item/actor vocabulary instead.
+ *
+ * Kept as plain data with dispatch living in `presentStepSequence`'s `buildNarrationCopy`, rather
+ * than as a polymorphic class with a `buildCopy` method. A union of one is a thin seam today; the
+ * choice is worth revisiting, but the trigger is narrower than "a second family shows up" or "the
+ * internals differ per family" --- a `switch` over a union exists precisely to let internals differ,
+ * and N branches with N different bodies is that working as intended. The real signal is the
+ * expression problem's axis: unions make adding *operations* cheap and adding *types* expensive,
+ * classes invert it. Escalate when
+ *
+ *   1. multiple distinct operations switch over this union from separate files (not just the single
+ *      `buildNarrationCopy`), **and**
+ *   2. family count is churning faster than operation count, so "add a family" means hunting down
+ *      every switch, **and**
+ *   3. per-family *modules* can't already solve it.
+ *
+ * That third condition is what usually settles it. Heavy per-family logic --- e.g. an object-move
+ * narration doing complex work across several positionGraphs' captures --- reads like class
+ * pressure, but it is cohesion pressure, and a module named for the family
+ * (`objectTransferNarration.ts` exporting one builder) gives the same locality while keeping
+ * `buildNarrationCopy` a two-line dispatcher. Complex capture work needs
+ * `buildCopy(narration, captures)`, a signature change, not methods on the step. The case a closed
+ * union genuinely *cannot* serve is narration families contributed by code that does not own the
+ * union --- asset-authored narration, should that ever land. Weigh against the cost: these specs
+ * ride inside `KernelStep[]` through structural test comparison and Immer-adjacent reducer code,
+ * all of which plain data survives and class instances do not.
  */
-export type PresentationKernelStep = ExecutorDescribeStep
+export type MembershipNarrationSpec = {
+    kind: 'membershipMove'
+    direction: 'leave' | 'arrive'
+    characterName: string
+    copyKind: MembershipEmissionCopyKind
+    exitName?: string
+}
+
+export type NarrationSpecification = MembershipNarrationSpec
+
+/**
+ * Positional narration (`AGENT.presentationKernel.planning.md` PB-J/PB-L, Phase 2): a read-only
+ * presentation-kernel step, never entering the mutation walk. Emitted only by the compiler
+ * (`compile/compilePositionKernelOp.ts`) --- PB-I --- which is why it carries no built `message`
+ * (PB-2): the ingredients travel with the step under `narration`, and `presentStepSequence`
+ * assembles the actual copy at flush time, alongside resolving `captureId` against the commit's
+ * captured audience. `captureId` carries identity only, never position --- the capture step's own
+ * array position is what makes the snapshot positional, not this reference to it.
+ *
+ * `kind` is the single, flat `'narrate'` --- mirroring `describe`'s own shape in this file
+ * (`kind: 'describe'` at the walk-dispatch level, `referentKind` as the nested classifier only the
+ * describe handler reads): no kernel-walking consumer (`isKernelMutationStep`, the mutation walk,
+ * the footprint) ever needs to distinguish a leave narration from an arrive one --- that question
+ * belongs entirely to the copy-generator (`presentStepSequence`'s narration branch). Splitting
+ * `kind` into `'narrate-leave'`/`'narrate-arrive'` would make the walk-dispatch discriminant carry
+ * copy-generation concerns it never asks about.
+ *
+ * The remaining flat fields are exactly the delivery half --- `captureId` resolves the audience,
+ * `bundleId` and `slotId` route the report --- and are read only by the presentation kernel's
+ * plumbing, never by the copy-generator. Everything the copy-generator reads lives under
+ * `narration`, so that boundary is structural rather than conventional.
+ *
+ * `captureId` is the **sole** audience input, deliberately: there is no accompanying `roomId`
+ * target. A bare `ROOM#` in a `PublishMessage`'s `targets` resolves through a live roster read at
+ * flush time (`publishMessage/index.ts`'s `getRoomCharacterList`), i.e. terminally --- so carrying
+ * one alongside `captureId` would union a positionally-bound audience with a terminally-bound one
+ * and let the terminal reading win wherever they disagree (a latecomer to the arrival room getting
+ * the line; someone who left between the beat and the flush not getting it). That is PB-A's
+ * distinction collapsed, and the same defect class as the `[room, characterId]` tack-on this phase
+ * retired, entering from the other end. The captured roster already includes the mover by
+ * construction --- capture-from runs before the transfer step, capture-to after --- which is what
+ * made that tack-on unnecessary and makes a room target unnecessary for the same reason.
+ */
+export type PresentationKernelNarrateStep = {
+    kind: 'narrate'
+    narration: NarrationSpecification
+    captureId: string
+    bundleId: string
+    slotId: string
+}
+
+/**
+ * The presentation kernel's own filtered view of `KernelStep` (PB-L): `ExecutorDescribeStep` (the
+ * shipped describe branch, `presentStepSequence.ts`) and `PresentationKernelNarrateStep` (the
+ * narration branch, Phase 2) --- both "things the presentation kernel filters for," the same
+ * relationship `MutationKernelStep` already has to its own members.
+ */
+export type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateStep
 
 /**
  * Adapter from the executor's shipped output shape to the kernel's own step vocabulary. The
@@ -142,3 +229,11 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
  */
 export const isDescribeStep = (step: KernelStep): step is ExecutorDescribeStep =>
     step.kind === 'describe'
+
+/**
+ * The presentation kernel's narration filter (Phase 2, sibling to `isDescribeStep` above): pulls the
+ * `narrate` steps a shared `KernelStep[]` list carries, of whatever narration family. Family-level
+ * dispatch is the copy-generator's business, not the filter's --- see `NarrationSpecification`.
+ */
+export const isNarrateStep = (step: KernelStep): step is PresentationKernelNarrateStep =>
+    step.kind === 'narrate'

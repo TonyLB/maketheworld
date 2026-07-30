@@ -419,7 +419,7 @@ const publishStreamEventsForIntent = async (
                         streamEvent: async () => {},
                         getCurrentHost: () => undefined,
                     },
-                    perceive: { streamEvent },
+                    perceive: { streamEvent, messageBus },
                 }
             )
         }

@@ -22,7 +22,7 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | --- | --- |
 | [`manipulation/types.ts`](manipulation/types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
 | [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts` |
-| [`manipulation/kernel/`](manipulation/kernel/) | The one persist kernel --- `commitStepSequence`, `applyStepSequenceCore`, `kernelStep`, `computeStepSequenceFootprint`, `factsForStep`, plus the read-only `perceiveStepSequence` |
+| [`manipulation/kernel/`](manipulation/kernel/) | The one persist kernel --- `commitStepSequence`, `applyStepSequenceCore`, `kernelStep`, `computeStepSequenceFootprint`, `factsForStep`, plus the read-only `perceiveStepSequence`; [`manipulation/kernel/compile/`](manipulation/kernel/compile/) is the abstract-op compile layer (`positionKernelOp`, `compilePositionKernelOp` --- Phase 2) |
 | [`manipulation/membership/`](manipulation/membership/) | Cross-host ingress (`takeHold`, `drop`) + destroy/edit clear |
 
 #### Relational patch
@@ -92,7 +92,8 @@ positionGraph/  <-- shared primitive
 | --- | --- |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared navigate execution (membership apply + parallel navigate tail) |
 | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) | Parallel tail: `persistRoomStackNavigate` + `orchestrateCharacterNavigate` when `changed && to !== null` |
-| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (arrival-room header slot, render kicks) |
+| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (arrival-room header slot, render kicks, leave/arrive narration --- Phase 2) |
+| [`navigate/buildNavigateMoveOp.ts`](navigate/buildNavigateMoveOp.ts) | Builds navigate/home's `PositionKernelMoveOp`, incl. copy-kind selection (Phase 2) |
 
 ### `membership/` (graph persist + fact emit)
 
@@ -138,6 +139,8 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`manipulation/membership/executeObjectDrop.test.ts`](manipulation/membership/executeObjectDrop.test.ts) | **`Object Drop`**: the same, character -> room |
 | [`manipulation/membership/applyObjectClearMembership.test.ts`](manipulation/membership/applyObjectClearMembership.test.ts) | Destroy/edit clear: boundary sweep, dissolve steps, end-state-to-null transfer |
 | [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes |
+| [`manipulation/kernel/compile/compilePositionKernelOp.test.ts`](manipulation/kernel/compile/compilePositionKernelOp.test.ts) | Compiler steps/slots ordering, arity-driven connect/disconnect shapes, narration-absent (object-lifecycle) path (Phase 2) |
+| [`manipulation/kernel/presentStepSequence.test.ts`](manipulation/kernel/presentStepSequence.test.ts) | Describe branch (existing) + narration branch: mover receives own leave line, arrival/departure room isolation, copy-kind message assembly (Phase 2) |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
@@ -165,11 +168,11 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 
 | Concern | Location |
 | --- | --- |
-| Shared navigate execution (apply + parallel tail) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
-| Parallel navigate tail (ladder persist + orchestrate) | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) |
-| Post-persist presentation (arrival-room header slot, render kicks) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`** |
+| Shared navigate execution (apply + parallel tail) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) --- compiles the pre-commit (mutation-only) step sequence via [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) (Phase 2) |
+| Parallel navigate tail (ladder persist + orchestrate) | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) --- threads `intentKind`/`intentFromRoomId`/`exitName`/`captures` to orchestration |
+| Post-persist presentation (arrival-room header slot, render kicks, **and navigate's leave/arrive narration**, Phase 2) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`**; compiles the op a second time (full plan, with the resolved header slot) via [`buildNavigateMoveOp`](navigate/buildNavigateMoveOp.ts) + `compilePositionKernelOp`, declares `slots`, and reports narration via [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
-| Leave/arrive world copy (navigate + disconnect + connect) | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in |
+| Leave/arrive world copy | **Navigate** (Phase 2): compiled + reported synchronously, above --- not the fan-in. **Disconnect/connect/home** (unchanged, until Phase 3): [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in, suppressed for navigate specifically by `narratedInline: true` on its `Character Moved` fact (see [`AGENT.contract.md`](AGENT.contract.md)). |
 
 ---
 
