@@ -19,6 +19,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 import { StandardFeature } from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardKnowledge } from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { DEFAULT_SITUATION_ID } from '../../slices/personalAssets'
@@ -70,6 +71,8 @@ export const ComponentDescription = ({
             name = prosePayload._displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
             description = prosePayload._description || new StandardRender([])
         }
+    } else if (component instanceof StandardObject) {
+        name = component.shortName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
     }
 
     const bevelCSS = bevel

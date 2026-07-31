@@ -9,7 +9,8 @@ import SearchIcon from '@mui/icons-material/Search'
 import ComponentDescription from './ComponentDescription'
 import {
     PerceptionFeatureMetaData,
-    PerceptionKnowledgeMetaData
+    PerceptionKnowledgeMetaData,
+    PerceptionObjectMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -144,6 +145,34 @@ describe('ComponentDescription', () => {
 
             expect(screen.getByRole('heading', { name: 'Test Knowledge' })).toBeDefined()
             expect(screen.getByText('Knowledge from a Situation facet')).toBeDefined()
+        })
+    })
+
+    describe('Object', () => {
+        it('renders shortName as heading with no description', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object key=(testObject) uuid=(OBJECT#testObject)>
+                        <ShortName>A Widget</ShortName>
+                    </Object>
+                </Asset>
+            `), { standardizeMode: 'ephemeraWire' })
+
+            const metaData: PerceptionObjectMetaData = {
+                componentUUID: 'OBJECT#testObject'
+            }
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByRole('heading', { name: 'A Widget' })).toBeDefined()
+            expect(screen.getByText('No description')).toBeDefined()
         })
     })
 })
