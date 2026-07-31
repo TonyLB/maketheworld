@@ -1,5 +1,5 @@
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
-import { navigateLeaveSlotId } from '../navigate/navigateBundleSlotIds'
+import { moveLeaveSlotId } from '../manipulation/kernel/compile/moveBundleSlotIds'
 
 describe('orchestrateCharacterDisconnect', () => {
     const messageBus = { publish: jest.fn() }
@@ -35,13 +35,13 @@ describe('orchestrateCharacterDisconnect', () => {
         expect(bundleDeclares()).toHaveLength(1)
         await expect(bundleDeclares()[0].getContent()).resolves.toEqual({
             bundleId: 'BUNDLE#test',
-            slots: [{ slotId: navigateLeaveSlotId('ROOM#alpha' as any), expectedPublishType: 'WorldMessage' }],
+            slots: [{ slotId: moveLeaveSlotId('ROOM#alpha' as any), expectedPublishType: 'WorldMessage' }],
         })
 
         const reports = slotReports()
         expect(reports).toHaveLength(1)
         const reportContent = await reports[0].getContent()
-        expect(reportContent.slotId).toEqual(navigateLeaveSlotId('ROOM#alpha' as any))
+        expect(reportContent.slotId).toEqual(moveLeaveSlotId('ROOM#alpha' as any))
         expect(reportContent.message.targets).toEqual(['CHARACTER#Test', 'CHARACTER#Other'])
         expect(reportContent.message.message).toEqual(['Tess has disconnected.'])
     })

@@ -1,8 +1,8 @@
-import { buildMembershipMoveOp } from './buildMembershipMoveOp'
+import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 
-describe('buildMembershipMoveOp', () => {
+describe('buildCharacterMoveOp', () => {
     it('connect: arriveCopyKind is "connect", froms is empty so leaveCopyKind is never exercised', () => {
-        const op = buildMembershipMoveOp({
+        const op = buildCharacterMoveOp({
             characterId: 'CHARACTER#Test',
             characterName: 'Tess',
             froms: [],
@@ -17,7 +17,7 @@ describe('buildMembershipMoveOp', () => {
     })
 
     it('disconnect: leaveCopyKind is "disconnect" regardless of exit/intent-from context, to is null so arriveCopyKind is never exercised', () => {
-        const op = buildMembershipMoveOp({
+        const op = buildCharacterMoveOp({
             characterId: 'CHARACTER#Test',
             characterName: 'Tess',
             froms: ['ROOM#alpha'],
@@ -34,7 +34,7 @@ describe('buildMembershipMoveOp', () => {
     })
 
     it('navigate/home copy-kind selection is unchanged by the widened intentKind union', () => {
-        const homeOp = buildMembershipMoveOp({
+        const homeOp = buildCharacterMoveOp({
             characterId: 'CHARACTER#Test',
             characterName: 'Tess',
             froms: ['ROOM#alpha'],
@@ -46,7 +46,7 @@ describe('buildMembershipMoveOp', () => {
         expect(homeOp.narration?.arriveCopyKind).toEqual('home')
         expect(homeOp.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('home')
 
-        const navigateOp = buildMembershipMoveOp({
+        const navigateOp = buildCharacterMoveOp({
             characterId: 'CHARACTER#Test',
             characterName: 'Tess',
             froms: ['ROOM#alpha'],

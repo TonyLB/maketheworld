@@ -15,7 +15,7 @@ import { presentStepSequence } from '../manipulation/kernel/presentStepSequence'
 import type { MutationKernelCaptures } from '../manipulation/kernel/types'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import type { PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
-import { buildMembershipMoveOp } from '../membership/buildMembershipMoveOp'
+import { buildCharacterMoveOp } from '../membership/buildCharacterMoveOp'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 
 /** Navigate's compiled narration never includes a `describe` step (the header renders through the ingress-slot mechanism below, not this pipeline), so this dep is structurally unused --- present only because `PresentStepSequenceDeps` requires it. */
@@ -28,7 +28,7 @@ export type OrchestrateCharacterNavigateArgs = {
     to: EphemeraRoomId | null;
     /** messageOrchestration bundle correlation id; defaults to a fresh uuidv4() when the caller (connect/disconnect/repair) has no matching intent-leg bundleId. */
     bundleId?: string;
-    /** Threaded from `executeCharacterNavigate.ts` (navigate/home) or `handleConnectionsCharactersPresence.ts` (connect, Phase 3) --- see `buildMembershipMoveOp.ts` for how these select copy-kind. Absent means no narration is compiled here (repair's own navigate-tail calls, which have no matching intent). Disconnect never reaches this function --- see `orchestrateCharacterDisconnect.ts`. */
+    /** Threaded from `executeCharacterNavigate.ts` (navigate/home) or `handleConnectionsCharactersPresence.ts` (connect, Phase 3) --- see `buildCharacterMoveOp.ts` for how these select copy-kind. Absent means no narration is compiled here (repair's own navigate-tail calls, which have no matching intent). Disconnect never reaches this function --- see `orchestrateCharacterDisconnect.ts`. */
     intentKind?: 'navigate' | 'home' | 'connect';
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
@@ -87,7 +87,7 @@ export const orchestrateCharacterNavigate = async ({
     } : null
 
     const op: PositionKernelMoveOp = intentKind
-        ? buildMembershipMoveOp({
+        ? buildCharacterMoveOp({
             characterId,
             characterName: characterMeta.Name,
             froms,
@@ -98,7 +98,7 @@ export const orchestrateCharacterNavigate = async ({
             exitName,
             headerSlot: headerSlotSpec,
         })
-        : { kind: 'move', entityId: characterId, froms, to, bundleId, headerSlot: headerSlotSpec }
+        : { kind: 'move', moved: { kind: 'entity', entityId: characterId }, froms, to, bundleId, headerSlot: headerSlotSpec }
 
     const plan = compilePositionKernelOp(op)
 

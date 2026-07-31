@@ -20,10 +20,12 @@ import type { MutationKernelCaptures } from './types'
 /**
  * The presentation kernel's copy-generator: the *only* consumer of a narration step's `narration`
  * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin ---
- * when a second family lands (Phase 4's object take/drop, PB-3), the expectation is a new `case`
- * delegating to a per-family module, not another block of copy logic inlined here. See
- * `kernelStep.ts`'s `NarrationSpecification` doc for the conditions under which this dispatcher
- * should give way to polymorphism instead.
+ * the expectation was that a second family would arrive as a `case` delegating to a per-family
+ * module rather than a block of copy logic inlined here. Phase 4's `objectMove` case is inline
+ * because it is five lines; the per-family module is what to reach for when a family's copy logic
+ * stops fitting in a glance, not a rule to apply pre-emptively. See `kernelStep.ts`'s
+ * `NarrationSpecification` doc for the conditions under which this dispatcher should give way to
+ * polymorphism instead.
  *
  * Takes only the spec today. A family needing to reason over the commit's captured rosters (rather
  * than just be delivered to them) is a signature change --- add `captures` as a second argument ---
@@ -37,6 +39,17 @@ const buildNarrationCopy = (narration: NarrationSpecification): string => {
                 ? buildMembershipLeaveSuffix(narration.copyKind, narration.exitName)
                 : buildMembershipArriveSuffix(narration.copyKind)
             return `${name}${suffix}`
+        }
+        case 'objectMove': {
+            const name = narration.characterName || 'Someone'
+            // Preserved verbatim from the retired `publishObjectManipulationPresentation.ts`.
+            const carried = narration.carriedCount > 1 ? ' and everything on it' : ''
+            const verbPhrase = narration.verb === 'takeHold'
+                ? 'picks up'
+                : narration.verb === 'drop'
+                ? 'drops'
+                : 'gives'
+            return `${name} ${verbPhrase} ${narration.objectShortName}${carried}`
         }
     }
 }

@@ -3,9 +3,17 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { MembershipEmissionCopyKind } from '../manipulation/kernel/kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../messageOrchestration/localApiEvents'
-import type { PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
+import type { MembershipMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
 
-export type BuildMembershipMoveOpArgs = {
+/**
+ * A `Move` that is guaranteed to narrate, and to narrate in the membership family --- so callers and
+ * tests can reach `narration.leaveCopyKind`/`arriveCopyKind` without re-narrowing the op's own
+ * family union. Every route through this builder populates narration; only object-lifecycle moves
+ * and the pre-commit mutation-only compiles omit it, and neither goes through here.
+ */
+export type CharacterMoveOp = PositionKernelMoveOp & { narration: MembershipMoveNarrationInput }
+
+export type BuildCharacterMoveOpArgs = {
     characterId: EphemeraCharacterId
     characterName: string
     froms: EphemeraRoomId[]
@@ -38,7 +46,7 @@ export type BuildMembershipMoveOpArgs = {
  * copy-kind selector is simply never invoked --- the same tolerance navigate/home already rely on for
  * each other's unused branch.
  */
-export const buildMembershipMoveOp = (args: BuildMembershipMoveOpArgs): PositionKernelMoveOp => {
+export const buildCharacterMoveOp = (args: BuildCharacterMoveOpArgs): CharacterMoveOp => {
     const baseCopyKind: MembershipEmissionCopyKind = args.intentKind === 'home'
         ? 'home'
         : args.intentKind === 'connect'
@@ -76,12 +84,13 @@ export const buildMembershipMoveOp = (args: BuildMembershipMoveOpArgs): Position
 
     return {
         kind: 'move',
-        entityId: args.characterId,
+        moved: { kind: 'entity', entityId: args.characterId },
         froms: args.froms,
         to: args.to,
         bundleId: args.bundleId,
         headerSlot: args.headerSlot,
         narration: {
+            kind: 'membershipMove',
             characterName: args.characterName,
             leaveCopyKind,
             arriveCopyKind: baseCopyKind,

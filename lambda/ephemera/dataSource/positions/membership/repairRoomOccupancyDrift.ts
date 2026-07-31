@@ -6,7 +6,7 @@ import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
-import { buildMembershipMoveOp } from './buildMembershipMoveOp'
+import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import { isKernelMutationStep } from '../manipulation/kernel/kernelStep'
@@ -72,7 +72,7 @@ export const repairRoomOccupancyDrift = async (
             const bundleId = uuidv4()
 
             const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-                buildMembershipMoveOp({
+                buildCharacterMoveOp({
                     characterId,
                     characterName: characterMeta.Name,
                     froms: diff.froms,

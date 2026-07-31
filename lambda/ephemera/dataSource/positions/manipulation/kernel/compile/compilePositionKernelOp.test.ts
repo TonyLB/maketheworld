@@ -2,8 +2,18 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
+import type { MembershipNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
-import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID, NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
+import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
+import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
+
+/** Narrows a compiled narrate step to the membership family these cases all exercise. */
+const membershipNarration = (step: PresentationKernelNarrateStep): MembershipNarrationSpec => {
+    if (step.narration.kind !== 'membershipMove') {
+        throw new Error(`Expected a membershipMove narration, got ${step.narration.kind}`)
+    }
+    return step.narration
+}
 
 const CHARACTER_ID = 'CHARACTER#Tess' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#Departure' as EphemeraRoomId
@@ -11,12 +21,13 @@ const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
 const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
     kind: 'move',
-    entityId: CHARACTER_ID,
+    moved: { kind: 'entity', entityId: CHARACTER_ID },
     froms: [FROM_ROOM],
     to: TO_ROOM,
     bundleId: 'BUNDLE#test',
     headerSlot: null,
     narration: {
+        kind: 'membershipMove',
         characterName: 'Tess',
         leaveCopyKind: () => 'genericNavigate',
         arriveCopyKind: 'genericNavigate',
@@ -36,7 +47,7 @@ describe('compilePositionKernelOp', () => {
             'narrate',
         ])
         const narrateSteps = plan.steps.filter(isNarrateStep)
-        expect(narrateSteps.map((step) => step.narration.direction)).toEqual(['leave', 'arrive'])
+        expect(narrateSteps.map((step) => membershipNarration(step).direction)).toEqual(['leave', 'arrive'])
     })
 
     it('declares slots in delivery order [leave, header, arrive]', () => {
@@ -52,15 +63,16 @@ describe('compilePositionKernelOp', () => {
         const plan = compilePositionKernelOp(baseOp({ headerSlot }))
 
         expect(plan.slots).toEqual([
-            { slotId: navigateLeaveSlotId(FROM_ROOM), expectedPublishType: 'WorldMessage' },
+            { slotId: moveLeaveSlotId(FROM_ROOM), expectedPublishType: 'WorldMessage' },
             headerSlot,
-            { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
+            { slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
         ])
     })
 
     it('narration steps carry ingredients (characterName/copyKind/exitName), not a built message', () => {
         const plan = compilePositionKernelOp(baseOp({
             narration: {
+                kind: 'membershipMove',
                 characterName: 'Tess',
                 leaveCopyKind: () => 'exitAware',
                 arriveCopyKind: 'genericNavigate',
@@ -68,7 +80,7 @@ describe('compilePositionKernelOp', () => {
             },
         }))
 
-        const leaveStep = plan.steps.filter(isNarrateStep).find((step) => step.narration.direction === 'leave')
+        const leaveStep = plan.steps.filter(isNarrateStep).find((step) => membershipNarration(step).direction === 'leave')
         expect(leaveStep?.narration).toMatchObject({
             characterName: 'Tess',
             copyKind: 'exitAware',
@@ -80,16 +92,16 @@ describe('compilePositionKernelOp', () => {
     it('produces no leave step/slot when froms is empty (connect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ froms: [] }))
 
-        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'leave')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'leave')).toBe(false)
         expect(plan.slots.some((slot) => slot.slotId.startsWith('leave:'))).toBe(false)
     })
 
     it('produces no arrive step/slot/capture-to when to is null (disconnect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ to: null }))
 
-        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'arrive')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'arrive')).toBe(false)
         expect(plan.steps.filter((step) => step.kind === 'capture')).toHaveLength(1)
-        expect(plan.slots.some((slot) => slot.slotId === NAVIGATE_ARRIVE_SLOT_ID)).toBe(false)
+        expect(plan.slots.some((slot) => slot.slotId === MOVE_ARRIVE_SLOT_ID)).toBe(false)
     })
 
     it('emits only the bare transfer step when narration is absent (object-lifecycle moves)', () => {
