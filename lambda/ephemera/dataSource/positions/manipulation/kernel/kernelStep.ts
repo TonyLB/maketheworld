@@ -113,8 +113,22 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * `buildCopy(narration, captures)`, a signature change, not methods on the step. The case a closed
  * union genuinely *cannot* serve is narration families contributed by code that does not own the
  * union --- asset-authored narration, should that ever land. Weigh against the cost: these specs
- * ride inside `KernelStep[]` through structural test comparison and Immer-adjacent reducer code,
- * all of which plain data survives and class instances do not.
+ * ride inside `KernelStep[]` through structural test comparison, which plain data survives cleanly
+ * and class instances do not (`toStrictEqual` compares prototypes; getters and private fields are
+ * not own-enumerable).
+ *
+ * The Immer hazard sometimes cited alongside that is **not** a class-vs-plain distinction, and an
+ * earlier revision of this comment overstated it. `EphemeraPositionGraph` instances cross a
+ * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
+ * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
+ * rather than retaining the draft's own element references --- see its doc comment. The real rule is
+ * PB-E's, and it is about provenance rather than class-ness: anything retained past a reducer's
+ * return must have its references into the draft severed **per element** (`{...node}`, not merely
+ * `[...array]`, which would keep the draft's elements alive inside a fresh outer array). A plain
+ * object aliasing draft-backed sub-objects fails that test; a carefully-constructed class instance
+ * passes it. In any case a `KernelStep[]` is built by the compiler *before* `commitStepSequence` is
+ * called --- the reducer closes over it and reads it, never constructs it --- so nothing riding here
+ * is draft-backed to begin with.
  */
 /**
  * Membership narration copy-kind vocabulary --- shared by `buildMembershipMoveOp.ts` (which selects
