@@ -32,7 +32,8 @@ export type MutationKernelTransferStep = {
 }
 
 /**
- * Positional capture (`AGENT.presentationKernel.planning.md` PB-J): a read-only walk step that
+ * Positional capture (normative rules: `dataSource/positions/AGENT.contract.md`, "Capture steps are
+ * read-only by shape"): a read-only walk step that
  * snapshots a host's roster mid-walk, so narration built later can reflect "who was there at this
  * beat" rather than final committed state. It carries no write payload --- that shape constraint is
  * what makes it safe to admit into the mutation kernel's own `transactWrite` walk (a step that could
@@ -138,8 +139,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * it per leave/arrive) and `publishMembershipPresentation.ts`'s suffix builders (which render it to
  * copy). Lives here, not in `perception/`, because this is where `MembershipNarrationSpec` --- its
  * only structural consumer --- is defined; the old home (`perception/membershipPresentationFanIn.ts`)
- * was retired in Phase 3 (`AGENT.presentationKernel.planning.md`) once it had nothing left in it but
- * this type.
+ * was retired along with the async membership fan-in, once it had nothing left in it but this type.
  */
 export type MembershipEmissionCopyKind =
     | 'exitAware'
@@ -184,10 +184,10 @@ export type ObjectMoveNarrationSpec = {
 export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrationSpec
 
 /**
- * Positional narration (`AGENT.presentationKernel.planning.md` PB-J/PB-L, Phase 2): a read-only
- * presentation-kernel step, never entering the mutation walk. Emitted only by the compiler
- * (`compile/compilePositionKernelOp.ts`) --- PB-I --- which is why it carries no built `message`
- * (PB-2): the ingredients travel with the step under `narration`, and `presentStepSequence`
+ * Positional narration (rules: `dataSource/positions/AGENT.contract.md`, "Narration and
+ * presentation"): a read-only presentation-kernel step, never entering the mutation walk. Emitted
+ * only by the compiler (`compile/compilePositionKernelOp.ts`), which is why it carries no built
+ * `message`: the ingredients travel with the step under `narration`, and `presentStepSequence`
  * assembles the actual copy at flush time, alongside resolving `captureId` against the commit's
  * captured audience. `captureId` carries identity only, never position --- the capture step's own
  * array position is what makes the snapshot positional, not this reference to it.

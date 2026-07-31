@@ -60,10 +60,11 @@ export type PresentStepSequenceDeps = {
 }
 
 /**
- * The presentation kernel's describe branch (shipped iteration 9/Phase 3 as "the perception kernel";
- * renamed under PB-L --- see `AGENT.presentationKernel.planning.md` --- because every `*Presentation*`
- * identifier elsewhere in this codebase already means "publishing into the transcript," and this
- * function does exactly that): NOT a second `commitStepSequence`. It owns no
+ * The presentation kernel's describe branch (shipped first as "the perception kernel"; renamed
+ * because every `*Presentation*` identifier elsewhere in this codebase already means "publishing
+ * into the transcript," and this function does exactly that, while `perception` is both the broad
+ * experience category and a data source's name --- see `dataSource/positions/AGENT.concepts.md`,
+ * "Two kernels"): NOT a second `commitStepSequence`. It owns no
  * `transactWrite`, no footprint locking, no retry --- those exist only to make a *write* atomic
  * across hosts, and a `describe` step never mutates anything. This is a straight publish loop over
  * a shared, already-grounded `KernelStep[]` list, filtered down to the `describe` steps it owns

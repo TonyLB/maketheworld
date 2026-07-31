@@ -18,7 +18,7 @@ export type BuildObjectMoveOpArgs = {
 
 /**
  * Object take/drop/give's `PositionKernelMoveOp` --- a **sibling** of `buildCharacterMoveOp`, not a
- * widening of it (Phase 4, `AGENT.presentationKernel.planning.md`). Almost all of that module is
+ * widening of it. Almost all of that module is
  * `MembershipEmissionCopyKind` selection, which objects share nothing with, and its argument types
  * are room-shaped; merging the two would put two disjoint bodies under one name, against the same
  * discriminate-on-family doctrine `NarrationSpecification` follows.

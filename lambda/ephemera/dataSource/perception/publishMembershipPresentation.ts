@@ -3,7 +3,7 @@ import type { MembershipEmissionCopyKind } from '../positions/manipulation/kerne
 /**
  * The presentation kernel's copy-suffix builders for membership narration (`presentStepSequence.ts`'s
  * `buildNarrationCopy`, `kind: 'membershipMove'` case) --- the only surviving exports of this file
- * after Phase 3 (`AGENT.presentationKernel.planning.md`) retired `MembershipPresentationFanInCluster`,
+ * after the async membership fan-in migration retired `MembershipPresentationFanInCluster`,
  * `membershipPresentationFanIn.ts` itself (its one remaining export, `MembershipEmissionCopyKind`,
  * relocated to `kernelStep.ts` --- the file that actually structurally depends on it), and the
  * `publishMembershipPresentation` publish function that used to call these directly. Every membership

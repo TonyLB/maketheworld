@@ -15,7 +15,7 @@ export type MembershipApplyArgs = {
     /** null = out of play (disconnect). */
     targetRoomId: EphemeraRoomId | null;
     /**
-     * Phase 2 (`AGENT.presentationKernel.planning.md`): when supplied, called with the resolved
+     * When supplied, called with the resolved
      * `MembershipDiff` once planning determines it (before commit) to build the committed step
      * sequence --- the compiler's `[capture, transfer, capture]` shape --- instead of a hand-built
      * bare `transferMembership` step. A callback, not a pre-built array, because the diff (`froms`/

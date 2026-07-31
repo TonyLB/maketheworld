@@ -58,7 +58,7 @@ export type ObjectMoveNarrationInput = {
 }
 
 /**
- * `AGENT.presentationKernel.planning.md` PB-I/PB-6: the abstract-op vocabulary the compiler
+ * The abstract-op vocabulary the compiler
  * (`compilePositionKernelOp.ts`) expands into `KernelStep[]`. Shaped at the level the instruction
  * planner sees the world --- `moved` generalizes over object/character exactly as
  * `MutationKernelTransferStep` already does (BD-36) --- rather than at the level a player

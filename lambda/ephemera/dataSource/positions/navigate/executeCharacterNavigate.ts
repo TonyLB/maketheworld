@@ -30,13 +30,14 @@ export type ExecuteCharacterNavigateArgs = {
  * Shared navigate execution: membership persist via positions coordinator, then
  * parallel navigate tail (ladder persist + presentation) when endpoints changed.
  *
- * Phase 2 (`AGENT.presentationKernel.planning.md`): compiles the abstract `Move` op (PB-I) via
- * `compileMutationSteps`, so the committed step sequence is `[capture(from), transfer, capture(to)]`
- * rather than a bare `transferMembership` step --- the mechanism that lets narration be positionally
- * bound (PB-A). `narrationHandledInline: true` suppresses the async membership-presentation fan-in's
- * fact leg for this commit (see `applyCharacterRoomMembership.ts`); narration itself is reported from
- * `orchestrateCharacterNavigate` (post-commit, alongside the header slot it already resolves there),
- * not here --- see that function's doc comment for why the op is compiled twice.
+ * Compiles the abstract `Move` op via `compileMutationSteps`, so the committed step sequence is
+ * `[capture(from), transfer, capture(to)]` rather than a bare `transferMembership` step --- the
+ * mechanism that lets narration be *positionally* bound (its audience resolved mid-walk rather than
+ * against the live roster at flush). Narration itself is reported from `orchestrateCharacterNavigate`
+ * post-commit, alongside the header slot it already resolves there, not here --- see that function's
+ * doc comment for why the op is compiled twice.
+ *
+ * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
 export const executeCharacterNavigate = async ({
     characterId,

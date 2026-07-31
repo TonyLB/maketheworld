@@ -22,7 +22,7 @@ export type OrchestrateCharacterDisconnectArgs = {
 }
 
 /**
- * Post-persist disconnect presentation (Phase 3, `AGENT.presentationKernel.planning.md`): the
+ * Post-persist disconnect presentation: the
  * narration-only half of what `orchestrateCharacterNavigate` does for a destination room. Disconnect
  * (and the ghost-purge repair sweep in `repairRoomOccupancyDrift.ts`, which shares this function) has
  * no `to` --- nothing arrives anywhere, so there is no header slot to resolve, no

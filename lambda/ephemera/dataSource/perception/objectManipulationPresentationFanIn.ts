@@ -42,8 +42,9 @@ export type ObjectRelationalFactLeg = {
  * Narrowed to the two relational members in Phase 4, when object take/drop stopped narrating through
  * this fan-in at all: it now compiles into the mutation kernel's step sequence and narrates from a
  * positionally-captured roster (`positions/manipulation/membership/orchestrateObjectMove.ts`). The
- * relational half --- reposition within a host --- is a deliberate deferral, not a boundary; see
- * `AGENT.presentationKernel.planning.md` PB-M.
+ * relational half --- reposition within a host --- is a deliberate deferral, not a boundary; it is
+ * the third member of the same move family and belongs on the same compiler. Tracked in
+ * `taskPlanning/lambda/ephemera/AGENT.relationalNarration.planning.md`.
  */
 export type ObjectManipulationPresentationLeg =
     | ObjectRelationalIntentLeg

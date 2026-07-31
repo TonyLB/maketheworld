@@ -39,7 +39,7 @@ export type OrchestrateCharacterNavigateArgs = {
 
 /**
  * Post-persist navigate presentation (S1-13): declares this move's messageOrchestration bundle and
- * reports its narration (Phase 2, `AGENT.presentationKernel.planning.md`), resolves the header slot
+ * reports its narration, resolves the header slot
  * via the async render pipeline's Ingress registration, imperative header fallback. Does not perform
  * membership Dynamo writes or `RoomUpdate`/`EphemeraUpdate` (coordinator owns those).
  *
@@ -49,7 +49,7 @@ export type OrchestrateCharacterNavigateArgs = {
  * capture ids are pure functions of `froms`/`to` alone, so both compiles agree on the same ids and
  * the narration steps built here resolve against captures taken by the other call's committed
  * transaction. When `intentKind` is absent, no narration is compiled and only the header-render
- * machinery below runs, unchanged from before. Connect passes `intentKind: 'connect'` (Phase 3) and
+ * machinery below runs, unchanged from before. Connect passes `intentKind: 'connect'` and
  * flows through this same function --- it always has a destination room, so the header-render logic
  * applies unchanged. Disconnect (and the ghost-purge repair sweep) never reach this function at all
  * --- they have no destination room to render a header for --- see `orchestrateCharacterDisconnect.ts`.

@@ -33,7 +33,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`applyObjectTakeHold`](../dataSource/positions/manipulation/membership/applyObjectSetTakeHold.ts) |
+| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) -> [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
 | Transcript | Fan-in -> **`${Player} picks up ${Object}`** |
 
@@ -49,9 +49,9 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the character holds / carries it | **Do not** elaborate beyond "picks up" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** at fan-in emit (no copy-generating LLM hop). Labels resolve at emit time via [`resolveTakeHoldPresentationLabels.ts`](../dataSource/perception/resolveTakeHoldPresentationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable.
+Copy is **deterministic template** (no copy-generating LLM hop), assembled by the positions **presentation kernel** at flush from ingredients the compiler put on the narrate step. Labels resolve via [`resolveObjectMovePresentationLabels.ts`](../dataSource/perception/resolveObjectMovePresentationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable. The verb is **not** declared by this operator --- it is derived from which side of the move was the room.
 
-Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
+Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulation/kernel/compile/compilePositionKernelOp.ts) (verb + steps), [`presentStepSequence.ts`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts) (copy + audience), [`orchestrateObjectMove.ts`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) (routing). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
 
 ---
 
@@ -68,11 +68,11 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectSetDrop.ts) |
+| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) --- the same entry point as `takeHold`, host pair reversed |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
 | Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-**Persist path:** [`applyObjectDrop`](../dataSource/positions/manipulation/membership/applyObjectSetDrop.ts) -> [`planObjectDropTransfer`](../dataSource/positions/manipulation/adapters/planObjectDropTransfer.ts) -> [`applyHostEffects`](../dataSource/positions/manipulation/applyHostEffects.ts). **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork. Symmetric bounded apply to **`takeHold`** (trusted ingress `characterId` + `roomId`). Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md) Section B **`drop`**.
+**Persist path:** [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence, committed via [`commitStepSequence`](../dataSource/positions/manipulation/kernel/commitStepSequence.ts) in one transact. **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
 
 **Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
 
@@ -86,9 +86,9 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the object falls or comes to rest | **Do not** elaborate beyond "drops" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** at fan-in emit (no copy-generating LLM hop). Labels resolve at emit time via [`resolveTakeHoldPresentationLabels.ts`](../dataSource/perception/resolveTakeHoldPresentationLabels.ts) (shared for both operators; does not require object to remain in room graph post-apply); fallbacks **`Someone`** / **`something`** when names are unavailable.
+Copy is **deterministic template** (no copy-generating LLM hop), assembled by the positions **presentation kernel**. Labels resolve via [`resolveObjectMovePresentationLabels.ts`](../dataSource/perception/resolveObjectMovePresentationLabels.ts) --- shared with `takeHold`, and it does not require the object to remain in the room graph post-apply; fallbacks **`Someone`** / **`something`** when names are unavailable.
 
-Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
+`drop` and `takeHold` stay **two intents** because the player's meaning and the pre-apply legality errors genuinely differ, but they are **one world-effect** and share one execution and narration path --- the direction is expressed solely by which host is `fromHostId`. Implementation and rules: as for `takeHold` above.
 
 ---
 

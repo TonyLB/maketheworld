@@ -25,7 +25,7 @@ export type OrchestrateObjectMoveArgs = {
 
 /**
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
- * (Phase 4, `AGENT.presentationKernel.planning.md`). Sibling of `orchestrateCharacterDisconnect`:
+ * give. Sibling of `orchestrateCharacterDisconnect`:
  * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
  * world change itself entirely to `executeObjectMove`, which stays callable bare for non-narrating
  * object-lifecycle moves (spawn/destroy/place/remove).

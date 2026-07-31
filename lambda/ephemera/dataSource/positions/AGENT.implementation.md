@@ -12,7 +12,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** + **`Object Relation Changed`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts); `Object Drop` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` and `Object Drop` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (one entry point; the two branches differ only in which host is `fromHostId`); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
 
 ### `manipulation/` (planning adapters + kernel)
 
@@ -22,8 +22,9 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 | --- | --- |
 | [`manipulation/types.ts`](manipulation/types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
 | [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts` |
-| [`manipulation/kernel/`](manipulation/kernel/) | The one persist kernel --- `commitStepSequence`, `applyStepSequenceCore`, `kernelStep`, `computeStepSequenceFootprint`, `factsForStep`, plus the read-only `perceiveStepSequence`; [`manipulation/kernel/compile/`](manipulation/kernel/compile/) is the abstract-op compile layer (`positionKernelOp`, `compilePositionKernelOp` --- Phase 2) |
-| [`manipulation/membership/`](manipulation/membership/) | Cross-host ingress (`takeHold`, `drop`) + destroy/edit clear |
+| [`manipulation/kernel/`](manipulation/kernel/) | Both kernels --- mutation (`commitStepSequence`, `applyStepSequenceCore`, `computeStepSequenceFootprint`, `factsForStep`) and presentation (`presentStepSequence`, describe + narrate branches), over the shared step vocabulary in `kernelStep` |
+| [`manipulation/kernel/compile/`](manipulation/kernel/compile/) | Abstract-op compile layer: `positionKernelOp` (the op), `compilePositionKernelOp` (op -> `{ steps, slots }`), `moveBundleSlotIds` (host-typed leave/arrive slot ids) |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host object move (both directions) + destroy/edit clear |
 
 #### Relational patch
 
@@ -38,8 +39,8 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 | File | Role |
 | --- | --- |
-| [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) | **`Object Take Hold`**: runs the Synthesize executor at execute time, commits the step sequence |
-| [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) | **`Object Drop`**: the same, character -> room |
+| [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) | Narration owner for **both** `Object Take Hold` and `Object Drop`. Derives the acting character and room from the host pair, resolves labels, then wraps `executeObjectMove`; declares the bundle and presents narration on `ok: true` |
+| [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) | Execution for either direction: seeds the Synthesize executor **grounded** from concrete hosts, compiles the move once, commits the plan's mutation steps. Returns `{ ok: false } \| { ok: true, plan, captures }` |
 | [`manipulation/membership/applyObjectClearMembership.ts`](manipulation/membership/applyObjectClearMembership.ts) | Destroy/edit clear: explicit boundary sweep + `dissolveRelation` + end-state-to-null transfer |
 | [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | `ObjectMembershipDiff` + clear-membership apply result |
 
@@ -49,9 +50,9 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**[`positionGraph/`](positionGraph/)**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
 
-2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts) to **`executeObject*`** entry (pattern: [`executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts)).
+2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts). If the operator is a **membership move**, it very likely does **not** need a new execute module: name its host pair and route to [`orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts). `give` is the worked example --- `(CHARACTER# -> CHARACTER#)` needs no new code below ingress.
 
-3. **Post-persist bundle** --- do **not** write one. The kernel already streams **`Object Moved`** first, seeds **`internalCache.Positions`** on every committed graph, invalidates the affordance deliverable for Room hosts, and publishes **`RoomUpdate`**. Add only what is genuinely verb-specific. Contract: [Cross-host object membership-changed bundle (`takeHold`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-takehold), [Cross-host object membership-changed bundle (`drop`)](AGENT.contract.md#cross-host-object-membership-changed-bundle-drop).
+3. **Post-persist bundle** --- do **not** write one. The kernel already streams **`Object Moved`** first, seeds **`internalCache.Positions`** on every committed graph, invalidates the affordance deliverable for Room hosts, and publishes **`RoomUpdate`**. Add only what is genuinely verb-specific. Contract: [Cross-host object membership-changed bundle](AGENT.contract.md#cross-host-object-membership-changed-bundle-object-move-takehold--drop--give).
 
 4. **Graph transact** --- plan (shared adapter, or the Synthesize executor when the operator needs live grounding), then **`commitStepSequence`** only. **Must not** add `update*PositionGraphs` forks or a route-specific wrapper over the kernel.
 
@@ -61,8 +62,10 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 | Operator | Host direction | Intent payload | Planning + kernel | `RoomUpdate` / affordance scope |
 | --- | --- | --- | --- | --- |
-| **`takeHold`** | room -> character | `objectIds`, `roomId`, `characterId` | Synthesize executor -> `commitStepSequence` | Room hosts only |
-| **`drop`** | character -> room | `objectIds`, `roomId`, `characterId` | Synthesize executor -> `commitStepSequence` | destination room |
+| **`takeHold`** | room -> character | `objectIds`, `roomId`, `characterId` | `orchestrateObjectMove` -> Synthesize executor -> `commitStepSequence` | Room hosts only |
+| **`drop`** | character -> room | `objectIds`, `roomId`, `characterId` | the same, host pair reversed | destination room |
+
+The **intent payload** column is the only per-operator row that genuinely varies. Everything right of it is shared, and the narration verb is derived from the host direction rather than declared --- so a new membership-move operator adds an ingress guard and a dispatch branch, and nothing else.
 
 7. **Tests** --- ingress unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
 
@@ -92,14 +95,19 @@ positionGraph/  <-- shared primitive
 | --- | --- |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared navigate execution (membership apply + parallel navigate tail) |
 | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) | Parallel tail: `persistRoomStackNavigate` + `orchestrateCharacterNavigate` when `changed && to !== null` |
-| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (arrival-room header slot, render kicks, leave/arrive narration --- Phase 2) |
-| [`navigate/buildNavigateMoveOp.ts`](navigate/buildNavigateMoveOp.ts) | Builds navigate/home's `PositionKernelMoveOp`, incl. copy-kind selection (Phase 2) |
+| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist presentation (arrival-room header slot, render kicks, leave/arrive narration) --- shared by navigate, home, **and connect**, all of which have a destination room |
+| [`navigate/navigateBundleSlotIds.ts`](navigate/navigateBundleSlotIds.ts) | `NAVIGATE_HEADER_SLOT_ID` only --- genuinely navigate-owned. The leave/arrive slot ids live in [`manipulation/kernel/compile/moveBundleSlotIds.ts`](manipulation/kernel/compile/moveBundleSlotIds.ts) and are **host**-typed, not room-typed, so a character-hosted endpoint needs no cast |
+
+The op builder is **not** here: [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp.ts) serves every character route (navigate, home, connect, disconnect, ghost-purge), which is why it sits under `membership/` rather than `navigate/`.
 
 ### `membership/` (graph persist + fact emit)
 
 | File | Role |
 | --- | --- |
 | [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
+| [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp.ts) | Builds the `PositionKernelMoveOp` for **every** character route, incl. `MembershipEmissionCopyKind` selection across `intentKind: 'navigate' \| 'home' \| 'connect' \| 'disconnect'` |
+| [`membership/buildObjectMoveOp.ts`](membership/buildObjectMoveOp.ts) | The object **sibling** --- not a widening. Takes no verb, no direction, no acting character; `carriedCount` comes from the fragment so it cannot drift from what is transferred |
+| [`membership/orchestrateCharacterDisconnect.ts`](membership/orchestrateCharacterDisconnect.ts) | Post-persist presentation for disconnect **and** ghost-purge: declare the bundle, present leave narration, nothing else (no `to`, so no header) |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
 | [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) | Navigate follow-up: `optimisticUpdate` + `mergeRoomStack` at `beatAnchorTime` |
 | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) | Pure timestamp merge for navigate ladder races |
@@ -135,12 +143,13 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + navigate tail; disconnect routes through coordinator |
 | [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / **`Object Drop`** / drift finding) |
-| [`manipulation/membership/executeObjectTakeHold.test.ts`](manipulation/membership/executeObjectTakeHold.test.ts) | **`Object Take Hold`**: executor grounding + committed step sequence |
-| [`manipulation/membership/executeObjectDrop.test.ts`](manipulation/membership/executeObjectDrop.test.ts) | **`Object Drop`**: the same, character -> room |
+| [`manipulation/membership/executeObjectMove.test.ts`](manipulation/membership/executeObjectMove.test.ts) | Executor grounding + committed step sequence for **both** directions (two scenario-labeled describe blocks); result shape; **no capture steps when narration is absent** |
+| [`manipulation/membership/orchestrateObjectMove.test.ts`](manipulation/membership/orchestrateObjectMove.test.ts) | Bundle declaration, both bracket slots reported, labels resolved once, and **never narrates a commit that did not happen** |
 | [`manipulation/membership/applyObjectClearMembership.test.ts`](manipulation/membership/applyObjectClearMembership.test.ts) | Destroy/edit clear: boundary sweep, dissolve steps, end-state-to-null transfer |
 | [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes |
-| [`manipulation/kernel/compile/compilePositionKernelOp.test.ts`](manipulation/kernel/compile/compilePositionKernelOp.test.ts) | Compiler steps/slots ordering, arity-driven connect/disconnect shapes, narration-absent (object-lifecycle) path (Phase 2) |
-| [`manipulation/kernel/presentStepSequence.test.ts`](manipulation/kernel/presentStepSequence.test.ts) | Describe branch (existing) + narration branch: mover receives own leave line, arrival/departure room isolation, copy-kind message assembly (Phase 2) |
+| [`manipulation/kernel/compile/compilePositionKernelOp.test.ts`](manipulation/kernel/compile/compilePositionKernelOp.test.ts) | Compiler steps/slots ordering, arity-driven connect/disconnect shapes, narration-absent (object-lifecycle) path, verb derivation for all three of takeHold/drop/give, closure-wide `entityIds`, dissolves ordered ahead of the transfer, and **both bracket sides emitted for a character host rather than suppressing the empty one** |
+| [`manipulation/kernel/presentStepSequence.test.ts`](manipulation/kernel/presentStepSequence.test.ts) | Describe branch + narration branch: mover receives own leave line, arrival/departure room isolation, copy-kind message assembly, `objectMove` copy, and **the character-hosted bracket side publishes to nobody rather than throwing** |
+| [`membership/buildCharacterMoveOp.test.ts`](membership/buildCharacterMoveOp.test.ts), [`membership/buildObjectMoveOp.test.ts`](membership/buildObjectMoveOp.test.ts) | Copy-kind selection per `intentKind`; the object builder declaring **no** verb or direction (identical narration for opposite directions is the assertion) |
 | [`membership/membershipRoomStack.test.ts`](membership/membershipRoomStack.test.ts) | Extend / rewrite-tail / fork + circus-style trim |
 | [`membership/resolveConnectTargetRoom.test.ts`](membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
 | [`membership/repairCharacterLegalPlacement.test.ts`](membership/repairCharacterLegalPlacement.test.ts) | Asset visibility legal placement repair |
@@ -168,11 +177,15 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 
 | Concern | Location |
 | --- | --- |
-| Shared navigate execution (apply + parallel tail) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) --- compiles the pre-commit (mutation-only) step sequence via [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) (Phase 2) |
+| Shared navigate execution (apply + parallel tail) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) --- compiles the pre-commit (mutation-only) step sequence via [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) |
 | Parallel navigate tail (ladder persist + orchestrate) | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) --- threads `intentKind`/`intentFromRoomId`/`exitName`/`captures` to orchestration |
-| Post-persist presentation (arrival-room header slot, render kicks, **and navigate's leave/arrive narration**, Phase 2) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`**; compiles the op a second time (full plan, with the resolved header slot) via [`buildNavigateMoveOp`](navigate/buildNavigateMoveOp.ts) + `compilePositionKernelOp`, declares `slots`, and reports narration via [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) |
+| Post-persist presentation (arrival-room header slot, render kicks, **and leave/arrive narration**) | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) --- args **`froms[]`**, **`to`**; compiles the op a second time (full plan, with the resolved header slot) via [`buildCharacterMoveOp`](membership/buildCharacterMoveOp.ts) + `compilePositionKernelOp`, declares `slots`, and reports narration via [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
-| Leave/arrive world copy | **Navigate** (Phase 2): compiled + reported synchronously, above --- not the fan-in. **Disconnect/connect/home** (unchanged, until Phase 3): [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) via membership fan-in, suppressed for navigate specifically by `narratedInline: true` on its `Character Moved` fact (see [`AGENT.contract.md`](AGENT.contract.md)). |
+| Leave/arrive world copy | **Compiled and reported synchronously for every character route** --- there is no membership fan-in. Navigate/home/connect via the orchestrator above; disconnect and ghost-purge via [`membership/orchestrateCharacterDisconnect.ts`](membership/orchestrateCharacterDisconnect.ts). Rules: [`AGENT.contract.md` --- Narration and presentation](AGENT.contract.md#narration-and-presentation). |
+
+**Navigate compiles its op twice, deliberately** --- once pre-commit for mutation steps only, once post-commit for the full plan. The two agree because `compilePositionKernelOp` generates capture ids as a pure function of `froms`/`to`, never of narration content. The second compile exists because the header slot needs an async perspective-key lookup that cannot run inside the mutation path.
+
+**Object moves compile once**, because they have no header slot: a second compile would be two chances to disagree in exchange for nothing. Labels resolve *before* the commit and the plan travels out on the result. Note the trap this avoids: compiling a **bare** (non-narrating) op pre-commit would silently drop every capture step, since captures are gated on narration's presence.
 
 ---
 
@@ -251,7 +264,8 @@ Manipulation truth (`positionGraph`, adjacency) vs presentation compose (hydrate
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Navigate parse --- reverse via **`Positions.getMembershipContainers`** |
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`getRoomCharacterList`** |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
-| [`../perception/membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) | Fan-in fact leg consumer for **`Character Moved`** |
+| [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) | Two pure leave/arrive **suffix builders**, reused verbatim by `presentStepSequence`. No publish path of its own --- the fan-in that owned one is gone |
+| [`../perception/resolveObjectMovePresentationLabels.ts`](../perception/resolveObjectMovePresentationLabels.ts) | Perspective-aware `characterName` / `objectShortName` for object-move narration ingredients, with an improvisation fallback |
 
 ---
 

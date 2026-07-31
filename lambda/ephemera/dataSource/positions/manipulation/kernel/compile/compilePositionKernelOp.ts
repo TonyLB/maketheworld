@@ -36,10 +36,11 @@ const objectMoveVerb = (
 }
 
 /**
- * `AGENT.presentationKernel.planning.md` PB-I: the one place that knows "a move brackets
- * leave-then-arrive." Callers --- navigate/home/connect/disconnect (Phases 2-3) and object
- * take/drop (Phase 4) --- emit a `PositionKernelMoveOp` and never spell out capture, dissolve, or
- * narration steps themselves; see that plan's PB-I/PB-2/PB-6/PB-7/PB-9/PB-M for the resolved design.
+ * The one place that knows "a move brackets leave-then-arrive." Callers ---
+ * navigate/home/connect/disconnect and object take/drop --- emit a `PositionKernelMoveOp` and never
+ * spell out capture, dissolve, or narration steps themselves. Normative rules:
+ * `dataSource/positions/AGENT.contract.md`, "Narration and presentation"; vocabulary:
+ * `AGENT.concepts.md`, "Abstract op and compiled step."
  *
  * `op.headerSlot`'s presence in `slots` is unconditional, independent of `op.narration` --- the
  * header render is a separate, already-shipped mechanism (`orchestrateNavigate.ts`'s

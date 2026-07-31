@@ -76,6 +76,63 @@ Module paths: [`manipulation/adapters/`](manipulation/adapters/) (transfer plann
 
 ---
 
+## Narration and presentation
+
+Mental model: [**Positional vs. terminal binding**](AGENT.concepts.md#positional-vs-terminal-binding) and [**Abstract op and compiled step**](AGENT.concepts.md#abstract-op-and-compiled-step-two-levels). Code map: [`manipulation/AGENT.implementation.md` --- Presentation kernel](manipulation/AGENT.implementation.md#presentation-kernel).
+
+Every narration a position change produces --- character leave/arrive (navigate, home, connect, disconnect, ghost-purge) and object take/drop/give --- is **compiled**, not hand-built. This section states the rules that hold across all of them. Per-route bundles are in the route sections below.
+
+### Binding time: world state early, transport state late
+
+**Early-bind a target iff resolving it reads *world* state; late-bind iff it reads *transport* state.**
+
+- **`ROOM#`** resolves against the room's `positionGraph` --- world state. It **must** be bound at beat time, inside the kernel walk, to a concrete `EphemeraCharacterId[]`.
+- **`CHARACTER#`** and **`SESSION#`** resolve against connected sessions --- transport state. They **must** stay late-bound, resolved at flush by [`publishMessage/index.ts`](../../publishMessage/index.ts).
+
+[`getRoomCharacterList`](../../internalCache/hydrateRoomRoster.ts) is the existence proof the two are separable: it already performs one of each, in that order (`Positions.getPositionGraph(roomId).characterIds`, then `CharacterMeta` + `CharacterSessions` hydration). Early binding hoists the first half to beat time and leaves the second where it is.
+
+**Consequence, and the rule that actually bites: a narrate step carries no room target at all.** `captureId` is its sole audience input.
+
+- A `PresentationKernelNarrateStep` **must not** carry a bare `ROOM#` in `targets`, and **must not** union one with a captured audience. A `ROOM#` re-expands against the **live** roster at flush, so pairing the two lets the terminally-bound reading win wherever they disagree --- which is the same defect class as the retired `[room, characterId]` tack-on, entering from the other end.
+- An unresolvable `captureId` **must throw**. It **must not** degrade to a room target or to an empty audience. Capture ids are minted only by [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts), so a miss means the plan is internally inconsistent, and either quiet recovery hides that behind a silently-wrong or silently-absent delivery.
+
+**Beat-time and flush-time capture differ only under concurrent third-party membership change**, and beat time is the correct answer there: the audience for "Tess left" is who was standing in the room at that beat, not who wandered in while an LLM was still generating a header.
+
+### Capture steps are read-only by shape
+
+A **`MutationKernelCaptureStep`** carries **`hostId`** + **`captureId`** and **no write payload**. That shape requirement is what makes a read-only step safe inside the mutation walk --- enforce it by shape, **not** by excluding capture from the walk.
+
+- A capture step **must not** contribute to the `transactWrite` write set. It contributes to the **read/lock** set only.
+- A capture **must** be an entry in the `KernelStep[]` array, **not** a side-table threaded past the walk. [`computeStepSequenceFootprint`](manipulation/kernel/computeStepSequenceFootprint.ts) is the transaction's lock-set declaration and is computed **once, up front**: `MultiKeyUpdate` cannot be re-entered mid-reducer to lock a newly-discovered host. As an array step the footprint picks up `hostId` automatically and it is structurally impossible to forget. As a side-table, every caller would have to remember to union capture hosts into the footprint --- and it would fail *late and selectively*, since navigate happens to work (its move already locks both rooms) while the first break would be a capture against an otherwise-unmutated host.
+- Captured values **must** be plain `EphemeraCharacterId[]`, and the reducer **must** record them by **assignment, never append**. `applyStepSequenceCore` runs inside a `MultiKeyUpdate` reducer under `exponentialBackoffWrapper`, so the body can run several times; an accumulating `push` duplicates narration across retry attempts. (Immer `produce()` also revokes draft-backed objects after the reducer returns --- ids being primitive strings makes that free here by construction rather than by discipline.)
+- Capture **must not** validate. `hydrateRoomRosterFromCharacterIds` drops characters whose `CharacterMeta` is missing; that is a validity concern, neither world nor transport, and it stays at flush.
+
+**Captures are compiled only when the op narrates.** A non-narrating move (object spawn/destroy/place/remove, and the navigate pre-commit mutation-only compile) produces no capture steps and therefore locks no extra hosts. Do not "fix" a missing capture by defaulting `captures` to an empty map at a call site.
+
+### An object move's verb is a property of the delta
+
+take / drop / give is derived from **which side of the move was the room**, inside [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts): `to` is a room -> `drop`; a `from` is a room -> `takeHold`; neither -> `give`.
+
+- **No call site may pass a verb**, and no code may infer one backwards from a published fact. The retired `inferOperationFromFact` did exactly that, and `give` falls out of the forward rule with no new discriminant.
+- The moved set **must** travel as `moved: { kind: 'closure', fragment }` for objects and `{ kind: 'entity', entityId }` for characters. Primacy is **`fragment.rootId`** --- recorded by `computeCarryClosure` from its `startId` argument, never derived from traversal shape (its BFS guards with `closureSet.has(...)`, so a doubly-reachable object is absorbed via whichever edge was reached first). **Must not** reintroduce a set-plus-separate-primary-id shape: that is a cross-field invariant nothing enforces.
+- Severed boundary edges **must not** enter the fragment. Expansion classifies them ([`boundaryEdgeOutcomes`](positionGraph/expandValidate/interactionUnderTransfer.ts)) and they travel to the compiler on `op.dissolvedEdges`, which renders them into `dissolveRelation` steps ahead of the transfer. **Expansion classifies; the compiler sequences.**
+
+### Narration is presented only for a committed mutation
+
+The presentation kernel's narrate branch **must** run on [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts)'s **`ok: true`** result and never otherwise. A failed or illegal commit narrates nothing.
+
+This is enforced at the type level --- `captures` exists only on the success branch, and `presentStepSequence` throws on an unresolvable `captureId` --- but that guard reads as incidental shape unless stated, and "surface a failed move to the player somehow" is a live product question whose eventual answer must not be allowed to erode it.
+
+**Not a contract clause:** *when* the messageOrchestration bundle is declared relative to the commit. Declaring after a successful commit is a consistency preference across the orchestrators, not a correctness requirement --- the fan-in is explicitly tolerant of unresolved slots (see [`../messageOrchestration/AGENT.md`](../messageOrchestration/AGENT.md), "Publish behavior"). Do not write it up as normative.
+
+### Call sites emit ops; only the compiler names steps
+
+No call site outside [`manipulation/kernel/compile/`](manipulation/kernel/compile/) may construct a `{ kind: 'narrate', ... }` or `{ kind: 'capture', ... }` step literal. Call sites supply an op and its narration **ingredients** (`characterName`, copy-kind selectors, `objectShortName`, `exitName`); the compiler decides shape, ordering, capture ids, and slots, and [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) assembles the message string at flush.
+
+Builders: [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp.ts) (character routes) and [`membership/buildObjectMoveOp.ts`](membership/buildObjectMoveOp.ts) (object routes) --- **siblings, not one widened module**. They share no copy-selection logic, and `NarrationSpecification` is a union on narration *family* for the same reason.
+
+---
+
 ## Membership persistence API
 
 All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
@@ -84,8 +141,10 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist.
 - **Result:** `{ froms, to, changed }` where `changed` is true iff prior container set differs from end state (`{ targetRoomId }` or `{}` when out of play). **`froms`** is required (same semantics as **`MembershipDiff`** / bus fact).
-- **Navigate orchestration:** [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result for presentation (arrival-room header slot, render kicks). Does **not** publish **`MapUpdate`** (server map runtime retired; see [`../maps/AGENT.md`](../maps/AGENT.md)). **Navigate's leave/arrive world lines (Phase 2, `AGENT.presentationKernel.planning.md`):** compiled by [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) into positionally-captured narration steps and reported by [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) --- the audience is the mid-walk **captured** roster (who was there at that beat), not a live `ROOM#` roster read at publish time, and therefore already includes the mover by construction. A narrate step carries **no room target at all** --- `captureId` is its sole audience input: any bare `ROOM#` in `targets` re-expands against the live roster at flush ([`publishMessage/index.ts`](../../publishMessage/index.ts)'s `getRoomCharacterList`), so pairing one with a capture would union a positionally-bound audience with a terminally-bound one and let the terminal reading win wherever they disagree. An unresolvable `captureId` **throws** rather than degrading to a room target or an empty audience --- capture ids are minted only by the compiler, so a miss means the plan is internally inconsistent, and both quiet recoveries would hide that behind a silently-wrong or silently-absent delivery. Navigate's `Character Moved` fact carries `narratedInline: true` so [`membershipPresentationLegAdapters.ts`](../perception/membershipPresentationLegAdapters.ts) drops its fact leg --- the async membership fan-in never sees it. **Connect/disconnect/home still route leave/arrive through the async membership fan-in** (unchanged, until Phase 3) --- the `[room, characterId]` targeting idiom ([Purpose finding 1](../../../../taskPlanning/lambda/ephemera/AGENT.presentationKernel.planning.md), `publishMembershipPresentation.ts:92`) is therefore still load-bearing for those three routes and for object take/drop, but is dead code for navigate specifically.
-- **Graph persist path:** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`) --- a `transferMembership` step, plus capture steps bracketing it for callers that compile narration (Phase 2, navigate only; `compileMutationSteps` on `MembershipApplyArgs`). No `dissolveRelation` steps accompany it: a character can never be a relational-edge endpoint, `HostRelationalEdge` being object-only. `Character Moved` fact emission is folded into `commitStepSequence` / [`factsForStep`](manipulation/kernel/factsForStep.ts) rather than layered on top by the coordinator. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md).
+- **Navigate orchestration:** [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result for presentation (arrival-room header slot, render kicks). Does **not** publish **`MapUpdate`** (server map runtime retired; see [`../maps/AGENT.md`](../maps/AGENT.md)).
+- **Leave/arrive world lines --- every character route:** navigate, home, connect, disconnect, and the ghost-purge sweep all narrate through the compiler. A coordinator builds its op via [`buildCharacterMoveOp`](membership/buildCharacterMoveOp.ts), [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) expands it into positionally-captured narration steps, and [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) reports them --- the audience is the mid-walk **captured** roster, and therefore already includes the mover by construction on the leave side. Rules: [Narration and presentation](#narration-and-presentation). There is **no** async membership fan-in; `Character Moved` still streams as a fact, but perception does not subscribe to it. `narratedInline` on the fact is a **vestige** of the migration that retired that fan-in --- it suppressed a duplicate leg while both paths coexisted, and gates nothing today.
+- **Two orchestrators, not one:** navigate/home/connect share [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) (they all have a destination room, so the arrival header slot and `registerIngressSlot` make sense). Disconnect and ghost-purge use [`orchestrateCharacterDisconnect`](membership/orchestrateCharacterDisconnect.ts), which declares the bundle and presents leave narration only --- **must not** be routed through the navigate orchestrator, whose header/render logic presumes a `to`.
+- **Graph persist path:** coordinator -> [`planMembershipTransfer`](manipulation/adapters/planMembershipTransfer.ts) (end-state) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`) --- a `transferMembership` step, plus capture steps bracketing it (`compileMutationSteps` on `MembershipApplyArgs`). No `dissolveRelation` steps accompany it: a character can never be a relational-edge endpoint, `HostRelationalEdge` being object-only. `Character Moved` fact emission is folded into `commitStepSequence` / [`factsForStep`](manipulation/kernel/factsForStep.ts) rather than layered on top by the coordinator. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md).
 
 ### Graph apply (end-state)
 
@@ -139,7 +198,7 @@ Membership host transfer projection --- coordinators **must** derive fact fields
 - **Must not** populate **`legalExits`** on emitted facts.
 - **Must not** branch **`streamEvent`** on ingress type (navigate vs disconnect); emission is descriptive from **`MembershipDiff`** only.
 - **`streamEvent`** is a **required** coordinator dependency (no in-module fallback). **`receiveEvents`** passes the DataSource instance `streamEvent`.
-- Payload contract: [`publishedEvents.ts`](publishedEvents.ts). Fan-in consumer: [`../perception/membershipPresentationFanIn.ts`](../perception/membershipPresentationFanIn.ts).
+- Payload contract: [`publishedEvents.ts`](publishedEvents.ts). **No perception consumer:** leave/arrive narration compiles inline (see [Narration and presentation](#narration-and-presentation)), and perception no longer subscribes to `Character Moved` at all. The fact remains a descriptive stream for any future consumer; `narratedInline` on it is a vestige of the migration window and gates nothing.
 
 ### Object room membership (nodes only)
 
@@ -171,26 +230,24 @@ When object room-only **`MembershipDiff.changed`**, the bundle is the kernel's -
 
 A severed boundary relation streams **`Object Relation Changed`** alongside the move, suppressed only when the caller passes `suppressRelationalFacts: true` (e.g. [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts)'s consistency scrub). [`applyObjectClearMembership.ts`](manipulation/membership/applyObjectClearMembership.ts) (destroy/edit --- `{ objectId }`, always end-state-to-null across every prior host of either kind) follows the identical kernel path and fact rule, leaving `suppressRelationalFacts` unset.
 
-### Cross-host object membership-changed bundle (`takeHold`)
+### Cross-host object membership-changed bundle (object move: `takeHold` / `drop` / `give`)
 
-Graph persist: [`executeObjectTakeHold`](manipulation/membership/executeObjectTakeHold.ts) seeds and runs the Synthesize executor, then commits the resulting step sequence via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) --- one atomic `MultiKeyUpdate` over departure room + arrival character.
+**One execution path covers both directions.** [`executeObjectMove`](manipulation/membership/executeObjectMove.ts) takes a **host pair** --- `{ objectIds, fromHostId, toHostId }` --- and takes **no acting character and no verb**. It seeds the Synthesize executor **grounded** from those concrete host ids (no `GroundingContext`, no referent round trip), compiles the resulting move into a plan, and commits the plan's mutation steps via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) --- one atomic `MultiKeyUpdate` over the departure and arrival hosts.
+
+**Intents stay distinct; execution unifies.** `Object Take Hold` and `Object Drop` remain two events with two Plan-stage legality branches, because the player-facing errors genuinely differ per direction ("you're not carrying that" vs. "you're already holding that") and they are different utterances. The world-effect is one operation. **Must not** reintroduce a per-direction execution module, and **must not** introduce `updateDropPositionGraphs` or any new `update*PositionGraphs` fork.
 
 The transfer set is **re-derived, not scrubbed from trusted ingress**: operand expansion recomputes the carry closure fresh against current graph state, and the reducer re-validates presence and boundary-edge classification on the locked graphs at commit time. A concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 
 The post-persist bundle is the kernel's, per entity in the transfer set:
 
-1. **`Object Moved`** (`froms: [ROOM#...]`, `to: CHARACTER#...`), streamed in step order after any `Object Relation Changed` for severed boundary edges.
-2. `Positions.set` on **every** committed graph --- source room *and* target character; `ComponentEphemeraMeta.invalidate` / `AffordanceRoomDeliverable.invalidate` for Room hosts only.
-3. `setMembershipContainers(objectId)` -> `[CHARACTER#...]`.
-4. **`RoomUpdate`** per Room host only --- a character **`to`** has no room affordance to refresh.
+1. **`Object Moved`**, streamed in step order after any `Object Relation Changed` for severed boundary edges. `takeHold`: `froms: [ROOM#...]`, `to: CHARACTER#...`. `drop`: `froms: [CHARACTER#...]`, `to: ROOM#...`.
+2. `Positions.set` on **every** committed graph --- both hosts; `ComponentEphemeraMeta.invalidate` / `AffordanceRoomDeliverable.invalidate` for Room hosts only.
+3. `setMembershipContainers(objectId)` -> the arrival host.
+4. **`RoomUpdate`** per Room host only --- a character endpoint has no room affordance to refresh.
 
-An illegal or stale executor verdict **must** return without committing (no persist, no bundle).
+An illegal or stale executor verdict **must** return `{ ok: false }` without committing (no persist, no bundle, **no narration**). It currently yields no player feedback; surfacing failure is an open product question, not a licence to narrate an uncommitted move.
 
-### Cross-host object membership-changed bundle (`drop`)
-
-The character -> room mirror of take-hold. [`executeObjectDrop`](manipulation/membership/executeObjectDrop.ts) seeds the same executor with `from`/`to` reversed and commits via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) --- one atomic `MultiKeyUpdate` over departure character + arrival room. Same live re-derivation and commit-time re-validation as take-hold; **must not** introduce `updateDropPositionGraphs` or any new `update*PositionGraphs` fork.
-
-Kernel-owned bundle per entity: **`Object Moved`** with `froms: [CHARACTER#...]`, `to: ROOM#...`; `Positions.set` on both committed graphs with Room-host cache invalidation; `setMembershipContainers(objectId)` -> `[ROOM#...]`; **`RoomUpdate`** for the destination room only. Playbook: [`manipulation/AGENT.implementation.md` --- Apply modes](manipulation/AGENT.implementation.md#apply-modes).
+**Narration** is owned by [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts), which wraps `executeObjectMove`: it derives the acting character and room from the host pair, resolves labels **before** the commit (so the compiled plan carries capture steps), then declares the bundle and presents narration on the `ok: true` result. Verb derivation and the moved-set shape are in [Narration and presentation](#narration-and-presentation). Playbook: [`manipulation/AGENT.implementation.md` --- Apply modes](manipulation/AGENT.implementation.md#apply-modes).
 
 ### Host-local relational-changed bundle (`establishRelation` / `dissolveRelation`)
 
@@ -316,8 +373,8 @@ Positions **must** subscribe to:
 | --- | --- |
 | `Character Navigate` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
 | `Character Home` | [`index.ts`](index.ts) `receiveEvents` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) |
-| `Object Take Hold` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) |
-| `Object Drop` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) |
+| `Object Take Hold` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (room -> character) |
+| `Object Drop` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (character -> room) |
 | `Object Establish Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectEstablishRelation.ts`](manipulation/relational/executeObjectEstablishRelation.ts) |
 | `Object Dissolve Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectDissolveRelation.ts`](manipulation/relational/executeObjectDissolveRelation.ts) |
 
@@ -325,7 +382,7 @@ Positions **must** subscribe to:
 
 - **Ingress:** typed pick-up via actions **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1).
 - **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
-- **Must** call [`executeObjectTakeHold`](manipulation/membership/executeObjectTakeHold.ts) with `{ objectIds, roomId, characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (**D14**).
+- **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: roomId, toHostId: characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (**D14**). The branch names its **host pair** and nothing else: **must not** pass a verb, a direction flag, or an acting character (see [Narration and presentation](#narration-and-presentation)).
 - **Live re-derivation, not bounded scrub from trusted ingress alone:** the executor re-runs at execute time and the `MultiKeyUpdate` reducer re-validates the transfer (presence + boundary-edge classification) against freshly-fetched host graphs at commit time --- a concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 - **Character inventory:** **must** add every object in `objectIds` at target `characterId`; internal relational edges among the set are recreated on the destination host, derived live from the fetched source graph (not passed in).
 
@@ -333,7 +390,7 @@ Positions **must** subscribe to:
 
 - **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectIds, roomId }` (symmetric to **`Object Take Hold`**; `objectIds` is a set, not a singular id). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes **`Object Drop`** when enrich yields `operationKind: drop`.
 - **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
-- **Must** call [`executeObjectDrop`](manipulation/membership/executeObjectDrop.ts) with `{ objectIds, roomId, characterId }` --- one atomic `MultiKeyUpdate` transact (departure character + arrival room) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts).
+- **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: characterId, toHostId: roomId }` --- the same entry point as take-hold, with the host pair reversed; one atomic `MultiKeyUpdate` transact (departure character + arrival room) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts).
 - **Live re-derivation, not bounded scrub from trusted ingress alone:** same commit-time re-validation as `Object Take Hold`, above.
 
 ### `Object Establish Relation` (positions-owned)
@@ -356,7 +413,7 @@ Positions **must** subscribe to:
 - **Must** trust actions-resolved `toRoomId` (`CharacterMeta.HomeId`) at apply --- no exit topology re-check in positions.
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` bus messages from actions for home (retired).
-- Leave/arrive world copy for home is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
+- Leave/arrive world copy for home is **compiled** (`intentKind: 'home'` on [`buildCharacterMoveOp`](membership/buildCharacterMoveOp.ts)) and reported by [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) inside the navigate orchestration tail --- see [Narration and presentation](#narration-and-presentation).
 
 ### `Character Connected` (positions-owned)
 
@@ -364,14 +421,14 @@ Positions **must** subscribe to:
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
 - **Must not** publish `CheckLocation` or perform inline membership Dynamo writes outside [`membership/`](membership/).
 - **Idempotency:** duplicate connect when already in target room (`changed: false`) **must** be a no-op (no bundle, no orchestration).
-- Arrive world-line copy for connect is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); connect orchestration does not publish imperative leave/arrive world lines.
+- Arrive world-line copy for connect is **compiled** (`intentKind: 'connect'`); with `froms` empty the compiler emits no capture-from and no leave narration, from arity alone rather than a connect-specific branch. Connect reuses the navigate orchestration tail and publishes no imperative world lines.
 
 ### `Character Disconnected` (positions-owned)
 
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })` --- purges play membership; **must not** clear `RoomStack` (connect re-resolves legal placement from retained ladder).
 - **Must not** perform inline membership writes outside [`membership/`](membership/).
 - **Idempotency:** duplicate disconnect when already out of play (`changed: false`) **must** be a no-op (no bundle).
-- World-line copy for disconnect is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); no imperative `PublishMessage` in the handler.
+- Leave world-line copy for disconnect is **compiled** (`intentKind: 'disconnect'`) and presented by [`orchestrateCharacterDisconnect`](membership/orchestrateCharacterDisconnect.ts), **not** the navigate orchestrator --- disconnect has no `to`, so there is no arrival header to render. No imperative `PublishMessage` in the handler. The ghost-purge sweep in [`repairRoomOccupancyDrift`](membership/repairRoomOccupancyDrift.ts) shares this path and this copy verbatim: a ghost session genuinely has disconnected, so **must not** grow a separate drift narration variant.
 
 ### `Character Navigate` (positions-owned)
 
@@ -379,7 +436,7 @@ Positions **must** subscribe to:
 - **Must** trust actions-validated `toRoomId` at apply (no topology re-check in positions).
 - **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` bus messages from actions for parse-based or UI-exit navigation (retired).
-- Leave/arrive world copy for navigate is owned by fan-in emission ([`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts)); orchestration registers perception threads and map updates only.
+- Leave/arrive world copy for navigate is **compiled** and reported synchronously in the orchestration tail --- see [Narration and presentation](#narration-and-presentation). Exit-aware leave copy comes from the parse's `exitName` travelling as a narration *ingredient* on the op; **must not** be re-derived from fact `legalExits`.
 
 ### `mtw.diagnostics` --- occupancy drift repair
 
