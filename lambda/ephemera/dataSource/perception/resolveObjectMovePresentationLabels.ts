@@ -15,12 +15,12 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 import internalCache from '../../internalCache'
 import { resolveCharacterRoomPerspectiveForRoom } from './kickRoomHeaderBroadcast'
 
-export type TakeHoldPresentationLabels = {
+export type ObjectMovePresentationLabels = {
     characterName: string
     objectShortName: string
 }
 
-export type ResolveTakeHoldPresentationLabelsDeps = {
+export type ResolveObjectMovePresentationLabelsDeps = {
     getCharacterMeta: (characterId: EphemeraCharacterId) => Promise<{ Name?: string } | undefined>
     resolvePerspective: (
         roomId: EphemeraRoomId,
@@ -31,7 +31,7 @@ export type ResolveTakeHoldPresentationLabelsDeps = {
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 
-const defaultDeps = (): ResolveTakeHoldPresentationLabelsDeps => ({
+const defaultDeps = (): ResolveObjectMovePresentationLabelsDeps => ({
     getCharacterMeta: (characterId) => internalCache.CharacterMeta.get(characterId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
@@ -59,7 +59,7 @@ const shortNameFromComponent = (component: StandardComponent | undefined): strin
 const shortNameFromMergedAggregate = async (
     objectId: EphemeraObjectId,
     assetStack: readonly string[],
-    deps: Pick<ResolveTakeHoldPresentationLabelsDeps, 'getComponentAggregate'>
+    deps: Pick<ResolveObjectMovePresentationLabelsDeps, 'getComponentAggregate'>
 ): Promise<string | undefined> => {
     const mergeParticipationOrder = appendImprovisationToPerspective([...assetStack] as AssetUUID[], [objectId])
     const perspective = aggregatePerspectiveExplicit({
@@ -71,19 +71,27 @@ const shortNameFromMergedAggregate = async (
 }
 
 /**
- * Resolve display labels for object manipulation transcript copy at fan-in emit
- * (take-hold and drop; D11 / D4). Does not require the object to remain in the room
- * position graph after apply.
+ * Resolve display labels for an object move's transcript copy --- the `characterName` /
+ * `objectShortName` ingredients an `ObjectMoveNarrationInput` carries (D11 / D4). Does not require
+ * the object to remain in the room position graph after apply, which is what lets it serve a take
+ * (object gone from the room) and a drop alike.
+ *
+ * Renamed from `resolveTakeHoldPresentationLabels` in Phase 4: it always served both directions ---
+ * the take-hold name was one of the "tells" that take and drop were one operation with two intents.
+ * Called from `positions/manipulation/membership/orchestrateObjectMove.ts` now that the two-leg
+ * take/drop fan-in it used to serve is retired; it stays here in `perception/` on the same precedent
+ * as `publishMembershipPresentation.ts`'s surviving suffix builders, which `presentStepSequence`
+ * likewise imports across the data-source boundary.
  */
-export async function resolveTakeHoldPresentationLabels(
+export async function resolveObjectMovePresentationLabels(
     args: {
         characterId: EphemeraCharacterId
         objectId: EphemeraObjectId
         roomId: EphemeraRoomId
     },
-    partialDeps: Partial<ResolveTakeHoldPresentationLabelsDeps> = {}
-): Promise<TakeHoldPresentationLabels> {
-    const deps: ResolveTakeHoldPresentationLabelsDeps = { ...defaultDeps(), ...partialDeps }
+    partialDeps: Partial<ResolveObjectMovePresentationLabelsDeps> = {}
+): Promise<ObjectMovePresentationLabels> {
+    const deps: ResolveObjectMovePresentationLabelsDeps = { ...defaultDeps(), ...partialDeps }
     const characterMeta = await deps.getCharacterMeta(args.characterId)
     const characterName = characterMeta?.Name || 'Someone'
 

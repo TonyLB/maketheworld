@@ -4,10 +4,9 @@ import {
 import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import {
-    isPerceptionActionsObjectDropEnvelope,
-    isPerceptionActionsObjectTakeHoldEnvelope,
+    isPerceptionActionsObjectEstablishRelationEnvelope,
     isPerceptionObjectManipulationPresentationEnvelope,
-    isPerceptionPositionsObjectMovedEnvelope,
+    isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
@@ -33,40 +32,58 @@ const envelope = (
     getContent: () => Promise.resolve(content),
 })
 
+/**
+ * Take Hold / Drop / Object Moved coverage went out in Phase 4 with the branches it exercised:
+ * object moves narrate through the mutation kernel's compiled step sequence now, so those events
+ * never reach perception at all. The retired events are pinned as actively *rejected* rather than
+ * merely no longer asserted --- that is the difference between "we removed the test" and "we removed
+ * the route."
+ */
 describe('objectManipulationPresentationLegAdapters', () => {
     describe('envelope guards', () => {
-        it('accepts Object Take Hold from actions', () => {
-            const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
-                type: 'Object Take Hold',
+        it('accepts Object Establish Relation from actions', () => {
+            const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Establish Relation', {
+                type: 'Object Establish Relation',
                 characterId: CHARACTER,
-                objectIds: [OBJECT],
-                roomId: ROOM,
+                subjectId: GLASS,
+                targetId: TRAY,
+                hostId: ROOM,
+                relationKind: 'On',
             })
-            expect(isPerceptionActionsObjectTakeHoldEnvelope(env)).toBe(true)
+            expect(isPerceptionActionsObjectEstablishRelationEnvelope(env)).toBe(true)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
         })
 
-        it('accepts Object Drop from actions', () => {
-            const env = envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
-                type: 'Object Drop',
-                characterId: CHARACTER,
-                objectIds: [OBJECT],
-                roomId: ROOM,
-            })
-            expect(isPerceptionActionsObjectDropEnvelope(env)).toBe(true)
-            expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
-        })
-
-        it('accepts Object Moved from positions', () => {
-            const env = envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
-                type: 'Object Moved',
-                objectId: OBJECT,
-                froms: [ROOM],
-                to: CHARACTER,
+        it('accepts Object Relation Changed from positions', () => {
+            const env = envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Relation Changed', {
+                type: 'Object Relation Changed',
+                subjectId: GLASS,
+                targetId: TRAY,
+                hostId: ROOM,
+                relationKind: 'On',
+                operation: 'establish',
                 beatAnchorTime: ANCHOR_TIME,
-            }, OBJECT)
-            expect(isPerceptionPositionsObjectMovedEnvelope(env)).toBe(true)
+            }, GLASS)
+            expect(isPerceptionPositionsObjectRelationChangedEnvelope(env)).toBe(true)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
+        })
+
+        it('rejects the retired Object Take Hold / Object Drop / Object Moved events', () => {
+            expect(isPerceptionObjectManipulationPresentationEnvelope(envelope(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
+                    type: 'Object Take Hold', characterId: CHARACTER, objectIds: [OBJECT], roomId: ROOM,
+                }
+            ))).toBe(false)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(envelope(
+                EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
+                    type: 'Object Drop', characterId: CHARACTER, objectIds: [OBJECT], roomId: ROOM,
+                }
+            ))).toBe(false)
+            expect(isPerceptionObjectManipulationPresentationEnvelope(envelope(
+                EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
+                    type: 'Object Moved', objectId: OBJECT, froms: [ROOM], to: CHARACTER, beatAnchorTime: ANCHOR_TIME,
+                }, OBJECT
+            ))).toBe(false)
         })
 
         it('rejects Character Moved for object manipulation guards', () => {
@@ -77,82 +94,58 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 to: 'ROOM#Other',
                 beatAnchorTime: ANCHOR_TIME,
             })
-            expect(isPerceptionPositionsObjectMovedEnvelope(env)).toBe(false)
+            expect(isPerceptionPositionsObjectRelationChangedEnvelope(env)).toBe(false)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(false)
         })
     })
 
     describe('toObjectManipulationPresentationLeg', () => {
-        it('maps Object Take Hold to a single-element intent leg array', async () => {
+        it('maps Object Establish Relation to a relational intent leg', async () => {
             const legs = await toObjectManipulationPresentationLeg(
-                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
-                    type: 'Object Take Hold',
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Establish Relation', {
+                    type: 'Object Establish Relation',
                     characterId: CHARACTER,
-                    objectIds: [OBJECT],
-                    roomId: ROOM,
-                    confidence: 0.9,
+                    subjectId: GLASS,
+                    targetId: TRAY,
+                    hostId: ROOM,
+                    relationKind: 'On',
                 })
             )
             expect(legs).toEqual([{
-                kind: 'intent',
-                operation: 'takeHold',
+                kind: 'relationalIntent',
+                operation: 'establishRelation',
                 characterId: CHARACTER,
-                objectId: OBJECT,
-                objectIds: [OBJECT],
+                subjectId: GLASS,
+                targetId: TRAY,
                 roomId: ROOM,
+                relationKind: 'On',
             }])
         })
 
-        it('maps a multi-object Object Take Hold (BD-13 carry) to one intent leg per object, each carrying the full set', async () => {
+        it('maps Object Relation Changed to a relational fact leg', async () => {
             const legs = await toObjectManipulationPresentationLeg(
-                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
-                    type: 'Object Take Hold',
-                    characterId: CHARACTER,
-                    objectIds: [TRAY, GLASS],
-                    roomId: ROOM,
-                })
-            )
-            expect(legs).toEqual([
-                {
-                    kind: 'intent',
-                    operation: 'takeHold',
-                    characterId: CHARACTER,
-                    objectId: TRAY,
-                    objectIds: [TRAY, GLASS],
-                    roomId: ROOM,
-                },
-                {
-                    kind: 'intent',
-                    operation: 'takeHold',
-                    characterId: CHARACTER,
-                    objectId: GLASS,
-                    objectIds: [TRAY, GLASS],
-                    roomId: ROOM,
-                },
-            ])
-        })
-
-        it('maps Object Drop to a single-element intent leg array', async () => {
-            const legs = await toObjectManipulationPresentationLeg(
-                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Drop', {
-                    type: 'Object Drop',
-                    characterId: CHARACTER,
-                    objectIds: [OBJECT],
-                    roomId: ROOM,
-                    confidence: 0.9,
-                })
+                envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Relation Changed', {
+                    type: 'Object Relation Changed',
+                    subjectId: GLASS,
+                    targetId: TRAY,
+                    hostId: ROOM,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    beatAnchorTime: ANCHOR_TIME,
+                }, GLASS)
             )
             expect(legs).toEqual([{
-                kind: 'intent',
-                operation: 'drop',
-                characterId: CHARACTER,
-                objectId: OBJECT,
-                objectIds: [OBJECT],
-                roomId: ROOM,
+                kind: 'relationalFact',
+                subjectId: GLASS,
+                targetId: TRAY,
+                hostRoomId: ROOM,
+                relationKind: 'On',
+                operation: 'establish',
+                beatAnchorTime: ANCHOR_TIME,
             }])
         })
 
-        it('maps Object Moved to a single-element fact leg array', async () => {
+        it('yields no leg for a retired Object Moved fact', async () => {
             const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {
                     type: 'Object Moved',
@@ -162,13 +155,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     beatAnchorTime: ANCHOR_TIME,
                 }, OBJECT)
             )
-            expect(legs).toEqual([{
-                kind: 'fact',
-                objectId: OBJECT,
-                froms: [ROOM],
-                to: CHARACTER,
-                beatAnchorTime: ANCHOR_TIME,
-            }])
+            expect(legs).toEqual([])
         })
 
         it('returns an empty array for non-object-manipulation envelopes', async () => {
@@ -182,11 +169,13 @@ describe('objectManipulationPresentationLegAdapters', () => {
 
         it('returns an empty array when content fails payload guard', async () => {
             const legs = await toObjectManipulationPresentationLeg(
-                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Take Hold', {
-                    type: 'Object Take Hold',
+                envelope(EPHEMERA_ACTIONS_DATA_SOURCE_KEY, 'Object Establish Relation', {
+                    type: 'Object Establish Relation',
                     characterId: CHARACTER,
-                    objectIds: ['ROOM#bad'],
-                    roomId: ROOM,
+                    subjectId: 'ROOM#bad',
+                    targetId: TRAY,
+                    hostId: ROOM,
+                    relationKind: 'On',
                 } as never)
             )
             expect(legs).toEqual([])

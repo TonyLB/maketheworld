@@ -1,28 +1,12 @@
 import type { MessageBus } from '../../messageBus/baseClasses'
-import type {
-    ObjectManipulationEmissionPlan,
-    ObjectRelationalEmissionPlan,
-} from './objectManipulationPresentationFanIn'
+import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentationFanIn'
 
-/** Appended when the transfer set (BD-13 carry) has more than one member --- same suffix, both directions. */
-const carriedSuffix = (plan: ObjectManipulationEmissionPlan): string => (
-    plan.carriedObjectCount > 1 ? ' and everything on it' : ''
-)
-
-export const buildTakeHoldWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
-    `${plan.characterName} picks up ${plan.objectShortName}${carriedSuffix(plan)}`
-)
-
-export const buildDropWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
-    `${plan.characterName} drops ${plan.objectShortName}${carriedSuffix(plan)}`
-)
-
-export const buildObjectManipulationWorldMessage = (plan: ObjectManipulationEmissionPlan): string => (
-    plan.operation === 'drop'
-        ? buildDropWorldMessage(plan)
-        : buildTakeHoldWorldMessage(plan)
-)
-
+/**
+ * Relational (reposition-within-a-host) narration only. The take/drop builders that used to head this
+ * file --- `buildTakeHoldWorldMessage`/`buildDropWorldMessage` and their `carriedSuffix` --- moved
+ * into `presentStepSequence`'s `objectMove` copy case in Phase 4, verbatim, when object moves started
+ * narrating from a positionally-captured audience instead of this fan-in.
+ */
 export const buildEstablishRelationWorldMessage = (plan: ObjectRelationalEmissionPlan): string => {
     const { characterName, subjectShortName, targetShortName, relationKind, relationLabel } = plan
     if (relationKind === 'On') {
@@ -47,26 +31,21 @@ export const buildObjectRelationalWorldMessage = (plan: ObjectRelationalEmission
         : buildEstablishRelationWorldMessage(plan)
 )
 
-export const publishObjectManipulationPresentation = (
-    messageBus: MessageBus,
-    plan: ObjectManipulationEmissionPlan
-): void => {
-    messageBus.publish({
-        type: 'PublishMessage',
-        targets: [plan.roomId, plan.characterId],
-        displayProtocol: 'WorldMessage',
-        message: [buildObjectManipulationWorldMessage(plan)],
-        createdTime: plan.beatAnchorTime,
-    })
-}
-
+/**
+ * `targets` is the room alone. The trailing `plan.characterId` this used to carry was the last
+ * surviving instance of the `[room, characterId]` idiom (Purpose finding 1): it was load-bearing at
+ * exactly one of that idiom's four original sites --- a *departure* room, whose live roster no longer
+ * contains the mover by publish time --- and a no-op at the other three. Establish/dissolve is one of
+ * the no-op cases: the actor never leaves the room, so `ROOM#` expansion at flush already includes
+ * them.
+ */
 export const publishObjectRelationalPresentation = (
     messageBus: MessageBus,
     plan: ObjectRelationalEmissionPlan
 ): void => {
     messageBus.publish({
         type: 'PublishMessage',
-        targets: [plan.roomId, plan.characterId],
+        targets: [plan.roomId],
         displayProtocol: 'WorldMessage',
         message: [buildObjectRelationalWorldMessage(plan)],
         createdTime: plan.beatAnchorTime,

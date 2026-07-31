@@ -81,6 +81,7 @@ describe('executeObjectMove', () => {
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 messageBus: messageBus as any,
@@ -117,6 +118,7 @@ describe('executeObjectMove', () => {
 
             await executeObjectMove({
                 objectIds: [TRAY_ID, GLASS_ID],
+                bundleId: 'BUNDLE#test',
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 messageBus: messageBus as any,
@@ -156,6 +158,7 @@ describe('executeObjectMove', () => {
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 messageBus: messageBus as any,
@@ -178,6 +181,7 @@ describe('executeObjectMove', () => {
         it('no-ops when objectIds is empty', async () => {
             await executeObjectMove({
                 objectIds: [],
+                bundleId: 'BUNDLE#test',
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 messageBus: messageBus as any,
@@ -199,6 +203,7 @@ describe('executeObjectMove', () => {
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
                 fromHostId: CHARACTER_ID,
                 toHostId: ROOM_ID,
                 messageBus: messageBus as any,
@@ -235,6 +240,7 @@ describe('executeObjectMove', () => {
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
                 fromHostId: CHARACTER_ID,
                 toHostId: ROOM_ID,
                 messageBus: messageBus as any,
@@ -253,12 +259,92 @@ describe('executeObjectMove', () => {
         it('no-ops when objectIds is empty', async () => {
             await executeObjectMove({
                 objectIds: [],
+                bundleId: 'BUNDLE#test',
                 fromHostId: CHARACTER_ID,
                 toHostId: ROOM_ID,
                 messageBus: messageBus as any,
                 streamEvent,
             })
             expect(streamEvent).not.toHaveBeenCalled()
+            expect(ephemeraDB.transactWrite).not.toHaveBeenCalled()
+        })
+    })
+    /**
+     * Phase 4 changed the return shape: the plan and the commit's captured rosters travel out so
+     * `orchestrateObjectMove` can narrate from them. These cases pin the structural guard that
+     * narration can never outrun a commit.
+     */
+    describe('result shape (Phase 4)', () => {
+        it('returns the compiled plan and the commit captures on success', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
+            )
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+
+            const result = await executeObjectMove({
+                objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+                narration: { characterName: 'Alice', objectShortName: 'tray' },
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) { throw new Error('expected a successful commit') }
+            expect(result.plan.steps.map((step) => step.kind)).toEqual([
+                'capture', 'transferMembership', 'capture', 'narrate', 'narrate',
+            ])
+            expect(result.captures.get('capture:from:' + ROOM_ID)).toBeDefined()
+        })
+
+        it('compiles no capture steps when narration is absent (object-lifecycle move)', async () => {
+            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
+            )
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+
+            const result = await executeObjectMove({
+                objectIds: [TRAY_ID],
+                bundleId: 'BUNDLE#test',
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) { throw new Error('expected a successful commit') }
+            // Captures exist only to serve narration; a silent move should not lock hosts to
+            // snapshot rosters nobody will read.
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership'])
+        })
+
+        it('returns ok: false without committing when the executor verdict is not legal', async () => {
+            const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
+            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === ROOM_ID ? emptyRoomGraph : emptyCharacterGraph
+            )
+
+            const result = await executeObjectMove({
+                objectIds: [],
+                bundleId: 'BUNDLE#test',
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+                narration: { characterName: 'Alice', objectShortName: 'tray' },
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            // No `captures` on this branch by construction --- there is no way to reach
+            // `presentStepSequence` with an audience for a move that did not happen.
+            expect(result).toEqual({ ok: false })
             expect(ephemeraDB.transactWrite).not.toHaveBeenCalled()
         })
     })

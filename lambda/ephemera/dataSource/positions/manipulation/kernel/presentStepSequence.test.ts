@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { presentStepSequence } from './presentStepSequence'
-import type { KernelStep } from './kernelStep'
+import type { KernelStep, ObjectMoveNarrationSpec } from './kernelStep'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -246,6 +246,104 @@ describe('presentStepSequence', () => {
             expect(reports).toHaveLength(1)
             const content = await reports[0].getContent()
             expect(content.message.targets).toEqual([])
+        })
+    })
+    /**
+     * Phase 4's second narration family. Copy is preserved verbatim from the retired
+     * `publishObjectManipulationPresentation.ts`, so these cases double as the regression pin that
+     * the migration changed the *audience* and not the words.
+     */
+    describe('narration branch --- objectMove family (Phase 4)', () => {
+        const slotReports = () => (
+            messageBus.publish.mock.calls
+                .map((call: any[]) => call[0])
+                .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+        )
+
+        const objectStep = (
+            narration: Partial<ObjectMoveNarrationSpec> = {},
+            captureId = 'capture:from:ROOM#Cafe'
+        ): KernelStep => ({
+            kind: 'narrate',
+            narration: {
+                kind: 'objectMove',
+                verb: 'takeHold',
+                characterName: 'Alice',
+                objectShortName: 'broom',
+                carriedCount: 1,
+                ...narration,
+            },
+            captureId,
+            bundleId: 'BUNDLE#test',
+            slotId: 'leave:ROOM#Cafe',
+        })
+
+        const reportedMessage = async () => {
+            const reports = slotReports()
+            expect(reports).toHaveLength(1)
+            const content = await reports[0].getContent()
+            return content.message
+        }
+
+        it('builds take-hold and drop copy', async () => {
+            await presentStepSequence(
+                [objectStep()],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
+            )
+            expect((await reportedMessage()).message).toEqual(['Alice picks up broom'])
+
+            jest.clearAllMocks()
+            await presentStepSequence(
+                [objectStep({ verb: 'drop' })],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
+            )
+            expect((await reportedMessage()).message).toEqual(['Alice drops broom'])
+        })
+
+        it('appends the carry suffix when the closure has more than one member (BD-13)', async () => {
+            await presentStepSequence(
+                [objectStep({ carriedCount: 2 })],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
+            )
+            expect((await reportedMessage()).message).toEqual(['Alice picks up broom and everything on it'])
+        })
+
+        it('targets the captured roster, never a bare ROOM# that would re-expand at flush', async () => {
+            await presentStepSequence(
+                [objectStep()],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map([['capture:from:ROOM#Cafe', [CHARACTER_ID, OTHER_CHARACTER_ID]]])
+            )
+            expect((await reportedMessage()).targets).toEqual([CHARACTER_ID, OTHER_CHARACTER_ID])
+        })
+
+        it('the character-hosted bracket side publishes to nobody rather than throwing', async () => {
+            // A character's inventory graph has no roster, so its capture is legitimately empty.
+            // The step still reports --- an unresolved slot is harmless to the fan-in, and
+            // suppressing this side is what PB-M forbids.
+            await presentStepSequence(
+                [objectStep({}, 'capture:to')],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map<string, EphemeraCharacterId[]>([['capture:to', []]])
+            )
+            expect((await reportedMessage()).targets).toEqual([])
+        })
+
+        it('throws on an unresolvable captureId rather than degrading to an empty audience', async () => {
+            await expect(presentStepSequence(
+                [objectStep()],
+                CHARACTER_ID,
+                { streamEvent, messageBus },
+                new Map()
+            )).rejects.toThrow()
         })
     })
 })

@@ -1072,166 +1072,9 @@ describe('mtw.ephemera.perception DataSource', () => {
             } as any)
         })
 
-        it('intent + fact batch publishes single take-hold WorldMessage', async () => {
-            const publishSpy = spyPublish()
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Take Hold',
-                {
-                    type: 'Object Take Hold',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    objectIds: [TAKE_HOLD_OBJECT],
-                    roomId: TAKE_HOLD_ROOM,
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
-                'Object Moved',
-                {
-                    type: 'Object Moved',
-                    objectId: TAKE_HOLD_OBJECT,
-                    froms: [TAKE_HOLD_ROOM],
-                    to: TAKE_HOLD_CHARACTER,
-                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
-                },
-                TAKE_HOLD_OBJECT
-            )
-            await messageBus.flushAndSettle()
-
-            const worldPublishes = publishSpy.mock.calls.filter((c) => {
-                const m = c[0] as { type?: string; displayProtocol?: string }
-                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-            })
-            expect(worldPublishes).toHaveLength(1)
-            expect(worldPublishes[0][0]).toMatchObject({
-                targets: [TAKE_HOLD_ROOM, TAKE_HOLD_CHARACTER],
-                displayProtocol: 'WorldMessage',
-                message: ['Alice picks up broom'],
-                createdTime: TAKE_HOLD_ANCHOR_TIME,
-            })
-            publishSpy.mockRestore()
-        })
-
-        it('intent + fact batch publishes single drop WorldMessage', async () => {
-            const publishSpy = spyPublish()
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Drop',
-                {
-                    type: 'Object Drop',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    objectIds: [TAKE_HOLD_OBJECT],
-                    roomId: TAKE_HOLD_ROOM,
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
-                'Object Moved',
-                {
-                    type: 'Object Moved',
-                    objectId: TAKE_HOLD_OBJECT,
-                    froms: [TAKE_HOLD_CHARACTER],
-                    to: TAKE_HOLD_ROOM,
-                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
-                },
-                TAKE_HOLD_OBJECT
-            )
-            await messageBus.flushAndSettle()
-
-            const worldPublishes = publishSpy.mock.calls.filter((c) => {
-                const m = c[0] as { type?: string; displayProtocol?: string }
-                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-            })
-            expect(worldPublishes).toHaveLength(1)
-            expect(worldPublishes[0][0]).toMatchObject({
-                targets: [TAKE_HOLD_ROOM, TAKE_HOLD_CHARACTER],
-                displayProtocol: 'WorldMessage',
-                message: ['Alice drops broom'],
-                createdTime: TAKE_HOLD_ANCHOR_TIME,
-            })
-            publishSpy.mockRestore()
-        })
-
-        it('fact before intent still publishes after correlation', async () => {
-            const publishSpy = spyPublish()
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
-                'Object Moved',
-                {
-                    type: 'Object Moved',
-                    objectId: TAKE_HOLD_OBJECT,
-                    froms: [TAKE_HOLD_ROOM],
-                    to: TAKE_HOLD_CHARACTER,
-                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
-                },
-                TAKE_HOLD_OBJECT
-            )
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Take Hold',
-                {
-                    type: 'Object Take Hold',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    objectIds: [TAKE_HOLD_OBJECT],
-                    roomId: TAKE_HOLD_ROOM,
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            await messageBus.flushAndSettle()
-
-            const worldPublishes = publishSpy.mock.calls.filter((c) => {
-                const m = c[0] as { type?: string; displayProtocol?: string }
-                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-            })
-            expect(worldPublishes).toHaveLength(1)
-            publishSpy.mockRestore()
-        })
-
-        it('routes Object Take Hold through fan-in without calling orchestrateRoomDescriptionStreams', async () => {
-            const orchestrateSpy = jest.spyOn(orchestrateModule, 'orchestrateRoomDescriptionStreams')
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Take Hold',
-                {
-                    type: 'Object Take Hold',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    objectIds: [TAKE_HOLD_OBJECT],
-                    roomId: TAKE_HOLD_ROOM,
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            await messageBus.flushAndSettle()
-
-            expect(orchestrateSpy).not.toHaveBeenCalled()
-            orchestrateSpy.mockRestore()
-        })
-
-        it('routes Object Drop through fan-in without calling orchestrateRoomDescriptionStreams', async () => {
-            const orchestrateSpy = jest.spyOn(orchestrateModule, 'orchestrateRoomDescriptionStreams')
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Drop',
-                {
-                    type: 'Object Drop',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    objectIds: [TAKE_HOLD_OBJECT],
-                    roomId: TAKE_HOLD_ROOM,
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            await messageBus.flushAndSettle()
-
-            expect(orchestrateSpy).not.toHaveBeenCalled()
-            orchestrateSpy.mockRestore()
-        })
-
+        // Take/drop routing cases were removed in Phase 4 --- those events no longer reach this
+        // data source at all (see `subscribedEvents.test.ts`, which pins the non-subscription).
+        // What survives here is the relational family's end-to-end fan-in routing.
         it('intent + fact batch publishes single establish-relation WorldMessage', async () => {
             const publishSpy = spyPublish()
 
@@ -1270,7 +1113,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             })
             expect(worldPublishes).toHaveLength(1)
             expect(worldPublishes[0][0]).toMatchObject({
-                targets: [TAKE_HOLD_ROOM, TAKE_HOLD_CHARACTER],
+                targets: [TAKE_HOLD_ROOM],
                 displayProtocol: 'WorldMessage',
                 message: ['Alice puts broom on table'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,

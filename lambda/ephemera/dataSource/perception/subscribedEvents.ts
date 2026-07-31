@@ -23,24 +23,18 @@ import {
     AFFORDANCE_CACHE_DATA_SOURCE_KEY,
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
-import type { ObjectDissolveRelationPublishedPayload, ObjectDropPublishedPayload, ObjectEstablishRelationPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
-import type { ObjectMovedPublishedPayload, ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
+import type { ObjectDissolveRelationPublishedPayload, ObjectEstablishRelationPublishedPayload } from '../actions/publishedEvents'
+import type { ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
     isPerceptionActionsObjectDissolveRelationEnvelope,
-    isPerceptionActionsObjectDropEnvelope,
     isPerceptionActionsObjectEstablishRelationEnvelope,
-    isPerceptionActionsObjectTakeHoldEnvelope,
-    isPerceptionPositionsObjectMovedEnvelope,
     isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
 export {
     isPerceptionActionsObjectDissolveRelationEnvelope,
-    isPerceptionActionsObjectDropEnvelope,
     isPerceptionActionsObjectEstablishRelationEnvelope,
-    isPerceptionActionsObjectTakeHoldEnvelope,
-    isPerceptionPositionsObjectMovedEnvelope,
     isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
@@ -95,11 +89,8 @@ export type PerceptionSubscribedContent =
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
     | AffordancesPertainPayload
-    | ObjectTakeHoldPublishedPayload
-    | ObjectDropPublishedPayload
     | ObjectEstablishRelationPublishedPayload
     | ObjectDissolveRelationPublishedPayload
-    | ObjectMovedPublishedPayload
     | ObjectRelationChangedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
@@ -131,11 +122,12 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
-        || isPerceptionActionsObjectTakeHoldEnvelope(envelope)
-        || isPerceptionActionsObjectDropEnvelope(envelope)
+        // Object Take Hold / Object Drop / Object Moved were dropped in Phase 4: object moves
+        // narrate through the mutation kernel now, so perception has no reason to see them. Same
+        // shape as Phase 3's removal of the Character Navigate/Home/Connected/Disconnected/Moved
+        // subscriptions when membership narration migrated.
         || isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
         || isPerceptionActionsObjectDissolveRelationEnvelope(envelope)
-        || isPerceptionPositionsObjectMovedEnvelope(envelope)
         || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )
 

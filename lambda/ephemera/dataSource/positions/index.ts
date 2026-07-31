@@ -42,7 +42,7 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
-import { executeObjectMove } from './manipulation/membership/executeObjectMove'
+import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
@@ -76,7 +76,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectDropPublishedPayload(content)) {
                     return
                 }
-                await executeObjectMove({
+                await orchestrateObjectMove({
                     objectIds: content.objectIds,
                     fromHostId: content.characterId,
                     toHostId: content.roomId,
@@ -126,7 +126,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectTakeHoldPublishedPayload(content)) {
                     return
                 }
-                await executeObjectMove({
+                await orchestrateObjectMove({
                     objectIds: content.objectIds,
                     fromHostId: content.roomId,
                     toHostId: content.characterId,
