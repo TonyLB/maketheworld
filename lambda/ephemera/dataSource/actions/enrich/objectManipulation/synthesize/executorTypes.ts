@@ -9,6 +9,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import type { CarryClosureFragment } from '../../../../positions/positionGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
 
@@ -122,7 +123,7 @@ export type GroupId = string
  * starting id.
  */
 export type ExpansionEnvironment = {
-    settledGroups: Map<GroupId, ReadonlySet<EphemeraObjectId>>
+    settledGroups: Map<GroupId, CarryClosureFragment>
     groupIdByObject: Map<EphemeraObjectId, GroupId>
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraPositionGraph | undefined
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined

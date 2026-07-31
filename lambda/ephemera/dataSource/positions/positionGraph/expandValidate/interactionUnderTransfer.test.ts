@@ -60,7 +60,11 @@ describe('computeCarryClosure', () => {
             edges: [bookOnTray],
         })
 
-        expect(computeCarryClosure(trayId, graph)).toEqual(new Set([trayId, bookId]))
+        expect(computeCarryClosure(trayId, graph)).toEqual({
+            rootId: trayId,
+            members: new Set([trayId, bookId]),
+            edges: [{ from: bookId, to: trayId, kind: 'On' }],
+        })
     })
 
     it('absorbs a three-deep chain to a fixpoint (glass on book, book on tray, get tray)', () => {
@@ -75,7 +79,14 @@ describe('computeCarryClosure', () => {
             edges: [glassOnBook, bookOnTray],
         })
 
-        expect(computeCarryClosure(trayId, graph)).toEqual(new Set([trayId, bookId, glassId]))
+        expect(computeCarryClosure(trayId, graph)).toEqual({
+            rootId: trayId,
+            members: new Set([trayId, bookId, glassId]),
+            edges: [
+                { from: bookId, to: trayId, kind: 'On' },
+                { from: glassId, to: bookId, kind: 'On' },
+            ],
+        })
     })
 
     it('does not absorb across an Under edge in either direction', () => {
@@ -88,8 +99,8 @@ describe('computeCarryClosure', () => {
             edges: [bootsUnderTable],
         })
 
-        expect(computeCarryClosure(tableId, graph)).toEqual(new Set([tableId]))
-        expect(computeCarryClosure(bootsId, graph)).toEqual(new Set([bootsId]))
+        expect(computeCarryClosure(tableId, graph)).toEqual({ rootId: tableId, members: new Set([tableId]), edges: [] })
+        expect(computeCarryClosure(bootsId, graph)).toEqual({ rootId: bootsId, members: new Set([bootsId]), edges: [] })
     })
 
     it('terminates on a malformed cyclic edge set instead of looping', () => {
@@ -103,7 +114,11 @@ describe('computeCarryClosure', () => {
             edges: [aOnB, bOnA],
         })
 
-        expect(computeCarryClosure(aId, graph)).toEqual(new Set([aId, bId]))
+        expect(computeCarryClosure(aId, graph)).toEqual({
+            rootId: aId,
+            members: new Set([aId, bId]),
+            edges: [{ from: bId, to: aId, kind: 'On' }],
+        })
     })
 })
 
@@ -121,9 +136,9 @@ describe('boundaryEdgeOutcomes', () => {
             ],
             edges: [glassOnBook, bookOnTray, trayOnTable],
         })
-        const transferSet = computeCarryClosure(trayId, graph)
+        const closure = computeCarryClosure(trayId, graph)
 
-        const outcomes = boundaryEdgeOutcomes(transferSet, graph)
+        const outcomes = boundaryEdgeOutcomes(closure.members, graph)
 
         expect(outcomes).toHaveLength(1)
         expect(outcomes[0]).toEqual({

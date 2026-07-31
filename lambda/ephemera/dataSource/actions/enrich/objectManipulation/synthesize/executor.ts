@@ -152,7 +152,7 @@ const operandExpand = (
             return { ok: false, reason: `No graph found for host ${step.fromHostId}` }
         }
         const closure = lookupOrComputeClosure(env, startId, sourceGraph)
-        return { ok: true, step: { ...step, objectIds: closure } }
+        return { ok: true, step: { ...step, objectIds: closure.members } }
     }
 
     if (step.kind === 'assertion' && step.predicate === 'isolatedFromRelations') {
@@ -169,7 +169,7 @@ const operandExpand = (
             return { ok: false, reason: `No graph found for host ${hostId}` }
         }
         const closure = lookupOrComputeClosure(env, startId, graph)
-        return { ok: true, step: { ...step, objectIds: closure } }
+        return { ok: true, step: { ...step, objectIds: closure.members } }
     }
 
     return { ok: true, step }

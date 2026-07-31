@@ -65,7 +65,7 @@ export const applyObjectRelationalChange = async (
         const sourceGraph: EphemeraPositionGraph = await internalCache.Positions.getPositionGraph(fromHostId)
 
         const closure = computeCarryClosure(args.subjectId, sourceGraph)
-        const outcomes = boundaryEdgeOutcomes(closure, sourceGraph)
+        const outcomes = boundaryEdgeOutcomes(closure.members, sourceGraph)
 
         const carryOutcome = outcomes.find((entry) => entry.outcome === 'carry')
         if (carryOutcome !== undefined) {
@@ -96,7 +96,7 @@ export const applyObjectRelationalChange = async (
 
         const transferStep: TransferMembershipStep = {
             kind: 'transferMembership',
-            objectIds: closure,
+            objectIds: closure.members,
             fromHostId,
             toHostId: args.hostId,
         }
