@@ -206,23 +206,27 @@ Two concerns are often conflated in perception-heavy flows. Keep them separate:
 
 Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) (fictional **`CreatedTime`**, delivery looseness vs correlation), [`dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads).
 
-#### Reference consumer: membership presentation emission
+#### Reference consumer: relational presentation emission
 
 **DataSource:** [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md).
 
 | Piece | Location |
 | --- | --- |
-| Cluster spec | [`membershipPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationFanIn.ts) |
-| Leg adapters | [`membershipPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/membershipPresentationLegAdapters.ts) |
+| Cluster spec | [`objectManipulationPresentationFanIn.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationFanIn.ts) |
+| Leg adapters | [`objectManipulationPresentationLegAdapters.ts`](../../../../lambda/ephemera/dataSource/perception/objectManipulationPresentationLegAdapters.ts) |
 | Store wiring | [`index.ts`](../../../../lambda/ephemera/dataSource/perception/index.ts) --- deferral tag **`fanIn-mtw.ephemera.perception`** |
-| Publish | [`publishMembershipPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishMembershipPresentation.ts) |
+| Publish | [`publishObjectManipulationPresentation.ts`](../../../../lambda/ephemera/dataSource/perception/publishObjectManipulationPresentation.ts) |
 
 **Legs:**
 
 | Leg | Source | Role |
 | --- | --- | --- |
-| **Intent** | **`mtw.ephemera.actions`** (`Character Navigate`, `Character Home`), **`mtw.connections.characters`** (`Character Connected` / `Character Disconnected`) | Why the transition happened; optional **`exitName`** on navigate for exit-aware copy |
-| **Fact** | **`mtw.ephemera.positions`** `Character Moved` after persistence apply | Authoritative endpoints: **`froms[]`**, **`to`**, **`beatAnchorTime`** |
+| **Intent** | **`mtw.ephemera.actions`** (`Object Establish Relation` / `Object Dissolve Relation`) | Why the reposition happened, and the actor it is attributed to |
+| **Fact** | **`mtw.ephemera.positions`** `Object Relation Changed` after persistence apply | Authoritative endpoints: **`subjectId`**, **`targetId`**, **`hostId`**, **`relationKind`**, **`beatAnchorTime`** |
+
+**A cautionary note on when this pattern is the right one.** The *membership* presentation fan-in used to be this section's reference consumer and has since been deleted --- not because the framework failed, but because the fan-in shape was wrong for that problem. It correlated an intent leg with a fact leg to reconstruct *what kind of event had happened*, information the producer already had; and it published against a live roster at flush, by which time the mover had left the room the message was about. Both are now handled at the producer, by compiling narration into the same step sequence as the mutation.
+
+**Use a fan-in cluster when two genuinely independent producers must rendezvous.** Do not use one to re-derive, downstream, something a single upstream producer already knew --- correlating an intent with the fact it caused is a strong signal that the two belong in one place instead.
 
 **Correlation:** **`clusterIdentity()`** is fact-authoritative (`characterId` + canonical sorted **`froms`** + **`to`**). Intent **`fromRoomId`** is non-authoritative; correlate when **`intent.fromRoomId in fact.froms`**. Plural **`froms`** may yield multi-leave emission (exit-aware only for the entry matching correlated intent).
 

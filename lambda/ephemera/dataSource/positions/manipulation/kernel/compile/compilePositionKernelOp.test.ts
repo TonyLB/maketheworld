@@ -1,9 +1,20 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
+import type { MembershipNarrationSpec, ObjectMoveNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
+import type { CarryClosureFragment } from '../../../positionGraph/expandValidate/interactionUnderTransfer'
 import type { PositionKernelMoveOp } from './positionKernelOp'
-import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID, NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
+import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
+import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
+
+/** Narrows a compiled narrate step to the membership family these cases all exercise. */
+const membershipNarration = (step: PresentationKernelNarrateStep): MembershipNarrationSpec => {
+    if (step.narration.kind !== 'membershipMove') {
+        throw new Error(`Expected a membershipMove narration, got ${step.narration.kind}`)
+    }
+    return step.narration
+}
 
 const CHARACTER_ID = 'CHARACTER#Tess' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#Departure' as EphemeraRoomId
@@ -11,12 +22,13 @@ const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
 const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
     kind: 'move',
-    entityId: CHARACTER_ID,
+    moved: { kind: 'entity', entityId: CHARACTER_ID },
     froms: [FROM_ROOM],
     to: TO_ROOM,
     bundleId: 'BUNDLE#test',
     headerSlot: null,
     narration: {
+        kind: 'membershipMove',
         characterName: 'Tess',
         leaveCopyKind: () => 'genericNavigate',
         arriveCopyKind: 'genericNavigate',
@@ -36,7 +48,7 @@ describe('compilePositionKernelOp', () => {
             'narrate',
         ])
         const narrateSteps = plan.steps.filter(isNarrateStep)
-        expect(narrateSteps.map((step) => step.narration.direction)).toEqual(['leave', 'arrive'])
+        expect(narrateSteps.map((step) => membershipNarration(step).direction)).toEqual(['leave', 'arrive'])
     })
 
     it('declares slots in delivery order [leave, header, arrive]', () => {
@@ -52,15 +64,16 @@ describe('compilePositionKernelOp', () => {
         const plan = compilePositionKernelOp(baseOp({ headerSlot }))
 
         expect(plan.slots).toEqual([
-            { slotId: navigateLeaveSlotId(FROM_ROOM), expectedPublishType: 'WorldMessage' },
+            { slotId: moveLeaveSlotId(FROM_ROOM), expectedPublishType: 'WorldMessage' },
             headerSlot,
-            { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
+            { slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
         ])
     })
 
     it('narration steps carry ingredients (characterName/copyKind/exitName), not a built message', () => {
         const plan = compilePositionKernelOp(baseOp({
             narration: {
+                kind: 'membershipMove',
                 characterName: 'Tess',
                 leaveCopyKind: () => 'exitAware',
                 arriveCopyKind: 'genericNavigate',
@@ -68,7 +81,7 @@ describe('compilePositionKernelOp', () => {
             },
         }))
 
-        const leaveStep = plan.steps.filter(isNarrateStep).find((step) => step.narration.direction === 'leave')
+        const leaveStep = plan.steps.filter(isNarrateStep).find((step) => membershipNarration(step).direction === 'leave')
         expect(leaveStep?.narration).toMatchObject({
             characterName: 'Tess',
             copyKind: 'exitAware',
@@ -80,16 +93,16 @@ describe('compilePositionKernelOp', () => {
     it('produces no leave step/slot when froms is empty (connect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ froms: [] }))
 
-        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'leave')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'leave')).toBe(false)
         expect(plan.slots.some((slot) => slot.slotId.startsWith('leave:'))).toBe(false)
     })
 
     it('produces no arrive step/slot/capture-to when to is null (disconnect shape)', () => {
         const plan = compilePositionKernelOp(baseOp({ to: null }))
 
-        expect(plan.steps.filter(isNarrateStep).some((step) => step.narration.direction === 'arrive')).toBe(false)
+        expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'arrive')).toBe(false)
         expect(plan.steps.filter((step) => step.kind === 'capture')).toHaveLength(1)
-        expect(plan.slots.some((slot) => slot.slotId === NAVIGATE_ARRIVE_SLOT_ID)).toBe(false)
+        expect(plan.slots.some((slot) => slot.slotId === MOVE_ARRIVE_SLOT_ID)).toBe(false)
     })
 
     it('emits only the bare transfer step when narration is absent (object-lifecycle moves)', () => {
@@ -117,5 +130,115 @@ describe('compilePositionKernelOp', () => {
         const plan = compilePositionKernelOp(baseOp({ narration: undefined, headerSlot }))
 
         expect(plan.slots).toEqual([headerSlot])
+    })
+})
+
+/**
+ * Phase 4: take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
+ * structural branch, only a second narration family. These cases pin the two things that could
+ * quietly regress back into a special case: that both bracket sides are emitted even when one host
+ * is a character with no roster, and that the verb comes from the delta rather than from a caller.
+ */
+describe('compilePositionKernelOp --- object moves', () => {
+    const TRAY = 'OBJECT#Tray' as EphemeraObjectId
+    const GLASS = 'OBJECT#Glass' as EphemeraObjectId
+
+    const fragment = (members: EphemeraObjectId[] = [TRAY]): CarryClosureFragment => ({
+        rootId: TRAY,
+        members: new Set(members),
+        edges: [],
+    })
+
+    const objectOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
+        kind: 'move',
+        moved: { kind: 'closure', fragment: fragment() },
+        froms: [FROM_ROOM],
+        to: CHARACTER_ID,
+        bundleId: 'BUNDLE#test',
+        headerSlot: null,
+        dissolvedEdges: [],
+        narration: {
+            kind: 'objectMove',
+            characterName: 'Tess',
+            objectShortName: 'tray',
+            carriedCount: 1,
+        },
+        ...overrides,
+    })
+
+    const objectNarration = (step: PresentationKernelNarrateStep): ObjectMoveNarrationSpec => {
+        if (step.narration.kind !== 'objectMove') {
+            throw new Error(`Expected an objectMove narration, got ${step.narration.kind}`)
+        }
+        return step.narration
+    }
+
+    it('derives takeHold when the move leaves a room, and drop when it arrives at one', () => {
+        const takeHold = compilePositionKernelOp(objectOp())
+        expect(objectNarration(takeHold.steps.filter(isNarrateStep)[0]).verb).toEqual('takeHold')
+
+        const drop = compilePositionKernelOp(objectOp({ froms: [CHARACTER_ID], to: FROM_ROOM }))
+        expect(objectNarration(drop.steps.filter(isNarrateStep)[0]).verb).toEqual('drop')
+    })
+
+    it('derives give when neither side is a room --- no new discriminant needed', () => {
+        const give = compilePositionKernelOp(objectOp({
+            froms: [CHARACTER_ID],
+            to: 'CHARACTER#Other' as EphemeraCharacterId,
+        }))
+        expect(objectNarration(give.steps.filter(isNarrateStep)[0]).verb).toEqual('give')
+    })
+
+    it('emits both bracket sides for a character host rather than suppressing the empty one', () => {
+        const plan = compilePositionKernelOp(objectOp())
+
+        // The character-inventory side's capture snapshots an empty roster and its narrate step
+        // publishes to nobody. That is the correct output of a uniform rule (PB-M), and suppressing
+        // it here is how the host-changelog frame gets lost at the next caller.
+        expect(plan.steps.map((step) => step.kind)).toEqual([
+            'capture', 'transferMembership', 'capture', 'narrate', 'narrate',
+        ])
+        expect(plan.slots.map((slot) => slot.slotId)).toEqual([
+            moveLeaveSlotId(FROM_ROOM),
+            MOVE_ARRIVE_SLOT_ID,
+        ])
+    })
+
+    it('transfers the whole carry closure, not just its root', () => {
+        const plan = compilePositionKernelOp(objectOp({
+            moved: { kind: 'closure', fragment: fragment([TRAY, GLASS]) },
+        }))
+
+        expect(plan.steps.find((step) => step.kind === 'transferMembership')).toMatchObject({
+            entityIds: new Set([TRAY, GLASS]),
+            fromHostIds: new Set([FROM_ROOM]),
+            toHostId: CHARACTER_ID,
+        })
+    })
+
+    it('renders severed boundary edges as dissolveRelation steps ahead of the transfer (BD-28)', () => {
+        const plan = compilePositionKernelOp(objectOp({
+            dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
+        }))
+
+        const kinds = plan.steps.map((step) => step.kind)
+        // factsForStep streams in step order, so a severed relation's fact must precede the move's.
+        expect(kinds.indexOf('dissolveRelation')).toBeLessThan(kinds.indexOf('transferMembership'))
+        expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
+            kind: 'dissolveRelation',
+            subjectId: TRAY,
+            targetId: 'OBJECT#Table',
+            relationKind: 'On',
+        })
+    })
+
+    it('still emits dissolves for a non-narrating move, but no captures', () => {
+        const plan = compilePositionKernelOp(objectOp({
+            narration: undefined,
+            dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
+        }))
+
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership'])
+        expect(plan.slots).toEqual([])
     })
 })

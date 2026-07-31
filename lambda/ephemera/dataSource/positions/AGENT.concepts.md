@@ -98,7 +98,7 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
-- **Cross-host apply:** [`manipulation/membership/executeObjectTakeHold.ts`](manipulation/membership/executeObjectTakeHold.ts) --- atomic room-remove + character-add on **`takeHold`**. [`manipulation/membership/executeObjectDrop.ts`](manipulation/membership/executeObjectDrop.ts) --- atomic character-remove + room-add on **`drop`**. Both ground their transfer set through the Synthesize executor and commit through the kernel --- **no** new `update*PositionGraphs` fork.
+- **Cross-host apply:** [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. It grounds its transfer set through the Synthesize executor and commits through the kernel --- **no** new `update*PositionGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. See [Intent vs. world-effect](#intent-vs-world-effect).
 
 ### Manipulation layering (membership transfer)
 
@@ -134,6 +134,93 @@ Per-operator coordinators       verb-specific follow-on only (the kernel owns th
 | **Apply mode: bounded** | Planner scrubs **only** the trusted-ingress hosts the entity actually occupies --- not an end-state multi-host scrub |
 | **Cross-snapshot recheck** | Re-deriving a plan against a later snapshot than the one that selected it (the executor at execute time; the reducer at commit time). A safety property, not duplicated work |
 | **Layered vocabulary** | **Kernel** docs: step sequences, graph-grounded persist. **Adapter** docs: transfer planning, apply modes. **Bus facts** docs: membership host transfer projection |
+
+### Two kernels: mutation and presentation
+
+There are exactly **two** kernels, and they filter the *same* `KernelStep[]`.
+
+| Kernel | Filters | Runs |
+| --- | --- | --- |
+| **Mutation** | mutation + capture steps | in the walk, inside the transaction |
+| **Presentation** | describe + narrate steps | after commit |
+
+The presentation kernel has **two branches**: **describe** (a rendered description of a thing) and **narrate** (a world line about something that happened). Both publish into the player's transcript; they differ in where their state comes from --- see [Positional vs. terminal binding](#positional-vs-terminal-binding).
+
+**"Perception" is the wrong word for this and "presentation" is the right one, on the codebase's own usage.** Every `*Presentation*` identifier in production is narration or transcript publishing. So the repo already draws the line:
+
+- **Perception** is the broad experience category --- *and the name of a data source* (`mtw.ephemera.perception`).
+- **Presentation** is specifically publishing something into the transcript. It is a **step-kind category**, parallel to mutation.
+
+Naming this kernel "perception" claimed a data source's territory and implied narration should route through it *terminally* --- the exact opposite of the binding rule below. **The repo has already made this mistake once** (the shipped describe branch was called "the perception kernel" before it was renamed `presentStepSequence`), which is why the distinction is recorded here rather than left to taste.
+
+### Positional vs. terminal binding
+
+The single most important distinction in narration, and the reason narration could not simply be appended to the existing kernel:
+
+- A **narrate** step is **positionally bound**: it resolves its audience against graph state *at its own position in the walk*. A leave line must reflect the room the character was still standing in.
+- A **describe** step is **terminally bound**: it resolves against **final committed state**. A description must reflect the world as it ended up.
+
+**This is not an ordering rule.** Both branches publish after the commit. It is about *where the state came from*: describe reads the post-commit graphs; narrate reads a roster **captured mid-walk** by a capture step. Restating it as "narration publishes earlier" loses the entire point.
+
+Collapsing the two back into one discipline, in either direction, reintroduces the bug the capture channel exists to remove. Normative form: [`AGENT.contract.md` --- Narration and presentation](AGENT.contract.md#narration-and-presentation).
+
+| Term | Meaning |
+| --- | --- |
+| **Capture** | A read-only walk step that snapshots one host's roster mid-transaction, under a `captureId`. Carries no write payload |
+| **Captured roster** | The plain `EphemeraCharacterId[]` a capture recorded. **Load-bearing** --- it *is* the narration audience, not a diagnostic |
+| **Beat** | The moment a mutation commits; `beatAnchorTime` stamps it. Capture happens at the beat, delivery happens at flush |
+
+### Presence and perspective are orthogonal
+
+**Presence** answers *who was where, when*. **Perspective** answers *whether the actor receives their own event, and in what wording*.
+
+Positional binding is a presence tool and answers nothing about perspective. All narration today is third person to one audience; there is no actor/observer copy split anywhere. Second-person copy ("you leave the tavern") is a target-vocabulary question --- an `ACTOR` / `!ACTOR` referent kind --- and is deliberately unbuilt.
+
+This is recorded because the retired `[room, characterId]` targeting idiom **looked** like a perspective mechanism and was not: it was a presence patch, needed at exactly one of its four sites (a departure room, where live roster expansion had already dropped the mover). Someone will otherwise try to solve perspective with the presence tool.
+
+### Abstract op and compiled step (two levels)
+
+Kernel plans are **compiled from abstract operations**, never hand-built per call site.
+
+```text
+Call site          "a Move happened: this entity, these froms, this to" (+ narration ingredients)
+    |
+    v
+Compiler           compilePositionKernelOp --- expands into [capture*, dissolve*, transfer, capture, narrate*] + slots
+    |
+    v
+Kernel step list   one shared KernelStep[], filtered by each kernel
+```
+
+An **abstract op** names *what happened in the world*. A **compiler** expands it into the kernel-ready sequence. Only the compiler knows that a move brackets leave-then-arrive, so that invariant lives in **one function** instead of being re-derived at every call site.
+
+**Why this matters, concretely:** three call sites once copied the same defensive `[room, characterId]` patch and only one of them needed it --- precisely because nothing shared owned the decision. The compiler is the thing that owns it now.
+
+Two consequences worth stating as vocabulary:
+
+- **Narration carries ingredients, not prose.** An op supplies `characterName`, a copy-kind selector, `objectShortName`; the presentation kernel assembles the string. This leaves room for copy that reacts to what the mutation actually *did*, rather than only to what compile-time intent expected.
+- **The compiler holds shape forwards.** The pattern it replaces reasoned **backwards** from endpoint data to an event shape (what kind of move was this? which verb was that?). Holding the shape forward from a named op means the inference never has to be written --- and cannot be re-written later.
+
+### Intent vs. world-effect
+
+**Intents stay distinct where the player's meaning differs; execution unifies where the world-effect is the same.**
+
+`Object Take Hold` and `Object Drop` are two intents: different utterances, different Plan-stage legality errors ("you're not carrying that" vs. "you're already holding that"). They are **one** world-effect --- move an object between two membership hosts --- and so one execution path, distinguished only by which host is which.
+
+The corollary is that a **verb is a property of the delta**, not a declared input: take / drop / give is read off which side of the move was the room. This is why `give` needs no new module, no new event shape at execute time, and no new discriminant.
+
+### Naming: `Kernel` alone names nothing
+
+With two kernels, a bare `Kernel` prefix identifies neither.
+
+| Name | Rule |
+| --- | --- |
+| `KernelStep` | **Stays unprefixed.** It is the *shared, cross-kernel* instruction vocabulary that each kernel filters down to the steps it owns. It belongs to no single kernel, so it takes no kernel's name |
+| `MutationKernel*` | Types the mutation kernel owns: `MutationKernelStep`, `MutationKernelCaptureStep`, `MutationKernelTransferStep`, `MutationKernelCaptures`, `MutationKernelCommitResult` |
+| `PresentationKernel*` | Types the presentation kernel owns: `PresentationKernelStep`, `PresentationKernelNarrateStep` |
+| `ExecutorDescribeStep` | **Not renamed.** It is owned by `executorTypes.ts` and reused verbatim; renaming would steal it from the executor |
+
+**State the reason for `KernelStep`, not just the exception** --- it reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
 
 ### Three play-time questions
 

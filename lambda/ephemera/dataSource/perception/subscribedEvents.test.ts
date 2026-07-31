@@ -175,53 +175,53 @@ describe('perception subscribedEvents', () => {
         expect(isPerceptionSubscribedEnvelope(rejected as any)).toBe(false)
     })
 
-    it('isPerceptionSubscribedEnvelope matches object manipulation presentation ingress', () => {
-        const takeHold = {
+    it('isPerceptionSubscribedEnvelope matches relational object manipulation ingress', () => {
+        const establishRelation = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
                 streamKey: 'CHARACTER#Alice',
                 timestamp: Date.now(),
-                type: 'Object Take Hold',
+                type: 'Object Establish Relation',
             },
-            getContent: () => Promise.resolve({
-                type: 'Object Take Hold',
-                characterId: 'CHARACTER#Alice',
-                objectId: 'OBJECT#Broom',
-                roomId: 'ROOM#Cafe',
-            }),
+            getContent: () => Promise.resolve({}),
         }
-        const objectMoved = {
+        const relationChanged = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.positions',
+                streamKey: 'OBJECT#Broom',
+                timestamp: Date.now(),
+                type: 'Object Relation Changed',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+        expect(isPerceptionSubscribedEnvelope(establishRelation as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(relationChanged as any)).toBe(true)
+    })
+
+    it('does not subscribe to the retired object-move events', () => {
+        // Phase 4: object moves narrate through the mutation kernel, so perception has no reason to
+        // see Take Hold / Drop / Object Moved --- the same removal Phase 3 made for the character
+        // membership events when membership narration migrated.
+        const retired = ['Object Take Hold', 'Object Drop'].map((type) => ({
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#Alice',
+                timestamp: Date.now(),
+                type,
+            },
+            getContent: () => Promise.resolve({}),
+        })).concat([{
             header: {
                 dataSourceKey: 'mtw.ephemera.positions',
                 streamKey: 'OBJECT#Broom',
                 timestamp: Date.now(),
                 type: 'Object Moved',
             },
-            getContent: () => Promise.resolve({
-                type: 'Object Moved',
-                objectId: 'OBJECT#Broom',
-                froms: ['ROOM#Cafe'],
-                to: 'CHARACTER#Alice',
-                beatAnchorTime: Date.now(),
-            }),
-        }
-        expect(isPerceptionSubscribedEnvelope(takeHold as any)).toBe(true)
-        expect(isPerceptionSubscribedEnvelope(objectMoved as any)).toBe(true)
+            getContent: () => Promise.resolve({}),
+        }])
 
-        const objectDrop = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.actions',
-                streamKey: 'CHARACTER#Alice',
-                timestamp: Date.now(),
-                type: 'Object Drop',
-            },
-            getContent: () => Promise.resolve({
-                type: 'Object Drop',
-                characterId: 'CHARACTER#Alice',
-                objectId: 'OBJECT#Broom',
-                roomId: 'ROOM#Cafe',
-            }),
-        }
-        expect(isPerceptionSubscribedEnvelope(objectDrop as any)).toBe(true)
+        retired.forEach((envelope) => {
+            expect(isPerceptionSubscribedEnvelope(envelope as any)).toBe(false)
+        })
     })
 })

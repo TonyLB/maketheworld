@@ -42,8 +42,7 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
-import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
-import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
+import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
@@ -77,10 +76,10 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectDropPublishedPayload(content)) {
                     return
                 }
-                await executeObjectDrop({
-                    characterId: content.characterId,
+                await orchestrateObjectMove({
                     objectIds: content.objectIds,
-                    roomId: content.roomId,
+                    fromHostId: content.characterId,
+                    toHostId: content.roomId,
                     messageBus,
                     streamEvent,
                 })
@@ -127,10 +126,10 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectTakeHoldPublishedPayload(content)) {
                     return
                 }
-                await executeObjectTakeHold({
-                    characterId: content.characterId,
+                await orchestrateObjectMove({
                     objectIds: content.objectIds,
-                    roomId: content.roomId,
+                    fromHostId: content.roomId,
+                    toHostId: content.characterId,
                     messageBus,
                     streamEvent,
                 })

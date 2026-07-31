@@ -43,17 +43,39 @@ export function roleOfObjectInEdge(
 }
 
 /**
+ * A carry closure is a rooted sub-DAG of the source graph, not just a flat
+ * member set (PB-8): `rootId` is the starting entity, `members` the absorbed
+ * set, `edges` the closure's *internal* edges only (both endpoints inside
+ * `members`) --- the induced subgraph, not the severed boundary edges, which
+ * stay with `boundaryEdgeOutcomes` and Expansion (PB-9).
+ *
+ * This is a rooted graph, which is precisely what `EphemeraPositionGraph`
+ * would already be if it carried a root. If `positionGraph` ever gains a
+ * root concept, this shape should collapse into it rather than persist as a
+ * parallel shape re-expressing the same idea (see the reciprocal note on the
+ * `positionGraph` side).
+ */
+export type CarryClosureFragment = {
+    rootId: EphemeraObjectId
+    members: ReadonlySet<EphemeraObjectId>
+    edges: readonly HostRelationalEdge[]
+}
+
+/**
  * Transitively absorb objects connected via `carry`-classified edges into one
  * transfer set, iterating to a fixpoint --- re-examining each newly-absorbed
  * object's own edges, not just the starting object's. Guarded by the set
  * itself: an already-absorbed id is never re-enqueued, so a malformed cyclic
- * edge set terminates instead of looping.
+ * edge set terminates instead of looping. Each `carry` absorption fires on
+ * exactly one edge, so that edge is collected as an internal edge in the
+ * same pass.
  */
 export function computeCarryClosure(
     startId: EphemeraObjectId,
     graph: EphemeraPositionGraph
-): Set<EphemeraObjectId> {
+): CarryClosureFragment {
     const closureSet = new Set<EphemeraObjectId>([startId])
+    const internalEdges: HostRelationalEdge[] = []
     const queue: EphemeraObjectId[] = [startId]
     const edges = graph.relationalEdges
 
@@ -70,12 +92,13 @@ export function computeCarryClosure(
             }
             if (classifyInteractionUnderTransfer(edge.kind, movedRole) === 'carry') {
                 closureSet.add(otherId)
+                internalEdges.push(edge)
                 queue.push(otherId)
             }
         }
     }
 
-    return closureSet
+    return { rootId: startId, members: closureSet, edges: internalEdges }
 }
 
 export type BoundaryEdgeOutcome = {

@@ -51,18 +51,24 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
 }
 
 /**
- * BD-34's centralized pairing constructor, repair-mint half: whatever
- * consumes a repair `TransferMembershipStep` (today, only `expandSameHost`'s
- * `repaired` outcome) must introduce it through here, not push it onto the
- * worklist directly --- otherwise its boundary edges never get swept and
+ * BD-34's centralized pairing constructor, grounded half: whatever introduces a
+ * concrete `TransferMembershipStep` must do it through here, not push it onto
+ * the worklist directly --- otherwise its boundary edges never get swept and
  * `removeObject`'s assert-and-throw (BD-33) spuriously fires on a legitimate,
- * unaddressed edge. `expandSameHost.ts` itself stays unchanged; this wrapping
- * happens at the call site, in `commandExpand` below.
+ * unaddressed edge.
+ *
+ * Two callers, and repair is only one of them: `expandSameHost`'s `repaired`
+ * outcome (wrapped at the call site in `commandExpand` below, leaving
+ * `expandSameHost.ts` itself unchanged), and `executeObjectMove`, which seeds
+ * the whole worklist this way because at execute time the hosts are already
+ * concrete --- there is nothing left for Grounding to resolve. Named for the
+ * tag rather than for either caller, so the pairing invariant reads as the
+ * general rule it is.
  */
-export const introduceRepairTransferMembership = (transferStep: TransferMembershipStep): WorklistInstruction[] => {
+export const seedGroundedTransferMembership = (transferStep: TransferMembershipStep): WorklistInstruction[] => {
     const [startId] = transferStep.objectIds
     if (startId === undefined) {
-        throw new Error('introduceRepairTransferMembership: transferStep.objectIds must not be empty')
+        throw new Error('seedGroundedTransferMembership: transferStep.objectIds must not be empty')
     }
     return [
         {
@@ -152,7 +158,7 @@ const operandExpand = (
             return { ok: false, reason: `No graph found for host ${step.fromHostId}` }
         }
         const closure = lookupOrComputeClosure(env, startId, sourceGraph)
-        return { ok: true, step: { ...step, objectIds: closure } }
+        return { ok: true, step: { ...step, objectIds: closure.members } }
     }
 
     if (step.kind === 'assertion' && step.predicate === 'isolatedFromRelations') {
@@ -169,7 +175,7 @@ const operandExpand = (
             return { ok: false, reason: `No graph found for host ${hostId}` }
         }
         const closure = lookupOrComputeClosure(env, startId, graph)
-        return { ok: true, step: { ...step, objectIds: closure } }
+        return { ok: true, step: { ...step, objectIds: closure.members } }
     }
 
     return { ok: true, step }
@@ -217,7 +223,7 @@ const commandExpand = (
                 return { kind: 'consumed', children: [] }
             }
             if (result.verdict === 'repaired') {
-                return { kind: 'consumed', children: introduceRepairTransferMembership(result.transferStep) }
+                return { kind: 'consumed', children: seedGroundedTransferMembership(result.transferStep) }
             }
             if (result.verdict === 'defer') {
                 return { kind: 'defer', decidable: result.decidable, reason: result.reason }
@@ -287,11 +293,19 @@ export type ExecutorOutcome =
  * minted children pushed to the front (generator). Strict list-order (FIFO)
  * selection at every phase, plus push-to-front, is what gives BD-28's
  * sequencing resolution its guarantee --- no separate priority tier needed.
+ *
+ * `groundingContext` is optional because a fully-grounded seed never reaches
+ * phase (1): every child minted during a run is already grounded (see
+ * `seedGroundedTransferMembership` and the `dissolveRelation` children below),
+ * so only a seed can carry an `ungrounded` instruction. Callers that already
+ * hold concrete ids --- `executeObjectMove` --- omit it rather than assembling
+ * a context whose resolutions would be identity mappings. Seeding an
+ * `ungrounded` instruction without one is a caller error and errors out.
  */
 export const runExecutor = (
     seed: readonly WorklistInstruction[],
     env: ExpansionEnvironment,
-    groundingContext: GroundingContext
+    groundingContext?: GroundingContext
 ): ExecutorOutcome => {
     let worklist: WorklistInstruction[] = [...seed]
     const output: ExecutorParsePlanStep[] = []
@@ -302,6 +316,12 @@ export const runExecutor = (
             const item = worklist[ungroundedIndex]!
             if (item.tag !== 'ungrounded') {
                 continue
+            }
+            if (groundingContext === undefined) {
+                return {
+                    verdict: 'error',
+                    reason: 'runExecutor: an ungrounded instruction was seeded without a GroundingContext',
+                }
             }
             const result = groundInstruction(item.step, groundingContext)
             if (!result.ok) {

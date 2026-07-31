@@ -6,7 +6,7 @@ import { sendMessageBundleDeclared } from '../../messageOrchestration/subscribed
 import { presentStepSequence } from '../manipulation/kernel/presentStepSequence'
 import type { MutationKernelCaptures } from '../manipulation/kernel/types'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
-import { buildMembershipMoveOp } from './buildMembershipMoveOp'
+import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 
 /** Disconnect's compiled narration never includes a `describe` step, same as navigate's --- see `orchestrateNavigate.ts`'s identical noop. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -22,7 +22,7 @@ export type OrchestrateCharacterDisconnectArgs = {
 }
 
 /**
- * Post-persist disconnect presentation (Phase 3, `AGENT.presentationKernel.planning.md`): the
+ * Post-persist disconnect presentation: the
  * narration-only half of what `orchestrateCharacterNavigate` does for a destination room. Disconnect
  * (and the ghost-purge repair sweep in `repairRoomOccupancyDrift.ts`, which shares this function) has
  * no `to` --- nothing arrives anywhere, so there is no header slot to resolve, no
@@ -43,7 +43,7 @@ export const orchestrateCharacterDisconnect = async ({
         return
     }
 
-    const op = buildMembershipMoveOp({
+    const op = buildCharacterMoveOp({
         characterId,
         characterName,
         froms,

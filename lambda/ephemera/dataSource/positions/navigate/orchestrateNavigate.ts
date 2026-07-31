@@ -15,7 +15,7 @@ import { presentStepSequence } from '../manipulation/kernel/presentStepSequence'
 import type { MutationKernelCaptures } from '../manipulation/kernel/types'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import type { PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
-import { buildMembershipMoveOp } from '../membership/buildMembershipMoveOp'
+import { buildCharacterMoveOp } from '../membership/buildCharacterMoveOp'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 
 /** Navigate's compiled narration never includes a `describe` step (the header renders through the ingress-slot mechanism below, not this pipeline), so this dep is structurally unused --- present only because `PresentStepSequenceDeps` requires it. */
@@ -28,7 +28,7 @@ export type OrchestrateCharacterNavigateArgs = {
     to: EphemeraRoomId | null;
     /** messageOrchestration bundle correlation id; defaults to a fresh uuidv4() when the caller (connect/disconnect/repair) has no matching intent-leg bundleId. */
     bundleId?: string;
-    /** Threaded from `executeCharacterNavigate.ts` (navigate/home) or `handleConnectionsCharactersPresence.ts` (connect, Phase 3) --- see `buildMembershipMoveOp.ts` for how these select copy-kind. Absent means no narration is compiled here (repair's own navigate-tail calls, which have no matching intent). Disconnect never reaches this function --- see `orchestrateCharacterDisconnect.ts`. */
+    /** Threaded from `executeCharacterNavigate.ts` (navigate/home) or `handleConnectionsCharactersPresence.ts` (connect, Phase 3) --- see `buildCharacterMoveOp.ts` for how these select copy-kind. Absent means no narration is compiled here (repair's own navigate-tail calls, which have no matching intent). Disconnect never reaches this function --- see `orchestrateCharacterDisconnect.ts`. */
     intentKind?: 'navigate' | 'home' | 'connect';
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
@@ -39,7 +39,7 @@ export type OrchestrateCharacterNavigateArgs = {
 
 /**
  * Post-persist navigate presentation (S1-13): declares this move's messageOrchestration bundle and
- * reports its narration (Phase 2, `AGENT.presentationKernel.planning.md`), resolves the header slot
+ * reports its narration, resolves the header slot
  * via the async render pipeline's Ingress registration, imperative header fallback. Does not perform
  * membership Dynamo writes or `RoomUpdate`/`EphemeraUpdate` (coordinator owns those).
  *
@@ -49,7 +49,7 @@ export type OrchestrateCharacterNavigateArgs = {
  * capture ids are pure functions of `froms`/`to` alone, so both compiles agree on the same ids and
  * the narration steps built here resolve against captures taken by the other call's committed
  * transaction. When `intentKind` is absent, no narration is compiled and only the header-render
- * machinery below runs, unchanged from before. Connect passes `intentKind: 'connect'` (Phase 3) and
+ * machinery below runs, unchanged from before. Connect passes `intentKind: 'connect'` and
  * flows through this same function --- it always has a destination room, so the header-render logic
  * applies unchanged. Disconnect (and the ghost-purge repair sweep) never reach this function at all
  * --- they have no destination room to render a header for --- see `orchestrateCharacterDisconnect.ts`.
@@ -87,7 +87,7 @@ export const orchestrateCharacterNavigate = async ({
     } : null
 
     const op: PositionKernelMoveOp = intentKind
-        ? buildMembershipMoveOp({
+        ? buildCharacterMoveOp({
             characterId,
             characterName: characterMeta.Name,
             froms,
@@ -98,7 +98,7 @@ export const orchestrateCharacterNavigate = async ({
             exitName,
             headerSlot: headerSlotSpec,
         })
-        : { kind: 'move', entityId: characterId, froms, to, bundleId, headerSlot: headerSlotSpec }
+        : { kind: 'move', moved: { kind: 'entity', entityId: characterId }, froms, to, bundleId, headerSlot: headerSlotSpec }
 
     const plan = compilePositionKernelOp(op)
 

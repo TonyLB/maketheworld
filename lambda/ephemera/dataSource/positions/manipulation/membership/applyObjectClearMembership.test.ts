@@ -39,7 +39,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 /**
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
- * `commitStepSequence.test.ts`/`executeObjectTakeHold.test.ts` already establish. Exposes the
+ * `commitStepSequence.test.ts`/`executeObjectMove.test.ts` already establish. Exposes the
  * mutated draft so a test can inspect final graph state directly, without re-invoking the reducer.
  */
 const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {

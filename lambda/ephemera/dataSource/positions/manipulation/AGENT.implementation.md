@@ -19,10 +19,16 @@ Per-operator ingress            verb-specific args, trusted ids (parse egress, n
 Shared membership adapter       froms/to planning, apply mode, membership observation -> projection
         |                     (reusable across navigate, object place, takeHold, drop, ...)
         v
-Kernel step sequence            KernelMutationStep[]: transferMembership | establishRelation | dissolveRelation
+Abstract op                     PositionKernelMoveOp: what happened in the world (+ narration ingredients)
         |
         v
-commitStepSequence              footprint lock -> one transactWrite -> re-validate live -> stream facts
+compilePositionKernelOp         op -> { steps: KernelStep[], slots: MessageOrchestrationSlotSpec[] }
+        |
+        +--> mutation steps  --> commitStepSequence   footprint lock -> one transactWrite -> re-validate -> facts
+        |                                                    |
+        |                                              (ok: true, captures)
+        |                                                    |
+        +--> narrate steps   --> presentStepSequence  <------+   audience from the captured rosters
         |
         v
 Per-operator coordinators       membership fact projection consumption, cache/bus bundles
@@ -39,18 +45,30 @@ Per-operator coordinators       membership fact projection consumption, cache/bu
 [`kernel/kernelStep.ts`](kernel/kernelStep.ts) defines a deliberately narrow superset of the Synthesize executor's `ExecutorParsePlanStep`:
 
 ```typescript
-type KernelTransferMembershipStep = {
+type MutationKernelTransferStep = {
     kind: 'transferMembership'
     entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }
 
-type KernelMutationStep = KernelTransferMembershipStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
-type KernelStep = KernelMutationStep | ExecutorDescribeStep
+/** Read-only: `hostId` + `captureId` and no write payload. That shape is what makes it safe in the walk. */
+type MutationKernelCaptureStep = { kind: 'capture'; hostId: EphemeraMembershipHostId; captureId: string }
+
+type MutationKernelStep =
+    | MutationKernelTransferStep
+    | MutationKernelCaptureStep
+    | ExecutorEstablishRelationStep
+    | ExecutorDissolveRelationStep
+
+type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateStep
+
+type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 ```
 
-Two widenings distinguish `KernelTransferMembershipStep` from the executor's object-only, singular-host `TransferMembershipStep`:
+**`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. Rationale: [`../AGENT.concepts.md` --- Naming](../AGENT.concepts.md#naming-kernel-alone-names-nothing).
+
+Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
 
 - **`entityIds` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind. The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
 - **`fromHostIds` is a set and `toHostId` is nullable**, mirroring `MembershipDiff`'s `{ froms, to }` shape. One step kind therefore covers three shapes:
@@ -63,21 +81,45 @@ Two widenings distinguish `KernelTransferMembershipStep` from the executor's obj
 
 Relational steps are reused verbatim from the executor: relational edges stay `EphemeraObjectId`-typed, so there is nothing to generalize (character-relation widening is deferred).
 
-Callers converting executor output use `fromExecutorStep` (overloaded, so mutation-only call sites get `KernelMutationStep` back with no cast). A shared `KernelStep[]` list is filtered per kernel: `isKernelMutationStep` for the positionGraph kernel, `isDescribeStep` for the perception kernel.
+Callers converting executor output use `fromExecutorStep` (overloaded, so mutation-only call sites get `MutationKernelStep` back with no cast). A shared `KernelStep[]` list is filtered per kernel: `isKernelMutationStep` for the mutation kernel; `isDescribeStep` and `isNarrateStep` for the presentation kernel's two branches.
+
+**The array's membership test is "does this step need the walk's *position*?"** `describe` does not --- it is terminally bound and reads final state. `capture` does, definitionally, which is why it is an array step and not a side-table: [`computeStepSequenceFootprint`](kernel/computeStepSequenceFootprint.ts) then picks up its `hostId` into the lock set automatically, and forgetting to lock a capture's host becomes structurally impossible. Narration itself **never enters the walk**, but it *is* a `KernelStep`: the compiler emits narrate steps referencing a `captureId`, and the presentation kernel filters them out of the shared list post-commit. Because the capture sits at its own position in the array, `captureId` carries **identity only, never position** --- there is no index correlation between the compiler's two kinds of output.
+
+Normative shape rules for capture: [`../AGENT.contract.md` --- Capture steps are read-only by shape](../AGENT.contract.md#capture-steps-are-read-only-by-shape).
+
+### Compile layer (`kernel/compile/`)
+
+Call sites do not hand-build step lists. They emit an **abstract op** and [`compilePositionKernelOp`](kernel/compile/compilePositionKernelOp.ts) expands it:
+
+| File | Role |
+| --- | --- |
+| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a discriminated `{kind:'entity'} \| {kind:'closure'}`), `froms`, `to`, `bundleId`, `headerSlot`, optional `dissolvedEdges`, optional `narration` (itself a family union: `membershipMove \| objectMove`) |
+| [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps, slots }`. Owns bracket shape, capture-id generation, verb derivation, dissolve sequencing, and slot ordering |
+| [`kernel/compile/moveBundleSlotIds.ts`](kernel/compile/moveBundleSlotIds.ts) | `moveLeaveSlotId(hostId)` / `MOVE_ARRIVE_SLOT_ID` --- **host**-typed, so a character endpoint needs no cast |
+
+Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ...narrateLeave, ...narrateArrive]`. Three properties of this function are load-bearing and each is pinned by a test:
+
+- **Capture ids are a pure function of `froms`/`to`**, never of narration content. That is what lets navigate compile the same op twice (pre- and post-commit) and have the two agree.
+- **Captures are emitted only when `op.narration` is present.** A non-narrating object-lifecycle move compiles to `[dissolve*, transfer]` and locks no extra hosts.
+- **Both bracket sides are emitted uniformly**, including the character-hosted side of an object move whose capture is structurally empty. The empty side is the *correct output of a uniform rule*, not a case to special-case away --- and the messageOrchestration fan-in's tolerance of unresolved slots is what makes it cost nothing.
+
+`op.headerSlot` is caller-supplied and appears in `slots` unconditionally. The compiler does **not** branch on host kind to suppress a header: object routes pass `null`, so suppression is true by construction, and a host-kind branch would put the decision in the one place that cannot know whether a header applies.
+
+**Expansion classifies, the compiler sequences.** Severed boundary edges are classified upstream (Expansion has `error`/`defer` verdict channels the compiler lacks) and arrive on `op.dissolvedEdges`; the compiler renders them 1:1 into `dissolveRelation` steps ahead of the transfer, preserving `factsForStep`'s ordering guarantee.
 
 ### `commitStepSequence` contract
 
 | Concern | Rule |
 | --- | --- |
-| **Input** | Explicit ordered `KernelMutationStep[]` only --- the kernel **must not** call `getMembershipContainers` or plan transfers |
+| **Input** | Explicit ordered `MutationKernelStep[]` only --- the kernel **must not** call `getMembershipContainers` or plan transfers |
 | **Footprint** | [`computeStepSequenceFootprint`](kernel/computeStepSequenceFootprint.ts) computes the full lock set up front from a snapshot; `MultiKeyUpdate` does exactly one batched fetch and cannot be re-entered to lock a newly-discovered host |
 | **Reads** | Only footprint hosts, and only through the `MultiKeyUpdate` reducer's own fetch --- no separate pre-fetch |
 | **Validate** | The reducer re-runs [`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) against freshly-fetched graphs; a non-`legal` verdict throws and aborts the whole transact rather than applying a stale plan |
 | **Transact** | One `transactWrite`: the `MultiKeyUpdate` item plus plain sibling adjacency `Put`/`Delete` items, under `exponentialBackoffWrapper` retrying `TransactionCanceledException` |
-| **Output** | `KernelCommitResult` --- `{ ok: true, beatAnchorTime, steps }` or `{ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage }` |
+| **Output** | `MutationKernelCommitResult` --- `{ ok: true, beatAnchorTime, steps, captures }` or `{ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage }`. **`captures` exists only on the success branch**, which is what makes "narrate only a committed mutation" a type-level guarantee rather than a convention |
 | **Conflict** | On conflict between graph and adjacency, **`positionGraph` wins** (unchanged positions authority) |
 
-**Footprint derivation.** `transferMembership` contributes every `fromHostIds` member plus `toHostId` when non-null --- all decided at grounding time. `establishRelation`/`dissolveRelation` carry no host field, so both endpoints' *pre-transaction* host comes from the injected `getCurrentHost` resolver. The footprint is a lock-set declaration only, never trusted as ground truth: the reducer independently re-derives each relational step's shared host from the locked graphs.
+**Footprint derivation.** `transferMembership` contributes every `fromHostIds` member plus `toHostId` when non-null --- all decided at grounding time. `capture` contributes its `hostId`, which is the whole point of it being an array step: a capture may name a host no mutation touches, and `MultiKeyUpdate` cannot be re-entered mid-reducer to lock a newly-discovered one. `establishRelation`/`dissolveRelation` carry no host field, so both endpoints' *pre-transaction* host comes from the injected `getCurrentHost` resolver. The footprint is a lock-set declaration only, never trusted as ground truth: the reducer independently re-derives each relational step's shared host from the locked graphs.
 
 **Adjacency rows** (`positionAdjacency#<hostId>`) are built as unconditioned sibling items, since the entity set and hosts are caller-known before the reducer runs: a `Delete` per `(entityId, fromHostId)` pair across every departure host, and a `Put` per entity only when `toHostId` is non-null. If the reducer throws, none of these fire either. Relational edges get **no** adjacency dual-write --- forward graph only.
 
@@ -99,6 +141,9 @@ Callers converting executor output use `fromExecutorStep` (overloaded, so mutati
 | **Pure remove** | Presence-check then `removeObject`/`removeCharacter` per departure host. **No** boundary sweep here --- the caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the entity carried. A residual edge makes `removeObject` throw, by design |
 | **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |
+| **Capture** | Snapshots the host's `characterIds` under `captureId` and continues. Mutates nothing, writes nothing |
+
+**Capture at the reducer boundary (both rules matter).** The reducer body can run several times under `exponentialBackoffWrapper`, so `commitStepSequence` records `committedCaptures = new Map(outcome.captures)` fresh on **every** invocation --- **assignment, never append**, or narration duplicates across retry attempts. The plain-`Map` copy also satisfies the Immer rule that nothing draft-backed may survive the reducer's return; captured values being primitive id strings makes that free here by construction rather than by discipline. Capture performs **no validity filtering** (missing `CharacterMeta` is dropped later, at hydration) --- it snapshots ids and nothing else.
 
 **Throw vs. verdict.** Legitimate legality outcomes --- stale candidate, `Custom`-edge defer, unresolved dissolve edge --- return through the `KernelApplyOutcome` discriminated union. Structural-invariant violations (relational host mismatch, `RelationalEdgeStillReferencedError`) throw, uniformly in dry-run and commit modes.
 
@@ -120,19 +165,30 @@ Character-kind emission is folded into `factsForStep` rather than layered on aft
 
 `factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later pure-remove step in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
 
-### Ordering: commit, then perceive
+### Ordering: commit, then present
 
-[`executeStepSequence`](kernel/executeStepSequence.ts) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the perception kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the perception kernel is never invoked: a description must reflect final committed state.
+[`executeStepSequence`](kernel/executeStepSequence.ts) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the presentation kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the presentation kernel is never invoked.
 
-`commit` and `perceive` stay two separate dependency bags because they publish onto different bus payload scopes (`PositionsPublishedPayload` vs. `ActionsPublishedPayload`).
+**Do not read this as the positional/terminal distinction.** Both presentation branches run post-commit; what separates them is *where their state came from* --- a `describe` step reads the final committed graphs, a `narrate` step reads a roster captured mid-walk. Restating positional binding as an ordering rule loses the point entirely. See [`../AGENT.concepts.md` --- Positional vs. terminal binding](../AGENT.concepts.md#positional-vs-terminal-binding).
 
-**No live production caller yet** --- Plan-stage dispatch for object-directed look is what will give this a real command route.
+`commit` and `present` stay two separate dependency bags because they publish onto different bus payload scopes (`PositionsPublishedPayload` vs. `ActionsPublishedPayload`).
 
-### Perception kernel
+**`executeStepSequence` itself has no live production caller yet** --- Plan-stage dispatch for object-directed look is what will give it a real command route. The narrate branch, by contrast, is fully live: every move orchestrator calls `presentStepSequence` directly.
 
-[`perceiveStepSequence`](kernel/perceiveStepSequence.ts) is explicitly **not** a second `commitStepSequence`: no `transactWrite`, no footprint locking, no retry. Those exist to make a *write* atomic across hosts, and a `describe` step mutates nothing. It is a straight publish loop over the `describe` steps it filters out of the shared list.
+### Presentation kernel
 
-Delivery reuses the existing `Look Command Requested` pipeline verbatim --- the same event bare `look`/`l` parse already publishes, consumed unchanged by `renderOrchestration/`. Room, Feature, and Knowledge referents get real end-to-end delivery. Object referents get a **stub** delivery (`shortName` only) since `StandardObjectData` has no `render` field yet. Character referents throw a named error rather than silently no-op --- there is no render content model for them.
+[`presentStepSequence`](kernel/presentStepSequence.ts) is explicitly **not** a second `commitStepSequence`: no `transactWrite`, no footprint locking, no retry. Those exist to make a *write* atomic across hosts, and neither presentation step kind mutates anything. It is a publish loop over the steps it filters out of the shared list, with two branches.
+
+**Describe branch (terminally bound).** Delivery reuses the existing `Look Command Requested` pipeline verbatim --- the same event bare `look`/`l` parse already publishes, consumed unchanged by `renderOrchestration/`. Room, Feature, and Knowledge referents get real end-to-end delivery. Object referents get a **stub** delivery (`shortName` only) since `StandardObjectData` has no `render` field yet. Character referents throw a named error rather than silently no-op --- there is no render content model for them.
+
+**Narrate branch (positionally bound).** A `PresentationKernelNarrateStep` splits cleanly into two halves:
+
+- **Delivery** (flat fields): `captureId` resolves the audience, `bundleId`/`slotId` route the report to a messageOrchestration slot. There is **no `roomId`** --- see the binding-time contract clause for why adding one back would be a regression.
+- **Copy** (nested under `narration: NarrationSpecification`): the *ingredients*, not a built string. `presentStepSequence` assembles the message at flush.
+
+`NarrationSpecification` is a discriminated union on narration **family** (`membershipMove`, `objectMove`), deliberately not on direction --- direction is a member field within the membership family, because no walk consumer ever needs to tell a leave from an arrive, whereas a second *family* shares none of the first's fields. Copy generation is one `switch` in one function; the recorded trigger for escalating to per-family modules or polymorphism lives on the type's own doc comment in [`kernel/kernelStep.ts`](kernel/kernelStep.ts).
+
+An unresolvable `captureId` **throws**. Capture ids are minted only by the compiler, so a miss is an internal inconsistency, and degrading to a room target or an empty audience would hide it behind a silently-wrong or silently-absent delivery.
 
 ---
 
@@ -203,15 +259,17 @@ Adapter-planned routes (navigate, object place/spawn/destroy/edit/drift-repair)
     -> membership observation (getMembershipContainers or repair graph-forward read)
     -> planMembershipTransfer / planObjectClearFromAllHosts
     -> projection { froms, to, changed }
-    -> coordinator builds KernelMutationStep[] and calls commitStepSequence
+    -> coordinator emits a PositionKernelMoveOp; compilePositionKernelOp -> MutationKernelStep[]
+    -> commitStepSequence
+    -> [character routes with narration] presentStepSequence over the plan's narrate steps
     -> [character navigate only, when changed && to !== null] parallel tail:
          persistRoomStackNavigate + orchestrateCharacterNavigate
 
-Executor-grounded routes (takeHold, drop, establish/dissolve)
-  Ingress args (execute*)
+Executor-grounded routes (object move, establish/dissolve)
+  Ingress args (orchestrateObjectMove / execute*)
     -> Synthesize executor run fresh at execute time (second, later snapshot than Plan-stage)
-    -> ExecutorParsePlanStep[] -> fromExecutorStep -> KernelMutationStep[]
-    -> commitStepSequence
+    -> settled closure + classified dissolves -> PositionKernelMoveOp -> compilePositionKernelOp
+    -> commitStepSequence (mutation steps) -> presentStepSequence (narrate steps, on ok: true)
 ```
 
 Re-running the executor at execute time is a deliberate **cross-snapshot recheck**, not duplication --- the same pattern the kernel's own reducer-level re-verification applies one layer further in.
@@ -254,8 +312,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Improvisational object spawn | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | [`applyObjectClearMembership`](membership/applyObjectClearMembership.ts) | `planObjectClearFromAllHosts` + explicit boundary sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| **`takeHold`** | [`membership/executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | Synthesize executor, re-run at execute time | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| **`drop`** | [`membership/executeObjectDrop.ts`](membership/executeObjectDrop.ts) | Synthesize executor, re-run at execute time | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Synthesize executor, re-run at execute time from a **grounded** seed | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Live carry-closure / boundary sweep on repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
 **Documented exception (not a parallel persist path):**
@@ -283,6 +340,11 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Relational edges are forward-graph only --- no adjacency dual-write | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | On graph/adjacency conflict, `positionGraph` wins | [`../positionGraph/`](../positionGraph/) |
 | Transfer planning lives in the shared adapter (`adapters/`) or the Synthesize executor, never in the kernel | [`adapters/`](adapters/) |
+| A capture step carries no write payload and cannot reach the write set | [`kernelStep.ts`](kernel/kernelStep.ts) (shape), [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
+| Captures are recorded by assignment, never append, so a reducer retry cannot duplicate them | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
+| Narrate and capture *steps* are constructed only inside `kernel/compile/` | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
+| Narration is presented only on a successful commit --- `captures` exists only on the `ok: true` branch | [`kernel/types.ts`](kernel/types.ts) |
+| An object move's verb is derived from the host pair; no call site passes one | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
 
 ### Anti-patterns
 
@@ -291,6 +353,10 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 - Route-specific kernel wrappers over `commitStepSequence` (this recreates, one layer up, exactly the organization the unified kernel exists to retire).
 - Kernel prior-read via `getMembershipContainers`.
 - Parse-local persist forks for atomic object manipulation --- egress must route through a positions coordinator.
+- Hand-rolling a `{ kind: 'narrate' }` or `{ kind: 'capture' }` step at a call site instead of emitting an op. (The `build*MoveOp` modules legitimately construct `kind: 'membershipMove'` / `kind: 'objectMove'` **narration-input** objects --- those are the op's *ingredients*, which is exactly what call sites are supposed to supply. It is the *steps* they must not spell out.)
+- Threading capture hosts into the footprint by hand, or reintroducing capture as a side-table. This fails late and selectively: navigate happens to work because its move already locks both rooms.
+- "Fixing" a missing capture by defaulting `captures` to an empty map, or by making an unresolvable `captureId` fall back to a room target.
+- Suppressing the structurally-empty bracket side of an object move. The empty side is the correct output of a uniform rule; two tests exist specifically to make deleting it expensive.
 
 ---
 
@@ -300,14 +366,15 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary; `fromExecutorStep` adapter; `isKernelMutationStep` / `isDescribeStep` filters |
-| [`kernel/types.ts`](kernel/types.ts) | `StepSequenceFootprint`, `KernelApplyOutcome`, `KernelCommitResult` |
+| [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary (mutation, capture, describe, narrate); `NarrationSpecification` + its escalation-trigger doc comment; `fromExecutorStep` adapter; `isKernelMutationStep` / `isDescribeStep` / `isNarrateStep` filters |
+| [`kernel/types.ts`](kernel/types.ts) | `StepSequenceFootprint`, `MutationKernelApplyOutcome`, `MutationKernelCommitResult`, `MutationKernelCaptures` |
 | [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts) | The commit entrypoint: footprint lock, `MultiKeyUpdate` transact, adjacency items, cache seed, fact stream, `RoomUpdate` publish |
 | [`kernel/applyStepSequenceCore.ts`](kernel/applyStepSequenceCore.ts) | Pure apply core shared by dry-run and commit |
 | [`kernel/computeStepSequenceFootprint.ts`](kernel/computeStepSequenceFootprint.ts) | Transaction lock-set derivation |
 | [`kernel/factsForStep.ts`](kernel/factsForStep.ts) | Step -> `Object Moved` / `Character Moved` / `Object Relation Changed` |
-| [`kernel/executeStepSequence.ts`](kernel/executeStepSequence.ts) | Commit-then-perceive sequencing (no live production caller yet) |
-| [`kernel/perceiveStepSequence.ts`](kernel/perceiveStepSequence.ts) | Read-only perception kernel over `describe` steps |
+| [`kernel/executeStepSequence.ts`](kernel/executeStepSequence.ts) | Commit-then-present sequencing (no live production caller yet) |
+| [`kernel/presentStepSequence.ts`](kernel/presentStepSequence.ts) | The presentation kernel: read-only publish over `describe` (terminal) and `narrate` (positional, capture-resolved) steps |
+| [`kernel/compile/`](kernel/compile/) | Abstract-op compile layer --- see [Compile layer](#compile-layer-kernelcompile) above |
 
 ### `adapters/`
 
@@ -321,8 +388,8 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`membership/executeObjectTakeHold.ts`](membership/executeObjectTakeHold.ts) | `Object Take Hold` ingress; runs the Synthesize executor then commits |
-| [`membership/executeObjectDrop.ts`](membership/executeObjectDrop.ts) | `Object Drop` ingress; mirrors take-hold in the character -> room direction |
+| [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) | Narration owner for both object-move directions: derives actor + room from the host pair, resolves labels, wraps `executeObjectMove`, declares the bundle and presents on `ok: true` |
+| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Execution for either direction. Seeds the executor **grounded** from concrete host ids --- no `GroundingContext`, no referent round trip --- compiles once, commits the plan's mutation steps |
 | [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts) | Destroy/edit clear: explicit boundary sweep + `dissolveRelation` + widened `transferMembership` |
 | [`membership/types.ts`](membership/types.ts) | `ObjectMembershipDiff` (shared with `buildObjectMovedFact`) + clear-membership apply result |
 

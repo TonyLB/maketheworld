@@ -20,7 +20,7 @@ import {
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
-import { buildMembershipMoveOp } from './membership/buildMembershipMoveOp'
+import { buildCharacterMoveOp } from './membership/buildCharacterMoveOp'
 import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
 import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { compilePositionKernelOp } from './manipulation/kernel/compile/compilePositionKernelOp'
@@ -30,12 +30,18 @@ import { afterCharacterMembershipNavigateChanged } from './navigate/afterCharact
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 /**
- * Connect/disconnect narration (Phase 3, `AGENT.presentationKernel.planning.md`): both compile the
- * abstract `Move` op the same way `executeCharacterNavigate.ts` does for navigate --- a `compileMutationSteps`
- * callback built from `buildMembershipMoveOp` with `intentKind: 'connect'`/`'disconnect'`, `narrationHandledInline: true`
- * to suppress the async membership-presentation fan-in's fact leg for this commit. Connect's post-commit
- * narration reuses `orchestrateCharacterNavigate` (via `afterCharacterMembershipNavigateChanged`) since it
- * always has a destination room; disconnect has none, so it uses the dedicated `orchestrateCharacterDisconnect`.
+ * Connect/disconnect narration: both compile the abstract `Move` op the same way
+ * `executeCharacterNavigate.ts` does for navigate --- a `compileMutationSteps` callback built from
+ * `buildCharacterMoveOp` with `intentKind: 'connect'`/`'disconnect'`. Connect's post-commit narration
+ * reuses `orchestrateCharacterNavigate` (via `afterCharacterMembershipNavigateChanged`) since it
+ * always has a destination room; disconnect has none, so it uses the dedicated
+ * `orchestrateCharacterDisconnect`.
+ *
+ * `narrationHandledInline: true` is a vestige: it set `narratedInline` on the `Character Moved` fact
+ * to suppress a duplicate leg while the async membership fan-in still existed. That fan-in is gone
+ * and nothing consumes the flag today.
+ *
+ * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
 export const handleCharacterConnected = async (
     event: ConnectionsCharactersConnectedEvent,
@@ -51,7 +57,7 @@ export const handleCharacterConnected = async (
     const bundleId = uuidv4()
 
     const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-        buildMembershipMoveOp({
+        buildCharacterMoveOp({
             characterId: event.characterId,
             characterName: characterMeta.Name,
             froms: diff.froms,
@@ -91,7 +97,7 @@ export const handleCharacterDisconnected = async (
     const bundleId = uuidv4()
 
     const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-        buildMembershipMoveOp({
+        buildCharacterMoveOp({
             characterId: event.characterId,
             characterName: characterMeta.Name,
             froms: diff.froms,

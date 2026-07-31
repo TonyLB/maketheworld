@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { computeCarryClosure } from '../../../../positions/positionGraph/expandValidate/interactionUnderTransfer'
+import { computeCarryClosure, type CarryClosureFragment } from '../../../../positions/positionGraph/expandValidate/interactionUnderTransfer'
 import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
 import type { ExpansionEnvironment, GroupId } from './executorTypes'
 
@@ -36,7 +36,7 @@ export const lookupOrComputeClosure = (
     env: ExpansionEnvironment,
     startId: EphemeraObjectId,
     graph: EphemeraPositionGraph
-): ReadonlySet<EphemeraObjectId> => {
+): CarryClosureFragment => {
     const existingGroupId = env.groupIdByObject.get(startId)
     if (existingGroupId !== undefined) {
         const existingGroup = env.settledGroups.get(existingGroupId)
@@ -48,7 +48,7 @@ export const lookupOrComputeClosure = (
     const closure = computeCarryClosure(startId, graph)
     const groupId = mintGroupId()
     env.settledGroups.set(groupId, closure)
-    for (const memberId of closure) {
+    for (const memberId of closure.members) {
         env.groupIdByObject.set(memberId, groupId)
     }
     return closure

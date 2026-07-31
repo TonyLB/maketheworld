@@ -70,7 +70,7 @@ const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
  * identically --- collapsed into one generic transact failure, matching today's two live kernels'
  * behavior, until BD-18's backtrack channel lands.
  *
- * Now wired to every live route: `executeObjectTakeHold`/`executeObjectDrop` (take/drop),
+ * Now wired to every live route: `executeObjectMove` (take/drop),
  * `applyObjectRelationalChange` (establish/dissolve), the object-lifecycle Migrate row
  * (`applyObjectClearMembership`/`applyObjectRoomMembership`, destroy/edit/spawn/place/drift-repair),
  * and --- character-route Migrate row --- `applyCharacterRoomMembership` (navigate/connect/

@@ -11,7 +11,8 @@ jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
 import { registerIngressSlot } from '../../messageOrchestration'
 import { getCharacterRoomPerspectiveKey, kickPassiveRenderRequestedForCharacterInRoom } from '../../perception/kickRoomHeaderBroadcast'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
-import { navigateLeaveSlotId, NAVIGATE_ARRIVE_SLOT_ID, NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
+import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
+import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../manipulation/kernel/compile/moveBundleSlotIds'
 
 describe('orchestrateCharacterNavigate', () => {
     const messageBus = { publish: jest.fn() }
@@ -80,8 +81,8 @@ describe('orchestrateCharacterNavigate', () => {
         expect(content).toEqual({
             bundleId: 'BUNDLE#test',
             slots: [
-                { slotId: navigateLeaveSlotId('ROOM#VORTEX'), expectedPublishType: 'WorldMessage' },
-                { slotId: navigateLeaveSlotId('ROOM#TestThree'), expectedPublishType: 'WorldMessage' },
+                { slotId: moveLeaveSlotId('ROOM#VORTEX'), expectedPublishType: 'WorldMessage' },
+                { slotId: moveLeaveSlotId('ROOM#TestThree'), expectedPublishType: 'WorldMessage' },
                 {
                     slotId: NAVIGATE_HEADER_SLOT_ID,
                     expectedPublishType: 'PerceptionMessage',
@@ -91,7 +92,7 @@ describe('orchestrateCharacterNavigate', () => {
                     contentStream: 'render',
                     format: 'header',
                 },
-                { slotId: NAVIGATE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
+                { slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
             ],
         })
     })

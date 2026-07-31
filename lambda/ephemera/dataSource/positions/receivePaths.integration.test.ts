@@ -29,12 +29,8 @@ jest.mock('./navigate/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
 
-jest.mock('./manipulation/membership/executeObjectTakeHold', () => ({
-    executeObjectTakeHold: jest.fn(),
-}))
-
-jest.mock('./manipulation/membership/executeObjectDrop', () => ({
-    executeObjectDrop: jest.fn(),
+jest.mock('./manipulation/membership/orchestrateObjectMove', () => ({
+    orchestrateObjectMove: jest.fn(),
 }))
 
 jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
@@ -52,8 +48,7 @@ import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
-import { executeObjectTakeHold } from './manipulation/membership/executeObjectTakeHold'
-import { executeObjectDrop } from './manipulation/membership/executeObjectDrop'
+import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 
@@ -77,11 +72,8 @@ const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunct
 const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
     typeof executeCharacterNavigate
 >
-const executeObjectTakeHoldMock = executeObjectTakeHold as jest.MockedFunction<
-    typeof executeObjectTakeHold
->
-const executeObjectDropMock = executeObjectDrop as jest.MockedFunction<
-    typeof executeObjectDrop
+const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
+    typeof orchestrateObjectMove
 >
 const executeObjectEstablishRelationMock = executeObjectEstablishRelation as jest.MockedFunction<
     typeof executeObjectEstablishRelation
@@ -145,8 +137,7 @@ describe('positions receive paths (integration)', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         })
-        executeObjectTakeHoldMock.mockResolvedValue(undefined)
-        executeObjectDropMock.mockResolvedValue(undefined)
+        orchestrateObjectMoveMock.mockResolvedValue(undefined)
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
         orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
         characterMetaGetMock.mockResolvedValue({
@@ -259,7 +250,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Take Hold', () => {
-        it('routes mtw.ephemera.actions Object Take Hold through executeObjectTakeHold', async () => {
+        it('routes mtw.ephemera.actions Object Take Hold through orchestrateObjectMove as room -> character', async () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
                 type: 'Object Take Hold',
                 characterId: CHARACTER_ID,
@@ -270,11 +261,12 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(executeObjectTakeHoldMock).toHaveBeenCalledWith(
+            // Direction lives only here, as the host pair --- take-hold is room -> character.
+            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    characterId: CHARACTER_ID,
                     objectIds: ['OBJECT#Broom'],
-                    roomId: ROOM_A,
+                    fromHostId: ROOM_A,
+                    toHostId: CHARACTER_ID,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -286,7 +278,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Drop', () => {
-        it('routes mtw.ephemera.actions Object Drop through executeObjectDrop', async () => {
+        it('routes mtw.ephemera.actions Object Drop through orchestrateObjectMove as character -> room', async () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Drop', {
                 type: 'Object Drop',
                 characterId: CHARACTER_ID,
@@ -297,11 +289,13 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(executeObjectDropMock).toHaveBeenCalledWith(
+            // Same execution path as take-hold; only the host pair is reversed, which is
+            // the whole of the take-vs-drop distinction after Phase 3.6's unification.
+            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    characterId: CHARACTER_ID,
                     objectIds: ['OBJECT#Broom'],
-                    roomId: ROOM_A,
+                    fromHostId: CHARACTER_ID,
+                    toHostId: ROOM_A,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -309,7 +303,6 @@ describe('positions receive paths (integration)', () => {
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
-            expect(executeObjectTakeHoldMock).not.toHaveBeenCalled()
         })
     })
 

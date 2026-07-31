@@ -32,7 +32,8 @@ export type MutationKernelTransferStep = {
 }
 
 /**
- * Positional capture (`AGENT.presentationKernel.planning.md` PB-J): a read-only walk step that
+ * Positional capture (normative rules: `dataSource/positions/AGENT.contract.md`, "Capture steps are
+ * read-only by shape"): a read-only walk step that
  * snapshots a host's roster mid-walk, so narration built later can reflect "who was there at this
  * beat" rather than final committed state. It carries no write payload --- that shape constraint is
  * what makes it safe to admit into the mutation kernel's own `transactWrite` walk (a step that could
@@ -88,11 +89,14 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * `PresentationKernelNarrateStep` below). Discriminated on narration *family*, deliberately not on
  * `direction`: `direction` is a membership-narration concept (leave/arrive between positionGraph
  * hosts), not a universal property of narration, and the axis a second member actually arrives along
- * is family --- Phase 4's object take/drop narration (PB-3) would share none of the fields here,
- * carrying item/actor vocabulary instead.
+ * is family --- and Phase 4 paid that prediction off exactly: `ObjectMoveNarrationSpec` shares not
+ * one field with `MembershipNarrationSpec`, carrying item/actor vocabulary instead, while a
+ * direction-discriminated union would have had to split both families down an axis only one of them
+ * has.
  *
  * Kept as plain data with dispatch living in `presentStepSequence`'s `buildNarrationCopy`, rather
- * than as a polymorphic class with a `buildCopy` method. A union of one is a thin seam today; the
+ * than as a polymorphic class with a `buildCopy` method. Two families and one dispatcher is still a
+ * thin seam; the escalation trigger below remains unmet on all three conditions. The
  * choice is worth revisiting, but the trigger is narrower than "a second family shows up" or "the
  * internals differ per family" --- a `switch` over a union exists precisely to let internals differ,
  * and N branches with N different bodies is that working as intended. The real signal is the
@@ -113,16 +117,29 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * `buildCopy(narration, captures)`, a signature change, not methods on the step. The case a closed
  * union genuinely *cannot* serve is narration families contributed by code that does not own the
  * union --- asset-authored narration, should that ever land. Weigh against the cost: these specs
- * ride inside `KernelStep[]` through structural test comparison and Immer-adjacent reducer code,
- * all of which plain data survives and class instances do not.
+ * ride inside `KernelStep[]` through structural test comparison, which plain data survives cleanly
+ * and class instances do not (`toStrictEqual` compares prototypes; getters and private fields are
+ * not own-enumerable).
+ *
+ * The Immer hazard sometimes cited alongside that is **not** a class-vs-plain distinction, and an
+ * earlier revision of this comment overstated it. `EphemeraPositionGraph` instances cross a
+ * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
+ * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
+ * rather than retaining the draft's own element references --- see its doc comment. The real rule is
+ * PB-E's, and it is about provenance rather than class-ness: anything retained past a reducer's
+ * return must have its references into the draft severed **per element** (`{...node}`, not merely
+ * `[...array]`, which would keep the draft's elements alive inside a fresh outer array). A plain
+ * object aliasing draft-backed sub-objects fails that test; a carefully-constructed class instance
+ * passes it. In any case a `KernelStep[]` is built by the compiler *before* `commitStepSequence` is
+ * called --- the reducer closes over it and reads it, never constructs it --- so nothing riding here
+ * is draft-backed to begin with.
  */
 /**
- * Membership narration copy-kind vocabulary --- shared by `buildMembershipMoveOp.ts` (which selects
+ * Membership narration copy-kind vocabulary --- shared by `buildCharacterMoveOp.ts` (which selects
  * it per leave/arrive) and `publishMembershipPresentation.ts`'s suffix builders (which render it to
  * copy). Lives here, not in `perception/`, because this is where `MembershipNarrationSpec` --- its
  * only structural consumer --- is defined; the old home (`perception/membershipPresentationFanIn.ts`)
- * was retired in Phase 3 (`AGENT.presentationKernel.planning.md`) once it had nothing left in it but
- * this type.
+ * was retired along with the async membership fan-in, once it had nothing left in it but this type.
  */
 export type MembershipEmissionCopyKind =
     | 'exitAware'
@@ -140,13 +157,37 @@ export type MembershipNarrationSpec = {
     exitName?: string
 }
 
-export type NarrationSpecification = MembershipNarrationSpec
+/**
+ * Object take/drop/give narration (Phase 4, PB-3/PB-M) --- the second family, and the one the
+ * comment above predicted would arrive along the *family* axis rather than the direction one. It
+ * shares no field with `MembershipNarrationSpec`, which is what makes discriminating on family
+ * rather than on `direction` the right call in retrospect.
+ *
+ * **No `direction`, deliberately.** The compiler emits both bracket sides for an object move exactly
+ * as it does for a character move (PB-M: never special-case the character-hosted side), but a
+ * character's inventory graph has no roster, so exactly one of the two narrate steps ever has an
+ * audience. Which side that is, is already answered by `verb`, so the same spec renders correctly on
+ * both and the empty side simply publishes to nobody.
+ *
+ * `verb` is derived by the compiler from which side of the move was the room, never declared by the
+ * caller --- see `objectMoveVerb` in `compilePositionKernelOp.ts`.
+ */
+export type ObjectMoveNarrationSpec = {
+    kind: 'objectMove'
+    verb: 'takeHold' | 'drop' | 'give'
+    characterName: string
+    objectShortName: string
+    /** Execute-time carry-closure size (`CarryClosureFragment.members.size`), not the Plan-stage intent's object count. */
+    carriedCount: number
+}
+
+export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrationSpec
 
 /**
- * Positional narration (`AGENT.presentationKernel.planning.md` PB-J/PB-L, Phase 2): a read-only
- * presentation-kernel step, never entering the mutation walk. Emitted only by the compiler
- * (`compile/compilePositionKernelOp.ts`) --- PB-I --- which is why it carries no built `message`
- * (PB-2): the ingredients travel with the step under `narration`, and `presentStepSequence`
+ * Positional narration (rules: `dataSource/positions/AGENT.contract.md`, "Narration and
+ * presentation"): a read-only presentation-kernel step, never entering the mutation walk. Emitted
+ * only by the compiler (`compile/compilePositionKernelOp.ts`), which is why it carries no built
+ * `message`: the ingredients travel with the step under `narration`, and `presentStepSequence`
  * assembles the actual copy at flush time, alongside resolving `captureId` against the commit's
  * captured audience. `captureId` carries identity only, never position --- the capture step's own
  * array position is what makes the snapshot positional, not this reference to it.
