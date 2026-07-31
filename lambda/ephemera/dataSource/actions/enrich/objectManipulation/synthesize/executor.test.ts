@@ -5,7 +5,7 @@ import { objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipChange } from '../plan/ungroundedPrimitive'
 import type { GroundingContext } from './groundReferent'
 import { createExpansionEnvironment } from './expansionEnvironment'
-import { introduceRepairTransferMembership, runExecutor, seedTransferMembership } from './executor'
+import { seedGroundedTransferMembership, runExecutor, seedTransferMembership } from './executor'
 import type { WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -207,8 +207,8 @@ describe('runExecutor', () => {
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
-    it('introduceRepairTransferMembership always pairs, isolatedFromRelations first', () => {
-        const paired = introduceRepairTransferMembership({
+    it('seedGroundedTransferMembership always pairs, isolatedFromRelations first', () => {
+        const paired = seedGroundedTransferMembership({
             kind: 'transferMembership',
             objectIds: new Set([SAUCER_ID]),
             fromHostId: CHARACTER_ID,
@@ -218,5 +218,51 @@ describe('runExecutor', () => {
         expect(paired).toHaveLength(2)
         expect(paired[0]!.step).toEqual({ kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([SAUCER_ID]) })
         expect(paired[1]!.step).toEqual({ kind: 'transferMembership', objectIds: new Set([SAUCER_ID]), fromHostId: CHARACTER_ID, toHostId: ROOM_ID })
+    })
+
+    it('runs a fully-grounded seed with no GroundingContext supplied', () => {
+        const graph = EphemeraPositionGraph.empty(ROOM_ID).addObject(TRAY_ID)
+        const env = createExpansionEnvironment(
+            (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            (id) => (id === TRAY_ID ? ROOM_ID : undefined)
+        )
+
+        const result = runExecutor(
+            seedGroundedTransferMembership({
+                kind: 'transferMembership',
+                objectIds: new Set([TRAY_ID]),
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+            }),
+            env
+        )
+
+        expect(result).toEqual({
+            verdict: 'legal',
+            steps: [
+                { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+            ],
+        })
+    })
+
+    it('errors rather than throwing when an ungrounded instruction is seeded with no GroundingContext', () => {
+        const graph = EphemeraPositionGraph.empty(ROOM_ID).addObject(TRAY_ID)
+        const env = createExpansionEnvironment(
+            (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            (id) => (id === TRAY_ID ? ROOM_ID : undefined)
+        )
+
+        const result = runExecutor(
+            seedTransferMembership({
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: objectSpanRef('object', 'tray'),
+                from: objectSpanRef('from', 'room'),
+                to: objectSpanRef('to', 'character'),
+            }),
+            env
+        )
+
+        expect(result).toEqual({ verdict: 'error', reason: expect.stringContaining('GroundingContext') })
     })
 })

@@ -39,7 +39,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 
 /**
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
- * `commitStepSequence.test.ts`/`executeObjectTakeHold.test.ts` already establish.
+ * `commitStepSequence.test.ts`/`executeObjectMove.test.ts` already establish.
  */
 const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
     (ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {

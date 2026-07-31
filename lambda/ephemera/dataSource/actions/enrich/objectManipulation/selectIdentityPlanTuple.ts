@@ -169,7 +169,7 @@ export type SelectIdentityPlanTupleInput = {
  * general Synthesize executor (`seedTransferMembership` + `runExecutor`) in
  * place of `expandTransferMembership` + `evaluateSandboxPlan`, so this dry run
  * exercises exactly the same Grounding -> Expansion -> command-expansion path
- * the live commit side (`executeObjectTakeHold`/`executeObjectDrop`) re-runs at
+ * the live commit side (`executeObjectMove`) re-runs at
  * commit time --- one instance of the general executor, not a route-specific
  * one-off. `validateMembershipPlanDryRun`'s locus-vs-operationKind base check
  * (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)

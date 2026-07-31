@@ -35,15 +35,15 @@ export type ApplyObjectRelationalChangeDependencies = {
  * `transferFromHostId` (BD-16's repair signal) only ever carries a *host id*
  * across the wire, not a pre-computed step list --- so this re-derives the
  * repair transfer's carry-closure/boundary-sweep fresh at commit time, the
- * same cross-snapshot recheck pattern `executeObjectTakeHold`/`executeObjectDrop`
- * use (a later, second look at live state than whatever Plan-stage's
+ * same cross-snapshot recheck pattern `executeObjectMove`
+ * uses (a later, second look at live state than whatever Plan-stage's
  * `expandSameHost` saw). Calls the shared `computeCarryClosure`/
  * `boundaryEdgeOutcomes` primitives directly rather than through the full
  * executor worklist: this call site only ever seeds one fixed
  * `isolatedFromRelations`/`transferMembership` pair with no other pending
  * instruction, so the worklist's generality (multi-instruction scheduling,
  * `GroundingContext`-mediated Grounding) buys nothing here --- both are the
- * exact primitives `introduceRepairTransferMembership`'s command-expansion
+ * exact primitives `seedGroundedTransferMembership`'s command-expansion
  * would call internally.
  */
 export const applyObjectRelationalChange = async (
