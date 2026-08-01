@@ -28,6 +28,7 @@ The `Message` directory contains React components that handle the display of dif
 - **`FeatureDescription`**: Interactive feature details
 - **`KnowledgeDescription`**: Knowledge item information
 - **`CharacterDescription`**: Character appearance and details
+- **Object descriptions**: short name only, no body --- see [Object descriptions](#object-descriptions)
 
 ### **Utility Messages**
 - **`SpacerMessage`**: Visual spacing in chat
@@ -59,6 +60,24 @@ Each message type has its own component that:
 - Handles specific styling and layout
 - Manages interactive elements (links, buttons)
 - Integrates with Redux for state management
+
+### **`PerceptionMessage` sub-dispatch (two tiers)**
+
+`PerceptionMessage` does not map to one component --- `index.tsx`'s `case 'PerceptionMessage'` runs **two dispatch mechanisms in order**, and adding a new perceivable component kind means wiring **both**:
+
+1. **`metaData`-guarded branches** --- `isPerceptionRoomMetaData` / `isPerceptionKnowledgeMetaData` / `isPerceptionFeatureMetaData` / `isPerceptionObjectMetaData` (from `@tonylb/mtw-interfaces/ts/messages`), each narrowing on the `componentUUID` prefix and returning its component directly.
+2. **WML-tag fallback** --- `switch (component.tag)` over `parsedWML.byUniversalId[metaData.componentUUID]`, for payloads whose metaData didn't narrow. Cases: `Knowledge`, `Feature`, `Object`, `Room`, `Character`.
+
+A payload matching neither falls through to `UnknownMessage`. Wiring only one tier is the standard way a new kind silently half-works.
+
+### **Object descriptions**
+
+**Deliberate stub.** An Object look renders the object's `ShortName` as the heading and **nothing else** --- the backend structurally never sends a description body for Object (no `<Render>`/`<Description>` tag is emitted; see [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#correlated-object-description-policy)). The empty body is correct, not a gap to patch client-side.
+
+- **Both tiers wired** to `ComponentDescription` (the Feature/Knowledge component) with an `Inventory2` icon and no `bevel` --- Feature's shape, not Knowledge's.
+- **`ComponentDescription` resolves Object separately.** Its `resolveFeatureKnowledgeProse` helper is Feature/Knowledge-only by design (Object has no situations/render prose to resolve); the `component instanceof StandardObject` branch instead assigns `name = component.shortName` and leaves `description` at its default `new StandardRender([])`. The existing empty-description fallback then renders `<em>No description</em>` with no further wiring.
+- **Why `ComponentDescription` and not `CharacterDescription`:** `CharacterDescription` is name-only but throws on non-Character metaData and has no description slot --- a dead end for the eventual refinement pass that adds real Object descriptions. The icon and layout are stub choices, expected to be revisited then.
+- **Testing note:** a `StandardForm` containing an `Object` component **must** be constructed with `{ standardizeMode: 'ephemeraWire' }` --- Object components are rejected in default asset mode (`assetWirePolicy.ts`). See the `Object` blocks in `ComponentDescription.test.tsx` and `Message.test.tsx`.
 
 ## Message Panel UI Architecture
 
