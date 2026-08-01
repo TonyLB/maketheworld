@@ -15,6 +15,11 @@ vi.mock('./CharacterDescription', () => ({
     default: () => <div data-testid="character-description-route">CharacterDescription</div>
 }))
 
+vi.mock('./ComponentDescription', () => ({
+    __esModule: true,
+    default: () => <div data-testid="component-description-route">ComponentDescription</div>
+}))
+
 const mockStore = configureStore([])
 
 describe('Message component - PerceptionMessage routing', () => {
@@ -199,6 +204,126 @@ describe('Message component - PerceptionMessage routing', () => {
         )
 
         expect(screen.getByTestId('character-description-route')).toBeDefined()
+        expect(screen.queryByText(/Unknown message type/)).toBeNull()
+    })
+
+    it('routes object PerceptionMessage via WML Object tag (switch fallback)', () => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+
+        const objectId = 'OBJECT#5237d855-cac6-471b-96d9-0c3d38d856d7' as const
+        const wmlContent = `<Asset uuid=(render)>
+ <Object uuid=(${objectId})>
+ <ShortName>A Widget</ShortName>
+ </Object>
+</Asset>`
+
+        const message: PerceptionMessage & { parsedWML: { byUniversalId: Record<string, { tag: string }> } } = {
+            DisplayProtocol: 'PerceptionMessage',
+            MessageId: 'msg-object',
+            CreatedTime: Date.now(),
+            Target: 'CHARACTER#viewer',
+            wmlContent,
+            metaData: { componentUUID: objectId },
+            parsedWML: { byUniversalId: { [objectId]: { tag: 'Object' } } }
+        }
+
+        render(
+            <Provider store={store}>
+                <Message message={message} />
+            </Provider>
+        )
+
+        expect(screen.getByTestId('component-description-route')).toBeDefined()
+        expect(screen.queryByText(/Unknown message type/)).toBeNull()
+    })
+
+    it('routes object PerceptionMessage via isPerceptionObjectMetaData (metaData branch)', () => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+
+        const objectId = 'OBJECT#aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' as const
+        const message: PerceptionMessage & { parsedWML: { byUniversalId: Record<string, unknown> } } = {
+            DisplayProtocol: 'PerceptionMessage',
+            MessageId: 'msg-object-meta',
+            CreatedTime: Date.now(),
+            Target: 'CHARACTER#viewer',
+            wmlContent: '',
+            metaData: { componentUUID: objectId },
+            parsedWML: { byUniversalId: {} }
+        }
+
+        render(
+            <Provider store={store}>
+                <Message message={message} />
+            </Provider>
+        )
+
+        expect(screen.getByTestId('component-description-route')).toBeDefined()
         expect(screen.queryByText(/Unknown message type/)).toBeNull()
     })
 })

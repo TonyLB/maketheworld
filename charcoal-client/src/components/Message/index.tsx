@@ -2,6 +2,7 @@ import React, { ReactChild, ReactChildren, ReactNode, useCallback } from 'react'
 
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
+import ObjectIcon from '@mui/icons-material/Inventory2'
 
 import SayMessage from './SayMessage'
 import NarrateMessage from './NarrateMessage'
@@ -22,6 +23,7 @@ import {
     PerceptionRoomMetaData,
     isPerceptionRoomMetaData,
     isPerceptionFeatureMetaData,
+    isPerceptionObjectMetaData,
     isPerceptionKnowledgeMetaData,
     isPerceptionCharacterMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
@@ -97,12 +99,22 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                 }
                 
                 if (metaData && isPerceptionFeatureMetaData(metaData)) {
-                    return <ComponentDescription 
+                    return <ComponentDescription
                         parsedWML={perceptionMessage.parsedWML}
                         metaData={metaData}
-                        icon={<FeatureIcon />} 
-                        onClickLink={onClickLink} 
-                        {...rest} 
+                        icon={<FeatureIcon />}
+                        onClickLink={onClickLink}
+                        {...rest}
+                    />
+                }
+
+                if (metaData && isPerceptionObjectMetaData(metaData)) {
+                    return <ComponentDescription
+                        parsedWML={perceptionMessage.parsedWML}
+                        metaData={metaData}
+                        icon={<ObjectIcon />}
+                        onClickLink={onClickLink}
+                        {...rest}
                     />
                 }
 
@@ -122,12 +134,20 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                             {...rest} 
                         />
                     case 'Feature':
-                        return <ComponentDescription 
+                        return <ComponentDescription
                             parsedWML={perceptionMessage.parsedWML}
                             metaData={metaData}
-                            icon={<FeatureIcon />} 
-                            onClickLink={onClickLink} 
-                            {...rest} 
+                            icon={<FeatureIcon />}
+                            onClickLink={onClickLink}
+                            {...rest}
+                        />
+                    case 'Object':
+                        return <ComponentDescription
+                            parsedWML={perceptionMessage.parsedWML}
+                            metaData={metaData}
+                            icon={<ObjectIcon />}
+                            onClickLink={onClickLink}
+                            {...rest}
                         />
                     case 'Room':
                         // Create fallback metadata for Room type

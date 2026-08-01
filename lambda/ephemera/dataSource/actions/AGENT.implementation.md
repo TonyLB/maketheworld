@@ -217,11 +217,23 @@ Coyote Game hypothesis is triggered by explicit player command (`predict` or LLM
 
 1. actions publishes `Look Command Requested` (`componentId` is the character's current room for `LookRoom`, or the trusted EphemeraId for `LookComponent`; optional `directResponse` for Knowledge links)
 2. `mtw.ephemera.renderOrchestration` subscribes
-3. [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) registers the appropriate perception thread (`roomDescription`, `featureDescription`, or `knowledgeDescription`), then runs `orchestrateRenderRequest` in the same `receiveEvents` invocation
+3. [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) registers the appropriate perception thread (`roomDescription`, `featureDescription`, `knowledgeDescription`, or `objectDescription`), then runs `orchestrateRenderRequest` in the same `receiveEvents` invocation
 
 This preserves perception-thread ordering before downstream render behavior (`Render Pertains` to terminal `PerceptionMessage`).
 
-Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAssessed`** with **`LookComponent`** (`source: uiLook` | `link`) via [`routeTrustedUiAction`](../routeTrustedUiAction.ts) or [`app.ts`](../../app.ts) --- not direct orchestration calls.
+Trusted UI **`look`** and link API Feature/Knowledge ingress use **`sendActionAssessed`** with **`LookComponent`** (`source: uiLook` | `link`) via [`routeTrustedUiAction`](../routeTrustedUiAction.ts) or [`app.ts`](../../app.ts) --- not direct orchestration calls. **Trusted-UI *object* clicks are not wired**: [`routeTrustedUiAction`](../routeTrustedUiAction.ts)'s `look` branch still rejects `EphemeraObjectId` at its own type guard, even though `ParseCommandLookComponentResult`'s widened type would accept one. Text-command object look (below) is the only Object ingress today.
+
+### Object-directed look (native skeleton pipeline)
+
+`look`/`l`/`examine`/`x` **`<object>`** is matched deterministically off the command skeleton --- no Bedrock, no `Action Assessed`, and (unlike every other look) **no `Look Command Requested` publish from [`index.ts`](index.ts)**. Shipped 2026-07-25 (parse + delivery) / 2026-07-31 (client render).
+
+**Plan stage.** [`plan/matchLookTemplate.ts`](enrich/objectManipulation/plan/matchLookTemplate.ts) mirrors [`matchRelationalTemplate.ts`](enrich/objectManipulation/plan/matchRelationalTemplate.ts)'s layer-4 shape but is simpler: it matches a 2-token skeleton (`TEXT(verb) OBJECTSPAN`, verb in `{look, l, examine, x}`) and produces a bare ungrounded `Referent` (`objectSpanRef`) --- **not** a `Change`. A describe referent is singular with no relation to another referent, so it skips `Change`/`Assertion` and the general Synthesize executor entirely. Registered as the `'look'` family in [`plan/classifySkeletonFamily.ts`](enrich/objectManipulation/plan/classifySkeletonFamily.ts), dispatched from [`parseCommand.ts`](parseCommand.ts) alongside the `relational`/`membership` branches.
+
+**Compile.** [`compileDescribeFromSkeleton.ts`](enrich/objectManipulation/compileDescribeFromSkeleton.ts): Plan match -> Identify (`runIdentityStageOverSkeleton`, reused verbatim) -> Grounding via [`groundReferent`](enrich/objectManipulation/synthesize/groundReferent.ts) (the **singular** function, not `groundChange`) -> filter to `EphemeraObjectId` candidates -> returns `ParseCommandLookComponentResult`. The `EphemeraObjectId`-only filter is **defensive, not structural**: Identify's catalog scan ([`roomObjectCatalogForCharacter.ts`](roomObjectCatalogForCharacter.ts)) only walks `positionGraph.objectIds`, never `characterIds`, so Feature/Character candidates cannot be produced today. That filter is the one place to revisit if a character-inclusive catalog ever ships.
+
+**Delivery.** [`index.ts`](index.ts)'s `LookComponent` branch calls [`executeStepSequence`](../positions/manipulation/kernel/executeStepSequence.ts) **in-process** with a single `{ kind: 'describe', referentId, referentKind: 'object' }` step --- the mutation kernel's commit leg no-ops (zero mutation steps hits `commitStepSequence`'s `steps.length === 0` fast path, so its `messageBus`/`streamEvent`/`getCurrentHost` deps are structural only), then [`presentStepSequence`](../positions/manipulation/kernel/presentStepSequence.ts) publishes `Look Command Requested` reusing `index.ts`'s own already-`mtw.ephemera.actions`-bound `streamEvent`. **Why in-process and not a bus hop:** see the normative `dataSourceKey` note in [`AGENT.md`](./AGENT.md#look-ingress) --- this is a hard constraint on any future kernel-invoking work, not a stylistic choice. Note `presentStepSequence` publishes a hardcoded `confidence: 1`, not `parseResult.confidence`.
+
+Room/Feature/Knowledge `LookComponent` results are unchanged (still the direct `Look Command Requested` publish). Server-side render/delivery mechanics for the Object branch: [`../perception/AGENT.md`](../perception/AGENT.md#correlated-object-description-policy).
 
 ---
 
