@@ -4,6 +4,8 @@ import { StandardCharacterData } from "./dataTypes/character"
 import { StandardCharacter } from './character'
 import { mergeTest } from "./utils/testing"
 import { excludeUndefined } from "../../lib/lists"
+import StandardReference from "../keys/reference"
+import { StandardKey } from "../keys/key"
 
 describe('StandardCharacter class', () => {
     it('should construct StandardCharacter from schema', () => {
@@ -86,5 +88,87 @@ describe('StandardCharacter class', () => {
         `)
         expect(() => new StandardCharacter(testSource)).toThrow(/Unconsumed child tags/)
         expect(() => new StandardCharacter(testSource)).toThrow(/Map/)
+    })
+
+    it('should construct StandardCharacter from WML with a Situation facet', () => {
+        const testSource = deIndentWML(`
+            <Character key=(test)>
+                <ShortName>Tess</ShortName>
+                <Situation uuid=(DEFAULT)><DisplayName>Tess</DisplayName></Situation>
+            </Character>
+        `)
+        const testCharacter = new StandardCharacter(testSource)
+        expect(testCharacter.situations.items[0].reference.universalKey).toEqual('SITUATION#DEFAULT')
+        expect(schemaToWML([testCharacter.schema])).toEqual(testSource)
+    })
+
+    it('should construct StandardCharacter from StandardCharacterData with situations', () => {
+        const testCharacterData: StandardCharacterData = {
+            key: 'test',
+            tag: 'Character',
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Tess' },
+            }],
+        }
+        const testCharacter = new StandardCharacter(testCharacterData)
+        expect(testCharacter.key).toEqual('test')
+        expect(testCharacter.toJSON()).toEqual(testCharacterData)
+    })
+
+    it('should merge situation facets', () => {
+        expect(mergeTest(
+            `<Character key=(test)>
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
+            </Character>`,
+            StandardCharacter,
+            `<Character key=(test)>
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
+            </Character>`
+        )).toEqual(deIndentWML(`
+            <Character key=(test)>
+                <Situation key=(sit1)><DisplayName>One</DisplayName></Situation>
+                <Situation key=(sit2)><DisplayName>Two</DisplayName></Situation>
+            </Character>
+        `))
+    })
+
+    it('should correctly add a Situation reference to a character', () => {
+        const test = new StandardCharacter(`
+            <Character key=(test)>
+                <Situation uuid=(DEFAULT) />
+            </Character>
+        `)
+        const situation = new StandardKey("SITUATION#other")
+        const added = test.withChild(new StandardReference(situation))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Character key=(test)>
+                <Situation uuid=(DEFAULT) />
+                <Situation uuid=(other) />
+            </Character>
+        `))
+    })
+
+    it('round-trips render from StandardCharacterData to schema', () => {
+        const testCharacterData: StandardCharacterData = {
+            key: 'test',
+            tag: 'Character',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const testCharacter = new StandardCharacter(testCharacterData)
+        expect(testCharacter.render).toEqual(testCharacterData.render)
+        expect(schemaToWML([testCharacter.schema])).toEqual(deIndentWML(`
+            <Character key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Character>
+        `))
     })
 })

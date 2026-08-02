@@ -54,7 +54,7 @@ describe('StandardForm.standardizeMode', () => {
         expect(() => new StandardForm(wml)).toThrow(/Room objects are not allowed in asset mode/)
     })
 
-    it('rejects top-level Object under Asset in asset mode', () => {
+    it('allows top-level Object under Asset in asset mode', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Object uuid=(skates)>
@@ -62,7 +62,25 @@ describe('StandardForm.standardizeMode', () => {
                 </Object>
             </Asset>
         `)
-        expect(() => new StandardForm(wml)).toThrow(/Object components are not allowed in asset mode/)
+        const sf = new StandardForm(wml)
+        expect(sf._lookup('OBJECT#skates')).toBeDefined()
+    })
+
+    it('rejects Object render on asset StandardForm', () => {
+        expect(() => new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            standardizeMode: 'asset',
+            components: [
+                {
+                    tag: 'Object',
+                    key: 'skates',
+                    universalKey: 'OBJECT#skates',
+                    shortName: 'roller skates',
+                    render: { displayName: 'Skates', summary: ['Sparkling'], description: ['A pair of roller skates.'] },
+                },
+            ],
+        })).toThrow(/Object render is not allowed in asset mode/)
     })
 
     it('allows top-level Object under Asset in ephemeraWire mode', () => {

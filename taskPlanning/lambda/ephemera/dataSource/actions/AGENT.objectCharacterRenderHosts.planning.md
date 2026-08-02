@@ -1,6 +1,6 @@
 # Object and Character as first-class render hosts (iteration 10)
 
-**Status:** Scoped through conversation 2026-08-02, not started.
+**Status:** Scoped through conversation 2026-08-02. Phase 1 (mtw-wml situation facets) shipped 2026-08-02; Phases 2--5 not started.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Ladder position: [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), iteration 10.
 
@@ -21,14 +21,13 @@ This iteration gives Object and Character situation-facet prose (the `<Example>`
 - **Structures first, state axis later.** `markState` stays hardcoded `[]` in [`intakeCacheOnlyHost`](../../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts), `SITUATION#DEFAULT`-only per **D9**, one render slot per component. This is a deliberate landing place, not a limitation to apologize for --- the representational and world-action complexity of tracking *different states* on an Object is a separate, later iteration.
 - **`allowGeneration` stays `false`.** Generation is explicitly **not** deferred as a concept --- generating a `DEFAULT` example at Coyote-spawn time is a desirable content source. But that is *spawn-time* generation writing prose to the improvisation pair row, which then participates in merge and hydrates through the ordinary authored-catalog path. The content is authored-equivalent by render time, so the *render-time* generation path (`allowGeneration`, the thing Room uses for non-authored mark states) is untouched. Do not conflate the two.
 - **Authored vs. generated is orthogonal to component kind, and the current split is transitional.** Objects are improvisation-spawned today and Characters are authored today, but Objects are destined for authoring and Characters can already be generated (Guest characters). Do **not** build kind-specific provenance assumptions into the facet shape --- the WML work is symmetric for both kinds, and only the *source* of the prose differs per case.
-- **`assetWirePolicy`'s Object rejection is a transitional gap, not a boundary to defend.** [`assetWirePolicy.ts`](../../../../../packages/mtw-wml/ts/standardize/assetWirePolicy.ts) rejects `<Object>` in asset mode entirely. That gate can stay closed for this iteration (improvisation-pair prose doesn't route through asset mode), but it should not be treated as load-bearing architecture --- it closes when Object authoring lands.
+- **`assetWirePolicy` opens for `<Object>` in this iteration (RH-3).** [`assetWirePolicy.ts`](../../../../../packages/mtw-wml/ts/standardize/assetWirePolicy.ts) currently rejects `<Object>` in asset mode entirely; that rejection was never load-bearing architecture, just a gap ahead of Object authoring. This iteration opens the gate to accept `<Object>` description/examples in asset mode.
 
 ## Explicit non-goals
 
 - **Referent resolution.** Catalog population (`positionGraph.characterIds` scanning) is *not* here --- see "Deferred, not rung-sized" on the ladder. Note this means a `look <character>` **text command still won't resolve** after this iteration: it will have something to render and no way to name it. Trusted-UI clicks bypass that, which may be the cheaper first proof.
 - **A state axis** (multiple situations per component, world-actions changing state).
 - **Render-time generation** for these kinds.
-- **Trusted-UI object/character clicks** (`routeTrustedUiAction.ts`'s guard) --- one-line change, tracked separately.
 
 ## Getting started
 
@@ -51,10 +50,11 @@ cd lambda/ephemera && npm run test -- --watchAll=false \
 
 Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step lands. Nothing below is built yet.
 
-- [ ] **Phase 1. Situation facets on `StandardObject` and `StandardCharacter` (`mtw-wml`).**
-  - [ ] Add `_situations`/`SituationProseFacetList` support to both standardize classes and their `dataTypes/` shapes, mirroring [`feature.ts`](../../../../../packages/mtw-wml/ts/standardize/components/feature.ts). Both are additive --- neither kind has any facet support today.
-  - [ ] Confirm the WML content model admits the facet children for both tags, and that round-tripping holds (the `ephemeraWire` integration tests in `object.ephemeraWire.integration.test.ts` are the precedent).
-  - [ ] Decide whether `assetWirePolicy` changes at all this phase (default: **no** --- leave Object asset-mode-rejected; the prose path for Object is the improvisation pair, not an asset file).
+- [X] **Phase 1. Situation facets on `StandardObject` and `StandardCharacter` (`mtw-wml`).** Done 2026-08-02.
+  - [X] Add `_situations`/`SituationProseFacetList` support to both standardize classes and their `dataTypes/` shapes, mirroring [`feature.ts`](../../../../../packages/mtw-wml/ts/standardize/components/feature.ts). Both are additive --- neither kind has any facet support today.
+  - [X] Confirm the WML content model admits the facet children for both tags, and that round-tripping holds (the `ephemeraWire` integration tests in `object.ephemeraWire.integration.test.ts` are the precedent). Object's schema-layer `typeCheckContents`/`finalize` (`schema/converters/components.ts`) were relaxed to admit `<Situation>` alongside the required `<ShortName>`; Character's converter was already unrestricted. `<Render>`'s parent whitelist was deliberately left untouched for both kinds (deferred; see [`AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) `StandardObject`/`StandardCharacter` entries) --- the `render` field exists at the data/standardize layer for JSON/ephemera-wire construction, but `<Render>` cannot yet be authored under `<Object>`/`<Character>` via WML text.
+  - [X] Fixed pre-existing gap found while widening the gate: Object's `finalize` matched `ShortName` by direct tag equality only, so `<Replace><ShortName>.../</Replace><With><ShortName>.../</With>` editing of Object's shortName --- which every other component supports --- threw "Object tag must contain exactly one ShortName child". Now uses `splitTaggedChildren` (Remove/Replace-aware), matching the standardize layer's own matcher.
+  - [X] Open `assetWirePolicy` to accept `<Object>` description/examples in asset mode (RH-3, resolved).
 - [ ] **Phase 2. Widen the example-assembly host gate (`mtw-gateways`).**
   - [ ] `isCacheHostEphemeraId` + `validateAssembleComponentExamplesInput` admit `OBJECT#` and `CHARACTER#`.
   - [ ] Set per-kind `resolveRoomLensMarkDefaults: false` for both (the option already defaults false for Feature/Knowledge per A4 --- Object/Character join that group, which is what keeps `markState` empty).
@@ -63,9 +63,10 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step
   - [ ] Widen `EphemeraCacheComponentId` / `RenderComponentId` for `CHARACTER#` --- **all three declaration sites**, including the `mtw-gateways` twin.
   - [ ] Add the Character branch to `intakeCacheOnlyHost` (hardcoded `markState: []`, `allowGeneration: false`).
   - [ ] New `characterDescription` thread kind, `characterRenderWmlFromCacheRecord.ts`, and the `handleCharacter*` fan-in trio --- mirror the Feature/Object trio (single viewer, no `directResponse`).
-  - [ ] Perspective resolution: decide the analogue of [`prepareObjectRenderForCharacter.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/prepareObjectRenderForCharacter.ts)'s "acting character's current room" rule for a character target.
+  - [ ] Perspective resolution (RH-1, resolved): a character-directed look resolves against the *acting* character's own asset stack --- the same stack used for everything else that character perceives. There is no target-room-vs-actor-room choice to make; asset stack is a property of the viewing character, not of any room. Implement the Character branch on that basis directly, rather than porting [`prepareObjectRenderForCharacter.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/prepareObjectRenderForCharacter.ts)'s room-owned framing --- and consider correcting that file's docstring in the same pass, since it currently describes its own room lookup as the source of the stack rather than as a mechanism for computing the acting character's stack.
   - [ ] `presentStepSequence` stops throwing on `referentKind: 'character'`; `handleLookCommandRequestedForRenderOrchestration.ts` gains a fifth branch.
-  - [ ] **Client is largely already built** --- `CharacterDescription`, `isPerceptionCharacterMetaData`, and both dispatch tiers exist. Verify rather than build; extend `CharacterDescription` for facet prose if it should show more than a name.
+  - [ ] `routeTrustedUiAction.ts`'s guard admits Character (one-line change) --- needed for RH-4's end-to-end proof via trusted-UI click, pulled into this phase rather than tracked separately.
+  - [ ] **Client is largely already built** --- `CharacterDescription`, `isPerceptionCharacterMetaData`, and both dispatch tiers exist. Verify rather than build; extend `CharacterDescription` to render facet prose (RH-2, resolved: the client should show it once it's being generated, not stay name-only).
 - [ ] **Phase 4. Retire the Object stub.**
   - [ ] Once Phases 1--2 land, Object rides the real `ensureAuthoredCatalog`; delete `ensureObjectShortNameCacheRecord.ts` and its injection at `orchestrateRenderRequest`'s `ensureAuthoredCatalog` seam.
   - [ ] Confirm the U+2060 placeholder in [`objectRenderWmlFromCacheRecord.ts`](../../../../../lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts) is still needed (it guards `<Object>`'s non-empty-`ShortName` content-model rule, which is independent of prose) --- **expected: keep it.**
@@ -80,10 +81,9 @@ Plan-only: decisions being made in order to implement upcoming slices. When one 
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| RH-1 | Character perspective rule --- what asset stack does a character-directed look resolve against? Object uses the *acting* character's current room; a character target could use the target's room, the actor's room, or the target's own asset participation | Phase 3 | Open |
-| RH-2 | Does `CharacterDescription` (client) render facet prose, or stay name-only? It is currently name-only and throws on non-Character metaData | Phase 3 | Open --- decide once there is real prose to show |
-| RH-3 | Does `assetWirePolicy` open for `<Object>` in this iteration, or stay closed until Object authoring proper? Default assumption: **stays closed** | Phase 1 | Open, low stakes |
-| RH-4 | Ordering vs. referent resolution --- after this iteration a `look <character>` text command still cannot resolve (no catalog population). Do we prove Character end-to-end via a trusted-UI click first, or wait for the catalog rung? | None (sequencing only) | Open |
+| RH-1 | Character perspective rule --- what asset stack does a character-directed look resolve against? | Phase 3 | Resolved 2026-08-02: the asset stack is a property of the *viewing actor*, not of any room. A character-directed look resolves against the acting character's own asset stack --- the same stack that governs everything else that character perceives --- full stop; there is no separate "target's room vs. actor's room" question, because room was never the source of the stack. This also means `prepareObjectRenderForCharacter.ts`'s docstring ("perspective is resolved ... from the acting character's current room, not the object's own asset linkage") mis-states its own mechanism: the room lookup there is a stand-in for computing the character's stack (via room-canon participation intersected with the character's own assets), not evidence that the room owns the stack. Phase 3's Character branch should name this correctly from the start rather than inherit the room-owned framing. |
+| RH-2 | Does `CharacterDescription` (client) render facet prose, or stay name-only? It is currently name-only and throws on non-Character metaData | Phase 3 | Resolved 2026-08-02: once situation prose is being generated for Character, `CharacterDescription` should show it --- name-only is a placeholder, not the intended end state. |
+| RH-4 | Ordering vs. referent resolution --- after this iteration a `look <character>` text command still cannot resolve (no catalog population). Do we prove Character end-to-end via a trusted-UI click first, or wait for the catalog rung? | None (sequencing only) | Resolved 2026-08-02: prove Character end-to-end via a trusted-UI click first (this iteration); extend to text-command access once the catalog rung (referent resolution) lands. |
 
 ## Verification
 
@@ -104,7 +104,7 @@ Plus end-to-end: a `look` at an Object with authored/generated `DEFAULT` prose r
 | Milestone | Status |
 | --- | --- |
 | Scope + design confirmed through conversation | Done (2026-08-02) |
-| Phase 1 (WML situation facets on Object/Character) | Not started |
+| Phase 1 (WML situation facets on Object/Character) | Done (2026-08-02) |
 | Phase 2 (gateway host-gate widening) | Not started |
 | Phase 3 (Character as render-cache host) | Not started |
 | Phase 4 (retire the Object stub) | Not started |

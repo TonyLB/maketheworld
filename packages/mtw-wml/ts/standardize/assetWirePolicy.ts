@@ -30,7 +30,10 @@ export const validateAssetWirePolicyForComponent = (component: StandardComponent
         return
     }
     if (component instanceof StandardObject) {
-        throw new Error('Object components are not allowed in asset mode')
+        if (component.render !== undefined) {
+            throw new Error('Object render is not allowed in asset mode')
+        }
+        return
     }
 }
 

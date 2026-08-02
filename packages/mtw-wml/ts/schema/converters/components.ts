@@ -13,6 +13,7 @@ import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { isLegalKey } from "../../standardize/utils"
+import { splitTaggedChildren } from "../utils"
 
 const componentTemplates = {
     Exit: {
@@ -343,7 +344,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...(refValue !== undefined ? { ref: refValue } : {}),
             }
         },
-        typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
+        typeCheckContents: (item: SchemaTag): boolean => (
+            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaReplace(item) || isSchemaRemove(item)
+        ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
@@ -353,30 +356,44 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Object tag must have a non-empty uuid')
             }
             const uuidNormalized = enforceTypedKey('OBJECT')(uuidTrimmed)
-            const shortNameNodes = children.filter((child) => isSchemaShortName(child.data))
-            if (shortNameNodes.length === 0) {
+            // Respects Remove/Replace wrappers around ShortName (see splitTaggedChildren), so an
+            // incremental edit (e.g. merge/diff round-trip) satisfies the "must have a ShortName"
+            // requirement without needing a literal, fully-resolved <ShortName> child.
+            const { matched: shortNameMatches, remainder: otherChildren } = splitTaggedChildren({ children, tag: 'ShortName' })
+            if (shortNameMatches.length === 0) {
                 throw new Error('Object tag must contain exactly one ShortName child')
             }
-            if (shortNameNodes.length > 1) {
+            if (shortNameMatches.length > 1) {
                 throw new Error('Object tag must contain exactly one ShortName child')
             }
-            const shortNameChild = shortNameNodes[0]
-            const textValue = shortNameChild.children
-                .map(({ data }) => data)
-                .filter(isSchemaString)
-                .map(({ value }) => value)
-                .join('')
-                .trim()
-            if (!textValue) {
-                throw new Error('Object ShortName must contain non-empty text after trim')
+            const [shortNameMatch] = shortNameMatches
+            let shortNameChildren: GenericTree<SchemaTag>
+            if (isSchemaShortName(shortNameMatch.data)) {
+                // Bare ShortName: canonicalize to a single trimmed String child, as before.
+                const textValue = shortNameMatch.children
+                    .map(({ data }) => data)
+                    .filter(isSchemaString)
+                    .map(({ value }) => value)
+                    .join('')
+                    .trim()
+                if (!textValue) {
+                    throw new Error('Object ShortName must contain non-empty text after trim')
+                }
+                shortNameChildren = [{
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
+                }]
+            }
+            else {
+                // Remove/Replace-wrapped ShortName edit: the final text only exists after merge,
+                // so preserve the edit node as-is rather than trying to resolve/validate it here.
+                shortNameChildren = [shortNameMatch]
             }
             return {
                 data: { tag: 'Object', uuid: uuidNormalized },
                 children: [
-                    {
-                        data: { tag: 'ShortName' },
-                        children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
-                    },
+                    ...shortNameChildren,
+                    ...otherChildren,
                 ],
             }
         },
