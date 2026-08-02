@@ -79,11 +79,21 @@ describe('presentStepSequence', () => {
         )
     })
 
-    it('throws a named error for a character describe step rather than silently skipping it', async () => {
+    it('publishes a Look Command Requested event for a character describe step', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: OTHER_CHARACTER_ID, referentKind: 'character' }]
 
-        await expect(presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus })).rejects.toThrow(/not yet supported/)
-        expect(streamEvent).not.toHaveBeenCalled()
+        await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus })
+
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: CHARACTER_ID,
+            header: { type: 'Look Command Requested' },
+            update: {
+                type: 'Look Command Requested',
+                characterId: CHARACTER_ID,
+                componentId: OTHER_CHARACTER_ID,
+                confidence: 1,
+            },
+        })
     })
 
     it('is a clean no-op for an empty step list', async () => {

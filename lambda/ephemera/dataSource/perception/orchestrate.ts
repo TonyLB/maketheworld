@@ -14,6 +14,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -30,6 +31,7 @@ import {
     knowledgeRenderWmlFromCacheRecord,
 } from './featureKnowledgeRenderWmlFromCacheRecord'
 import { objectRenderWmlFromCacheRecord } from './objectRenderWmlFromCacheRecord'
+import { characterRenderWmlFromCacheRecord } from './characterRenderWmlFromCacheRecord'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import type { EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
@@ -80,6 +82,18 @@ function placeholderFeatureKnowledgeFullWml(
  */
 function placeholderObjectFullWml(componentId: EphemeraObjectId, bodyText: string): string {
     return objectRenderWmlFromCacheRecord(componentId, { displayName: [bodyText], description: [] })
+}
+
+/**
+ * Character has real `render` content (like Feature/Knowledge, not Object's shortName-only stub),
+ * so its placeholder follows the Feature/Knowledge shape --- body text goes in `description`.
+ */
+function placeholderCharacterFullWml(componentId: EphemeraCharacterId, bodyText: string): string {
+    const renderedContent: EphemeraCacheRenderedContent = {
+        ...PLACEHOLDER_RENDER_BODY,
+        description: [bodyText],
+    }
+    return characterRenderWmlFromCacheRecord(componentId, renderedContent)
 }
 
 function logTerminalDedupe(
@@ -147,6 +161,10 @@ async function handleRenderPertains(
     }
     if (isEphemeraObjectId(payload.componentId)) {
         await handleObjectRenderPertains(payload, bus)
+        return
+    }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterRenderPertains(payload, bus)
         return
     }
     if (!isEphemeraRoomId(payload.componentId)) {
@@ -278,6 +296,10 @@ async function handleGenerationStarted(
         await handleObjectGenerationStarted(payload, bus)
         return
     }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterGenerationStarted(payload, bus)
+        return
+    }
     if (!isEphemeraRoomId(payload.componentId)) {
         return
     }
@@ -337,6 +359,10 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
     }
     if (isEphemeraObjectId(payload.componentId)) {
         await handleObjectOrchestrationErrorOrDeferred(payload, bus)
+        return
+    }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterOrchestrationErrorOrDeferred(payload, bus)
         return
     }
     if (!isEphemeraRoomId(payload.componentId)) {
@@ -534,6 +560,73 @@ async function handleObjectOrchestrationErrorOrDeferred(payload: ErrorLikePayloa
             type: 'PublishMessage',
             displayProtocol: 'PerceptionMessage',
             wmlContent: placeholderObjectFullWml(componentId, 'Error'),
+            metaData: { componentUUID: componentId },
+        },
+    })
+}
+
+/**
+ * Character fan-in: single-viewer, terminal-only-once, mirrors `handleObjectRenderPertains`'s
+ * trio shape exactly (no directResponse/SESSION# targeting --- Character has no such concept).
+ * Unlike Object, Character has real `render` content, so it builds its WML via
+ * `characterRenderWmlFromCacheRecord` instead of the shortName-only Object builder.
+ */
+async function handleCharacterRenderPertains(
+    payload: import('../renderCache/baseClasses').RenderCacheRenderPertainsPayload,
+    bus: MessageBus
+): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    const wmlContent = characterRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent)
+    const publishedListeners = reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent,
+            metaData: { componentUUID: componentId },
+        },
+    })
+    console.log('[mtw.ephemera.perception] handleCharacterRenderPertains', {
+        componentId: payload.componentId,
+        perspectiveKey: payload.perspectiveKey,
+        cacheId: payload.cacheId,
+        publishedListeners,
+    })
+}
+
+async function handleCharacterGenerationStarted(
+    payload: import('../renderOrchestration/publishedEvents').RenderOrchestrationGenerationStartedPayload,
+    bus: MessageBus
+): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderCharacterFullWml(componentId, 'Generating'),
+            metaData: { componentUUID: componentId, status: 'generating' },
+        },
+    })
+}
+
+async function handleCharacterOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus: MessageBus): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderCharacterFullWml(componentId, 'Error'),
             metaData: { componentUUID: componentId },
         },
     })

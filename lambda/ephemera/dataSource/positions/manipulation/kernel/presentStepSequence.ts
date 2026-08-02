@@ -1,6 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -79,11 +80,10 @@ export type PresentStepSequenceDeps = {
  * messageOrchestration bundle per event (Phase 7) --- no bundle correlation is threaded through
  * here, since nothing today produces more than one describe step per call (see that phase's
  * planning doc note on why this was simplified back out of a declare-upstream shape). Room/Feature/
- * Knowledge referents get real end-to-end delivery this way; Object referents get a **stub**
- * delivery (PK-6): `ensureObjectShortNameCacheRecord.ts` publishes `shortName` only, since
+ * Knowledge/Character referents get real end-to-end delivery this way; Object referents get a
+ * **stub** delivery (PK-6): `ensureObjectShortNameCacheRecord.ts` publishes `shortName` only, since
  * `StandardObjectData` has no `render` field yet --- real `<Render>`/`<Example>` authoring support
- * is separate, deferred work. Character referents still have no render content model at all and
- * throw a named, honest error rather than silently no-op or attempt partial rendering.
+ * is separate, deferred work.
  */
 export const presentStepSequence = async (
     steps: readonly KernelStep[],
@@ -96,20 +96,15 @@ export const presentStepSequence = async (
     for (const step of describeSteps) {
         const { referentId, referentKind } = step
 
-        if (referentKind === 'character') {
-            throw new Error(
-                `presentStepSequence: '${referentKind}' describe steps are not yet supported --- no render content model exists for Character referents yet`
-            )
-        }
-
         if (!(
             isEphemeraRoomId(referentId)
             || isEphemeraFeatureId(referentId)
             || isEphemeraKnowledgeId(referentId)
             || isEphemeraObjectId(referentId)
+            || isEphemeraCharacterId(referentId)
         )) {
             throw new Error(
-                `presentStepSequence: describe step referentKind '${referentKind}' does not match a Room/Feature/Knowledge/Object referentId (${referentId})`
+                `presentStepSequence: describe step referentKind '${referentKind}' does not match a Room/Feature/Knowledge/Object/Character referentId (${referentId})`
             )
         }
 

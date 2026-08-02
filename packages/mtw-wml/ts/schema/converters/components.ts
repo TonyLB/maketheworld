@@ -7,7 +7,7 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { SchemaTag, isSchemaAsset, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag, isSchemaAsset, isSchemaCharacter, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
@@ -406,14 +406,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
      * emit paths (for example `SituationRoomFacetPayload.toProseTripletChildren` and
      * `situationRoomRenderPayloadFromCacheRenderedContent` in the ephemera lambda) and remove those
      * placeholders in the same change set so WML round-trip stays coherent.
+     *
+     * Character joined this whitelist alongside Room/Feature/Knowledge once Character's own
+     * ephemera-wire render path landed (`lambda/ephemera/dataSource/perception/
+     * characterRenderWmlFromCacheRecord.ts`) --- `StandardCharacterData.render` already existed for
+     * JSON/ephemera-wire construction (Phase 1 of the objectCharacterRenderHosts iteration), but the
+     * parse-time whitelist here was deliberately left behind pending that consumer. Object's `render`
+     * field remains data-layer-only; its own whitelist entry is still deferred until Object has a real
+     * (non-shortName-stub) render path.
      */
     Render: {
         initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
             const hasEphemeraRenderParent = contextStack.some(({ data }) => (
-                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data)
+                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data) || isSchemaCharacter(data)
             ))
             if (!hasEphemeraRenderParent) {
-                throw new Error('Render tag can only be used inside a Room, Feature, or Knowledge')
+                throw new Error('Render tag can only be used inside a Room, Feature, Knowledge, or Character')
             }
             validateProperties(componentTemplates.Render)(parseOpen)
             return { tag: 'Render' }

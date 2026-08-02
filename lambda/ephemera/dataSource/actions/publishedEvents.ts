@@ -180,8 +180,8 @@ export type PredictHypothesisPublishedPayload = {
 export type LookCommandRequestedPublishedPayload = {
     type: 'Look Command Requested';
     characterId: EphemeraCharacterId;
-    /** Room, Feature, Knowledge, or Object (stub, shortName only --- see PK-6) host for this look. */
-    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId;
+    /** Room, Feature, Knowledge, Object (stub, shortName only --- see PK-6), or Character host for this look. */
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId;
     confidence: number;
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean;
@@ -419,6 +419,7 @@ export const isLookCommandRequestedPublishedPayload = (
         && !isEphemeraFeatureId(v.componentId)
         && !isEphemeraKnowledgeId(v.componentId)
         && !isEphemeraObjectId(v.componentId)
+        && !isEphemeraCharacterId(v.componentId)
     ) {
         return false
     }

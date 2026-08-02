@@ -8,6 +8,7 @@ import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPas
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -17,6 +18,7 @@ import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
 import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
+import { prepareCharacterRenderForCharacter } from './prepareCharacterRenderForCharacter'
 import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
 import { registerIngressSlot } from '../messageOrchestration'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
@@ -144,6 +146,28 @@ export async function handleLookCommandRequestedForRenderOrchestration(
                     },
                     { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
                 )
+            }
+        )
+        return
+    }
+
+    if (isEphemeraCharacterId(componentId)) {
+        // Character is an "authored" render-cache kind (real render content, per
+        // requestIntake.ts's isCacheOnlyHost grouping), not a stub like Object --- so this uses the
+        // real ensureAuthoredCatalog, no override. Perspective is resolved against the *acting*
+        // character's own asset stack (RH-1), not the target's.
+        const prepared = await prepareCharacterRenderForCharacter(characterId, componentId)
+        await registerLookSlot(
+            messageBus,
+            { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
+            async () => {
+                await orchestrateRenderRequest({
+                    payload: {
+                        type: 'RenderRequested',
+                        ...prepared.renderCommand,
+                    },
+                    streamEvent,
+                })
             }
         )
     }
