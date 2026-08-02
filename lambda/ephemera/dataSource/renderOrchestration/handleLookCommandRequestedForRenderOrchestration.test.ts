@@ -5,7 +5,6 @@ import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPas
 import * as prepareFeatureKnowledge from './prepareFeatureKnowledgeRenderForCharacter'
 import * as prepareObject from './prepareObjectRenderForCharacter'
 import * as prepareCharacter from './prepareCharacterRenderForCharacter'
-import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
 import * as messageOrchestration from '../messageOrchestration'
 import * as messageOrchestrationSubscribedEvents from '../messageOrchestration/subscribedEvents'
 import {
@@ -32,9 +31,6 @@ jest.mock('./prepareObjectRenderForCharacter', () => ({
 }))
 jest.mock('./prepareCharacterRenderForCharacter', () => ({
     prepareCharacterRenderForCharacter: jest.fn(),
-}))
-jest.mock('../renderCache/ensureObjectShortNameCacheRecord', () => ({
-    ensureObjectShortNameCacheRecord: jest.fn(),
 }))
 jest.mock('../messageOrchestration', () => ({
     registerIngressSlot: jest.fn(),
@@ -254,7 +250,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         )
     })
 
-    it('registers an object describe slot and orchestrates with the ensureObjectShortNameCacheRecord override for object look (PK-6 stub)', async () => {
+    it('registers an object describe slot and orchestrates with the real ensureAuthoredCatalog (no override) for object look', async () => {
         mockPrepareObjectRenderForCharacter.mockResolvedValue({
             componentId: 'OBJECT#Tray',
             characterId: 'CHARACTER#C',
@@ -299,7 +295,6 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
                     allowGeneration: false,
                 },
             },
-            { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
         )
         expect(mockPrepareFeatureKnowledgeRenderForCharacter).not.toHaveBeenCalled()
     })

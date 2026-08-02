@@ -14,6 +14,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    IMPROVISATION_ASSET_ID,
     isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
@@ -22,6 +23,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import internalCache from '../../internalCache'
+import { resolveObjectShortName } from '../objects/objectShortName'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { isRoomHeaderBroadcastPerceptionThread } from '../../internalCache/perceptionThreads'
 import { reportIngressContent } from '../messageOrchestration'
@@ -500,9 +502,11 @@ async function handleFeatureKnowledgeOrchestrationErrorOrDeferred(
 }
 
 /**
- * Object description stub fan-in (PK-6): single-viewer, terminal-only-once, mirrors
- * handleFeatureKnowledge*'s featureDescription arm exactly (no directResponse/SESSION# targeting ---
- * Object has no such concept).
+ * Object description fan-in: single-viewer, terminal-only-once, mirrors handleFeatureKnowledge*'s
+ * featureDescription arm exactly (no directResponse/SESSION# targeting --- Object has no such
+ * concept). Object rides the real `ensureAuthoredCatalog` (Phase 4) same as Feature/Knowledge/
+ * Character, so `renderedContent` here may have no authored `SITUATION#DEFAULT` facet yet; resolve
+ * the object's own live shortName as a fallback so it never renders nameless.
  */
 async function handleObjectRenderPertains(
     payload: import('../renderCache/baseClasses').RenderCacheRenderPertainsPayload,
@@ -512,7 +516,15 @@ async function handleObjectRenderPertains(
     if (!isEphemeraObjectId(componentId)) {
         return
     }
-    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent)
+    const fallbackShortName = await resolveObjectShortName(
+        componentId,
+        payload.cacheRecord.perspectiveMatcher.requiredAssetIds,
+        {
+            getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
+            getImprovisationObject: (objectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
+        }
+    )
+    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent, { fallbackShortName })
     const publishedListeners = reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
         kind: 'literal',
         message: {

@@ -19,7 +19,6 @@ import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
 import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
 import { prepareCharacterRenderForCharacter } from './prepareCharacterRenderForCharacter'
-import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
 import { registerIngressSlot } from '../messageOrchestration'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/localApiEvents'
@@ -126,26 +125,23 @@ export async function handleLookCommandRequestedForRenderOrchestration(
     }
 
     if (isEphemeraObjectId(componentId)) {
-        // Object description stub (see `perception/AGENT.md`, Correlated Object description): reuses the same
-        // register-then-orchestrate pipeline as Room/Feature/Knowledge, swapping in
-        // ensureObjectShortNameCacheRecord for the real (blueprint-versioned) ensureAuthoredCatalog
-        // --- see that file's doc comment for why. Delivers shortName only; real <Render>/<Example>
-        // authoring support for Object is separate, deferred work.
+        // Object (see `perception/AGENT.md`, Correlated Object description): reuses the same
+        // register-then-orchestrate pipeline as Room/Feature/Knowledge, riding the real
+        // `ensureAuthoredCatalog` (Phase 4) --- no override. Object's name is still guaranteed even
+        // without an authored `SITUATION#DEFAULT` facet via the live-shortName fallback in
+        // `objectRenderWmlFromCacheRecord`/`orchestrate.ts`'s `handleObjectRenderPertains`, not this seam.
         const prepared = await prepareObjectRenderForCharacter(characterId, componentId)
         await registerLookSlot(
             messageBus,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
-                await orchestrateRenderRequest(
-                    {
-                        payload: {
-                            type: 'RenderRequested',
-                            ...prepared.renderCommand,
-                        },
-                        streamEvent,
+                await orchestrateRenderRequest({
+                    payload: {
+                        type: 'RenderRequested',
+                        ...prepared.renderCommand,
                     },
-                    { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
-                )
+                    streamEvent,
+                })
             }
         )
         return

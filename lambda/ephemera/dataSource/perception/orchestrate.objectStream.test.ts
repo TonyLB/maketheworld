@@ -9,8 +9,10 @@ jest.mock('../../publishMessage', () => ({
     default: jest.fn().mockResolvedValue(undefined),
 }))
 
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
@@ -19,6 +21,9 @@ import { EPHEMERA_CACHE_PROVENANCE_AUTHORED } from '../renderCache/baseClasses'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { registerIngressSlot } from '../messageOrchestration'
+
+const assetDBMock = jest.mocked(assetDB)
+const ephemeraDBMock = jest.mocked(ephemeraDB)
 
 const OBJECT_ID = 'OBJECT#test-tray' as const
 const PERSPECTIVE = { assetStack: ['ASSET#one'] } as const
@@ -33,6 +38,19 @@ function objectTerminalCacheRecord(): EphemeraCacheDynamoItem {
         DataCategory: CACHE_ID,
         markState: { markValue: [] },
         renderedContent: { displayName: ['serving tray'], description: [] },
+        provenance: { type: EPHEMERA_CACHE_PROVENANCE_AUTHORED },
+        perspectiveId: 'perspective-id',
+        perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
+    }
+}
+
+/** No authored SITUATION#DEFAULT facet content yet (Phase 4: Object rides the real ensureAuthoredCatalog). */
+function objectEmptyTerminalCacheRecord(): EphemeraCacheDynamoItem {
+    return {
+        EphemeraId: OBJECT_ID,
+        DataCategory: CACHE_ID,
+        markState: { markValue: [] },
+        renderedContent: { description: [] },
         provenance: { type: EPHEMERA_CACHE_PROVENANCE_AUTHORED },
         perspectiveId: 'perspective-id',
         perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
@@ -69,13 +87,16 @@ async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Prom
     return bundleId
 }
 
-describe('orchestrateRoomDescriptionStreams object fan-in (PK-6 stub)', () => {
+describe('orchestrateRoomDescriptionStreams object fan-in', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000
         mockGetCurrentTimestamp.mockImplementation(() => timestamp++)
         internalCache.clear()
         messageBus.clear()
+        assetDBMock.getItems.mockResolvedValue([] as any)
+        assetDBMock.query.mockResolvedValue([] as any)
+        ephemeraDBMock.getItems.mockResolvedValue([] as any)
     })
 
     it('objectDescription Generation Started reports a valid Generating placeholder to the registered listener', async () => {
@@ -128,6 +149,35 @@ describe('orchestrateRoomDescriptionStreams object fan-in (PK-6 stub)', () => {
         expect(terminalPublish?.metaData).toEqual({ componentUUID: OBJECT_ID })
         expect(terminalPublish?.targets).toEqual([VIEWER])
         assertObjectShortName(terminalPublish!.wmlContent as string, OBJECT_ID, 'serving tray')
+    })
+
+    it('objectDescription Render Pertains with no authored facet content falls back to the live shortName (Phase 4)', async () => {
+        internalCache.ImprovisationComponentData.set(OBJECT_ID, IMPROVISATION_ASSET_ID, new StandardObject({
+            tag: 'Object',
+            universalKey: OBJECT_ID,
+            shortName: 'a small brass key',
+        }))
+
+        const publishSpy = spyPublish()
+        await registerObjectDescriptionSlot()
+
+        await orchestrateRoomDescriptionStreams(
+            {
+                type: 'Render Pertains',
+                componentId: OBJECT_ID,
+                perspectiveKey: PERSPECTIVE_KEY,
+                cacheId: CACHE_ID,
+                cacheRecord: objectEmptyTerminalCacheRecord(),
+            } as any,
+            messageBus
+        )
+        await messageBus.flushAndSettle()
+
+        const terminalPublish = publishSpy.mock.calls
+            .map((c) => c[0] as any)
+            .find((m) => m?.type === 'PublishMessage')
+        expect(terminalPublish).toBeDefined()
+        assertObjectShortName(terminalPublish!.wmlContent as string, OBJECT_ID, 'a small brass key')
     })
 
     it('objectDescription Orchestration Error delivers a valid Error placeholder', async () => {
