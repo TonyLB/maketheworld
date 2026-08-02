@@ -29,6 +29,15 @@ describe('renderCache catalog and adjacency SK helpers', () => {
         expect(parseSituationAdjacencyDataCategory('Cache::only')).toBeUndefined()
         expect(parseSituationAdjacencyDataCategory('Link::ROOM#x::not-cache')).toBeUndefined()
     })
+
+    it('parseSituationAdjacencyDataCategory admits Object and Character hosts', () => {
+        expect(
+            parseSituationAdjacencyDataCategory(buildSituationAdjacencyDataCategory('OBJECT#o1', 'PERSPECTIVE#v1#abc'))
+        ).toEqual({ hostEphemeraId: 'OBJECT#o1', perspectiveKey: 'PERSPECTIVE#v1#abc' })
+        expect(
+            parseSituationAdjacencyDataCategory(buildSituationAdjacencyDataCategory('CHARACTER#c1', 'PERSPECTIVE#v1#abc'))
+        ).toEqual({ hostEphemeraId: 'CHARACTER#c1', perspectiveKey: 'PERSPECTIVE#v1#abc' })
+    })
 })
 
 describe('renderCache catalog and adjacency row guards', () => {
@@ -57,6 +66,11 @@ describe('renderCache catalog and adjacency row guards', () => {
     it('isEphemeraCacheCatalogRow rejects invalid catalog rows', () => {
         expect(isEphemeraCacheCatalogRow({ ...catalogRow, catalogVersion: 0 })).toBe(false)
         expect(isEphemeraCacheCatalogRow({ ...catalogRow, assetStack: [] })).toBe(false)
+    })
+
+    it('isEphemeraCacheCatalogRow accepts Object and Character hosts', () => {
+        expect(isEphemeraCacheCatalogRow({ ...catalogRow, EphemeraId: 'OBJECT#o1' })).toBe(true)
+        expect(isEphemeraCacheCatalogRow({ ...catalogRow, EphemeraId: 'CHARACTER#c1' })).toBe(true)
     })
 
     it('isSituationCacheAdjacencyRow accepts valid adjacency rows', () => {

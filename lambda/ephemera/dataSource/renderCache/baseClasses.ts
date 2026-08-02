@@ -6,11 +6,13 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import {
+    EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraObjectId,
     EphemeraRoomId,
     EphemeraSituationId,
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -34,6 +36,7 @@ export type EphemeraCacheComponentId =
     | EphemeraFeatureId
     | EphemeraKnowledgeId
     | EphemeraObjectId
+    | EphemeraCharacterId
 
 //
 // markState: Mark UUID to Match string pairs (shared via mtw-interfaces)
@@ -125,7 +128,13 @@ export const parseSituationAdjacencyDataCategory = (
         return undefined
     }
     const hostEphemeraId = withoutLink.slice(0, cacheIndex)
-    if (!isEphemeraRoomId(hostEphemeraId) && !isEphemeraFeatureId(hostEphemeraId) && !isEphemeraKnowledgeId(hostEphemeraId)) {
+    if (
+        !isEphemeraRoomId(hostEphemeraId)
+        && !isEphemeraFeatureId(hostEphemeraId)
+        && !isEphemeraKnowledgeId(hostEphemeraId)
+        && !isEphemeraObjectId(hostEphemeraId)
+        && !isEphemeraCharacterId(hostEphemeraId)
+    ) {
         return undefined
     }
     const perspectiveKey = withoutLink.slice(cacheIndex + cacheMarker.length)
@@ -233,7 +242,13 @@ export const isEphemeraCacheCatalogRow = (item: unknown): item is EphemeraCacheC
     const { EphemeraId, DataCategory, assetStack, catalogVersion, hydratedCatalogVersion, currentCacheId } = record
     if (
         typeof EphemeraId !== 'string'
-        || (!isEphemeraRoomId(EphemeraId) && !isEphemeraFeatureId(EphemeraId) && !isEphemeraKnowledgeId(EphemeraId))
+        || (
+            !isEphemeraRoomId(EphemeraId)
+            && !isEphemeraFeatureId(EphemeraId)
+            && !isEphemeraKnowledgeId(EphemeraId)
+            && !isEphemeraObjectId(EphemeraId)
+            && !isEphemeraCharacterId(EphemeraId)
+        )
     ) {
         return false
     }

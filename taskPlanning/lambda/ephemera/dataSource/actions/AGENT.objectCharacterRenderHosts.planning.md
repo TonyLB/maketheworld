@@ -1,6 +1,6 @@
 # Object and Character as first-class render hosts (iteration 10)
 
-**Status:** Scoped through conversation 2026-08-02. Phase 1 (mtw-wml situation facets) and Phase 2 (mtw-gateways host-gate widening) shipped 2026-08-02; Phases 3--5 not started.
+**Status:** Scoped through conversation 2026-08-02. Phase 1 (mtw-wml situation facets) and Phase 2 (mtw-gateways host-gate widening) shipped 2026-08-02; Phase 3 in progress (host id types/guards + intake widened 2026-08-02, remaining Phase 3 sub-bullets not started); Phases 4--5 not started.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Ladder position: [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), iteration 10.
 
@@ -60,8 +60,8 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step
   - [X] Set per-kind `resolveRoomLensMarkDefaults: false` for both (the option already defaults false for Feature/Knowledge per A4 --- Object/Character join that group, which is what keeps `markState` empty). No source change needed: `defaultResolveRoomLensMarkDefaults` is already `isEphemeraRoomId`-only; verified by test, not implemented.
   - [X] Verify `assemble` composes correctly over `ASSET#IMPROVISATION` merge participation for an improvisation Object. Also widened `isCacheHostWithSituationFacets` in [`perspectives.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/perspectives.ts) --- not named in the original bullet list but load-bearing: without it, an Object/Character host passes the `input.ts` gate and then silently assembles an empty set.
 - [ ] **Phase 3. Character as a render-cache host (`lambda/ephemera`).**
-  - [ ] Widen `EphemeraCacheComponentId` / `RenderComponentId` for `CHARACTER#` --- **all three declaration sites**, including the `mtw-gateways` twin.
-  - [ ] Add the Character branch to `intakeCacheOnlyHost` (hardcoded `markState: []`, `allowGeneration: false`).
+  - [X] Widen `EphemeraCacheComponentId` / `RenderComponentId` for `CHARACTER#` --- **all three declaration sites**, including the `mtw-gateways` twin. Done 2026-08-02. Also fixed four guard sites that were still `Room|Feature|Knowledge`-only and so silently excluded `OBJECT#` too (a Phase 2 gap, not just a Character one): `parseSituationAdjacencyDataCategory` and `isEphemeraCacheCatalogRow` in both `renderCache/baseClasses.ts` and its `mtw-gateways` twin, plus `asCacheHostId` in `renderCache/handleExampleInvalidated.ts` and `isEphemeraCacheComponentId` in `perception/localApiEvents.ts`. Fixed alongside Character since the edits are the same lines --- not scope creep, just closing a gap in-place. Also updated two pre-existing unit tests (`renderOrchestration/events.test.ts`, `renderOrchestration/publishedEvents.test.ts`) that had asserted `CHARACTER#` componentIds were *rejected* as render-host/outbound ids; that was exactly the invariant this widening intentionally changes, so those assertions were stale, not regressions.
+  - [X] Add the Character branch to `intakeCacheOnlyHost` (hardcoded `markState: []`, `allowGeneration: false`). Done 2026-08-02 --- `intakeCacheOnlyHost` itself needed no change (already generic over the cache-only union); only `CacheOnlyComponentId` and `isCacheOnlyHost` in `requestIntake.ts` needed `EphemeraCharacterId`/`isEphemeraCharacterId` added.
   - [ ] New `characterDescription` thread kind, `characterRenderWmlFromCacheRecord.ts`, and the `handleCharacter*` fan-in trio --- mirror the Feature/Object trio (single viewer, no `directResponse`).
   - [ ] Perspective resolution (RH-1, resolved): a character-directed look resolves against the *acting* character's own asset stack --- the same stack used for everything else that character perceives. There is no target-room-vs-actor-room choice to make; asset stack is a property of the viewing character, not of any room. Implement the Character branch on that basis directly, rather than porting [`prepareObjectRenderForCharacter.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/prepareObjectRenderForCharacter.ts)'s room-owned framing --- and consider correcting that file's docstring in the same pass, since it currently describes its own room lookup as the source of the stack rather than as a mechanism for computing the acting character's stack.
   - [ ] `presentStepSequence` stops throwing on `referentKind: 'character'`; `handleLookCommandRequestedForRenderOrchestration.ts` gains a fifth branch.
@@ -106,6 +106,6 @@ Plus end-to-end: a `look` at an Object with authored/generated `DEFAULT` prose r
 | Scope + design confirmed through conversation | Done (2026-08-02) |
 | Phase 1 (WML situation facets on Object/Character) | Done (2026-08-02) |
 | Phase 2 (gateway host-gate widening) | Done (2026-08-02) |
-| Phase 3 (Character as render-cache host) | Not started |
+| Phase 3 (Character as render-cache host) | In progress --- host id types/guards + intake widened (2026-08-02) |
 | Phase 4 (retire the Object stub) | Not started |
 | Phase 5 (spawn-time DEFAULT generation) | Not started, separable |

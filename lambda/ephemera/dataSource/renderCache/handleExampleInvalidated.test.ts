@@ -20,6 +20,7 @@ import {
 } from './situationAdjacency'
 import { handleExampleInvalidated } from './handleExampleInvalidated'
 import type { EphemeraCacheCatalogRow, SituationCacheAdjacencyRow } from './baseClasses'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 const mockConditionalInvalidate = conditionalInvalidateCatalogRow as jest.Mock
 const mockQueryCatalog = queryCatalogRowsForComponent as jest.Mock
@@ -65,6 +66,23 @@ describe('handleExampleInvalidated', () => {
         })
 
         expect(mockConditionalInvalidate).toHaveBeenCalledTimes(1)
+        expect(mockConditionalInvalidate).toHaveBeenCalledWith(match)
+    })
+
+    it.each([
+        ['OBJECT#thing'],
+        ['CHARACTER#pc'],
+    ])('component-scoped: recognizes %s as a cache host (not silently skipped)', async (componentId) => {
+        const match = catalogRow({ EphemeraId: componentId as EphemeraCacheCatalogRow['EphemeraId'], assetStack: ['ASSET#overlay'] })
+        mockQueryCatalog.mockResolvedValue([match])
+
+        await handleExampleInvalidated({
+            type: 'ExampleInvalidated',
+            componentIds: [componentId as ComponentUUID],
+            editAssetId: 'ASSET#overlay',
+        })
+
+        expect(mockQueryCatalog).toHaveBeenCalledWith(componentId)
         expect(mockConditionalInvalidate).toHaveBeenCalledWith(match)
     })
 

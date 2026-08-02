@@ -2,13 +2,16 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import {
+    EphemeraCharacterId,
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraObjectId,
     EphemeraRoomId,
     EphemeraSituationId,
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId, EphemeraCacheMarkState } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -25,6 +28,7 @@ export type EphemeraCacheComponentId =
     | EphemeraFeatureId
     | EphemeraKnowledgeId
     | EphemeraObjectId
+    | EphemeraCharacterId
 
 export type { EphemeraCacheMarkState }
 
@@ -128,7 +132,13 @@ export const isEphemeraCacheCatalogRow = (item: unknown): item is EphemeraCacheC
     const { EphemeraId, DataCategory, assetStack, catalogVersion, hydratedCatalogVersion, currentCacheId } = record
     if (
         typeof EphemeraId !== 'string'
-        || (!isEphemeraRoomId(EphemeraId) && !isEphemeraFeatureId(EphemeraId) && !isEphemeraKnowledgeId(EphemeraId))
+        || (
+            !isEphemeraRoomId(EphemeraId)
+            && !isEphemeraFeatureId(EphemeraId)
+            && !isEphemeraKnowledgeId(EphemeraId)
+            && !isEphemeraObjectId(EphemeraId)
+            && !isEphemeraCharacterId(EphemeraId)
+        )
     ) {
         return false
     }

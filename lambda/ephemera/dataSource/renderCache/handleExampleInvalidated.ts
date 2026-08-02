@@ -4,8 +4,10 @@
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetStackIncludesEditAssetId } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
+    isEphemeraObjectId,
     isEphemeraRoomId,
     type EphemeraSituationId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -31,7 +33,13 @@ import {
 } from './situationAdjacency'
 
 const asCacheHostId = (id: ComponentUUID): EphemeraCacheComponentId | undefined => {
-    if (isEphemeraRoomId(id) || isEphemeraFeatureId(id) || isEphemeraKnowledgeId(id)) {
+    if (
+        isEphemeraRoomId(id)
+        || isEphemeraFeatureId(id)
+        || isEphemeraKnowledgeId(id)
+        || isEphemeraObjectId(id)
+        || isEphemeraCharacterId(id)
+    ) {
         return id
     }
     return undefined

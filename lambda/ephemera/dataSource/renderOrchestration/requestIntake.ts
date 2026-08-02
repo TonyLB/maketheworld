@@ -8,16 +8,18 @@
  * the authored example / cache key), intake uses empty **`markValue`** and sets **`allowGeneration: false`** so resolve is
  * cache-only (no slow-path generation).
  *
- * **Feature/Knowledge/Object hosts:** no `Meta::Room`; always **`markState: { markValue: [] }`** and **`allowGeneration: false`**
- * (cache only --- authored for Feature/Knowledge, the Object description stub's shortName-derived row for Object;
+ * **Feature/Knowledge/Object/Character hosts:** no `Meta::Room`; always **`markState: { markValue: [] }`** and **`allowGeneration: false`**
+ * (cache only --- authored for Feature/Knowledge/Character, the Object description stub's shortName-derived row for Object;
  * see `renderCache/ensureObjectShortNameCacheRecord.ts`); **`pointerHint`** from catalog row only via
  * {@link resolvePerspectivePointer}.
  */
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
     isEphemeraRoomId,
+    type EphemeraCharacterId,
     type EphemeraFeatureId,
     type EphemeraKnowledgeId,
     type EphemeraObjectId,
@@ -45,10 +47,13 @@ const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaR
 
 type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
 
-type CacheOnlyComponentId = EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId
+type CacheOnlyComponentId = EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
 
 const isCacheOnlyHost = (componentId: string): componentId is CacheOnlyComponentId => (
-    isEphemeraFeatureId(componentId) || isEphemeraKnowledgeId(componentId) || isEphemeraObjectId(componentId)
+    isEphemeraFeatureId(componentId)
+    || isEphemeraKnowledgeId(componentId)
+    || isEphemeraObjectId(componentId)
+    || isEphemeraCharacterId(componentId)
 )
 
 const intakeCacheOnlyHost = async (

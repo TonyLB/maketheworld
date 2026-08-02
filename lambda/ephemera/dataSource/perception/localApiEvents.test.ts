@@ -1,4 +1,20 @@
-import { isPerceptionThreadRegisterCommand } from './localApiEvents'
+import { isEphemeraCacheComponentId, isPerceptionThreadRegisterCommand } from './localApiEvents'
+
+describe('isEphemeraCacheComponentId', () => {
+    it.each([
+        ['ROOM#r1'],
+        ['FEATURE#f1'],
+        ['KNOWLEDGE#k1'],
+        ['OBJECT#o1'],
+        ['CHARACTER#c1'],
+    ])('accepts %s', (value) => {
+        expect(isEphemeraCacheComponentId(value)).toBe(true)
+    })
+
+    it('rejects unrelated ids', () => {
+        expect(isEphemeraCacheComponentId('MAP#m1')).toBe(false)
+    })
+})
 
 describe('isPerceptionThreadRegisterCommand', () => {
     it('accepts roomHeaderBroadcast with non-empty targets', () => {
