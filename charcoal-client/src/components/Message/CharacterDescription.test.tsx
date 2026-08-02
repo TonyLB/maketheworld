@@ -113,6 +113,59 @@ describe('CharacterDescription', () => {
         expect(screen.getByText('No description')).toBeDefined()
     })
 
+    it('falls back to the character\'s own DisplayName when no situation prose has been authored yet', () => {
+        const standardForm = new StandardForm(deIndentWML(`
+            <Asset uuid=(test)>
+                <Character key=(testCharacter) uuid=(CHARACTER#testCharacter)>
+                    <DisplayName>Tess</DisplayName>
+                </Character>
+            </Asset>
+        `))
+
+        const metaData: PerceptionCharacterMetaData = {
+            componentUUID: 'CHARACTER#testCharacter'
+        }
+
+        render(
+            <CharacterDescription
+                message={baseMessage(metaData, standardForm)}
+                onClickLink={noopOnClickLink}
+            />
+        )
+
+        expect(screen.getByRole('heading', { name: 'Tess' })).toBeDefined()
+        expect(screen.getByText('No description')).toBeDefined()
+    })
+
+    it('prefers situation facet displayName over the character\'s own DisplayName when both exist', () => {
+        const standardForm = new StandardForm(deIndentWML(`
+            <Asset uuid=(test)>
+                <Character key=(testCharacter) uuid=(CHARACTER#testCharacter)>
+                    <DisplayName>Tess</DisplayName>
+                    <Situation uuid=(DEFAULT)>
+                        <DisplayName>A hooded stranger</DisplayName>
+                        <Description>Their face is obscured.</Description>
+                    </Situation>
+                </Character>
+            </Asset>
+        `))
+
+        const metaData: PerceptionCharacterMetaData = {
+            componentUUID: 'CHARACTER#testCharacter'
+        }
+
+        render(
+            <CharacterDescription
+                message={baseMessage(metaData, standardForm)}
+                onClickLink={noopOnClickLink}
+            />
+        )
+
+        expect(screen.getByRole('heading', { name: 'A hooded stranger' })).toBeDefined()
+        expect(screen.getByText('Their face is obscured.')).toBeDefined()
+        expect(screen.queryByText('Tess')).toBeNull()
+    })
+
     it('throws when given non-character metadata (routing bug guard)', () => {
         const standardForm = new StandardForm(deIndentWML(`
             <Asset uuid=(test)><Feature key=(testFeature) uuid=(FEATURE#testFeature) /></Asset>

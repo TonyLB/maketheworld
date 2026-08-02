@@ -63,9 +63,16 @@ export const CharacterDescription = ({ message, onClickLink }: CharacterDescript
     if (message.parsedWML) {
         const component = message.parsedWML.byUniversalId[CharacterId]
         if (component instanceof StandardCharacter) {
+            // The character's own name (component.displayName) is always available once the
+            // Character is authored, independent of whether any Situation prose exists yet ---
+            // it's Character's equivalent of Object's shortName fallback, not the situation
+            // facet's own _displayName (which describes how the character currently appears and
+            // may be absent). Prefer facet prose's name when present, but never regress to
+            // 'Unknown' when the character's real name is known.
+            name = component.displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
             const prosePayload = resolveCharacterProse(component)
             if (prosePayload) {
-                name = prosePayload._displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
+                name = prosePayload._displayName || name
                 description = prosePayload._description || new StandardRender([])
             }
         }
