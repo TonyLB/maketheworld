@@ -110,6 +110,38 @@ describe('routeTrustedUiAction', () => {
                 expect.objectContaining({ type: 'Perception' })
             )
         })
+
+        it('should send Action Assessed LookComponent for character look', () => {
+            const request: ActionAPIMessage = {
+                message: 'action',
+                actionType: 'look',
+                payload: {
+                    CharacterId: 'CHARACTER#123' as EphemeraCharacterId,
+                    EphemeraId: 'CHARACTER#456' as EphemeraCharacterId
+                }
+            }
+
+            expect(routeTrustedUiAction(MockMessageBus, request)).toBe(true)
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                MockMessageBus,
+                'CHARACTER#123',
+                {
+                    characterId: 'CHARACTER#123',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'CHARACTER#456',
+                        confidence: 1,
+                    },
+                    source: 'uiLook',
+                }
+            )
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
+            expect(MockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
+        })
     })
 
     describe('move action', () => {

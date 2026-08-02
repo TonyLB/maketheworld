@@ -168,6 +168,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
                                         ...perceptionMessage,
                                         metaData: { componentUUID: componentUUID as EphemeraCharacterId }
                                     }}
+                                    onClickLink={onClickLink}
                                 />
                             )
                         }
@@ -179,7 +180,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
 
                 // Immediate handling: character-typed metadata when WML tag routing did not apply
                 if (metaData && isPerceptionCharacterMetaData(metaData)) {
-                    return <CharacterDescription message={perceptionMessage} />
+                    return <CharacterDescription message={perceptionMessage} onClickLink={onClickLink} />
                 }
 
                 return <UnknownMessage message={message} />

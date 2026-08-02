@@ -474,6 +474,11 @@ describe('parseCommand type guards', () => {
             type: 'LookComponent',
             componentId: 'CHARACTER#1',
             confidence: 1,
+        } as any)).toBe(true)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'SESSION#1',
+            confidence: 1,
         } as any)).toBe(false)
         expect(isParseCommandLookComponentResult({
             type: 'LookComponent',

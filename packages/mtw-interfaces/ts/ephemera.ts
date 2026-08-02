@@ -35,7 +35,7 @@ type ActionAPILookMessage = {
     actionType: 'look';
     payload: {
         CharacterId: EphemeraCharacterId;
-        EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId;
+        EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraCharacterId;
     }
 }
 
