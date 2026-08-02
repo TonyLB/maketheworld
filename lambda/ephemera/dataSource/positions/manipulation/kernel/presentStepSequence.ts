@@ -98,7 +98,7 @@ export const presentStepSequence = async (
 
         if (referentKind === 'character') {
             throw new Error(
-                `presentStepSequence: '${referentKind}' describe steps are not yet supported --- no render content model exists for Character referents yet (see AGENT.perceptionKernel.planning.md Phase 3 context)`
+                `presentStepSequence: '${referentKind}' describe steps are not yet supported --- no render content model exists for Character referents yet`
             )
         }
 

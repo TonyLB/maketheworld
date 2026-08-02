@@ -124,7 +124,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
     }
 
     if (isEphemeraObjectId(componentId)) {
-        // Object description stub (AGENT.perceptionKernel.planning.md, PK-6): reuses the same
+        // Object description stub (see `perception/AGENT.md`, Correlated Object description): reuses the same
         // register-then-orchestrate pipeline as Room/Feature/Knowledge, swapping in
         // ensureObjectShortNameCacheRecord for the real (blueprint-versioned) ensureAuthoredCatalog
         // --- see that file's doc comment for why. Delivers shortName only; real <Render>/<Example>

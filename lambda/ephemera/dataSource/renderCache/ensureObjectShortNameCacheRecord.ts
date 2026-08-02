@@ -9,7 +9,8 @@ import type { EnsureAuthoredCatalogDependencies, EnsureAuthoredCatalogParams } f
 import { putCacheRecord } from './putCacheRecord'
 
 /**
- * Object description stub (see `AGENT.perceptionKernel.planning.md`, PK-6): drops into
+ * Object description stub (see `dataSource/perception/AGENT.md`, "Correlated Object
+ * description"): drops into
  * `orchestrateRenderRequest`'s injectable `ensureAuthoredCatalog` slot for Object componentIds,
  * standing in for the real `ensureAuthoredCatalog` --- which is built for a different problem
  * (WML-authored content that changes when asset blueprints change, tracked via `catalogVersion`

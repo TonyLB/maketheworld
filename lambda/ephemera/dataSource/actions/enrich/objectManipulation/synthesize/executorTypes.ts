@@ -66,7 +66,8 @@ export type ExecutorDescribeStep = {
  * relational effects are the local, host-field-free shapes above. `ExecutorDescribeStep` is the
  * perception kernel's read-only addition (iteration 9) --- it flows through the same shared,
  * already-grounded instruction list as the mutation kinds, filtered out by each kernel's own
- * type-guard rather than routed by a separate dispatcher (see `AGENT.perceptionKernel.planning.md`).
+ * type-guard rather than routed by a separate dispatcher (see `positions/AGENT.concepts.md`,
+ * "Two kernels").
  */
 export type ExecutorParsePlanStep =
     | TransferMembershipStep
