@@ -1,6 +1,6 @@
 # Object and Character as first-class render hosts (iteration 10)
 
-**Status:** Scoped through conversation 2026-08-02. Phase 1 (mtw-wml situation facets) shipped 2026-08-02; Phases 2--5 not started.
+**Status:** Scoped through conversation 2026-08-02. Phase 1 (mtw-wml situation facets) and Phase 2 (mtw-gateways host-gate widening) shipped 2026-08-02; Phases 3--5 not started.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Ladder position: [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), iteration 10.
 
@@ -55,10 +55,10 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step
   - [X] Confirm the WML content model admits the facet children for both tags, and that round-tripping holds (the `ephemeraWire` integration tests in `object.ephemeraWire.integration.test.ts` are the precedent). Object's schema-layer `typeCheckContents`/`finalize` (`schema/converters/components.ts`) were relaxed to admit `<Situation>` alongside the required `<ShortName>`; Character's converter was already unrestricted. `<Render>`'s parent whitelist was deliberately left untouched for both kinds (deferred; see [`AGENT.implementation.md`](../../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) `StandardObject`/`StandardCharacter` entries) --- the `render` field exists at the data/standardize layer for JSON/ephemera-wire construction, but `<Render>` cannot yet be authored under `<Object>`/`<Character>` via WML text.
   - [X] Fixed pre-existing gap found while widening the gate: Object's `finalize` matched `ShortName` by direct tag equality only, so `<Replace><ShortName>.../</Replace><With><ShortName>.../</With>` editing of Object's shortName --- which every other component supports --- threw "Object tag must contain exactly one ShortName child". Now uses `splitTaggedChildren` (Remove/Replace-aware), matching the standardize layer's own matcher.
   - [X] Open `assetWirePolicy` to accept `<Object>` description/examples in asset mode (RH-3, resolved).
-- [ ] **Phase 2. Widen the example-assembly host gate (`mtw-gateways`).**
-  - [ ] `isCacheHostEphemeraId` + `validateAssembleComponentExamplesInput` admit `OBJECT#` and `CHARACTER#`.
-  - [ ] Set per-kind `resolveRoomLensMarkDefaults: false` for both (the option already defaults false for Feature/Knowledge per A4 --- Object/Character join that group, which is what keeps `markState` empty).
-  - [ ] Verify `assemble` composes correctly over `ASSET#IMPROVISATION` merge participation for an improvisation Object.
+- [X] **Phase 2. Widen the example-assembly host gate (`mtw-gateways`).** Done 2026-08-02.
+  - [X] `isCacheHostEphemeraId` + `validateAssembleComponentExamplesInput` admit `OBJECT#` and `CHARACTER#`.
+  - [X] Set per-kind `resolveRoomLensMarkDefaults: false` for both (the option already defaults false for Feature/Knowledge per A4 --- Object/Character join that group, which is what keeps `markState` empty). No source change needed: `defaultResolveRoomLensMarkDefaults` is already `isEphemeraRoomId`-only; verified by test, not implemented.
+  - [X] Verify `assemble` composes correctly over `ASSET#IMPROVISATION` merge participation for an improvisation Object. Also widened `isCacheHostWithSituationFacets` in [`perspectives.ts`](../../../../../packages/mtw-gateways/ts/assets/components/componentExamples/perspectives.ts) --- not named in the original bullet list but load-bearing: without it, an Object/Character host passes the `input.ts` gate and then silently assembles an empty set.
 - [ ] **Phase 3. Character as a render-cache host (`lambda/ephemera`).**
   - [ ] Widen `EphemeraCacheComponentId` / `RenderComponentId` for `CHARACTER#` --- **all three declaration sites**, including the `mtw-gateways` twin.
   - [ ] Add the Character branch to `intakeCacheOnlyHost` (hardcoded `markState: []`, `allowGeneration: false`).
@@ -105,7 +105,7 @@ Plus end-to-end: a `look` at an Object with authored/generated `DEFAULT` prose r
 | --- | --- |
 | Scope + design confirmed through conversation | Done (2026-08-02) |
 | Phase 1 (WML situation facets on Object/Character) | Done (2026-08-02) |
-| Phase 2 (gateway host-gate widening) | Not started |
+| Phase 2 (gateway host-gate widening) | Done (2026-08-02) |
 | Phase 3 (Character as render-cache host) | Not started |
 | Phase 4 (retire the Object stub) | Not started |
 | Phase 5 (spawn-time DEFAULT generation) | Not started, separable |

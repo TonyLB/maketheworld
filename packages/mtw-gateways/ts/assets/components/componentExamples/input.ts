@@ -1,6 +1,12 @@
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    isEphemeraCharacterId,
+    isEphemeraFeatureId,
+    isEphemeraKnowledgeId,
+    isEphemeraObjectId,
+    isEphemeraRoomId,
+} from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     AggregateInputError,
@@ -20,7 +26,13 @@ export type AssembleComponentExamplesInput = {
 }
 
 export function isCacheHostEphemeraId(value: string): value is EphemeraId {
-    return isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
+    return (
+        isEphemeraRoomId(value) ||
+        isEphemeraFeatureId(value) ||
+        isEphemeraKnowledgeId(value) ||
+        isEphemeraObjectId(value) ||
+        isEphemeraCharacterId(value)
+    )
 }
 
 export function validateAssembleComponentExamplesInput(
@@ -28,7 +40,7 @@ export function validateAssembleComponentExamplesInput(
 ): AssembleComponentExamplesInput & { mergeParticipationOrder: MergeParticipationOrder } {
     if (!isCacheHostEphemeraId(input.hostUniversalKey)) {
         throw new AggregateInputError(
-            `hostUniversalKey must be ROOM#, FEATURE#, or KNOWLEDGE#: ${String(input.hostUniversalKey)}`
+            `hostUniversalKey must be ROOM#, FEATURE#, KNOWLEDGE#, OBJECT#, or CHARACTER#: ${String(input.hostUniversalKey)}`
         )
     }
     const mergeParticipationOrder = normalizeMergeParticipationOrder(input.mergeParticipationOrder)

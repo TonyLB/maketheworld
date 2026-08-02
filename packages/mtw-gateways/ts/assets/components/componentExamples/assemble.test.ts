@@ -1,10 +1,19 @@
-import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { IMPROVISATION_ASSET_ID, type EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+
+function objectFromWML(wml: string): StandardObject {
+    const schema = new Schema()
+    schema.loadWML(deIndentWML(wml))
+    return new StandardObject(schema.schema[0].children[0])
+}
 import type { AuthoritativeComponentData } from '../componentData/dynamoStandardComponents'
 import { mergeAuthoritativeAcrossParticipationOrder } from '../aggregate/assemble'
 import { aggregatePerspectiveExplicit } from '../aggregate/input'
@@ -182,6 +191,102 @@ describe('assembleComponentExamplesAtPerspective', () => {
         expect(secondKeys).not.toContain(lensU)
         expect(secondKeys).toEqual([situationId])
         getSpy.mockRestore()
+    })
+
+    it('does not request lens perspective for Object host', async () => {
+        const objectU = 'OBJECT#o1' as const
+        const situationId = 'SITUATION#s1' as const
+        const object = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object key=(thing) uuid=(OBJECT#o1)>
+                    <ShortName>roller skates</ShortName>
+                    <Situation key=(s1) uuid=(SITUATION#s1)><DisplayName>O prose</DisplayName></Situation>
+                </Object>
+            </Asset>
+        `)
+        const situation = new StandardSituation(
+            deIndentWML(`<Situation key=(s1) uuid=(SITUATION#s1) />`)
+        )
+        const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
+            [objectU, { ComponentId: objectU, byAssets: [{ AssetId: assetA, component: object as unknown as StandardComponent }] }],
+            [situationId, { ComponentId: situationId, byAssets: [{ AssetId: assetA, component: situation as unknown as StandardComponent }] }],
+        ])
+        const aggregate = makeAggregate(authoritativeMap)
+        const getSpy = jest.spyOn(aggregate, 'get')
+        const set = await assembleComponentExamplesAtPerspective({
+            input: {
+                hostUniversalKey: objectU,
+                mergeParticipationOrder: [assetA],
+                options: { resolveRoomLensMarkDefaults: false },
+            },
+            aggregate,
+        })
+        expect(authoredExampleSetSituationIds(set)).toEqual([situationId])
+        const secondKeys = getSpy.mock.calls[1]?.[0].map((p) => p.universalKey) ?? []
+        expect(secondKeys).not.toContain(lensU)
+        expect(secondKeys).toEqual([situationId])
+        getSpy.mockRestore()
+    })
+
+    it('does not request lens perspective for Character host', async () => {
+        const characterU = 'CHARACTER#c1' as const
+        const situationId = 'SITUATION#s1' as const
+        const character = new StandardCharacter(
+            deIndentWML(`
+            <Character key=(char) uuid=(CHARACTER#c1)>
+                <Situation key=(s1) uuid=(SITUATION#s1)><DisplayName>C prose</DisplayName></Situation>
+            </Character>
+        `)
+        )
+        const situation = new StandardSituation(
+            deIndentWML(`<Situation key=(s1) uuid=(SITUATION#s1) />`)
+        )
+        const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
+            [characterU, { ComponentId: characterU, byAssets: [{ AssetId: assetA, component: character as unknown as StandardComponent }] }],
+            [situationId, { ComponentId: situationId, byAssets: [{ AssetId: assetA, component: situation as unknown as StandardComponent }] }],
+        ])
+        const aggregate = makeAggregate(authoritativeMap)
+        const getSpy = jest.spyOn(aggregate, 'get')
+        const set = await assembleComponentExamplesAtPerspective({
+            input: {
+                hostUniversalKey: characterU,
+                mergeParticipationOrder: [assetA],
+                options: { resolveRoomLensMarkDefaults: false },
+            },
+            aggregate,
+        })
+        expect(authoredExampleSetSituationIds(set)).toEqual([situationId])
+        const secondKeys = getSpy.mock.calls[1]?.[0].map((p) => p.universalKey) ?? []
+        expect(secondKeys).not.toContain(lensU)
+        expect(secondKeys).toEqual([situationId])
+        getSpy.mockRestore()
+    })
+
+    it('assembles a situation facet for an Object host across ASSET#IMPROVISATION merge participation', async () => {
+        const objectU = 'OBJECT#o2' as const
+        const situationId = 'SITUATION#s2' as const
+        const object = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object key=(thing) uuid=(OBJECT#o2)>
+                    <ShortName>lantern</ShortName>
+                    <Situation key=(s2) uuid=(SITUATION#s2)><DisplayName>Improvised prose</DisplayName></Situation>
+                </Object>
+            </Asset>
+        `)
+        const situation = new StandardSituation(
+            deIndentWML(`<Situation key=(s2) uuid=(SITUATION#s2) />`)
+        )
+        const authoritativeMap = new Map<EphemeraId, AuthoritativeComponentData>([
+            [objectU, { ComponentId: objectU, byAssets: [{ AssetId: IMPROVISATION_ASSET_ID, component: object as unknown as StandardComponent }] }],
+            [situationId, { ComponentId: situationId, byAssets: [{ AssetId: IMPROVISATION_ASSET_ID, component: situation as unknown as StandardComponent }] }],
+        ])
+        const aggregate = makeAggregate(authoritativeMap)
+        const set = await assembleComponentExamplesAtPerspective({
+            input: { hostUniversalKey: objectU, mergeParticipationOrder: [IMPROVISATION_ASSET_ID] },
+            aggregate,
+        })
+        expect(authoredExampleSetSituationIds(set)).toEqual([situationId])
+        expect(set.get(situationId)?.renderedContent).toBeDefined()
     })
 })
 
