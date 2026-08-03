@@ -27,7 +27,11 @@ export type CharacterPerceptionRequestedCommand = {
 }
 
 export const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheComponentId => (
-    isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value) || isEphemeraObjectId(value)
+    isEphemeraRoomId(value)
+    || isEphemeraFeatureId(value)
+    || isEphemeraKnowledgeId(value)
+    || isEphemeraObjectId(value)
+    || isEphemeraCharacterId(value)
 )
 
 /** Multi-target room header fan-in (passive render + broadcast delivery per perspectiveKey). */

@@ -555,7 +555,23 @@ describe('Render tag', () => {
                 </Render>
             </Asset>
         `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room, Feature, or Knowledge')
+        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room, Feature, Knowledge, or Character')
+    })
+
+    it('should parse Render under Character', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Character uuid=(TestOne) ref={0}>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Character>
+            </Asset>
+        `)
+        const testParse = parse(tokenizer(new SourceStream(testWML)))
+        expect(() => schemaFromParse(testParse)).not.toThrow()
     })
 
     it('should parse Render under Feature', () => {

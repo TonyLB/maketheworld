@@ -14,6 +14,8 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
+    IMPROVISATION_ASSET_ID,
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -21,6 +23,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { getRoomCharacterList } from '../../internalCache/hydrateRoomRoster'
 import internalCache from '../../internalCache'
+import { resolveObjectShortName } from '../objects/objectShortName'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { isRoomHeaderBroadcastPerceptionThread } from '../../internalCache/perceptionThreads'
 import { reportIngressContent } from '../messageOrchestration'
@@ -30,6 +33,7 @@ import {
     knowledgeRenderWmlFromCacheRecord,
 } from './featureKnowledgeRenderWmlFromCacheRecord'
 import { objectRenderWmlFromCacheRecord } from './objectRenderWmlFromCacheRecord'
+import { characterRenderWmlFromCacheRecord } from './characterRenderWmlFromCacheRecord'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import type { EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
@@ -80,6 +84,18 @@ function placeholderFeatureKnowledgeFullWml(
  */
 function placeholderObjectFullWml(componentId: EphemeraObjectId, bodyText: string): string {
     return objectRenderWmlFromCacheRecord(componentId, { displayName: [bodyText], description: [] })
+}
+
+/**
+ * Character has real `render` content (like Feature/Knowledge, not Object's shortName-only stub),
+ * so its placeholder follows the Feature/Knowledge shape --- body text goes in `description`.
+ */
+function placeholderCharacterFullWml(componentId: EphemeraCharacterId, bodyText: string): string {
+    const renderedContent: EphemeraCacheRenderedContent = {
+        ...PLACEHOLDER_RENDER_BODY,
+        description: [bodyText],
+    }
+    return characterRenderWmlFromCacheRecord(componentId, renderedContent)
 }
 
 function logTerminalDedupe(
@@ -147,6 +163,10 @@ async function handleRenderPertains(
     }
     if (isEphemeraObjectId(payload.componentId)) {
         await handleObjectRenderPertains(payload, bus)
+        return
+    }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterRenderPertains(payload, bus)
         return
     }
     if (!isEphemeraRoomId(payload.componentId)) {
@@ -278,6 +298,10 @@ async function handleGenerationStarted(
         await handleObjectGenerationStarted(payload, bus)
         return
     }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterGenerationStarted(payload, bus)
+        return
+    }
     if (!isEphemeraRoomId(payload.componentId)) {
         return
     }
@@ -337,6 +361,10 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
     }
     if (isEphemeraObjectId(payload.componentId)) {
         await handleObjectOrchestrationErrorOrDeferred(payload, bus)
+        return
+    }
+    if (isEphemeraCharacterId(payload.componentId)) {
+        await handleCharacterOrchestrationErrorOrDeferred(payload, bus)
         return
     }
     if (!isEphemeraRoomId(payload.componentId)) {
@@ -474,9 +502,11 @@ async function handleFeatureKnowledgeOrchestrationErrorOrDeferred(
 }
 
 /**
- * Object description stub fan-in (PK-6): single-viewer, terminal-only-once, mirrors
- * handleFeatureKnowledge*'s featureDescription arm exactly (no directResponse/SESSION# targeting ---
- * Object has no such concept).
+ * Object description fan-in: single-viewer, terminal-only-once, mirrors handleFeatureKnowledge*'s
+ * featureDescription arm exactly (no directResponse/SESSION# targeting --- Object has no such
+ * concept). Object rides the real `ensureAuthoredCatalog` (Phase 4) same as Feature/Knowledge/
+ * Character, so `renderedContent` here may have no authored `SITUATION#DEFAULT` facet yet; resolve
+ * the object's own live shortName as a fallback so it never renders nameless.
  */
 async function handleObjectRenderPertains(
     payload: import('../renderCache/baseClasses').RenderCacheRenderPertainsPayload,
@@ -486,7 +516,15 @@ async function handleObjectRenderPertains(
     if (!isEphemeraObjectId(componentId)) {
         return
     }
-    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent)
+    const fallbackShortName = await resolveObjectShortName(
+        componentId,
+        payload.cacheRecord.perspectiveMatcher.requiredAssetIds,
+        {
+            getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
+            getImprovisationObject: (objectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
+        }
+    )
+    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent, { fallbackShortName })
     const publishedListeners = reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
         kind: 'literal',
         message: {
@@ -534,6 +572,73 @@ async function handleObjectOrchestrationErrorOrDeferred(payload: ErrorLikePayloa
             type: 'PublishMessage',
             displayProtocol: 'PerceptionMessage',
             wmlContent: placeholderObjectFullWml(componentId, 'Error'),
+            metaData: { componentUUID: componentId },
+        },
+    })
+}
+
+/**
+ * Character fan-in: single-viewer, terminal-only-once, mirrors `handleObjectRenderPertains`'s
+ * trio shape exactly (no directResponse/SESSION# targeting --- Character has no such concept).
+ * Unlike Object, Character has real `render` content, so it builds its WML via
+ * `characterRenderWmlFromCacheRecord` instead of the shortName-only Object builder.
+ */
+async function handleCharacterRenderPertains(
+    payload: import('../renderCache/baseClasses').RenderCacheRenderPertainsPayload,
+    bus: MessageBus
+): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    const wmlContent = characterRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent)
+    const publishedListeners = reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent,
+            metaData: { componentUUID: componentId },
+        },
+    })
+    console.log('[mtw.ephemera.perception] handleCharacterRenderPertains', {
+        componentId: payload.componentId,
+        perspectiveKey: payload.perspectiveKey,
+        cacheId: payload.cacheId,
+        publishedListeners,
+    })
+}
+
+async function handleCharacterGenerationStarted(
+    payload: import('../renderOrchestration/publishedEvents').RenderOrchestrationGenerationStartedPayload,
+    bus: MessageBus
+): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderCharacterFullWml(componentId, 'Generating'),
+            metaData: { componentUUID: componentId, status: 'generating' },
+        },
+    })
+}
+
+async function handleCharacterOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus: MessageBus): Promise<void> {
+    const componentId = payload.componentId
+    if (!isEphemeraCharacterId(componentId)) {
+        return
+    }
+    reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
+        kind: 'literal',
+        message: {
+            type: 'PublishMessage',
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderCharacterFullWml(componentId, 'Error'),
             metaData: { componentUUID: componentId },
         },
     })

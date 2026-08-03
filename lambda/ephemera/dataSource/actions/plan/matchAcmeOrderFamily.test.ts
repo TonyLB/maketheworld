@@ -42,6 +42,7 @@ describe('matchAcmeOrderFamily', () => {
                 stableKey: 'rope',
                 tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'rope rig' }],
                 tropeAffinitiesFailed: false,
+                defaultSituationFailed: true,
             }],
             confidence: 0.8 * 0.9,
         })

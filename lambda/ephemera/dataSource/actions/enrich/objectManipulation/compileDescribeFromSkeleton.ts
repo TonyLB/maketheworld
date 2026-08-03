@@ -40,8 +40,9 @@ export type CompileDescribeFromSkeletonResult =
  * a describe referent is singular with no carry-closure and no relation to
  * another referent, so there is no sameHost repair or cycle-legality check to
  * run, and no general Synthesize executor seed is built. Only ever produces
- * candidates the catalog scan can populate today (Object only --- see
- * AGENT.perceptionKernel.planning.md's Phase 2 "Catalog population" bullet),
+ * candidates the catalog scan can populate today (Object only --- catalog
+ * population for Character/Feature is iteration 10 on the object-manipulation
+ * ladder; see `dataSource/actions/AGENT.implementation.md`),
  * so filtering to EphemeraObjectId candidates is today a no-op guard, not a
  * scope restriction that silently drops real Character/Feature matches.
  */

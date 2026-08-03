@@ -3,6 +3,8 @@ import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardSituationProseFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
@@ -18,7 +20,12 @@ import {
 } from '../aggregate/input'
 import type { MergedComponentResult } from '../aggregate/result'
 
-export type CacheHostWithSituationFacets = StandardRoom | StandardFeature | StandardKnowledge
+export type CacheHostWithSituationFacets =
+    | StandardRoom
+    | StandardFeature
+    | StandardKnowledge
+    | StandardObject
+    | StandardCharacter
 
 export function isCacheHostWithSituationFacets(
     component: StandardComponent
@@ -26,7 +33,9 @@ export function isCacheHostWithSituationFacets(
     return (
         component instanceof StandardRoom ||
         component instanceof StandardFeature ||
-        component instanceof StandardKnowledge
+        component instanceof StandardKnowledge ||
+        component instanceof StandardObject ||
+        component instanceof StandardCharacter
     )
 }
 

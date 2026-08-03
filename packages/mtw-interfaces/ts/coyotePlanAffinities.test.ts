@@ -1,5 +1,6 @@
 import {
     areCoyoteObjectTropeFieldsValid,
+    isAcmeOrderEnrichDefaultSituationProse,
     isAcmeOrderEnrichModelLine,
     isNormalizedMaterializedAffordanceStableKey,
     isSyntaxMaterializedAffordanceStableKey,
@@ -83,6 +84,55 @@ describe('isAcmeOrderEnrichModelLine', () => {
             })
         ).toBe(true)
     })
+
+    it('accepts a valid line with defaultSituation prose', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
+                defaultSituation: { displayName: 'a heavy anvil', description: 'A cast-iron anvil sits here.' },
+            })
+        ).toBe(true)
+    })
+
+    it('rejects defaultSituation and defaultSituationFailed both present', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                defaultSituation: { description: 'A cast-iron anvil sits here.' },
+                defaultSituationFailed: true,
+            })
+        ).toBe(false)
+    })
+
+    it('rejects malformed defaultSituation (unknown key)', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                defaultSituation: { flavor: 'nope' },
+            })
+        ).toBe(false)
+    })
+})
+
+describe('isAcmeOrderEnrichDefaultSituationProse', () => {
+    it('accepts an object with a subset of the three optional string fields', () => {
+        expect(isAcmeOrderEnrichDefaultSituationProse({ description: 'A cast-iron anvil.' })).toBe(true)
+        expect(isAcmeOrderEnrichDefaultSituationProse({})).toBe(true)
+    })
+
+    it('rejects non-string field values and unknown keys', () => {
+        expect(isAcmeOrderEnrichDefaultSituationProse({ description: 5 })).toBe(false)
+        expect(isAcmeOrderEnrichDefaultSituationProse({ flavor: 'nope' })).toBe(false)
+        expect(isAcmeOrderEnrichDefaultSituationProse(null)).toBe(false)
+    })
 })
 
 describe('normalizeAcmeOrderEnrichLine', () => {
@@ -100,6 +150,45 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             stableKey: 'rope',
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
+            defaultSituationFailed: true,
+        })
+    })
+
+    it('preserves defaultSituation prose when present and non-empty', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                tropeAffinities: [],
+                tropeAffinitiesFailed: true,
+                defaultSituation: { description: 'A cast-iron anvil sits here.' },
+            }, 'fallback')
+        ).toEqual({
+            valid: true,
+            name: 'anvil',
+            stableKey: 'anvil',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            defaultSituation: { description: 'A cast-iron anvil sits here.' },
+            defaultSituationFailed: false,
+        })
+    })
+
+    it('marks defaultSituationFailed when defaultSituation is absent', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+            }, 'fallback')
+        ).toEqual({
+            valid: true,
+            name: 'anvil',
+            stableKey: 'anvil',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            defaultSituationFailed: true,
         })
     })
 })
@@ -113,6 +202,7 @@ describe('normalizeAcmeOrderEnrichResponse', () => {
                 stableKey: 'order',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
+                defaultSituationFailed: true,
             }],
         })
     })

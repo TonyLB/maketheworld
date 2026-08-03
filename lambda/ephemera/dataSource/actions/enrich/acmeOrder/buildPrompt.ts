@@ -85,7 +85,9 @@ optional **confidence**) — nothing else inside the fence. No prose after that 
 This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**, per-line
 **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner presentation —
 that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
-For **\`valid\`: true** lines, the machine record is **only** **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`**, and (when needed) **\`tropeAffinitiesFailed\`** — one trope-scoring array, not a second parallel array.
+For **\`valid\`: true** lines, the machine record is **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`** (and, when needed, **\`tropeAffinitiesFailed\`**), plus **\`defaultSituation\`** — one trope-scoring array, not a second parallel array.
+
+**\`defaultSituation\`** (**\`valid\`: true** lines only): one short **\`description\`** (one or two plain sentences describing the object as a player would first see it — straight physical description, not cartoon-trope narrowing language) and, optionally, **\`displayName\`** (a short player-facing name, defaults to **\`name\`** if omitted) and **\`summary\`** (a one-line summary shorter than **\`description\`**). This is flavor text for the object's own look/examine text, independent of the Step 1/2 catalog and trope classification above. If you cannot produce grounded prose for a line, omit **\`defaultSituation\`** entirely and set **\`defaultSituationFailed\`**: true rather than inventing empty or placeholder text.
 
 The **Coyote-wide keys already in use** list appears **after** these instructions. When upstream
 product spans are included, they appear before the **full player command** at the end of this prompt.
@@ -289,7 +291,10 @@ downward).
       "stableKey": "anvil",
       "tropeAffinities": [
         { "trope": "Finishing Move", "aptness": "High", "narrowing": "drop payload onto Road Runner" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A squat cast-iron anvil, chipped along one edge, heavy enough to leave a dent where it lands."
+      }
     },
     {
       "valid": true,

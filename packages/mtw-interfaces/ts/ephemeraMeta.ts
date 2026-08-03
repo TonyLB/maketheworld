@@ -112,7 +112,9 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
 //   v1 writes use ASSET#IMPROVISATION as DataCategory; type does not hard-code that layer.
-// - shortName lives only on the pair row (future StandardObject JSON); never on Meta::Object.
+// - shortName lives only on the pair row (StandardObject JSON), alongside an optional
+//   SITUATION#DEFAULT situations facet (Acme-generated flavor-text prose at spawn,
+//   lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts); never on Meta::Object.
 // - stableKey / trope fields live only on EphemeraMetaObject.
 // - Spawn/clear coordinators write or delete both rows in one transact.
 //

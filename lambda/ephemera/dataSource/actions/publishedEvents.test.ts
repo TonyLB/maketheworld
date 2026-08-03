@@ -421,6 +421,13 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         })).toBe(true)
     })
 
+    it('accepts CHARACTER# componentId', () => {
+        expect(isLookCommandRequestedPublishedPayload({
+            ...minimal,
+            componentId: 'CHARACTER#x',
+        })).toBe(true)
+    })
+
     it('rejects wrong or missing type', () => {
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, type: 'Look Room' })).toBe(false)
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, type: 1 } as unknown)).toBe(false)
@@ -435,7 +442,7 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: null } as unknown)).toBe(
             false,
         )
-        expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: 'CHARACTER#x' })).toBe(
+        expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: 'SESSION#x' })).toBe(
             false,
         )
     })

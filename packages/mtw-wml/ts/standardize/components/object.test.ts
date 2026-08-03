@@ -4,6 +4,8 @@ import { defaultComponentFromTag } from "../baseClasses"
 import { StandardObjectData } from "./dataTypes/object"
 import StandardObject from "./object"
 import { standardComponentFactory } from "../componentFactory"
+import StandardReference from "../keys/reference"
+import { StandardKey } from "../keys/key"
 
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
@@ -93,5 +95,154 @@ describe('StandardObject class', () => {
         })
         const merged = (stub as StandardObject).merge(improvisation) as StandardObject
         expect(merged.shortName?._payload?.plain?.toJSON()).toBe('roller skates')
+    })
+
+    it('merges shortName via Replace/With WML', () => {
+        const base = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(skates)>
+                    <ShortName>Original</ShortName>
+                </Object>
+            </Asset>
+        `)
+        const incoming = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(skates) ref={0}>
+                    <Replace><ShortName>Original</ShortName></Replace>
+                    <With><ShortName>Updated</ShortName></With>
+                </Object>
+            </Asset>
+        `)
+        const merged = base.merge(incoming) as StandardObject
+        expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
+            <Object uuid=(skates)><ShortName>Updated</ShortName></Object>
+        `))
+    })
+
+    const objectFromWML = (wml: string): StandardObject => {
+        const schema = new Schema()
+        schema.loadWML(deIndentWML(wml))
+        return new StandardObject(schema.schema[0].children[0])
+    }
+
+    it('constructs from WML with a Situation facet', () => {
+        const object = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(skates)>
+                    <ShortName>roller skates</ShortName>
+                    <Situation uuid=(DEFAULT)><DisplayName>Skates</DisplayName></Situation>
+                </Object>
+            </Asset>
+        `)
+        expect(object.situations.items[0].reference.universalKey).toEqual('SITUATION#DEFAULT')
+        expect(schemaToWML([object.schema])).toEqual(deIndentWML(`
+            <Object uuid=(skates)>
+                <ShortName>roller skates</ShortName>
+                <Situation uuid=(DEFAULT)><DisplayName>Skates</DisplayName></Situation>
+            </Object>
+        `))
+    })
+
+    it('constructs from StandardObjectData with situations', () => {
+        const data: StandardObjectData = {
+            tag: 'Object',
+            universalKey: 'OBJECT#skates',
+            situations: [{
+                reference: 'SITUATION#DEFAULT',
+                payload: { displayName: 'Skates' },
+            }],
+        }
+        const object = new StandardObject(data)
+        expect(object.toJSON()).toEqual(data)
+    })
+
+    it('merges situation facets', () => {
+        const base = new StandardObject({
+            tag: 'Object',
+            universalKey: 'OBJECT#skates',
+            situations: [{
+                reference: 'SITUATION#sit1',
+                payload: { displayName: 'One' },
+            }],
+        })
+        const incoming = new StandardObject({
+            tag: 'Object',
+            universalKey: 'OBJECT#skates',
+            situations: [{
+                reference: 'SITUATION#sit2',
+                payload: { displayName: 'Two' },
+            }],
+        })
+        const merged = base.merge(incoming) as StandardObject
+        expect(merged.situations.items.map((facet) => facet.reference.universalKey)).toEqual([
+            'SITUATION#sit1',
+            'SITUATION#sit2',
+        ])
+    })
+
+    it('adds a Situation reference via withChild', () => {
+        const object = objectFromWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(skates)>
+                    <ShortName>roller skates</ShortName>
+                    <Situation uuid=(DEFAULT) />
+                </Object>
+            </Asset>
+        `)
+        const situation = new StandardKey("SITUATION#other")
+        const added = object.withChild(new StandardReference(situation))
+        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
+            <Object uuid=(skates)>
+                <ShortName>roller skates</ShortName>
+                <Situation uuid=(DEFAULT) />
+                <Situation uuid=(other) />
+            </Object>
+        `))
+    })
+
+    it('round-trips render from StandardObjectData to schema', () => {
+        const data: StandardObjectData = {
+            tag: 'Object',
+            universalKey: 'OBJECT#skates',
+            render: {
+                displayName: 'Cached Name',
+                summary: ['Summary text'],
+                description: ['Description text'],
+            },
+        }
+        const object = new StandardObject(data)
+        expect(object.render).toEqual(data.render)
+        expect(schemaToWML([object.schema])).toEqual(deIndentWML(`
+            <Object uuid=(skates)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                    <Description>Description text</Description>
+                </Render>
+            </Object>
+        `))
+    })
+
+    it('is empty only when shortName, situations, and render are all absent', () => {
+        const empty = new StandardObject({ tag: 'Object', universalKey: 'OBJECT#skates' })
+        expect(empty._payload.isEmpty()).toBe(true)
+        const withSituation = new StandardObject({
+            tag: 'Object',
+            universalKey: 'OBJECT#skates',
+            situations: [{ reference: 'SITUATION#DEFAULT', payload: { displayName: 'Skates' } }],
+        })
+        expect(withSituation._payload.isEmpty()).toBe(false)
+    })
+
+    it('rejects illegal child tags at parse time', () => {
+        const testSource = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(skates)>
+                    <ShortName>roller skates</ShortName>
+                    <Map key=(illegalMap) />
+                </Object>
+            </Asset>
+        `)
+        expect(() => new Schema().loadWML(testSource)).toThrow()
     })
 })

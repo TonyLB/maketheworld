@@ -10,7 +10,7 @@ import {
     type EphemeraRenderCacheReadDB,
 } from './fetch'
 import { createRenderCacheCacheHandler } from './factory'
-import type { EphemeraCacheCatalogRow, EphemeraCacheDynamoItem } from './types'
+import { isEphemeraCacheCatalogRow, type EphemeraCacheCatalogRow, type EphemeraCacheDynamoItem } from './types'
 
 const componentId = 'ROOM#room' as const
 const perspectiveKey = 'PERSPECTIVE#v1#abc'
@@ -51,6 +51,18 @@ const example = (situationId: string): AuthoredExample => ({
     markState: minimalRecord.markState,
     renderedContent: { description: [] },
     provenance: { type: 'authored' },
+})
+
+describe('isEphemeraCacheCatalogRow', () => {
+    it.each([
+        ['ROOM#room'],
+        ['FEATURE#f1'],
+        ['KNOWLEDGE#k1'],
+        ['OBJECT#o1'],
+        ['CHARACTER#c1'],
+    ])('accepts a catalog row hosted by %s', (hostId) => {
+        expect(isEphemeraCacheCatalogRow(readyCatalog({ EphemeraId: hostId as EphemeraCacheCatalogRow['EphemeraId'] }))).toBe(true)
+    })
 })
 
 describe('renderCache fetch', () => {

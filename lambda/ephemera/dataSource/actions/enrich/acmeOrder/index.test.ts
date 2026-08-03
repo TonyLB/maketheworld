@@ -45,6 +45,7 @@ Check catalog.
                 stableKey: 'rope',
                 tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'rope rig' }],
                 tropeAffinitiesFailed: false,
+                defaultSituationFailed: true,
             }],
             confidence: 0.8 * 0.9,
         })
@@ -78,6 +79,7 @@ Check catalog.
                 stableKey: 'order-anvil-from-acme',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
+                defaultSituationFailed: true,
             }],
             confidence: 0.75,
         })
@@ -146,6 +148,7 @@ Check catalog.
                 stableKey: 'rope',
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
+                defaultSituationFailed: true,
             }],
             confidence: 0.5,
         })

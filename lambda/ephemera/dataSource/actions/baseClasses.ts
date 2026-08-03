@@ -4,6 +4,7 @@ import {
     EphemeraKnowledgeId,
     EphemeraObjectId,
     EphemeraRoomId,
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraObjectId,
@@ -174,7 +175,7 @@ export type ParseCommandLookRoomResult = {
  */
 export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
-    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
     confidence: ParseCommandConfidence
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean
@@ -480,6 +481,7 @@ export function isParseCommandLookComponentResult(
         && !isEphemeraFeatureId(result.componentId)
         && !isEphemeraKnowledgeId(result.componentId)
         && !isEphemeraObjectId(result.componentId)
+        && !isEphemeraCharacterId(result.componentId)
     ) {
         return false
     }

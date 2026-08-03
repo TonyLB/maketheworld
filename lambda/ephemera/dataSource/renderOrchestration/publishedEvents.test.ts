@@ -138,12 +138,23 @@ describe('publishedEvents guards', () => {
     it('rejects outbound when componentId is not a render host id', () => {
         const p = {
             type: 'Exact Match Found' as const,
-            componentId: 'CHARACTER#not-a-host',
+            componentId: 'SESSION#not-a-host',
             perspective: passThroughFixturePerspective,
             perspectiveKey: passThroughFixturePerspectiveKey,
             cacheId: minimalCacheId,
         }
         expect(isRenderOrchestrationExactMatchFoundPayload(p)).toBe(false)
+    })
+
+    it('accepts outbound with CHARACTER# componentId routing', () => {
+        const p = {
+            type: 'Exact Match Found' as const,
+            componentId: 'CHARACTER#pc',
+            perspective: passThroughFixturePerspective,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            cacheId: minimalCacheId,
+        }
+        expect(isRenderOrchestrationExactMatchFoundPayload(p)).toBe(true)
     })
 })
 

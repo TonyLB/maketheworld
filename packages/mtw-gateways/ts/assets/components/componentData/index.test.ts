@@ -1,3 +1,4 @@
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import {
     generateCacheKey,
     cacheKeyComponents,
@@ -105,6 +106,29 @@ describe('component data gateway', () => {
             const pair = standardComponentPairFromAssetDbGetItemsRow('ROOM#TestOne', row as any)
             expect(pair.assetId).toBe('ASSET#IMPROVISATION')
             expect(pair.component.universalKey).toBe('ROOM#TestOne')
+        })
+
+        it('round-trips an OBJECT# improvisation pair row with a SITUATION#DEFAULT situations facet (Phase 5 spawn-time prose)', () => {
+            const row = {
+                DataCategory: 'ASSET#IMPROVISATION',
+                EphemeraId: 'OBJECT#TestAnvil',
+                tag: 'Object' as const,
+                shortName: 'Anvil',
+                situations: [{
+                    reference: 'SITUATION#DEFAULT' as const,
+                    payload: { displayName: 'a heavy anvil', description: ['A cast-iron anvil sits here.'] },
+                }],
+            }
+            const pair = standardComponentPairFromAssetDbGetItemsRow('OBJECT#TestAnvil', row as any)
+            expect(pair.assetId).toBe('ASSET#IMPROVISATION')
+            expect(pair.component).toBeInstanceOf(StandardObject)
+            const component = pair.component as StandardObject
+            expect(component.situations.length).toBe(1)
+            expect(component.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
+            expect(component.situations.items[0].payload.toJSON()).toEqual({
+                displayName: 'a heavy anvil',
+                description: ['A cast-iron anvil sits here.'],
+            })
         })
 
         it('strips referencedBy before StandardComponent construction', () => {

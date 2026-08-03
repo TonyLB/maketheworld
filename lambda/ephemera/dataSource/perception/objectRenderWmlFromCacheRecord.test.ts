@@ -9,7 +9,7 @@ import {
 describe('objectRenderWmlFromCacheRecord', () => {
     const objectId = 'OBJECT#TestOne' as const
 
-    it('builds shortName WML from renderedContent.displayName (stub, PK-6)', () => {
+    it('builds shortName WML from renderedContent.displayName', () => {
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['serving tray'],
             description: [],
@@ -17,6 +17,21 @@ describe('objectRenderWmlFromCacheRecord', () => {
         const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent)
         expect(wml).toContain('Object uuid=(TestOne)')
         expect(wml).toContain('<ShortName>serving tray</ShortName>')
+    })
+
+    it('falls back to fallbackShortName when renderedContent.displayName is empty (no authored SITUATION#DEFAULT facet yet)', () => {
+        const wml = objectRenderWmlFromCacheRecord(objectId, { description: [] }, { fallbackShortName: 'a small brass key' })
+        expect(wml).toContain('<ShortName>a small brass key</ShortName>')
+    })
+
+    it('prefers renderedContent.displayName over fallbackShortName when both are present', () => {
+        const renderedContent: EphemeraCacheRenderedContent = {
+            displayName: ['serving tray'],
+            description: [],
+        }
+        const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent, { fallbackShortName: 'a small brass key' })
+        expect(wml).toContain('<ShortName>serving tray</ShortName>')
+        expect(wml).not.toContain('a small brass key')
     })
 
     it('always round-trips as valid, re-parseable WML --- Object structurally requires a non-empty ShortName', () => {

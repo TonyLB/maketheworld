@@ -33,3 +33,27 @@ export const shortNameFromMergedAggregate = async (
     const aggregateResults = await deps.getComponentAggregate([perspective])
     return shortNameFromComponent(aggregateResults[0]?.merged)
 }
+
+/**
+ * Live shortName resolution: merged aggregate first, then the improvisation pair row --- the same
+ * two-step fallback `roomObjectCatalogForCharacter.ts` and `heldInventoryCatalogForCharacter.ts`
+ * already duplicate inline, and the resolution the retired `ensureObjectShortNameCacheRecord.ts`
+ * stub used to perform on every look. Used as a WML-build-time fallback so Object's real
+ * `ensureAuthoredCatalog` path (an authored-facet-only cache, like Feature/Knowledge/Character) never
+ * regresses to a nameless Object when no `SITUATION#DEFAULT` facet has been authored yet.
+ */
+export const resolveObjectShortName = async (
+    objectId: EphemeraObjectId,
+    assetStack: readonly string[],
+    deps: {
+        getComponentAggregate: ComponentAggregateMergedCache['get']
+        getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent } | undefined>
+    }
+): Promise<string | undefined> => {
+    let shortName = await shortNameFromMergedAggregate(objectId, assetStack, deps)
+    if (!shortName) {
+        const pairRow = await deps.getImprovisationObject(objectId)
+        shortName = shortNameFromComponent(pairRow?.component)
+    }
+    return shortName
+}

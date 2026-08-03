@@ -51,11 +51,19 @@ describe('dataSource/renderOrchestration events guards', () => {
         })).toBe(true)
     })
 
-    it('rejects RenderRequested with non-render componentId', () => {
+    it('accepts RenderRequested with CHARACTER# componentId', () => {
         expect(isRenderRequested({
             type: 'RenderRequested',
             ...base,
             componentId: 'CHARACTER#char',
+        })).toBe(true)
+    })
+
+    it('rejects RenderRequested with non-render componentId', () => {
+        expect(isRenderRequested({
+            type: 'RenderRequested',
+            ...base,
+            componentId: 'SESSION#s1',
         })).toBe(false)
     })
 

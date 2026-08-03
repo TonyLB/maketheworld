@@ -1,5 +1,6 @@
 import type { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import {
+    isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
     isEphemeraRoomId,
@@ -52,6 +53,7 @@ export function routeTrustedUiAction(
                 !isEphemeraRoomId(ephemeraId)
                 && !isEphemeraFeatureId(ephemeraId)
                 && !isEphemeraKnowledgeId(ephemeraId)
+                && !isEphemeraCharacterId(ephemeraId)
             ) {
                 return true
             }

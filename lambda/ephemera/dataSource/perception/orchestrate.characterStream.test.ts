@@ -9,10 +9,8 @@ jest.mock('../../publishMessage', () => ({
     default: jest.fn().mockResolvedValue(undefined),
 }))
 
-import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
-import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
@@ -22,54 +20,37 @@ import { orchestrateRoomDescriptionStreams } from './orchestrate'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { registerIngressSlot } from '../messageOrchestration'
 
-const assetDBMock = jest.mocked(assetDB)
-const ephemeraDBMock = jest.mocked(ephemeraDB)
-
-const OBJECT_ID = 'OBJECT#test-tray' as const
+const CHARACTER_ID = 'CHARACTER#target' as const
 const PERSPECTIVE = { assetStack: ['ASSET#one'] } as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
 const VIEWER = 'CHARACTER#viewer' as const
-const SLOT_ID = 'object-slot'
+const SLOT_ID = 'character-slot'
 
-function objectTerminalCacheRecord(): EphemeraCacheDynamoItem {
+function characterTerminalCacheRecord(): EphemeraCacheDynamoItem {
     return {
-        EphemeraId: OBJECT_ID,
+        EphemeraId: CHARACTER_ID,
         DataCategory: CACHE_ID,
         markState: { markValue: [] },
-        renderedContent: { displayName: ['serving tray'], description: [] },
+        renderedContent: { displayName: ['Target'], summary: ['A stranger.'], description: ['A watchful figure.'] },
         provenance: { type: EPHEMERA_CACHE_PROVENANCE_AUTHORED },
         perspectiveId: 'perspective-id',
         perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
     }
 }
 
-/** No authored SITUATION#DEFAULT facet content yet (Phase 4: Object rides the real ensureAuthoredCatalog). */
-function objectEmptyTerminalCacheRecord(): EphemeraCacheDynamoItem {
-    return {
-        EphemeraId: OBJECT_ID,
-        DataCategory: CACHE_ID,
-        markState: { markValue: [] },
-        renderedContent: { description: [] },
-        provenance: { type: EPHEMERA_CACHE_PROVENANCE_AUTHORED },
-        perspectiveId: 'perspective-id',
-        perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
-    }
-}
-
-function assertObjectShortName(wmlContent: string, objectId: string, expectedShortName: string): void {
+function assertCharacterDescription(wmlContent: string, characterId: string, expectedDescription: string): void {
     const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
-    const object = parsed.byUniversalId[objectId]
-    expect(object).toBeInstanceOf(StandardObject)
-    expect((object as StandardObject).shortName?._payload?.plain?.toJSON()).toBe(expectedShortName)
+    const character = parsed.byUniversalId[characterId]
+    expect(character).toBeInstanceOf(StandardCharacter)
+    expect(wmlContent).toMatch(expectedDescription)
 }
 
 function spyPublish() {
     return jest.spyOn(messageBus, 'publish')
 }
 
-/** Declares a one-slot bundle and registers its ingress listener --- the Phase 7 object-description equivalent of dataSource/perception/index.test.ts's declareCharacterMoveBundle/registerCharacterMoveIngress. */
-async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Promise<string> {
+async function registerCharacterDescriptionSlot(targets: string[] = [VIEWER]): Promise<string> {
     const bundleId = uuidv4()
     sendMessageBundleDeclared(messageBus, bundleId, {
         bundleId,
@@ -78,7 +59,7 @@ async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Prom
     await registerIngressSlot(messageBus, bundleId, {
         slotId: SLOT_ID,
         expectedPublishType: 'PerceptionMessage',
-        componentId: OBJECT_ID,
+        componentId: CHARACTER_ID,
         perspectiveKey: PERSPECTIVE_KEY,
         targets: targets as any,
         contentStream: 'render',
@@ -87,26 +68,23 @@ async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Prom
     return bundleId
 }
 
-describe('orchestrateRoomDescriptionStreams object fan-in', () => {
+describe('orchestrateRoomDescriptionStreams character fan-in', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000
         mockGetCurrentTimestamp.mockImplementation(() => timestamp++)
         internalCache.clear()
         messageBus.clear()
-        assetDBMock.getItems.mockResolvedValue([] as any)
-        assetDBMock.query.mockResolvedValue([] as any)
-        ephemeraDBMock.getItems.mockResolvedValue([] as any)
     })
 
-    it('objectDescription Generation Started reports a valid Generating placeholder to the registered listener', async () => {
+    it('characterDescription Generation Started reports a valid Generating placeholder to the registered listener', async () => {
         const publishSpy = spyPublish()
-        await registerObjectDescriptionSlot()
+        await registerCharacterDescriptionSlot()
 
         await orchestrateRoomDescriptionStreams(
             {
                 type: 'Generation Started',
-                componentId: OBJECT_ID,
+                componentId: CHARACTER_ID,
                 perspective: PERSPECTIVE,
                 perspectiveKey: PERSPECTIVE_KEY,
                 phase: 'generating',
@@ -119,24 +97,22 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
             .map((c) => c[0] as any)
             .find((m) => m?.type === 'PublishMessage' && m.metaData?.status === 'generating')
         expect(genPublish).toBeDefined()
-        expect(genPublish?.metaData).toEqual({ componentUUID: OBJECT_ID, status: 'generating' })
+        expect(genPublish?.metaData).toEqual({ componentUUID: CHARACTER_ID, status: 'generating' })
         expect(genPublish?.targets).toEqual([VIEWER])
-        // Must round-trip as valid WML even though this is a placeholder --- Object structurally
-        // requires a non-empty ShortName.
         expect(() => new StandardForm(genPublish!.wmlContent as string, { standardizeMode: 'ephemeraWire' })).not.toThrow()
     })
 
-    it('objectDescription Render Pertains terminal delivers the resolved shortName', async () => {
+    it('characterDescription Render Pertains terminal delivers the resolved prose', async () => {
         const publishSpy = spyPublish()
-        await registerObjectDescriptionSlot()
+        await registerCharacterDescriptionSlot()
 
         await orchestrateRoomDescriptionStreams(
             {
                 type: 'Render Pertains',
-                componentId: OBJECT_ID,
+                componentId: CHARACTER_ID,
                 perspectiveKey: PERSPECTIVE_KEY,
                 cacheId: CACHE_ID,
-                cacheRecord: objectTerminalCacheRecord(),
+                cacheRecord: characterTerminalCacheRecord(),
             } as any,
             messageBus
         )
@@ -146,48 +122,19 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
             .map((c) => c[0] as any)
             .find((m) => m?.type === 'PublishMessage')
         expect(terminalPublish).toBeDefined()
-        expect(terminalPublish?.metaData).toEqual({ componentUUID: OBJECT_ID })
+        expect(terminalPublish?.metaData).toEqual({ componentUUID: CHARACTER_ID })
         expect(terminalPublish?.targets).toEqual([VIEWER])
-        assertObjectShortName(terminalPublish!.wmlContent as string, OBJECT_ID, 'serving tray')
+        assertCharacterDescription(terminalPublish!.wmlContent as string, CHARACTER_ID, 'A watchful figure.')
     })
 
-    it('objectDescription Render Pertains with no authored facet content falls back to the live shortName (Phase 4)', async () => {
-        internalCache.ImprovisationComponentData.set(OBJECT_ID, IMPROVISATION_ASSET_ID, new StandardObject({
-            tag: 'Object',
-            universalKey: OBJECT_ID,
-            shortName: 'a small brass key',
-        }))
-
+    it('characterDescription Orchestration Error delivers a valid Error placeholder', async () => {
         const publishSpy = spyPublish()
-        await registerObjectDescriptionSlot()
-
-        await orchestrateRoomDescriptionStreams(
-            {
-                type: 'Render Pertains',
-                componentId: OBJECT_ID,
-                perspectiveKey: PERSPECTIVE_KEY,
-                cacheId: CACHE_ID,
-                cacheRecord: objectEmptyTerminalCacheRecord(),
-            } as any,
-            messageBus
-        )
-        await messageBus.flushAndSettle()
-
-        const terminalPublish = publishSpy.mock.calls
-            .map((c) => c[0] as any)
-            .find((m) => m?.type === 'PublishMessage')
-        expect(terminalPublish).toBeDefined()
-        assertObjectShortName(terminalPublish!.wmlContent as string, OBJECT_ID, 'a small brass key')
-    })
-
-    it('objectDescription Orchestration Error delivers a valid Error placeholder', async () => {
-        const publishSpy = spyPublish()
-        await registerObjectDescriptionSlot()
+        await registerCharacterDescriptionSlot()
 
         await orchestrateRoomDescriptionStreams(
             {
                 type: 'Orchestration Error',
-                componentId: OBJECT_ID,
+                componentId: CHARACTER_ID,
                 perspective: PERSPECTIVE,
                 perspectiveKey: PERSPECTIVE_KEY,
                 errorCode: 'CONTEXT_REQUIRED',
@@ -210,7 +157,7 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
         await orchestrateRoomDescriptionStreams(
             {
                 type: 'Generation Started',
-                componentId: OBJECT_ID,
+                componentId: CHARACTER_ID,
                 perspective: PERSPECTIVE,
                 perspectiveKey: PERSPECTIVE_KEY,
                 phase: 'generating',

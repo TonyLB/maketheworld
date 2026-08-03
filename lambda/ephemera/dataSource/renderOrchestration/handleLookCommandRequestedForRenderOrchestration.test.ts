@@ -4,7 +4,7 @@ import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
 import * as prepareFeatureKnowledge from './prepareFeatureKnowledgeRenderForCharacter'
 import * as prepareObject from './prepareObjectRenderForCharacter'
-import { ensureObjectShortNameCacheRecord } from '../renderCache/ensureObjectShortNameCacheRecord'
+import * as prepareCharacter from './prepareCharacterRenderForCharacter'
 import * as messageOrchestration from '../messageOrchestration'
 import * as messageOrchestrationSubscribedEvents from '../messageOrchestration/subscribedEvents'
 import {
@@ -29,8 +29,8 @@ jest.mock('./prepareFeatureKnowledgeRenderForCharacter', () => ({
 jest.mock('./prepareObjectRenderForCharacter', () => ({
     prepareObjectRenderForCharacter: jest.fn(),
 }))
-jest.mock('../renderCache/ensureObjectShortNameCacheRecord', () => ({
-    ensureObjectShortNameCacheRecord: jest.fn(),
+jest.mock('./prepareCharacterRenderForCharacter', () => ({
+    prepareCharacterRenderForCharacter: jest.fn(),
 }))
 jest.mock('../messageOrchestration', () => ({
     registerIngressSlot: jest.fn(),
@@ -46,6 +46,7 @@ const mockFilterRoomCanonStackByCharacterAssets = filterRoomCanonStackByCharacte
 const mockOrchestrateRenderRequest = orchestrationHandler.orchestrateRenderRequest as jest.MockedFunction<typeof orchestrationHandler.orchestrateRenderRequest>
 const mockPrepareFeatureKnowledgeRenderForCharacter = prepareFeatureKnowledge.prepareFeatureKnowledgeRenderForCharacter as jest.MockedFunction<typeof prepareFeatureKnowledge.prepareFeatureKnowledgeRenderForCharacter>
 const mockPrepareObjectRenderForCharacter = prepareObject.prepareObjectRenderForCharacter as jest.MockedFunction<typeof prepareObject.prepareObjectRenderForCharacter>
+const mockPrepareCharacterRenderForCharacter = prepareCharacter.prepareCharacterRenderForCharacter as jest.MockedFunction<typeof prepareCharacter.prepareCharacterRenderForCharacter>
 const mockRegisterIngressSlot = messageOrchestration.registerIngressSlot as jest.MockedFunction<typeof messageOrchestration.registerIngressSlot>
 const mockSendMessageBundleDeclared = messageOrchestrationSubscribedEvents.sendMessageBundleDeclared as jest.MockedFunction<typeof messageOrchestrationSubscribedEvents.sendMessageBundleDeclared>
 
@@ -249,7 +250,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         )
     })
 
-    it('registers an object describe slot and orchestrates with the ensureObjectShortNameCacheRecord override for object look (PK-6 stub)', async () => {
+    it('registers an object describe slot and orchestrates with the real ensureAuthoredCatalog (no override) for object look', async () => {
         mockPrepareObjectRenderForCharacter.mockResolvedValue({
             componentId: 'OBJECT#Tray',
             characterId: 'CHARACTER#C',
@@ -294,9 +295,58 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
                     allowGeneration: false,
                 },
             },
-            { ensureAuthoredCatalog: ensureObjectShortNameCacheRecord },
         )
         expect(mockPrepareFeatureKnowledgeRenderForCharacter).not.toHaveBeenCalled()
+    })
+
+    it('registers a character describe slot and orchestrates with the real ensureAuthoredCatalog (no override) for character look', async () => {
+        mockPrepareCharacterRenderForCharacter.mockResolvedValue({
+            componentId: 'CHARACTER#Target',
+            characterId: 'CHARACTER#C',
+            perspective: { assetStack: ['ASSET#A'] },
+            perspectiveKey: 'pk-character',
+            renderCommand: {
+                componentId: 'CHARACTER#Target',
+                perspective: { assetStack: ['ASSET#A'] },
+                characterId: 'CHARACTER#C',
+                allowGeneration: false,
+            },
+        })
+
+        await handleLookCommandRequestedForRenderOrchestration(messageBus, {
+            type: 'Look Command Requested',
+            characterId: 'CHARACTER#C',
+            componentId: 'CHARACTER#Target',
+            confidence: 1,
+        }, streamEvent)
+
+        expect(mockPrepareCharacterRenderForCharacter).toHaveBeenCalledWith('CHARACTER#C', 'CHARACTER#Target')
+        expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
+            messageBus,
+            expect.any(String),
+            expect.objectContaining({
+                componentId: 'CHARACTER#Target',
+                perspectiveKey: 'pk-character',
+                targets: ['CHARACTER#C'],
+                contentStream: 'render',
+                format: 'full',
+            }),
+            expect.any(Function)
+        )
+        expect(mockOrchestrateRenderRequest).toHaveBeenCalledWith(
+            {
+                streamEvent,
+                payload: {
+                    type: 'RenderRequested',
+                    componentId: 'CHARACTER#Target',
+                    perspective: { assetStack: ['ASSET#A'] },
+                    characterId: 'CHARACTER#C',
+                    allowGeneration: false,
+                },
+            },
+        )
+        expect(mockPrepareFeatureKnowledgeRenderForCharacter).not.toHaveBeenCalled()
+        expect(mockPrepareObjectRenderForCharacter).not.toHaveBeenCalled()
     })
 
     it('mints a fresh bundleId per event, not shared across separate look events', async () => {

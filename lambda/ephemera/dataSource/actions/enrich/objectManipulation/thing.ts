@@ -8,7 +8,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 /**
- * CPG-5's referent-kind abstraction (`AGENT.perceptionKernel.planning.md`, Phase 2): the
+ * CPG-5's referent-kind abstraction (see `dataSource/actions/AGENT.concepts.md`): the
  * three `EphemeraPositionGraph`-groundable referent kinds Object-manipulation-style
  * resolution (Identify/Grounding) can point at, as one named union rather than the
  * ad hoc `EphemeraObjectId | EphemeraCharacterId` pair repeated at each call site.

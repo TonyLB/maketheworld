@@ -1,6 +1,8 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
+import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
@@ -19,6 +21,8 @@ export type SpawnImprovisationObjectRow = {
     targetRoomId: EphemeraRoomId;
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
+    /** `SITUATION#DEFAULT` prose facet (Acme-generated); already-built merge-body shape, no generation here. */
+    situations?: FacetListData<SituationProseFacetPayloadType>;
 }
 
 export type SpawnOneImprovisationObjectDependencies = {
@@ -51,6 +55,7 @@ export const spawnOneImprovisationObject = async (
         stableKey: args.stableKey,
         tropeAffinities: args.tropeAffinities,
         tropeAffinitiesFailed: args.tropeAffinitiesFailed,
+        situations: args.situations,
         ...(embedResult.success ? { embedding: embedResult.embedding } : {}),
     }
     if (!embedResult.success) {

@@ -29,6 +29,8 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
     it.each([
         ['FEATURE#x', 'FEATURE#x'],
         ['KNOWLEDGE#x', 'KNOWLEDGE#x'],
+        ['OBJECT#x', 'OBJECT#x'],
+        ['CHARACTER#x', 'CHARACTER#x'],
     ] as const)('returns success for %s without loading Meta::Room', async (_label, componentId) => {
         const payload: RenderRequested = { ...basePayload, componentId }
         const r = await intakeRenderRequested(payload, fkDeps)

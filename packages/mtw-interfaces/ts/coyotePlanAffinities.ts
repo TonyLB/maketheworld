@@ -124,6 +124,13 @@ function applyCoyoteAffinityAptnessFloor(
     return kept
 }
 
+/** Short flavor-text prose for the object's `SITUATION#DEFAULT` facet (plain description, not trope classification). */
+export type AcmeOrderEnrichDefaultSituationProse = {
+    displayName?: string;
+    summary?: string;
+    description?: string;
+}
+
 export type AcmeOrderEnrichModelLine =
     | {
           valid: true;
@@ -132,6 +139,8 @@ export type AcmeOrderEnrichModelLine =
           stableKey: string;
           tropeAffinities?: CoyoteTropeAffinity[];
           tropeAffinitiesFailed?: boolean;
+          defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
+          defaultSituationFailed?: boolean;
       }
     | {
           valid: false;
@@ -322,6 +331,23 @@ export function isAcmeCatalogRejectionReason(value: unknown): value is AcmeCatal
     )
 }
 
+/** `SITUATION#DEFAULT` flavor-text prose shape: all fields optional strings, no other keys. */
+export function isAcmeOrderEnrichDefaultSituationProse(value: unknown): value is AcmeOrderEnrichDefaultSituationProse {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const o = value as Record<string, unknown>
+    const allowed = ['displayName', 'summary', 'description']
+    if (!Object.keys(o).every((k) => allowed.includes(k))) {
+        return false
+    }
+    return (
+        (o.displayName === undefined || typeof o.displayName === 'string')
+        && (o.summary === undefined || typeof o.summary === 'string')
+        && (o.description === undefined || typeof o.description === 'string')
+    )
+}
+
 function isFiniteUnitConfidence(n: unknown): boolean {
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
 }
@@ -432,6 +458,10 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
             : [],
         tropeAffinitiesFailed: o.tropeAffinitiesFailed === true
             || !Array.isArray(o.tropeAffinities),
+        ...normalizeDefaultSituationFields({
+            defaultSituation: isAcmeOrderEnrichDefaultSituationProse(o.defaultSituation) ? o.defaultSituation : undefined,
+            defaultSituationFailed: o.defaultSituationFailed === true,
+        }),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
 }
@@ -450,6 +480,7 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
         stableKey: defaultStableKeyProposal(name),
         tropeAffinities: [],
         tropeAffinitiesFailed: true,
+        defaultSituationFailed: true,
     }
 }
 
@@ -490,6 +521,25 @@ function normalizeTropeFields(raw: {
     return output
 }
 
+/** Absent/empty `defaultSituation` normalizes to `defaultSituationFailed: true` (mirrors `normalizeTropeFields`). */
+function normalizeDefaultSituationFields(raw: {
+    defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
+    defaultSituationFailed?: boolean;
+}): { defaultSituation?: AcmeOrderEnrichDefaultSituationProse; defaultSituationFailed: boolean } {
+    const prose = raw.defaultSituation
+    const hasProse = Boolean(
+        prose && (
+            (prose.displayName?.trim().length ?? 0) > 0
+            || (prose.summary?.trim().length ?? 0) > 0
+            || (prose.description?.trim().length ?? 0) > 0
+        )
+    )
+    return {
+        ...(hasProse ? { defaultSituation: prose } : {}),
+        defaultSituationFailed: raw.defaultSituationFailed === true || !hasProse,
+    }
+}
+
 /**
  * Maps one raw **`lines[i]`** entry to a canonical **`AcmeOrderEnrichModelLine`**: validate, salvage common LLM mistakes, or synthesize trope failure.
  */
@@ -507,11 +557,13 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             lineName: raw.name,
             sourceKind: 'valid_line',
         })
+        const normalizedDefaultSituation = normalizeDefaultSituationFields(raw)
         return {
             valid: true,
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             ...normalizedTrope,
+            ...normalizedDefaultSituation,
         }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
@@ -560,6 +612,7 @@ export function normalizeAcmeOrderEnrichResponse(
             stableKey: defaultStableKeyProposal(emptyName),
             tropeAffinities: [],
             tropeAffinitiesFailed: true,
+            defaultSituationFailed: true,
         }]
 
     const result: AcmeOrderEnrichModelResponse = { lines: outLines }
@@ -598,6 +651,15 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.tropeAffinitiesFailed === true && Array.isArray(o.tropeAffinities) && o.tropeAffinities.length !== 0) {
+        return false
+    }
+    if ('defaultSituation' in o && o.defaultSituation !== undefined && !isAcmeOrderEnrichDefaultSituationProse(o.defaultSituation)) {
+        return false
+    }
+    if ('defaultSituationFailed' in o && typeof o.defaultSituationFailed !== 'boolean') {
+        return false
+    }
+    if (o.defaultSituationFailed === true && o.defaultSituation !== undefined) {
         return false
     }
     return true

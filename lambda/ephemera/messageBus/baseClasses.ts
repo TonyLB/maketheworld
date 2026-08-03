@@ -267,6 +267,7 @@ export type RenderComponentId =
     | EphemeraKnowledgeId
     | EphemeraMapId
     | EphemeraObjectId
+    | EphemeraCharacterId
 
 export const isRenderComponentId = (value: unknown): value is RenderComponentId => (
     typeof value === 'string'
@@ -276,6 +277,7 @@ export const isRenderComponentId = (value: unknown): value is RenderComponentId 
         || isEphemeraKnowledgeId(value)
         || isEphemeraMapId(value)
         || isEphemeraObjectId(value)
+        || isEphemeraCharacterId(value)
     )
 )
 

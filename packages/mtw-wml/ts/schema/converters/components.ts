@@ -7,12 +7,13 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { SchemaTag, isSchemaAsset, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag, isSchemaAsset, isSchemaCharacter, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { isLegalKey } from "../../standardize/utils"
+import { splitTaggedChildren } from "../utils"
 
 const componentTemplates = {
     Exit: {
@@ -343,7 +344,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...(refValue !== undefined ? { ref: refValue } : {}),
             }
         },
-        typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
+        typeCheckContents: (item: SchemaTag): boolean => (
+            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaReplace(item) || isSchemaRemove(item)
+        ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
@@ -353,30 +356,44 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Object tag must have a non-empty uuid')
             }
             const uuidNormalized = enforceTypedKey('OBJECT')(uuidTrimmed)
-            const shortNameNodes = children.filter((child) => isSchemaShortName(child.data))
-            if (shortNameNodes.length === 0) {
+            // Respects Remove/Replace wrappers around ShortName (see splitTaggedChildren), so an
+            // incremental edit (e.g. merge/diff round-trip) satisfies the "must have a ShortName"
+            // requirement without needing a literal, fully-resolved <ShortName> child.
+            const { matched: shortNameMatches, remainder: otherChildren } = splitTaggedChildren({ children, tag: 'ShortName' })
+            if (shortNameMatches.length === 0) {
                 throw new Error('Object tag must contain exactly one ShortName child')
             }
-            if (shortNameNodes.length > 1) {
+            if (shortNameMatches.length > 1) {
                 throw new Error('Object tag must contain exactly one ShortName child')
             }
-            const shortNameChild = shortNameNodes[0]
-            const textValue = shortNameChild.children
-                .map(({ data }) => data)
-                .filter(isSchemaString)
-                .map(({ value }) => value)
-                .join('')
-                .trim()
-            if (!textValue) {
-                throw new Error('Object ShortName must contain non-empty text after trim')
+            const [shortNameMatch] = shortNameMatches
+            let shortNameChildren: GenericTree<SchemaTag>
+            if (isSchemaShortName(shortNameMatch.data)) {
+                // Bare ShortName: canonicalize to a single trimmed String child, as before.
+                const textValue = shortNameMatch.children
+                    .map(({ data }) => data)
+                    .filter(isSchemaString)
+                    .map(({ value }) => value)
+                    .join('')
+                    .trim()
+                if (!textValue) {
+                    throw new Error('Object ShortName must contain non-empty text after trim')
+                }
+                shortNameChildren = [{
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
+                }]
+            }
+            else {
+                // Remove/Replace-wrapped ShortName edit: the final text only exists after merge,
+                // so preserve the edit node as-is rather than trying to resolve/validate it here.
+                shortNameChildren = [shortNameMatch]
             }
             return {
                 data: { tag: 'Object', uuid: uuidNormalized },
                 children: [
-                    {
-                        data: { tag: 'ShortName' },
-                        children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
-                    },
+                    ...shortNameChildren,
+                    ...otherChildren,
                 ],
             }
         },
@@ -389,14 +406,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
      * emit paths (for example `SituationRoomFacetPayload.toProseTripletChildren` and
      * `situationRoomRenderPayloadFromCacheRenderedContent` in the ephemera lambda) and remove those
      * placeholders in the same change set so WML round-trip stays coherent.
+     *
+     * Character joined this whitelist alongside Room/Feature/Knowledge once Character's own
+     * ephemera-wire render path landed (`lambda/ephemera/dataSource/perception/
+     * characterRenderWmlFromCacheRecord.ts`) --- `StandardCharacterData.render` already existed for
+     * JSON/ephemera-wire construction (Phase 1 of the objectCharacterRenderHosts iteration), but the
+     * parse-time whitelist here was deliberately left behind pending that consumer. Object's `render`
+     * field remains data-layer-only; its own whitelist entry is still deferred until Object has a real
+     * (non-shortName-stub) render path.
      */
     Render: {
         initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
             const hasEphemeraRenderParent = contextStack.some(({ data }) => (
-                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data)
+                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data) || isSchemaCharacter(data)
             ))
             if (!hasEphemeraRenderParent) {
-                throw new Error('Render tag can only be used inside a Room, Feature, or Knowledge')
+                throw new Error('Render tag can only be used inside a Room, Feature, Knowledge, or Character')
             }
             validateProperties(componentTemplates.Render)(parseOpen)
             return { tag: 'Render' }

@@ -20,19 +20,22 @@ const EMPTY_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
 const PLACEHOLDER_SHORT_NAME = '⁠'
 
 /**
- * Render-channel WML for the Object description stub (PK-6): built from `shortName` --- the field
- * `StandardObject` already fully supports (parse-consumer, type, and `schema()` emitter) --- rather
- * than mirroring `featureRenderWmlFromCacheRecord`/`knowledgeRenderWmlFromCacheRecord`'s `.render`
- * mechanism, which `StandardObject` has no concept of at any layer. `ensureObjectShortNameCacheRecord`
- * writes the shortName into `renderedContent.displayName`; there is no real `<Render>` content to
- * fall back through here, unlike Feature/Knowledge.
+ * Render-channel WML for Object: built from `shortName` --- the field `StandardObject` already fully
+ * supports (parse-consumer, type, and `schema()` emitter) --- rather than mirroring
+ * `featureRenderWmlFromCacheRecord`/`knowledgeRenderWmlFromCacheRecord`'s `.render` mechanism, which
+ * `StandardObject` has no wired consumer for yet. `renderedContent.displayName` comes from the real
+ * `ensureAuthoredCatalog` path's `SITUATION#DEFAULT` facet (authored-only, may be empty); `fallbackShortName`
+ * --- the object's own live-resolved shortName, from `objects/objectShortName.ts`'s
+ * `resolveObjectShortName` --- fills in when no facet has been authored, so Object never renders
+ * nameless.
  */
 export function objectRenderWmlFromCacheRecord(
     objectId: EphemeraObjectId,
-    renderedContent: EphemeraCacheRenderedContent
+    renderedContent: EphemeraCacheRenderedContent,
+    { fallbackShortName }: { fallbackShortName?: string } = {}
 ): string {
     const resolved = renderedContent.displayName ? renderTreeToString(renderedContent.displayName) : ''
-    const shortName = resolved.length > 0 ? resolved : PLACEHOLDER_SHORT_NAME
+    const shortName = resolved.length > 0 ? resolved : (fallbackShortName || PLACEHOLDER_SHORT_NAME)
     const objectRow: StandardObjectData = {
         tag: 'Object',
         universalKey: objectId,

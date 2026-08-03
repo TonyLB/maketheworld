@@ -474,6 +474,11 @@ describe('parseCommand type guards', () => {
             type: 'LookComponent',
             componentId: 'CHARACTER#1',
             confidence: 1,
+        } as any)).toBe(true)
+        expect(isParseCommandLookComponentResult({
+            type: 'LookComponent',
+            componentId: 'SESSION#1',
+            confidence: 1,
         } as any)).toBe(false)
         expect(isParseCommandLookComponentResult({
             type: 'LookComponent',
@@ -981,6 +986,7 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'glue-trap',
                     tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'sticky trap' }],
                     tropeAffinitiesFailed: false,
+                    defaultSituationFailed: true,
                 }],
                 confidence: 0.9 * 0.9,
             })

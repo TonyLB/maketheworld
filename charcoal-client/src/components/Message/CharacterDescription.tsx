@@ -2,7 +2,8 @@ import React, { ReactChild, ReactChildren } from 'react'
 
 import {
     Box,
-    Typography
+    Typography,
+    Divider
 } from '@mui/material'
 import { blue, grey } from '@mui/material/colors'
 
@@ -11,8 +12,14 @@ import {
     PerceptionMessage,
     isPerceptionCharacterMetaData
 } from '@tonylb/mtw-interfaces/ts/messages'
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardRender, PlainClass } from '@tonylb/mtw-wml/ts/standardize/render'
+import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { DEFAULT_SITUATION_ID } from '../../slices/personalAssets'
+import RenderTreeContent from './RenderTreeContent'
 
 /*
  * Character portrait (CharacterAvatarDirect) was removed: we are not using those icons in a
@@ -23,26 +30,52 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 interface CharacterDescriptionProps {
     message: PerceptionMessage & { parsedWML?: StandardForm };
     children?: ReactChild | ReactChildren;
+    onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void;
 }
 
-export const CharacterDescription = ({ message }: CharacterDescriptionProps) => {
+/** Same prose-resolution rule as ComponentDescription's resolveFeatureKnowledgeProse: prefer the ephemera Render, fall back to the SITUATION#DEFAULT facet. */
+function resolveCharacterProse(component: StandardCharacter): SituationProseFacetPayload | undefined {
+    if (component.render) {
+        const fromRender = new SituationProseFacetPayload(component.render)
+        if (!SituationProseFacetPayload.isEmpty(fromRender)) {
+            return fromRender
+        }
+    }
+    const defaultFacet = component.situations.items.find(
+        (facet) => facet.reference?.universalKey === DEFAULT_SITUATION_ID
+    )
+    if (defaultFacet) {
+        return defaultFacet.payload as SituationProseFacetPayload
+    }
+    return undefined
+}
+
+export const CharacterDescription = ({ message, onClickLink }: CharacterDescriptionProps) => {
     // Ensure this is actually character metadata - this should never fail if routing is correct
     if (!isPerceptionCharacterMetaData(message.metaData)) {
         throw new Error(`CharacterDescription component received non-character metadata: ${message.metaData.componentUUID}. This indicates a bug in message routing.`)
     }
     const CharacterId = message.metaData.componentUUID
 
-    let Name: string
+    let name: StandardLiteral = new StandardLiteral('Unknown', { tag: 'DisplayName' })
+    let description: StandardRender = new StandardRender([])
 
     if (message.parsedWML) {
         const component = message.parsedWML.byUniversalId[CharacterId]
         if (component instanceof StandardCharacter) {
-            Name = component.displayName?._payload?.plain?.toJSON() || 'Unknown'
-        } else {
-            Name = 'Unknown'
+            // The character's own name (component.displayName) is always available once the
+            // Character is authored, independent of whether any Situation prose exists yet ---
+            // it's Character's equivalent of Object's shortName fallback, not the situation
+            // facet's own _displayName (which describes how the character currently appears and
+            // may be absent). Prefer facet prose's name when present, but never regress to
+            // 'Unknown' when the character's real name is known.
+            name = component.displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
+            const prosePayload = resolveCharacterProse(component)
+            if (prosePayload) {
+                name = prosePayload._displayName || name
+                description = prosePayload._description || new StandardRender([])
+            }
         }
-    } else {
-        Name = 'Unknown'
     }
 
     return <MessageComponent
@@ -64,8 +97,20 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
                 }}
             >
                 <Typography variant='h5' align='left'>
-                    { Name }
+                    { name._payload?.plain?.toJSON() ?? 'Unknown' }
                 </Typography>
+                <Divider />
+                {
+                    (() => {
+                        const plain = description?.plain ?? []
+                        if (description && description._payload && !(description._payload instanceof PlainClass)) {
+                            console.error('Expected PlainClass but got', description._payload.constructor.name, description)
+                        }
+                        return plain.length > 0
+                            ? <RenderTreeContent list={plain} onClickLink={onClickLink} />
+                            : <em>No description</em>
+                    })()
+                }
             </Box>
         </MessageComponent>
 }

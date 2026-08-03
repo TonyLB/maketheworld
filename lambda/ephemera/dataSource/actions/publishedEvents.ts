@@ -14,8 +14,8 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { areCoyoteObjectTropeFieldsValid } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { AcmeOrderEnrichDefaultSituationProse, CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { areCoyoteObjectTropeFieldsValid, isAcmeOrderEnrichDefaultSituationProse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
@@ -180,8 +180,8 @@ export type PredictHypothesisPublishedPayload = {
 export type LookCommandRequestedPublishedPayload = {
     type: 'Look Command Requested';
     characterId: EphemeraCharacterId;
-    /** Room, Feature, Knowledge, or Object (stub, shortName only --- see PK-6) host for this look. */
-    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId;
+    /** Room, Feature, Knowledge, Object (stub, shortName only --- see PK-6), or Character host for this look. */
+    componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId;
     confidence: number;
     /** When true on Knowledge looks, fan-in targets SESSION#... */
     directResponse?: boolean;
@@ -194,6 +194,9 @@ export type AcmeOrderPublishedOrder = {
     stableKey: string;
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
+    /** `SITUATION#DEFAULT` flavor-text prose from Acme enrich; consumed at object spawn. */
+    defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
+    defaultSituationFailed?: boolean;
 }
 
 export type AcmeOrderPublishedPayload = {
@@ -419,6 +422,7 @@ export const isLookCommandRequestedPublishedPayload = (
         && !isEphemeraFeatureId(v.componentId)
         && !isEphemeraKnowledgeId(v.componentId)
         && !isEphemeraObjectId(v.componentId)
+        && !isEphemeraCharacterId(v.componentId)
     ) {
         return false
     }
@@ -443,6 +447,12 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
         return false
     }
     if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
+        return false
+    }
+    if ('defaultSituation' in o && o.defaultSituation !== undefined && !isAcmeOrderEnrichDefaultSituationProse(o.defaultSituation)) {
+        return false
+    }
+    if ('defaultSituationFailed' in o && typeof o.defaultSituationFailed !== 'boolean') {
         return false
     }
     return true
