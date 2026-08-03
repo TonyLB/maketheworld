@@ -15,6 +15,28 @@ export async function resolvePerspectivePointer(
     return catalogRow?.currentCacheId
 }
 
+/**
+ * Set the `currentCacheId` fast pointer on a perspective's catalog row. No-op when the catalog row
+ * does not exist yet (mirrors `conditionalInvalidateCatalogRow`'s no-op convention). Touches only the
+ * `Cache::` catalog row -- never a `CACHE#` row.
+ */
+export async function setPerspectivePointer(
+    hostId: EphemeraCacheComponentId,
+    perspectiveKey: string,
+    cacheId: EphemeraCacheId
+): Promise<void> {
+    const catalogRow = await getCatalogRow(hostId, perspectiveKey)
+    if (catalogRow) {
+        await ephemeraDB.optimisticUpdate({
+            Key: { EphemeraId: catalogRow.EphemeraId, DataCategory: catalogRow.DataCategory },
+            updateKeys: ['currentCacheId'],
+            updateReducer: (draft: { currentCacheId?: EphemeraCacheId }) => {
+                draft.currentCacheId = cacheId
+            },
+        })
+    }
+}
+
 export async function clearPerspectivePointer(
     hostId: EphemeraCacheComponentId,
     perspectiveKey: string

@@ -18,12 +18,16 @@ const handleExampleInvalidatedMock = handleExampleInvalidated as jest.MockedFunc
 const handleRenderCacheFindingMock = handleRenderCacheFinding as jest.MockedFunction<typeof handleRenderCacheFinding>
 import {
     makePassThroughCurrentCacheValidPayload,
+    makePassThroughExactMatchFoundPayload,
+    makePassThroughRenderGeneratedPayload,
+    passThroughFixtureMinimalCacheId,
     passThroughFixtureMinimalDynamoItem,
     passThroughFixturePerspectiveKey,
     passThroughFixtureRoomId,
 } from '../passThroughContractFixtures'
 import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY, sendRenderOrchestrationPublish } from '../renderOrchestration/publishedEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY } from './baseClasses'
+import { setPerspectivePointer } from './perspectivePointer'
 
 jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
@@ -40,11 +44,15 @@ jest.mock('./handleExampleInvalidated', () => ({
 jest.mock('./handleRenderCacheFinding', () => ({
     handleRenderCacheFinding: jest.fn(),
 }))
+jest.mock('./perspectivePointer', () => ({
+    setPerspectivePointer: jest.fn(),
+}))
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const deleteCacheRecordMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
 const cleanupSituationAdjacencyForDeletedRecordsMock =
     cleanupSituationAdjacencyForDeletedRecords as jest.MockedFunction<typeof cleanupSituationAdjacencyForDeletedRecords>
+const setPerspectivePointerMock = setPerspectivePointer as jest.MockedFunction<typeof setPerspectivePointer>
 const originalMessageBusPublish = messageBus.publish.bind(messageBus)
 
 describe('mtw.ephemera.renderCache DataSource', () => {
@@ -63,6 +71,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         messageBus.clear()
         jest.clearAllMocks()
         putCacheRecordMock.mockResolvedValue('CACHE#written')
+        setPerspectivePointerMock.mockResolvedValue(undefined)
         internalCache.RenderCache.clear()
     })
 
@@ -104,8 +113,44 @@ describe('mtw.ephemera.renderCache DataSource', () => {
                     && call[0]?.header?.type === 'Render Pertains'
             )
         ).toBe(true)
+        expect(setPerspectivePointerMock).toHaveBeenCalledWith(
+            passThroughFixtureRoomId,
+            passThroughFixturePerspectiveKey,
+            passThroughFixtureMinimalCacheId
+        )
         publishSpy.mockRestore()
         jest.restoreAllMocks()
+    })
+
+    it('sets the perspective pointer on Exact Match Found pass-through path', async () => {
+        const getSpy = jest
+            .spyOn(internalCache.RenderCache, 'get')
+            .mockResolvedValue([passThroughFixtureMinimalDynamoItem])
+
+        try {
+            sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughExactMatchFoundPayload())
+            await messageBus.flushAndSettle()
+
+            expect(setPerspectivePointerMock).toHaveBeenCalledWith(
+                passThroughFixtureRoomId,
+                passThroughFixturePerspectiveKey,
+                passThroughFixtureMinimalCacheId
+            )
+        } finally {
+            getSpy.mockRestore()
+        }
+    })
+
+    it('sets the perspective pointer on Render Generated pass-through path', async () => {
+        sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughRenderGeneratedPayload())
+        await messageBus.flushAndSettle()
+
+        expect(putCacheRecordMock).toHaveBeenCalledTimes(1)
+        expect(setPerspectivePointerMock).toHaveBeenCalledWith(
+            passThroughFixtureRoomId,
+            passThroughFixturePerspectiveKey,
+            'CACHE#written'
+        )
     })
 
     it('putCacheRecord then emits Cache Updated on the bus', async () => {

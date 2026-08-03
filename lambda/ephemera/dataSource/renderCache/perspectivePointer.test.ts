@@ -22,6 +22,7 @@ import {
     clearPerspectivePointer,
     collectPerspectivePointerEntries,
     resolvePerspectivePointer,
+    setPerspectivePointer,
 } from './perspectivePointer'
 import type { EphemeraCacheCatalogRow } from './baseClasses'
 
@@ -78,6 +79,49 @@ describe('perspectivePointer', () => {
         expect(entries).toEqual([
             { perspectiveKey: 'PERSPECTIVE#v1#cat', cacheId: 'CACHE#cat' },
         ])
+    })
+
+    it('setPerspectivePointer writes currentCacheId on the catalog row only', async () => {
+        mockGetCatalog.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        } satisfies EphemeraCacheCatalogRow)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        const call = ephemeraDBMock.optimisticUpdate.mock.calls[0][0]
+        expect(call.Key).toEqual({ EphemeraId: roomId, DataCategory: 'Cache::PERSPECTIVE#v1#abc' })
+        expect(call.updateKeys).toEqual(['currentCacheId'])
+        const draft: { currentCacheId?: string } = {}
+        call.updateReducer(draft)
+        expect(draft.currentCacheId).toBe('CACHE#new')
+    })
+
+    it('setPerspectivePointer is a no-op when the catalog row does not exist', async () => {
+        mockGetCatalog.mockResolvedValue(undefined)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        expect(ephemeraDBMock.optimisticUpdate).not.toHaveBeenCalled()
+    })
+
+    it('setPerspectivePointer never touches a CACHE# row (catalog-row DataCategory only)', async () => {
+        mockGetCatalog.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        } satisfies EphemeraCacheCatalogRow)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        const call = ephemeraDBMock.optimisticUpdate.mock.calls[0][0]
+        expect(call.Key.DataCategory.startsWith('Cache::')).toBe(true)
     })
 
     it('clearPerspectivePointer clears the catalog row pointer', async () => {

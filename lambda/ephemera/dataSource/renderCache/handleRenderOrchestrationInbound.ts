@@ -1,8 +1,10 @@
 /**
  * Pass-through from mtw.ephemera.renderOrchestration stream events.
  * Generate path: durable write on Render Generated, then Render Pertains then Cache Updated (Cache-OI-1).
+ * Hit and generate paths also set the `currentCacheId` catalog-row pointer (best-effort, CP-4 seam).
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from './baseClasses'
 import internalCache from '../../internalCache'
 import type {
@@ -13,7 +15,27 @@ import type {
 } from '../renderOrchestration/publishedEvents'
 import type { PutCacheRecordInput } from './putCacheRecord'
 import { putCacheRecord } from './putCacheRecord'
+import { setPerspectivePointer } from './perspectivePointer'
 import type { RenderCacheUpdatePayload } from './baseClasses'
+
+async function setPerspectivePointerBestEffort(
+    componentId: EphemeraCacheComponentId,
+    perspectiveKey: string,
+    cacheId: EphemeraCacheId
+): Promise<void> {
+    try {
+        await setPerspectivePointer(componentId, perspectiveKey, cacheId)
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error('[mtw.ephemera.renderCache] Perspective pointer set failed (best-effort)', {
+            componentId,
+            perspectiveKey,
+            cacheId,
+            errorMessage,
+        })
+    }
+}
 
 function dynamoItemToPutInput(record: EphemeraCacheDynamoItem): PutCacheRecordInput {
     return {
@@ -42,6 +64,7 @@ async function handleOrchestrationHitPath(params: {
         })
         return
     }
+    await setPerspectivePointerBestEffort(componentId, content.perspectiveKey, content.cacheId)
     await streamEvent({
         streamKey: componentId,
         header: { type: 'Render Pertains' },
@@ -89,6 +112,7 @@ async function handleOrchestrationGeneratePath(params: {
             EphemeraId: componentId,
             DataCategory: dataCategory,
         }
+        await setPerspectivePointerBestEffort(componentId, content.perspectiveKey, dataCategory as EphemeraCacheId)
         await streamEvent({
             streamKey: componentId,
             header: { type: 'Render Pertains' },

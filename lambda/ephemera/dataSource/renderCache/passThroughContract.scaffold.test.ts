@@ -10,8 +10,14 @@ jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
 }))
 
+jest.mock('./perspectivePointer', () => ({
+    __esModule: true,
+    setPerspectivePointer: jest.fn().mockResolvedValue(undefined),
+}))
+
 import './index'
 import { putCacheRecord } from './putCacheRecord'
+import { setPerspectivePointer } from './perspectivePointer'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { sendRenderOrchestrationPublish } from '../renderOrchestration/publishedEvents'
@@ -30,6 +36,7 @@ import {
 } from '../passThroughContractFixtures'
 
 const mockedPutCacheRecord = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
+const mockedSetPerspectivePointer = setPerspectivePointer as jest.MockedFunction<typeof setPerspectivePointer>
 
 describe('renderCache receives renderOrchestration stream', () => {
     beforeEach(() => {
@@ -38,6 +45,8 @@ describe('renderCache receives renderOrchestration stream', () => {
         jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([passThroughFixtureMinimalDynamoItem])
         mockedPutCacheRecord.mockReset()
         mockedPutCacheRecord.mockResolvedValue(passThroughFixtureMinimalCacheId)
+        mockedSetPerspectivePointer.mockReset()
+        mockedSetPerspectivePointer.mockResolvedValue(undefined)
     })
 
     afterEach(() => {
