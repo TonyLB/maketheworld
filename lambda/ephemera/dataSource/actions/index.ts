@@ -85,6 +85,8 @@ const buildPublishedAcmeOrdersWithStableKeys = (
         stableKey: finalizedKeys[index],
         ...(line.tropeAffinities !== undefined ? { tropeAffinities: line.tropeAffinities } : {}),
         ...(line.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
+        ...(line.defaultSituation !== undefined ? { defaultSituation: line.defaultSituation } : {}),
+        ...(line.defaultSituationFailed === true ? { defaultSituationFailed: true as const } : {}),
     }))
 }
 

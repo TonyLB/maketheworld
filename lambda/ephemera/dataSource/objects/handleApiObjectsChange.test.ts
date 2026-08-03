@@ -325,6 +325,59 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({ streamKey: 'ROOM#STRAIGHTAWAY' }))
     })
 
+    it('maps defaultSituation prose into a SITUATION#DEFAULT situations facet on spawn args', async () => {
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{
+                shortName: 'anvil',
+                stableKey: 'anvil',
+                defaultSituation: { displayName: 'a heavy anvil', description: 'A cast-iron anvil sits here.' },
+            }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(spawnOneMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                situations: [{
+                    reference: 'SITUATION#DEFAULT',
+                    payload: { displayName: 'a heavy anvil', description: ['A cast-iron anvil sits here.'] },
+                }],
+            }),
+            expect.any(Object)
+        )
+    })
+
+    it('omits situations from spawn args when defaultSituation is absent', async () => {
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(spawnOneMock).toHaveBeenCalledWith(
+            expect.not.objectContaining({ situations: expect.anything() }),
+            expect.any(Object)
+        )
+    })
+
     it('does nothing when orders are empty', async () => {
         const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
 

@@ -986,6 +986,7 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'glue-trap',
                     tropeAffinities: [{ trope: 'Contraption', aptness: 'Good', narrowing: 'sticky trap' }],
                     tropeAffinitiesFailed: false,
+                    defaultSituationFailed: true,
                 }],
                 confidence: 0.9 * 0.9,
             })

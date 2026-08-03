@@ -141,6 +141,8 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
         stableKey: line.stableKey,
         tropeAffinities: line.tropeAffinities ?? [],
         tropeAffinitiesFailed: line.tropeAffinitiesFailed === true || (line.tropeAffinities ?? []).length === 0,
+        ...(line.defaultSituation !== undefined ? { defaultSituation: line.defaultSituation } : {}),
+        defaultSituationFailed: line.defaultSituationFailed === true || line.defaultSituation === undefined,
     }
 }
 
@@ -164,6 +166,7 @@ export function finalizeAcmeOrderFromEnrich(
                 stableKey: defaultStableKeyProposal(name),
                 tropeAffinities: [],
                 tropeAffinitiesFailed: true,
+                defaultSituationFailed: true,
             }],
             confidence: intentConfidence,
         }

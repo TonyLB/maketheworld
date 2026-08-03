@@ -21,7 +21,7 @@ Deep import: `@tonylb/mtw-gateways/ts/ephemera/improvisation`.
 | --- | --- |
 | **`EphemeraId`** | `OBJECT#...` (`ComponentUUID`) |
 | **`DataCategory`** | `ASSET#IMPROVISATION` (`IMPROVISATION_ASSET_ID`) |
-| Merge body | `ComponentPairPersistedFields` / `StandardObject` JSON (`shortName` only in v1) |
+| Merge body | `ComponentPairPersistedFields` / `StandardObject` JSON (`shortName`, plus optional `situations` --- a `SITUATION#DEFAULT` prose facet, Acme-generated at spawn; see `lambda/ephemera/dataSource/objects/AGENT.md`) |
 
 Normalization reuses **`standardComponentPairFromAssetDbGetItemsRow`** from [`componentData/fetch.ts`](../../assets/components/componentData/fetch.ts). **Table routing** for aggregate merge (assetDB vs ephemeraDB by `assetId`) is an ephemera **`internalCache`** composite **`ComponentData`** concern (Phase 3), not this module.
 

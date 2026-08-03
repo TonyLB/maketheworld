@@ -146,6 +146,41 @@ describe('finalizeAcmeOrderFromEnrich', () => {
         expect(merged.confidence).toBeCloseTo(intentConf * 0.5)
     })
 
+    it('threads defaultSituation prose through to the parse order, and marks defaultSituationFailed absent', () => {
+        const merged = finalizeAcmeOrderFromEnrich(
+            intentConf,
+            {
+                lines: [
+                    {
+                        valid: true,
+                        name: 'anvil',
+                        stableKey: 'anvil',
+                        defaultSituation: { description: 'A cast-iron anvil sits here.' },
+                    },
+                    {
+                        valid: true,
+                        name: 'glue',
+                        stableKey: 'glue',
+                    },
+                ],
+            },
+            false,
+            'fallback'
+        )
+        expect(merged.orders[0]).toMatchObject({
+            valid: true,
+            name: 'anvil',
+            defaultSituation: { description: 'A cast-iron anvil sits here.' },
+            defaultSituationFailed: false,
+        })
+        expect(merged.orders[1]).toMatchObject({
+            valid: true,
+            name: 'glue',
+            defaultSituationFailed: true,
+        })
+        expect((merged.orders[1] as { defaultSituation?: unknown }).defaultSituation).toBeUndefined()
+    })
+
     it('single synthetic failure when enrichInvokeFailed', () => {
         const merged = finalizeAcmeOrderFromEnrich(intentConf, null, true, 'order rope')
         expect(merged.orders).toHaveLength(1)

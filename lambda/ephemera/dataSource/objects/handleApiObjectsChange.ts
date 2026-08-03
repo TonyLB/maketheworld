@@ -2,11 +2,15 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
+import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { v4 as uuidv4 } from 'uuid'
 import type { ObjectsChangeCommand } from '../localApiEvents'
 import type { AcmeOrderPublishedPayload } from '../actions/publishedEvents'
 import { applyObjectsChange, type ApplyObjectsAddFailure } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
+import { DEFAULT_SITUATION_EPHEMERA_ID } from '../renderCache/selectDefaultSituationCacheRecord'
 import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
@@ -87,6 +91,28 @@ export const handleAwaitRoadRunnerClearObjects = async (
     }
 }
 
+const toRenderTree = (s: string | undefined): RenderTree | undefined => (s === undefined || s === '' ? undefined : [s])
+
+/** Builds a `SITUATION#DEFAULT` situations facet from Acme enrich's generated flavor-text prose, when present. */
+const defaultSituationFacetFromProse = (
+    prose: AcmeOrderPublishedPayload['orders'][number]['defaultSituation']
+): FacetListData<SituationProseFacetPayloadType> | undefined => {
+    if (!prose) {
+        return undefined
+    }
+    const summary = toRenderTree(prose.summary)
+    const description = toRenderTree(prose.description)
+    const payload: SituationProseFacetPayloadType = {
+        ...(prose.displayName ? { displayName: prose.displayName } : {}),
+        ...(summary !== undefined ? { summary } : {}),
+        ...(description !== undefined ? { description } : {}),
+    }
+    if (Object.keys(payload).length === 0) {
+        return undefined
+    }
+    return [{ reference: DEFAULT_SITUATION_EPHEMERA_ID, payload }]
+}
+
 const acmeOrderToSpawnArgs = (
     entry: AcmeOrderPublishedPayload['orders'][number],
     roomId: EphemeraRoomId,
@@ -100,6 +126,10 @@ const acmeOrderToSpawnArgs = (
         ? { tropeAffinities: filterTropeAffinitiesByRoom(roomId)(entry.tropeAffinities) }
         : {}),
     ...(entry.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
+    ...(() => {
+        const situations = defaultSituationFacetFromProse(entry.defaultSituation)
+        return situations !== undefined ? { situations } : {}
+    })(),
 })
 
 /**
