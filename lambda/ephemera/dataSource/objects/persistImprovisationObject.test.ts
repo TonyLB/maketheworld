@@ -7,6 +7,20 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => fn()),
 }))
 
+const queryAllRenderCacheDataCategoriesForComponentMock = jest.fn(async (_componentId: string) => [] as string[])
+jest.mock('../renderCache/queryAllRenderCacheDataCategoriesForComponent', () => ({
+    queryAllRenderCacheDataCategoriesForComponent: (componentId: string) =>
+        queryAllRenderCacheDataCategoriesForComponentMock(componentId),
+}))
+
+const messageBusPublishMock = jest.fn()
+jest.mock('../../messageBus', () => ({
+    __esModule: true,
+    default: {
+        publish: (...args: unknown[]) => messageBusPublishMock(...args),
+    },
+}))
+
 const improvisationSetMock = jest.fn()
 const improvisationInvalidateMock = jest.fn()
 const objectMetaSetMock = jest.fn()
@@ -246,6 +260,41 @@ describe('persistImprovisationObject', () => {
         expect(componentEphemeraMetaInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(affordanceInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(positionsInvalidateMock).toHaveBeenCalledWith(roomId)
+    })
+
+    it('persistDeleteImprovisationObject dispatches Delete Cache Records when the object has render-cache rows', async () => {
+        queryAllRenderCacheDataCategoriesForComponentMock.mockResolvedValueOnce([
+            'CACHE#one',
+            'Cache::perspective-key',
+        ])
+
+        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+
+        expect(result).toEqual({ ok: true, objectId })
+        expect(queryAllRenderCacheDataCategoriesForComponentMock).toHaveBeenCalledWith(objectId)
+        expect(messageBusPublishMock).toHaveBeenCalledTimes(1)
+        const published = messageBusPublishMock.mock.calls[0][0]
+        expect(published.header.type).toBe('Delete Cache Records')
+        await expect(published.getContent()).resolves.toMatchObject({
+            componentId: objectId,
+            dataCategories: ['CACHE#one', 'Cache::perspective-key'],
+        })
+    })
+
+    it('persistDeleteImprovisationObject does not dispatch Delete Cache Records when the object has no render-cache rows', async () => {
+        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+
+        expect(result).toEqual({ ok: true, objectId })
+        expect(messageBusPublishMock).not.toHaveBeenCalled()
+    })
+
+    it('persistDeleteImprovisationObject still succeeds when render-cache cleanup fails', async () => {
+        queryAllRenderCacheDataCategoriesForComponentMock.mockRejectedValueOnce(new Error('dynamo unavailable'))
+
+        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+
+        expect(result).toEqual({ ok: true, objectId })
+        expect(messageBusPublishMock).not.toHaveBeenCalled()
     })
 
     it('persistDeleteImprovisationObject returns ok when rows are already absent', async () => {

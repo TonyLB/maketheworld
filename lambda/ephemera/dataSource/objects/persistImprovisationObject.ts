@@ -16,6 +16,10 @@ import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
+import type { MessageBus } from '../../messageBus/baseClasses'
+import messageBus from '../../messageBus'
+import { sendDeleteCacheRecords } from '../apiEphemera'
+import { queryAllRenderCacheDataCategoriesForComponent } from '../renderCache/queryAllRenderCacheDataCategoriesForComponent'
 import { collectObjectIdsFromPositionGraph } from './collectObjectIdsFromRoomPositionGraphs'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
@@ -66,6 +70,8 @@ export type PersistImprovisationObjectDependencies = {
     getImprovisationPair?: (objectId: EphemeraObjectId) => Promise<StandardObject | undefined>;
     getImprovisationEmbedding?: (objectId: EphemeraObjectId) => Promise<EphemeraObjectEmbedding | undefined>;
     buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
+    messageBus?: MessageBus;
+    queryRenderCacheDataCategories?: typeof queryAllRenderCacheDataCategoriesForComponent;
 }
 
 const pairRowFromShortName = (
@@ -323,6 +329,8 @@ export const persistDeleteImprovisationObject = async (
     deps?: PersistImprovisationObjectDependencies
 ): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
+    const bus = deps?.messageBus ?? messageBus
+    const queryRenderCacheDataCategories = deps?.queryRenderCacheDataCategories ?? queryAllRenderCacheDataCategoriesForComponent
 
     try {
         await transactWrite(deleteTransactItemsForObject(args.objectId))
@@ -331,6 +339,19 @@ export const persistDeleteImprovisationObject = async (
             affectedRoomIds: args.affectedRoomIds,
             clearEmbedding: true,
         })
+        try {
+            const dataCategories = await queryRenderCacheDataCategories(args.objectId)
+            if (dataCategories.length > 0) {
+                sendDeleteCacheRecords(bus, args.objectId, { componentId: args.objectId, dataCategories })
+            }
+        }
+        catch (renderCacheError) {
+            const renderCacheErrorMessage = renderCacheError instanceof Error ? renderCacheError.message : String(renderCacheError)
+            console.error('[dataSource/objects] render-cache cleanup failed after object delete', {
+                objectId: args.objectId,
+                errorMessage: renderCacheErrorMessage,
+            })
+        }
         return { ok: true, objectId: args.objectId }
     }
     catch (error) {
