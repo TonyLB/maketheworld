@@ -162,7 +162,7 @@ export async function handleRenderOrchestrationInbound(params: {
             // No cache readiness signal on orchestration failure.
             return
         case 'Generation Deferred':
-            // No cache row writes here; meta pointers are currentCachePointers.
+            // No cache row writes here; the pointer self-invalidates on next read when markState no longer matches (see perspectivePointer.ts).
             return
         default: {
             const _exhaustive: never = params.content

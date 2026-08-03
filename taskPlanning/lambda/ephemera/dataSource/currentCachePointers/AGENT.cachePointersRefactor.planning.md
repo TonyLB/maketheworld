@@ -2,7 +2,7 @@
 
 **Status: ACTIVE --- all decisions made; implementation not started.** Promoted from DRAFT STUB on 2026-08-03 after a diagnosis session (the duplicate-`CACHE#`-row bug) established that the pointer **read** path already exists and is **dead in production**. This plan supersedes the stub's framing; see [Correction to the stub's premise](#correction-to-the-stubs-premise).
 
-**All four decisions resolved 2026-08-03. Phase 1 (CP-3 migration cleanup) shipped 2026-08-03 --- next slice is Phase 2.** Commission the pointer (CP-1); fan-out unchanged and no invalidation mechanism to build (CP-2); finish the migration off `Meta::Room` pointer storage (CP-3, done); write at the existing `renderCache` seam, and **`mtw.ephemera.currentCachePointers` is cancelled** (CP-4).
+**All four decisions resolved 2026-08-03. Phases 1 (CP-3 migration cleanup) and 2 (retire cancelled DataSource obligations) shipped 2026-08-03 --- next slice is Phase 3 + 4 (write path and commissioning).** Commission the pointer (CP-1); fan-out unchanged and no invalidation mechanism to build (CP-2); finish the migration off `Meta::Room` pointer storage (CP-3, done); write at the existing `renderCache` seam, and **`mtw.ephemera.currentCachePointers` is cancelled** (CP-4).
 
 **Read [Corrections](#corrections-to-earlier-analysis-in-this-plan) before trusting any analysis in this file** --- two conclusions here were withdrawn after review, both from inferring semantics off flag names instead of reading the contract.
 
@@ -106,7 +106,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Nested bullets follow the sa
   - [X] **CP-3** --- finish the migration off `Meta::Room` pointer storage.
   - [X] **CP-4** --- write at the `renderCache` seam; cancel the separate DataSource.
 - [X] **Phase 1 --- CP-3 migration cleanup.** Delete Meta pointer storage per the CP-3 scope list. **Behaviorally inert** --- removing a fallback that has never once returned a value cannot regress anything, and there is no Dynamo backfill because no row ever carried these fields. **Leads deliberately:** it simplifies `perspectivePointer.ts` before Phase 3 writes into it, and its signature ripples land in `fanOutStateChangedToPassiveRenders.ts` **before** Phase 4 goes on to smoke-test that same file's P behavior. Reviewable as pure subtraction.
-- [ ] **Phase 2 --- retire the cancelled DataSource's obligations.** Doc-only, plus one comment; see [Contract impact](#contract-impact-of-cp-4). Lands with the deletion it describes rather than trailing the activation.
+- [X] **Phase 2 --- retire the cancelled DataSource's obligations.** Doc-only, plus one comment; see [Contract impact](#contract-impact-of-cp-4). Lands with the deletion it describes rather than trailing the activation.
 - [ ] **Phase 3 --- write path.** Add `setPerspectivePointer(componentId, perspectiveKey, cacheId)` to `perspectivePointer.ts` (idempotent; no `CACHE#` row writes), called from the `renderCache` seam chosen in CP-4. Pointers **feed** `collectPerspectivePointerEntries` as designed (CP-2) --- this is what activates the **P** set for the first time. **Do not land without Phase 4:** Phase 4 is not follow-up work, it is the verification of this change.
 - [ ] **Phase 4 --- commission the dormant consumers deliberately.** One call site activates **three** paths that have never run in production. Verify against real smoke tests rather than trusting existing unit coverage, which has never been validated against production behavior.
   - [ ] `findRender`'s pointer-validation branch (per-read, cheap).
@@ -200,6 +200,6 @@ Add for CP-2: a fan-out test asserting the **size and membership** of the P set 
 | CP-3 --- **finish the Meta migration** (pure code deletion; no data to migrate) | Done (2026-08-03) |
 | CP-4 --- **write at the `renderCache` seam; `mtw.ephemera.currentCachePointers` cancelled** | Done (2026-08-03) |
 | **Phase 1** --- CP-3 migration cleanup (delete Meta pointer storage) | **Done (2026-08-03)** |
-| **Phase 2** --- retire cancelled DataSource obligations (doc-only + one comment) | Not started --- next slice |
-| **Phase 3 + 4** --- write path and commissioning (**one slice**; Phase 4 is Phase 3's verification) | Not started |
+| **Phase 2** --- retire cancelled DataSource obligations (doc-only + one comment) | **Done (2026-08-03)** |
+| **Phase 3 + 4** --- write path and commissioning (**one slice**; Phase 4 is Phase 3's verification) | Not started --- next slice |
 | **Phase 5** --- durable docs; delete this plan | Not started |
