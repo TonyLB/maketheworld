@@ -16,8 +16,8 @@ export type RenderResolveMarkProvenance = 'meta'
  * Successful normalized input to the shared "resolve render from cache / maybe generate" choke-point.
  *
  * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + host meta; the orchestration
- * shell chains `findRender` then delivery. Room hosts: `pointerHint` from catalog row or legacy
- * `Meta::Room.currentCacheByPerspective`. Feature/Knowledge hosts: empty marks, catalog-only pointer (no Meta).
+ * shell chains `findRender` then delivery. Room hosts: `pointerHint` from catalog row `currentCacheId`.
+ * Feature/Knowledge hosts: empty marks, catalog-only pointer (no Meta).
  *
  * This type is intentionally not identical to bus messages (`RenderRequested`):
  * correlation, targets, and delivery stay outside until an output boundary exists.
@@ -30,7 +30,7 @@ export type RenderResolveInputSuccess = {
     markState: EphemeraCacheMarkState;
     markProvenance: RenderResolveMarkProvenance;
     /**
-     * Optional cache row id hinted by catalog `currentCacheId` or (room only) Meta pointer map.
+     * Optional cache row id hinted by catalog `currentCacheId`.
      * Omit or undefined to skip pointer fast-path and go straight to exact-match (after any adapter rules).
      */
     pointerHint?: EphemeraCacheId;

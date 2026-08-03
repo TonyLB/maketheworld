@@ -111,21 +111,15 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         EphemeraId: roomId,
         DataCategory: 'Meta::Room',
         state: { marks: { markValue: [] } },
-        currentCacheByPerspective: {},
     })
 
-    const collectPointersFromMeta = async (
-        _roomId: EphemeraRoomId,
-        metaRoom?: EphemeraMetaRoom
-    ): Promise<PerspectivePointerEntry[]> => {
-        const map = metaRoom?.currentCacheByPerspective ?? {}
-        return Object.entries(map)
-            .filter(([, cacheId]) => typeof cacheId === 'string' && cacheId.startsWith('CACHE#'))
-            .map(([perspectiveKey, cacheId]) => ({
-                perspectiveKey,
-                cacheId: cacheId as EphemeraCacheId,
-            }))
-    }
+    const makeCollectPointers = (
+        map: Record<string, EphemeraCacheId> = {}
+    ): ((roomId: EphemeraRoomId) => Promise<PerspectivePointerEntry[]>) => (
+        async () => Object.entries(map).map(([perspectiveKey, cacheId]) => ({ perspectiveKey, cacheId }))
+    )
+
+    const collectPointersFromMeta = makeCollectPointers()
 
     it('calls orchestrate once per perspective group with targets and merged getMetaRoom', async () => {
         const stateChanged = baseStateChanged()
@@ -259,12 +253,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
         const roomCharacterListGet = jest.fn().mockResolvedValue([])
         const pkAb = computePerspectiveKey([A, B])
-        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
-            ...baseMetaRoom(roomId),
-            currentCacheByPerspective: {
-                [pkAb]: 'CACHE#ab',
-            },
-        }))
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
         const getCacheRecordById = jest.fn().mockResolvedValue({
             perspectiveMatcher: { requiredAssetIds: [A, B] },
         })
@@ -280,7 +269,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 roomCharacterListGet,
                 getMetaRoomBase,
                 getCacheRecordById,
-                collectPerspectivePointerEntries: collectPointersFromMeta,
+                collectPerspectivePointerEntries: makeCollectPointers({ [pkAb]: 'CACHE#ab' }),
             }
         )
 
@@ -305,12 +294,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         ])
         const characterMetaGet = jest.fn().mockResolvedValue({ assets: [A, B, C] })
         const pkAb = computePerspectiveKey([A, B])
-        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
-            ...baseMetaRoom(roomId),
-            currentCacheByPerspective: {
-                [pkAb]: 'CACHE#overlap',
-            },
-        }))
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
         const getCacheRecordById = jest.fn()
         const messageBus = { send: jest.fn() } as any
         const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -325,7 +309,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 characterMetaGet,
                 getMetaRoomBase,
                 getCacheRecordById,
-                collectPerspectivePointerEntries: collectPointersFromMeta,
+                collectPerspectivePointerEntries: makeCollectPointers({ [pkAb]: 'CACHE#overlap' }),
             }
         )
 
@@ -353,14 +337,7 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const pkAb = computePerspectiveKey([A, B])
         const pkA = computePerspectiveKey([A])
         const pkBc = computePerspectiveKey([B, C])
-        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
-            ...baseMetaRoom(roomId),
-            currentCacheByPerspective: {
-                [pkAb]: 'CACHE#ab',
-                [pkA]: 'CACHE#a',
-                [pkBc]: 'CACHE#bc',
-            },
-        }))
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
         const getCacheRecordById = jest.fn().mockImplementation(async (_room: EphemeraRoomId, cacheId: string) => {
             if (cacheId === 'CACHE#bc') {
                 return { perspectiveMatcher: { requiredAssetIds: [B, C] } }
@@ -380,7 +357,11 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 characterMetaGet,
                 getMetaRoomBase,
                 getCacheRecordById,
-                collectPerspectivePointerEntries: collectPointersFromMeta,
+                collectPerspectivePointerEntries: makeCollectPointers({
+                    [pkAb]: 'CACHE#ab',
+                    [pkA]: 'CACHE#a',
+                    [pkBc]: 'CACHE#bc',
+                }),
             }
         )
 

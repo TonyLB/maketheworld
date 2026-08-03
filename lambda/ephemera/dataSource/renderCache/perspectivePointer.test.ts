@@ -13,10 +13,7 @@ jest.mock('./catalogRow', () => ({
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
-    default: {
-        ComponentEphemeraMeta: { invalidate: jest.fn() },
-        AffordanceRoomDeliverable: { invalidate: jest.fn() },
-    },
+    default: {},
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -25,9 +22,9 @@ import {
     clearPerspectivePointer,
     collectPerspectivePointerEntries,
     resolvePerspectivePointer,
+    setPerspectivePointer,
 } from './perspectivePointer'
 import type { EphemeraCacheCatalogRow } from './baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 const mockGetCatalog = getCatalogRow as jest.Mock
 const mockQueryCatalog = queryCatalogRowsForComponent as jest.Mock
@@ -42,7 +39,7 @@ describe('perspectivePointer', () => {
         ephemeraDBMock.optimisticUpdate.mockResolvedValue(undefined)
     })
 
-    it('resolvePerspectivePointer prefers catalog currentCacheId', async () => {
+    it('resolvePerspectivePointer returns catalog currentCacheId', async () => {
         mockGetCatalog.mockResolvedValue({
             EphemeraId: roomId,
             DataCategory: 'Cache::PERSPECTIVE#v1#abc',
@@ -52,32 +49,20 @@ describe('perspectivePointer', () => {
             currentCacheId: 'CACHE#from-catalog',
         } satisfies EphemeraCacheCatalogRow)
 
-        const meta: EphemeraMetaRoom = {
-            EphemeraId: roomId,
-            DataCategory: 'Meta::Room',
-            currentCacheByPerspective: { [perspectiveKey]: 'CACHE#legacy' },
-        }
-
-        const result = await resolvePerspectivePointer(roomId, perspectiveKey, meta)
+        const result = await resolvePerspectivePointer(roomId, perspectiveKey)
 
         expect(result).toBe('CACHE#from-catalog')
     })
 
-    it('resolvePerspectivePointer falls back to Meta map when catalog has no pointer', async () => {
+    it('resolvePerspectivePointer returns undefined when catalog has no pointer', async () => {
         mockGetCatalog.mockResolvedValue(undefined)
 
-        const meta: EphemeraMetaRoom = {
-            EphemeraId: roomId,
-            DataCategory: 'Meta::Room',
-            currentCacheByPerspective: { [perspectiveKey]: 'CACHE#legacy' },
-        }
+        const result = await resolvePerspectivePointer(roomId, perspectiveKey)
 
-        const result = await resolvePerspectivePointer(roomId, perspectiveKey, meta)
-
-        expect(result).toBe('CACHE#legacy')
+        expect(result).toBeUndefined()
     })
 
-    it('collectPerspectivePointerEntries merges catalog and legacy keys', async () => {
+    it('collectPerspectivePointerEntries returns catalog keys', async () => {
         mockQueryCatalog.mockResolvedValue([
             {
                 EphemeraId: roomId,
@@ -89,27 +74,57 @@ describe('perspectivePointer', () => {
             },
         ] satisfies EphemeraCacheCatalogRow[])
 
-        const meta: EphemeraMetaRoom = {
-            EphemeraId: roomId,
-            DataCategory: 'Meta::Room',
-            currentCacheByPerspective: {
-                'PERSPECTIVE#v1#cat': 'CACHE#ignored',
-                'PERSPECTIVE#v1#legacy': 'CACHE#legacy',
-            },
-        }
+        const entries = await collectPerspectivePointerEntries(roomId)
 
-        const entries = await collectPerspectivePointerEntries(roomId, meta)
-
-        expect(entries).toEqual(
-            expect.arrayContaining([
-                { perspectiveKey: 'PERSPECTIVE#v1#cat', cacheId: 'CACHE#cat' },
-                { perspectiveKey: 'PERSPECTIVE#v1#legacy', cacheId: 'CACHE#legacy' },
-            ])
-        )
-        expect(entries).toHaveLength(2)
+        expect(entries).toEqual([
+            { perspectiveKey: 'PERSPECTIVE#v1#cat', cacheId: 'CACHE#cat' },
+        ])
     })
 
-    it('clearPerspectivePointer clears catalog and legacy Meta entry', async () => {
+    it('setPerspectivePointer writes currentCacheId on the catalog row only', async () => {
+        mockGetCatalog.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        } satisfies EphemeraCacheCatalogRow)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        const call = ephemeraDBMock.optimisticUpdate.mock.calls[0][0]
+        expect(call.Key).toEqual({ EphemeraId: roomId, DataCategory: 'Cache::PERSPECTIVE#v1#abc' })
+        expect(call.updateKeys).toEqual(['currentCacheId'])
+        const draft: { currentCacheId?: string } = {}
+        call.updateReducer(draft)
+        expect(draft.currentCacheId).toBe('CACHE#new')
+    })
+
+    it('setPerspectivePointer is a no-op when the catalog row does not exist', async () => {
+        mockGetCatalog.mockResolvedValue(undefined)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        expect(ephemeraDBMock.optimisticUpdate).not.toHaveBeenCalled()
+    })
+
+    it('setPerspectivePointer never touches a CACHE# row (catalog-row DataCategory only)', async () => {
+        mockGetCatalog.mockResolvedValue({
+            EphemeraId: roomId,
+            DataCategory: 'Cache::PERSPECTIVE#v1#abc',
+            assetStack: ['ASSET#a'],
+            catalogVersion: 1,
+            hydratedCatalogVersion: 1,
+        } satisfies EphemeraCacheCatalogRow)
+
+        await setPerspectivePointer(roomId, perspectiveKey, 'CACHE#new')
+
+        const call = ephemeraDBMock.optimisticUpdate.mock.calls[0][0]
+        expect(call.Key.DataCategory.startsWith('Cache::')).toBe(true)
+    })
+
+    it('clearPerspectivePointer clears the catalog row pointer', async () => {
         mockGetCatalog.mockResolvedValue({
             EphemeraId: roomId,
             DataCategory: 'Cache::PERSPECTIVE#v1#abc',
@@ -121,6 +136,6 @@ describe('perspectivePointer', () => {
 
         await clearPerspectivePointer(roomId, perspectiveKey)
 
-        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(2)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
     })
 })

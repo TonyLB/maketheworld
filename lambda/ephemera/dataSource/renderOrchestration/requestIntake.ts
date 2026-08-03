@@ -10,7 +10,7 @@
  *
  * **Feature/Knowledge/Object/Character hosts:** no `Meta::Room`; always **`markState: { markValue: [] }`** and **`allowGeneration: false`**
  * (cache only --- authored for Feature/Knowledge/Character, the Object description stub's shortName-derived row for Object;
- * see `renderCache/ensureObjectShortNameCacheRecord.ts`); **`pointerHint`** from catalog row only via
+ * see `renderCache/ensureObjectShortNameCacheRecord.ts`); **`pointerHint`** from catalog row via
  * {@link resolvePerspectivePointer}.
  */
 import {
@@ -63,7 +63,7 @@ const intakeCacheOnlyHost = async (
 ): Promise<RenderResolveInputSuccess> => {
     const perspective = payload.perspective
     const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
-    const pointerId = await deps.resolvePerspectivePointer(componentId, perspectiveKey, undefined)
+    const pointerId = await deps.resolvePerspectivePointer(componentId, perspectiveKey)
 
     return {
         type: 'success',
@@ -115,7 +115,7 @@ const intakeRoom = async (
     }
 
     const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
-    const pointerId = await deps.resolvePerspectivePointer(roomId, perspectiveKey, metaRoom)
+    const pointerId = await deps.resolvePerspectivePointer(roomId, perspectiveKey)
 
     const input: RenderResolveInputSuccess = {
         type: 'success',

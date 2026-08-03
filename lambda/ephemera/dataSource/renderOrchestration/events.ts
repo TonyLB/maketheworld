@@ -47,7 +47,7 @@ export const toRenderError = (
 
 /**
  * Request that cached render hints for this component and perspective be cleared or treated stale
- * (e.g. Meta::Room `currentCacheByPerspective` entry).
+ * (e.g. the catalog row `currentCacheId` pointer entry).
  */
 export type RenderComponentPerspective = {
     componentId: RenderComponentId;

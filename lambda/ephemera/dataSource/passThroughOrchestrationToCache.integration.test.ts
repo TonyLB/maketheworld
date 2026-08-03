@@ -19,16 +19,15 @@ jest.mock('./renderCache/catalogRow', () => ({
 }))
 
 jest.mock('./renderCache/perspectivePointer', () => ({
-    resolvePerspectivePointer: jest.fn(async (_roomId, perspectiveKey, metaRoom) => {
-        const id = metaRoom?.currentCacheByPerspective?.[perspectiveKey]
-        return typeof id === 'string' && id.startsWith('CACHE#') ? id : undefined
-    }),
+    resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
+    setPerspectivePointer: jest.fn().mockResolvedValue(undefined),
     clearPerspectivePointer: jest.fn().mockResolvedValue(undefined),
     collectPerspectivePointerEntries: jest.fn().mockResolvedValue([]),
 }))
 
 import './renderCache/index'
 import { getCatalogRow } from './renderCache/catalogRow'
+import { resolvePerspectivePointer, setPerspectivePointer } from './renderCache/perspectivePointer'
 import { putCacheRecord } from './renderCache/putCacheRecord'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import messageBus from '../messageBus'
@@ -51,15 +50,14 @@ import {
 
 const mockedPutCacheRecord = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
+const resolvePerspectivePointerMock = resolvePerspectivePointer as jest.Mock
+const setPerspectivePointerMock = setPerspectivePointer as jest.Mock
 
 describe('passThrough orchestration -> renderCache (integration)', () => {
     const fixtureMetaRoom: EphemeraMetaRoom = {
         EphemeraId: passThroughFixtureRoomId,
         DataCategory: 'Meta::Room',
         state: { marks: passThroughFixtureMinimalDynamoItem.markState },
-        currentCacheByPerspective: {
-            [passThroughFixturePerspectiveKey]: passThroughFixtureMinimalCacheId,
-        },
     }
 
     const fixtureCacheRow: typeof passThroughFixtureMinimalDynamoItem = {
@@ -84,6 +82,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
     })
 
     it('Current Cache Valid from orchestrateRenderRequest leads to Render Pertains on renderCache (no putCacheRecord)', async () => {
+        resolvePerspectivePointerMock.mockResolvedValueOnce(passThroughFixtureMinimalCacheId)
         getCatalogRowMock.mockResolvedValue({
             EphemeraId: passThroughFixtureRoomId,
             DataCategory: `Cache::${passThroughFixturePerspectiveKey}`,
@@ -188,10 +187,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({
-                    ...fixtureMetaRoom,
-                    currentCacheByPerspective: {},
-                }),
+                getMetaRoom: jest.fn().mockResolvedValue(fixtureMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue(passThroughFixturePerspectiveKey),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(null),
@@ -257,10 +253,7 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({
-                    ...fixtureMetaRoom,
-                    currentCacheByPerspective: {},
-                }),
+                getMetaRoom: jest.fn().mockResolvedValue(fixtureMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue(passThroughFixturePerspectiveKey),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(fixtureCacheRow),
@@ -335,4 +328,78 @@ describe('passThrough orchestration -> renderCache (integration)', () => {
             markState: { markValue: [] },
         })
     })
+
+    it(
+        'CP-2 payoff: a stale pointer (state changed) is cleared and falls through to exact-match, ' +
+        'which then re-sets the pointer for the new state',
+        async () => {
+            resolvePerspectivePointerMock.mockResolvedValueOnce(passThroughFixtureMinimalCacheId)
+            getCatalogRowMock.mockResolvedValue({
+                EphemeraId: passThroughFixtureRoomId,
+                DataCategory: `Cache::${passThroughFixturePerspectiveKey}`,
+                assetStack: ['ASSET#one'],
+                catalogVersion: 1,
+                hydratedCatalogVersion: 1,
+            })
+
+            const newStateCacheId = 'CACHE#new-state' as const
+            const newStateCacheRow: typeof fixtureCacheRow = {
+                ...fixtureCacheRow,
+                DataCategory: newStateCacheId,
+                markState: { markValue: [{ mark: 'MARK#a', value: 'two' }] },
+            }
+            jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([newStateCacheRow])
+
+            const clearPerspectivePointer = jest.fn()
+            const pertains: unknown[] = []
+            messageBus.subscribe({
+                tag: 'integration-render-pertains-stale-pointer',
+                priority: 20,
+                filter: (m: any) =>
+                    m.type === 'StreamingEvent'
+                    && m.dataSourceKey === RENDER_CACHE_DATA_SOURCE_KEY
+                    && m.header?.type === 'Render Pertains',
+                callback: async ({ payloads }) => {
+                    for (const p of payloads) {
+                        pertains.push(await p.getContent())
+                    }
+                },
+            })
+
+            const payload: RenderRequested = {
+                type: 'RenderRequested',
+                componentId: passThroughFixtureRoomId,
+                perspective: passThroughFixturePerspective,
+                allowGeneration: false,
+            }
+
+            await orchestrateRenderRequest(
+                { payload, streamEvent: streamEventFromMessageBus(messageBus) },
+                {
+                    getMetaRoom: jest.fn().mockResolvedValue(fixtureMetaRoom),
+                    computePerspectiveKey: jest.fn().mockReturnValue(passThroughFixturePerspectiveKey),
+                    getCacheRecordById: jest.fn().mockResolvedValue({ ...fixtureCacheRow, catalogVersion: 1 }),
+                    getExactMatch: jest.fn().mockResolvedValue(newStateCacheRow),
+                    clearPerspectivePointer,
+                    // State changed since the pointer was written: validation must fail.
+                    markStatesEqual: jest.fn().mockReturnValue(false),
+                }
+            )
+            await messageBus.flushAndSettle()
+
+            expect(clearPerspectivePointer).toHaveBeenCalledWith(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+            expect(mockedPutCacheRecord).not.toHaveBeenCalled()
+            expect(pertains).toHaveLength(1)
+            expect(pertains[0]).toMatchObject({
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                cacheId: newStateCacheId,
+            })
+            expect(setPerspectivePointerMock).toHaveBeenCalledWith(
+                passThroughFixtureRoomId,
+                passThroughFixturePerspectiveKey,
+                newStateCacheId
+            )
+        }
+    )
 })

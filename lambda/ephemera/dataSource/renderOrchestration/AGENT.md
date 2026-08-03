@@ -71,7 +71,7 @@ Canonical semantics: [AGENT.passThrough.contract.planning.md](../../../../taskPl
 
 ## Passive state fan-out (`S = A union P`)
 
-When room **state** changes, **`fanOutStateChangedToPassiveRenders.ts`** fans out one **`orchestrateRenderRequest`** per perspective in the resolve set **S** (audience perspectives **A** union meta-pointer perspectives **P**). Pointer-only keys use **`allowGeneration: false`** and cheap paths only. Set algebra and product rules: **State-driven fan-out** in the contract doc.
+When room **state** changes, **`fanOutStateChangedToPassiveRenders.ts`** fans out one **`orchestrateRenderRequest`** per perspective in the resolve set **S** (audience perspectives **A** union meta-pointer perspectives **P**). Pointer-only keys use **`allowGeneration: false`** and cheap paths only --- cheap paths suffice for most of **P** because authored seeding (**`ensureAuthoredCatalog`** / hydrate diff; see [`../renderCache/AGENT.md`](../renderCache/AGENT.md#authored-cache-invalidate--hydrate)) already materializes exact-match rows for states not yet seen live. Set algebra and product rules: **State-driven fan-out** in the contract doc.
 
 ## Single-flight generation
 

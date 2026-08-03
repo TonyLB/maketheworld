@@ -69,7 +69,7 @@ const toPersistedRoomState = (meta: Partial<EphemeraMetaRoom> | undefined): Ephe
  * `computeDefaultMarksForRoom` is awaited only when the initial `meta` has no usable stored marks; it is reused when
  * a reducer pass still sees none (reducer stays synchronous). If the initial row had usable marks but a later
  * reducer pass does not (e.g. concurrent clear), the base falls back to `{ markValue: [] }` instead of lens defaults.
- * Does not modify `currentCacheId` / `currentCacheByPerspective`. Requires an existing `Meta::Room` row.
+ * Requires an existing `Meta::Room` row.
  */
 export const mergePersistMetaRoomMarks = async (
     args: MergePersistMetaRoomMarksArgs,
