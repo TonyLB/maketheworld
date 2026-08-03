@@ -61,18 +61,23 @@ export class RenderCacheCacheHandler {
     private _CatalogRowStore: Record<string, EphemeraCacheCatalogRow | undefined> = {}
 
     constructor(private readonly db: EphemeraRenderCacheReadDB) {
-        const storeCallback = <T>(store: Record<string, T>) => (key: string, value: T) => {
-            store[key] = value
+        //
+        // Resolve the store lazily on every callback rather than capturing it once: `clear()` rebinds
+        // these fields to fresh objects, so a captured reference would leave the DeferredCache writing
+        // fetched rows into an orphaned store while `get*` read a permanently empty one.
+        //
+        const storeCallback = <T>(getStore: () => Record<string, T>) => (key: string, value: T) => {
+            getStore()[key] = value
         }
 
         this._CacheRowsCache = new DeferredCache<EphemeraCacheDynamoItem[]>({
-            callback: storeCallback(this._CacheRowsStore),
+            callback: storeCallback(() => this._CacheRowsStore),
         })
         this._CatalogRowsCache = new DeferredCache<EphemeraCacheCatalogRow[]>({
-            callback: storeCallback(this._CatalogRowsStore),
+            callback: storeCallback(() => this._CatalogRowsStore),
         })
         this._CatalogRowCache = new DeferredCache<EphemeraCacheCatalogRow | undefined>({
-            callback: storeCallback(this._CatalogRowStore),
+            callback: storeCallback(() => this._CatalogRowStore),
         })
     }
 

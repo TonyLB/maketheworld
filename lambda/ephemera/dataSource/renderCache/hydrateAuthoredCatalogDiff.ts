@@ -43,11 +43,11 @@ export async function hydrateAuthoredCatalogDiff(
     } = params
 
     const allRows = await internalCache.RenderCache.getCacheRows(componentId)
-    const existingAuthored = allRows.filter(
-        (row) =>
-            row.provenance.type === EPHEMERA_CACHE_PROVENANCE_AUTHORED
-            && row.perspectiveMatcher
-            && perspectiveMatches(row.perspectiveMatcher, perspective)
+    const authoredRows = allRows.filter(
+        (row) => row.provenance.type === EPHEMERA_CACHE_PROVENANCE_AUTHORED
+    )
+    const existingAuthored = authoredRows.filter(
+        (row) => row.perspectiveMatcher && perspectiveMatches(row.perspectiveMatcher, perspective)
     )
 
     const desiredSituationIds = new Set(desiredSet.keys())
@@ -126,7 +126,21 @@ export async function hydrateAuthoredCatalogDiff(
         perspectiveKey,
         incomingCatalogVersion,
         desiredSituationCount: desiredSet.size,
+        //
+        // Counts are reported at each narrowing step so that an unexpected zero can be attributed:
+        // `allRowCount` 0 means the CACHE# query itself came back empty; a drop from `allRowCount`
+        // to `authoredRowCount` is the provenance filter; a drop to `existingAuthoredRowCount` is
+        // perspective matching (in which case the offending inputs are logged below).
+        //
+        allRowCount: allRows.length,
+        authoredRowCount: authoredRows.length,
         existingAuthoredRowCount: existingAuthored.length,
+        ...(existingAuthored.length === 0 && authoredRows.length > 0
+            ? {
+                perspectiveAssetStack: perspective.assetStack,
+                sampleAuthoredMatcher: authoredRows[0].perspectiveMatcher,
+            }
+            : {}),
         deletedCount: deletedDataCategories.length,
         skippedDeleteCount,
         upsertedCount,

@@ -54,6 +54,14 @@ export async function putCatalogRow(row: EphemeraCacheCatalogRow): Promise<void>
     internalCache.RenderCache.setCatalogRow({ row })
 }
 
+/** Thrown when a create-on-first-hydrate loses the race to a concurrent invocation. */
+export class CatalogRowAlreadyExistsError extends Error {
+    constructor(componentId: EphemeraCacheComponentId, perspectiveKey: string) {
+        super(`Catalog row already exists for ${componentId} at ${perspectiveKey}`)
+        this.name = 'CatalogRowAlreadyExistsError'
+    }
+}
+
 export type CreateCatalogRowForHydrateParams = {
     componentId: EphemeraCacheComponentId;
     perspectiveKey: string;
@@ -62,6 +70,9 @@ export type CreateCatalogRowForHydrateParams = {
 
 /**
  * Create-on-first-hydrate catalog row (hydrate slice). Initial epoch >= 1, not yet hydrated.
+ *
+ * Throws {@link CatalogRowAlreadyExistsError} when another invocation won the create race; callers
+ * recover by re-reading the winner (see `loadOrCreateCatalogRow`).
  */
 export async function createCatalogRowForHydrate(
     params: CreateCatalogRowForHydrateParams
@@ -73,7 +84,16 @@ export async function createCatalogRowForHydrate(
         catalogVersion: 1,
         hydratedCatalogVersion: 0,
     }
-    await putCatalogRow(row)
+    //
+    // Conditional create, not a plain put: this row is always written at hydratedCatalogVersion 0,
+    // so overwriting a row a concurrent invocation had already hydrated would silently re-stale it
+    // and force a redundant re-hydrate. The memo is patched only once the write is known to have won.
+    //
+    const wrote = await ephemeraDB.nonCollidingPutItem(row)
+    if (!wrote) {
+        throw new CatalogRowAlreadyExistsError(params.componentId, params.perspectiveKey)
+    }
+    internalCache.RenderCache.setCatalogRow({ row })
     return row
 }
 

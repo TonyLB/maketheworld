@@ -141,6 +141,29 @@ describe('RenderCacheCacheHandler memo', () => {
         expect(a1).toBe(a2)
     })
 
+    //
+    // The handler is a long-lived singleton cleared once per Lambda invocation, so every read after
+    // the first `clear()` goes through this path -- a fetched-but-unreadable store made hydrate blind
+    // to its own prior writes and mint a duplicate CACHE# row on every render.
+    //
+    it('still returns fetched rows after clear()', async () => {
+        const { handler } = makeHandler()
+        await handler.getCacheRows(componentId)
+        handler.clear()
+        expect(await handler.getCacheRows(componentId)).toHaveLength(1)
+    })
+
+    it('still returns a fetched catalog row after clear()', async () => {
+        const db: EphemeraRenderCacheReadDB = {
+            query: jest.fn().mockResolvedValue([]),
+            getItem: jest.fn().mockResolvedValue(readyCatalog()),
+        }
+        const handler = createRenderCacheCacheHandler(db)
+        await handler.getCatalogRow(componentId, perspectiveKey)
+        handler.clear()
+        expect(await handler.getCatalogRow(componentId, perspectiveKey)).toBeDefined()
+    })
+
     it('set with cacheId replaces matching DataCategory', async () => {
         const { handler } = makeHandler([makeRow({ DataCategory: 'CACHE#keep-me' })])
         await handler.getCacheRows(componentId)

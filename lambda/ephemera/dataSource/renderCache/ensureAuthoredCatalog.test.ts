@@ -66,6 +66,28 @@ describe('ensureAuthoredCatalog', () => {
         expect(componentExamplesGet).not.toHaveBeenCalled()
     })
 
+    //
+    // Two invocations first-resolving the same (component, perspective) concurrently: the loser's
+    // create is rejected rather than clobbering the winner's row back to hydratedCatalogVersion 0.
+    // The re-read must bypass the memo, which already cached `undefined` from the initial miss.
+    //
+    it('recovers the winner row when a concurrent create wins the race', async () => {
+        const winner = catalogRow()
+        getCatalogRowMock
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValue(winner)
+        createCatalogRowMock.mockRejectedValue(new Error('Catalog row already exists'))
+
+        await ensureAuthoredCatalog(
+            { componentId, perspective },
+            { runWithSingleFlight: passThroughSingleFlightAuthoredCatalogHydrate }
+        )
+
+        expect(internalCache.RenderCache.invalidate).toHaveBeenCalledWith(componentId)
+        // Winner was already hydrated, so the loser must not re-hydrate it.
+        expect(hydrateDiffMock).not.toHaveBeenCalled()
+    })
+
     it('creates catalog on first resolve then hydrates when stale', async () => {
         const stale = catalogRow({ hydratedCatalogVersion: 0 })
         const ready = catalogRow({ hydratedCatalogVersion: 1, catalogVersion: 1 })

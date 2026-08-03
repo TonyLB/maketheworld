@@ -3,6 +3,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
         query: jest.fn(),
         getItem: jest.fn(),
         putItem: jest.fn(),
+        nonCollidingPutItem: jest.fn(),
         optimisticUpdate: jest.fn(),
     },
 }))
@@ -23,6 +24,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 import {
     conditionalInvalidateCatalogRow,
+    CatalogRowAlreadyExistsError,
     createCatalogRowForHydrate,
     getCatalogRow,
     markCatalogHydratedAtVersion,
@@ -55,6 +57,7 @@ describe('catalogRow', () => {
         jest.clearAllMocks()
         ephemeraDBMock.optimisticUpdate.mockResolvedValue(undefined)
         ephemeraDBMock.putItem.mockResolvedValue(undefined)
+        ephemeraDBMock.nonCollidingPutItem.mockResolvedValue(true)
     })
 
     it('queryCatalogRowsForComponent delegates to internalCache.RenderCache', async () => {
@@ -110,9 +113,26 @@ describe('catalogRow', () => {
 
         expect(created.catalogVersion).toBe(1)
         expect(created.hydratedCatalogVersion).toBe(0)
-        expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(created)
+        expect(ephemeraDBMock.nonCollidingPutItem).toHaveBeenCalledWith(created)
         expect(renderCacheSetCatalogRow).toHaveBeenCalledWith({ row: created })
         expect(renderCacheInvalidate).not.toHaveBeenCalled()
+    })
+
+    //
+    // An unconditional put here would reset a concurrently-hydrated row's hydratedCatalogVersion
+    // back to 0, silently re-staling a catalog another invocation had already finished.
+    //
+    it('createCatalogRowForHydrate creates conditionally and does not overwrite on collision', async () => {
+        ephemeraDBMock.nonCollidingPutItem.mockResolvedValue(false)
+
+        await expect(createCatalogRowForHydrate({
+            componentId,
+            perspectiveKey: 'PERSPECTIVE#v1#new',
+            assetStack: ['ASSET#a'],
+        })).rejects.toThrow(CatalogRowAlreadyExistsError)
+
+        expect(ephemeraDBMock.putItem).not.toHaveBeenCalled()
+        expect(renderCacheSetCatalogRow).not.toHaveBeenCalled()
     })
 
     it('perspectiveKeyFromCatalogDataCategory parses SK suffix', () => {
