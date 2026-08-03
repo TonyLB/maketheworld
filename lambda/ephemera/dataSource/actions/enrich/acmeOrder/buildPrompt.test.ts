@@ -86,6 +86,24 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).not.toContain('portable-hole')
     })
 
+    it('gives every valid few-shot line a defaultSituation, so omission is never modeled', () => {
+        // Regression: the iconic few-shot carried a verbatim `"name": "Rocket Skates"` line with no
+        // `defaultSituation`, and `order rocket skates` reliably came back with no prose (twice) while
+        // differently-phrased orders got prose. Few-shot shape beats prose instruction, so any valid
+        // example line lacking this field teaches the model that skipping it is acceptable.
+        const { invariantPrefix } = buildParseAcmeOrderEnrichPrompt('order rope')
+        const validLineCount = (invariantPrefix.match(/"valid":\s*true/g) ?? []).length
+        const defaultSituationCount = (invariantPrefix.match(/"defaultSituation":/g) ?? []).length
+        expect(validLineCount).toBeGreaterThan(0)
+        expect(defaultSituationCount).toBe(validLineCount)
+    })
+
+    it('tells the model that matching a calibration example does not excuse skipping prose', () => {
+        const { invariantPrefix } = buildParseAcmeOrderEnrichPrompt('order rope')
+        expect(invariantPrefix).toContain('required on every')
+        expect(invariantPrefix).toContain('matching one never licenses reusing its prose')
+    })
+
     it('trims and drops empty occupied stable keys before dedupe + sort', () => {
         const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('buy widget', {
             occupiedStableKeys: [' zebra ', '', '  ', 'alpha', 'alpha '],

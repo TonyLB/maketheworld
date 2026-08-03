@@ -44,6 +44,33 @@ describe('objectRenderWmlFromCacheRecord', () => {
         expect((object as StandardObject).shortName).toBeDefined()
     })
 
+    it('emits renderedContent.description as a Render facet alongside ShortName', () => {
+        const renderedContent: EphemeraCacheRenderedContent = {
+            displayName: ['rocket skateboard'],
+            description: ['A skateboard with a small rocket motor attached to the rear.'],
+        }
+        const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent)
+        expect(wml).toContain('<ShortName>rocket skateboard</ShortName>')
+        expect(wml).toContain('<Render>')
+        expect(wml).toContain('A skateboard with a small rocket motor attached to the rear.')
+    })
+
+    it('round-trips description through StandardForm into StandardObject.render', () => {
+        const renderedContent: EphemeraCacheRenderedContent = {
+            displayName: ['rocket skateboard'],
+            description: ['Rocket motor on the rear.'],
+        }
+        const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent)
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.render?.description).toEqual(['Rocket motor on the rear.'])
+    })
+
+    it('omits Render entirely when the cache record carries no prose', () => {
+        const wml = objectRenderWmlFromCacheRecord(objectId, { description: [] }, { fallbackShortName: 'a small brass key' })
+        expect(wml).not.toContain('<Render>')
+    })
+
     it('round-trips through StandardForm: parsed shortName matches the source text', () => {
         const wml = objectRenderWmlFromCacheRecord(objectId, { displayName: ['a small brass key'], description: [] })
         const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })

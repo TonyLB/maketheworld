@@ -555,7 +555,7 @@ describe('Render tag', () => {
                 </Render>
             </Asset>
         `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room, Feature, Knowledge, or Character')
+        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room, Feature, Knowledge, Character, or Object')
     })
 
     it('should parse Render under Character', () => {
@@ -608,6 +608,40 @@ describe('Render tag', () => {
         const knowledgeNode = schema[0].children.find(({ data }) => data.tag === 'Knowledge')
         const renderNode = knowledgeNode?.children.find(({ data }) => data.tag === 'Render')
         expect(renderNode).toBeDefined()
+    })
+
+    it('should parse Render under Object, alongside the structurally-required ShortName', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(OBJECT#abc)>
+                    <ShortName>Skateboard</ShortName>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Object>
+            </Asset>
+        `)
+        const schema = schemaFromParse(parse(tokenizer(new SourceStream(testWML))))
+        const objectNode = schema[0].children.find(({ data }) => data.tag === 'Object')
+        expect(objectNode?.children.map(({ data }) => data.tag)).toEqual(['ShortName', 'Render'])
+    })
+
+    it('should round-trip Render under Object', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Object uuid=(abc)>
+                    <ShortName>Skateboard</ShortName>
+                    <Render>
+                        <DisplayName>Skateboard</DisplayName>
+                        <Summary>A rocket skateboard</Summary>
+                        <Description>Rocket motor on the rear.</Description>
+                    </Render>
+                </Object>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
     it('should reject wrong child order', () => {

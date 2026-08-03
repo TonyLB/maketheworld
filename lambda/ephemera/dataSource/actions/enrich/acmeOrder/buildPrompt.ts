@@ -87,7 +87,9 @@ This step applies Acme catalog normalization, canonical **\`tropeAffinities\`**,
 that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
 For **\`valid\`: true** lines, the machine record is **\`name\`**, **\`stableKey\`**, **\`tropeAffinities\`** (and, when needed, **\`tropeAffinitiesFailed\`**), plus **\`defaultSituation\`** — one trope-scoring array, not a second parallel array.
 
-**\`defaultSituation\`** (**\`valid\`: true** lines only): one short **\`description\`** (one or two plain sentences describing the object as a player would first see it — straight physical description, not cartoon-trope narrowing language) and, optionally, **\`displayName\`** (a short player-facing name, defaults to **\`name\`** if omitted) and **\`summary\`** (a one-line summary shorter than **\`description\`**). This is flavor text for the object's own look/examine text, independent of the Step 1/2 catalog and trope classification above. If you cannot produce grounded prose for a line, omit **\`defaultSituation\`** entirely and set **\`defaultSituationFailed\`**: true rather than inventing empty or placeholder text.
+**\`defaultSituation\`** is **required on every \`valid\`: true line** — including lines whose **\`name\`** matches one of the calibration examples below. Those examples exist to calibrate **\`tropeAffinities\`** and **\`stableKey\`**; matching one never licenses reusing its prose or skipping this field. Write fresh prose for the object actually ordered, every time.
+
+Each **\`defaultSituation\`** carries one short **\`description\`** (one or two plain sentences describing the object as a player would first see it — straight physical description, not cartoon-trope narrowing language) and, optionally, **\`displayName\`** (a short player-facing name, defaults to **\`name\`** if omitted) and **\`summary\`** (a one-line summary shorter than **\`description\`**). This is flavor text for the object's own look/examine text, independent of the Step 1/2 catalog and trope classification above. Only if you genuinely cannot produce grounded prose for a line, omit **\`defaultSituation\`** entirely and set **\`defaultSituationFailed\`**: true — never invent empty or placeholder text, and never use that escape as a shortcut for an ordinary object.
 
 The **Coyote-wide keys already in use** list appears **after** these instructions. When upstream
 product spans are included, they appear before the **full player command** at the end of this prompt.
@@ -312,7 +314,12 @@ downward).
             { "object": "long rope for setting off", "intended": true, "roles": ["Contraption"] }
           ]
         }
-      ]
+      ],
+      "defaultSituation": {
+        "displayName": "Catapult",
+        "summary": "A timber catapult on iron wheels.",
+        "description": "A timber catapult on iron wheels, its throwing arm cocked back against a drum of braided rope."
+      }
     },
     { "valid": false, "name": "Justice", "errorType": "Not tangible" }
   ],
@@ -333,7 +340,10 @@ Example **valid** line entry (inside **\`lines\`**):
   "tropeAffinities": [
     { "trope": "Bait", "aptness": "Good", "narrowing": "lure trail to swarm zone" },
     { "trope": "Finishing Move", "aptness": "Poor", "narrowing": "swarm release payoff" }
-  ]
+  ],
+  "defaultSituation": {
+    "description": "A papery grey hive the size of a melon, sealed with a wooden plug and humming faintly."
+  }
 }
 
 Example **invalid** line entries:
@@ -362,7 +372,10 @@ Multi-line order (**two** \`lines[]\` rows --- illustrative stableKeys):
       "tropeAffinities": [
         { "trope": "Disadvantage", "aptness": "High", "narrowing": "immobilize Road Runner on road surface" },
         { "trope": "Contraption", "aptness": "Good", "narrowing": "adhesive rig component" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A squat drum of amber glue with a screw cap welded shut by its own drips."
+      }
     },
     {
       "valid": true,
@@ -370,7 +383,10 @@ Multi-line order (**two** \`lines[]\` rows --- illustrative stableKeys):
       "stableKey": "workshop-springs",
       "tropeAffinities": [
         { "trope": "Contraption", "aptness": "High", "narrowing": "mechanical tension rig for launch or rebound" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A crate of coiled steel springs in a dozen gauges, tangled together and faintly oiled."
+      }
     }
   ]
 }
@@ -390,7 +406,10 @@ Scene Dressing chase:
       "stableKey": "rocket-skates",
       "tropeAffinities": [
         { "trope": "Contraption", "aptness": "High", "narrowing": "enhance Coyote pursuit speed" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A pair of strap-on skates, each with a stubby rocket canister bolted above the wheels and a friction igniter trailing behind."
+      }
     },
     {
       "valid": true,
@@ -398,7 +417,10 @@ Scene Dressing chase:
       "stableKey": "helmet",
       "tropeAffinities": [
         { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "protective equipment" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A scuffed leather flight helmet with a chin strap and a dent above one ear."
+      }
     },
     {
       "valid": true,
@@ -406,7 +428,10 @@ Scene Dressing chase:
       "stableKey": "goggles",
       "tropeAffinities": [
         { "trope": "Scene Dressing", "aptness": "Good", "narrowing": "racing gear" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "Wide amber lenses in a rubber frame, the elastic band stretched loose from use."
+      }
     }
   ]
 }
@@ -422,7 +447,10 @@ Portable-hole spread:
       "stableKey": "roller-skates",
       "tropeAffinities": [
         { "trope": "Contraption", "aptness": "High", "narrowing": "mobility rig for setup and chase positioning" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "Four-wheeled skates in cracked white leather, laces knotted where they have broken and been retied."
+      }
     },
     {
       "valid": true,
@@ -431,7 +459,10 @@ Portable-hole spread:
       "tropeAffinities": [
         { "trope": "Misdirection", "aptness": "High", "narrowing": "visual lure through fake passage cue", "environmentAffordances": [{ "object": "rock-wall", "roles": ["Finishing Move"] }] },
         { "trope": "Bait", "aptness": "Good", "narrowing": "draw Road Runner attention to painted route" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A flat tin of matte pigment and two stiff brushes, the lid pried loose and never reseated."
+      }
     },
     {
       "valid": true,
@@ -439,7 +470,10 @@ Portable-hole spread:
       "stableKey": "portable-hole",
       "tropeAffinities": [
         { "trope": "Misdirection", "aptness": "High", "narrowing": "persistent route hazard", "environmentAffordances": [{ "object": "long-fall", "roles": ["Finishing Move"] }] }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A perfect circle of absolute black, thin as cloth, lying folded on itself like a discarded napkin."
+      }
     },
     {
       "valid": true,
@@ -447,7 +481,10 @@ Portable-hole spread:
       "stableKey": "birdseed",
       "tropeAffinities": [
         { "trope": "Bait", "aptness": "High", "narrowing": "voluntary lure or bait trail" }
-      ]
+      ],
+      "defaultSituation": {
+        "description": "A burlap sack of mixed millet and cracked corn, the neck rolled down and clipped shut."
+      }
     }
   ]
 }

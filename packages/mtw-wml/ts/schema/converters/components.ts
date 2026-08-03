@@ -345,7 +345,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: (item: SchemaTag): boolean => (
-            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaReplace(item) || isSchemaRemove(item)
+            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item)
         ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
@@ -411,17 +411,19 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
      * ephemera-wire render path landed (`lambda/ephemera/dataSource/perception/
      * characterRenderWmlFromCacheRecord.ts`) --- `StandardCharacterData.render` already existed for
      * JSON/ephemera-wire construction (Phase 1 of the objectCharacterRenderHosts iteration), but the
-     * parse-time whitelist here was deliberately left behind pending that consumer. Object's `render`
-     * field remains data-layer-only; its own whitelist entry is still deferred until Object has a real
-     * (non-shortName-stub) render path.
+     * parse-time whitelist here was deliberately left behind pending that consumer. Object joined on
+     * the same terms once spawn-time `SITUATION#DEFAULT` prose gave it real (non-shortName-stub) prose
+     * to carry (`lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts`); note that
+     * `<Object>`'s content model still structurally requires exactly one non-empty `<ShortName>`, so
+     * Object emits `<Render>` *alongside* `<ShortName>` rather than in place of it.
      */
     Render: {
         initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
             const hasEphemeraRenderParent = contextStack.some(({ data }) => (
-                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data) || isSchemaCharacter(data)
+                isSchemaRoom(data) || isSchemaFeature(data) || isSchemaKnowledge(data) || isSchemaCharacter(data) || isSchemaObject(data)
             ))
             if (!hasEphemeraRenderParent) {
-                throw new Error('Render tag can only be used inside a Room, Feature, Knowledge, or Character')
+                throw new Error('Render tag can only be used inside a Room, Feature, Knowledge, Character, or Object')
             }
             validateProperties(componentTemplates.Render)(parseOpen)
             return { tag: 'Render' }

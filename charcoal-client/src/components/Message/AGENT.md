@@ -28,7 +28,7 @@ The `Message` directory contains React components that handle the display of dif
 - **`FeatureDescription`**: Interactive feature details
 - **`KnowledgeDescription`**: Knowledge item information
 - **`CharacterDescription`**: Character appearance and details
-- **Object descriptions**: short name only, no body --- see [Object descriptions](#object-descriptions)
+- **Object descriptions**: short name heading plus prose body when sent --- see [Object descriptions](#object-descriptions)
 
 ### **Utility Messages**
 - **`SpacerMessage`**: Visual spacing in chat
@@ -72,11 +72,11 @@ A payload matching neither falls through to `UnknownMessage`. Wiring only one ti
 
 ### **Object descriptions**
 
-**Deliberate stub.** An Object look renders the object's `ShortName` as the heading and **nothing else** --- the backend structurally never sends a description body for Object (no `<Render>`/`<Description>` tag is emitted; see [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#correlated-object-description-policy)). The empty body is correct, not a gap to patch client-side.
+**No longer a stub.** An Object look renders the object's `ShortName` as the heading **and a description body** when the backend sends prose. This was a stub for as long as the backend structurally never emitted a `<Render>` tag for Object; once `objectRenderWmlFromCacheRecord.ts` started emitting one (see [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#correlated-object-description-policy)), the client stub became the remaining reason spawn-generated prose stayed invisible. An empty body is still correct for Objects with no prose (the plain API `Objects Change` ingress path has no prose source).
 
 - **Both tiers wired** to `ComponentDescription` (the Feature/Knowledge component) with an `Inventory2` icon and no `bevel` --- Feature's shape, not Knowledge's.
-- **`ComponentDescription` resolves Object separately.** Its `resolveFeatureKnowledgeProse` helper is Feature/Knowledge-only by design (Object has no situations/render prose to resolve); the `component instanceof StandardObject` branch instead assigns `name = component.shortName` and leaves `description` at its default `new StandardRender([])`. The existing empty-description fallback then renders `<em>No description</em>` with no further wiring.
-- **Why `ComponentDescription` and not `CharacterDescription`:** `CharacterDescription` is name-only but throws on non-Character metaData and has no description slot --- a dead end for the eventual refinement pass that adds real Object descriptions. The icon and layout are stub choices, expected to be revisited then.
+- **`ComponentDescription` resolves Object through the shared helper.** `resolveComponentProse` (formerly `resolveFeatureKnowledgeProse`) now accepts `StandardObject` too --- it only needs `.render` and `.situations`, both of which `StandardObject` has. The `component instanceof StandardObject` branch takes **only the body** from that payload: `name` deliberately stays `component.shortName`, since that is Object's identity and the server pads the `<Render>` facet's `DisplayName` from the same value anyway. Objects with no prose still fall through to the `<em>No description</em>` empty-description fallback.
+- **Why `ComponentDescription` and not `CharacterDescription`:** `CharacterDescription` is name-only but throws on non-Character metaData and has no description slot --- which is exactly why Object was put here instead; the description slot this component already had is what the prose now fills. The icon and layout remain stub choices.
 - **Testing note:** a `StandardForm` containing an `Object` component **must** be constructed with `{ standardizeMode: 'ephemeraWire' }` --- Object components are rejected in default asset mode (`assetWirePolicy.ts`). See the `Object` blocks in `ComponentDescription.test.tsx` and `Message.test.tsx`.
 
 ## Message Panel UI Architecture

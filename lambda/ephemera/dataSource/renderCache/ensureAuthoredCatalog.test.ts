@@ -104,4 +104,60 @@ describe('ensureAuthoredCatalog', () => {
             expect.objectContaining({ incomingCatalogVersion: 2 })
         )
     })
+
+    describe('improvisation merge participation', () => {
+        // Same read sequencing as 'hydrates stale catalog without creating a new row': stale on the
+        // two pre-hydrate reads, ready on the post-mark readback (otherwise ensure throws INCOMPLETE).
+        const stageStaleThenReady = (id: EphemeraCacheCatalogRow['EphemeraId']) => {
+            const stale = catalogRow({ EphemeraId: id, catalogVersion: 2, hydratedCatalogVersion: 1 })
+            const ready = catalogRow({ EphemeraId: id, catalogVersion: 2, hydratedCatalogVersion: 2 })
+            getCatalogRowMock.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(ready)
+        }
+
+        it('appends ASSET#IMPROVISATION to merge participation for an OBJECT# host', async () => {
+            // An Object's SITUATION#DEFAULT facet lives on its (OBJECT#, ASSET#IMPROVISATION) pair
+            // row; without this layer the merge cannot see it and no CACHE# row is ever written.
+            const objectId = 'OBJECT#obj' as const
+            stageStaleThenReady(objectId)
+
+            await ensureAuthoredCatalog(
+                { componentId: objectId, perspective },
+                { runWithSingleFlight: passThroughSingleFlightAuthoredCatalogHydrate }
+            )
+
+            expect(componentExamplesGet).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    hostUniversalKey: objectId,
+                    mergeParticipationOrder: ['ASSET#a', 'ASSET#IMPROVISATION'],
+                })
+            )
+        })
+
+        it('leaves merge participation untouched for a non-Object host', async () => {
+            stageStaleThenReady(componentId)
+
+            await ensureAuthoredCatalog(
+                { componentId, perspective },
+                { runWithSingleFlight: passThroughSingleFlightAuthoredCatalogHydrate }
+            )
+
+            expect(componentExamplesGet).toHaveBeenCalledWith(
+                expect.objectContaining({ mergeParticipationOrder: ['ASSET#a'] })
+            )
+        })
+
+        it('keeps the catalog row assetStack free of the improvisation layer (merge-only append)', async () => {
+            const objectId = 'OBJECT#obj' as const
+            stageStaleThenReady(objectId)
+
+            await ensureAuthoredCatalog(
+                { componentId: objectId, perspective },
+                { runWithSingleFlight: passThroughSingleFlightAuthoredCatalogHydrate }
+            )
+
+            expect(hydrateDiffMock).toHaveBeenCalledWith(
+                expect.objectContaining({ assetStack: ['ASSET#a'] })
+            )
+        })
+    })
 })
