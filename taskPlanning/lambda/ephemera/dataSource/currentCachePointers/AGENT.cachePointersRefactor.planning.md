@@ -1,8 +1,8 @@
 # Cache pointer commissioning (`currentCacheId`)
 
-**Status: ACTIVE --- CP-1 and CP-2 decided; implementation not started.** Promoted from DRAFT STUB on 2026-08-03 after a diagnosis session (the duplicate-`CACHE#`-row bug) established that the pointer **read** path already exists and is **dead in production**. This plan supersedes the stub's framing; see [Correction to the stub's premise](#correction-to-the-stubs-premise).
+**Status: ACTIVE --- all decisions made; implementation not started.** Promoted from DRAFT STUB on 2026-08-03 after a diagnosis session (the duplicate-`CACHE#`-row bug) established that the pointer **read** path already exists and is **dead in production**. This plan supersedes the stub's framing; see [Correction to the stub's premise](#correction-to-the-stubs-premise).
 
-**CP-1 and CP-2 resolved 2026-08-03: commission the pointer; keep fan-out as designed; build no invalidation mechanism.** The deletion outcome this plan originally held open is closed. State-change invalidation of the pointer is **already implemented** as read-time validation and needs no new write. Remaining gates: **CP-3** (retire the legacy Meta fallback) and **CP-4** (write seam).
+**All four decisions resolved 2026-08-03. Ready to implement --- next slice is Phase 1.** Commission the pointer (CP-1); fan-out unchanged and no invalidation mechanism to build (CP-2); finish the migration off `Meta::Room` pointer storage (CP-3); write at the existing `renderCache` seam, and **`mtw.ephemera.currentCachePointers` is cancelled** (CP-4).
 
 **Read [Corrections](#corrections-to-earlier-analysis-in-this-plan) before trusting any analysis in this file** --- two conclusions here were withdrawn after review, both from inferring semantics off flag names instead of reading the contract.
 
@@ -24,7 +24,7 @@ The April 2026 stub proposed a **new `mtw.ephemera.currentCachePointers` DataSou
 1. **The canonical pointer moved.** The M2 migration made catalog-row **`currentCacheId`** canonical; `Meta::Room.currentCacheByPerspective` is the **legacy** field, read only as a fallback ([`perspectivePointer.ts:20-25`](../../../../../lambda/ephemera/dataSource/renderCache/perspectivePointer.ts#L20-L25)).
 2. **The read and clear halves already shipped** inside `renderCache` / `renderOrchestration`. The stub's "future DataSource" would now be inserting a write into a scheme whose other halves already have homes.
 
-The DataSource name is retained for the folder and the contract's subscriber table, but **CP-4** reopens whether a separate DataSource is still the right shape.
+**CP-4 resolved this against the stub:** the DataSource is **cancelled**. The folder name is now vestigial --- this plan covers a `renderCache`-internal field, not a DataSource. The contract doc's `currentCachePointers` obligations are superseded accordingly (see [Contract impact](#contract-impact-of-cp-4)).
 
 ---
 
@@ -59,8 +59,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | **CP-2** | **RESOLVED --- fan-out is the designed mechanism and stays; the pointer needs no invalidation write.** Two earlier framings in this row were **wrong and are withdrawn** (see the struck rows below and [Corrections](#corrections-to-earlier-analysis-in-this-plan)). What holds: **mark state is not stored on the catalog row** --- it is compared at read time ([`findRender.ts:59`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts#L59)) between live marks and the pointed-to row's `markState`, so a state change makes the pointer fail validation on next read, which clears it and falls through to exact-match. **No eager invalidation write is required for the state-change axis.** A component-level "invalidate all perspectives in one write" is not available anyway (catalog rows are per-perspective, no component epoch) and is not needed. Authored-content staleness is the separate axis, already handled by `conditionalInvalidateCatalogRow` (which deletes `currentCacheId`). **Decision: pointer writes feed `collectPerspectivePointerEntries` as designed; build no new invalidation mechanism.** | Implementation slice | **Decided 2026-08-03 (fan-out as designed; no invalidation write)** |
 | ~~CP-2a (withdrawn 2026-08-03 --- false premise)~~ | ~~"Delete the P half of the fan-out; it can't pre-warm anything because `allowGeneration: false`."~~ **Wrong.** `allowGeneration: false` caps cost by forbidding the **LLM slow path**, not by preventing renders: authored situations are seeded as authored-provenance `CACHE#` rows, so **exact-match is a full render path for a state never seen before**. P items therefore resolve normally in the common case. See [contract - State-driven fan-out set and `allowGeneration`](../AGENT.passThrough.contract.planning.md#state-driven-fan-out-set-and-allowgeneration-set-algebra), which states directly that this is "**not** 'skip orchestration'". | --- | **Withdrawn** |
 | ~~CP-2 (original framing --- withdrawn)~~ | **Writing the catalog pointer silently activates the fan-out "P" set.** `collectPerspectivePointerEntries` unions catalog `currentCacheId` with the legacy Meta map, and `fanOutStateChangedToPassiveRenders` uses the result as the pointer-only perspectives to re-render on every `State Changed`. That set is empty today. Once pointers are written, **every room state change fans out passive renders for every perspective anyone has ever looked at**, not just perspectives with a live audience. Decide the intended scope (all-time pointers? TTL? only perspectives with current `targets`?) and whether P is wanted at all. This is the largest blast radius in the plan. **Sharpened by CP-1's resolution:** pointers are cleared on invalidation and on failed validation, but a pointer for a perspective nobody revisits is **never** cleared, so P trends toward "every perspective ever pointed at." Fan-out cost then scales as `(state changes) x (historical perspectives)` --- **multiplicatively, in exactly the high-play regime that earns the pointer its keep**. Same growth driver as CP-1, opposite sign. **Withdrawn 2026-08-03:** this mischaracterized the fan-out as **eager pre-computation**. It is not --- it is the **same `orchestrateRenderRequest` a first-time look runs**, driven by a state-change event instead of a read, and refreshing the perspectives of **players present** (set **A**, real `targets`) is the point of it. The scaling worry was overstated on top of that error: P is bounded in theory by "every perspective ever seen" but in practice much less. Kept for the reasoning trail. | --- | **Withdrawn** |
-| **CP-3** | **Finish or extend the Meta migration?** `Meta::Room.currentCacheByPerspective` is documented as legacy-during-migration but has **no writer either**, so there has never been anything to migrate *from*. Adding a writer now is the cheap moment to **delete** the Meta fallback (dual-read in `resolvePerspectivePointer`, legacy union in `collectPerspectivePointerEntries`, the second `optimisticUpdate` in `clearPerspectivePointer`) rather than carry a fallback for a migration that never happened. | Implementation slice | **Open** |
-| **CP-4** | **Separate DataSource, or write at the existing seam?** The stub proposed a subscriber DataSource on `Render Pertains`. But [`handleOrchestrationHitPath`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts#L135-L172) already receives `componentId` + `cacheId` + perspective on **both** hit outbounds and **already lives in the DataSource that owns the catalog row** --- a `setPerspectivePointer` call there is a few lines and no new registration. Weigh that against the stub's separation-of-concerns argument (pointer maintenance distinct from cache-row writes). Note `mtw.ephemera.currentCachePointers` is **not** registered in [`app.ts`](../../../../../lambda/ephemera/app.ts). | Implementation slice | **Open** |
+| **CP-3** | **RESOLVED --- finish the migration; delete Meta pointer storage.** Cache pointers live on catalog rows only. **Zero data migration required:** since nothing ever wrote either field ([Findings](#findings-2026-08-03-diagnosis)), no `Meta::Room` row in Dynamo carries one --- this is pure code deletion with no backfill, no dual-read window, and no cutover risk. **Scope:** (1) `perspectivePointer.ts` --- drop the `metaRoom` parameter and legacy branch from `resolvePerspectivePointer`, the second `optimisticUpdate` (and its now-purposeless `ComponentEphemeraMeta` / `AffordanceRoomDeliverable` invalidations) from `clearPerspectivePointer`, and the legacy union from `collectPerspectivePointerEntries`; (2) ripple those signature changes into `requestIntake.ts` and `fanOutStateChangedToPassiveRenders.ts`; (3) `packages/mtw-interfaces/ts/ephemeraMeta.ts` --- remove `currentCacheId`, `currentCacheByPerspective`, the `EphemeraRoomCurrentCacheByPerspective` type, and both guard clauses in `isEphemeraMetaRoom`; (4) tests and doc mentions (`state/AGENT.md`, `renderCache/AGENT.md` "Perspective pointers"). | Implementation slice | **Decided 2026-08-03 (finish the migration)** |
+| **CP-4** | **RESOLVED --- write at the existing `renderCache` seam; the separate DataSource is cancelled.** `setPerspectivePointer` is called from [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)'s hit and generate paths, which already receive `componentId` + `cacheId` + perspective and already live in the DataSource that **owns the catalog row**. **`mtw.ephemera.currentCachePointers` will not be built.** Rationale: the drive to handle pointers in a separate DataSource **emerged from** the legacy pattern of recording them on `Meta::Room` --- i.e. outside the catalog, in a row owned by a different concern. With CP-3 retiring that storage, the pointer is simply a field on a `renderCache`-owned row, and its maintenance belongs with the rest of that row's CRUD. The separation the stub was protecting no longer has a boundary to protect. | Implementation slice | **Decided 2026-08-03 (renderCache seam; DataSource cancelled)** |
 
 ---
 
@@ -101,16 +101,42 @@ Recorded 2026-08-03 because each of these is an **easy cold-read mistake** about
 
 Pending work uses `[ ]`; completed work uses `[X]`. Nested bullets follow the same rule.
 
-- [X] **Phase 0 --- decision gate (CP-1).** Resolved 2026-08-03: **commission the pointer.** The deletion branch that stood here is retired; see the CP-1 row for the reasoning and for why a measurement gate against current row counts would have produced a false negative.
-- [X] **Phase 1a --- CP-2.** Resolved 2026-08-03: **fan-out stays as designed** (it is the standard orchestration path driven by a state-change event, not eager pre-computation), and **no invalidation mechanism is needed** --- read-time validation already covers the state-change axis. Nothing to build here.
-- [ ] **Phase 1b --- resolve CP-3 and CP-4** before writing code.
-- [ ] **Phase 2 --- write path.** Add `setPerspectivePointer(componentId, perspectiveKey, cacheId)` to `perspectivePointer.ts` (idempotent; no `CACHE#` row writes), called from the seam chosen in CP-4. Pointers **feed** `collectPerspectivePointerEntries` as designed (CP-2) --- this is what activates the **P** set for the first time, so land it with Phase 3's fan-out smoke test.
-- [ ] **Phase 3 --- commission the dormant consumers deliberately.** The `findRender` pointer branch and the `'Current Cache Valid'` outbound go live the moment Phase 2 lands; verify both against a real smoke test rather than trusting their existing unit coverage, which has never been validated against production behavior.
+- [X] **Phase 0 --- decisions.** All four resolved 2026-08-03; see the decisions table for reasoning.
+  - [X] **CP-1** --- commission the pointer. (The deletion branch that once stood here is retired, along with the measurement gate that would have produced a false negative.)
+  - [X] **CP-2** --- fan-out stays as designed (standard orchestration driven by a state-change event, not eager pre-computation); no invalidation mechanism to build, since read-time validation already covers the state-change axis.
+  - [X] **CP-3** --- finish the migration off `Meta::Room` pointer storage.
+  - [X] **CP-4** --- write at the `renderCache` seam; cancel the separate DataSource.
+- [ ] **Phase 1 --- CP-3 migration cleanup.** Delete Meta pointer storage per the CP-3 scope list. **Behaviorally inert** --- removing a fallback that has never once returned a value cannot regress anything, and there is no Dynamo backfill because no row ever carried these fields. **Leads deliberately:** it simplifies `perspectivePointer.ts` before Phase 3 writes into it, and its signature ripples land in `fanOutStateChangedToPassiveRenders.ts` **before** Phase 4 goes on to smoke-test that same file's P behavior. Reviewable as pure subtraction.
+- [ ] **Phase 2 --- retire the cancelled DataSource's obligations.** Doc-only, plus one comment; see [Contract impact](#contract-impact-of-cp-4). Lands with the deletion it describes rather than trailing the activation.
+- [ ] **Phase 3 --- write path.** Add `setPerspectivePointer(componentId, perspectiveKey, cacheId)` to `perspectivePointer.ts` (idempotent; no `CACHE#` row writes), called from the `renderCache` seam chosen in CP-4. Pointers **feed** `collectPerspectivePointerEntries` as designed (CP-2) --- this is what activates the **P** set for the first time. **Do not land without Phase 4:** Phase 4 is not follow-up work, it is the verification of this change.
+- [ ] **Phase 4 --- commission the dormant consumers deliberately.** One call site activates **three** paths that have never run in production. Verify against real smoke tests rather than trusting existing unit coverage, which has never been validated against production behavior.
+  - [ ] `findRender`'s pointer-validation branch (per-read, cheap).
+  - [ ] The `'Current Cache Valid'` outbound and its subscriber arm in `handleOrchestrationHitPath` --- an event that has never been emitted (per-read, cheap).
+  - [ ] The **P** set becoming non-empty --- **the only one that changes work volume.**
   - [ ] Smoke-verify read-time pointer invalidation end to end: read a room (pointer written), change its state, read again --- expect pointer validation to fail, the pointer to be cleared, and **exact-match against the authored row for the new state** to answer. This is CP-2's payoff test.
   - [ ] Smoke-verify **state-change fan-out** now that pointers exist: with a player present, change room state and confirm the **A** perspective re-renders and delivers to that character; confirm **P** entries resolve at capped cost without invoking generation.
+- [ ] **Phase 5 --- durable docs.** Move steady-state rules into [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) and the relevant `AGENT.contract.md` (the contract's subscriber tables are already handled in Phase 2); add the one-line authored-seeding cross-reference to [`renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) noted under **Corrections**; then delete this plan.
 
-- [ ] **Phase 4 --- CP-3 cleanup** if decided: delete the Meta legacy fallback and its tests.
-- [ ] **Phase 5 --- durable docs.** Move steady-state rules into [`renderCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) and the relevant `AGENT.contract.md`; update the contract doc's subscriber tables for the CP-4 outcome; add the one-line authored-seeding cross-reference to [`renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) noted under **Corrections**; then delete this plan.
+---
+
+## Contract impact of CP-4
+
+**The obligations were never implemented --- they exist only in design docs.** Verified 2026-08-03: no `currentCachePointers` module or directory in `lambda/` or `packages/`, not registered in [`app.ts`](../../../../../lambda/ephemera/app.ts), and **no** skipped/`todo` contract tests encoding its behavior (the contract's "start as `describe.skip`" strategy was never applied here). Neither obligation exists in code: the **set** side has no writer at all, and **clear-on-`Generation Deferred`** is an explicit no-op at [`handleRenderOrchestrationInbound.ts:164-166`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts#L164-L166). (`clearPerspectivePointer` is **not** a partial build of that obligation --- it fires on pointer **validation failure** inside `findRender`, a different trigger, and already lives in `renderCache`.)
+
+**So Phase 2 is doc-only, plus one comment.** The lone code artifact is that no-op's comment --- `// No cache row writes here; meta pointers are currentCachePointers.` --- which defers to a DataSource that will never exist and should be rewritten to say the pointer self-invalidates at read.
+
+**The retired obligation is unnecessary, not merely unbuilt:** under CP-2 the pointer fails validation on the next read after state changes, so `Generation Deferred` correctly stays a no-op. There is nothing a clear-on-defer subscriber would have done.
+
+Contract entries to retire (Phase 2):
+
+| Location | Current claim | Replacement |
+| --- | --- | --- |
+| Subscribers / roles tables | `currentCachePointers` owns meta pointer maintenance; subscribes to `Render Pertains` (set) and `Generation Deferred` (clear) | `renderCache` maintains `currentCacheId` on the catalog row it already owns, at the `handleRenderOrchestrationInbound` seam. No new subscriber. |
+| Ownership table (**Meta** pointers row) | Pointers are `Meta::Room` fields owned by a planned DataSource | Pointers are catalog-row fields; `Meta::Room` pointer storage is **deleted** (CP-3). |
+| Uncertainty 9 | Payload richness justified partly by `currentCachePointers` needs | Still resolved, but the justification reduces to Perception's needs alone. |
+| Contract-test table | Unit tests for the future DataSource | Fold into `renderCache` tests (pointer-only writes, idempotent set, no `CACHE#` touches). |
+
+Also update the sub-epic index item **C.5** in [`AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md), which currently lists this as a pending DataSource slice.
 
 ---
 
@@ -131,7 +157,7 @@ Full-suite check before handing off a slice (integration tests sit outside `tsco
 cd lambda/ephemera && npm run test -- --watchAll=false
 ```
 
-**Dead-path grep** --- confirms the premise still holds before starting, and inverts once Phase 2 lands (a writer should appear alongside the readers):
+**Dead-path grep** --- confirms the premise still holds before starting, and inverts once Phase 3 lands (a writer should appear alongside the readers):
 
 ```bash
 grep -rn "currentCacheId\|currentCacheByPerspective" --include="*.ts" lambda packages \
@@ -172,5 +198,9 @@ Add for CP-2: a fan-out test asserting the **size and membership** of the P set 
 | CP-1 decision gate --- **commission the pointer** (MRU-of-1 on mark state; saving grows with designed row accumulation) | Done (2026-08-03) |
 | CP-2 fan-out / invalidation --- **fan-out is the designed mechanism and stays; no invalidation write needed** | Done (2026-08-03) |
 | Two withdrawn misreadings recorded in **Corrections** (authored seeding vs `allowGeneration`; fan-out as "eager") | Done (2026-08-03) |
-| CP-3 / CP-4 | **Open --- block implementation** |
-| Implementation | Not started |
+| CP-3 --- **finish the Meta migration** (pure code deletion; no data to migrate) | Done (2026-08-03) |
+| CP-4 --- **write at the `renderCache` seam; `mtw.ephemera.currentCachePointers` cancelled** | Done (2026-08-03) |
+| **Phase 1** --- CP-3 migration cleanup (delete Meta pointer storage) | **Not started --- next slice** |
+| **Phase 2** --- retire cancelled DataSource obligations (doc-only + one comment) | Not started |
+| **Phase 3 + 4** --- write path and commissioning (**one slice**; Phase 4 is Phase 3's verification) | Not started |
+| **Phase 5** --- durable docs; delete this plan | Not started |
