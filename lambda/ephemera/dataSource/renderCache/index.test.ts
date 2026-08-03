@@ -2,6 +2,7 @@ import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
 import { putCacheRecord } from './putCacheRecord'
 import { deleteCacheRecord } from './deleteCacheRecord'
+import { cleanupSituationAdjacencyForDeletedRecords } from './cleanupSituationAdjacencyForDeletedRecords'
 import {
     isRenderCacheCacheUpdatedPayload,
     isRenderCacheCacheErrorPayload,
@@ -30,6 +31,9 @@ jest.mock('./putCacheRecord', () => ({
 jest.mock('./deleteCacheRecord', () => ({
     deleteCacheRecord: jest.fn(),
 }))
+jest.mock('./cleanupSituationAdjacencyForDeletedRecords', () => ({
+    cleanupSituationAdjacencyForDeletedRecords: jest.fn(),
+}))
 jest.mock('./handleExampleInvalidated', () => ({
     handleExampleInvalidated: jest.fn(),
 }))
@@ -39,6 +43,8 @@ jest.mock('./handleRenderCacheFinding', () => ({
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const deleteCacheRecordMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
+const cleanupSituationAdjacencyForDeletedRecordsMock =
+    cleanupSituationAdjacencyForDeletedRecords as jest.MockedFunction<typeof cleanupSituationAdjacencyForDeletedRecords>
 const originalMessageBusPublish = messageBus.publish.bind(messageBus)
 
 describe('mtw.ephemera.renderCache DataSource', () => {
@@ -228,6 +234,10 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         expect(deleteCacheRecordMock).toHaveBeenCalledTimes(2)
         expect(deleteCacheRecordMock).toHaveBeenCalledWith('ROOM#room-one', 'CACHE#one')
         expect(deleteCacheRecordMock).toHaveBeenCalledWith('ROOM#room-one', 'CACHE#two')
+        expect(cleanupSituationAdjacencyForDeletedRecordsMock).toHaveBeenCalledWith(
+            'ROOM#room-one',
+            ['CACHE#one', 'CACHE#two']
+        )
         expect(received).toHaveLength(1)
         expect(isRenderCacheCacheDeletedPayload(received[0])).toBe(true)
         expect(received[0]).toMatchObject({

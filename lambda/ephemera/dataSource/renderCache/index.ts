@@ -9,6 +9,7 @@ import type { DeleteCacheRecordsCommand, PutCacheRecordCommand } from '../localA
 import { isDeleteCacheRecordsCommand, isPutCacheRecordCommand } from '../localApiEvents'
 import { putCacheRecord } from './putCacheRecord'
 import { deleteCacheRecord } from './deleteCacheRecord'
+import { cleanupSituationAdjacencyForDeletedRecords } from './cleanupSituationAdjacencyForDeletedRecords'
 import type { EphemeraCacheComponentId } from './baseClasses'
 import internalCache from '../../internalCache'
 import type { RenderCacheUpdatePayload } from './baseClasses'
@@ -100,6 +101,7 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                     if (isDeleteCacheRecordsCommand(cmd)) {
                         opErrorCode = 'DELETE_FAILED'
                         componentId = cmd.componentId
+                        await cleanupSituationAdjacencyForDeletedRecords(cmd.componentId, cmd.dataCategories)
                         await Promise.all(
                             cmd.dataCategories.map((dataCategory) =>
                                 deleteCacheRecord(cmd.componentId, dataCategory)
