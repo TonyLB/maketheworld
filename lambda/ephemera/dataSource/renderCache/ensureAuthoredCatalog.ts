@@ -63,6 +63,12 @@ async function loadOrCreateCatalogRow(
         return { row, created: true }
     }
     catch {
+        //
+        // The read above memoized `undefined` for this key, so the re-read has to go past the memo
+        // to see the row the winner just wrote. Invalidating (rather than fetching uncached) also
+        // refreshes the CACHE# rows this component's hydrate diff reads later in the same invocation.
+        //
+        internalCache.RenderCache.invalidate(componentId)
         const afterRace = await getCatalogRow(componentId, perspectiveKey)
         if (afterRace === undefined) {
             throw new Error(
