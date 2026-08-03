@@ -120,6 +120,25 @@ describe('AffordanceCacheCacheHandler memo', () => {
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
+    //
+    // The handler is a long-lived singleton cleared once per Lambda invocation, so every read after
+    // the first `clear()` goes through this path; a fetched-but-unreadable store would make each
+    // invocation see an empty cache no matter what Dynamo holds.
+    //
+    it('still returns a fetched row after clear()', async () => {
+        const { handler } = makeHandler()
+        await handler.getAffordanceRow(roomId, perspectiveKey)
+        handler.clear()
+        expect(await handler.getAffordanceRow(roomId, perspectiveKey)).toEqual(readyRow())
+    })
+
+    it('still returns fetched rows after clear()', async () => {
+        const { handler } = makeHandler()
+        await handler.queryAffordanceRows(roomId)
+        handler.clear()
+        expect(await handler.queryAffordanceRows(roomId)).toHaveLength(1)
+    })
+
     it('getAffordanceRow returns undefined for stale row', async () => {
         const { handler } = makeHandler(readyRow({ catalogVersion: 2, hydratedCatalogVersion: 1 }))
 

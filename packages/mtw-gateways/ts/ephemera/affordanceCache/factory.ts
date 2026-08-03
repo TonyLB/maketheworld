@@ -29,15 +29,20 @@ export class AffordanceCacheCacheHandler {
     private _AffordanceRowStore: Record<string, AffordanceCacheRow | undefined> = {}
 
     constructor(private readonly db: EphemeraAffordanceCacheReadDB) {
-        const storeCallback = <T>(store: Record<string, T>) => (key: string, value: T) => {
-            store[key] = value
+        //
+        // Resolve the store lazily on every callback rather than capturing it once: `clear()` rebinds
+        // these fields to fresh objects, so a captured reference would leave the DeferredCache writing
+        // fetched rows into an orphaned store while reads saw a permanently empty one.
+        //
+        const storeCallback = <T>(getStore: () => Record<string, T>) => (key: string, value: T) => {
+            getStore()[key] = value
         }
 
         this._AffordanceRowsCache = new DeferredCache<AffordanceCacheRow[]>({
-            callback: storeCallback(this._AffordanceRowsStore),
+            callback: storeCallback(() => this._AffordanceRowsStore),
         })
         this._AffordanceRowCache = new DeferredCache<AffordanceCacheRow | undefined>({
-            callback: storeCallback(this._AffordanceRowStore),
+            callback: storeCallback(() => this._AffordanceRowStore),
         })
     }
 
