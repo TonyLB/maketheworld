@@ -35,7 +35,6 @@ export type EphemeraCacheMarkState = {
 
 export type EphemeraPerspectiveKey = string
 export type EphemeraCacheId = `CACHE#${string}`
-export type EphemeraRoomCurrentCacheByPerspective = Record<EphemeraPerspectiveKey, EphemeraCacheId>
 
 export const isEphemeraCacheMarkState = (value: any): value is EphemeraCacheMarkState => {
     if (!value || typeof value !== 'object' || !Array.isArray(value.markValue)) {
@@ -276,9 +275,6 @@ export type EphemeraMetaRoom = {
     // v1 world-state fields for state-driven, cache-backed Room rendering.
     //
     state?: EphemeraRoomState;
-    /** Legacy fast-pointer map; canonical pointer is `currentCacheId` on `Cache::${perspectiveKey}` catalog rows (M2 migration). */
-    currentCacheByPerspective?: EphemeraRoomCurrentCacheByPerspective;
-    currentCacheId?: EphemeraCacheId;
 }
 
 export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
@@ -290,32 +286,6 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
     }
     if (!isEphemeraRoomId(value.EphemeraId) || value.DataCategory !== 'Meta::Room') {
         return false
-    }
-    if ('currentCacheId' in value && typeof value.currentCacheId !== 'string') {
-        return false
-    }
-    if (
-        'currentCacheId' in value
-        && typeof value.currentCacheId === 'string'
-        && value.currentCacheId.length
-        && !value.currentCacheId.startsWith('CACHE#')
-    ) {
-        return false
-    }
-    if ('currentCacheByPerspective' in value) {
-        const currentCacheByPerspective = value.currentCacheByPerspective
-        if (!currentCacheByPerspective || typeof currentCacheByPerspective !== 'object' || Array.isArray(currentCacheByPerspective)) {
-            return false
-        }
-        const ok = Object.entries(currentCacheByPerspective as Record<string, unknown>).every(([perspectiveKey, cacheId]) => (
-            typeof perspectiveKey === 'string'
-            && perspectiveKey.length > 0
-            && typeof cacheId === 'string'
-            && cacheId.startsWith('CACHE#')
-        ))
-        if (!ok) {
-            return false
-        }
     }
     if ('state' in value) {
         const state = value.state

@@ -26,10 +26,7 @@ jest.mock('./renderCache/catalogRow', () => ({
 }))
 
 jest.mock('./renderCache/perspectivePointer', () => ({
-    resolvePerspectivePointer: jest.fn(async (_roomId, _perspectiveKey, metaRoom) => {
-        const id = metaRoom?.currentCacheByPerspective?.[_perspectiveKey]
-        return typeof id === 'string' && id.startsWith('CACHE#') ? id : undefined
-    }),
+    resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
     clearPerspectivePointer: jest.fn().mockResolvedValue(undefined),
     collectPerspectivePointerEntries: jest.fn().mockResolvedValue([]),
 }))
@@ -141,7 +138,6 @@ describe('Character Registered session orientation (integration)', () => {
         EphemeraId: passThroughFixtureRoomId,
         DataCategory: 'Meta::Room',
         state: { marks: passThroughFixtureMinimalDynamoItem.markState },
-        currentCacheByPerspective: {},
     }
 
     const affordanceRow = createAffordanceCacheRow({

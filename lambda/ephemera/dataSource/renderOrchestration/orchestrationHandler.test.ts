@@ -7,10 +7,7 @@ jest.mock('../renderCache/catalogRow', () => ({
 }))
 
 jest.mock('../renderCache/perspectivePointer', () => ({
-    resolvePerspectivePointer: jest.fn(async (_roomId, perspectiveKey, metaRoom) => {
-        const id = metaRoom?.currentCacheByPerspective?.[perspectiveKey]
-        return typeof id === 'string' && id.startsWith('CACHE#') ? id : undefined
-    }),
+    resolvePerspectivePointer: jest.fn().mockResolvedValue(undefined),
     clearPerspectivePointer: jest.fn().mockResolvedValue(undefined),
     collectPerspectivePointerEntries: jest.fn().mockResolvedValue([]),
 }))
@@ -21,6 +18,7 @@ import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import { ensureAuthoredCatalog } from '../renderCache/ensureAuthoredCatalog'
 import { getCatalogRow } from '../renderCache/catalogRow'
+import { resolvePerspectivePointer } from '../renderCache/perspectivePointer'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import {
     isRenderOrchestrationCurrentCacheValidPayload,
@@ -35,6 +33,7 @@ import type { RenderRequested } from '../../messageBus/baseClasses'
 
 const ensureAuthoredCatalogMock = ensureAuthoredCatalog as jest.MockedFunction<typeof ensureAuthoredCatalog>
 const getCatalogRowMock = getCatalogRow as jest.MockedFunction<typeof getCatalogRow>
+const resolvePerspectivePointerMock = resolvePerspectivePointer as jest.Mock
 
 describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     beforeEach(() => {
@@ -55,9 +54,6 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         EphemeraId: 'ROOM#one',
         DataCategory: 'Meta::Room',
         state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } },
-        currentCacheByPerspective: {
-            'PERSPECTIVE#v1#abc': 'CACHE#valid'
-        }
     }
 
     const baseCacheRecord: EphemeraCacheDynamoItem = {
@@ -92,7 +88,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch,
@@ -118,6 +114,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             catalogVersion: 1,
             hydratedCatalogVersion: 1,
         })
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -144,7 +141,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch,
@@ -160,6 +157,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     it('clears pointer and emits Generation Deferred when record missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -182,7 +180,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch,
@@ -201,6 +199,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const generateRoomPreview = jest.fn()
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(null)
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: { ...basePayload, allowGeneration: true }, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -257,6 +256,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     it('clears pointer and emits Generation Deferred when markState mismatch', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -280,6 +280,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             ...baseCacheRecord,
             perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
         }
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -298,6 +299,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
 
     it('continues to Generation Deferred if pointer clearing fails', async () => {
         const messageBus = makeBus()
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -316,6 +318,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     it('emits Exact Match Found on exact-match hit after invalid pointer', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
+        resolvePerspectivePointerMock.mockResolvedValueOnce('CACHE#valid')
         await orchestrateRenderRequest(
             { payload: basePayload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
@@ -470,7 +473,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(null),
@@ -521,7 +524,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         await orchestrateRenderRequest(
             { payload, streamEvent: streamEventFromMessageBus(messageBus) },
             {
-                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn().mockResolvedValue(null),

@@ -1,29 +1,18 @@
 /**
- * Fast cache pointers per perspective (M2): canonical on `Cache::` catalog rows; legacy Meta fallback.
+ * Fast cache pointers per perspective: canonical (and only) storage is `currentCacheId` on `Cache::` catalog rows.
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../internalCache'
 import type { EphemeraCacheComponentId } from './baseClasses'
 import { getCatalogRow, perspectiveKeyFromCatalogDataCategory, queryCatalogRowsForComponent } from './catalogRow'
 
 export async function resolvePerspectivePointer(
     hostId: EphemeraCacheComponentId,
-    perspectiveKey: string,
-    metaRoom?: EphemeraMetaRoom
+    perspectiveKey: string
 ): Promise<EphemeraCacheId | undefined> {
     const catalogRow = await getCatalogRow(hostId, perspectiveKey)
-    if (catalogRow?.currentCacheId !== undefined) {
-        return catalogRow.currentCacheId
-    }
-    if (metaRoom?.currentCacheByPerspective) {
-        const legacy = metaRoom.currentCacheByPerspective[perspectiveKey]
-        if (typeof legacy === 'string' && legacy.startsWith('CACHE#')) {
-            return legacy as EphemeraCacheId
-        }
-    }
-    return undefined
+    return catalogRow?.currentCacheId
 }
 
 export async function clearPerspectivePointer(
@@ -40,20 +29,6 @@ export async function clearPerspectivePointer(
             },
         })
     }
-
-    if (hostId.startsWith('ROOM#')) {
-        await ephemeraDB.optimisticUpdate({
-            Key: { EphemeraId: hostId as EphemeraRoomId, DataCategory: 'Meta::Room' },
-            updateKeys: ['currentCacheByPerspective'],
-            updateReducer: (draft: EphemeraMetaRoom) => {
-                if (draft.currentCacheByPerspective && typeof draft.currentCacheByPerspective === 'object') {
-                    delete draft.currentCacheByPerspective[perspectiveKey]
-                }
-            },
-        })
-        internalCache.ComponentEphemeraMeta.invalidate(hostId as EphemeraRoomId)
-        internalCache.AffordanceRoomDeliverable.invalidate(hostId as EphemeraRoomId)
-    }
 }
 
 export type PerspectivePointerEntry = {
@@ -62,11 +37,10 @@ export type PerspectivePointerEntry = {
 };
 
 /**
- * Union of catalog `currentCacheId` pointers and legacy Meta map entries (catalog wins per key).
+ * Catalog `currentCacheId` pointers for every perspective of a room.
  */
 export async function collectPerspectivePointerEntries(
-    roomId: EphemeraRoomId,
-    metaRoom?: EphemeraMetaRoom
+    roomId: EphemeraRoomId
 ): Promise<PerspectivePointerEntry[]> {
     const byKey = new Map<string, EphemeraCacheId>()
 
@@ -78,13 +52,6 @@ export async function collectPerspectivePointerEntries(
         const perspectiveKey = perspectiveKeyFromCatalogDataCategory(row.DataCategory)
         if (perspectiveKey) {
             byKey.set(perspectiveKey, row.currentCacheId)
-        }
-    }
-
-    const legacyMap = metaRoom?.currentCacheByPerspective ?? {}
-    for (const [perspectiveKey, cacheId] of Object.entries(legacyMap)) {
-        if (!byKey.has(perspectiveKey) && typeof cacheId === 'string' && cacheId.startsWith('CACHE#')) {
-            byKey.set(perspectiveKey, cacheId as EphemeraCacheId)
         }
     }
 

@@ -111,7 +111,7 @@ Implementation: [`assetStackIncludesEditAssetId`](../../../../packages/mtw-gatew
 
 **Situation adjacency:** [`situationAdjacency.ts`](situationAdjacency.ts) (partition query/put/delete; `upsertAdjacencyForAuthoredSlice`, `deleteAdjacencyForRemovedSlice` for hydrate diff).
 
-**Perspective pointers:** [`perspectivePointer.ts`](perspectivePointer.ts) reads/writes `currentCacheId` on catalog rows; dual-reads legacy `Meta::Room.currentCacheByPerspective` during migration.
+**Perspective pointers:** [`perspectivePointer.ts`](perspectivePointer.ts) reads/writes `currentCacheId` on catalog rows only --- the legacy `Meta::Room.currentCacheByPerspective` fallback was removed once the M2 migration finished (no dual-read window, no data ever lived there).
 
 **Invalidation:** [`handleExampleInvalidated.ts`](handleExampleInvalidated.ts) wired from [`index.ts`](index.ts) on `ExampleInvalidated`. Component path: query `Cache::` rows, layer-participation filter, conditional bump when catalog was ready. Situation path: adjacency fan-out; `entityRemoved: true` bumps all links and deletes the partition.
 

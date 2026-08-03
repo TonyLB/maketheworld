@@ -2,7 +2,7 @@
  * Fan-out `mtw.ephemera.state` `State Changed` to passive {@link orchestrateRenderRequest} runs.
  *
  * Resolve set **S = A ∪ P** (contract): **A** = deduplicated audience perspectives (`targets` = characters
- * sharing that view); **P** = keys in `Meta::Room.currentCacheByPerspective` not covered by **A** (pointer-only:
+ * sharing that view); **P** = keys with a catalog `currentCacheId` pointer not covered by **A** (pointer-only:
  * `allowGeneration: false`, empty `targets`). **A** wins when a perspective key appears in both.
  */
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -115,8 +115,7 @@ export type FanOutStateChangedDependencies = {
     getMetaRoomBase?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
     collectPerspectivePointerEntries?: (
-        roomId: EphemeraRoomId,
-        metaRoom?: EphemeraMetaRoom
+        roomId: EphemeraRoomId
     ) => Promise<PerspectivePointerEntry[]>;
     computePerspectiveKey?: ComputePk;
     orchestrateRenderRequestFn?: typeof orchestrateRenderRequest;
@@ -179,9 +178,8 @@ export const fanOutStateChangedToPassiveRenders = async (
         return { ...base, state: stateChanged.newState }
     }
 
-    const mergedMeta = await getMetaRoomMerged(roomId)
     const collectPointers = deps?.collectPerspectivePointerEntries ?? collectPerspectivePointerEntries
-    const pointerEntries = await collectPointers(roomId, mergedMeta)
+    const pointerEntries = await collectPointers(roomId)
 
     const workByKey = new Map<string, PassiveFanOutWorkItem>()
 

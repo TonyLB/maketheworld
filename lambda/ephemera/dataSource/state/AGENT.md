@@ -15,7 +15,7 @@ The `lambda/ephemera/dataSource/state` package owns the **runtime world-state mo
 
 **Out of scope here** (see `lambda/ephemera/dataSource/renderOrchestration/AGENT.md` and code there)
 
-- **Cache pointer** fields on `Meta::Room` (`currentCacheId`, `currentCacheByPerspective`) — they may appear on the same Dynamo row, but **validation, clearing, and updates** are owned by **render orchestration** (`requestIntake`, `findRender`, etc.), not by this module.
+- **Cache pointers** (`currentCacheId`) — these live only on `Cache::${perspectiveKey}` catalog rows, never on `Meta::Room`; **validation, clearing, and updates** are owned by **render orchestration** (`requestIntake`, `findRender`, etc.), not by this module.
 - **Invalidation** in the sense of **`RenderInvalidate`**, pointer repair, exact-match vs generation, and perception delivery of placeholders/finals.
 
 State **mutates** authoritative marks when product/API code updates room state; orchestration **resolves** those marks against `renderCache` and maintains pointer fields as part of that pipeline.
