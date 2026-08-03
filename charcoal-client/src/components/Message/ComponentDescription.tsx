@@ -34,8 +34,8 @@ type ComponentDescriptionProps = {
     toolActions?: ReactElement;
 }
 
-function resolveFeatureKnowledgeProse(
-    component: StandardFeature | StandardKnowledge
+function resolveComponentProse(
+    component: StandardFeature | StandardKnowledge | StandardObject
 ): SituationProseFacetPayload | undefined {
     if (component.render) {
         const fromRender = new SituationProseFacetPayload(component.render)
@@ -66,13 +66,19 @@ export const ComponentDescription = ({
     const componentUUID = metaData.componentUUID
     const component = parsedWML.byUniversalId[componentUUID]
     if (component instanceof StandardFeature || component instanceof StandardKnowledge) {
-        const prosePayload = resolveFeatureKnowledgeProse(component)
+        const prosePayload = resolveComponentProse(component)
         if (prosePayload) {
             name = prosePayload._displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
             description = prosePayload._description || new StandardRender([])
         }
     } else if (component instanceof StandardObject) {
+        // Object's heading stays its `shortName` --- that is Object's identity, and the server pads the
+        // `<Render>` facet's DisplayName from the same value anyway. Only the body comes from prose.
         name = component.shortName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
+        const prosePayload = resolveComponentProse(component)
+        if (prosePayload) {
+            description = prosePayload._description || new StandardRender([])
+        }
     }
 
     const bevelCSS = bevel

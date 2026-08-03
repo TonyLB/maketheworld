@@ -174,5 +174,67 @@ describe('ComponentDescription', () => {
             expect(screen.getByRole('heading', { name: 'A Widget' })).toBeDefined()
             expect(screen.getByText('No description')).toBeDefined()
         })
+
+        it('renders description from a Render facet, keeping shortName as the heading', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object key=(testObject) uuid=(OBJECT#testObject)>
+                        <ShortName>Rocket Skateboard</ShortName>
+                        <Render>
+                            <DisplayName>Rocket Skateboard</DisplayName>
+                            <Summary></Summary>
+                            <Description>Rocket motor on the rear.</Description>
+                        </Render>
+                    </Object>
+                </Asset>
+            `), { standardizeMode: 'ephemeraWire' })
+
+            const metaData: PerceptionObjectMetaData = {
+                componentUUID: 'OBJECT#testObject'
+            }
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByRole('heading', { name: 'Rocket Skateboard' })).toBeDefined()
+            expect(screen.getByText('Rocket motor on the rear.')).toBeDefined()
+            expect(screen.queryByText('No description')).toBeNull()
+        })
+
+        it('renders description from a DEFAULT situation facet', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object key=(testObject) uuid=(OBJECT#testObject)>
+                        <ShortName>A Widget</ShortName>
+                        <Situation uuid=(DEFAULT)>
+                            <DisplayName>A Widget</DisplayName>
+                            <Description>An object from a Situation facet</Description>
+                        </Situation>
+                    </Object>
+                </Asset>
+            `), { standardizeMode: 'ephemeraWire' })
+
+            const metaData: PerceptionObjectMetaData = {
+                componentUUID: 'OBJECT#testObject'
+            }
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByRole('heading', { name: 'A Widget' })).toBeDefined()
+            expect(screen.getByText('An object from a Situation facet')).toBeDefined()
+        })
     })
 })

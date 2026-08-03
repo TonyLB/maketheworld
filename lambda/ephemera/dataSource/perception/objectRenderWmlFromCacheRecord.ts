@@ -4,6 +4,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
+import { situationRoomRenderPayloadFromCacheRenderedContent } from '../renderCache/renderedContentToSituationRoomPayload'
 import { selectDefaultSituationCacheRecord } from '../renderCache/selectDefaultSituationCacheRecord'
 
 const EMPTY_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
@@ -20,14 +21,15 @@ const EMPTY_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
 const PLACEHOLDER_SHORT_NAME = '⁠'
 
 /**
- * Render-channel WML for Object: built from `shortName` --- the field `StandardObject` already fully
- * supports (parse-consumer, type, and `schema()` emitter) --- rather than mirroring
- * `featureRenderWmlFromCacheRecord`/`knowledgeRenderWmlFromCacheRecord`'s `.render` mechanism, which
- * `StandardObject` has no wired consumer for yet. `renderedContent.displayName` comes from the real
- * `ensureAuthoredCatalog` path's `SITUATION#DEFAULT` facet (authored-only, may be empty); `fallbackShortName`
- * --- the object's own live-resolved shortName, from `objects/objectShortName.ts`'s
- * `resolveObjectShortName` --- fills in when no facet has been authored, so Object never renders
- * nameless.
+ * Render-channel WML for Object: prose from `renderCache` via `.render`, mirroring
+ * `featureRenderWmlFromCacheRecord`/`knowledgeRenderWmlFromCacheRecord`, *plus* a `shortName` --- unlike
+ * Feature/Knowledge, `<Object>`'s content model structurally requires exactly one non-empty
+ * `ShortName` child, so both facets are emitted together.
+ *
+ * `renderedContent.displayName` comes from the real `ensureAuthoredCatalog` path's `SITUATION#DEFAULT`
+ * facet (authored-only, may be empty); `fallbackShortName` --- the object's own live-resolved
+ * shortName, from `objects/objectShortName.ts`'s `resolveObjectShortName` --- fills in when no facet
+ * has been authored, so Object never renders nameless.
  */
 export function objectRenderWmlFromCacheRecord(
     objectId: EphemeraObjectId,
@@ -36,10 +38,25 @@ export function objectRenderWmlFromCacheRecord(
 ): string {
     const resolved = renderedContent.displayName ? renderTreeToString(renderedContent.displayName) : ''
     const shortName = resolved.length > 0 ? resolved : (fallbackShortName || PLACEHOLDER_SHORT_NAME)
+    // Emit `<Render>` only for actual prose: a displayName-only cache record already round-trips as
+    // `<ShortName>`, and a bare `<Render><DisplayName>` adds nothing. `Render.finalize` is strict
+    // (exactly three ordered children, non-empty DisplayName after trim --- see the PROVISIONAL note
+    // on `SituationProseFacetPayload.toProseTripletChildren`), so pad the triplet the way
+    // `orchestrate.ts`'s `PLACEHOLDER_RENDER_BODY` does. Object never needs that file's invisible-title
+    // placeholder: `shortName` here is non-empty by construction.
+    const hasProse = (renderedContent.summary?.length ?? 0) > 0 || (renderedContent.description?.length ?? 0) > 0
+    const renderPayload = hasProse
+        ? situationRoomRenderPayloadFromCacheRenderedContent({
+            displayName: [shortName],
+            summary: renderedContent.summary ?? [''],
+            description: renderedContent.description ?? [],
+        })
+        : undefined
     const objectRow: StandardObjectData = {
         tag: 'Object',
         universalKey: objectId,
         shortName,
+        ...(renderPayload ? { render: renderPayload } : {}),
     }
     const form = new StandardForm([
         { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },

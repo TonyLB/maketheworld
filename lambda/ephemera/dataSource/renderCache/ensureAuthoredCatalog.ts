@@ -2,7 +2,13 @@ import {
     componentExamplesPerspectiveCacheKey,
     defaultResolveRoomLensMarkDefaults,
 } from '@tonylb/mtw-gateways/ts/assets/components/componentExamples'
-import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import {
+    appendImprovisationToPerspective,
+    computePerspectiveKey,
+    type Perspective,
+} from '@tonylb/mtw-interfaces/ts/perspective'
 
 import internalCache from '../../internalCache'
 import {
@@ -73,9 +79,21 @@ async function runStaleHydratePath(
     perspectiveKey: string,
     incomingCatalogVersion: number
 ): Promise<void> {
+    // An Object's authored `SITUATION#DEFAULT` facet lives on its `(OBJECT#, ASSET#IMPROVISATION)`
+    // pair row, so `ASSET#IMPROVISATION` has to be the last participation layer for the merge to see
+    // it at all --- the same append every other Object-merging call site performs (`objectShortName.ts`,
+    // `heldInventoryCatalogForCharacter.ts`, `affordanceRoomDeliverable.ts`, the two presentation-label
+    // resolvers). This is merge participation only: `perspectiveKey` and the catalog row's stored
+    // `assetStack` stay the raw perspective, since the improvisation layer is appended per-merge rather
+    // than being part of the perspective's identity. Non-Object hosts pass an empty scope and are
+    // unaffected.
+    const mergeParticipationOrder = appendImprovisationToPerspective(
+        [...perspective.assetStack] as AssetUUID[],
+        isEphemeraObjectId(componentId) ? [componentId] : []
+    )
     const assembleInput = {
         hostUniversalKey: componentId,
-        mergeParticipationOrder: perspective.assetStack,
+        mergeParticipationOrder,
         options: {
             resolveRoomLensMarkDefaults: defaultResolveRoomLensMarkDefaults(componentId),
         },
