@@ -10,15 +10,11 @@ jest.mock('./dataSource/apiEphemera', () => {
         sendActionAssessed: jest.fn(),
     }
 })
-jest.mock('./guestCharacter', () => ({
-    confirmGuestCharacter: jest.fn().mockResolvedValue(undefined),
-}))
 import { handler } from './app'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 import { sendActionAssessed } from './dataSource/apiEphemera'
-import { confirmGuestCharacter } from './guestCharacter'
 import { collectReturnValues, collectErrors, resetReturnValueCollector } from './returnValue/collector'
 
 // Mock dependencies
@@ -27,7 +23,6 @@ jest.mock('./internalCache')
 
 const mockFetchEphemeraForCharacter = fetchEphemeraForCharacter as jest.MockedFunction<typeof fetchEphemeraForCharacter>
 const mockSendActionAssessed = sendActionAssessed as jest.MockedFunction<typeof sendActionAssessed>
-const mockConfirmGuestCharacter = confirmGuestCharacter as jest.MockedFunction<typeof confirmGuestCharacter>
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 let mockThinkingResultsGet: jest.Mock
@@ -573,16 +568,21 @@ describe('app handler', () => {
             })
         })
 
-        it('routes a Player Connected EventBridge event to confirmGuestCharacter (not the generic no-deserializer error)', async () => {
+        it('routes a Player Connected EventBridge event through the mtw.players deserializer (not the generic no-deserializer error)', async () => {
             const event = {
                 source: 'mtw.players',
                 'detail-type': 'Player Connected',
-                detail: { player: 'player-one' },
+                detail: {
+                    streamKey: 'PLAYER#player-one',
+                    player: 'player-one',
+                    connectionId: 'conn-1',
+                    sessionId: 'session-1',
+                    timestamp: 1700000000000,
+                },
             }
 
             await handler(event, {})
 
-            expect(mockConfirmGuestCharacter).toHaveBeenCalledWith('player-one', messageBus)
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'Error',
@@ -591,6 +591,18 @@ describe('app handler', () => {
                     }),
                 })
             )
+            const streamingEventCall = mockMessageBus.publish.mock.calls.find(
+                (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'mtw.players'
+            )
+            expect(streamingEventCall).toBeDefined()
+            const payload = streamingEventCall![0] as { getContent: () => Promise<unknown> }
+            const content = await payload.getContent()
+            expect(content).toMatchObject({
+                type: 'Player Connected',
+                player: 'player-one',
+                connectionId: 'conn-1',
+                sessionId: 'session-1',
+            })
         })
     })
 

@@ -28,11 +28,11 @@ import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 
 import { sfnClient } from './clients'
-import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { ConnectionsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { ConnectionsCharactersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
+import { PlayersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
@@ -58,6 +58,7 @@ import './dataSource/thinking/scheduling'  // mtw.ephemera.thinking.scheduling (
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
 import './dataSource/positions'  // mtw.ephemera.positions DataSource (positions in play; first ingress: mtw.connections.characters)
+import './dataSource/players'  // mtw.ephemera.players DataSource (Player Connected -> confirmGuestCharacter)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
@@ -66,6 +67,7 @@ const eventDeserializers = {
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
     'mtw.connections': new ConnectionsEventSerializer(createNodeDataSourceEnvironment()),
     'mtw.connections.characters': new ConnectionsCharactersEventSerializer(createNodeDataSourceEnvironment()),
+    'mtw.players': new PlayersEventSerializer(createNodeDataSourceEnvironment()),
 } as const
 
 export const handler = async (event: any, context: any) => {
@@ -95,13 +97,11 @@ export const handler = async (event: any, context: any) => {
         }
     }
 
-    // Sources handled only by the legacy switch below (no entry in eventDeserializers); must not be
-    // intercepted by the generic "no deserializer available" branch immediately below, which would
-    // otherwise publish a spurious Error and return before the legacy switch ever runs.
-    const legacyOnlyEventSources = ['mtw.development', 'mtw.players', 'mtw.wml']
-
-    // Handle EventBridge messages by publishing to messageBus for DataSource processing
-    if (event?.source && event["detail-type"] && !legacyOnlyEventSources.includes(event.source)) {
+    // Handle EventBridge messages by publishing to messageBus for DataSource processing.
+    // Any source without an eventDeserializers entry (e.g. mtw.development, mtw.wml) surfaces as an
+    // explicit "No deserializer available" Error/return below rather than being silently dropped;
+    // migrate a source by adding its serializer to eventDeserializers, not by special-casing it here.
+    if (event?.source && event["detail-type"]) {
         if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
             const streamKey = event.detail?.streamKey || ''
             const dataSourceKey = (event["detail-type"] as string).replace(/^Initialize Subscription - /, '')
@@ -157,147 +157,138 @@ export const handler = async (event: any, context: any) => {
         return await extractReturnValue(messageBus)
     }
 
-    // Handle legacy EventBridge messages that don't use DataSource pattern yet
-    if (['mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
-        switch(event["detail-type"]) {
-            case 'Player Connected':
-                await confirmGuestCharacter(event.detail.player, messageBus)
-                await messageBus.flushAndSettle()
-                return await extractReturnValue(messageBus)
-        }
-    }
-    else {
-        if (isEphemeraAPIMessage(request)) {
-            if (isFetchEphemeraAPIMessage(request)) {
-                //
-                // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages
-                // pushed during a cycle
-                //
-                if (request.CharacterId) {
-                    const ephemera = await fetchEphemeraForCharacter({
-                        CharacterId: request.CharacterId
-                    })
-                    messageBus.publish({
-                        type: 'ReturnValue',
-                        body: ephemera
-                    })
-                }
-                else {
-                    messageBus.publish({
-                        type: 'FetchPlayerEphemera'
-                    })
-                }
-            }
-            if (isSyncAPIMessage(request)) {
-                if (isEphemeraCharacterId(request.CharacterId)) {
-                    await sfnClient.send(new StartExecutionCommand({
-                        stateMachineArn: process.env.SYNC_MESSAGE_SFN,
-                        input: JSON.stringify({
-                            RequestId: request.RequestId,
-                            ConnectionId: connectionId,
-                            Target: request.CharacterId,
-                            StartingAt: `${request.startingAt} || 0}`
-                        })
-                    }))
-                    return { statusCode: 200, body: "{}" }
-                }
-                else {
-                    console.log(`Invalid CharacterId on SyncAPI`)
-                }
-            }
-            if (isMapSubscribeAPIMessage(request)) {
-                const characterId = request.CharacterId
-                if (isEphemeraCharacterId(characterId)) {
-                    messageBus.publish({
-                        type: 'SubscribeToMaps',
-                        characterId
-                    })
-                }
-            }
-            if (isMapUnsubscribeAPIMessage(request)) {
-                const characterId = request.CharacterId
-                if (isEphemeraCharacterId(characterId)) {
-                    messageBus.publish({
-                        type: 'UnsubscribeFromMaps',
-                        characterId
-                    })
-                }
-            }
-
-            if (isLinkAPIMessage(request)) {
-                const CharacterId = request.CharacterId
-                if (CharacterId && isEphemeraCharacterId(CharacterId)) {
-
-                    if (isEphemeraCharacterId(request.to)) {
-                        messageBus.publish({
-                            type: 'Perception',
-                            characterId: CharacterId,
-                            ephemeraId: request.to
-                        })
-                    }
-                    else if (isEphemeraFeatureId(request.to) || isEphemeraKnowledgeId(request.to)) {
-                        sendActionAssessed(messageBus, CharacterId, {
-                            characterId: CharacterId,
-                            assessed: {
-                                type: 'LookComponent',
-                                componentId: request.to,
-                                confidence: 1,
-                                ...(request.directResponse ? { directResponse: true } : {}),
-                            },
-                            source: 'link',
-                        })
-                    }
-                }
-            }
-
-            if (isCommandAPIMessage(request)) {
-                sendParseRequested(messageBus, request.CharacterId, {
-                    characterId: request.CharacterId,
-                    command: request.command,
-                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
+    // By this point event.source is unset (any EventBridge-shaped event already returned above);
+    // handle API Gateway-originated ephemera messages.
+    if (isEphemeraAPIMessage(request)) {
+        if (isFetchEphemeraAPIMessage(request)) {
+            //
+            // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages
+            // pushed during a cycle
+            //
+            if (request.CharacterId) {
+                const ephemera = await fetchEphemeraForCharacter({
+                    CharacterId: request.CharacterId
+                })
+                messageBus.publish({
+                    type: 'ReturnValue',
+                    body: ephemera
                 })
             }
-
-            if (isActionAPIMessage(request)) {
-                routeTrustedUiAction(messageBus, request, request.RequestId)
+            else {
+                messageBus.publish({
+                    type: 'FetchPlayerEphemera'
+                })
             }
-
-            if (isEphemeraApiStateChangeAPIMessage(request)) {
-                const cmd = {
-                    componentId: request.componentId,
-                    markState: request.markState,
-                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
-                }
-                if (!isStateChangeCommand(cmd)) {
-                    if (request.RequestId) {
-                        messageBus.publish({
-                            type: 'ReturnValue',
-                            body: {
-                                messageType: 'Error',
-                                RequestId: request.RequestId,
-                                message: 'Invalid ephemera state change payload',
-                            },
-                        })
-                    }
-                }
-                else {
-                    sendStateChange(messageBus, request.componentId, cmd)
-                }
-            }
-
-            if (isFetchThinkingResultAPIMessage(request)) {
-                await handleFetchThinkingResult(request, messageBus)
-            }
-
         }
-        else {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({
-                    error: 'Invalid message',
-                    request
-                }, null, 4)
+        if (isSyncAPIMessage(request)) {
+            if (isEphemeraCharacterId(request.CharacterId)) {
+                await sfnClient.send(new StartExecutionCommand({
+                    stateMachineArn: process.env.SYNC_MESSAGE_SFN,
+                    input: JSON.stringify({
+                        RequestId: request.RequestId,
+                        ConnectionId: connectionId,
+                        Target: request.CharacterId,
+                        StartingAt: `${request.startingAt} || 0}`
+                    })
+                }))
+                return { statusCode: 200, body: "{}" }
             }
+            else {
+                console.log(`Invalid CharacterId on SyncAPI`)
+            }
+        }
+        if (isMapSubscribeAPIMessage(request)) {
+            const characterId = request.CharacterId
+            if (isEphemeraCharacterId(characterId)) {
+                messageBus.publish({
+                    type: 'SubscribeToMaps',
+                    characterId
+                })
+            }
+        }
+        if (isMapUnsubscribeAPIMessage(request)) {
+            const characterId = request.CharacterId
+            if (isEphemeraCharacterId(characterId)) {
+                messageBus.publish({
+                    type: 'UnsubscribeFromMaps',
+                    characterId
+                })
+            }
+        }
+
+        if (isLinkAPIMessage(request)) {
+            const CharacterId = request.CharacterId
+            if (CharacterId && isEphemeraCharacterId(CharacterId)) {
+
+                if (isEphemeraCharacterId(request.to)) {
+                    messageBus.publish({
+                        type: 'Perception',
+                        characterId: CharacterId,
+                        ephemeraId: request.to
+                    })
+                }
+                else if (isEphemeraFeatureId(request.to) || isEphemeraKnowledgeId(request.to)) {
+                    sendActionAssessed(messageBus, CharacterId, {
+                        characterId: CharacterId,
+                        assessed: {
+                            type: 'LookComponent',
+                            componentId: request.to,
+                            confidence: 1,
+                            ...(request.directResponse ? { directResponse: true } : {}),
+                        },
+                        source: 'link',
+                    })
+                }
+            }
+        }
+
+        if (isCommandAPIMessage(request)) {
+            sendParseRequested(messageBus, request.CharacterId, {
+                characterId: request.CharacterId,
+                command: request.command,
+                ...(request.RequestId ? { requestId: request.RequestId } : {}),
+            })
+        }
+
+        if (isActionAPIMessage(request)) {
+            routeTrustedUiAction(messageBus, request, request.RequestId)
+        }
+
+        if (isEphemeraApiStateChangeAPIMessage(request)) {
+            const cmd = {
+                componentId: request.componentId,
+                markState: request.markState,
+                ...(request.RequestId ? { requestId: request.RequestId } : {}),
+            }
+            if (!isStateChangeCommand(cmd)) {
+                if (request.RequestId) {
+                    messageBus.publish({
+                        type: 'ReturnValue',
+                        body: {
+                            messageType: 'Error',
+                            RequestId: request.RequestId,
+                            message: 'Invalid ephemera state change payload',
+                        },
+                    })
+                }
+            }
+            else {
+                sendStateChange(messageBus, request.componentId, cmd)
+            }
+        }
+
+        if (isFetchThinkingResultAPIMessage(request)) {
+            await handleFetchThinkingResult(request, messageBus)
+        }
+
+    }
+    else {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({
+                error: 'Invalid message',
+                request
+            }, null, 4)
         }
     }
 
