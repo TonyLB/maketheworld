@@ -38,6 +38,17 @@ const pushCharacterEphemera = async (character: {
 }
 
 const writeGuestSituationFacet = async (characterEphemeraId: EphemeraCharacterId, name: string, messageBus: MessageBus): Promise<void> => {
+    const desired = new StandardCharacter({
+        tag: 'Character',
+        universalKey: characterEphemeraId,
+        shortName: name,
+        situations: GUEST_COYOTE_SITUATIONS,
+    })
+    const { component: existing } = await internalCache.ImprovisationComponentData.get(characterEphemeraId, IMPROVISATION_ASSET_ID)
+    if (existing.equals(desired)) {
+        return
+    }
+
     await ephemeraDB.putItem({
         EphemeraId: characterEphemeraId,
         DataCategory: IMPROVISATION_ASSET_ID,
@@ -45,12 +56,7 @@ const writeGuestSituationFacet = async (characterEphemeraId: EphemeraCharacterId
         shortName: name,
         situations: GUEST_COYOTE_SITUATIONS,
     })
-    internalCache.ImprovisationComponentData.set(characterEphemeraId, IMPROVISATION_ASSET_ID, new StandardCharacter({
-        tag: 'Character',
-        universalKey: characterEphemeraId,
-        shortName: name,
-        situations: GUEST_COYOTE_SITUATIONS,
-    }))
+    internalCache.ImprovisationComponentData.set(characterEphemeraId, IMPROVISATION_ASSET_ID, desired)
 
     const dataCategories = await queryAllRenderCacheDataCategoriesForComponent(characterEphemeraId)
     if (dataCategories.length > 0) {

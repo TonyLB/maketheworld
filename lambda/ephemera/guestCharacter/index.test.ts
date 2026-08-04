@@ -14,6 +14,7 @@ jest.mock('../internalCache', () => ({
     __esModule: true,
     default: {
         ImprovisationComponentData: {
+            get: jest.fn(),
             set: jest.fn(),
         },
     },
@@ -35,7 +36,7 @@ import { confirmGuestCharacter } from './index'
 import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-const internalCacheMock = internalCache as unknown as { ImprovisationComponentData: { set: jest.Mock } }
+const internalCacheMock = internalCache as unknown as { ImprovisationComponentData: { get: jest.Mock; set: jest.Mock } }
 const sendDeleteCacheRecordsMock = sendDeleteCacheRecords as jest.Mock
 const queryAllRenderCacheDataCategoriesForComponentMock = queryAllRenderCacheDataCategoriesForComponent as jest.Mock
 
