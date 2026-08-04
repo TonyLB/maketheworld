@@ -49,10 +49,10 @@ cd packages/mtw-gateways && npm run test -- --watchAll=false componentData
 
 Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step lands. Nothing below is built yet.
 
-- [ ] **Phase 1. Widen improvisation merge participation to `CHARACTER#` hosts.**
-  - [ ] `appendImprovisationToPerspective`'s scope parameter accepts `EphemeraObjectId | EphemeraCharacterId` (it is a non-empty flag, not a lookup key --- no behavior change beyond the type).
-  - [ ] `ensureAuthoredCatalog`'s `runStaleHydratePath` appends for Character hosts as well as Object; update the explanatory comment there and the `renderCache/AGENT.md` section, both of which currently say "Object" normatively.
-  - [ ] Unit test: a `CHARACTER#` host's `mergeParticipationOrder` ends in `ASSET#IMPROVISATION`; a `ROOM#` host's does not.
+- [X] **Phase 1. Widen improvisation merge participation to `CHARACTER#` hosts.** Done 2026-08-03.
+  - [X] `appendImprovisationToPerspective`'s scope parameter accepts `EphemeraObjectId | EphemeraCharacterId` (it is a non-empty flag, not a lookup key --- no behavior change beyond the type).
+  - [X] `ensureAuthoredCatalog`'s `runStaleHydratePath` appends for Character hosts as well as Object; update the explanatory comment there and the `renderCache/AGENT.md` section, both of which currently say "Object" normatively.
+  - [X] Unit test: a `CHARACTER#` host's `mergeParticipationOrder` ends in `ASSET#IMPROVISATION`; a `ROOM#` host's does not.
 - [ ] **Phase 2. Write the guest facet at `confirmGuestCharacter`.**
   - [ ] Add a guest-prose module holding the coyote `SITUATION#DEFAULT` slice (pronoun-correct: `they/them`, matching the row it ships beside). One exported constant, `coyoteGameEnabled`-gated at the call site, not inside the constant.
   - [ ] Write `(CHARACTER#<guestId>, ASSET#IMPROVISATION)` with `{ tag: 'Character', shortName: <guest Name>, situations: [...] }` alongside the existing `Meta::Character` upsert. Idempotent: repair overwrites, so a prose edit reaches existing guests on their next confirm. **Write `situations`, not `render`** --- `render` is the output field `characterRenderWmlFromCacheRecord` synthesizes from the resolved cache record, one layer downstream of the merge body.
@@ -85,6 +85,6 @@ Plus end-to-end: a freshly created guest, looked at via trusted-UI click, render
 | Milestone | Status |
 | --- | --- |
 | Scope + design confirmed through conversation | Done (2026-08-03) |
-| Phase 1 (Character improvisation merge participation) | Not started |
+| Phase 1 (Character improvisation merge participation) | Done (2026-08-03) |
 | Phase 2 (guest facet write at `confirmGuestCharacter`) | Not started |
 | Phase 3 (payoff test + live smoke) | Not started |

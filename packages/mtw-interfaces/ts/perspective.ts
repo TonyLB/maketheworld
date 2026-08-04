@@ -10,7 +10,7 @@
  */
 
 import { AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { EphemeraObjectId, IMPROVISATION_ASSET_ID } from './baseClasses'
+import { EphemeraCharacterId, EphemeraObjectId, IMPROVISATION_ASSET_ID } from './baseClasses'
 
 export type Perspective = {
     assetStack: AssetUUID[]
@@ -56,12 +56,13 @@ export const computePerspectiveKey = (
 }
 
 /**
- * Append ASSET#IMPROVISATION as the last participation layer when improvisational objects exist in scope (I3).
+ * Append ASSET#IMPROVISATION as the last participation layer when improvisational objects or
+ * characters exist in scope (I3).
  * Returns a new array; does not mutate the input stack.
  */
 export const appendImprovisationToPerspective = (
     assetStack: AssetUUID[],
-    objectIdsInScope: readonly EphemeraObjectId[]
+    objectIdsInScope: readonly (EphemeraObjectId | EphemeraCharacterId)[]
 ): AssetUUID[] => {
     if (objectIdsInScope.length === 0) {
         return assetStack

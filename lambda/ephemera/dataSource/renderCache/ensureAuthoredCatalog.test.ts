@@ -155,7 +155,26 @@ describe('ensureAuthoredCatalog', () => {
             )
         })
 
-        it('leaves merge participation untouched for a non-Object host', async () => {
+        it('appends ASSET#IMPROVISATION to merge participation for a CHARACTER# host', async () => {
+            // A guest Character's SITUATION#DEFAULT facet lives on its (CHARACTER#, ASSET#IMPROVISATION)
+            // pair row; without this layer the merge cannot see it and no CACHE# row is ever written.
+            const characterId = 'CHARACTER#char' as const
+            stageStaleThenReady(characterId)
+
+            await ensureAuthoredCatalog(
+                { componentId: characterId, perspective },
+                { runWithSingleFlight: passThroughSingleFlightAuthoredCatalogHydrate }
+            )
+
+            expect(componentExamplesGet).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    hostUniversalKey: characterId,
+                    mergeParticipationOrder: ['ASSET#a', 'ASSET#IMPROVISATION'],
+                })
+            )
+        })
+
+        it('leaves merge participation untouched for a non-improvisation host', async () => {
             stageStaleThenReady(componentId)
 
             await ensureAuthoredCatalog(
