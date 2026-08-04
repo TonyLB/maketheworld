@@ -64,6 +64,13 @@ function assertObjectShortName(wmlContent: string, objectId: string, expectedSho
     expect((object as StandardObject).shortName?._payload?.plain?.toJSON()).toBe(expectedShortName)
 }
 
+function assertObjectRenderDisplayName(wmlContent: string, objectId: string, expectedDisplayName: string): void {
+    const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+    const object = parsed.byUniversalId[objectId]
+    expect(object).toBeInstanceOf(StandardObject)
+    expect((object as StandardObject).render?.displayName).toBe(expectedDisplayName)
+}
+
 function spyPublish() {
     return jest.spyOn(messageBus, 'publish')
 }
@@ -126,7 +133,7 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
         expect(() => new StandardForm(genPublish!.wmlContent as string, { standardizeMode: 'ephemeraWire' })).not.toThrow()
     })
 
-    it('objectDescription Render Pertains terminal delivers the resolved shortName', async () => {
+    it('objectDescription Render Pertains terminal keeps the authored DisplayName distinct from ShortName when no live shortName resolves', async () => {
         const publishSpy = spyPublish()
         await registerObjectDescriptionSlot()
 
@@ -148,7 +155,10 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
         expect(terminalPublish).toBeDefined()
         expect(terminalPublish?.metaData).toEqual({ componentUUID: OBJECT_ID })
         expect(terminalPublish?.targets).toEqual([VIEWER])
-        assertObjectShortName(terminalPublish!.wmlContent as string, OBJECT_ID, 'serving tray')
+        // No live shortName resolves (no ImprovisationComponentData/ComponentAggregate mocked), so
+        // ShortName falls back to the placeholder; the authored displayName lands in the distinct
+        // Render facet rather than overwriting ShortName.
+        assertObjectRenderDisplayName(terminalPublish!.wmlContent as string, OBJECT_ID, 'serving tray')
     })
 
     it('objectDescription Render Pertains with no authored facet content falls back to the live shortName (Phase 4)', async () => {

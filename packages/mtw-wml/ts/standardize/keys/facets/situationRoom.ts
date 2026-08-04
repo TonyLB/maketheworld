@@ -142,6 +142,15 @@ export class SituationProseFacetPayload {
     }
 
     /**
+     * True when a DisplayName node was present at all (RA-1: absence is allowed --- callers should
+     * validate non-emptiness only when this is true, since `Render.finalize` already collapses a
+     * present-but-empty DisplayName to absent before this payload is built).
+     */
+    hasDisplayName(): boolean {
+        return this._displayName !== undefined;
+    }
+
+    /**
      * Link targets inside Summary / Description render trees (same extraction as Example prose fields).
      * DisplayName is literal-only and does not contribute links.
      */
@@ -175,10 +184,9 @@ export class SituationProseFacetPayload {
 
     /**
      * Children for `<Render>` WML or inner prose under Situation (DisplayName, Summary, Description).
-     * PROVISIONAL: Only emits nodes for present fields; strict `Render.finalize` in
-     * `packages/mtw-wml/ts/schema/converters/components.ts` can still require a full triplet and
-     * non-empty DisplayName on parse. Ephemera workarounds (for example invisible title in
-     * `lambda/ephemera/dataSource/perception/orchestrate.ts`) exist until that contract is loosened.
+     * Emits nodes only for present fields --- `Render.finalize` in
+     * `packages/mtw-wml/ts/schema/converters/components.ts` resolves children by tag and requires
+     * none of the three, matching the reader here.
      */
     toProseTripletChildren(options?: { mappings?: StandardReference[] }): GenericTree<SchemaTag> {
         const mappings = options?.mappings;

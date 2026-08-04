@@ -46,20 +46,7 @@ import {
 import { getCharacterRoomPerspectiveKey } from './kickRoomHeaderBroadcast'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 
-/**
- * TEMPORARY: Word joiner (U+2060) as non-whitespace display title so WML round-trips.
- * `packages/mtw-wml/ts/schema/converters/components.ts` `Render.finalize` currently requires
- * exactly three ordered children (DisplayName, Summary, Description) and rejects an empty
- * DisplayName after trim. Remove this constant once `Render.finalize` (and matching emit/standardize
- * behavior) are loosened so partial or empty DisplayName/Summary can round-trip; then use a normal
- * empty or omitted display name here instead. (A sibling copy of this constant lives in
- * `roomFullPlaceholderWml.ts`, for the room-shaped placeholder that moved there in Phase 7.)
- */
-const PLACEHOLDER_RENDER_INVISIBLE_TITLE = '\u2060'
-
 const PLACEHOLDER_RENDER_BODY: EphemeraCacheRenderedContent = {
-    displayName: [PLACEHOLDER_RENDER_INVISIBLE_TITLE],
-    summary: [''],
     description: [],
 }
 
@@ -78,12 +65,13 @@ function placeholderFeatureKnowledgeFullWml(
 }
 
 /**
- * Object description stub placeholder (PK-6): unlike Feature/Knowledge, there is no `.render`
- * content to fall back through --- `objectRenderWmlFromCacheRecord` reads `displayName` only, so the
- * placeholder body text goes there instead of `description`.
+ * Object description stub placeholder (PK-6): unlike Feature/Knowledge, Object shows its status
+ * via `<ShortName>` rather than `<Render>` prose --- `objectRenderWmlFromCacheRecord`'s `shortName`
+ * comes only from `fallbackShortName`, so the placeholder body text goes there instead of
+ * `renderedContent.displayName` (which would land in the distinct `<Render><DisplayName>` facet).
  */
 function placeholderObjectFullWml(componentId: EphemeraObjectId, bodyText: string): string {
-    return objectRenderWmlFromCacheRecord(componentId, { displayName: [bodyText], description: [] })
+    return objectRenderWmlFromCacheRecord(componentId, { description: [] }, { fallbackShortName: bodyText })
 }
 
 /**

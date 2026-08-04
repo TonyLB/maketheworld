@@ -82,7 +82,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                         const children = renderNode.children
                         const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
                         const payload = new SituationProseFacetPayload(payloadData)
-                        if (!payload.hasNonEmptyDisplayName()) {
+                        if (payload.hasDisplayName() && !payload.hasNonEmptyDisplayName()) {
                             throw new Error('Render DisplayName must contain non-empty text after trim')
                         }
                         this._render = payload
