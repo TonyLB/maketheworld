@@ -156,7 +156,7 @@ export const handler = async (event: any, context: any) => {
     if (['mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Player Connected':
-                await confirmGuestCharacter(event.detail.player)
+                await confirmGuestCharacter(event.detail.player, messageBus)
                 await messageBus.flushAndSettle()
                 return await extractReturnValue(messageBus)
         }
