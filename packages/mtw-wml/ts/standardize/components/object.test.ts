@@ -1,6 +1,7 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { defaultComponentFromTag } from "../baseClasses"
+import { StandardForm } from ".."
 import { StandardObjectData } from "./dataTypes/object"
 import StandardObject from "./object"
 import { standardComponentFactory } from "../componentFactory"
@@ -204,6 +205,7 @@ describe('StandardObject class', () => {
         const data: StandardObjectData = {
             tag: 'Object',
             universalKey: 'OBJECT#skates',
+            shortName: 'roller skates',
             render: {
                 displayName: 'Cached Name',
                 summary: ['Summary text'],
@@ -212,8 +214,10 @@ describe('StandardObject class', () => {
         }
         const object = new StandardObject(data)
         expect(object.render).toEqual(data.render)
-        expect(schemaToWML([object.schema])).toEqual(deIndentWML(`
+        const printed = schemaToWML([object.schema])
+        expect(printed).toEqual(deIndentWML(`
             <Object uuid=(skates)>
+                <ShortName>roller skates</ShortName>
                 <Render>
                     <DisplayName>Cached Name</DisplayName>
                     <Summary>Summary text</Summary>
@@ -221,6 +225,10 @@ describe('StandardObject class', () => {
                 </Render>
             </Object>
         `))
+        const wrapped = `<Asset uuid=(Test)>\n${printed}\n</Asset>`
+        expect(() => new StandardForm(wrapped, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const reparsed = new StandardForm(wrapped, { standardizeMode: 'ephemeraWire' })
+        expect((reparsed._lookup('OBJECT#skates') as StandardObject).render).toEqual(data.render)
     })
 
     it('is empty only when shortName, situations, and render are all absent', () => {

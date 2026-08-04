@@ -18,6 +18,9 @@ describe('objectRenderWmlFromCacheRecord', () => {
         expect(wml).toContain('Object uuid=(TestOne)')
         expect(wml).toContain('<ShortName>⁠</ShortName>')
         expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 
     it('falls back to fallbackShortName when renderedContent.displayName is empty (no authored SITUATION#DEFAULT facet yet)', () => {
@@ -33,6 +36,10 @@ describe('objectRenderWmlFromCacheRecord', () => {
         const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent, { fallbackShortName: 'a small brass key' })
         expect(wml).toContain('<ShortName>a small brass key</ShortName>')
         expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.shortName?._payload?.plain?.toJSON()).toBe('a small brass key')
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 
     it('always round-trips as valid, re-parseable WML --- Object structurally requires a non-empty ShortName', () => {
@@ -108,5 +115,8 @@ describe('objectRenderChannelWmlForObjectId', () => {
         // No fallbackShortName is threaded through this entry point, so ShortName falls back to the
         // placeholder while the authored displayName lands in the distinct Render facet.
         expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 })

@@ -161,7 +161,8 @@ describe('StandardCharacter class', () => {
         }
         const testCharacter = new StandardCharacter(testCharacterData)
         expect(testCharacter.render).toEqual(testCharacterData.render)
-        expect(schemaToWML([testCharacter.schema])).toEqual(deIndentWML(`
+        const printed = schemaToWML([testCharacter.schema])
+        expect(printed).toEqual(deIndentWML(`
             <Character key=(test)>
                 <Render>
                     <DisplayName>Cached Name</DisplayName>
@@ -170,6 +171,8 @@ describe('StandardCharacter class', () => {
                 </Render>
             </Character>
         `))
+        expect(() => new StandardCharacter(printed)).not.toThrow()
+        expect(new StandardCharacter(printed).render).toEqual(testCharacterData.render)
     })
 
     it('round-trips Render under Character with only DisplayName present', () => {
