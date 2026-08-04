@@ -35,72 +35,6 @@ describe('Perception message', () => {
         messageBus.clear()
     })
 
-    it('should render characters correctly', async () => {
-        const mockInternalCache = {
-            Global: {
-                get: jest.fn().mockResolvedValue(['Base']),
-            },
-            CharacterMeta: {
-                get: jest.fn().mockResolvedValue({
-                    EphemeraId: 'CHARACTER#Test',
-                    Name: 'Tess',
-                    assets: ['Personal'],
-                    RoomId: 'ROOM#VORTEX',
-                    RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
-                    HomeId: 'ROOM#VORTEX',
-                    Pronouns: 'she/her',
-                }),
-            },
-        } as any
-
-        ephemeraDBMock.getItem.mockResolvedValue({
-            Name: 'Tess',
-            Pronouns: 'she/her',
-        })
-
-        await perceptionMessage({
-            payloads: [
-                {
-                    type: 'Perception',
-                    characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'CHARACTER#TESS',
-                },
-            ],
-            messageBus,
-            internalCacheOverride: mockInternalCache,
-        })
-        await messageBus.flushAndSettle()
-
-        expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
-            Key: {
-                EphemeraId: 'CHARACTER#TESS',
-                DataCategory: 'Meta::Character',
-            },
-            ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color'],
-        })
-        expect(publishMessageMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                payloads: [
-                    expect.objectContaining({
-                        type: 'PublishMessage',
-                        displayProtocol: 'PerceptionMessage',
-                        targets: ['CHARACTER#TESS'],
-                        wmlContent: `<Asset uuid=(render)>
-    <Character uuid=(CHARACTER#TESS)>
-        <DisplayName>Tess</DisplayName>
-        <Pronouns>she/her</Pronouns>
-        
-    </Character>
-</Asset>`,
-                        metaData: {
-                            componentUUID: 'CHARACTER#TESS',
-                        },
-                    }),
-                ],
-            })
-        )
-    })
-
     describe('PerceptionRoomMessage', () => {
         const roomId = 'ROOM#HALL' as const
 
@@ -188,37 +122,12 @@ describe('Perception message', () => {
         })
     })
 
-    describe('PerceptionComponentMessage Feature and Knowledge (retired imperative path)', () => {
-        it('does not publish for Feature or Knowledge Perception payloads', async () => {
-            const renderCacheGet = jest.fn()
-            const mockInternalCache = {
-                RenderCache: { get: renderCacheGet },
-            } as any
-
-            await perceptionMessage({
-                payloads: [
-                    {
-                        type: 'Perception',
-                        characterId: 'CHARACTER#TESS',
-                        ephemeraId: 'FEATURE#FOUNTAIN',
-                    },
-                    {
-                        type: 'Perception',
-                        characterId: 'CHARACTER#TESS',
-                        ephemeraId: 'KNOWLEDGE#SECRET',
-                        directResponse: true,
-                    },
-                ],
-                messageBus,
-                internalCacheOverride: mockInternalCache,
-            })
-            await messageBus.flushAndSettle()
-
-            expect(renderCacheGet).not.toHaveBeenCalled()
-            expect(publishMessageMock).not.toHaveBeenCalled()
-        })
-    })
-
+    //
+    // Component kinds (Character / Feature / Knowledge) and Map no longer have a case here at all
+    // --- `PerceptionMessage` was narrowed to Asset | Room, so a component-kind payload is a
+    // compile error rather than a runtime no-op. The tests that used to assert those no-ops are
+    // gone with the branches; the type is the assertion now.
+    //
     describe('sendRoomGeneratingHeader', () => {
         const messageBusMock = { publish: jest.fn() } as any
 

@@ -1,62 +1,12 @@
 import {
-    isCharacterPerceptionRequestedIngressEnvelope,
     isPerceptionAffordancesPertainStreamEnvelope,
     isPerceptionSubscribedEnvelope,
     isPerceptionThreadRegisteredIngressEnvelope,
-    sendCharacterPerceptionRequested,
     sendPerceptionThreadRegistered,
 } from './subscribedEvents'
 import { AFFORDANCE_CACHE_DATA_SOURCE_KEY } from '../affordanceCache/publishedEvents'
 
 describe('perception subscribedEvents', () => {
-    it('sendCharacterPerceptionRequested emits api.ephemera StreamingEvent envelope', async () => {
-        const sent: any[] = []
-        sendCharacterPerceptionRequested(
-            { publish: (payload) => sent.push(payload) },
-            'CHARACTER#VIEWED',
-            {
-                characterId: 'CHARACTER#VIEWER',
-                ephemeraId: 'CHARACTER#VIEWED',
-            }
-        )
-        expect(sent).toHaveLength(1)
-        expect(sent[0].type).toBe('StreamingEvent')
-        expect(sent[0].dataSourceKey).toBe('api.ephemera')
-        expect(sent[0].streamKey).toBe('CHARACTER#VIEWED')
-        expect(sent[0].header.type).toBe('Character Perception Requested')
-        expect(await sent[0].getContent()).toMatchObject({
-            characterId: 'CHARACTER#VIEWER',
-            ephemeraId: 'CHARACTER#VIEWED',
-        })
-    })
-
-    it('isCharacterPerceptionRequestedIngressEnvelope accepts Character Perception Requested and rejects unrelated', () => {
-        const accepted = {
-            header: {
-                dataSourceKey: 'api.ephemera',
-                streamKey: 'CHARACTER#ONE',
-                timestamp: Date.now(),
-                type: 'Character Perception Requested',
-            },
-            getContent: () =>
-                Promise.resolve({
-                    characterId: 'CHARACTER#TWO',
-                    ephemeraId: 'CHARACTER#ONE',
-                }),
-        }
-        const rejected = {
-            header: {
-                dataSourceKey: 'api.ephemera',
-                streamKey: 'CHARACTER#ONE',
-                timestamp: Date.now(),
-                type: 'Render Requested',
-            },
-            getContent: () => Promise.resolve({}),
-        }
-        expect(isCharacterPerceptionRequestedIngressEnvelope(accepted)).toBe(true)
-        expect(isCharacterPerceptionRequestedIngressEnvelope(rejected)).toBe(false)
-    })
-
     it('sendPerceptionThreadRegistered publishes api.ephemera StreamingEvent envelope', async () => {
         const published: any[] = []
         sendPerceptionThreadRegistered(
@@ -103,7 +53,7 @@ describe('perception subscribedEvents', () => {
                 dataSourceKey: 'api.ephemera',
                 streamKey: 'ROOM#R',
                 timestamp: Date.now(),
-                type: 'Character Perception Requested',
+                type: 'Render Requested',
             },
             getContent: () => Promise.resolve({}),
         }
@@ -111,8 +61,14 @@ describe('perception subscribedEvents', () => {
         expect(isPerceptionThreadRegisteredIngressEnvelope(rejected)).toBe(false)
     })
 
-    it('isPerceptionSubscribedEnvelope matches Character or Perception Thread Registered ingress', () => {
-        const character = {
+    //
+    // `Character Perception Requested` was the imperative character-look ingress, retired once
+    // character `link` joined Feature/Knowledge on the render-orchestration path. It is asserted
+    // *rejected* here rather than simply dropped from the suite: an unreachable-but-accepted
+    // second route to the same output is what let the character path break silently before.
+    //
+    it('isPerceptionSubscribedEnvelope matches Perception Thread Registered and rejects retired Character ingress', () => {
+        const retiredCharacter = {
             header: {
                 dataSourceKey: 'api.ephemera',
                 streamKey: 'CHARACTER#ONE',
@@ -135,7 +91,7 @@ describe('perception subscribedEvents', () => {
                 characterId: 'CHARACTER#viewer',
             }),
         }
-        expect(isPerceptionSubscribedEnvelope(character as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(retiredCharacter as any)).toBe(false)
         expect(isPerceptionSubscribedEnvelope(threadReg as any)).toBe(true)
         expect(
             isPerceptionSubscribedEnvelope({

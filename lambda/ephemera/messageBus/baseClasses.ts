@@ -206,24 +206,18 @@ export type PerceptionRoomMessage = {
     header?: boolean;
 } & PerceptionBase
 
-export type PerceptionComponentMessage = {
-    characterId?: EphemeraCharacterId;
-    ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
-    directResponse?: boolean;
-} & PerceptionBase
-
-export type PerceptionMapMessage = {
-    characterId: EphemeraCharacterId;
-    ephemeraId: EphemeraMapId;
-    mustIncludeRoomId?: EphemeraRoomId;
-} & PerceptionBase
-
-export type PerceptionMessage = PerceptionAssetMessage | PerceptionRoomMessage | PerceptionComponentMessage | PerceptionMapMessage
+//
+// Asset and Room are the only kinds imperative `perceptionMessage` serves. The component kinds
+// (Character / Feature / Knowledge) and Map were retired: component looks reach delivery through
+// `Action Assessed` `LookComponent` -> render orchestration -> correlated fan-in. Keeping this
+// union narrow is deliberate --- it makes a stray `CHARACTER#`/`FEATURE#`/`KNOWLEDGE#`/`MAP#`
+// Perception publish a compile error rather than a silent no-op, which is exactly how the
+// character `link` path went unnoticed on the legacy route.
+//
+export type PerceptionMessage = PerceptionAssetMessage | PerceptionRoomMessage
 
 export const isPerceptionAssetMessage = (message: PerceptionMessage): message is PerceptionAssetMessage => (isEphemeraAssetId(message.ephemeraId))
 export const isPerceptionRoomMessage = (message: PerceptionMessage): message is PerceptionRoomMessage => (isEphemeraRoomId(message.ephemeraId))
-export const isPerceptionComponentMessage = (message: PerceptionMessage): message is PerceptionComponentMessage => (isEphemeraFeatureId(message.ephemeraId) || isEphemeraCharacterId(message.ephemeraId) || isEphemeraKnowledgeId(message.ephemeraId))
-export const isPerceptionMapMessage = (message: PerceptionMessage): message is PerceptionMapMessage => (isEphemeraMapId(message.ephemeraId))
 
 export type CharacterEventMessage = {
     type: 'CharacterEvent';

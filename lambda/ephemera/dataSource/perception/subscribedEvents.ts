@@ -11,7 +11,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
-import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisterCommand } from './localApiEvents'
+import type { PerceptionThreadRegisterCommand } from './localApiEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY, type RenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import {
     RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
@@ -39,25 +39,6 @@ export {
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
-export type CharacterPerceptionIngressHeader =
-    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
-
-export type CharacterPerceptionIngressEvent = {
-    header: CharacterPerceptionIngressHeader;
-    getContent: () => Promise<CharacterPerceptionRequestedCommand>;
-}
-
-const isCharacterPerceptionRequestedHeader: HeaderGuard<CharacterPerceptionIngressHeader> = (
-    h
-): h is CharacterPerceptionIngressHeader => (
-    h.dataSourceKey === 'api.ephemera' && h.type === 'Character Perception Requested'
-)
-
-export const isCharacterPerceptionRequestedIngressEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    CharacterPerceptionRequestedCommand,
-    CharacterPerceptionIngressHeader
->(isCharacterPerceptionRequestedHeader)
-
 export type PerceptionThreadRegisteredIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Perception Thread Registered' }
 
@@ -84,7 +65,6 @@ const PERCEPTION_FAN_IN_ORCHESTRATION_HEADER_TYPES = [
 ] as const
 
 export type PerceptionSubscribedContent =
-    | CharacterPerceptionRequestedCommand
     | PerceptionThreadRegisterCommand
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
@@ -117,8 +97,7 @@ export const isPerceptionAffordancesPertainStreamEnvelope = (
 export const isPerceptionSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionSubscribedContent> => (
-    isCharacterPerceptionRequestedIngressEnvelope(envelope)
-        || isPerceptionThreadRegisteredIngressEnvelope(envelope)
+    isPerceptionThreadRegisteredIngressEnvelope(envelope)
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
@@ -138,30 +117,6 @@ const apiEphemeraSerializer = {
         type: header.type,
         ...content,
     }),
-}
-
-/** streamKey should be the viewed character id (CHARACTER#...), i.e. command.ephemeraId. */
-export function sendCharacterPerceptionRequested(
-    bus: PublishBus,
-    streamKey: string,
-    content: CharacterPerceptionRequestedCommand
-): void {
-    const timestamp = Date.now()
-    const header: StreamingEventHeader = {
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        timestamp,
-        type: 'Character Perception Requested',
-    }
-    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.publish({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
 }
 
 /**

@@ -1,14 +1,12 @@
-import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
+import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionRoomMessage, isPerceptionAssetMessage } from "../messageBus/baseClasses"
 import { internalCache } from "../internalCache"
 import { getRoomCharacterList } from "../internalCache/hydrateRoomRoster"
 import {
     EphemeraCharacterId,
     EphemeraRoomId,
-    isEphemeraCharacterId,
     isEphemeraRoomId,
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { v4 as uuidv4 } from 'uuid'
-import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import getCurrentTimestamp from "../internalUtils/dateUtil"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
@@ -26,6 +24,12 @@ export const perceptionMessage = async ({
     const getCache = () => internalCacheOverride || internalCache
     
     await Promise.all(payloads.map(async (payload) => {
+        //
+        // Asset and Room are the only kinds this imperative handler serves. Component kinds
+        // (Character / Feature / Knowledge) and Map were retired: every component look now
+        // reaches delivery through `Action Assessed` `LookComponent` -> render orchestration ->
+        // correlated fan-in, and `PerceptionMessage` no longer admits their payload shapes.
+        //
         // WML Message (MESSAGE#) and Moment (MOMENT#) are not routed through Ephemera perception; see mtw-wml Message docs.
         if (isPerceptionAssetMessage(payload)) {
             const internalCache = getCache()
@@ -63,19 +67,6 @@ export const perceptionMessage = async ({
                     })
                 }
             }
-        }
-        else if (isPerceptionComponentMessage(payload)) {
-            const { characterId = 'ANONYMOUS', ephemeraId } = payload
-            if (isEphemeraCharacterId(ephemeraId) && isEphemeraCharacterId(characterId)) {
-                sendCharacterPerceptionRequested(messageBus, ephemeraId, {
-                    characterId,
-                    ephemeraId,
-                })
-            }
-        }
-        else if (isPerceptionMapMessage(payload)) {
-            // Server map runtime retired; see dataSource/maps/AGENT.md.
-            return
         }
     }))
 

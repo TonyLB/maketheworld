@@ -21,11 +21,6 @@ import {
 import { isNonEmptyPublishTargetArray, type PublishTarget } from '../../messageBus/baseClasses'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
 
-export type CharacterPerceptionRequestedCommand = {
-    characterId: EphemeraCharacterId;
-    ephemeraId: EphemeraCharacterId;
-}
-
 export const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheComponentId => (
     isEphemeraRoomId(value)
     || isEphemeraFeatureId(value)
@@ -58,20 +53,12 @@ export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomHeaderBroadcastCommand
     | PerceptionThreadRegisterSessionOrientationAffordancesCommand
 
-export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
-
-export const isCharacterPerceptionRequestedCommand = (value: unknown): value is CharacterPerceptionRequestedCommand => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const v = value as Record<string, unknown>
-    return (
-        typeof v.characterId === 'string' &&
-        isEphemeraCharacterId(v.characterId) &&
-        typeof v.ephemeraId === 'string' &&
-        isEphemeraCharacterId(v.ephemeraId)
-    )
-}
+/**
+ * Thread registration is the only remaining api.ephemera perception ingress command. `Character
+ * Perception Requested` retired with the imperative character-look route (guest-character
+ * iteration, Phase 2c); character looks now arrive as `Action Assessed` `LookComponent`.
+ */
+export type PerceptionIngressCommand = PerceptionThreadRegisterCommand
 
 export const isPerceptionThreadRegisterCommand = (value: unknown): value is PerceptionThreadRegisterCommand => {
     if (!value || typeof value !== 'object') {

@@ -1,16 +1,15 @@
 /**
  * mtw.ephemera.perception DataSource.
  *
- * Bus-only, non-replayable. Subscribes to api.ephemera Character perception ingress. See AGENT.md
- * (normative decisions, obligations, verification).
+ * Bus-only, non-replayable. Subscribes to api.ephemera perception-thread ingress plus render /
+ * affordance / relational streams. See AGENT.md (normative decisions, obligations, verification).
  */
 import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
 import type { PerceptionSubscribedContent } from './subscribedEvents'
 import { isPerceptionSubscribedEnvelope, toObjectManipulationPresentationLeg } from './subscribedEvents'
 import { isAffordancesPertainPayload } from '../affordanceCache/publishedEvents'
-import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisterCommand } from './localApiEvents'
-import { handleCharacterPerceptionRequested } from './characterPerception'
+import { isPerceptionThreadRegisterCommand } from './localApiEvents'
 import { handleAffordancesPertain } from './handleAffordancesPertain'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
 import {
@@ -56,10 +55,6 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
             }
 
             const raw = await event.getContent()
-            if (isCharacterPerceptionRequestedCommand(raw)) {
-                await handleCharacterPerceptionRequested(raw, messageBus)
-                continue
-            }
             if (isPerceptionThreadRegisterCommand(raw)) {
                 internalCache.PerceptionThreads.register(raw)
                 continue

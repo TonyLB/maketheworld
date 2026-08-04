@@ -371,7 +371,9 @@ describe('app handler', () => {
             )
             //
             // The legacy hop bypassed ensureAuthoredCatalog entirely, so a CHARACTER# target
-            // never got a CACHE# row and always rendered "No description".
+            // never got a CACHE# row and always rendered "No description". That route is now
+            // deleted outright (`PerceptionMessage` no longer admits a CHARACTER# payload), so
+            // this assertion guards against re-introducing any second path to the same output.
             //
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
                 expect.objectContaining({ type: 'Perception' })

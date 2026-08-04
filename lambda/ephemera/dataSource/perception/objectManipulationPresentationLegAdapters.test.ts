@@ -160,8 +160,8 @@ describe('objectManipulationPresentationLegAdapters', () => {
 
         it('returns an empty array for non-object-manipulation envelopes', async () => {
             const legs = await toObjectManipulationPresentationLeg(
-                envelope('api.ephemera', 'Character Perception Requested', {
-                    ephemeraId: CHARACTER,
+                envelope('api.ephemera', 'Perception Thread Registered', {
+                    componentId: ROOM,
                 } as never)
             )
             expect(legs).toEqual([])

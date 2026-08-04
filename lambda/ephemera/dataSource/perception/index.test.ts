@@ -34,7 +34,7 @@ import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affor
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
 import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
-import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
+import { sendPerceptionThreadRegistered } from './subscribedEvents'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { registerIngressSlot } from '../messageOrchestration'
 import { ephemeraPerceptionDataSource } from './index'
@@ -93,26 +93,6 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('registers subscription and flush completes without error when queue is empty', async () => {
         expect(ephemeraPerceptionDataSource.dataSourceKey).toBe('mtw.ephemera.perception')
         await expect(messageBus.flushAndSettle()).resolves.toBeUndefined()
-    })
-
-    it('receiveEvents emits PublishMessage for Character Perception Requested ingress', async () => {
-        const publishSpy = spyPublish()
-
-        sendCharacterPerceptionRequested(messageBus, 'CHARACTER#SUBJECT', {
-            characterId: 'CHARACTER#VIEWER',
-            ephemeraId: 'CHARACTER#SUBJECT',
-        })
-        await messageBus.flushAndSettle()
-
-        expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
-            Key: {
-                EphemeraId: 'CHARACTER#SUBJECT',
-                DataCategory: 'Meta::Character',
-            },
-            ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color'],
-        })
-        expect(publishSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage' && call[0]?.displayProtocol === 'PerceptionMessage')).toBe(true)
-        publishSpy.mockRestore()
     })
 
     it('receiveEvents stores Perception Thread Registered in internalCache.PerceptionThreads without PublishMessage', async () => {
