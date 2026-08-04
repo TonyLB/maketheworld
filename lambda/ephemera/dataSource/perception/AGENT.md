@@ -235,6 +235,17 @@ F/K threads (**`featureDescription`**, **`knowledgeDescription`**) are **simpler
 - **`metaData`:** **`componentUUID`** only (no **`roomChannel`**).
 - **Imperative retire:** **`perceptionMessage`** does **not** deliver Feature or Knowledge; legacy **`Perception`** payloads with F/K ids are no-ops. Perspective, mark state, and orchestration policy: [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md#feature--knowledge-render-pipeline).
 
+### Correlated Character description (policy)
+
+Character joined the correlated render-orchestration path last among the render-cache-hosting kinds (2026-08-04) --- see [Retired: imperative character perception](#retired-imperative-character-perception) above for why it was the holdout and what broke while it was.
+
+- **Ingress:** Trusted UI `link` (roster chip / description-link click) and `look`, same as Feature/Knowledge --- `Action Assessed` `LookComponent` -> `Look Command Requested` -> [`handleLookCommandRequestedForRenderOrchestration.ts`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts)'s Character branch (`prepareCharacterRenderForCharacter`). Perspective is resolved against the **acting** character's own asset stack, not the target's.
+- **Cache row:** the real `renderCache/ensureAuthoredCatalog.ts` (no override) --- Character is an "authored" render-cache kind like Feature/Knowledge/Object, not a stub. A guest character's `SITUATION#DEFAULT` facet lives on its `(CHARACTER#, ASSET#IMPROVISATION)` pair row and reaches the merge via [`../renderCache/AGENT.md`](../renderCache/AGENT.md) **Improvisation merge participation**; see [`../../guestCharacter/AGENT.md`](../../guestCharacter/AGENT.md) for how that row gets written.
+- **WML construction:** [`characterRenderWmlFromCacheRecord.ts`](characterRenderWmlFromCacheRecord.ts) builds a real `<Render>` facet from `renderedContent` (via the same `situationRoomRenderPayloadFromCacheRenderedContent` helper Room/Feature/Knowledge/Object use) --- unlike Object, Character has no shortName-only stub path, since Character has always had real `render` content.
+- **Known gap (deferred, non-blocking):** `characterRenderWmlFromCacheRecord` puts no `displayName` on the Character row itself --- the `SITUATION#DEFAULT` facet's own `displayName` is the **only** source of the character's name on this channel. Guests are covered (`guestCoyoteSituations` always supplies one), but an **authored** character whose facet omits `displayName` renders as the literal string `Unknown`. `Meta::Character`'s `Name` field is confirmed obsolete and is not a candidate fallback; `shortName` on the pair row is the plausible future source if this needs closing. Revisit when an authored (non-guest) character without an explicit facet `displayName` is looked at.
+- **Fan-in:** `handleCharacterRenderPertains` / `handleCharacterGenerationStarted` / `handleCharacterOrchestrationErrorOrDeferred` in [`orchestrate.ts`](orchestrate.ts), single-viewer terminal-only-once, mirroring `handleObjectRenderPertains`'s trio shape.
+- **`metaData`:** `componentUUID` only.
+
 ### Correlated Object description (policy)
 
 **`objectDescription`** mirrors **`featureDescription`** at every branch point (single viewer, no multi-target fallback, no header vs full split, no **`directResponse`**/**`SESSION#`** targeting), with one defining difference: **`<Object>` structurally requires a non-empty `<ShortName>`, so it emits `<Render>` alongside that rather than in place of it.**

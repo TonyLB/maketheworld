@@ -2,7 +2,7 @@
 
 **Status:** Scoped through conversation 2026-08-04. Nothing built yet.
 
-Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). Predecessor (shipped, plan since deleted): the ephemera-only `<Render>` tag, ISS7495 (`60c317260` plan, `3c01b23db` implementation). Found while debugging [`AGENT.guestCharacterDescription.planning.md`](../../lambda/ephemera/dataSource/actions/AGENT.guestCharacterDescription.planning.md) Phase 2b.
+Task-planning conventions: [`taskPlanning/AGENT.md`](../../AGENT.md). Predecessor (shipped, plan since deleted): the ephemera-only `<Render>` tag, ISS7495 (`60c317260` plan, `3c01b23db` implementation). Found while debugging the guest-character-description iteration's Phase 2b (shipped, plan since retired; see [`lambda/ephemera/guestCharacter/AGENT.md`](../../lambda/ephemera/guestCharacter/AGENT.md)).
 
 ## Purpose
 
