@@ -29,7 +29,7 @@ describe('authentication connect', () => {
             updateReducer(draft)
             return draft
         })
-        eventBridgeClientMock.send.mockResolvedValue(undefined as any)
+        eventBridgeClientMock.send.mockResolvedValue({ FailedEntryCount: 0, Entries: [] } as any)
 
         const response = await connect('conn-1', 'PlayerOne', 'session-1')
 
@@ -53,7 +53,41 @@ describe('authentication connect', () => {
             }
         }))
         expect(eventBridgeClientMock.send).toHaveBeenCalledWith([expect.objectContaining({
-            DetailType: 'Player Connected'
+            Source: 'mtw.players',
+            DetailType: 'Player Connected',
+            Detail: expect.objectContaining({
+                streamKey: 'PLAYER#PlayerOne',
+                type: 'Player Connected',
+                player: 'PlayerOne',
+                connectionId: 'conn-1',
+                sessionId: 'session-1',
+            })
         })])
+    })
+
+    it('logs a visible error when PutEvents reports a partial failure', async () => {
+        connectionDBMock.putItem.mockResolvedValue({})
+        connectionDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }: any) => {
+            const draft: { connections?: string[]; player?: string } = {}
+            updateReducer(draft)
+            return draft
+        })
+        eventBridgeClientMock.send.mockResolvedValue({
+            FailedEntryCount: 1,
+            Entries: [{ ErrorCode: 'InternalFailure', ErrorMessage: 'boom' }],
+        } as any)
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+        const response = await connect('conn-1', 'PlayerOne', 'session-1')
+
+        expect(response).toEqual({ statusCode: 200 })
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            '[mtw.authentication] Player Connected PutEvents failed',
+            expect.objectContaining({
+                failedEntryCount: 1,
+                entries: [{ ErrorCode: 'InternalFailure', ErrorMessage: 'boom' }],
+            })
+        )
+        consoleErrorSpy.mockRestore()
     })
 })

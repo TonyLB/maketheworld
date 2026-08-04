@@ -121,16 +121,15 @@ export const handler = async (event: any, context: any) => {
         
         if (deserializer) {
             const coreFormat = fromEventBridgeFormat(event)
-            if (event.source === 'mtw.connections' && event['detail-type'] === 'Character Registered') {
-                const update = coreFormat.update as { characterId?: string; sessionId?: string }
-                console.log('[mtw.ephemera] EventBridge ingest', {
-                    source: event.source,
-                    detailType: event['detail-type'],
-                    streamKey: coreFormat.header.streamKey,
-                    characterId: update?.characterId,
-                    sessionId: update?.sessionId,
-                })
-            }
+            const update = coreFormat.update as { characterId?: string; sessionId?: string; player?: string }
+            console.log('[mtw.ephemera] EventBridge ingest', {
+                source: event.source,
+                detailType: event['detail-type'],
+                streamKey: coreFormat.header.streamKey,
+                ...(update?.characterId ? { characterId: update.characterId } : {}),
+                ...(update?.player ? { player: update.player } : {}),
+                ...(update?.sessionId ? { sessionId: update.sessionId } : {}),
+            })
             const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
                 (deserializer as any).deserialize({ content: coreFormat.update as any, header: coreFormat.header }) as Promise<any>
             )
@@ -144,7 +143,12 @@ export const handler = async (event: any, context: any) => {
                 timestamp
             })
         } else {
-            // No deserializer available - this is an error condition
+            // No deserializer available - this is an error condition. Logged as well as published:
+            // on an EventBridge invocation nobody reads the return value, so the published Error alone is invisible.
+            console.error('[mtw.ephemera] EventBridge ingest rejected: no deserializer', {
+                source: event.source,
+                detailType: event['detail-type'],
+            })
             messageBus.publish({
                 type: 'Error',
                 body: {

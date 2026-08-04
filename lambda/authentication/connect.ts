@@ -2,6 +2,11 @@
 import { v4 as uuidv4 } from 'uuid'
 import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
+import { publishStreamEvent } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
+import { PlayersEventSerializer, type PlayerConnectedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
+
+const playersEventSerializer = new PlayersEventSerializer(createNodeDataSourceEnvironment())
 
 export const connect = async (connectionId: string, userName: string, SessionId: string): Promise<{ statusCode: number; message?: string }> => {
 
@@ -52,17 +57,33 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             // The subscriptions lambda will handle sending SessionInitialized message
             // after the WebSocket handshake completes
             console.log(`[mtw.authentication] publishing Player Connected`, { userName, connectionId, sessionId: defaultedSessionId })
-            await eventBridgeClient.send([{
-                Source: 'mtw.players',
-                DetailType: 'Player Connected',
-                Detail: {
+            const content: PlayerConnectedEvent = {
+                type: 'Player Connected',
+                player: userName,
+                connectionId,
+                sessionId: defaultedSessionId,
+                timestamp: Date.now()
+            }
+            const { eventBridgeEvent } = publishStreamEvent({
+                header: {
+                    dataSourceKey: 'mtw.players',
                     streamKey: `PLAYER#${userName}`,
-                    player: userName,
+                    timestamp: content.timestamp,
+                    type: 'Player Connected'
+                },
+                content,
+                serializer: playersEventSerializer
+            })
+            const putEventsResult = await eventBridgeClient.send([eventBridgeEvent])
+            if (putEventsResult?.FailedEntryCount) {
+                console.error(`[mtw.authentication] Player Connected PutEvents failed`, {
+                    userName,
                     connectionId,
                     sessionId: defaultedSessionId,
-                    timestamp: Date.now()
-                }
-            }])
+                    failedEntryCount: putEventsResult.FailedEntryCount,
+                    entries: putEventsResult.Entries,
+                })
+            }
             return {
                 statusCode: 200
             }

@@ -49,6 +49,20 @@ describe('mtw.ephemera.players DataSource', () => {
         expect(mockConfirmGuestCharacter).toHaveBeenCalledWith('player-one', messageBus)
     })
 
+    it('receiveEvents stays silent when the envelope guard filtered everything out', async () => {
+        const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+
+        await ephemeraPlayersDataSource.receiveEvents!({
+            events: [],
+            streamEvent: jest.fn(),
+            streamEnvelope: jest.fn(),
+        })
+
+        expect(consoleLogSpy).not.toHaveBeenCalled()
+        expect(mockConfirmGuestCharacter).not.toHaveBeenCalled()
+        consoleLogSpy.mockRestore()
+    })
+
     it('receiveEvents skips invalid getContent payloads', async () => {
         await ephemeraPlayersDataSource.receiveEvents!({
             events: [

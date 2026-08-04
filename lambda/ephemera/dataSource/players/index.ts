@@ -23,11 +23,23 @@ export const ephemeraPlayersDataSource = new EphemeraDataSource<
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isPlayersPlayerConnectedEnvelope,
     receiveEvents: async ({ events }) => {
+        //
+        // The bus-level structure guard is payload-agnostic, so this fires for every streaming
+        // event and `events` is empty whenever the envelope guard filtered them all out. Return
+        // before logging: an `eventCount: 0` line on every unrelated bus event is pure noise.
+        //
+        if (events.length === 0) {
+            return
+        }
+        console.log('[mtw.ephemera.players] receiveEvents', { eventCount: events.length })
         await Promise.all(
             events.map(async (event) => {
                 const raw = await event.getContent()
                 if (isPlayerConnectedEvent(raw)) {
                     await confirmGuestCharacter(raw.player, messageBus)
+                }
+                else {
+                    console.error('[mtw.ephemera.players] payload failed isPlayerConnectedEvent', { raw })
                 }
             })
         )

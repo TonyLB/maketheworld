@@ -46,8 +46,10 @@ const writeGuestSituationFacet = async (characterEphemeraId: EphemeraCharacterId
     })
     const { component: existing } = await internalCache.ImprovisationComponentData.get(characterEphemeraId, IMPROVISATION_ASSET_ID)
     if (existing.equals(desired)) {
+        console.log('[mtw.ephemera.guestCharacter] guest situation facet already up to date; skipping write', { characterEphemeraId })
         return
     }
+    console.log('[mtw.ephemera.guestCharacter] writing guest situation facet', { characterEphemeraId, name })
 
     await ephemeraDB.putItem({
         EphemeraId: characterEphemeraId,
@@ -73,10 +75,12 @@ export const confirmGuestCharacter = async (userName: string, messageBus: Messag
         ProjectionFields: ['guestId', 'guestName']
     })) || {}
     if (!(characterId && name)) {
+        console.log('[mtw.ephemera.guestCharacter] no guestId/guestName on Meta::Player; nothing to confirm', { userName, characterId, name })
         return
     }
     const characterEphemeraId = `CHARACTER#${characterId}` as EphemeraCharacterId
     const guestName = coyoteGameEnabled ? userName : name
+    console.log('[mtw.ephemera.guestCharacter] confirming guest', { userName, characterEphemeraId, guestName, coyoteGameEnabled })
     await pushCharacterEphemera({
         key: characterId,
         EphemeraId: characterEphemeraId,
