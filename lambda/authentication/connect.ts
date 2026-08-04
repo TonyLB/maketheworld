@@ -31,6 +31,7 @@ const confirmGuestCharacter = async ({ characterId, name }: { characterId?: stri
 
 export const connect = async (connectionId: string, userName: string, SessionId: string): Promise<{ statusCode: number; message?: string }> => {
 
+    console.log(`[mtw.authentication] connect() invoked`, { connectionId, userName, SessionId })
     const defaultedSessionId = SessionId || uuidv4()
     if (connectionId) {
         let authenticated = false
@@ -76,6 +77,7 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             // Publish Player Connected event with connection details
             // The subscriptions lambda will handle sending SessionInitialized message
             // after the WebSocket handshake completes
+            console.log(`[mtw.authentication] publishing Player Connected`, { userName, connectionId, sessionId: defaultedSessionId })
             await eventBridgeClient.send([{
                 Source: 'mtw.players',
                 DetailType: 'Player Connected',
@@ -91,6 +93,7 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             }
         }
         else {
+            console.log(`[mtw.authentication] connect() not authenticated; Player Connected not published`, { userName, connectionId, sessionId: defaultedSessionId })
             return {
                 statusCode: 403,
                 message: 'Invalid SessionID for this player'

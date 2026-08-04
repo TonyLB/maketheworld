@@ -88,6 +88,12 @@ export const confirmGuestCharacter = async (userName: string, messageBus: Messag
         player: userName
     })
     if (coyoteGameEnabled) {
-        await writeGuestSituationFacet(characterEphemeraId, guestName, messageBus)
+        try {
+            await writeGuestSituationFacet(characterEphemeraId, guestName, messageBus)
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.stack ?? error.message : String(error)
+            console.error(`[mtw.ephemera.guestCharacter] writeGuestSituationFacet failed for ${characterEphemeraId}: ${errorMessage}`)
+        }
     }
 }

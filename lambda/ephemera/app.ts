@@ -95,8 +95,13 @@ export const handler = async (event: any, context: any) => {
         }
     }
 
+    // Sources handled only by the legacy switch below (no entry in eventDeserializers); must not be
+    // intercepted by the generic "no deserializer available" branch immediately below, which would
+    // otherwise publish a spurious Error and return before the legacy switch ever runs.
+    const legacyOnlyEventSources = ['mtw.development', 'mtw.players', 'mtw.wml']
+
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
-    if (event?.source && event["detail-type"]) {
+    if (event?.source && event["detail-type"] && !legacyOnlyEventSources.includes(event.source)) {
         if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
             const streamKey = event.detail?.streamKey || ''
             const dataSourceKey = (event["detail-type"] as string).replace(/^Initialize Subscription - /, '')

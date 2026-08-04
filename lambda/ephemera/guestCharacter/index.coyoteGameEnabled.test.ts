@@ -137,6 +137,17 @@ describe('confirmGuestCharacter (coyoteGameEnabled)', () => {
         expect(sendDeleteCacheRecordsMock).not.toHaveBeenCalled()
     })
 
+    it('catches and logs (does not throw) when writeGuestSituationFacet fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        internalCacheMock.ImprovisationComponentData.get.mockRejectedValue(new Error('boom'))
+
+        await expect(confirmGuestCharacter('player-one', messageBus)).resolves.toBeUndefined()
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('CHARACTER#guest-1'))
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('boom'))
+        consoleErrorSpy.mockRestore()
+    })
+
     it('no longer writes a Description field on Meta::Character', async () => {
         await confirmGuestCharacter('player-one', messageBus)
 

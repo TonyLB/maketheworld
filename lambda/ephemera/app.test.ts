@@ -10,11 +10,15 @@ jest.mock('./dataSource/apiEphemera', () => {
         sendActionAssessed: jest.fn(),
     }
 })
+jest.mock('./guestCharacter', () => ({
+    confirmGuestCharacter: jest.fn().mockResolvedValue(undefined),
+}))
 import { handler } from './app'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 import { sendActionAssessed } from './dataSource/apiEphemera'
+import { confirmGuestCharacter } from './guestCharacter'
 import { collectReturnValues, collectErrors, resetReturnValueCollector } from './returnValue/collector'
 
 // Mock dependencies
@@ -23,6 +27,7 @@ jest.mock('./internalCache')
 
 const mockFetchEphemeraForCharacter = fetchEphemeraForCharacter as jest.MockedFunction<typeof fetchEphemeraForCharacter>
 const mockSendActionAssessed = sendActionAssessed as jest.MockedFunction<typeof sendActionAssessed>
+const mockConfirmGuestCharacter = confirmGuestCharacter as jest.MockedFunction<typeof confirmGuestCharacter>
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 let mockThinkingResultsGet: jest.Mock
@@ -566,6 +571,26 @@ describe('app handler', () => {
                     error: 'No deserializer available for data source: mtw.unknown',
                 }),
             })
+        })
+
+        it('routes a Player Connected EventBridge event to confirmGuestCharacter (not the generic no-deserializer error)', async () => {
+            const event = {
+                source: 'mtw.players',
+                'detail-type': 'Player Connected',
+                detail: { player: 'player-one' },
+            }
+
+            await handler(event, {})
+
+            expect(mockConfirmGuestCharacter).toHaveBeenCalledWith('player-one', messageBus)
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'Error',
+                    body: expect.objectContaining({
+                        error: expect.stringContaining('No deserializer available'),
+                    }),
+                })
+            )
         })
     })
 
