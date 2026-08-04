@@ -34,11 +34,14 @@ The fixed-arity rule was **never a decided design**. Evidence:
 
 The alternative --- making the emitter always write all three (empty tags for absent fields) --- was considered and rejected: it would entrench a structure the rest of WML explicitly avoids, and it makes "absent" and "empty" different things on the wire for no consumer's benefit. Once the reader is tag-matched, `toProseTripletChildren`'s existing omit-absent behavior becomes correct and round-trip works because that distinction disappears.
 
+**Absent beats empty (RA-2, decided 2026-08-04).** The reader does not merely *tolerate* a missing field --- it *collapses* a present-but-empty one into a missing one. `<Summary />` and no `<Summary>` at all parse to the same schema tree, so there is exactly one canonical spelling of "this field has no content" and emit -> reparse -> emit is idempotent on the first pass rather than the second.
+
 ## Explicit non-goals
 
 - **`hasNonEmptyDisplayName()`.** A *product* rule ("a render must have a name"), not an arity rule, and load-bearing for the client's `Unknown` fallback. Keep it; see **RA-1** if that turns out to be wrong.
 - **Authoring-side `<Situation>` / `<Example>` shapes.** Untouched --- `<Render>` is `ephemeraWire`-only.
-- **Changing what any producer emits.** No prose content changes; `guestCoyoteSituations` keeps its full triplet regardless.
+- **Changing what any producer emits --- for real prose.** No prose *content* changes; `guestCoyoteSituations` keeps its full triplet regardless. **Amended 2026-08-04 (RA-3):** this never covered the placeholder hacks that exist solely to satisfy the arity gate --- those come out in Phase 4. What stays untouched is prose a producer means to say.
+- **`<Object>`'s required `<ShortName>`.** A separate structural rule with its own placeholder (`PLACEHOLDER_SHORT_NAME`, same U+2060 character, different cause). Out of scope; see **RA-3**.
 
 ## Findings from the current code (2026-08-04)
 
@@ -69,16 +72,24 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step
 
 - [ ] **Phase 1. Add the failing round-trip test first.**
   - [ ] `schemaToWML(parse(x))` then reparse, for every partial-triplet combination (displayName-only, displayName+description, displayName+summary, all three). Assert no throw and payload equality across the round trip. This should fail on current `main` for every case that omits a field --- if it passes, the fix is mis-scoped.
+  - [ ] Add the **RA-2 collapse** cases: an input spelling a field as an empty tag (`<Summary />`, `<Description />`) must parse to the *same* schema tree as an input omitting it, and must emit WML without that tag. Include `<DisplayName />` --- which throws on current `main` --- to pin the removal of the non-empty-after-trim error.
 - [ ] **Phase 2. Relax the schema converter.**
-  - [ ] `components.ts`'s `Render.finalize`: resolve `DisplayName` / `Summary` / `Description` **by tag** rather than by position; drop `children.length !== 3` and the "must be ... in order" positional error. Keep `compressWhitespace` normalization and keep emitting canonical order. `typeCheckContents` already restricts the child set, so no new validation is needed.
-  - [ ] Decide **RA-2** (emit-present-only vs normalize-to-three) and record it here.
+  - [ ] `components.ts`'s `Render.finalize`: resolve `DisplayName` / `Summary` / `Description` **by tag** rather than by position (the `splitTaggedChildren` pattern `Object.finalize` already uses at [`components.ts:362`](../../../packages/mtw-wml/ts/schema/converters/components.ts#L362)); drop `children.length !== 3` and the "must be ... in order" positional error. Keep `compressWhitespace` normalization and keep emitting canonical order. `typeCheckContents` already restricts the child set, so no new validation is needed.
+  - [ ] Per **RA-2**, drop each field whose `compressWhitespace`d children are empty, so `finalize` returns only non-empty fields in canonical order. Remove the `Render DisplayName must contain non-empty text after trim` throw --- an empty `<DisplayName />` now normalizes to absent rather than erroring (**RA-1** keeps the product-level check in `hasNonEmptyDisplayName()`).
+  - [ ] Update the `PROVISIONAL` block comment at [`components.ts:401-419`](../../../packages/mtw-wml/ts/schema/converters/components.ts#L401-L419), which documents the strict contract being removed here and points at the ephemera placeholders it forced.
 - [ ] **Phase 3. Relax the five standardize consumers.**
   - [ ] Delete the duplicated `children.length !== 3` guard in `room.ts`, `character.ts`, `knowledge.ts`, `feature.ts`, `object.ts`. Each then falls straight through to `parseProseTripletChildren`, which already tolerates partial input. Keep each `hasNonEmptyDisplayName()` check (non-goal above).
   - [ ] These five blocks are near-identical; if the diff proves they differ only in the component name, consider extracting a shared helper --- but only as a follow-on, not folded into this behavioral change.
-- [ ] **Phase 4. Fix the tests that assert un-reparseable output.**
+- [ ] **Phase 4. Retire the arity-driven placeholder hacks (RA-3).**
+  - [ ] Delete `PLACEHOLDER_RENDER_INVISIBLE_TITLE` from [`orchestrate.ts:58`](../../../lambda/ephemera/dataSource/perception/orchestrate.ts#L58) and [`roomFullPlaceholderWml.ts:15`](../../../lambda/ephemera/dataSource/perception/roomFullPlaceholderWml.ts#L15), along with the TEMPORARY docstring above each. `PLACEHOLDER_RENDER_BODY` and `placeholderRoomFullWml` then omit `displayName` entirely rather than faking a word joiner into it.
+  - [ ] Drop the `summary: ['']` triplet padding in the same two call sites and the `?? ['']` at [`objectRenderWmlFromCacheRecord.ts:51`](../../../lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts#L51). RA-2 collapses these to absent anyway, so they are no-ops that still read as required.
+  - [ ] Rewrite the stale strictness comments that survive their subject: [`objectRenderWmlFromCacheRecord.ts:41-46`](../../../lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts#L41-L46) ("pad the triplet the way `orchestrate.ts` does") and the `PROVISIONAL` docstring on `toProseTripletChildren` at [`situationRoom.ts:176-182`](../../../packages/mtw-wml/ts/standardize/keys/facets/situationRoom.ts#L176-L182), which now describes the emitter as provisional against a contract that no longer binds it.
+  - [ ] **Keep** `PLACEHOLDER_SHORT_NAME` ([`objectRenderWmlFromCacheRecord.ts:21`](../../../lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts#L21)) --- different constraint, still live. Leave its docstring accurate rather than deleting by character match.
+  - [ ] Expect placeholder-WML test expectations to move: a room placeholder now emits `<Render><Description>...</Description></Render>` with no `DisplayName`. Confirm the client's `Unknown` fallback is what renders there (per **RA-1**), since the invisible title was previously suppressing it.
+- [ ] **Phase 5. Fix the tests that assert un-reparseable output.**
   - [ ] `characterRenderWmlFromCacheRecord.test.ts`'s `includes Render-backed prose`: keep the emitted-string assertion but **add a reparse** so the case can never again assert output the parser rejects.
   - [ ] Sweep sibling render-WML tests for the same emit-only pattern (`grep -rn "<Render>" --include=*.test.ts`) and give each a round-trip assertion.
-- [ ] **Phase 5. Durable docs.**
+- [ ] **Phase 6. Durable docs.**
   - [ ] Update [`standardize/components/AGENT.implementation.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) and [`standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) wherever they state the triplet is required, to record that `<Render>` children are tag-matched and optional (with `DisplayName` non-empty when present).
   - [ ] Record in the guest-character plan that its Phase 2b show-stopper note is superseded by this change.
 
@@ -86,8 +97,9 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines as each sub-step
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| RA-1 | Does `hasNonEmptyDisplayName()` survive, and should it be *required* rather than merely non-empty-when-present? Today a `<Render>` with no `DisplayName` at all would pass the relaxed reader but leave the client showing `Unknown`. | Phase 3 | **Open.** Leaning keep-as-is (validate only when present) and let the client fallback handle absence, since Object/Character legitimately source their name elsewhere. Revisit if a real producer emits nameless renders. |
-| RA-2 | After relaxing, does `finalize` return only the children that were present, or normalize back to all three (empties filled)? | Phase 2 | **Open.** Leaning **present-only**, so the schema tree mirrors the source and round-trip is exact; normalize-to-three re-creates the absent/empty distinction this change is removing, just one layer lower. |
+| RA-1 | Does `hasNonEmptyDisplayName()` survive, and should it be *required* rather than merely non-empty-when-present? Today a `<Render>` with no `DisplayName` at all would pass the relaxed reader but leave the client showing `Unknown`. | Phase 3 | **Decided (2026-08-04): keep as is.** Validate only when present; let the client `Unknown` fallback handle absence, since Object/Character legitimately source their name elsewhere. Revisit only if a real producer emits nameless renders. |
+| RA-2 | After relaxing, does `finalize` return only the children that were present, or normalize back to all three (empties filled)? | Phase 2 | **Decided (2026-08-04): normalize to absent-over-empty.** `finalize` emits only fields with non-empty content after `compressWhitespace`; a present-but-empty child (`<Summary />`) collapses to **absent** rather than being preserved as an empty node. This makes "absent" the single canonical spelling, so emit -> reparse -> emit is idempotent from the first pass. Consequence: the existing `Render DisplayName must contain non-empty text after trim` throw in `finalize` goes away --- an empty `<DisplayName />` normalizes to absent like any other field, and the product rule lives solely in `hasNonEmptyDisplayName()` per **RA-1**. |
+| RA-3 | Do the U+2060 word-joiner placeholder hacks come out in this change set? | Phase 4 | **Decided (2026-08-04): yes, remove the arity-driven ones.** They exist *only* to satisfy the gate being removed --- both docstrings say so verbatim ("Remove this constant once `Render.finalize` ... loosened; then use a normal empty or omitted display name"), and the `PROVISIONAL` comment at [`components.ts:401-419`](../../../packages/mtw-wml/ts/schema/converters/components.ts#L401-L419) instructs removing them in the same change set. Leaving a hack whose stated trigger no longer exists is how the next reader concludes the constraint is still real. **Boundary:** `PLACEHOLDER_SHORT_NAME` at [`objectRenderWmlFromCacheRecord.ts:21`](../../../lambda/ephemera/dataSource/perception/objectRenderWmlFromCacheRecord.ts#L21) is the *same character for a different reason* --- `<Object>`'s content model structurally requires one non-empty `<ShortName>`, which this change does not touch. It stays. |
 
 ## Verification
 
@@ -109,5 +121,6 @@ Plus end-to-end: a guest character trusted-UI click renders coyote prose (the or
 | Phase 1 (failing round-trip test) | Not started |
 | Phase 2 (schema converter) | Not started |
 | Phase 3 (five standardize consumers) | Not started |
-| Phase 4 (emit-only test sweep) | Not started |
-| Phase 5 (durable docs) | Not started |
+| Phase 4 (retire arity-driven placeholders) | Not started |
+| Phase 5 (emit-only test sweep) | Not started |
+| Phase 6 (durable docs) | Not started |
