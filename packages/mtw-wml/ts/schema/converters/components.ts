@@ -399,13 +399,15 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         },
     },
     /**
-     * PROVISIONAL: Room `<Render>` parse rules are stricter than ideal for ephemera placeholders and
-     * partial facet payloads. `finalize` requires three ordered children and non-empty DisplayName
-     * text after trim, which forces workarounds (for example `PLACEHOLDER_RENDER_INVISIBLE_TITLE` in
-     * `lambda/ephemera/dataSource/perception/orchestrate.ts`). When relaxing this contract, update
-     * emit paths (for example `SituationRoomFacetPayload.toProseTripletChildren` and
-     * `situationRoomRenderPayloadFromCacheRenderedContent` in the ephemera lambda) and remove those
-     * placeholders in the same change set so WML round-trip stays coherent.
+     * `<Render>` children (`DisplayName` / `Summary` / `Description`) are resolved by tag, not
+     * position or count --- each is optional, and a present-but-empty child collapses to absent
+     * (RA-2) rather than being preserved or padded back in. `hasNonEmptyDisplayName()` (standardize
+     * layer) is the only place a name is still required, and only where the product needs one.
+     *
+     * The ephemera placeholders that existed solely to satisfy the old fixed-triplet gate ---
+     * `PLACEHOLDER_RENDER_INVISIBLE_TITLE` in `lambda/ephemera/dataSource/perception/orchestrate.ts`
+     * and `roomFullPlaceholderWml.ts` --- are stale now that the gate is gone; removing them is
+     * tracked separately (RA-3 / Phase 4 of `AGENT.renderTagArity.planning.md`), not done here.
      *
      * Character joined this whitelist alongside Room/Feature/Knowledge once Character's own
      * ephemera-wire render path landed (`lambda/ephemera/dataSource/perception/
@@ -435,31 +437,22 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!isSchemaRender(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
-            if (children.length !== 3) {
-                throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
-            }
-            const [first, second, third] = children
-            if (!isSchemaDisplayName(first.data) || !isSchemaSummary(second.data) || !isSchemaDescription(third.data)) {
-                throw new Error('Render children must be DisplayName, Summary, Description in order')
-            }
-            const displayNameChildren = compressWhitespace(first.children)
-            const summaryChildren = compressWhitespace(second.children)
-            const descriptionChildren = compressWhitespace(third.children)
-            const displayNameText = displayNameChildren
-                .map(({ data }) => data)
-                .filter(isSchemaString)
-                .map(({ value }) => value)
-                .join('')
-                .trim()
-            if (!displayNameText) {
-                throw new Error('Render DisplayName must contain non-empty text after trim')
-            }
+            const { matched: displayNameMatches, remainder: afterDisplayName } = splitTaggedChildren({ children, tag: 'DisplayName' })
+            const { matched: summaryMatches, remainder: afterSummary } = splitTaggedChildren({ children: afterDisplayName, tag: 'Summary' })
+            const { matched: descriptionMatches } = splitTaggedChildren({ children: afterSummary, tag: 'Description' })
+            const compress = (matches: GenericTree<SchemaTag>) => (matches.length ? compressWhitespace(matches[0].children) : [])
+            const hasNonEmptyText = (nodes: GenericTree<SchemaTag>) => (
+                nodes.map(({ data }) => data).filter(isSchemaString).map(({ value }) => value).join('').trim() !== ''
+            )
+            const displayNameChildren = compress(displayNameMatches)
+            const summaryChildren = compress(summaryMatches)
+            const descriptionChildren = compress(descriptionMatches)
             return {
                 data: { tag: 'Render' },
                 children: [
-                    { data: { tag: 'DisplayName' }, children: displayNameChildren },
-                    { data: { tag: 'Summary' }, children: summaryChildren },
-                    { data: { tag: 'Description' }, children: descriptionChildren },
+                    ...(hasNonEmptyText(displayNameChildren) ? [{ data: { tag: 'DisplayName' as const }, children: displayNameChildren }] : []),
+                    ...(hasNonEmptyText(summaryChildren) ? [{ data: { tag: 'Summary' as const }, children: summaryChildren }] : []),
+                    ...(hasNonEmptyText(descriptionChildren) ? [{ data: { tag: 'Description' as const }, children: descriptionChildren }] : []),
                 ],
             }
         },

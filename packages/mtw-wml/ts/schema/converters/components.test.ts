@@ -644,7 +644,7 @@ describe('Render tag', () => {
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 
-    it('should reject wrong child order', () => {
+    it('should canonicalize out-of-order children to DisplayName, Summary, Description', () => {
         const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(room1)>
@@ -656,10 +656,21 @@ describe('Render tag', () => {
                 </Room>
             </Asset>
         `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render children must be DisplayName, Summary, Description in order')
+        const expectedWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Second</DisplayName>
+                        <Summary>First</Summary>
+                        <Description>Third</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(testParse))).toEqual(expectedWML)
     })
 
-    it('should reject missing child', () => {
+    it('should allow a missing child rather than throwing', () => {
         const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(room1)>
@@ -670,7 +681,7 @@ describe('Render tag', () => {
                 </Room>
             </Asset>
         `))))
-        expect(() => schemaFromParse(testParse)).toThrow()
+        expect(() => schemaFromParse(testParse)).not.toThrow()
     })
 
     it('should reject invalid direct child of Render', () => {
@@ -688,22 +699,7 @@ describe('Render tag', () => {
         expect(() => schemaFromParse(testParse)).toThrow()
     })
 
-    it('should reject empty DisplayName text', () => {
-        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
-            <Asset uuid=(Test)>
-                <Room key=(room1)>
-                    <Render>
-                        <DisplayName>   </DisplayName>
-                        <Summary>Y</Summary>
-                        <Description>Z</Description>
-                    </Render>
-                </Room>
-            </Asset>
-        `))))
-        expect(() => schemaFromParse(testParse)).toThrow('Render DisplayName must contain non-empty text after trim')
-    })
-
-    it('should allow empty Summary and Description', () => {
+    it('should collapse empty Summary and Description to absent', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(room1)>
@@ -715,7 +711,12 @@ describe('Render tag', () => {
                 </Room>
             </Asset>
         `)
-        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+        const expectedWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)><Render><DisplayName>Name</DisplayName></Render></Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(expectedWML)
     })
 
     it('should preserve tagged content in Summary under Render', () => {
@@ -731,6 +732,56 @@ describe('Render tag', () => {
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should collapse an explicit empty Summary tag to the same schema as an omitted Summary (RA-2)', () => {
+        const explicitEmptyWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Name</DisplayName>
+                        <Summary />
+                        <Description>Plain text.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const omittedWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Name</DisplayName>
+                        <Description>Plain text.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const explicitEmptySchema = schemaFromParse(parse(tokenizer(new SourceStream(explicitEmptyWML))))
+        const omittedSchema = schemaFromParse(parse(tokenizer(new SourceStream(omittedWML))))
+        expect(explicitEmptySchema).toEqual(omittedSchema)
+        expect(schemaToWML(explicitEmptySchema)).toEqual(omittedWML)
+    })
+
+    it('should collapse an explicit empty DisplayName to absent rather than throwing (RA-1/RA-2)', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName />
+                        <Description>Plain text.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const expectedWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render><Description>Plain text.</Description></Render>
+                </Room>
+            </Asset>
+        `)
+        expect(() => schemaFromParse(parse(tokenizer(new SourceStream(testWML))))).not.toThrow()
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(expectedWML)
     })
 })
 
