@@ -9,7 +9,7 @@ import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
 import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder'
 import type { RoomStackItem } from '../dataSource/positions/membership/types'
-import { GUEST_COYOTE_SITUATIONS } from './guestSituations'
+import { guestCoyoteSituations } from './guestSituations'
 
 // Recreated function from deleted cacheAsset module
 const pushCharacterEphemera = async (character: {
@@ -38,11 +38,12 @@ const pushCharacterEphemera = async (character: {
 }
 
 const writeGuestSituationFacet = async (characterEphemeraId: EphemeraCharacterId, name: string, messageBus: MessageBus): Promise<void> => {
+    const situations = guestCoyoteSituations(name)
     const desired = new StandardCharacter({
         tag: 'Character',
         universalKey: characterEphemeraId,
         shortName: name,
-        situations: GUEST_COYOTE_SITUATIONS,
+        situations,
     })
     const { component: existing } = await internalCache.ImprovisationComponentData.get(characterEphemeraId, IMPROVISATION_ASSET_ID)
     if (existing.equals(desired)) {
@@ -56,7 +57,7 @@ const writeGuestSituationFacet = async (characterEphemeraId: EphemeraCharacterId
         DataCategory: IMPROVISATION_ASSET_ID,
         tag: 'Character',
         shortName: name,
-        situations: GUEST_COYOTE_SITUATIONS,
+        situations,
     })
     internalCache.ImprovisationComponentData.set(characterEphemeraId, IMPROVISATION_ASSET_ID, desired)
 

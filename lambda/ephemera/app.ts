@@ -224,14 +224,17 @@ export const handler = async (event: any, context: any) => {
             const CharacterId = request.CharacterId
             if (CharacterId && isEphemeraCharacterId(CharacterId)) {
 
-                if (isEphemeraCharacterId(request.to)) {
-                    messageBus.publish({
-                        type: 'Perception',
-                        characterId: CharacterId,
-                        ephemeraId: request.to
-                    })
-                }
-                else if (isEphemeraFeatureId(request.to) || isEphemeraKnowledgeId(request.to)) {
+                //
+                // Character joins Feature/Knowledge on the render-orchestration path rather than
+                // the legacy `Perception` bus hop: iteration 10 made Character a real render-cache
+                // host, but a CHARACTER# target routed here never reached `ensureAuthoredCatalog`,
+                // so no CACHE# row was ever written and its situation facet never merged.
+                //
+                if (
+                    isEphemeraCharacterId(request.to) ||
+                    isEphemeraFeatureId(request.to) ||
+                    isEphemeraKnowledgeId(request.to)
+                ) {
                     sendActionAssessed(messageBus, CharacterId, {
                         characterId: CharacterId,
                         assessed: {

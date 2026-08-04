@@ -343,6 +343,41 @@ describe('app handler', () => {
             )
         })
 
+        it('routes character link to sendActionAssessed LookComponent, not the legacy Perception path', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'link',
+                        CharacterId: 'CHARACTER#abc',
+                        to: 'CHARACTER#guest-1',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#abc',
+                {
+                    characterId: 'CHARACTER#abc',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'CHARACTER#guest-1',
+                        confidence: 1,
+                    },
+                    source: 'link',
+                }
+            )
+            //
+            // The legacy hop bypassed ensureAuthoredCatalog entirely, so a CHARACTER# target
+            // never got a CACHE# row and always rendered "No description".
+            //
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
+        })
+
         it('routes knowledge link to sendActionAssessed LookComponent with directResponse', async () => {
             await handler(
                 {

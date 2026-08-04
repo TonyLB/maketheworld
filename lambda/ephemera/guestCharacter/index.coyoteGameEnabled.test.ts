@@ -34,7 +34,7 @@ import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { confirmGuestCharacter } from './index'
-import { GUEST_COYOTE_SITUATIONS } from './guestSituations'
+import { guestCoyoteSituations } from './guestSituations'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const internalCacheMock = internalCache as unknown as { ImprovisationComponentData: { get: jest.Mock; set: jest.Mock } }
@@ -71,12 +71,12 @@ describe('confirmGuestCharacter (coyoteGameEnabled)', () => {
             DataCategory: 'ASSET#IMPROVISATION',
             tag: 'Character',
             shortName: 'player-one',
-            situations: GUEST_COYOTE_SITUATIONS,
+            situations: guestCoyoteSituations('player-one'),
         }))
     })
 
     it('does not reintroduce a "his" pronoun in the guest prose', () => {
-        const prose = JSON.stringify(GUEST_COYOTE_SITUATIONS)
+        const prose = JSON.stringify(guestCoyoteSituations('player-one'))
         expect(prose).not.toMatch(/\bhis\b/i)
         expect(prose).toMatch(/their/i)
     })
@@ -108,7 +108,7 @@ describe('confirmGuestCharacter (coyoteGameEnabled)', () => {
 
     it('skips the write entirely when the existing pair row already matches', async () => {
         internalCacheMock.ImprovisationComponentData.get.mockResolvedValue({
-            component: characterComponent('player-one', GUEST_COYOTE_SITUATIONS),
+            component: characterComponent('player-one', guestCoyoteSituations('player-one')),
         })
 
         await confirmGuestCharacter('player-one', messageBus)
@@ -121,7 +121,7 @@ describe('confirmGuestCharacter (coyoteGameEnabled)', () => {
 
     it('rewrites when the existing shortName is stale (e.g. renamed guest)', async () => {
         internalCacheMock.ImprovisationComponentData.get.mockResolvedValue({
-            component: characterComponent('old-name', GUEST_COYOTE_SITUATIONS),
+            component: characterComponent('old-name', guestCoyoteSituations('old-name')),
         })
 
         await confirmGuestCharacter('player-one', messageBus)
