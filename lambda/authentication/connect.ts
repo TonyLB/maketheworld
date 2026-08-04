@@ -2,35 +2,15 @@
 import { v4 as uuidv4 } from 'uuid'
 import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
+import { publishStreamEvent } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
+import { PlayersEventSerializer, type PlayerConnectedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 
-const confirmGuestCharacter = async ({ characterId, name }: { characterId?: string; name?: string }): Promise<void> => {
-    //
-    // TODO: confirmGuestCharacter should hang off of a "PlayerConnected" EventBridge notification, when the player
-    // is connecting for the first time, and be evaluated in Ephemera lambda
-    //
-
-    // if (!(characterId && name)) {
-    //     return
-    // }
-    // await pushCharacterEphemera({
-    //     key: characterId,
-    //     EphemeraId: `CHARACTER#${characterId}`,
-    //     Name: name,
-    //     Color: 'pink',
-    //     Pronouns: {
-    //         subject: 'they',
-    //         object: 'them',
-    //         possessive: 'their',
-    //         adjective: 'theirs',
-    //         reflexive: 'themself'
-    //     },
-    //     assets: [],
-    //     RoomId: 'VORTEX'
-    // })
-}
+const playersEventSerializer = new PlayersEventSerializer(createNodeDataSourceEnvironment())
 
 export const connect = async (connectionId: string, userName: string, SessionId: string): Promise<{ statusCode: number; message?: string }> => {
 
+    console.log(`[mtw.authentication] connect() invoked`, { connectionId, userName, SessionId })
     const defaultedSessionId = SessionId || uuidv4()
     if (connectionId) {
         let authenticated = false
@@ -76,21 +56,40 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             // Publish Player Connected event with connection details
             // The subscriptions lambda will handle sending SessionInitialized message
             // after the WebSocket handshake completes
-            await eventBridgeClient.send([{
-                Source: 'mtw.players',
-                DetailType: 'Player Connected',
-                Detail: {
-                    player: userName,
+            console.log(`[mtw.authentication] publishing Player Connected`, { userName, connectionId, sessionId: defaultedSessionId })
+            const content: PlayerConnectedEvent = {
+                type: 'Player Connected',
+                player: userName,
+                connectionId,
+                sessionId: defaultedSessionId,
+                timestamp: Date.now()
+            }
+            const { eventBridgeEvent } = publishStreamEvent({
+                header: {
+                    dataSourceKey: 'mtw.players',
+                    streamKey: `PLAYER#${userName}`,
+                    timestamp: content.timestamp,
+                    type: 'Player Connected'
+                },
+                content,
+                serializer: playersEventSerializer
+            })
+            const putEventsResult = await eventBridgeClient.send([eventBridgeEvent])
+            if (putEventsResult?.FailedEntryCount) {
+                console.error(`[mtw.authentication] Player Connected PutEvents failed`, {
+                    userName,
                     connectionId,
                     sessionId: defaultedSessionId,
-                    timestamp: Date.now()
-                }
-            }])
+                    failedEntryCount: putEventsResult.FailedEntryCount,
+                    entries: putEventsResult.Entries,
+                })
+            }
             return {
                 statusCode: 200
             }
         }
         else {
+            console.log(`[mtw.authentication] connect() not authenticated; Player Connected not published`, { userName, connectionId, sessionId: defaultedSessionId })
             return {
                 statusCode: 403,
                 message: 'Invalid SessionID for this player'

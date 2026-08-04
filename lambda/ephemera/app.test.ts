@@ -343,6 +343,43 @@ describe('app handler', () => {
             )
         })
 
+        it('routes character link to sendActionAssessed LookComponent, not the legacy Perception path', async () => {
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify({
+                        message: 'link',
+                        CharacterId: 'CHARACTER#abc',
+                        to: 'CHARACTER#guest-1',
+                    }),
+                },
+                {}
+            )
+
+            expect(mockSendActionAssessed).toHaveBeenCalledWith(
+                mockMessageBus,
+                'CHARACTER#abc',
+                {
+                    characterId: 'CHARACTER#abc',
+                    assessed: {
+                        type: 'LookComponent',
+                        componentId: 'CHARACTER#guest-1',
+                        confidence: 1,
+                    },
+                    source: 'link',
+                }
+            )
+            //
+            // The legacy hop bypassed ensureAuthoredCatalog entirely, so a CHARACTER# target
+            // never got a CACHE# row and always rendered "No description". That route is now
+            // deleted outright (`PerceptionMessage` no longer admits a CHARACTER# payload), so
+            // this assertion guards against re-introducing any second path to the same output.
+            //
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
+        })
+
         it('routes knowledge link to sendActionAssessed LookComponent with directResponse', async () => {
             await handler(
                 {
@@ -565,6 +602,43 @@ describe('app handler', () => {
                 body: JSON.stringify({
                     error: 'No deserializer available for data source: mtw.unknown',
                 }),
+            })
+        })
+
+        it('routes a Player Connected EventBridge event through the mtw.players deserializer (not the generic no-deserializer error)', async () => {
+            const event = {
+                source: 'mtw.players',
+                'detail-type': 'Player Connected',
+                detail: {
+                    streamKey: 'PLAYER#player-one',
+                    player: 'player-one',
+                    connectionId: 'conn-1',
+                    sessionId: 'session-1',
+                    timestamp: 1700000000000,
+                },
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'Error',
+                    body: expect.objectContaining({
+                        error: expect.stringContaining('No deserializer available'),
+                    }),
+                })
+            )
+            const streamingEventCall = mockMessageBus.publish.mock.calls.find(
+                (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'mtw.players'
+            )
+            expect(streamingEventCall).toBeDefined()
+            const payload = streamingEventCall![0] as { getContent: () => Promise<unknown> }
+            const content = await payload.getContent()
+            expect(content).toMatchObject({
+                type: 'Player Connected',
+                player: 'player-one',
+                connectionId: 'conn-1',
+                sessionId: 'session-1',
             })
         })
     })

@@ -20,7 +20,7 @@ The perception system serves as the **message routing and display engine** that:
 
 **Which flows use fan-in versus imperative [`perceptionMessage`](./index.ts)** is the steady-state **[Delivery paths (correlated vs imperative)](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)** section in that doc. Start there when debugging or extending routing.
 
-This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **Bus delivery:** imperative outbounds and the ReturnValue tail use **`messageBus.publish`** (P4 COMP-KICK + PERCEPTION); character component requests publish **`Character Perception Requested`** ingress to the DataSource. **v1 handler policy** (removed Message path; Knowledge branch **gated off**; Map **retired**): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline). **Follow-on design:** [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it --- **Asset and Room only**. **Bus delivery:** imperative outbounds and the ReturnValue tail use **`messageBus.publish`** (P4 COMP-KICK + PERCEPTION). **v1 handler policy** (removed Message path; component kinds and Map **retired**, see [Component and Map payloads](#component-and-map-payloads-retired-not-merely-unhandled)): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline). **Follow-on design:** [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
 
 ## Perception Event Triggers
 
@@ -65,9 +65,7 @@ The perception system can be triggered by several different categories of events
 - **Trigger Pattern**: Character interacts with component → Component perception triggered
 - **Perception Types**:
   - **Room look (`look` at a room)**: [`routeTrustedUiAction`](../dataSource/routeTrustedUiAction.ts) and [`actions/index.ts`](../dataSource/actions/index.ts) emit **`Look Command Requested`**; render orchestration registers a room thread via **`sendPerceptionThreadRegistered`** and kicks passive render via **`sendRenderRequested`**; delivery is **`PublishMessage`** from **`mtw.ephemera.perception`** fan-in ([`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts)), not imperative **`Perception`** -> `perceptionMessage` for that path.
-  - **Feature Interaction**: `PerceptionComponentMessage` for feature descriptions
-  - **Knowledge Access**: `PerceptionComponentMessage` with `directResponse` for immediate knowledge delivery
-  - **Character Examination**: Character description lookups
+  - **Feature Interaction / Knowledge Access / Character Examination**: all three emit **`Action Assessed`** **`LookComponent`** (from [`routeTrustedUiAction`](../dataSource/routeTrustedUiAction.ts) or `app.ts`'s `link` handler) and deliver through correlated fan-in. **None** uses imperative **`Perception`**; the bus message type no longer admits their component ids.
 - **Targeting**: Usually character-specific rather than broadcast
 
 #### **Room State Changes**
@@ -172,35 +170,15 @@ This special behavior enables the narrative timeline system where players see th
 
 For complete details on how room header messages organize the message timeline, see [`../../../charcoal-client/src/components/Message/AGENT.md`](../../../charcoal-client/src/components/Message/AGENT.md) - Message Panel UI Architecture
 
-### **PerceptionComponentMessage**
-Displays component descriptions. **Character** is the only component type still handled imperatively in this handler; Feature and Knowledge delivery uses the correlated path in [`dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative).
+### **Component and Map payloads: retired, not merely unhandled**
 
-```typescript
-{
-    type: 'Perception',
-    characterId?: EphemeraCharacterId,
-    ephemeraId: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId,
-    directResponse?: boolean,           // For knowledge: direct to session (legacy bus shape; steady-state uses correlated ingress)
-}
-```
+**`PerceptionMessage` is `PerceptionAssetMessage | PerceptionRoomMessage`.** The former `PerceptionComponentMessage` (**`FEATURE#`** / **`CHARACTER#`** / **`KNOWLEDGE#`**) and `PerceptionMapMessage` (**`MAP#`**) types, and their `isPerceptionComponentMessage()` / `isPerceptionMapMessage()` guards, were **deleted** --- publishing one is now a **compile error**, not a runtime no-op.
 
-**Behavior:**
-- **Character Descriptions**: Routes to **`sendCharacterPerceptionRequested`** (DataSource ingress) for direct database lookup and **`PublishMessage`**
-- **Feature / Knowledge**: No imperative delivery; **`Perception`** payloads with **`FEATURE#`** / **`KNOWLEDGE#`** are no-ops in **`perceptionMessage`**. Steady-state ingress uses **`Action Assessed`** **`LookComponent`** -> correlated fan-in.
+**Every component look reaches delivery through `Action Assessed` `LookComponent` -> render orchestration -> correlated fan-in.** Character was the last kind on the imperative route; it migrated when `app.ts`'s `link` handler stopped special-casing **`CHARACTER#`** (see [`dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)). The **`api.ephemera`** **`Character Perception Requested`** ingress event, its `sendCharacterPerceptionRequested` helper, and the `characterPerception.ts` handler that read **`Meta::Character`** directly all retired with it.
 
-### **PerceptionMapMessage**
-**Retired** on server runtime. Imperative **`Perception`** with **`MAP#`** is a no-op in **`perceptionMessage`**. See [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md).
+**Why the union was narrowed rather than left permissive:** the character path broke silently *because* a plausible-looking legacy branch sat beside the live one and quietly absorbed **`CHARACTER#`** targets --- looks "succeeded" while never touching `ensureAuthoredCatalog`, so no **`CACHE#`** row was written and prose always rendered as *No description*. A payload kind that nothing handles must not type-check. Map runtime remains retired on its own terms; see [`../dataSource/maps/AGENT.md`](../dataSource/maps/AGENT.md).
 
-```typescript
-{
-    type: 'Perception',
-    characterId: EphemeraCharacterId,   // Required for maps
-    ephemeraId: EphemeraMapId,         // Map to display
-    mustIncludeRoomId?: EphemeraRoomId, // Optional room filter
-}
-```
-
-**Behavior (historical):** wire shape preserved for future redesign; no **`EphemeraUpdate`** map fanout today.
+Note the old handler also emitted **`<Pronouns>`** and an **`<Image>`** tag sourced from **`Meta::Character`**'s **`Name`** / **`fileURL`**. Neither reached a reader: the client's `CharacterDescription` consumes displayName and prose only, and **`Name`** is an obsolete field. Nothing observable was lost.
 
 ## Integration Points
 
@@ -224,17 +202,8 @@ Sends various types of messages through the message bus:
 - **Perception**: For routing perception requests to appropriate handlers
 
 ### **Database Integration**
-Direct database access for character metadata:
 
-```typescript
-const characterDescription = await ephemeraDB.getItem<EphemeraCharacterDescription>({
-    Key: {
-        EphemeraId: ephemeraId,
-        DataCategory: 'Meta::Character'
-    },
-    ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color']
-})
-```
+**No direct component reads remain in this handler.** It previously fetched **`Meta::Character`** (`Name` / `Pronouns` / `fileURL` / `Color`) to build character WML; that read retired with the character-perception path. Room prose now comes from **`internalCache.RenderCache`**, and character prose from the render-cache merge, so component content reaches perception through the cache layers rather than a projection query.
 
 ## Processing Flow
 
@@ -242,8 +211,8 @@ const characterDescription = await ephemeraDB.getItem<EphemeraCharacterDescripti
 The system uses type guards to determine message type:
 - `isPerceptionAssetMessage()`
 - `isPerceptionRoomMessage()`
-- `isPerceptionComponentMessage()`
-- `isPerceptionMapMessage()`
+
+These are the only two. Component-kind and Map guards were deleted along with their union members --- see **Component and Map payloads: retired, not merely unhandled** above.
 
 ### **Asset Discovery**
 For most operations, the system discovers relevant assets:
