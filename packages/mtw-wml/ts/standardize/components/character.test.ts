@@ -161,7 +161,8 @@ describe('StandardCharacter class', () => {
         }
         const testCharacter = new StandardCharacter(testCharacterData)
         expect(testCharacter.render).toEqual(testCharacterData.render)
-        expect(schemaToWML([testCharacter.schema])).toEqual(deIndentWML(`
+        const printed = schemaToWML([testCharacter.schema])
+        expect(printed).toEqual(deIndentWML(`
             <Character key=(test)>
                 <Render>
                     <DisplayName>Cached Name</DisplayName>
@@ -170,5 +171,57 @@ describe('StandardCharacter class', () => {
                 </Render>
             </Character>
         `))
+        expect(() => new StandardCharacter(printed)).not.toThrow()
+        expect(new StandardCharacter(printed).render).toEqual(testCharacterData.render)
+    })
+
+    it('round-trips Render under Character with only DisplayName present', () => {
+        const wml = deIndentWML(`
+            <Character key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                </Render>
+            </Character>
+        `)
+        const testCharacter = new StandardCharacter(wml)
+        const printed = schemaToWML([testCharacter.schema])
+        expect(() => new StandardCharacter(printed)).not.toThrow()
+        const testCharacterAgain = new StandardCharacter(printed)
+        expect(schemaToWML([testCharacterAgain.schema])).toEqual(printed)
+        expect(testCharacterAgain.render).toEqual({ displayName: 'Cached Name' })
+    })
+
+    it('round-trips Render under Character with only DisplayName and Description present (guest-character shape)', () => {
+        const wml = deIndentWML(`
+            <Character key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Description>Description text</Description>
+                </Render>
+            </Character>
+        `)
+        const testCharacter = new StandardCharacter(wml)
+        const printed = schemaToWML([testCharacter.schema])
+        expect(() => new StandardCharacter(printed)).not.toThrow()
+        const testCharacterAgain = new StandardCharacter(printed)
+        expect(schemaToWML([testCharacterAgain.schema])).toEqual(printed)
+        expect(testCharacterAgain.render).toEqual({ displayName: 'Cached Name', description: ['Description text'] })
+    })
+
+    it('round-trips Render under Character with only DisplayName and Summary present', () => {
+        const wml = deIndentWML(`
+            <Character key=(test)>
+                <Render>
+                    <DisplayName>Cached Name</DisplayName>
+                    <Summary>Summary text</Summary>
+                </Render>
+            </Character>
+        `)
+        const testCharacter = new StandardCharacter(wml)
+        const printed = schemaToWML([testCharacter.schema])
+        expect(() => new StandardCharacter(printed)).not.toThrow()
+        const testCharacterAgain = new StandardCharacter(printed)
+        expect(schemaToWML([testCharacterAgain.schema])).toEqual(printed)
+        expect(testCharacterAgain.render).toEqual({ displayName: 'Cached Name', summary: ['Summary text'] })
     })
 })

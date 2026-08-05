@@ -121,12 +121,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                             throw new Error('Expected Render schema node')
                         }
                         const children = renderNode.children
-                        if (children.length !== 3) {
-                            throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
-                        }
                         const payloadData = parseProseTripletChildren(children, { allowUnconsumed: false })
                         const payload = new SituationProseFacetPayload(payloadData)
-                        if (!payload.hasNonEmptyDisplayName()) {
+                        if (payload.hasDisplayName() && !payload.hasNonEmptyDisplayName()) {
                             throw new Error('Render DisplayName must contain non-empty text after trim')
                         }
                         this._render = payload

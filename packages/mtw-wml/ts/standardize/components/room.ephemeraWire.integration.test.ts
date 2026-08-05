@@ -152,6 +152,65 @@ describe('StandardRoom ephemeraWire integration', () => {
         })
     })
 
+    it('round-trips Render under Room with only DisplayName present', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const roomAgain = sfAgain._lookup('ROOM#main') as StandardRoom
+        expect(roomAgain.render).toEqual({ displayName: 'Parlor' })
+    })
+
+    it('round-trips Render under Room with only DisplayName and Description present (guest-character shape)', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Description>Full prose here.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const roomAgain = sfAgain._lookup('ROOM#main') as StandardRoom
+        expect(roomAgain.render).toEqual({ displayName: 'Parlor', description: ['Full prose here.'] })
+    })
+
+    it('round-trips Render under Room with only DisplayName and Summary present', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Summary>A quiet room</Summary>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const roomAgain = sfAgain._lookup('ROOM#main') as StandardRoom
+        expect(roomAgain.render).toEqual({ displayName: 'Parlor', summary: ['A quiet room'] })
+    })
+
     it('throws when more than one Render under Room in ephemeraWire', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
@@ -203,7 +262,7 @@ describe('StandardRoom ephemeraWire integration', () => {
         expect(roomAgain.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'target' }, payload: 'north' }])
     })
 
-    it('throws when Render DisplayName is whitespace-only inside Room', () => {
+    it('collapses a whitespace-only Render DisplayName to absent (RA-2) at the schema-converter layer', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -215,6 +274,16 @@ describe('StandardRoom ephemeraWire integration', () => {
                 </Room>
             </Asset>
         `)
-        expect(() => treeFromWML(wml)).toThrow(/Render DisplayName must contain non-empty text/)
+        const expectedWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room uuid=(main) key=(main)>
+                    <Render>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(treeFromWML(wml))).toEqual(expectedWML)
     })
 })

@@ -48,4 +48,63 @@ describe('StandardFeature ephemeraWire integration', () => {
         const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
         expect(schemaToWML([sfAgain.schema])).toEqual(printed)
     })
+
+    it('round-trips Render under Feature with only DisplayName present', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const feature = sfAgain._lookup('FEATURE#fountain') as StandardFeature
+        expect(feature.render).toEqual({ displayName: 'Fountain' })
+    })
+
+    it('round-trips Render under Feature with only DisplayName and Description present (guest-character shape)', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Description>A marble fountain.</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const feature = sfAgain._lookup('FEATURE#fountain') as StandardFeature
+        expect(feature.render).toEqual({ displayName: 'Fountain', description: ['A marble fountain.'] })
+    })
+
+    it('round-trips Render under Feature with only DisplayName and Summary present', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(fountain) uuid=(fountain)>
+                    <Render>
+                        <DisplayName>Fountain</DisplayName>
+                        <Summary>Sparkling water</Summary>
+                    </Render>
+                </Feature>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const printed = schemaToWML([sf.schema])
+        expect(() => new StandardForm(printed, { standardizeMode: 'ephemeraWire' })).not.toThrow()
+        const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+        expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+        const feature = sfAgain._lookup('FEATURE#fountain') as StandardFeature
+        expect(feature.render).toEqual({ displayName: 'Fountain', summary: ['Sparkling water'] })
+    })
 })

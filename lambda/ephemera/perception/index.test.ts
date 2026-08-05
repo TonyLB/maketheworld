@@ -23,6 +23,8 @@ import publishMessage from '../publishMessage'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 const publishMessageMock = publishMessage as jest.MockedFunction<typeof publishMessage>
 
@@ -162,6 +164,10 @@ describe('Perception message', () => {
                 })
             )
             expect((messageBusMock.publish as jest.Mock).mock.calls[0][0].messageId).toBe('MESSAGE#test-uuid')
+            const wmlContent = (messageBusMock.publish as jest.Mock).mock.calls[0][0].wmlContent
+            const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+            const room = parsed.byUniversalId['ROOM#TEST'] as StandardRoom
+            expect(room.render).toEqual({ displayName: 'Generating...' })
         })
 
         it('should be a no-op when characterIds is empty', () => {

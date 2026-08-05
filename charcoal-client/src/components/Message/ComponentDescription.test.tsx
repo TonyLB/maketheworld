@@ -236,5 +236,65 @@ describe('ComponentDescription', () => {
             expect(screen.getByRole('heading', { name: 'A Widget' })).toBeDefined()
             expect(screen.getByText('An object from a Situation facet')).toBeDefined()
         })
+
+        it('prefers the Render facet DisplayName over ShortName for the heading when they differ', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object key=(testObject) uuid=(OBJECT#testObject)>
+                        <ShortName>Agatha</ShortName>
+                        <Render>
+                            <DisplayName>Agatha Panzer von Sparkles III</DisplayName>
+                            <Description>A dog of remarkable dignity.</Description>
+                        </Render>
+                    </Object>
+                </Asset>
+            `), { standardizeMode: 'ephemeraWire' })
+
+            const metaData: PerceptionObjectMetaData = {
+                componentUUID: 'OBJECT#testObject'
+            }
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByRole('heading', { name: 'Agatha Panzer von Sparkles III' })).toBeDefined()
+            expect(screen.queryByRole('heading', { name: 'Agatha' })).toBeNull()
+            expect(screen.getByText('A dog of remarkable dignity.')).toBeDefined()
+        })
+
+        it('falls back to ShortName for the heading when no Render DisplayName is authored', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object key=(testObject) uuid=(OBJECT#testObject)>
+                        <ShortName>Agatha</ShortName>
+                        <Render>
+                            <Description>A dog of remarkable dignity.</Description>
+                        </Render>
+                    </Object>
+                </Asset>
+            `), { standardizeMode: 'ephemeraWire' })
+
+            const metaData: PerceptionObjectMetaData = {
+                componentUUID: 'OBJECT#testObject'
+            }
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByRole('heading', { name: 'Agatha' })).toBeDefined()
+            expect(screen.getByText('A dog of remarkable dignity.')).toBeDefined()
+        })
     })
 })

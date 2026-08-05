@@ -27,6 +27,9 @@ describe('characterRenderWmlFromCacheRecord', () => {
                 </Character>
             </Asset>
         `))
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const character = parsed.byUniversalId[characterId] as StandardCharacter
+        expect(character.render).toEqual({ displayName: 'Example Name', description: ['Description'] })
     })
 
     it('produces minimal Character when renderedContent maps to empty facet', () => {

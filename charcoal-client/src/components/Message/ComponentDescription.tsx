@@ -72,10 +72,12 @@ export const ComponentDescription = ({
             description = prosePayload._description || new StandardRender([])
         }
     } else if (component instanceof StandardObject) {
-        // Object's heading stays its `shortName` --- that is Object's identity, and the server pads the
-        // `<Render>` facet's DisplayName from the same value anyway. Only the body comes from prose.
-        name = component.shortName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
+        // Object always has a `shortName` (WML structurally requires it), but an authored `<Render>`
+        // DisplayName is a distinct, richer name for the same object (e.g. ShortName "Agatha" vs.
+        // DisplayName "Agatha Panzer von Sparkles III") --- prefer it for the heading when present,
+        // falling back to `shortName` otherwise.
         const prosePayload = resolveComponentProse(component)
+        name = prosePayload?._displayName || component.shortName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
         if (prosePayload) {
             description = prosePayload._description || new StandardRender([])
         }

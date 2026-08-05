@@ -30,6 +30,9 @@ describe('featureRenderWmlFromCacheRecord', () => {
                 </Feature>
             </Asset>
         `))
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const feature = parsed.byUniversalId[featureId] as StandardFeature
+        expect(feature.render).toEqual({ displayName: 'Example Name', description: ['Description'] })
     })
 
     it('produces minimal Feature when renderedContent maps to empty facet', () => {

@@ -9,14 +9,18 @@ import {
 describe('objectRenderWmlFromCacheRecord', () => {
     const objectId = 'OBJECT#TestOne' as const
 
-    it('builds shortName WML from renderedContent.displayName', () => {
+    it('builds a placeholder ShortName WML when renderedContent.displayName is present but no fallbackShortName is given', () => {
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['serving tray'],
             description: [],
         }
         const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent)
         expect(wml).toContain('Object uuid=(TestOne)')
-        expect(wml).toContain('<ShortName>serving tray</ShortName>')
+        expect(wml).toContain('<ShortName>⁠</ShortName>')
+        expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 
     it('falls back to fallbackShortName when renderedContent.displayName is empty (no authored SITUATION#DEFAULT facet yet)', () => {
@@ -24,14 +28,18 @@ describe('objectRenderWmlFromCacheRecord', () => {
         expect(wml).toContain('<ShortName>a small brass key</ShortName>')
     })
 
-    it('prefers renderedContent.displayName over fallbackShortName when both are present', () => {
+    it('keeps ShortName and DisplayName distinct when both are present, rather than one overwriting the other', () => {
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['serving tray'],
             description: [],
         }
         const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent, { fallbackShortName: 'a small brass key' })
-        expect(wml).toContain('<ShortName>serving tray</ShortName>')
-        expect(wml).not.toContain('a small brass key')
+        expect(wml).toContain('<ShortName>a small brass key</ShortName>')
+        expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.shortName?._payload?.plain?.toJSON()).toBe('a small brass key')
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 
     it('always round-trips as valid, re-parseable WML --- Object structurally requires a non-empty ShortName', () => {
@@ -44,14 +52,15 @@ describe('objectRenderWmlFromCacheRecord', () => {
         expect((object as StandardObject).shortName).toBeDefined()
     })
 
-    it('emits renderedContent.description as a Render facet alongside ShortName', () => {
+    it('emits renderedContent.description as a Render facet alongside a distinct ShortName', () => {
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['rocket skateboard'],
             description: ['A skateboard with a small rocket motor attached to the rear.'],
         }
-        const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent)
-        expect(wml).toContain('<ShortName>rocket skateboard</ShortName>')
+        const wml = objectRenderWmlFromCacheRecord(objectId, renderedContent, { fallbackShortName: 'skateboard' })
+        expect(wml).toContain('<ShortName>skateboard</ShortName>')
         expect(wml).toContain('<Render>')
+        expect(wml).toContain('<DisplayName>rocket skateboard</DisplayName>')
         expect(wml).toContain('A skateboard with a small rocket motor attached to the rear.')
     })
 
@@ -71,11 +80,16 @@ describe('objectRenderWmlFromCacheRecord', () => {
         expect(wml).not.toContain('<Render>')
     })
 
-    it('round-trips through StandardForm: parsed shortName matches the source text', () => {
-        const wml = objectRenderWmlFromCacheRecord(objectId, { displayName: ['a small brass key'], description: [] })
+    it('round-trips through StandardForm: parsed shortName matches fallbackShortName, not renderedContent.displayName', () => {
+        const wml = objectRenderWmlFromCacheRecord(
+            objectId,
+            { displayName: ['a small brass key'], description: [] },
+            { fallbackShortName: 'brass key' }
+        )
         const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
         const object = parsed.byUniversalId[objectId] as StandardObject
-        expect(object.shortName?._payload?.plain?.toJSON()).toBe('a small brass key')
+        expect(object.shortName?._payload?.plain?.toJSON()).toBe('brass key')
+        expect(object.render?.displayName).toBe('a small brass key')
     })
 })
 
@@ -98,6 +112,11 @@ describe('objectRenderChannelWmlForObjectId', () => {
             } as unknown as EphemeraCacheDynamoItem,
         ]
         const wml = objectRenderChannelWmlForObjectId(objectId, records)
-        expect(wml).toContain('<ShortName>serving tray</ShortName>')
+        // No fallbackShortName is threaded through this entry point, so ShortName falls back to the
+        // placeholder while the authored displayName lands in the distinct Render facet.
+        expect(wml).toContain('<Render><DisplayName>serving tray</DisplayName></Render>')
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.render).toEqual({ displayName: 'serving tray' })
     })
 })
