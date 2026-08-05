@@ -405,9 +405,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
      * layer) is the only place a name is still required, and only where the product needs one.
      *
      * The ephemera placeholders that existed solely to satisfy the old fixed-triplet gate ---
-     * `PLACEHOLDER_RENDER_INVISIBLE_TITLE` in `lambda/ephemera/dataSource/perception/orchestrate.ts`
-     * and `roomFullPlaceholderWml.ts` --- are stale now that the gate is gone; removing them is
-     * tracked separately (RA-3 / Phase 4 of `AGENT.renderTagArity.planning.md`), not done here.
+     * `PLACEHOLDER_RENDER_INVISIBLE_TITLE`, formerly in `lambda/ephemera/dataSource/perception/
+     * orchestrate.ts` and `roomFullPlaceholderWml.ts` --- have been removed now that the gate is gone.
      *
      * Character joined this whitelist alongside Room/Feature/Knowledge once Character's own
      * ephemera-wire render path landed (`lambda/ephemera/dataSource/perception/
