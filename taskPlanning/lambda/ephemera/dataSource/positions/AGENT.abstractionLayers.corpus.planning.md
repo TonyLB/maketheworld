@@ -22,7 +22,7 @@ The evidence base later phases argue from. Each case is written against **today'
 
 **The axis tag is the exception, and lives in the [axis tally](#axis-tally-c1--c11) instead of on the line.** It was assigned to all eleven cases at once on 2026-08-07, it is read as a column rather than per case, and keeping one home stops it drifting from a per-case copy. **Note the convergence rather than duplicating it:** AB-19's *description or mechanism* tag on each line is **apprehension versus reasoning under an earlier name**, which is why the retro-fit cost nothing and why the two should not both be maintained as though they were independent.
 
-### Axis tally (C1--C11)
+### Axis tally (C1--C13)
 
 **Retro-fitted 2026-08-07** against [the five axes](AGENT.abstractionLayers.planning.md#the-five-axes-what-the-graphs-flexibility-is-in-service-to). **The axis tag lives here rather than on each case's annotation line, deliberately:** it is the one tag assigned across the whole corpus at once, reading it as a column is the point, and a single home means it cannot drift from a per-case copy. New cases add a row.
 
@@ -41,12 +41,15 @@ The evidence base later phases argue from. Each case is written against **today'
 | [C9](#c9-coiling-the-rope-back-in) --- coiling the rope back in | **Mutation** | Positioning | A worked operation: one record inside the spread, two at a boundary, no edge changes |
 | [C10](#c10-the-moonbase-computer-system) --- moonbase computer system | **Apprehension** | Reasoning | What a room's description contains, when the graph cannot tell you |
 | [C11](#c11-the-rube-goldberg-machine) --- Rube Goldberg machine | Reasoning | Positioning | The purpose half. **Its clause-1a falsification is axis-independent** --- see below |
+| [C12](#c12-the-moonbase-power-system-and-the-cut-cable) --- moonbase power system | **Reasoning** | Mutation, Apprehension | Coarsening a reachability fact **invents a conclusion** rather than dropping detail. Mutation secondarily: **no play-time path exists** by which repairing a generator changes world state |
+| [C13](#c13-taking-and-returning-the-fork) --- taking (and returning) the fork | **Mutation** | Reasoning | Neither shipped code nor H3 names a step for a part crossing its whole's interior-graph boundary in either direction; the shrinking whole's remainder has no stated description rule |
 
-**Three results worth reading off the column rather than the rows.**
+**Four results worth reading off the column rather than the rows.**
 
 1. **Authoring has no primary case.** Eleven cases and zero coverage. C4 and C8 touch it secondarily and that is all. **This is a measurement, not a to-do:** the initiative has evaluated representations for players and LLMs and never once from the position of the person writing the world. C10 and C11 are both *authored* and both record that neither AB-14 trigger fires, so the corpus has improvisation at human scale and authorship above it **with nothing crossing**.
 2. **The positioning-primary cases are the ones that discriminated least.** C6 explicitly added zero `H1-dependent` rows; C7 discriminated once and then the axis went quiet. That is the filter behaving exactly as [the frame](AGENT.abstractionLayers.planning.md#the-five-axes-what-the-graphs-flexibility-is-in-service-to) predicts, arrived at from the corpus side.
 3. **[C11](#c11-the-rube-goldberg-machine) bit on none of the five, and that is a sixth mode worth naming.** Clause 1a was not falsified by an audience noticing anything --- it was falsified by **internal contradiction**, one object taking two incompatible rules. A case can therefore discriminate by making a proposal *inconsistent with itself*, independent of any consumer. Rare, decisive when it happens, and it should not be forced into an axis it does not belong to.
+4. **[C13](#c13-taking-and-returning-the-fork) is the corpus's first case authored against a hypothesis's own clause table rather than mined or offered as a hard scenario**, and the first mutation-primary case that is not a worked *success* (C9, C12 both showed a scheme handling an operation correctly; C13 shows H3 currently cannot). The corpus had tested representability under static and fixed-depth-operational conditions eleven cases running; testing a hypothesis's edges by deliberately mutating across the seams it just drew is a distinct kind of case, worth watching for going forward rather than assuming C1--C12's mix of origins will keep surfacing it on its own.
 
 ### C1. Look at the character standing here; look at the north wall
 
@@ -432,6 +435,139 @@ The machine's reason for existing is a **causal chain that crosses a room bounda
 **Annotations.** Both sides --- **heterogeneous separable** (AB-16, descriptive; the string's own parts are homogeneous extent, so the case carries both tags at different levels, which is itself the point) --- **authored**, so neither AB-14 trigger fires, the same gap [C10](#c10-the-moonbase-computer-system) records --- mechanism, emphatically --- exercises gap 1 (**no composition relation**) at every level of the chain at once, and gap 2 for the machine's purpose.
 
 **Rows grounded.** H1 clause 1a (**falsified**), H1 clause 1b (the joint-unsatisfiability argument), AB-13 (depth where C6 gave breadth), AB-23 (position-relativity, a second challenge), AB-4, AB-6, AB-8, AB-32, AB-2, and **PQ-13** (promoted to base case) and **PQ-5** (first required, not merely permitted).
+
+### C12. The moonbase power system, and the cut cable
+
+**Origin:** **seed example 3**, in this plan since day one and never worked. Run 2026-08-07 as the discriminating case for **AB-1's state facet** --- the corpus's only *stateful* aggregate, and the gap that had kept AB-1 parked. Set in the same moonbase as [C10](#c10-the-moonbase-computer-system) deliberately, so a **composition** whose parts are scattered and a **causal network** whose participants are scattered can be compared in one setting.
+
+**The state.** `OBJECT#PowerSystem` has `Generator` in the plant room, `TrunkCable` spanning the base, and `AirlockBranch` and `LabBranch` running off it. `OBJECT#AirlockDoor` sits in `ROOM#Airlock` and is **attached to** the power system --- *not* a part of it.
+
+**The scenario, in three beats.** The generator is broken and the airlock door will not open. Someone repairs the generator **in the plant room**, and the door in another room should now work. Then someone **cuts `AirlockBranch`.** The system is still powered; the lab still has light; the door does not open.
+
+**The rule the fiction wants, and it is exactly the shape this initiative keeps meeting:** *when the power system is powered, everything attached to it is powered* --- a coarse statement, correct almost always, **ripe for exception the moment anyone cuts anything.**
+
+#### Today's model: there is nowhere for any of it to live
+
+| What is needed | Where it would go | Status |
+| --- | --- | --- |
+| State on the door ("powered") | An object-level state carrier | **Structurally absent.** [`requestIntake.ts:11`](../../../../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts) states it as a rule --- Feature/Knowledge/Object/Character hosts always get `markState: { markValue: [] }`. Not a deferral; there is no carrier to switch on |
+| An area-wide power fact | `Meta::Room.state.marks` | **Exists, and is the wrong shape twice over.** It is Room-scoped, and it mutates **only** via an inbound API `State Change` message ([`app.ts:264-283`](../../../../../lambda/ephemera/app.ts)) --- an operator poking marks from outside. **No play-time path exists by which repairing a generator changes the world's power state** |
+| `Generator -powers-> AirlockDoor` | A relational edge | **No causal edge kind exists.** Kinds are `On` / `Under` / `Against` / `Custom` --- all spatial --- and `HostRelationalEdge` endpoints are object-only. **And it could not cross rooms anyway:** [`applyStepSequenceCore`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/applyStepSequenceCore.ts) derives a relational step's shared host live and **throws** on mismatch |
+
+**So the coarse rule has no home at any of the three plausible ones**, and the exception has nowhere to be recorded even if the rule did.
+
+#### Finding 1: the isomorphism, mechanism by mechanism
+
+**Every construct built on the positional side has a state twin, and the mapping is tighter than "these rhyme."**
+
+| Positional mechanism | State twin |
+| --- | --- |
+| Whole and part are **roles**, not kinds ([C11](#c11-the-rube-goldberg-machine)) | A power system has subsystems; a subsystem is both |
+| **On-demand improvisation** --- a locus minted because a relation needs an endpoint ([C5](#c5-the-chain-mounted-at-both-ends)'s third trigger) | `AirlockBranch` has no parts until it is cut, and then it needs two |
+| **Coarsening** --- resolve at the level available | "Is terminal 3 powered?" with no cable-level detail resolves via the system |
+| **The summarization seam** --- a snag ports through the span ([C7](#the-nesting-question-run-2026-08-07)) | *"The power system reports a fault"* --- with **where** retrievable and omittable |
+| **Scale-relative truth** | "The base has power" and "this door does not" are both correct |
+| **No privileged level** | Power at the base, the circuit, the socket |
+
+**This is a requirements argument, not a corpus finding**, and it should be labelled as such: it is the same class as AB-32's same-mechanism requirement, which produced [the three positions](AGENT.abstractionLayers.planning.md#three-positions-on-reference-and-what-clause-1b-actually-costs). That class has been decisive here twice, which is why it carries weight the structural evidence alone did not.
+
+#### Finding 2: the cut cable is fission on a causal edge --- and the locked frame already handles it
+
+Cutting `AirlockBranch` repartitions the power system's interior: one member becomes two, one of which no longer conducts. **That is AB-31, arriving on a relation that is not positional at all.**
+
+**Under the [locked frame](AGENT.abstractionLayers.planning.md#locked-frame-parts-and-ports-2026-08-06) nothing outside the system breaks.** External references name the system through its ports; the repartition is interior; ports rebind. **The encapsulation payoff lands on a case it was never designed for** --- and it means unification costs **no new machinery for the scenario that motivates it**, which is the strongest practical argument available for it.
+
+Fourth time this plan has found a discipline anticipating a case outside its brief (AB-28, AB-29, C5, now this). **Worth noting the pattern is becoming evidence rather than luck**, and worth resisting: the [carry-closure-meets-composition-edge test](AGENT.abstractionLayers.planning.md#what-counts-as-a-falsification-case-learned-the-hard-way-2026-08-05) is still queued precisely to find somewhere it *does not* hold.
+
+#### Finding 3: coarsening is truth-preserving on containment and **truth-destroying** on causality
+
+**This is the case's sharpest technical result, and it changes what the summarization seam is for.**
+
+| | Coarsened claim | After the exception |
+| --- | --- | --- |
+| **Containment** --- "tied to the bag's strap" -> "tied to the bag" | Less precise | **Still true** |
+| **Causality** --- "the system is powered" -> "the door is powered" | Reads like the same move | **False.** The branch is cut |
+
+**The difference is that coarsening a containment fact generalises, while coarsening a reachability fact *assumes reachability*.** One drops detail; the other invents a conclusion.
+
+**So [the summarization seam](AGENT.abstractionLayers.planning.md#a-third-argument-on-a-third-axis-the-port-is-the-summarization-seam-2026-08-07) is not an optimisation on the state side --- it is a correctness requirement.** A fault must port up to the whole, or the coarse answer is unsound rather than merely coarse. This is [no silent omission](AGENT.abstractionLayers.planning.md#correction-same-day-reasoning-wants-no-silent-omission-not-losslessness) with teeth: on the positional side omitting silently costs precision; here it produces a wrong answer a player acts on.
+
+**It also sharpens the two-operations split.** [Coarsening was found to name failure-recovery and deliberate summarization](AGENT.abstractionLayers.planning.md#a-port-is-a-scale-boundary-not-a-relay-2026-08-06), with opposite requirements about silence. **On causal edges, failure-recovery is not safe either** --- resolving an unreachable address by falling back to the whole is exactly the unsound inference above. The safe default on a causal graph is **"unknown", not "the whole's answer"**, which is a third behaviour neither operation currently has.
+
+#### Finding 4: the cost, which the unification argument does not price
+
+**Unifying pulls AB-6 toward *derived*, and position has been pulling it toward *stored*.**
+
+"Is the door powered" is not a lookup --- it is **reachability from a source through intact edges**, and it must be evaluated. It cannot be cached, because a cut anywhere invalidates it, and storing the answer recreates precisely the drift the cut exists to expose.
+
+Position has the opposite pressure: [part-mediated reference](AGENT.abstractionLayers.planning.md#part-mediated-reference-how-h1-answers-its-own-replacement-trigger) forced AB-6 toward **stored** because `computeStepSequenceFootprint` runs once and every part and host must be known before the walk begins.
+
+**So under one substrate the two facets pull AB-6 in opposite directions, each for a good reason.** Recorded as the real content of unification's blast radius. **It is a mutation-axis cost for a reasoning-axis gain --- the same shape as AB-37, one day later**, which is starting to look like this design's characteristic trade rather than a coincidence.
+
+**A softening worth stating:** state does not introduce this problem so much as **remove the option of dodging it.** [C7](#c7-ariadnes-thread)'s derived-presence question is the same reachability walk, unresolved because position can get away with stored. **When it is evaluated, and against which snapshot, is now AB-39.**
+
+#### Finding 5: one substrate, and emphatically not one type
+
+**Two disanalogies, and both argue for the middle option rather than against unification.**
+
+1. **Directionality.** Part-of is containment. *Powers* is **directed**: the generator powers the door and not the reverse, and a traversal that runs backwards produces nonsense. Same substrate, different traversal rule.
+2. **Participation, not parthood.** A hinge is part of a door. The door is *attached to* the power system without being part of it --- which this plan noticed early ("a generator is not *part of* a door"). The system's member set is **participants**.
+
+The substrate already tolerates both: AB-26's licensing rule is **any kind, any provenance**.
+
+**A third disanalogy exists and is bounded by charter rather than by argument.** Reachability is binary and composes trivially; water pressure or temperature would need **arithmetic along the graph**, which position never needs. [`diegeticLogic/AGENT.md`](../../../../../lambda/ephemera/diegeticLogic/AGENT.md) commits to "enough structure for narrative copy, affordances, and generation context, **without treating the world as a fully simulated physical space**." **So this is out of scope by an existing commitment --- and if that commitment ever changes, this case is where unification gets re-examined.**
+
+#### What this case must not be read as licensing
+
+**Not a power simulator.** AB-19 already rejected compiling fictional physics into deterministic structure: an abstraction's job is the right-sized packet for an LLM step, not a lookup replacing it. Applied here, the system hands the reasoning step *"power system: powered; one fault reported, on the airlock branch"* and lets it work out what follows. **That is the seam, not a solver**, and the distinction is one careless reading apart.
+
+#### Alongside C10, on apprehension
+
+Is the power system apprehensible from the airlock? You see a door, and perhaps a conduit. **The same question [C10](#c10-the-moonbase-computer-system) raised and the same likely answer** --- no --- which is mild evidence that apprehension scale is a property of the abstraction rather than of its kind, since a composition and a causal network land the same way. **Mild, because both are authored above-human-scale systems in one setting**, and two cases sharing a designer is weak sampling.
+
+**Annotations.** Both sides --- read-side (*is the door powered*) and write-side (repair, cut) --- **heterogeneous separable** (AB-16, descriptive; participants are unlike by construction) --- **Improvisation, on-demand and relation-driven**, [C5](#c5-the-chain-mounted-at-both-ends)'s third trigger firing on a causal relation for the first time --- **mechanism**, emphatically --- exercises **gap 1**, and worse than elsewhere: there is no composition relation *and* no causal relation.
+
+**Rows grounded.** **AB-1** (primary --- the state facet, and the case it was waiting for), AB-7 (the carrier question, now with a worked instance), **AB-6** (pulled toward derived, against position), **AB-31** (fission on a causal edge), **AB-39** (opened), AB-19, AB-26, AB-23, AB-37.
+
+### C13. Taking (and returning) the fork
+
+**Origin:** proposed 2026-08-07, run directly against [H3](AGENT.abstractionLayers.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice) the same day it was adopted --- the corpus's first case authored to test a *hypothesis under construction* for a gap in its own clause table, rather than mined from a park or offered as a hard scenario. Motivated by a structural observation about the corpus itself: C1--C12 are overwhelmingly **static** --- states checked for representability --- or, where operational (C9, C12), operate at a fixed decomposition depth. None combines an **improvised decomposition** (C8's trigger) with a **subsequent mutation on a newly-minted part**, and none checks a mutation's *reverse*.
+
+**The state.** A place setting sits undecomposed on the table in a room, `OBJECT#PlaceSetting`. A character looks closely; per [C8](#c8-the-flashlight-that-vanished-when-someone-looked-at-it)'s trigger, the improvised detail layer generates `Plate`, `Cup`, `Fork`, `Knife`, `Spoon`, minted as parts of `PlaceSetting`'s interior graph per [H3 clause 1](AGENT.abstractionLayers.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice) --- a root node, `part` edges to each, sibling links recording the arrangement. The room continues to reference `OBJECT#PlaceSetting` by name through its port, per H3 clause 4.
+
+**The operation, in two beats.** The character **takes the fork**. Later, the character **puts the fork back**.
+
+#### Finding 1: "take" has no step kind, because the fork is not where the kernel looks for it
+
+Under today's shipped model a part is an ordinary Object node sitting directly in the room's `positionGraph` --- "works today, unchanged," per [part-mediated reference](AGENT.abstractionLayers.planning.md#part-mediated-reference-how-h1-answers-its-own-replacement-trigger)'s finding for H1. **That stops being true under H3.** [C9](#c9-coiling-the-rope-back-in)'s own worked example puts a part inside the *whole's own* interior graph --- `OBJECT#RopeEnd1` lives in `OBJECT#ROPE`'s `positionGraph`, not in the room's --- and the room holds only a port reference. The fork is exactly this: an interior node of `PlaceSetting`'s graph, not a node `applyStepSequenceCore` or `computeStepSequenceFootprint` has ever been asked to source a step from. **Taking the fork requires a step that (a) removes a node from a graph nested inside another object, and (b) inserts it into an unrelated top-level graph (the character's).** Neither shipped code nor H3's clause table describes this. `MutationKernelTransferStep`'s singular `toHostId` was flagged once already, in [C7](#c7-ariadnes-thread), as unable to express a pure-add; whether it can express *sourcing from an interior graph at all* is untested and looks like a second, independent gap at the same site.
+
+**AB-11 does not answer this.** AB-11's candidate answer --- "pull" expands into per-part steps via Synthesize's Expansion --- was argued for a **whole-level** operation (pull the rope, and the whole's parts each get a step). Taking the fork is the opposite shape: a **single named part**, addressed directly, leaving its whole while the whole stays put. AB-11's mechanism was never asked to cover this, and nothing says it does.
+
+#### Finding 2: the remainder's coherence has no stated rule
+
+Suppose the step problem is solved and the fork is gone. **What does `PlaceSetting` say about itself now?** Three live candidates, and H3 picks none of them:
+
+| Candidate | What it requires |
+| --- | --- |
+| The interior graph silently drops the `part` edge, `PlaceSetting` reports as before | Wrong --- contradicts the fiction; the setting **is** missing a fork |
+| `PlaceSetting`'s description is regenerated to note the absence | Needs a description-regeneration trigger this plan has never named for a *shrinking* whole --- AB-14's triggers are all about **minting**, none about a whole's summary needing to react to a part's departure |
+| The absence is only visible by traversing the interior graph and noticing four parts where five were minted | Reproduces [C7](#c7-ariadnes-thread)'s nesting argument **backwards**: the whole point of a nested summary was to avoid reading every constituent; a remainder that can only be known by re-enumerating the parts is the flat framing C7 argued against |
+
+**No case before this one asked what a whole says about itself after it has lost a part it did not lose all at once (fission) or lose entirely (full reabsorption).** AB-31 covers a whole splitting in two; H3 clause 7 covers a part rejoining or a node being fully deleted. A whole that keeps its identity but sheds exactly one member, while everything else about it is unchanged, is a third shape neither row names.
+
+#### Finding 3: "put it back" is not the inverse of "take," and H3 has no path for it at all
+
+Putting the fork back requires reaching **into** `PlaceSetting`'s interior graph from wherever the fork currently is (the character's inventory, possibly in a different room) and re-establishing a `part` edge. This is the mirror of Finding 1's problem, but not its mechanical mirror: taking has a plausible source (the interior graph, reachable by traversal from the room, per H3 clause 1's inward-reaching design goal) and an ordinary destination (the character, an existing host kind). **Putting back has an ordinary source (the character) and a destination that is not an ordinary host at all --- it is a location inside another object's private graph** --- which no existing step kind targets and which AB-11's Expansion answer, built for the opposite direction, does not obviously invert.
+
+**And co-location is untested.** If the character wandered to another room before attempting to put the fork back, is the operation refused (the fork and `PlaceSetting` are not co-located), does it silently relocate `PlaceSetting` itself, or does it spawn some other resolution? [C5](#c5-the-chain-mounted-at-both-ends)'s and [C9](#c9-coiling-the-rope-back-in)'s co-location machinery was built for a *whole's own* ports, not for reintroducing a foreign object as a new part after the fact.
+
+**And drift is untested.** Even granting a mechanism, does the reinserted fork produce an interior graph indistinguishable from one that was never missing a fork at all --- same sibling links, same port assignments --- or does re-attachment leave a residue (a stale sibling link, an orphaned port) that a naive delete-edge/add-edge implementation would not clean up? H3 clause 7 does not speak to this, because clause 7 is about a *whole* rejoining after co-location is restored, not about a *foreign part* being adopted into an existing, undisturbed whole.
+
+**Verdict.** Both operations expose the same underlying absence: **H3 describes how a whole's parts relate to each other and to the boundary they're viewed through, but says nothing about a part crossing that boundary as a live, independently-manipulable object and rejoining later.** That is a write-side gap orthogonal to the eight clauses already in H3's table --- all eight presuppose the part stays inside the interior graph or the whole stays intact. This is the first case where a part actually leaves.
+
+**Annotations.** Write-side, both directions --- heterogeneous separable (AB-16, descriptive) --- Improvisation for the decomposition beat (AB-14, on-demand, per C8), no existing trigger or mechanism for either mutation beat --- mechanism throughout --- exercises gap 1 (**no composition relation** for what happens to the edge on departure) doubled: once for severance, once for reattachment.
+
+**Rows grounded.** AB-11 (shown not to generalise to part-level operations, sharpening "generality untested"), AB-4 (the level-crossing relation must additionally say what happens when a part leaves the graph that would express it), AB-6 (a stored member set needs an on-departure update path this case shows is missing), AB-17 (the reabsorption criterion's shape, tested against the wrong direction --- a *foreign* part joining, not the whole's own part returning), H3 clause 7 (scoped too narrowly to cover this), and **AB-40**, opened here: *the detach/reattach step kind --- does moving a single part across the interior-graph boundary, in either direction, need a step kind AB-11's Expansion answer does not supply?*
 
 ### Parks deliberately not mined
 

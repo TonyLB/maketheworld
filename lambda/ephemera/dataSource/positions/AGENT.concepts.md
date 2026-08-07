@@ -297,6 +297,26 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **The container corner of this ladder is superseded by [Wholes, parts, and ports](#wholes-parts-and-ports) below** (2026-08-07). "Container graph (future)" named the level without saying what a level *is*; the next subsection does, and it is the shape any object-scale work should be built against.
 
+### Abstraction Fractal
+
+**Status: Target, and the name is locked (2026-08-07).** The organizing principle for composition above and below the human-convenience scale of objects: **the same relation at every level, with no privileged one.** Things are Objects at some scale, related by part-of, up and down. See [Wholes, parts, and ports](#wholes-parts-and-ports) for the shape that realizes it.
+
+**There is no `AbstractionFractal` type, entity, or record.** The name is the principle, not a thing in the world or in the schema. This is stated first because the name reads like a noun while asserting that **there is nothing distinctive at any level to type** --- and minting the type would falsify the claim the name exists to make. If you find yourself writing one, the design has gone wrong somewhere upstream.
+
+**What the name commits to, and what earns it.** *Fractal* is a claim, not a flourish: self-similarity across scale. Two properties carry it, and both are demonstrated rather than hoped for --- **composition is not a tree** (one part can have two wholes, neither containing the other) and **no level is privileged** (a chain can run four deep with every interior term being both a part of what contains it and a whole of what it contains).
+
+**Three departures from the metaphor, recorded here rather than left to the plan** --- a durable doc that adopts a metaphor without its limits is how the metaphor becomes the argument:
+
+| Departure | Nature |
+| --- | --- |
+| **A DAG, not a tree** | Permanent. One part, two wholes, neither containing the other, is a requirement rather than a preference --- so traversal is a DAG walk, not tree recursion |
+| **Finite depth, with a base case** | A real fractal recurses infinitely; this one bottoms out at leaf objects. **Whether the bottom is uniform --- whether a plain lantern uses the same presence mechanism as a rope --- is undecided**, and it is the base case the self-similarity claim rests on |
+| **Earned below the room, aspirational above it** | `EphemeraMembershipHostId` is `Room \| Character`. The claims hold within object composition; **Room/Area containment is a structure of different provenance** (authored asset-stack merge, not play-time graph mutation), so the room is still a privileged level |
+
+**The third departure carries a visibility hazard, not merely a cost.** Encapsulation already makes the room/area seam **less visible without making it less real**, and a name asserting uniformity makes it harder still to see. The failure mode is a reader concluding the ladder is uniform because nothing complained. **Do not read quiet as resolution at that seam.**
+
+**What would retire the name:** composition, functional-state aggregate, and multi-host extent turning out to be **three genuinely unlike things** rather than one substrate with distinct relation kinds above it. The name assumes one substrate; it is falsifiable on that, and current evidence runs the other way.
+
 ### Wholes, parts, and ports
 
 **Status: Target, and deliberately narrow.** Two **shape** claims, and nothing else. They were fixed as a **locked frame** on 2026-08-06 after the design work that produced them stopped moving --- recorded here, ahead of implementation, because everything still being designed is being designed *inside* them, and a reader who does not know them will mis-read the code that eventually lands. Neither claim names a record format, an identifier scheme, or a hosting model.
