@@ -295,6 +295,39 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **Container scale (D16 shipped v1):** **`Meta::Character.positionGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. Object **`OBJECT#`** / Area hosts deferred until needed.
 
+**The container corner of this ladder is superseded by [Wholes, parts, and ports](#wholes-parts-and-ports) below** (2026-08-07). "Container graph (future)" named the level without saying what a level *is*; the next subsection does, and it is the shape any object-scale work should be built against.
+
+### Wholes, parts, and ports
+
+**Status: Target, and deliberately narrow.** Two **shape** claims, and nothing else. They were fixed as a **locked frame** on 2026-08-06 after the design work that produced them stopped moving --- recorded here, ahead of implementation, because everything still being designed is being designed *inside* them, and a reader who does not know them will mis-read the code that eventually lands. Neither claim names a record format, an identifier scheme, or a hosting model.
+
+1. **A whole has its own graph, with a root node.** Parts are nodes in it; part relations are edges in it. A whole is therefore *both* a graph and a node in another graph --- `EphemeraPositionGraph` is the recursive type, and "the same relation at every level" is a property of the data rather than a claim about the model.
+2. **Boundary crossings are mediated by an explicit binding the interior owns** --- not by direct addressing of interior nodes from outside. That binding is a **port**.
+
+**Vocabulary this establishes:**
+
+| Term | Means |
+| --- | --- |
+| **Whole** | A thing with a `positionGraph` of its own and a root node in it |
+| **Part** | A node in a whole's graph, reached by a `part` edge from the root |
+| *(both, of one object)* | **Whole and part are roles relative to a level, not kinds of object.** The same thing is a part of what contains it and a whole of what it contains, **simultaneously and at every level** --- a string is a part of a machine and a whole of its spans. Any rule that gives parts and wholes different behaviour is therefore not a rule at all, since it assigns two behaviours to one object |
+| **Port** | A **single-use** boundary slot on a whole, allocated by that whole: **one** port records **one** crossing between two position graphs. Two connections to the same host are two ports |
+| **Egress / ingress** | A port's two ends --- the host it exits to, and its presence on that host's side |
+| **Coarsening** | Failed addressing resolves to the **last successfully addressed host** rather than dangling. `OBJECT#BAG:4` with no live port 4 reads as `OBJECT#BAG`: "tied to the bag's strap" degrades to "tied to the bag" |
+| **Scale-relative truth** | The model may give **different** answers at different levels with **both correct** --- the coarse one is not an approximation of the fine one. The requirement is that answers be *consistent*, never that they be the same |
+
+**What a port number is not.** This is the load-bearing half, and it is recorded here rather than left to inference because the construct produced two misreadings of the same family within a day, both of which propagated before being caught. A port number is **not** a name for the interior node behind it (`OBJECT#ROPE:1` does not identify a part --- the part is an ordinary nominal id, and the port merely has an edge to it); **not** a reusable public interface; **not** a fan-out point (one interior edge, one exterior referrer); and **not** evidence about the interior at all, since numbering is a property of the *boundary*.
+
+**A port is a scale boundary, not a relay.** The two edges a port joins need not carry the same kind and usually will not: `PowerCord -[ThreadsInto]-> FLASHLIGHT:1` outside, `port 1 -[SolderedTo]-> BatteryCase` inside. Both true, neither a copy --- two relations at different scales. Do **not** build a compatibility matrix across the boundary; cross-boundary coherence is authoring's and improvisation's job, not the representation's.
+
+**Why the shape is worth fixing before the details are settled.** The payoff is **encapsulation, not traversal**: a whole's ports are its published interface and its parts are the implementation, so **interior repartitioning stops being externally breaking**. That extends the invariance across *time* as well as across levels --- a thing can decompose or reabsorb without any external reference knowing what scale it was at.
+
+**One warning that must travel with this entry.** Encapsulation means external code cannot see what scale a thing is at, which is exactly what invariance requires and also exactly what would let a real level asymmetry go unremarked. **`EphemeraMembershipHostId` is `Room | Character`, and the room boundary is a seam of different provenance** --- authored asset-stack merge, not play-time graph mutation. The claims above are earned for object interiors and **aspirational for the ladder above the room**. The failure mode is a future reader concluding the fractal is uniform because nothing complained.
+
+**What is *not* settled, and must not be inferred from this entry:** port identity and reuse, numbered-versus-named and the separator character, whether a plain object carries a presence port, where a port record's two halves are stored, and everything on the write side of scale change (`divide` / `merge`). Those are live in [`AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md), whose "What is not locked" section is authoritative about which is which.
+
+**What would re-open these two claims.** Not a preference, not a cheaper-looking alternative, and not a rival proposal that also works: **a corpus case either clause cannot represent**, or a demonstration that the encapsulation claim fails where it was bought --- an interior repartitioning that still breaks external references. Either lifts the clause **by name**, in the plan's discussion record. It is not eroded by exception.
+
 ### Authored vs play graphs
 
 - **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
