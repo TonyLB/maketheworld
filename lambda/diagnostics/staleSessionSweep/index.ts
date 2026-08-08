@@ -154,6 +154,45 @@ const characterAdjacencyRowsForSession = async (sessionId: string) =>
         ProjectionFields: ['DataCategory']
     })
 
+const emitStaleSessionIdFinding = async (params: {
+    player: string
+    diagnosticRunId: string
+    nowMs: number
+    eventBusName: string
+    serializer: DiagnosticsEventSerializer
+    ebClient: EventBridgeClient
+}): Promise<void> => {
+    const { player, diagnosticRunId, nowMs, eventBusName, serializer, ebClient } = params
+    const internalEvent: DiagnosticsStaleSessionIdFindingEvent = {
+        type: 'Stale SessionId Finding',
+        player,
+        diagnosticRunId,
+        timestamp: new Date(nowMs).toISOString()
+    }
+
+    const header = {
+        dataSourceKey: 'mtw.diagnostics' as const,
+        streamKey: 'global',
+        timestamp: nowMs,
+        type: 'Stale SessionId Finding' as const
+    }
+
+    const { eventBridgeEvent } = publishStreamEvent({
+        header,
+        content: internalEvent,
+        serializer: serializer as StreamEventPublisherSerializer<typeof header>
+    })
+
+    await ebClient.send(new PutEventsCommand({
+        Entries: [{
+            Source: eventBridgeEvent.Source,
+            DetailType: eventBridgeEvent.DetailType,
+            EventBusName: eventBusName,
+            Detail: JSON.stringify(eventBridgeEvent.Detail)
+        }]
+    }))
+}
+
 /**
  * Evaluates stream subscriptions and session/character adjacency for sessions whose meta row is stale.
  * Reports are aggregated per player; emission requires a non-empty `player` on the meta row.
@@ -208,38 +247,77 @@ export const staleSessionSweep = async (params?: {
 
     let emittedCount = 0
     for (const player of players) {
-        const internalEvent: DiagnosticsStaleSessionIdFindingEvent = {
-            type: 'Stale SessionId Finding',
-            player,
-            diagnosticRunId,
-            timestamp: new Date(nowMs).toISOString()
-        }
-
-        const header = {
-            dataSourceKey: 'mtw.diagnostics' as const,
-            streamKey: 'global',
-            timestamp: nowMs,
-            type: 'Stale SessionId Finding' as const
-        }
-
-        const { eventBridgeEvent } = publishStreamEvent({
-            header,
-            content: internalEvent,
-            serializer: serializer as StreamEventPublisherSerializer<typeof header>
-        })
-
-        await ebClient.send(new PutEventsCommand({
-            Entries: [{
-                Source: eventBridgeEvent.Source,
-                DetailType: eventBridgeEvent.DetailType,
-                EventBusName: eventBusName,
-                Detail: JSON.stringify(eventBridgeEvent.Detail)
-            }]
-        }))
+        await emitStaleSessionIdFinding({ player, diagnosticRunId, nowMs, eventBusName, serializer, ebClient })
         emittedCount += 1
     }
 
     return { emittedCount, players }
+}
+
+/**
+ * Player-scoped counterpart to `staleSessionSweep`, driven by connect-time detection (`Stale Session
+ * Problem` on `mtw.players`). Resolves only the reported player's reverse-index pointers -- no
+ * whole-table scan, no pointer maintenance (that stays exclusively with the full sweep) -- and emits
+ * the same `Stale SessionId Finding` if that player has any currently-stale session.
+ */
+export const evaluateStaleSessionsForPlayer = async (params: {
+    player: string
+    diagnosticRunId?: string
+    nowMs?: number
+}): Promise<{ emittedCount: number; players: string[] }> => {
+    const eventBusName = process.env.EVENT_BUS_NAME
+    if (!eventBusName) {
+        throw new Error('evaluateStaleSessionsForPlayer requires EVENT_BUS_NAME')
+    }
+
+    const player = params.player.trim()
+    if (!player) {
+        return { emittedCount: 0, players: [] }
+    }
+
+    const nowMs = params.nowMs ?? Date.now()
+    const diagnosticRunId = params.diagnosticRunId ?? uuidv4()
+    const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
+
+    const pointers = await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
+        Key: { ConnectionId: playerSessionsPK(player) },
+        ProjectionFields: ['DataCategory'],
+        ConsistentRead: true
+    })
+
+    const sessionIds = [...new Set(
+        (pointers || [])
+            .map(({ DataCategory }) => sessionIdFromMetaSortKey(DataCategory))
+            .filter((sessionId): sessionId is string => Boolean(sessionId))
+    )]
+
+    if (!sessionIds.length) {
+        return { emittedCount: 0, players: [] }
+    }
+
+    const rows = await connectionDB.getItems<MetaSessionRow>({
+        Keys: sessionIds.map((sessionId) => ({
+            ConnectionId: META_SESSION_PK,
+            DataCategory: sessionMetaSortKey(sessionId)
+        })),
+        ProjectionFields: ['ConnectionId', 'DataCategory', 'connections', 'dropAfter'],
+        ConsistentRead: true
+    })
+
+    const hasStaleRow = rows.some((row) => isStaleSessionMetaRow({
+        connections: row.connections,
+        dropAfter: row.dropAfter,
+        nowMs
+    }))
+
+    if (!hasStaleRow) {
+        return { emittedCount: 0, players: [] }
+    }
+
+    const ebClient = new EventBridgeClient({ region: process.env.AWS_REGION })
+    await emitStaleSessionIdFinding({ player, diagnosticRunId, nowMs, eventBusName, serializer, ebClient })
+
+    return { emittedCount: 1, players: [player] }
 }
 
 export { hasActiveConnections, isStaleSessionMetaRow, STALE_BUFFER_MS } from './classification'

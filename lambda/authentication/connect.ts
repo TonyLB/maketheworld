@@ -4,7 +4,8 @@ import { connectionDB, META_SESSION_PK, sessionMetaSortKey, playerSessionsPK } f
 import { eventBridgeClient } from "@tonylb/mtw-utilities/ts/eventBridge"
 import { publishStreamEvent } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
-import { PlayersEventSerializer, type PlayerConnectedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
+import { PlayersEventSerializer, buildStaleSessionProblemDedupeKey, type PlayerConnectedEvent, type PlayerStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
+import { detectStaleSessionsForPlayer } from './staleSessionDetection'
 
 const playersEventSerializer = new PlayersEventSerializer(createNodeDataSourceEnvironment())
 
@@ -15,8 +16,9 @@ export const connect = async (connectionId: string, userName: string, SessionId:
     console.log(`[mtw.authentication] connect() invoked`, { connectionId, userName, SessionId })
     const defaultedSessionId = SessionId || uuidv4()
     if (connectionId) {
+        let staleSessionIds: string[] = []
         try {
-            await Promise.all([
+            const results = await Promise.all([
                 connectionDB.putItem({
                     ConnectionId: `CONNECTION#${connectionId}`,
                     DataCategory: 'Meta::Connection',
@@ -58,8 +60,18 @@ export const connect = async (connectionId: string, userName: string, SessionId:
                             DataCategory: sessionMetaSortKey(defaultedSessionId)
                         }
                     }
-                ] as Parameters<typeof connectionDB.transactWrite>[0])
+                ] as Parameters<typeof connectionDB.transactWrite>[0]),
+                detectStaleSessionsForPlayer(userName, defaultedSessionId).catch((err) => {
+                    console.error(`[mtw.authentication] detectStaleSessionsForPlayer failed`, {
+                        userName,
+                        connectionId,
+                        sessionId: defaultedSessionId,
+                        error: err instanceof Error ? err.message : String(err)
+                    })
+                    return [] as string[]
+                })
             ] as Promise<any>[])
+            staleSessionIds = results[2] as string[]
         }
         catch (err) {
             if (err instanceof SessionHijackError) {
@@ -93,7 +105,31 @@ export const connect = async (connectionId: string, userName: string, SessionId:
             content,
             serializer: playersEventSerializer
         })
-        const putEventsResult = await eventBridgeClient.send([eventBridgeEvent])
+
+        const staleSessionEvents = staleSessionIds.map((sessionId) => {
+            const attemptCount = 1
+            const staleContent: PlayerStaleSessionProblemEvent = {
+                type: 'Stale Session Problem',
+                sessionId,
+                player: userName,
+                sourceOperation: 'connect',
+                attemptCount,
+                dedupeKey: buildStaleSessionProblemDedupeKey(sessionId, attemptCount),
+                timestamp: new Date().toISOString()
+            }
+            return publishStreamEvent({
+                header: {
+                    dataSourceKey: 'mtw.players',
+                    streamKey: `PLAYER#${userName}`,
+                    timestamp: Date.now(),
+                    type: 'Stale Session Problem'
+                },
+                content: staleContent,
+                serializer: playersEventSerializer
+            }).eventBridgeEvent
+        })
+
+        const putEventsResult = await eventBridgeClient.send([eventBridgeEvent, ...staleSessionEvents])
         if (putEventsResult?.FailedEntryCount) {
             console.error(`[mtw.authentication] Player Connected PutEvents failed`, {
                 userName,

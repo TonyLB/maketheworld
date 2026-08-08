@@ -1,6 +1,6 @@
 # Session reverse index and connect-time stale cleanup
 
-**Status:** Phases 0-3 done. Next step: Phase 4 (connect-time stale cleanup trigger).
+**Status:** Phases 0-4 done. Next step: Phase 5 (durable doc updates).
 
 **Goal:** Give the connections table a player-keyed reverse index over session meta rows, migrate the
 five existing `player -> sessions` readers onto it, and use it to add a connect-time stale-session
@@ -108,7 +108,7 @@ retiring a helper.
 | 1 | Dual-write pointers at create / teardown / chaos | Done |
 | 2 | Migrate the three cache readers onto the pointer index; remove the dead `globalValues.ts` scan | Done |
 | 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Done |
-| 4 | Connect-time stale cleanup trigger | Not started |
+| 4 | Connect-time stale cleanup trigger | Done |
 | 5 | Durable doc updates | Not started |
 
 ## Recommended order
@@ -180,36 +180,52 @@ line `[X]` as it is done so partial progress stays visible.
         legitimately want all rows. With D1 atomic, they are no longer needed to close a connect-path
         race, but stay as the reaper for dangling pointers (D3) and for meta rows created outside the
         transactional path (pre-existing sessions, chaos fixtures per D2).
-- [ ] **Phase 4 -- connect-time detection and report.** `connect.ts` identifies stale sessions for the
+- [X] **Phase 4 -- connect-time detection and report.** `connect.ts` identifies stale sessions for the
       connecting player via the index and emits a problem report; diagnostics evaluates and emits
       findings; the existing
       [`staleSessionFinding`](../../../lambda/connections/staleSessionFinding/index.ts) consumer reaps
       (D4). Teardown itself is unchanged.
-  - [ ] **Contract:** add `Stale Session Problem` to
+  - [X] **Contract:** added `Stale Session Problem` (`PlayerStaleSessionProblemEvent`) to
         [`packages/mtw-interfaces/ts/eventBridge/players`](../../../packages/mtw-interfaces/ts/eventBridge/players/index.ts),
         mirroring `ConnectionsSessionDisconnectProblemEvent`'s report fields (`sessionId`, `player`,
-        `sourceOperation`, `attemptCount`, `dedupeKey`, `timestamp`) so diagnostics' existing
-        dedupe-on-`dedupeKey` intake works unchanged.
-  - [ ] **Detect in `connect.ts`:** query the player's pointer partition, follow to meta rows, apply
-        `isStaleSessionMetaRow`. Run it alongside the existing work (the connect path already awaits a
-        transaction) so it adds no serial latency, and make failure non-fatal -- a detection error must
-        never fail an otherwise-valid connect.
-  - [ ] **Emit in the existing batch:** `connect.ts` already calls `eventBridgeClient.send([...])` with
-        an array for `Player Connected`; add the report to that same call rather than a second PutEvents.
-  - [ ] Reuse `isStaleSessionMetaRow` / `STALE_BUFFER_MS` -- do **not** treat `connections: []` as
-        sufficient. Zero connections is a legitimate transient state inside the ~4s `dropAfter` plus
-        ~5s Step Functions wait. Report only past the buffer, so healthy disconnects never generate reports.
-  - [ ] Exclude the session being connected to.
-  - [ ] **Diagnostics side:** add the `mtw.players` / `Stale Session Problem` guard in
+        `sourceOperation`, `attemptCount`, `dedupeKey`, `timestamp`), plus `buildStaleSessionProblemDedupeKey`
+        (format `` `${sessionId}::staleSessionProblem::${attemptCount}` ``, mirroring
+        `buildSpawnCompensationDedupeKey`) and an `isStaleSessionProblemEvent` guard, so diagnostics'
+        existing dedupe-on-`dedupeKey` intake works unchanged.
+  - [X] **Detect in `connect.ts`:** new
+        [`lambda/authentication/staleSessionDetection.ts`](../../../lambda/authentication/staleSessionDetection.ts)
+        (`detectStaleSessionsForPlayer`) queries the player's pointer partition, follows to meta rows,
+        applies a local `isStaleSessionMetaRow` copy -- a **third** copy alongside `lambda/connections`
+        and `lambda/diagnostics`, needed because `lambda/authentication` depends only on `packages/*`
+        and cannot import across `lambda/*` folders (confirmed via its `package.json`). All three
+        classification files' header comments now cross-reference all three locations. Runs as an added
+        entry in the `Promise.all` the connect path already awaits, so it adds no serial latency, and
+        errors are caught/logged and swallowed (non-fatal to the connect response).
+  - [X] **Emit in the existing batch:** `connect.ts`'s existing `eventBridgeClient.send([...])` call for
+        `Player Connected` now also carries one `Stale Session Problem` entry per stale session found,
+        rather than a second `PutEvents`.
+  - [X] Reused `isStaleSessionMetaRow` / `STALE_BUFFER_MS` (local copy) -- does **not** treat
+        `connections: []` alone as sufficient; only reports past the buffer.
+  - [X] Excludes the session being connected to (`detectStaleSessionsForPlayer(player, excludeSessionId)`).
+  - [X] **Diagnostics side:** added the `mtw.players` / `Stale Session Problem` guard
+        (`DiagnosticsPlayersProblemHeader` / `isPlayersProblemHeader` / `isPlayersProblemEnvelope`) in
         [`diagnostics/dataSource/subscribedEvents.ts`](../../../lambda/diagnostics/dataSource/subscribedEvents.ts)
-        and route it in [`dataSource/index.ts`](../../../lambda/diagnostics/dataSource/index.ts),
-        following the two existing problem-report branches. Scope evaluation to the reported player --
-        do **not** call the full `staleSessionSweep()`.
-  - [ ] Add a `CloudWatchEvent` rule on `DiagnosticsFunction` for `source: mtw.players`,
-        `detail-type: Stale Session Problem` (template.yaml, near the existing rules at ~1737-1764).
-        Only infra change in the plan.
-  - [ ] Payoff test: a session left stale by a failed disconnect is reaped by that player's next
-        connect, and a session inside its grace window is **not**.
+        and routed it in [`dataSource/index.ts`](../../../lambda/diagnostics/dataSource/index.ts),
+        following the two existing problem-report branches. New
+        `evaluateStaleSessionsForPlayer` in
+        [`staleSessionSweep/index.ts`](../../../lambda/diagnostics/staleSessionSweep/index.ts) scopes
+        evaluation to the reported player only (one pointer-partition query + batch-get, no
+        `maintainSessionPointers`) and emits the existing `Stale SessionId Finding` via a helper
+        extracted from `staleSessionSweep`'s per-player emission loop -- the full `staleSessionSweep()`
+        is never called from this path.
+  - [X] Added the `StaleSessionProblem` `CloudWatchEvent` rule on `DiagnosticsFunction` for
+        `source: mtw.players`, `detail-type: Stale Session Problem` (`template.yaml`, alongside
+        `SpawnCompensationProblem`). Only infra change in this slice.
+  - [X] Payoff test: `evaluateStaleSessionsForPlayer` unit tests
+        (`lambda/diagnostics/staleSessionSweep/index.test.ts`) cover a past-buffer session emitting a
+        finding and a session inside its grace window emitting nothing; `connect.ts` tests
+        (`lambda/authentication/connect.test.ts`) cover the same two cases end-to-end through the
+        `PutEvents` batch, plus session-exclusion and detection-failure-is-non-fatal.
 - [ ] **Phase 5 -- durable docs.** Update
       [`lambda/connections/AGENT.md`](../../../lambda/connections/AGENT.md): document the pointer row
       in the session key-shape section and revise the concentrated-PK trade-off to reflect that
@@ -253,16 +269,19 @@ grep -rn "begins_with(DataCategory, :prefix)" --include="*.ts" lambda/ | grep -v
 Expect surviving hits **only** in `lambda/diagnostics` (`staleSessionSweep`,
 `roomOccupancyDriftSweep`), which scan all sessions by design.
 
-Classification parity check. The two files carry **different header comments by design**, so a plain
-`diff` is not a useful signal -- compare the rule and the buffer instead:
+Classification parity check. All three files carry **different header comments by design** (each
+cross-references the other two), so a plain `diff` is not a useful signal on the whole file -- compare
+the rule and the buffer instead, now across three copies (Phase 4 added the third,
+`lambda/authentication/staleSessionDetection.ts`, which inlines the predicate rather than exporting it
+under the same names, so the `diff` below targets the two that do export it):
 
 ```
-grep -n "STALE_BUFFER_MS = " lambda/connections/staleSessionFinding/classification.ts \
-                            lambda/diagnostics/staleSessionSweep/classification.ts
+grep -n "STALE_BUFFER_MS" lambda/connections/staleSessionFinding/classification.ts \
+                          lambda/diagnostics/staleSessionSweep/classification.ts \
+                          lambda/authentication/staleSessionDetection.ts
 
 diff <(sed -n '/export const hasActiveConnections/,$p' lambda/connections/staleSessionFinding/classification.ts) \
      <(sed -n '/export const hasActiveConnections/,$p' lambda/diagnostics/staleSessionSweep/classification.ts)
 ```
 
-Both `STALE_BUFFER_MS` values must match and the predicate bodies must be identical. Phase 4 changes
-neither file -- it only calls `isStaleSessionMetaRow` -- so any drift here means something else moved.
+All three `STALE_BUFFER_MS` values must match and the predicate bodies must be identical in substance.
