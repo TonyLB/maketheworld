@@ -1,6 +1,6 @@
 # Session reverse index and connect-time stale cleanup
 
-**Status:** Not started; all open decisions resolved (D1-D7 Decided). Next step: Phase 0 (key helpers).
+**Status:** Phase 0 done; all open decisions resolved (D1-D7 Decided). Next step: Phase 1 (dual-write).
 
 **Goal:** Give the connections table a player-keyed reverse index over session meta rows, migrate the
 five existing `player -> sessions` readers onto it, and use it to add a connect-time stale-session
@@ -101,7 +101,7 @@ retiring a helper.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Pointer key helpers in `mtw-utilities` | Not started |
+| 0 | Pointer key helpers in `mtw-utilities` | Done |
 | 1 | Dual-write pointers at create / teardown / chaos | Not started |
 | 2 | Migrate the four cache readers | Not started |
 | 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Not started |
@@ -113,15 +113,15 @@ retiring a helper.
 Pending work uses `[ ]`; completed work uses `[X]`. Where a step has nested bullets, mark each nested
 line `[X]` as it is done so partial progress stays visible.
 
-- [ ] **Phase 0 -- key helpers.** Add `playerSessionsPK(player)` and pointer sort-key helpers beside
+- [X] **Phase 0 -- key helpers.** Add `playerSessionsPK(player)` and pointer sort-key helpers beside
       `META_SESSION_PK` in [`sessionMetaKeys.ts`](../../../packages/mtw-utilities/ts/dynamoDB/sessionMetaKeys.ts);
       export from [`dynamoDB/index.ts`](../../../packages/mtw-utilities/ts/dynamoDB/index.ts) and the
       [`__mocks__`](../../../packages/mtw-utilities/ts/dynamoDB/__mocks__/index.ts) barrel (both
       currently re-export the session-meta helpers; the mock must stay in step or dependent suites
       break).
-  - [ ] Reuse `sessionMetaSortKey` for the pointer sort key rather than defining a second `SESSION#`
+  - [X] Reuse `sessionMetaSortKey` for the pointer sort key rather than defining a second `SESSION#`
         formatter.
-  - [ ] Unit tests for round-tripping player and sessionId out of the pointer key.
+  - [X] Unit tests for round-tripping player and sessionId out of the pointer key.
 - [ ] **Phase 1 -- dual-write.** Write the pointer wherever a session meta row is created, delete it
       wherever one is removed. Readers still scan; nothing depends on pointers yet.
   - [ ] [`lambda/authentication/connect.ts`](../../../lambda/authentication/connect.ts): move the
