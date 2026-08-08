@@ -10,15 +10,12 @@ import React, { useEffect, useCallback, FunctionComponent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
-import { getMyCharacters } from '../../slices/player'
-import { getClientSettings } from '../../slices/settings'
 import { loadClientSettings, putClientSettings } from '../../slices/settings'
 import { getFirstFeedback } from '../../slices/UI/feedback'
 import { pop as popFeedback } from '../../slices/UI/feedback'
 import { loadWorkbenchSettings } from '../../slices/UI/workbench'
 
 import AppLayout from '../AppLayout'
-import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import Settings from '../Settings'
@@ -28,8 +25,6 @@ import { SignInOrUp } from '../SignIn'
 type AppControllerProps = {}
 
 export const AppController: FunctionComponent<AppControllerProps> = ({}) => {
-    const myCharacters = useSelector(getMyCharacters)
-    const { TextEntryLines } = useSelector(getClientSettings)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -37,16 +32,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({}) => {
         dispatch(loadWorkbenchSettings)
     }, [dispatch])
 
-    //
-    // ToDo:  Wrap function calls being passed in useCallback, to reduce unneeded re-renders.
-    //
-    const profileArgs = {
-        myCharacters,
-        textEntryLines: TextEntryLines,
-        onTextEntryChange: (value: number) => { dispatch(putClientSettings({ TextEntryLines: value })) },
-        onShowNeighborhoodChange: (value: boolean) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
-        onAlwaysShowOnboardingChange: (value: boolean) => { dispatch(putClientSettings({ AlwaysShowOnboarding: value })) }
-    }
+    const onAlwaysShowOnboardingChange = (value: boolean) => { dispatch(putClientSettings({ AlwaysShowOnboarding: value })) }
 
     const feedbackMessage = useSelector(getFirstFeedback)
     const closeFeedback = useCallback(() => {
@@ -54,8 +40,7 @@ export const AppController: FunctionComponent<AppControllerProps> = ({}) => {
     }, [dispatch])
 
     return <AppLayout
-        homePanel={<Home {...profileArgs} />}
-        settingsPanel={<Settings onAlwaysShowOnboardingChange={profileArgs.onAlwaysShowOnboardingChange} />}
+        settingsPanel={<Settings onAlwaysShowOnboardingChange={onAlwaysShowOnboardingChange} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
