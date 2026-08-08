@@ -34,7 +34,7 @@ describe('tearDownStaleSession', () => {
         eventBridgeClientMock.send.mockResolvedValue(undefined as never)
     })
 
-    it('deletes Meta::Session row and emits Session Disconnect', async () => {
+    it('deletes Meta::Session row and pointer row, and emits Session Disconnect', async () => {
         await tearDownStaleSession('session-1', { sourceOperation: 'checkSession', player: 'p1' })
 
         expect(eventBridgeClientMock.send).toHaveBeenCalledTimes(1)
@@ -42,6 +42,21 @@ describe('tearDownStaleSession', () => {
             DetailType: 'Session Disconnect',
             Detail: { sessionId: 'session-1', characterIds: [] }
         }])
+        expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
+            ConnectionId: 'Meta::Session',
+            DataCategory: 'SESSION#session-1'
+        })
+        expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
+            ConnectionId: 'PLAYER#p1',
+            DataCategory: 'SESSION#session-1'
+        })
+        expect(connectionDBMock.deleteItem).toHaveBeenCalledTimes(2)
+    })
+
+    it('deletes only the Meta::Session row when no player is on record', async () => {
+        await tearDownStaleSession('session-1', { sourceOperation: 'checkSession', player: '' })
+
+        expect(connectionDBMock.deleteItem).toHaveBeenCalledTimes(1)
         expect(connectionDBMock.deleteItem).toHaveBeenCalledWith({
             ConnectionId: 'Meta::Session',
             DataCategory: 'SESSION#session-1'

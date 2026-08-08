@@ -15,6 +15,15 @@ Payload attributes on that item are unchanged (`connections`, `player`, `dropAft
 
 **Storage compatibility note**: This area assumes canonical session meta rows use `ConnectionId='Meta::Session'` with `DataCategory='SESSION#${sessionId}'`. Legacy rows in the inverse orientation (`ConnectionId='SESSION#...'`, `DataCategory='Meta::Session'`) are not compatible with this read/write path and must not coexist in the same runtime.
 
+**Player -> session reverse-index pointer rows**: `ConnectionId='PLAYER#${player}'`, `DataCategory='SESSION#${sessionId}'` (`playerSessionsPK`/`sessionMetaSortKey` in [`sessionMetaKeys.ts`](../../packages/mtw-utilities/ts/dynamoDB/sessionMetaKeys.ts)). A pure pointer -- no payload attributes -- so a re-`Put` on every connect is an idempotent no-op, and a missing pointer self-heals on the player's next connect. Dual-written wherever a `Meta::Session` row is created or removed:
+
+- [`lambda/authentication/connect.ts`](../../lambda/authentication/connect.ts) writes the pointer atomically with the session-meta `Update` inside one `connectionDB.transactWrite`. The `Update`'s reducer throws (rather than no-op-ignoring) on a session-hijack attempt (`draft.player !== userName`), so the transaction aborts before either write lands -- an unguarded `Put` would otherwise mint a cross-player pointer from a rejected hijacker.
+- [`staleSessionTeardown/index.ts`](staleSessionTeardown/index.ts) deletes the pointer alongside the `Meta::Session` `deleteItem`, using the `player` already resolved for teardown.
+- [`lambda/chaos/addGhostSession/index.ts`](../../lambda/chaos/addGhostSession/index.ts) fixtures carry a synthetic player (`` `chaos:${sessionId}` ``) so they exercise the same pointer shape as production sessions.
+- [`lambda/diagnostics/staleSessionSweep`](../diagnostics/staleSessionSweep/index.ts) backfills pointers missing for existing meta rows and prunes pointers whose meta row is gone, on every sweep run -- see [`lambda/diagnostics/AGENT.md`](../diagnostics/AGENT.md).
+
+Readers do not yet consult the pointer (still scanning the `Meta::Session` partition as described above); that migration is a later phase of the session reverse-index initiative.
+
 **Deliberate trade-off**
 
 - **Hot partitions**: Putting many session meta rows under one partition key increases write/read concentration on that partition compared to spreading each session across its own `SESSION#...` PK. That can surface as throttling or uneven utilization under extreme concurrent load.

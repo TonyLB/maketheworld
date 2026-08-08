@@ -1,6 +1,6 @@
 # Session reverse index and connect-time stale cleanup
 
-**Status:** Phase 0 done; all open decisions resolved (D1-D7 Decided). Next step: Phase 1 (dual-write).
+**Status:** Phase 0 and Phase 1 done. Next step: Phase 2 (migrate readers).
 
 **Goal:** Give the connections table a player-keyed reverse index over session meta rows, migrate the
 five existing `player -> sessions` readers onto it, and use it to add a connect-time stale-session
@@ -102,7 +102,7 @@ retiring a helper.
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Pointer key helpers in `mtw-utilities` | Done |
-| 1 | Dual-write pointers at create / teardown / chaos | Not started |
+| 1 | Dual-write pointers at create / teardown / chaos | Done |
 | 2 | Migrate the four cache readers | Not started |
 | 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Not started |
 | 4 | Connect-time stale cleanup trigger | Not started |
@@ -122,29 +122,33 @@ line `[X]` as it is done so partial progress stays visible.
   - [X] Reuse `sessionMetaSortKey` for the pointer sort key rather than defining a second `SESSION#`
         formatter.
   - [X] Unit tests for round-tripping player and sessionId out of the pointer key.
-- [ ] **Phase 1 -- dual-write.** Write the pointer wherever a session meta row is created, delete it
+- [X] **Phase 1 -- dual-write.** Write the pointer wherever a session meta row is created, delete it
       wherever one is removed. Readers still scan; nothing depends on pointers yet.
-  - [ ] [`lambda/authentication/connect.ts`](../../../lambda/authentication/connect.ts): move the
+  - [X] [`lambda/authentication/connect.ts`](../../../lambda/authentication/connect.ts): moved the
         existing `optimisticUpdate` into a `connectionDB.transactWrite` as an `Update` item, adding
-        the pointer `Put` and the D6 `ConditionCheck` to the same transaction (D1). The `Meta::Connection`
-        `putItem` currently races the meta update inside a `Promise.all` -- decide whether it joins the
-        transaction too, or stays separate.
-    - [ ] The reducer sets `authenticated` as a side effect and the handler reads it afterward to
-          choose 200 vs 403. Under `transactWrite` a hijack now throws (D6), so rework that control
-          flow -- catch and map to 403 -- rather than assuming the flag is still set the same way.
-    - [ ] **Do not** express hijack rejection as a reducer no-op. Leaving the draft untouched yields
-          `action: 'ignore'`, and [`transact.ts:216`](../../../packages/mtw-utilities/ts/dynamoDB/mixins/transact.ts#L216)
-          drops **only that item** -- the pointer `Put` would then execute alone, minting exactly the
-          cross-player pointer D6 exists to prevent. Rejection must throw.
-  - [ ] [`staleSessionTeardown/index.ts`](../../../lambda/connections/staleSessionTeardown/index.ts):
-        delete the pointer alongside the `Meta::Session` `deleteItem`. `getSessionPlayerForTeardown`
-        in the same file already reads `player` before deletion -- reuse it rather than re-reading.
-  - [ ] [`lambda/chaos/addGhostSession/index.ts`](../../../lambda/chaos/addGhostSession/index.ts):
-        add the pointer to the existing `transactWrite`. Both the with-character and bare branches
-        create meta rows; the bare branch has no `player`, so decide per D2.
-  - [ ] [`staleSessionSweep`](../../../lambda/diagnostics/staleSessionSweep/index.ts): prune pointers
-        whose meta row is absent, and backfill pointers for meta rows that lack one. It already
-        paginates every meta row, so both directions are nearly free here.
+        the pointer `Put` to the same transaction (D1). The `Meta::Connection` `putItem` stays a
+        separate call outside the transaction (decided: it's connectionId bookkeeping unrelated to
+        session ownership, and previously wrote unconditionally even on a hijack attempt -- keeping it
+        separate preserves that behavior).
+    - [X] Control flow reworked: the `updateReducer` throws a `SessionHijackError` on a player
+          mismatch; `connect()` catches it and maps to 403. The `authenticated` boolean is gone -- a
+          non-throwing transaction is authenticated.
+    - [X] Hijack rejection throws from the reducer (D6) rather than leaving the draft untouched, so the
+          pointer `Put` never executes alongside a rejected `Update`. Also fixes D7 (reducer now checks
+          the player mismatch **before** mutating `connections`, with a dedicated test asserting
+          `connections` is untouched on a thrown hijack).
+  - [X] [`staleSessionTeardown/index.ts`](../../../lambda/connections/staleSessionTeardown/index.ts):
+        deletes the pointer alongside the `Meta::Session` `deleteItem`, reusing the `player` already
+        passed in via `TearDownStaleSessionContext` (both call sites already fetch it through
+        `getSessionPlayerForTeardown` before teardown). Guarded on non-empty `player`.
+  - [X] [`lambda/chaos/addGhostSession/index.ts`](../../../lambda/chaos/addGhostSession/index.ts):
+        both the with-character and bare branches now set a synthetic player (`` `chaos:${sessionId}` ``,
+        per D2) on the meta row and add a matching pointer `Put` to their `transactWrite` calls.
+  - [X] [`staleSessionSweep`](../../../lambda/diagnostics/staleSessionSweep/index.ts): backfills a
+        pointer for every meta row that has a player but no pointer, and prunes pointer rows whose
+        session meta row is gone. Pruning enumerates the player roster via `assetDB`'s
+        `DataCategoryIndex` / `Meta::Player` (same pattern as `playerMisalignmentSweep`), since the
+        connections table has no scan and no player-prefix GSI to enumerate pointer rows directly.
 - [ ] **Phase 2 -- migrate readers.** One package per commit; full suite per package.
   - [ ] `lambda/subscriptions` `playerSessions` cache.
   - [ ] `lambda/ephemera` `playerSessions` cache (**full suite, not `tsc`** -- see caveat above).
@@ -208,11 +212,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| D1 | Pointer write at connect is **atomic with** the meta-row update. `transactWrite`'s `Update` variant takes `UpdateExtendedProps` (`updateKeys` / `updateReducer`) -- the same shape `optimisticUpdate` takes -- and pre-fetches any `Update` lacking `priorFetch`, so connect's existing reducer moves into a `transactWrite` alongside the pointer `Put` with no loss of optimistic locking. No create-vs-join detection is needed: the pointer is payload-free, so re-`Put` on every connect is idempotent and self-heals a missing pointer. **Requires the D6 hijack guard** -- an unguarded `Put` would mint a pointer from the attacker's player to the victim's session. | Phase 1 | Decided |
-| D6 | Guard the session-hijack case (`draft.player !== userName`) by **throwing from the reducer**. The reducer is the point where the meta row's `player` is already in hand, so it is the natural seam to raise an abort signal; the throw propagates out of `produce()` during `transactWrite` before any `TransactWriteItems` is submitted, making rejection atomic by construction with no new DB constructs. **The optimistic lock cannot substitute**: every condition `updateByReducer` emits is a "same as when I fetched it" assertion, and a hijack involves no stale read (the attacker's fetch of `player` is accurate and stays accurate through commit), so both the default path and `checkKeys: ['player']` commit successfully. Authorization is a predicate on the *value*, which the reducer machinery never emits. A `ConditionExpression` on the pointer `Put` is likewise no substitute -- a Put's condition may only reference the item being put, and the payload-free pointer carries nothing identifying the session owner. An explicit `ConditionCheck` on the meta row would also work but is heavier, and would be the repo's first production use of that variant. | Phase 1 | Decided |
-| D7 | **Pre-existing bug**, fixed as part of Phase 1 rather than pulled ahead. `connect.ts`'s reducer mutates `connections` *before* checking `player`, unconditionally -- so a hijack attempt appends the attacker's `connectionId` to the victim's session before the handler returns 403. The D6 throw fixes this as a side effect. Since the whole plan is being worked through in one pass, an earlier standalone commit buys nothing. Do give it its **own test**, so the fix is verified on its own terms and not merely implied by the transactWrite rework. | Phase 1 | Decided |
-| D2 | `addGhostSession`'s bare branch creates a session with no `player`. Give chaos fixtures a **synthetic player** so they carry pointers and exercise the same shape as production, rather than leaving them pointer-less for the sweep to reconcile. | Phase 1 | Decided |
-| D3 | Pointer rows are purely transactional with the sweep as the only reaper; **no TTL** on this iteration. Dangling pointers are clutter, not a correctness problem, and are detectable in O(1) by following the pointer to an absent meta row. | Phase 1 | Decided |
 | D4 | **`connect.ts` detects and reports its own problem.** It runs the per-player indexed stale check itself and, on a hit, emits a new problem report on its own source (`mtw.players` / `Stale Session Problem`, named to parallel the existing `Session Disconnect Problem` and `Spawn Compensation Problem`). Diagnostics subscribes to that **problem**, runs scoped evaluation, and emits `Stale SessionId Finding`; connections reaps. Each site stays responsible for recognizing and reporting its own trouble, and diagnostics' subscribed lane stays problems-and-commands only. Note the reverse index is what makes this possible: identifying the problem used to require the O(all sessions) scan, which is why the question had to be handed to a sweep. Rejected: diagnostics subscribing to `Player Connected` -- that is a healthy lifecycle event, and per [`lambda/diagnostics/AGENT.md`](../../../lambda/diagnostics/AGENT.md) the subscribed lane is problem reports plus `api.diagnostics` commands, so it would put diagnostics on the happy path. Also rejected: emitting `Session Disconnect Problem` from authentication (source impersonation -- that contract belongs to `mtw.connections`), and emitting `Stale SessionId Finding` directly (would make connections both producer and consumer of its own findings). | Phase 4 | Decided |
 | D5 | **Keep the memo**, re-keyed per player. An in-memory memo is far cheaper than even the cheapest DynamoDB read, and its real value is that callers stop having to reason about the cost of repeated lookups at all -- it is dynamic-programming support, not a bandwidth optimization. Implementation note: today `SessionsByPlayer` is a **single** Promise holding a whole-table map; post-migration it becomes a `Record<player, Promise<sessions>>` filled on demand, one query per distinct player per invocation. The `clear()` contract is unchanged. | Phase 2 | Decided |
 

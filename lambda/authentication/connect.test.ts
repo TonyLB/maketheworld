@@ -4,7 +4,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => {
         ...actual,
         connectionDB: Object.assign({}, actual.connectionDB, {
             putItem: jest.fn(),
-            optimisticUpdate: jest.fn()
+            transactWrite: jest.fn()
         })
     }
 })
@@ -22,13 +22,16 @@ describe('authentication connect', () => {
         jest.clearAllMocks()
     })
 
+    const runReducer = (draft: { connections?: string[]; player?: string }) => {
+        const transactWriteCall = connectionDBMock.transactWrite.mock.calls[0][0] as any[]
+        const updateItem = transactWriteCall.find((item) => 'Update' in item)
+        updateItem.Update.updateReducer(draft)
+        return draft
+    }
+
     it('creates connection/session records without writing Global/Sessions', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        connectionDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }: any) => {
-            const draft: { connections?: string[]; player?: string } = {}
-            updateReducer(draft)
-            return draft
-        })
+        connectionDBMock.transactWrite.mockResolvedValue(undefined as any)
         eventBridgeClientMock.send.mockResolvedValue({ FailedEntryCount: 0, Entries: [] } as any)
 
         const response = await connect('conn-1', 'PlayerOne', 'session-1')
@@ -39,19 +42,33 @@ describe('authentication connect', () => {
             DataCategory: 'Meta::Connection',
             SessionId: 'session-1'
         }))
-        expect(connectionDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
-        expect(connectionDBMock.optimisticUpdate).toHaveBeenCalledWith(expect.objectContaining({
-            Key: {
-                ConnectionId: 'Meta::Session',
-                DataCategory: 'SESSION#session-1'
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledTimes(1)
+        expect(connectionDBMock.transactWrite).toHaveBeenCalledWith([
+            expect.objectContaining({
+                Update: expect.objectContaining({
+                    Key: {
+                        ConnectionId: 'Meta::Session',
+                        DataCategory: 'SESSION#session-1'
+                    }
+                })
+            }),
+            {
+                Put: {
+                    ConnectionId: 'PLAYER#PlayerOne',
+                    DataCategory: 'SESSION#session-1'
+                }
             }
-        }))
-        expect(connectionDBMock.optimisticUpdate).not.toHaveBeenCalledWith(expect.objectContaining({
-            Key: {
-                ConnectionId: 'Global',
-                DataCategory: 'Sessions'
-            }
-        }))
+        ])
+        expect(connectionDBMock.transactWrite).not.toHaveBeenCalledWith(expect.arrayContaining([
+            expect.objectContaining({
+                Update: expect.objectContaining({
+                    Key: {
+                        ConnectionId: 'Global',
+                        DataCategory: 'Sessions'
+                    }
+                })
+            })
+        ]))
         expect(eventBridgeClientMock.send).toHaveBeenCalledWith([expect.objectContaining({
             Source: 'mtw.players',
             DetailType: 'Player Connected',
@@ -67,11 +84,7 @@ describe('authentication connect', () => {
 
     it('logs a visible error when PutEvents reports a partial failure', async () => {
         connectionDBMock.putItem.mockResolvedValue({})
-        connectionDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }: any) => {
-            const draft: { connections?: string[]; player?: string } = {}
-            updateReducer(draft)
-            return draft
-        })
+        connectionDBMock.transactWrite.mockResolvedValue(undefined as any)
         eventBridgeClientMock.send.mockResolvedValue({
             FailedEntryCount: 1,
             Entries: [{ ErrorCode: 'InternalFailure', ErrorMessage: 'boom' }],
@@ -89,5 +102,34 @@ describe('authentication connect', () => {
             })
         )
         consoleErrorSpy.mockRestore()
+    })
+
+    it('returns 403 without publishing Player Connected when the session belongs to another player', async () => {
+        connectionDBMock.putItem.mockResolvedValue({})
+        connectionDBMock.transactWrite.mockImplementation(async (items: any) => {
+            const updateItem = items.find((item: any) => 'Update' in item)
+            updateItem.Update.updateReducer({ connections: ['conn-existing'], player: 'VictimPlayer' })
+        })
+
+        const response = await connect('conn-1', 'AttackerPlayer', 'session-1')
+
+        expect(response).toEqual({
+            statusCode: 403,
+            message: 'Invalid SessionID for this player'
+        })
+        expect(eventBridgeClientMock.send).not.toHaveBeenCalled()
+    })
+
+    it('does not mutate connections when rejecting a hijack attempt (D7)', async () => {
+        connectionDBMock.putItem.mockResolvedValue({})
+        connectionDBMock.transactWrite.mockResolvedValue(undefined as any)
+
+        // Drive connect() once (transactWrite resolves without running the reducer) purely to capture
+        // the real production reducer as connect() builds it.
+        await connect('conn-1', 'AttackerPlayer', 'session-1')
+
+        const draft = { connections: ['conn-existing'], player: 'VictimPlayer' }
+        expect(() => runReducer(draft)).toThrow()
+        expect(draft.connections).toEqual(['conn-existing'])
     })
 })

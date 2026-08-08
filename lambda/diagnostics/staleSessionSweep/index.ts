@@ -3,9 +3,103 @@ import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsStaleSessionIdFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
-import { connectionDB, META_SESSION_PK, sessionIdFromMetaSortKey, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB, connectionDB, META_SESSION_PK, playerSessionsPK, sessionIdFromMetaSortKey, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
 import { isStaleSessionMetaRow } from './classification'
+
+type PlayerMetaRow = {
+    AssetId: string
+    DataCategory: 'Meta::Player'
+}
+
+const playerFromPlayerMetaAssetId = (assetId: string): string | null => {
+    if (!assetId.startsWith('PLAYER#')) {
+        return null
+    }
+    const player = assetId.slice('PLAYER#'.length)
+    return player.length ? player : null
+}
+
+const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {
+    const collected: T[] = []
+    let page = firstPage
+    let nextPage = page.nextPage
+    do {
+        collected.push(...page.items)
+        nextPage = page.nextPage
+        if (nextPage) {
+            page = await nextPage()
+        }
+    } while (nextPage)
+    return collected
+}
+
+const queryAllPlayerNames = async (): Promise<string[]> => {
+    const firstPage = await assetDB.query<PlayerMetaRow>({
+        IndexName: 'DataCategoryIndex',
+        Key: {
+            DataCategory: 'Meta::Player'
+        },
+        ProjectionFields: ['AssetId', 'DataCategory'],
+        pagination: true
+    }) as unknown as QueryPageEnvelope<PlayerMetaRow>
+    const rows = await unfoldPages<PlayerMetaRow>(firstPage)
+    return rows
+        .map(({ AssetId }) => (playerFromPlayerMetaAssetId(AssetId)))
+        .filter((player): player is string => Boolean(player))
+}
+
+/**
+ * Maintains the player -> session reverse-index pointer rows (D3): backfills a pointer for every
+ * currently-existing session meta row that has a player but no pointer, and prunes pointer rows
+ * whose session meta row is gone. Pointer rows are payload-free and idempotent, so both directions
+ * are safe to run unconditionally on every sweep invocation.
+ */
+const maintainSessionPointers = async (metaRows: MetaSessionRow[]): Promise<void> => {
+    const activeSessionIds = new Set(
+        metaRows
+            .map((row) => (sessionIdFromMetaSortKey(row.DataCategory)))
+            .filter((sessionId): sessionId is string => Boolean(sessionId))
+    )
+
+    await Promise.all(metaRows.map(async (row) => {
+        const sessionId = sessionIdFromMetaSortKey(row.DataCategory)
+        const player = typeof row.player === 'string' ? row.player.trim() : ''
+        if (!sessionId || !player) {
+            return
+        }
+        const existing = await connectionDB.getItem<{ ConnectionId: string }>({
+            Key: {
+                ConnectionId: playerSessionsPK(player),
+                DataCategory: sessionMetaSortKey(sessionId)
+            },
+            ProjectionFields: ['ConnectionId']
+        })
+        if (!existing) {
+            await connectionDB.putItem({
+                ConnectionId: playerSessionsPK(player),
+                DataCategory: sessionMetaSortKey(sessionId)
+            })
+        }
+    }))
+
+    const players = await queryAllPlayerNames()
+    await Promise.all(players.map(async (player) => {
+        const pointerRows = await connectionDB.query<{ DataCategory: string }>({
+            Key: { ConnectionId: playerSessionsPK(player) },
+            ProjectionFields: ['DataCategory']
+        })
+        await Promise.all((pointerRows ?? []).map(async (pointerRow) => {
+            const sessionId = sessionIdFromMetaSortKey(pointerRow.DataCategory)
+            if (sessionId && !activeSessionIds.has(sessionId)) {
+                await connectionDB.deleteItem({
+                    ConnectionId: playerSessionsPK(player),
+                    DataCategory: pointerRow.DataCategory
+                })
+            }
+        }))
+    }))
+}
 
 type MetaSessionRow = {
     ConnectionId: string
@@ -78,6 +172,7 @@ export const staleSessionSweep = async (params?: {
     const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 
     const metaRows = await queryAllMetaSessionRows()
+    await maintainSessionPointers(metaRows)
     const affectedPlayers = new Set<string>()
 
     for (const row of metaRows) {

@@ -1,7 +1,7 @@
 // Copyright 2026 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { connectionDB, META_SESSION_PK, sessionMetaSortKey } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { connectionDB, META_SESSION_PK, sessionMetaSortKey, playerSessionsPK } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { atomicallyRemoveCharacterAdjacency } from '../disconnect'
@@ -28,7 +28,7 @@ export const tearDownStaleSession = async (
     sessionId: string,
     context: TearDownStaleSessionContext
 ): Promise<void> => {
-    const { sourceOperation, streamEvent } = context
+    const { sourceOperation, player, streamEvent } = context
     void sourceOperation
 
     const characterQuery = await connectionDB.query<{ ConnectionId: string; DataCategory: EphemeraCharacterId }>({
@@ -63,10 +63,16 @@ export const tearDownStaleSession = async (
             Detail: { sessionId, characterIds }
         }])
     }
-    await connectionDB.deleteItem({
-        ConnectionId: META_SESSION_PK,
-        DataCategory: sessionMetaSortKey(sessionId)
-    })
+    await Promise.all([
+        connectionDB.deleteItem({
+            ConnectionId: META_SESSION_PK,
+            DataCategory: sessionMetaSortKey(sessionId)
+        }),
+        ...(player ? [connectionDB.deleteItem({
+            ConnectionId: playerSessionsPK(player),
+            DataCategory: sessionMetaSortKey(sessionId)
+        })] : [])
+    ])
 }
 
 /**

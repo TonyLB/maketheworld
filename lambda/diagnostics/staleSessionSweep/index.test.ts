@@ -3,25 +3,46 @@ import { EventBridgeClient } from '@aws-sdk/client-eventbridge'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     connectionDB: {
+        query: jest.fn(),
+        getItem: jest.fn(),
+        putItem: jest.fn(),
+        deleteItem: jest.fn()
+    },
+    assetDB: {
         query: jest.fn()
     },
     META_SESSION_PK: 'Meta::Session',
     sessionIdFromMetaSortKey: (dc: string) => (dc.startsWith('SESSION#') ? dc.slice(8) : undefined),
-    sessionMetaSortKey: (id: string) => `SESSION#${id}`
+    sessionMetaSortKey: (id: string) => `SESSION#${id}`,
+    playerSessionsPK: (player: string) => `PLAYER#${player}`
 }))
 
-import { connectionDB, META_SESSION_PK } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { assetDB, connectionDB, META_SESSION_PK } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { staleSessionSweep } from './index'
 import { STALE_BUFFER_MS } from './classification'
 
 describe('staleSessionSweep', () => {
     const ebSend = jest.spyOn(EventBridgeClient.prototype, 'send') as jest.Mock
     const queryMock = connectionDB.query as unknown as jest.Mock
+    const getItemMock = connectionDB.getItem as unknown as jest.Mock
+    const putItemMock = connectionDB.putItem as unknown as jest.Mock
+    const deleteItemMock = connectionDB.deleteItem as unknown as jest.Mock
+    const assetQueryMock = assetDB.query as unknown as jest.Mock
 
     beforeEach(() => {
         ebSend.mockReset()
         queryMock.mockReset()
+        getItemMock.mockReset()
+        putItemMock.mockReset()
+        deleteItemMock.mockReset()
+        assetQueryMock.mockReset()
         queryMock.mockImplementation(async (props: any) => (
+            props?.pagination ? { items: [] } : []
+        ))
+        getItemMock.mockResolvedValue(undefined)
+        putItemMock.mockResolvedValue({})
+        deleteItemMock.mockResolvedValue({})
+        assetQueryMock.mockImplementation(async (props: any) => (
             props?.pagination ? { items: [] } : []
         ))
         process.env.EVENT_BUS_NAME = 'test-bus'
@@ -140,5 +161,91 @@ describe('staleSessionSweep', () => {
         expect(secondPage).toHaveBeenCalledTimes(1)
         expect(result.players).toEqual(['player-one', 'player-two'])
         expect(result.emittedCount).toBe(2)
+    })
+
+    it('backfills a pointer for a meta row with a player and no existing pointer', async () => {
+        queryMock.mockImplementationOnce(async () => ({
+            items: [{
+                ConnectionId: META_SESSION_PK,
+                DataCategory: 'SESSION#sess-g',
+                connections: ['conn-1'],
+                player: 'player-g'
+            }]
+        }))
+        getItemMock.mockResolvedValue(undefined)
+
+        await staleSessionSweep({ nowMs: 0 })
+
+        expect(getItemMock).toHaveBeenCalledWith(expect.objectContaining({
+            Key: { ConnectionId: 'PLAYER#player-g', DataCategory: 'SESSION#sess-g' }
+        }))
+        expect(putItemMock).toHaveBeenCalledWith({
+            ConnectionId: 'PLAYER#player-g',
+            DataCategory: 'SESSION#sess-g'
+        })
+    })
+
+    it('does not backfill a pointer that already exists', async () => {
+        queryMock.mockImplementationOnce(async () => ({
+            items: [{
+                ConnectionId: META_SESSION_PK,
+                DataCategory: 'SESSION#sess-h',
+                connections: ['conn-1'],
+                player: 'player-h'
+            }]
+        }))
+        getItemMock.mockResolvedValue({ ConnectionId: 'PLAYER#player-h' })
+
+        await staleSessionSweep({ nowMs: 0 })
+
+        expect(putItemMock).not.toHaveBeenCalled()
+    })
+
+    it('prunes a pointer whose session has no matching meta row', async () => {
+        // No meta rows this run (first pagination call returns empty).
+        assetQueryMock.mockImplementationOnce(async () => ({
+            items: [{ AssetId: 'PLAYER#player-i', DataCategory: 'Meta::Player' }]
+        }))
+        queryMock.mockImplementation(async (props: any) => {
+            if (props?.pagination) {
+                return { items: [] }
+            }
+            if (props?.Key?.ConnectionId === 'PLAYER#player-i') {
+                return [{ DataCategory: 'SESSION#dangling-session' }]
+            }
+            return []
+        })
+
+        await staleSessionSweep({ nowMs: 0 })
+
+        expect(deleteItemMock).toHaveBeenCalledWith({
+            ConnectionId: 'PLAYER#player-i',
+            DataCategory: 'SESSION#dangling-session'
+        })
+    })
+
+    it('does not prune a pointer whose session still has a meta row', async () => {
+        queryMock.mockImplementation(async (props: any) => {
+            if (props?.pagination) {
+                return { items: [{
+                    ConnectionId: META_SESSION_PK,
+                    DataCategory: 'SESSION#live-session',
+                    connections: ['conn-1'],
+                    player: 'player-j'
+                }] }
+            }
+            if (props?.Key?.ConnectionId === 'PLAYER#player-j') {
+                return [{ DataCategory: 'SESSION#live-session' }]
+            }
+            return []
+        })
+        getItemMock.mockResolvedValue({ ConnectionId: 'PLAYER#player-j' })
+        assetQueryMock.mockImplementationOnce(async () => ({
+            items: [{ AssetId: 'PLAYER#player-j', DataCategory: 'Meta::Player' }]
+        }))
+
+        await staleSessionSweep({ nowMs: 0 })
+
+        expect(deleteItemMock).not.toHaveBeenCalled()
     })
 })

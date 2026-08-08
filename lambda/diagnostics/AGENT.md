@@ -2,7 +2,7 @@
 
 ## Stale Session sweep (connections consistency)
 
-**Purpose:** Read-only sweep over the `connections` table for `Meta::Session` rows that should have completed disconnect cleanup (per initiative decision D4/D6). Emits descriptive findings only; no repairs.
+**Purpose:** Sweep over the `connections` table for `Meta::Session` rows that should have completed disconnect cleanup (per initiative decision D4/D6). Emits descriptive findings only for stale sessions -- no session/adjacency repairs -- but see the pointer-maintenance note below.
 
 **Entrypoints:**
 
@@ -15,6 +15,8 @@
 **Evaluation:** For each stale candidate session (non-empty `player` on the meta row), the sweep also queries stream subscription rows (`STREAM#` on `DataCategoryIndex`) and session-character adjacency (`SESSION#${sessionId}` / `CHARACTER#...`) so operators have correlated evidence; findings remain aggregated **per player**.
 
 **Pagination implementation note:** Session-meta enumeration now uses shared `connectionDB.query`/`withQuery` pagination (`{ items, nextToken?, nextPage? }`) rather than direct AWS SDK `QueryCommand` loops, so diagnostics and connections stale-session paths share token handling and page-size guardrails.
+
+**Pointer maintenance (session reverse-index):** every sweep run also maintains the `PLAYER#${player}` / `SESSION#${sessionId}` reverse-index pointer rows described in [`lambda/connections/AGENT.md`](../connections/AGENT.md) -- unconditionally, not just for stale sessions. It backfills a pointer for any currently-existing meta row that has a `player` but no pointer, and prunes pointer rows whose session meta row is gone. Pruning requires enumerating the pointer rows, which the connections table's key shape doesn't support directly (no scan, no player-prefix GSI), so the sweep enumerates the player roster via `assetDB`'s `DataCategoryIndex` / `Meta::Player` -- the same pattern [`playerMisalignmentSweep`](playerMisalignmentSweep/index.ts) uses -- then queries each player's pointer partition in `connectionDB`. This is the one place `staleSessionSweep` writes/deletes rather than only reads.
 
 ## Connections problem-report intake (DataSource lane)
 
