@@ -26,8 +26,8 @@ All five original per-player `player -> sessions` readers now resolve the pointe
 
 **Deliberate trade-off**
 
-- **Hot partitions**: Putting many session meta rows under one partition key increases write/read concentration on that partition compared to spreading each session across its own `SESSION#...` PK. That can surface as throttling or uneven utilization under extreme concurrent load.
-- **Why we accept it**: Co-locating canonical session meta rows enables **primary-key reads with `ConsistentRead`** where correctness-sensitive paths need an immediately consistent view without relying on eventually consistent GSI queries.
+- **Hot partitions**: Putting many session meta rows under one partition key increases write/read concentration on that partition compared to spreading each session across its own `SESSION#...` PK. That can surface as throttling or uneven utilization under extreme concurrent load. This is still true on the **write** side -- session creation, teardown, and chaos fixtures all still put/delete against `Meta::Session` -- and on the **whole-table sweep** side (`staleSessionSweep`, `roomOccupancyDriftSweep` still page the entire partition by design).
+- **Why we accept it**: Co-locating canonical session meta rows enables **primary-key reads with `ConsistentRead`** where correctness-sensitive paths need an immediately consistent view without relying on eventually consistent GSI queries. The reverse-index pointer rows above have narrowed *what* needs that justification: **per-player reads no longer land on the `Meta::Session` partition at all** -- they resolve through the separately-keyed `PLAYER#${player}` pointer partition instead, so the concentrated-PK trade-off is now paid only by writes and whole-table sweeps, not by the (much more frequent) single-player lookups.
 
 This is an explicit engineering choice: **operational risk on one partition** in exchange for **predictable read semantics** on session meta. Mitigations are standard DynamoDB practice (capacity/burst behavior, observability on hot keys, rate shaping upstream), not a misunderstanding of partition limits.
 
