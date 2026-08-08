@@ -29,7 +29,6 @@ import ChoiceDialog from '../ChoiceDialog'
 import CharacterSelectionModal from '../CharacterSelection'
 import MessagePanelSkeleton from '../Message/MessagePanelSkeleton'
 import CheckpointOverlay from '../Message/CheckpointOverlay'
-import Explore from '../Explore'
 
 import MapView from '../Maps/View'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
@@ -220,7 +219,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
-            <Route path="/Explore" element={<Explore />} />
             <Route path="/Who/" element={whoPanel} />
             <Route path="/Settings/" element={settingsPanel} />
             <Route path="/index.html" element={homePanel} />

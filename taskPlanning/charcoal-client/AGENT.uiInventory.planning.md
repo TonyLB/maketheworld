@@ -1,7 +1,8 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** step 3 (Slice A
---- unreferenced leaves) is done. Next step: **Recommended order** step 4 (Slice B --- `Explore`).
+**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** steps 3-4 (Slice A
+--- unreferenced leaves; Slice B --- `Explore`) are done. Next step: **Recommended order** step 5
+(Slice C --- `Home` + Library residue).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -217,9 +218,9 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
   - [X] Delete `Threads`, `MultiLevelNest`, `NonLinearStepper`, `TitledBox`, `useContextMenu.js`
   - [X] Delete `DraggableTree` (D2) --- including its 3 test files
   - [X] Verify: `npm run test:single` + `npx tsc --noEmit`
-- [ ] 4. **Slice B --- `Explore`.** Single route, single import.
-  - [ ] Delete `src/components/Explore`; remove import and `<Route path="/Explore">` from `AppLayout`
-  - [ ] Verify
+- [X] 4. **Slice B --- `Explore`.** Single route, single import.
+  - [X] Delete `src/components/Explore`; remove import and `<Route path="/Explore">` from `AppLayout`
+  - [X] Verify
 - [ ] 5. **Slice C --- `Home` + Library residue.** Larger blast radius: touches `AppController` panel wiring.
   - [ ] Delete `src/components/Home`; remove `homePanel` prop threading through `AppController`/`AppLayout` and the `/index.html` route
   - [ ] Confirm no remaining `navigate('/Library/')`; leave `libraryDataSource` and `zone === 'Library'` alone
