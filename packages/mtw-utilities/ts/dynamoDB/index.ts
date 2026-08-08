@@ -20,7 +20,7 @@ import withBatchWrite from "./mixins/batchWrite"
 import { DBHandlerBase } from "./baseClasses"
 import withPrimitives from "./mixins/primitives"
 
-export { META_SESSION_PK, sessionMetaSortKey, sessionIdFromMetaSortKey } from "./sessionMetaKeys"
+export { META_SESSION_PK, sessionMetaSortKey, sessionIdFromMetaSortKey, playerSessionsPK, playerFromSessionsPK } from "./sessionMetaKeys"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`

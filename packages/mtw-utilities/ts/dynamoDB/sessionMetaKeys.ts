@@ -11,3 +11,15 @@ export const sessionIdFromMetaSortKey = (dataCategory: string): string | undefin
     }
     return dataCategory.slice(8)
 }
+
+/** Player-keyed partition key for a session reverse-index pointer row. */
+export const playerSessionsPK = (player: string): `PLAYER#${string}` =>
+    `PLAYER#${player}`
+
+/** Bare player from a session reverse-index pointer partition key (`PLAYER#...`). */
+export const playerFromSessionsPK = (connectionId: string): string | undefined => {
+    if (!connectionId.startsWith('PLAYER#')) {
+        return undefined
+    }
+    return connectionId.slice(7)
+}

@@ -2,7 +2,7 @@
 
 ## Stale Session sweep (connections consistency)
 
-**Purpose:** Read-only sweep over the `connections` table for `Meta::Session` rows that should have completed disconnect cleanup (per initiative decision D4/D6). Emits descriptive findings only; no repairs.
+**Purpose:** Sweep over the `connections` table for `Meta::Session` rows that should have completed disconnect cleanup (per initiative decision D4/D6). Emits descriptive findings only for stale sessions -- no session/adjacency repairs -- but see the pointer-maintenance note below.
 
 **Entrypoints:**
 
@@ -16,6 +16,8 @@
 
 **Pagination implementation note:** Session-meta enumeration now uses shared `connectionDB.query`/`withQuery` pagination (`{ items, nextToken?, nextPage? }`) rather than direct AWS SDK `QueryCommand` loops, so diagnostics and connections stale-session paths share token handling and page-size guardrails.
 
+**Pointer maintenance (session reverse-index):** every sweep run also maintains the `PLAYER#${player}` / `SESSION#${sessionId}` reverse-index pointer rows described in [`lambda/connections/AGENT.md`](../connections/AGENT.md) -- unconditionally, not just for stale sessions. It backfills a pointer for any currently-existing meta row that has a `player` but no pointer, and prunes pointer rows whose session meta row is gone. Pruning requires enumerating the pointer rows, which the connections table's key shape doesn't support directly (no scan, no player-prefix GSI), so the sweep enumerates the player roster via `assetDB`'s `DataCategoryIndex` / `Meta::Player` -- the same pattern [`playerMisalignmentSweep`](playerMisalignmentSweep/index.ts) uses -- then queries each player's pointer partition in `connectionDB`. This is the one place `staleSessionSweep` writes/deletes rather than only reads.
+
 ## Connections problem-report intake (DataSource lane)
 
 **Purpose:** Receive `mtw.connections` session disconnect problem reports through one diagnostics DataSource subscription/deserialization lane and trigger report-only diagnostics evaluation (D6).
@@ -26,6 +28,7 @@
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
   - `mtw.ephemera.objects` / `Spawn Compensation Problem`
+  - `mtw.players` / `Stale Session Problem` (`DiagnosticsPlayersProblemHeader` / `isPlayersProblemHeader` / `isPlayersProblemEnvelope`)
   - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`, `OrphanedImprovisedObjectSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
 
@@ -33,8 +36,10 @@
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
 - `Spawn Compensation Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts); same tidy-failure, invocation dedupe, and report-only sweep trigger semantics as connections problem reports.
+- `Stale Session Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/players`](../../packages/mtw-interfaces/ts/eventBridge/players/index.ts). Producer: [`connect.ts`](../authentication/connect.ts) in `lambda/authentication` detects (via [`staleSessionDetection.ts`](../authentication/staleSessionDetection.ts), which resolves the connecting player's reverse-index pointers) and reports its own problem at connect time -- connections-table stale-session detection used to require the whole-table sweep, which is why it could only run on a schedule; the reverse index lets the connecting player's own connect path recognize the problem instead. Diagnostics does not subscribe to the healthy-path `Player Connected` event for this.
+  - Evaluation routes to `evaluateStaleSessionsForPlayer` in [`staleSessionSweep/index.ts`](staleSessionSweep/index.ts): a player-scoped counterpart to `staleSessionSweep()` that resolves only the reported player's reverse-index pointers (one `connectionDB.query` + batch-`getItems`, `ConsistentRead`) and emits the same `Stale SessionId Finding` contract if that player has a currently-stale session. It does **not** perform the pointer backfill/prune maintenance described in the "Pointer maintenance" note below -- that stays exclusively with the full `staleSessionSweep()` run.
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
-- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to both `Session Disconnect Problem` and `Spawn Compensation Problem`.
+- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to `Session Disconnect Problem`, `Spawn Compensation Problem`, and `Stale Session Problem`.
 - Diagnostics remains report-only: problem reports trigger sweep evaluation and finding emission only; diagnostics does not perform storage repairs.
 - Bus ingress uses `publish`; boundary drain uses `flushAndSettle()`; direct command return values use ReturnValue/Error `publish` plus [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) (via [`returnValue/collector.ts`](returnValue/collector.ts)) and [`returnValue/index.ts`](returnValue/index.ts) assembly at the app boundary.
 

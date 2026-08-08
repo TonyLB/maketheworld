@@ -25,4 +25,4 @@ export const messageDeltaQuery = jest.fn()
 
 export const exponentialBackoffWrapper = jest.fn(async (testFunc) => { await testFunc() })
 
-export { META_SESSION_PK, sessionMetaSortKey, sessionIdFromMetaSortKey } from '../sessionMetaKeys'
+export { META_SESSION_PK, sessionMetaSortKey, sessionIdFromMetaSortKey, playerSessionsPK, playerFromSessionsPK } from '../sessionMetaKeys'

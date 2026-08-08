@@ -129,7 +129,6 @@ const handleHealGlobalValues = async (
     const healContent = await event.getContent()
     if (!healContent) return
     await healGlobalValues({
-        shouldHealConnections: Boolean(healContent.connections),
         shouldHealGlobalAssets: typeof healContent.assets !== 'boolean' || healContent.assets
     })
 }

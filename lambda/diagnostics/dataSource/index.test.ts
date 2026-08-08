@@ -3,7 +3,8 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import type { RenderCacheTargetCatalog } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('../staleSessionSweep', () => ({
-    staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
+    staleSessionSweep: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] })),
+    evaluateStaleSessionsForPlayer: jest.fn(async () => ({ emittedCount: 0, players: [] as string[] }))
 }))
 jest.mock('../roomOccupancyDriftSweep', () => ({
     roomOccupancyDriftSweep: jest.fn(async () => ({ emittedCount: 0, roomIds: [] as string[] }))
@@ -29,7 +30,7 @@ jest.mock('../orphanedImprovisedObjectSweep', () => ({
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
 import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
-import { staleSessionSweep } from '../staleSessionSweep'
+import { evaluateStaleSessionsForPlayer, staleSessionSweep } from '../staleSessionSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { processDiagnosticsSubscribedEvents } from './index'
@@ -59,6 +60,20 @@ const sessionDisconnectProblemEnvelope = (dedupeKey: string) =>
         }
     )
 
+const staleSessionProblemEnvelope = (dedupeKey: string, player = 'player-one') =>
+    makeEnvelope(
+        { dataSourceKey: 'mtw.players', type: 'Stale Session Problem' },
+        {
+            type: 'Stale Session Problem',
+            sessionId: 'session-stale',
+            player,
+            sourceOperation: 'connect',
+            attemptCount: 1,
+            dedupeKey,
+            timestamp: new Date().toISOString()
+        }
+    )
+
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 
 const spawnCompensationProblemEnvelope = (dedupeKey: string) =>
@@ -81,6 +96,8 @@ describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
         jest.mocked(staleSessionSweep).mockReset()
         jest.mocked(staleSessionSweep).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
+        jest.mocked(evaluateStaleSessionsForPlayer).mockReset()
+        jest.mocked(evaluateStaleSessionsForPlayer).mockResolvedValue({ emittedCount: 0, players: [] as string[] })
         jest.mocked(roomOccupancyDriftSweep).mockReset()
         jest.mocked(roomOccupancyDriftSweep).mockResolvedValue({ emittedCount: 0, roomIds: [] as string[] })
         jest.mocked(playerMisalignmentSweep).mockReset()
@@ -300,6 +317,47 @@ describe('diagnosticsDataSource subscribed event processing', () => {
         await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-cross-dup')])
 
         expect(orphanedImprovisedObjectSweep).toHaveBeenCalledTimes(1)
+    })
+
+    it('runs evaluateStaleSessionsForPlayer scoped to the reported player for Stale Session Problem', async () => {
+        await processDiagnosticsSubscribedEvents([staleSessionProblemEnvelope('stale-dup-1', 'player-one')])
+
+        expect(evaluateStaleSessionsForPlayer).toHaveBeenCalledWith({ player: 'player-one' })
+        expect(staleSessionSweep).not.toHaveBeenCalled()
+    })
+
+    it('drops malformed Stale Session Problem payloads without invoking the scoped evaluator', async () => {
+        await processDiagnosticsSubscribedEvents([
+            makeEnvelope(
+                { dataSourceKey: 'mtw.players', type: 'Stale Session Problem' },
+                {
+                    type: 'Stale Session Problem',
+                    sessionId: 'session-stale',
+                    player: 'player-one',
+                    sourceOperation: 'connect',
+                    attemptCount: 1
+                    // missing dedupeKey
+                }
+            )
+        ])
+
+        expect(evaluateStaleSessionsForPlayer).not.toHaveBeenCalled()
+    })
+
+    it('dedupes repeated Stale Session Problem reports by dedupeKey within one batch', async () => {
+        await processDiagnosticsSubscribedEvents([
+            staleSessionProblemEnvelope('stale-batch-dup'),
+            staleSessionProblemEnvelope('stale-batch-dup'),
+        ])
+
+        expect(evaluateStaleSessionsForPlayer).toHaveBeenCalledTimes(1)
+    })
+
+    it('dedupes repeated Stale Session Problem reports by dedupeKey across separate receiveEvents calls', async () => {
+        await processDiagnosticsSubscribedEvents([staleSessionProblemEnvelope('stale-cross-dup')])
+        await processDiagnosticsSubscribedEvents([staleSessionProblemEnvelope('stale-cross-dup')])
+
+        expect(evaluateStaleSessionsForPlayer).toHaveBeenCalledTimes(1)
     })
 
     it('emits ReturnValue for api.diagnostics OrphanedImprovisedObjectSweep events', async () => {

@@ -5,8 +5,10 @@
  * Stale Meta::Session classification for finding-driven repair.
  *
  * These predicates **must** stay aligned with
- * [`lambda/diagnostics/staleSessionSweep/classification.ts`](../../diagnostics/staleSessionSweep/classification.ts).
- * When changing either file, update the other and run both `lambda/diagnostics` and `lambda/connections` tests.
+ * [`lambda/diagnostics/staleSessionSweep/classification.ts`](../../diagnostics/staleSessionSweep/classification.ts)
+ * and [`lambda/authentication/staleSessionDetection.ts`](../../authentication/staleSessionDetection.ts).
+ * When changing any of the three, update the other two and run `lambda/diagnostics`, `lambda/connections`,
+ * and `lambda/authentication` tests.
  */
 
 /**

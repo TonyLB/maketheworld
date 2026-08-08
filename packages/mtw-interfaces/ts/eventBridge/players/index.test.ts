@@ -1,7 +1,9 @@
 import {
     PlayersEventSerializer,
     isPlayerConnectedEvent,
-    isPlayersEventUpdate
+    isPlayersEventUpdate,
+    isStaleSessionProblemEvent,
+    buildStaleSessionProblemDedupeKey
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -82,6 +84,56 @@ describe('PlayersEventSerializer', () => {
             header: playersHeader('Snapshot')
         })).toThrow('PlayersEventSerializer does not support snapshot serialization')
     })
+
+    it('serializes and deserializes Stale Session Problem', async () => {
+        const event = {
+            type: 'Stale Session Problem' as const,
+            sessionId: 'session-stale',
+            player: 'player-one',
+            sourceOperation: 'connect',
+            attemptCount: 1,
+            dedupeKey: 'session-stale::staleSessionProblem::1',
+            timestamp: '2026-08-08T00:00:00.000Z'
+        }
+        const serialized = serializer.serialize({
+            content: event,
+            header: playersHeader('Stale Session Problem')
+        })
+        expect(serialized).toEqual(event)
+
+        const deserialized = await serializer.deserialize({
+            content: serialized,
+            header: playersHeader('Stale Session Problem')
+        })
+        expect(deserialized).toEqual(event)
+    })
+
+    it('defaults timestamp when missing on Stale Session Problem deserialize', async () => {
+        const deserialized = await serializer.deserialize({
+            content: {
+                sessionId: 'session-stale',
+                player: 'player-one',
+                sourceOperation: 'connect',
+                attemptCount: 1,
+                dedupeKey: 'session-stale::staleSessionProblem::1'
+            },
+            header: playersHeader('Stale Session Problem')
+        })
+        expect(deserialized).toMatchObject({
+            type: 'Stale Session Problem',
+            sessionId: 'session-stale',
+            player: 'player-one'
+        })
+        expect(typeof deserialized?.timestamp).toBe('string')
+    })
+
+    it('returns null for malformed Stale Session Problem', async () => {
+        const deserialized = await serializer.deserialize({
+            content: { player: 'player-one' },
+            header: playersHeader('Stale Session Problem')
+        })
+        expect(deserialized).toBeNull()
+    })
 })
 
 describe('players event guards', () => {
@@ -110,6 +162,40 @@ describe('players event guards', () => {
             sessionId: 'session-1',
             timestamp: 1700000000000
         })).toBe(true)
+        expect(isPlayersEventUpdate({
+            type: 'Stale Session Problem',
+            sessionId: 'session-stale',
+            player: 'player-one',
+            sourceOperation: 'connect',
+            attemptCount: 1,
+            dedupeKey: 'session-stale::staleSessionProblem::1',
+            timestamp: '2026-08-08T00:00:00.000Z'
+        })).toBe(true)
         expect(isPlayersEventUpdate({ type: 'Unknown Event' })).toBe(false)
+    })
+
+    it('validates Stale Session Problem', () => {
+        expect(isStaleSessionProblemEvent({
+            type: 'Stale Session Problem',
+            sessionId: 'session-stale',
+            player: 'player-one',
+            sourceOperation: 'connect',
+            attemptCount: 1,
+            dedupeKey: 'session-stale::staleSessionProblem::1',
+            timestamp: '2026-08-08T00:00:00.000Z'
+        })).toBe(true)
+        expect(isStaleSessionProblemEvent({
+            type: 'Stale Session Problem',
+            sessionId: '',
+            player: 'player-one',
+            sourceOperation: 'connect',
+            attemptCount: 1,
+            dedupeKey: 'session-stale::staleSessionProblem::1',
+            timestamp: '2026-08-08T00:00:00.000Z'
+        })).toBe(false)
+    })
+
+    it('builds the dedupe key from sessionId and attemptCount', () => {
+        expect(buildStaleSessionProblemDedupeKey('session-stale', 1)).toBe('session-stale::staleSessionProblem::1')
     })
 })

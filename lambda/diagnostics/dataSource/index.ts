@@ -4,18 +4,20 @@ import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { isSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
+import { isStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import messageBus from '../messageBus'
 import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
 import { renderCacheDriftSweep } from '../renderCacheDriftSweep'
-import { staleSessionSweep } from '../staleSessionSweep'
+import { evaluateStaleSessionsForPlayer, staleSessionSweep } from '../staleSessionSweep'
 import { diagnosticsIntakeDeduper } from './intakeDeduper'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
     isEphemeraObjectsProblemEnvelope,
+    isPlayersProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
     isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope,
     isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
@@ -29,7 +31,11 @@ const diagnosticsEventSerializer = new DiagnosticsEventSerializer(createNodeData
 
 export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
     const preparedEvents = await Promise.all(events.map(async (event) => {
-        if (!isConnectionsProblemEnvelope(event as any) && !isEphemeraObjectsProblemEnvelope(event as any)) {
+        if (
+            !isConnectionsProblemEnvelope(event as any) &&
+            !isEphemeraObjectsProblemEnvelope(event as any) &&
+            !isPlayersProblemEnvelope(event as any)
+        ) {
             return { event, normalizedContent: null }
         }
         const content = await event.getContent()
@@ -75,6 +81,24 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 }
                 await orphanedImprovisedObjectSweep({
                     objectIds: [normalizedContent.objectId]
+                })
+                return
+            }
+            if (isPlayersProblemEnvelope(event as any)) {
+                if (!isStaleSessionProblemEvent(normalizedContent)) {
+                    console.log(JSON.stringify({
+                        event: 'diagnostics-intake-drop',
+                        reason: 'invalid-players-event-payload',
+                        source: event.header.dataSourceKey,
+                        detailType: event.header.type
+                    }))
+                    return
+                }
+                if (!diagnosticsIntakeDeduper.tryClaim(normalizedContent.dedupeKey)) {
+                    return
+                }
+                await evaluateStaleSessionsForPlayer({
+                    player: normalizedContent.player
                 })
                 return
             }

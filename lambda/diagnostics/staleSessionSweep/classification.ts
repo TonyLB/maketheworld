@@ -1,4 +1,12 @@
 /**
+ * These predicates **must** stay aligned with
+ * [`lambda/connections/staleSessionFinding/classification.ts`](../../connections/staleSessionFinding/classification.ts)
+ * and [`lambda/authentication/staleSessionDetection.ts`](../../authentication/staleSessionDetection.ts).
+ * When changing any of the three, update the other two and run `lambda/diagnostics`, `lambda/connections`,
+ * and `lambda/authentication` tests.
+ */
+
+/**
  * Slack beyond `dropAfter` before treating a session meta row as stale for diagnostics.
  * Aligns with initiative D4: disconnect schedules ~4s `dropAfter`, Step Functions waits ~5s before
  * `checkSession`, plus clock skew — emit only after this buffer to avoid false positives.

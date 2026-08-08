@@ -1,6 +1,7 @@
 import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ConnectionsSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { EphemeraObjectsSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
+import { PlayerStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import { DiagnosticsAPIPayload, DiagnosticsApiSubscribedHeader } from './apiDiagnostics'
 
 export type DiagnosticsConnectionsProblemHeader =
@@ -8,6 +9,9 @@ export type DiagnosticsConnectionsProblemHeader =
 
 export type DiagnosticsEphemeraObjectsProblemHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.objects'; type: 'Spawn Compensation Problem' }
+
+export type DiagnosticsPlayersProblemHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.players'; type: 'Stale Session Problem' }
 
 export type DiagnosticsApiStaleSessionSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'StaleSessionSweep' }
@@ -37,6 +41,12 @@ const isEphemeraObjectsProblemHeader: HeaderGuard<DiagnosticsEphemeraObjectsProb
     header
 ): header is DiagnosticsEphemeraObjectsProblemHeader => (
     header.dataSourceKey === 'mtw.ephemera.objects' && header.type === 'Spawn Compensation Problem'
+)
+
+const isPlayersProblemHeader: HeaderGuard<DiagnosticsPlayersProblemHeader> = (
+    header
+): header is DiagnosticsPlayersProblemHeader => (
+    header.dataSourceKey === 'mtw.players' && header.type === 'Stale Session Problem'
 )
 
 const isDiagnosticsApiStaleSessionSweepHeader: HeaderGuard<DiagnosticsApiStaleSessionSweepHeader> = (
@@ -78,12 +88,14 @@ const isDiagnosticsApiOrphanedImprovisedObjectSweepHeader: HeaderGuard<Diagnosti
 export const isDiagnosticsSubscribedHeader: HeaderGuard<
     DiagnosticsConnectionsProblemHeader |
     DiagnosticsEphemeraObjectsProblemHeader |
+    DiagnosticsPlayersProblemHeader |
     DiagnosticsApiSubscribedHeader
 > = (
     header
-): header is DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsApiSubscribedHeader => (
+): header is DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader => (
     isConnectionsProblemHeader(header) ||
     isEphemeraObjectsProblemHeader(header) ||
+    isPlayersProblemHeader(header) ||
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header) ||
     isDiagnosticsApiPlayerMisalignmentSweepHeader(header) ||
@@ -101,6 +113,11 @@ export const isEphemeraObjectsProblemEnvelope = makeStreamingEnvelopeGuardFromHe
     EphemeraObjectsSpawnCompensationProblemEvent,
     DiagnosticsEphemeraObjectsProblemHeader
 >(isEphemeraObjectsProblemHeader)
+
+export const isPlayersProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    PlayerStaleSessionProblemEvent,
+    DiagnosticsPlayersProblemHeader
+>(isPlayersProblemHeader)
 
 export const isDiagnosticsApiStaleSessionSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     Extract<DiagnosticsAPIPayload, { type: 'StaleSessionSweep' }>,
@@ -133,11 +150,12 @@ export const isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope = makeStreami
 >(isDiagnosticsApiOrphanedImprovisedObjectSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | DiagnosticsAPIPayload,
-    DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsApiSubscribedHeader
+    ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,
+    DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader
 >(isDiagnosticsSubscribedHeader)
 
 export type DiagnosticsSubscribedContent =
     | ConnectionsSessionDisconnectProblemEvent
     | EphemeraObjectsSpawnCompensationProblemEvent
+    | PlayerStaleSessionProblemEvent
     | DiagnosticsAPIPayload

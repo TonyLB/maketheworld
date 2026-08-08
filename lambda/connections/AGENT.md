@@ -15,10 +15,19 @@ Payload attributes on that item are unchanged (`connections`, `player`, `dropAft
 
 **Storage compatibility note**: This area assumes canonical session meta rows use `ConnectionId='Meta::Session'` with `DataCategory='SESSION#${sessionId}'`. Legacy rows in the inverse orientation (`ConnectionId='SESSION#...'`, `DataCategory='Meta::Session'`) are not compatible with this read/write path and must not coexist in the same runtime.
 
+**Player -> session reverse-index pointer rows**: `ConnectionId='PLAYER#${player}'`, `DataCategory='SESSION#${sessionId}'` (`playerSessionsPK`/`sessionMetaSortKey` in [`sessionMetaKeys.ts`](../../packages/mtw-utilities/ts/dynamoDB/sessionMetaKeys.ts)). A pure pointer -- no payload attributes -- so a re-`Put` on every connect is an idempotent no-op, and a missing pointer self-heals on the player's next connect. Dual-written wherever a `Meta::Session` row is created or removed:
+
+- [`lambda/authentication/connect.ts`](../../lambda/authentication/connect.ts) writes the pointer atomically with the session-meta `Update` inside one `connectionDB.transactWrite`. The `Update`'s reducer throws (rather than no-op-ignoring) on a session-hijack attempt (`draft.player !== userName`), so the transaction aborts before either write lands -- an unguarded `Put` would otherwise mint a cross-player pointer from a rejected hijacker.
+- [`staleSessionTeardown/index.ts`](staleSessionTeardown/index.ts) deletes the pointer alongside the `Meta::Session` `deleteItem`, using the `player` already resolved for teardown.
+- [`lambda/chaos/addGhostSession/index.ts`](../../lambda/chaos/addGhostSession/index.ts) fixtures carry a synthetic player (`` `chaos:${sessionId}` ``) so they exercise the same pointer shape as production sessions.
+- [`lambda/diagnostics/staleSessionSweep`](../diagnostics/staleSessionSweep/index.ts) backfills pointers missing for existing meta rows and prunes pointers whose meta row is gone, on every sweep run -- see [`lambda/diagnostics/AGENT.md`](../diagnostics/AGENT.md).
+
+All five original per-player `player -> sessions` readers now resolve the pointer instead of scanning: the three internal `playerSessions` caches (`ephemera`, `subscriptions`, `assets`) and [`queryMetaSessionRowsForPlayer`](staleSessionFinding/queryMetaSessionsForPlayer.ts) (see Repair behavior below) all query `ConnectionId = 'PLAYER#${player}'` and, where they need full meta rows rather than just session ids, follow with a `getItem`/`getItems` on the resolved session ids. Only the whole-table diagnostics sweeps (`staleSessionSweep`, `roomOccupancyDriftSweep`) still scan the `Meta::Session` partition, by design -- they are the reaper for dangling pointers and for meta rows created outside the transactional write path.
+
 **Deliberate trade-off**
 
-- **Hot partitions**: Putting many session meta rows under one partition key increases write/read concentration on that partition compared to spreading each session across its own `SESSION#...` PK. That can surface as throttling or uneven utilization under extreme concurrent load.
-- **Why we accept it**: Co-locating canonical session meta rows enables **primary-key reads with `ConsistentRead`** where correctness-sensitive paths need an immediately consistent view without relying on eventually consistent GSI queries.
+- **Hot partitions**: Putting many session meta rows under one partition key increases write/read concentration on that partition compared to spreading each session across its own `SESSION#...` PK. That can surface as throttling or uneven utilization under extreme concurrent load. This is still true on the **write** side -- session creation, teardown, and chaos fixtures all still put/delete against `Meta::Session` -- and on the **whole-table sweep** side (`staleSessionSweep`, `roomOccupancyDriftSweep` still page the entire partition by design).
+- **Why we accept it**: Co-locating canonical session meta rows enables **primary-key reads with `ConsistentRead`** where correctness-sensitive paths need an immediately consistent view without relying on eventually consistent GSI queries. The reverse-index pointer rows above have narrowed *what* needs that justification: **per-player reads no longer land on the `Meta::Session` partition at all** -- they resolve through the separately-keyed `PLAYER#${player}` pointer partition instead, so the concentrated-PK trade-off is now paid only by writes and whole-table sweeps, not by the (much more frequent) single-player lookups.
 
 This is an explicit engineering choice: **operational risk on one partition** in exchange for **predictable read semantics** on session meta. Mitigations are standard DynamoDB practice (capacity/burst behavior, observability on hot keys, rate shaping upstream), not a misunderstanding of partition limits.
 
@@ -93,8 +102,7 @@ Integration proof: [`characterRegisteredOrientation.integration.test.ts`](../eph
 
 Repair behavior (connections-owned, D6):
 
-- Enumerates session meta rows by querying `ConnectionId = Meta::Session`, `begins_with(DataCategory, 'SESSION#')` (paginated), filtered to the finding `player`.
-- Query pagination now uses the shared `connectionDB.query`/`withQuery` opt-in envelope (`{ items, nextToken?, nextPage? }`) so stale-session scans avoid direct AWS SDK pagination loops and share utility guardrails/token handling.
+- Resolves the finding `player`'s reverse-index pointers (`ConnectionId = 'PLAYER#${player}'`, consistent read), then batch-`getItem`s the pointed-to `Meta::Session` rows -- no scan and no in-app player filter.
 - Re-evaluates staleness using predicates aligned with diagnostics ([`staleSessionFinding/classification.ts`](staleSessionFinding/classification.ts) must stay in sync with [`lambda/diagnostics/staleSessionSweep/classification.ts`](../diagnostics/staleSessionSweep/classification.ts)); skips rows that are no longer stale (replay / convergence).
 - For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal and `Session Disconnect` emission as `checkSession`-driven teardown.
 

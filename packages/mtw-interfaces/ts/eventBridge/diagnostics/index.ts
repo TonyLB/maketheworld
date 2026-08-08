@@ -85,7 +85,6 @@ export type DiagnosticsComponentVerticalMisalignedFindingEvent = {
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
-    connections?: unknown
     assets?: unknown
 }
 
@@ -543,7 +542,6 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         if (eventType === 'Heal Global Values') {
             return {
                 type: 'Heal Global Values',
-                connections: content.connections,
                 assets: content.assets
             }
         }
