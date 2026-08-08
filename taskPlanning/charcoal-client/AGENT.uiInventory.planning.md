@@ -1,7 +1,7 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: DISPOSITIONS CONFIRMED (2026-08-08) --- D1-D5 resolved by the user; one follow-on fork
-(**D6**) opened by the D1 answer. Next step: resolve D6, then begin **Recommended order** step 3.
+**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** step 3 (Slice A
+--- unreferenced leaves) is done. Next step: **Recommended order** step 4 (Slice B --- `Explore`).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -213,10 +213,10 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
 
 - [X] 1. **Confirm the inventory.** User reviewed and corrected dispositions. No code changes.
 - [X] 2. **Resolve D1-D5.** All decided; D1's answer opened **D6**.
-- [ ] 3. **Slice A --- unreferenced leaves.** Lowest risk: nothing imports these. Hard delete (D4).
-  - [ ] Delete `Threads`, `MultiLevelNest`, `NonLinearStepper`, `TitledBox`, `useContextMenu.js`
-  - [ ] Delete `DraggableTree` (D2) --- including its 3 test files
-  - [ ] Verify: `npm run test:single` + `npx tsc --noEmit`
+- [X] 3. **Slice A --- unreferenced leaves.** Lowest risk: nothing imports these. Hard delete (D4).
+  - [X] Delete `Threads`, `MultiLevelNest`, `NonLinearStepper`, `TitledBox`, `useContextMenu.js`
+  - [X] Delete `DraggableTree` (D2) --- including its 3 test files
+  - [X] Verify: `npm run test:single` + `npx tsc --noEmit`
 - [ ] 4. **Slice B --- `Explore`.** Single route, single import.
   - [ ] Delete `src/components/Explore`; remove import and `<Route path="/Explore">` from `AppLayout`
   - [ ] Verify
