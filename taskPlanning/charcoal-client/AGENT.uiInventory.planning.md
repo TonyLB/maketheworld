@@ -1,8 +1,8 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** steps 3-4 (Slice A
---- unreferenced leaves; Slice B --- `Explore`) are done. Next step: **Recommended order** step 5
-(Slice C --- `Home` + Library residue).
+**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** steps 3-5 (Slice A
+--- unreferenced leaves; Slice B --- `Explore`; Slice C --- `Home` + Library residue) are done. Next
+step: **Recommended order** step 6 (Slice D --- `Maps` de-wiring).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -221,10 +221,10 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
 - [X] 4. **Slice B --- `Explore`.** Single route, single import.
   - [X] Delete `src/components/Explore`; remove import and `<Route path="/Explore">` from `AppLayout`
   - [X] Verify
-- [ ] 5. **Slice C --- `Home` + Library residue.** Larger blast radius: touches `AppController` panel wiring.
-  - [ ] Delete `src/components/Home`; remove `homePanel` prop threading through `AppController`/`AppLayout` and the `/index.html` route
-  - [ ] Confirm no remaining `navigate('/Library/')`; leave `libraryDataSource` and `zone === 'Library'` alone
-  - [ ] Verify
+- [X] 5. **Slice C --- `Home` + Library residue.** Larger blast radius: touches `AppController` panel wiring.
+  - [X] Delete `src/components/Home`; remove `homePanel` prop threading through `AppController`/`AppLayout` and the `/index.html` route
+  - [X] Confirm no remaining `navigate('/Library/')`; leave `libraryDataSource` and `zone === 'Library'` alone
+  - [X] Verify
 - [ ] 6. **Slice D --- `Maps` de-wiring.** This slice removes *access*, keeping the prototype.
   - [ ] Remove the three live nav call sites: `MessagePanel.tsx:48` (`map` command), `LineEntry/index.tsx:114` (SpeedDial), `LineEntry/index.tsx:143` (Options avatar)
   - [ ] Remove the `/Character/:CharacterId/Map/` route from `AppLayout`'s `CharacterRouterSwitch`

@@ -201,7 +201,7 @@ const PlaySpineRoot: FunctionComponent<{ messagePanel: React.ReactElement }> = (
     )
 }
 
-export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
+export const AppLayout = ({ whoPanel, settingsPanel, messagePanel, onboardingPanel, feedbackMessage, closeFeedback, signInOrUp }: any) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const { AlwaysShowOnboarding } = useSelector(getClientSettings)
     const dispatch = useDispatch()
@@ -221,10 +221,9 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
             <Route path="/Who/" element={whoPanel} />
             <Route path="/Settings/" element={settingsPanel} />
-            <Route path="/index.html" element={homePanel} />
             <Route path="/" element={<PlaySpineRoot messagePanel={messagePanel} />} />
         </Routes>
-    ), [messagePanel, whoPanel, settingsPanel, homePanel])
+    ), [messagePanel, whoPanel, settingsPanel])
     const routeWrapper = useMemo(() => (
         <Routes>
             <Route path="/Onboarding/" element={onboardingPanel} />
