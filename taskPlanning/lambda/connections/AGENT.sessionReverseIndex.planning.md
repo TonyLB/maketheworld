@@ -1,6 +1,6 @@
 # Session reverse index and connect-time stale cleanup
 
-**Status:** Phase 0 and Phase 1 done. Next step: Phase 2 (migrate readers).
+**Status:** Phases 0-2 done. Next step: Phase 3 (retire the scan in `queryMetaSessionRowsForPlayer`).
 
 **Goal:** Give the connections table a player-keyed reverse index over session meta rows, migrate the
 five existing `player -> sessions` readers onto it, and use it to add a connect-time stale-session
@@ -27,7 +27,10 @@ Two problems, one data-model fix.
    - [`lambda/ephemera/internalCache/playerSessions.ts`](../../../lambda/ephemera/internalCache/playerSessions.ts)
    - [`lambda/subscriptions/internalCache/playerSessions.ts`](../../../lambda/subscriptions/internalCache/playerSessions.ts)
    - [`lambda/assets/internalCache/playerSessions.ts`](../../../lambda/assets/internalCache/playerSessions.ts)
-   - [`lambda/assets/selfHealing/globalValues.ts`](../../../lambda/assets/selfHealing/globalValues.ts)
+   - ~~`lambda/assets/selfHealing/globalValues.ts`~~ -- removed in Phase 2 rather than migrated: its
+     `healConnections` scanned **all** sessions to build a global `{ sessionId: player }` map for a
+     `Global`/`Sessions` item that nothing read (confirmed via repo-wide search before removal), so it
+     never fit the single-player read shape the other three caches do.
    - [`queryMetaSessionRowsForPlayer`](../../../lambda/connections/staleSessionFinding/queryMetaSessionsForPlayer.ts)
 
    The three `playerSessions` caches build a whole-table `SessionsByPlayer` map to answer a
@@ -103,7 +106,7 @@ retiring a helper.
 | --- | --- | --- |
 | 0 | Pointer key helpers in `mtw-utilities` | Done |
 | 1 | Dual-write pointers at create / teardown / chaos | Done |
-| 2 | Migrate the four cache readers | Not started |
+| 2 | Migrate the three cache readers onto the pointer index; remove the dead `globalValues.ts` scan | Done |
 | 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Not started |
 | 4 | Connect-time stale cleanup trigger | Not started |
 | 5 | Durable doc updates | Not started |
@@ -149,14 +152,21 @@ line `[X]` as it is done so partial progress stays visible.
         session meta row is gone. Pruning enumerates the player roster via `assetDB`'s
         `DataCategoryIndex` / `Meta::Player` (same pattern as `playerMisalignmentSweep`), since the
         connections table has no scan and no player-prefix GSI to enumerate pointer rows directly.
-- [ ] **Phase 2 -- migrate readers.** One package per commit; full suite per package.
-  - [ ] `lambda/subscriptions` `playerSessions` cache.
-  - [ ] `lambda/ephemera` `playerSessions` cache (**full suite, not `tsc`** -- see caveat above).
-  - [ ] `lambda/assets` `playerSessions` cache.
-  - [ ] `lambda/assets/selfHealing/globalValues.ts`.
-  - [ ] Each migrated cache queries `ConnectionId = 'PLAYER#${player}'` for that player only, then
-        follows pointers for whatever payload it needs -- it no longer builds a whole-table
-        `SessionsByPlayer` map. Confirm the `clear()` / cache-shape contract still holds per call site.
+- [X] **Phase 2 -- migrate readers.** One package per commit; full suite per package.
+  - [X] `lambda/subscriptions` `playerSessions` cache.
+  - [X] `lambda/ephemera` `playerSessions` cache (**full suite, not `tsc`** -- see caveat above).
+  - [X] `lambda/assets` `playerSessions` cache.
+  - [X] `lambda/assets/selfHealing/globalValues.ts` -- removed the dead `healConnections` write
+        (nothing read `Global`/`Sessions`) rather than migrating it; also dropped the now-meaningless
+        `connections` field from `DiagnosticsHealGlobalValuesContent` in
+        [`packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`](../../../packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts)
+        and its deserializer/round-trip test.
+  - [X] Each migrated cache queries `ConnectionId = 'PLAYER#${player}'` for that player only. Since the
+        pointer's `DataCategory` reuses `sessionMetaSortKey`, `sessionIdFromMetaSortKey` on the pointer
+        row itself is the whole answer for these three caches -- no follow-up `getItem` on the meta row
+        needed. No longer builds a whole-table `SessionsByPlayer` map. `clear()` / cache-shape contract
+        (`get(player): Promise<string[] | undefined>`) unchanged per call site; added
+        `playerSessions.test.ts` unit tests for all three caches (none existed before).
 - [ ] **Phase 3 -- retire the scan.** Rewrite
       [`queryMetaSessionRowsForPlayer`](../../../lambda/connections/staleSessionFinding/queryMetaSessionsForPlayer.ts)
       to resolve pointers and `getItem` the meta rows, dropping the paginated `begins_with` scan and

@@ -387,7 +387,6 @@ describe('DiagnosticsEventSerializer', () => {
         it('should deserialize Heal Global Values for assets lambda', async () => {
             const externalEvent: any = {
                 type: 'Heal Global Values',
-                connections: true,
                 assets: true
             }
 
@@ -398,7 +397,6 @@ describe('DiagnosticsEventSerializer', () => {
 
             expect(internal).toEqual({
                 type: 'Heal Global Values',
-                connections: true,
                 assets: true
             })
         })
