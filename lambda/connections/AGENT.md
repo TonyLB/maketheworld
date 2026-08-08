@@ -22,7 +22,7 @@ Payload attributes on that item are unchanged (`connections`, `player`, `dropAft
 - [`lambda/chaos/addGhostSession/index.ts`](../../lambda/chaos/addGhostSession/index.ts) fixtures carry a synthetic player (`` `chaos:${sessionId}` ``) so they exercise the same pointer shape as production sessions.
 - [`lambda/diagnostics/staleSessionSweep`](../diagnostics/staleSessionSweep/index.ts) backfills pointers missing for existing meta rows and prunes pointers whose meta row is gone, on every sweep run -- see [`lambda/diagnostics/AGENT.md`](../diagnostics/AGENT.md).
 
-Readers do not yet consult the pointer (still scanning the `Meta::Session` partition as described above); that migration is a later phase of the session reverse-index initiative.
+All five original per-player `player -> sessions` readers now resolve the pointer instead of scanning: the three internal `playerSessions` caches (`ephemera`, `subscriptions`, `assets`) and [`queryMetaSessionRowsForPlayer`](staleSessionFinding/queryMetaSessionsForPlayer.ts) (see Repair behavior below) all query `ConnectionId = 'PLAYER#${player}'` and, where they need full meta rows rather than just session ids, follow with a `getItem`/`getItems` on the resolved session ids. Only the whole-table diagnostics sweeps (`staleSessionSweep`, `roomOccupancyDriftSweep`) still scan the `Meta::Session` partition, by design -- they are the reaper for dangling pointers and for meta rows created outside the transactional write path.
 
 **Deliberate trade-off**
 
@@ -102,8 +102,7 @@ Integration proof: [`characterRegisteredOrientation.integration.test.ts`](../eph
 
 Repair behavior (connections-owned, D6):
 
-- Enumerates session meta rows by querying `ConnectionId = Meta::Session`, `begins_with(DataCategory, 'SESSION#')` (paginated), filtered to the finding `player`.
-- Query pagination now uses the shared `connectionDB.query`/`withQuery` opt-in envelope (`{ items, nextToken?, nextPage? }`) so stale-session scans avoid direct AWS SDK pagination loops and share utility guardrails/token handling.
+- Resolves the finding `player`'s reverse-index pointers (`ConnectionId = 'PLAYER#${player}'`, consistent read), then batch-`getItem`s the pointed-to `Meta::Session` rows -- no scan and no in-app player filter.
 - Re-evaluates staleness using predicates aligned with diagnostics ([`staleSessionFinding/classification.ts`](staleSessionFinding/classification.ts) must stay in sync with [`lambda/diagnostics/staleSessionSweep/classification.ts`](../diagnostics/staleSessionSweep/classification.ts)); skips rows that are no longer stale (replay / convergence).
 - For each stale session, runs [`tearDownStaleSession`](staleSessionTeardown/index.ts) with `sourceOperation: 'staleSessionFinding'`. That path reuses the same adjacency removal and `Session Disconnect` emission as `checkSession`-driven teardown.
 

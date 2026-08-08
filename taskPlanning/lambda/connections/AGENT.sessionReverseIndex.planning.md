@@ -1,6 +1,6 @@
 # Session reverse index and connect-time stale cleanup
 
-**Status:** Phases 0-2 done. Next step: Phase 3 (retire the scan in `queryMetaSessionRowsForPlayer`).
+**Status:** Phases 0-3 done. Next step: Phase 4 (connect-time stale cleanup trigger).
 
 **Goal:** Give the connections table a player-keyed reverse index over session meta rows, migrate the
 five existing `player -> sessions` readers onto it, and use it to add a connect-time stale-session
@@ -107,7 +107,7 @@ retiring a helper.
 | 0 | Pointer key helpers in `mtw-utilities` | Done |
 | 1 | Dual-write pointers at create / teardown / chaos | Done |
 | 2 | Migrate the three cache readers onto the pointer index; remove the dead `globalValues.ts` scan | Done |
-| 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Not started |
+| 3 | Retire the scan in `queryMetaSessionRowsForPlayer` | Done |
 | 4 | Connect-time stale cleanup trigger | Not started |
 | 5 | Durable doc updates | Not started |
 
@@ -167,13 +167,15 @@ line `[X]` as it is done so partial progress stays visible.
         needed. No longer builds a whole-table `SessionsByPlayer` map. `clear()` / cache-shape contract
         (`get(player): Promise<string[] | undefined>`) unchanged per call site; added
         `playerSessions.test.ts` unit tests for all three caches (none existed before).
-- [ ] **Phase 3 -- retire the scan.** Rewrite
+- [X] **Phase 3 -- retire the scan.** Rewrote
       [`queryMetaSessionRowsForPlayer`](../../../lambda/connections/staleSessionFinding/queryMetaSessionsForPlayer.ts)
-      to resolve pointers and `getItem` the meta rows, dropping the paginated `begins_with` scan and
-      the in-app player filter. Keep the `MetaSessionRow` return shape so
-      [`staleSessionFinding/index.ts`](../../../lambda/connections/staleSessionFinding/index.ts) is
-      unchanged.
-  - [ ] Leave the **whole-table** sweeps alone: `staleSessionSweep` and
+      to resolve pointers (`connectionDB.query` on `PLAYER#${player}`) and `getItems` the meta rows,
+      dropping the paginated `begins_with` scan and the in-app player filter. `MetaSessionRow` return
+      shape unchanged, so
+      [`staleSessionFinding/index.ts`](../../../lambda/connections/staleSessionFinding/index.ts) needed
+      no changes. Added `queryMetaSessionsForPlayer.test.ts` (no test previously existed for this
+      module).
+  - [X] Left the **whole-table** sweeps alone: `staleSessionSweep` and
         [`roomOccupancyDriftSweep`](../../../lambda/diagnostics/roomOccupancyDriftSweep/index.ts)
         legitimately want all rows. With D1 atomic, they are no longer needed to close a connect-path
         race, but stay as the reaper for dangling pointers (D3) and for meta rows created outside the

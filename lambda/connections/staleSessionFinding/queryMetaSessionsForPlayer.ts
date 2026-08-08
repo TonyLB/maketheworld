@@ -1,8 +1,13 @@
 // Copyright 2026 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { connectionDB, META_SESSION_PK } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
+import {
+    connectionDB,
+    META_SESSION_PK,
+    playerSessionsPK,
+    sessionIdFromMetaSortKey,
+    sessionMetaSortKey
+} from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export type MetaSessionRow = {
     ConnectionId: string
@@ -13,42 +18,36 @@ export type MetaSessionRow = {
 }
 
 /**
- * Paginates `Meta::Session` rows and returns those whose `player` matches (trimmed equality).
+ * Resolves a player's session reverse-index pointers, then batch-fetches the pointed-to
+ * `Meta::Session` rows. Replaces a full-partition scan with a player-scoped pointer query.
  */
 export const queryMetaSessionRowsForPlayer = async (player: string): Promise<MetaSessionRow[]> => {
     const trimmedPlayer = player.trim()
-    const collected: MetaSessionRow[] = []
-    let nextPage: (() => Promise<QueryPageEnvelope<MetaSessionRow>>) | undefined
 
-    const queryPage = async (continuationToken?: string) => (
-        await connectionDB.query<MetaSessionRow>({
-            Key: {
-                ConnectionId: META_SESSION_PK
-            },
-            KeyConditionExpression: 'begins_with(DataCategory, :prefix)',
-            ExpressionAttributeValues: {
-                ':prefix': 'SESSION#'
-            },
-            ProjectionFields: ['ConnectionId', 'DataCategory', 'connections', 'dropAfter', 'player'],
-            ConsistentRead: true,
-            pagination: continuationToken ? { nextToken: continuationToken } : true
-        })
-    )
+    const pointers = await connectionDB.query<{ ConnectionId: string; DataCategory: string }>({
+        Key: {
+            ConnectionId: playerSessionsPK(trimmedPlayer)
+        },
+        ProjectionFields: ['DataCategory'],
+        ConsistentRead: true
+    })
 
-    let page = await queryPage()
-    do {
-        const batch = page.items
-        for (const row of batch) {
-            const rowPlayer = typeof row.player === 'string' ? row.player.trim() : ''
-            if (rowPlayer === trimmedPlayer) {
-                collected.push(row)
-            }
-        }
-        nextPage = page.nextPage
-        if (nextPage) {
-            page = await nextPage()
-        }
-    } while (nextPage)
+    const sessionIds = [...new Set(
+        (pointers || [])
+            .map(({ DataCategory }) => sessionIdFromMetaSortKey(DataCategory))
+            .filter((sessionId): sessionId is string => Boolean(sessionId))
+    )]
 
-    return collected
+    if (!sessionIds.length) {
+        return []
+    }
+
+    return await connectionDB.getItems<MetaSessionRow>({
+        Keys: sessionIds.map((sessionId) => ({
+            ConnectionId: META_SESSION_PK,
+            DataCategory: sessionMetaSortKey(sessionId)
+        })),
+        ProjectionFields: ['ConnectionId', 'DataCategory', 'connections', 'dropAfter', 'player'],
+        ConsistentRead: true
+    })
 }
