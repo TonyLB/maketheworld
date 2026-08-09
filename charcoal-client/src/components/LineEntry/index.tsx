@@ -1,17 +1,10 @@
 import React, { FunctionComponent, ReactElement, useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import {
-    Avatar,
     Box,
-    SpeedDial,
-    SpeedDialAction,
     Stack,
     TextField
 } from '@mui/material'
-import { blue } from '@mui/material/colors'
-import MapIcon from '@mui/icons-material/Explore'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 
 import {
     // getServerSettings,
@@ -94,57 +87,13 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ placeholder, callba
 
 interface EntryModeSpeedDialProps {}
 
-type EntryModeSpeedDialOptions = 'Map'
-
-const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = () => {
-    const { scopedId } = useActiveCharacter()
-    const navigate = useNavigate()
-    return <Box sx={{ position: "relative", width: "60px", height: "60px" }}>
-        <SpeedDial
-            ariaLabel="Extra Options"
-            sx={{ position: 'absolute', bottom: '10px', right: '0px' }}
-            FabProps={{ sx: { width: "40px", height: "40px" } }}        
-            icon={<MoreVertIcon fontSize='small' sx={{ width: "20px", height: "20px" }} />}
-        >
-            <SpeedDialAction
-                key="Map"
-                icon={<MapIcon />}
-                tooltipTitle={`Map`}
-                onClick={() => {
-                    navigate(`/Character/${scopedId}/Map/`)
-                }}
-            />
-        </SpeedDial>
-    </Box>
-}
-
 type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
 
 const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>((props, ref) => {
-    const { CharacterId, entryMode } = useActiveCharacter()
-    const navigate = useNavigate()
+    const { entryMode } = useActiveCharacter()
     switch(entryMode) {
         case 'Options':
-            return <Box sx={{
-                    background: (theme: any) => (theme.palette.extras.paleGradient),
-                    padding: '10px 15px 15px 15px',
-                    borderRadius: '15px',
-                    position: 'relative',
-                    marginRight: '10px',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    columnGap: '1em'
-                }}
-            >
-                <Avatar sx={{ width: 50, height: 50, bgcolor: blue[500] }}>
-                    <MapIcon
-                        sx={{ width:40, height: 50 }}
-                        onClick={() => {
-                            navigate(`/Character/${CharacterId.split('#')[1]}/Map/`)
-                        }}
-                    />
-                </Avatar>
-            </Box>
+            return null
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
                     <EntryField ref={ref} placeholder='What do you say?' {...props} />
@@ -191,7 +140,6 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
                         ? undefined
                         : <Stack direction="row">
                             <EntryModeRoller />
-                            <EntryModeSpeedDial />
                         </Stack>
                 }
                 rightGutter={160}

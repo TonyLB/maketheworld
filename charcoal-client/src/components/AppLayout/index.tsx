@@ -30,7 +30,6 @@ import CharacterSelectionModal from '../CharacterSelection'
 import MessagePanelSkeleton from '../Message/MessagePanelSkeleton'
 import CheckpointOverlay from '../Message/CheckpointOverlay'
 
-import MapView from '../Maps/View'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import Knowledge from '../Knowledge'
@@ -85,7 +84,6 @@ const CharacterRouterSwitch = ({ messagePanel }: any) => {
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={EphemeraId}>
         <Routes>
             <Route path={`Play`} element={messagePanel} />
-            <Route path={`Map/`} element={<MapView />} />
         </Routes>
     </ActiveCharacter>
 }

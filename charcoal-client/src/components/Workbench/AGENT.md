@@ -248,7 +248,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `CharacterEditor`; `StandardMap` components render `InDevelopment` --- see `MapEdit/` note below
 
 ---
 
@@ -361,7 +361,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `LensEdit/` | LensDetail (component session: shortName, description); **`LensMarkFacetsEditor`** + **`lensMarkFacetAccessors`** via **`FacetListSessionEditor`**; **`LensHeader`** (Room **`_lens`** session create/import/reference/remove) |
 | `WMLComponentHeader.tsx` | **Deprecated** --- unused Library migration artifact; not mounted. Do not import. |
 | `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
-| `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
+| `MapEdit/` | **Kept as prototype, not live** (2026-08-08) --- `WorkbenchAssetEditor` no longer routes to `MapEditor`; `StandardMap` components render `InDevelopment` instead. Unreferenced by any route, same as `Maps/View`/`Maps/Edit` under `charcoal-client/src/components/Maps/AGENT.md`. `MapEditor`, `MapArea`, `MapController`, `MapLayers`, `UnshownRooms` are a second, more fully-developed `MapDThree` integration (drag-to-position rooms, exit-drawing tool) than `Maps/View`'s read-only pattern --- deliberately retained, not an oversight. Do not sweep as dead code |
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |

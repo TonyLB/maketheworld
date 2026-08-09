@@ -16,7 +16,7 @@ import { LayeredContextView } from './foundations/LayeredContext'
 import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
 import SituationEditor from './SituationEdit/SituationEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
-import MapEditor from './MapEdit/MapEditor'
+import InDevelopment from '../InDevelopment'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
 import LensDetail from './LensEdit/LensDetail'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
@@ -62,7 +62,7 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
         
         if (component instanceof StandardMap) {
-            return <MapEditor />
+            return <InDevelopment />
         }
         
         if (component instanceof StandardCharacter) {

@@ -1,8 +1,9 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: IN PROGRESS (2026-08-08) --- D1-D6 all resolved. **Recommended order** steps 3-5 (Slice A
---- unreferenced leaves; Slice B --- `Explore`; Slice C --- `Home` + Library residue) are done. Next
-step: **Recommended order** step 6 (Slice D --- `Maps` de-wiring).
+**Status**: IN PROGRESS (2026-08-08) --- D1-D8 all resolved. **Recommended order** steps 3-6 (Slice A
+--- unreferenced leaves; Slice B --- `Explore`; Slice C --- `Home` + Library residue; Slice D --- `Maps`
+de-wiring) are done. Next step: **Recommended order** step 7 (Slice E --- `Knowledge` +
+`directResponse`).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -128,6 +129,7 @@ not a dead directory):
 | `Maps/Edit/MapDThree` | (bulk of `Maps`' 2889) | Functionally dead | **Reduced-to-practice D3 force-graph work.** Custom forces (cascade, bounding, grid-influence, exit-seeker, flex-link), an iterator/tree simulation architecture, and its own docs (`AGENT.d3.md`, `documentation/README.*`). Keep regardless of traffic |
 | `Maps/Edit/Area`, `Maps/Controller` | -- | Functionally dead | Rendering + gesture layer the D3 work is exercised through. Keep with `MapDThree` |
 | `Maps/View` | -- | Functionally dead | **Keep for its D3 integration pattern** (D1): `View` wires a read-only display through the *same* `Controller` + `Edit/Area` stack that `Edit` uses. That view/edit-share-one-simulation pattern is the reusable part. See **D6** for the `AssetPicker` entanglement |
+| `Workbench/MapEdit` (`MapEditor`, `MapArea`, `MapController`, `MapLayers`, `UnshownRooms`) | -- | **Unreferenced** (as of Slice D) | Missed by the original inventory sweep --- surfaced while tracing Slice D's nav removals. `WorkbenchAssetEditor` no longer routes `StandardMap` components here (D7); nothing else imports it. **Keep** (D8): a second, more fully-developed `MapDThree` integration than `Maps/View` (drag-to-position rooms, exit-drawing tool), deliberately retained rather than deleted. Documented in [`charcoal-client/src/components/Workbench/AGENT.md`](../../charcoal-client/src/components/Workbench/AGENT.md) |
 
 > **Correction to the working premise --- resolved by D1.** Map View/Edit is functionally dead (no map
 > ephemera flows), but it is **not** unwired, and the sweep must remove the wiring explicitly rather
@@ -202,6 +204,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | D4 | **Hard delete.** Git retains history; single dev instance, no external consumers | all | **Decided** |
 | D5 | **Yes** --- mark keep-for-prototype sections so the next sweep does not re-litigate them. Mechanism in step 8 | 8 | **Decided** |
 | D6 | `Maps/View` is Keep but imports the Discard'd `AssetPicker`. **Strip** `View`'s AssetPicker-dependent import-to-draft flow --- it is asset-import plumbing, not part of the D3 pattern being preserved. `AssetPicker` goes | 6 | **Decided** |
+| D7 | `WorkbenchAssetEditor.tsx`'s `StandardMap` branch (discovered while implementing slice 6, not in the original checklist): **remove** the branch --- render `<InDevelopment />` instead of `MapEditor`, rather than the generic blank-`Box` fallback other unmatched types get | 6 | **Decided; shipped** --- see [`Workbench/AGENT.md`](../../charcoal-client/src/components/Workbench/AGENT.md) |
+| D8 | Removing D7's branch makes `Workbench/MapEdit/` entirely unreferenced. **Keep it as a marked prototype** (like `Maps/View`), not delete it --- a second, more fully-developed `MapDThree` integration than `Maps/View`'s read-only one | 6 | **Decided; shipped** --- see [`Workbench/AGENT.md`](../../charcoal-client/src/components/Workbench/AGENT.md) and the Inventory "Keep" table above |
 
 **All decisions resolved.** No fork blocks any remaining slice.
 
@@ -225,14 +229,16 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
   - [X] Delete `src/components/Home`; remove `homePanel` prop threading through `AppController`/`AppLayout` and the `/index.html` route
   - [X] Confirm no remaining `navigate('/Library/')`; leave `libraryDataSource` and `zone === 'Library'` alone
   - [X] Verify
-- [ ] 6. **Slice D --- `Maps` de-wiring.** This slice removes *access*, keeping the prototype.
-  - [ ] Remove the three live nav call sites: `MessagePanel.tsx:48` (`map` command), `LineEntry/index.tsx:114` (SpeedDial), `LineEntry/index.tsx:143` (Options avatar)
-  - [ ] Remove the `/Character/:CharacterId/Map/` route from `AppLayout`'s `CharacterRouterSwitch`
-  - [ ] Delete `Maps/List` + `Maps/index.tsx` (`MapHome`) --- already unreferenced
-  - [ ] Strip `Maps/View`'s import-to-draft flow (D6): the `AssetPicker` import at `View/index.tsx:24` and its use at `:168`, plus whatever of `importOptions` / `onImportListItemClick` / `addImportToDraft` becomes unreachable. **Preserve** the `MapArea` + `MapDisplayController` wiring --- that is the pattern being kept
-  - [ ] Delete `src/components/AssetPicker`
-  - [ ] Decide the `WorkbenchAssetEditor.tsx:65` `StandardMap` branch: leaving it means the workbench still opens a dead editor for Map components
-  - [ ] Verify
+- [X] 6. **Slice D --- `Maps` de-wiring.** This slice removes *access*, keeping the prototype.
+  - [X] Remove the three live nav call sites: `MessagePanel.tsx:48` (`map` command), `LineEntry/index.tsx:114` (SpeedDial), `LineEntry/index.tsx:143` (Options avatar). Also removed the now-empty `EntryModeSpeedDial` (single-action SpeedDial with nothing left in it) and collapsed the `'Options'` entry-mode case to `return null`
+  - [X] Remove the `/Character/:CharacterId/Map/` route from `AppLayout`'s `CharacterRouterSwitch`
+  - [X] Delete `Maps/List` + `Maps/index.tsx` (`MapHome`) --- already unreferenced
+  - [X] Strip `Maps/View`'s import-to-draft flow (D6): the `AssetPicker` import and its use, plus `importOptions` / `onImportListItemClick` / `onClick` / `open`/`setOpen` / `ref` / `firstDraftAsset*` / `getMyDraftAssets`. **Preserved** the `MapArea` + `MapDisplayController` wiring and `useOnboardingCheckpoint('openMap', ...)`
+  - [X] Delete `src/components/AssetPicker`
+  - [X] `WorkbenchAssetEditor.tsx:65` `StandardMap` branch --- **removed** (D7): renders `<InDevelopment />` instead of `MapEditor`
+  - [X] Removed the now-dangling `MapEditor` re-export from `Workbench/index.ts`; documented `Workbench/MapEdit/` in `Workbench/AGENT.md` as a kept-not-live prototype (D8)
+  - [X] Verify: `npm run test:single` (97 files / 776 tests, unchanged from baseline) + `npx tsc --noEmit` (pre-existing unrelated errors only, confirmed via `git stash` diff)
+  - Explicitly **out of scope** (investigated, deferred by user decision): the `pageMapView`/`pageDraftMap`/`pageDraftExit`/`pageDraftRoom` onboarding tutorial content in `checkpoints.tsx` still walks a user through the removed flow; it is Skip/Back/Home-escapable so no one gets stuck, just permanently skip-only. Not touched this slice
 - [ ] 7. **Slice E --- `Knowledge` + `directResponse`** (D3). **Cross-package; land the client before the lambda.**
   - [ ] Client: delete `src/components/Knowledge`, its `/Knowledge/` routes, and the `perceptionCache` comment at `index.ts:24`
   - [ ] Interfaces: drop `directResponse` from `mtw-interfaces/ts/ephemera.ts:92`

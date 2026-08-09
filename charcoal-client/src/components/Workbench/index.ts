@@ -15,7 +15,6 @@ export type {
 export { WorkbenchAssetEditor } from './WorkbenchAssetEditor'
 export { default as AssetEditForm } from './WorkbenchAssetEditForm'
 export { default as CharacterEditor } from './CharacterEdit/CharacterEditor'
-export { default as MapEditor } from './MapEdit/MapEditor'
 export { MapContext, useMapContext } from './MapEdit/MapController'
 export { default as WorkbenchTitledBox } from './WorkbenchTitledBox'
 export { createWorkbenchTheme, useWorkbenchTheme, workbenchTheme } from './workbenchTheme'
