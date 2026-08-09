@@ -1,9 +1,9 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: IN PROGRESS (2026-08-08) --- D1-D8 all resolved. **Recommended order** steps 3-7 (Slice A
+**Status**: IN PROGRESS (2026-08-08) --- D1-D8 all resolved. **Recommended order** steps 3-8 (Slice A
 --- unreferenced leaves; Slice B --- `Explore`; Slice C --- `Home` + Library residue; Slice D --- `Maps`
-de-wiring; Slice E --- `Knowledge` + `directResponse`) are done. Next step: **Recommended order**
-step 8 (prototype markers, D5).
+de-wiring; Slice E --- `Knowledge` + `directResponse`; prototype markers) are done. Next step:
+**Recommended order** step 9 (durable doc pass).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -247,7 +247,7 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
   - [X] **Guard:** leave all general `SESSION#` targeting machinery intact --- see the scoping guard above
   - [X] Verify client (`npm run test:single`) **and** the full ephemera suite, including `*.integration.test.ts`, which sit outside `tsconfig` and are not covered by `tsc`
   - Explicitly **out of scope** (found while implementing, same shape as the Slice D Maps-tutorial deferral): `Onboarding/checkpoints.tsx`'s `pageTemporaryTabs` sub-items `navigateKnowledge` and `knowledgeDetail` walk the user through the now-deleted Knowledge tab; their `useOnboardingCheckpoint` calls lived only in the deleted `Knowledge/index.tsx`, so those checkpoints are simply unreachable now. This tutorial page already referenced a deleted "Home" tab and "Explore" section from Slices B/C. Skip/Back/Home-escapable, so not touched this slice --- left for the same future onboarding-content cleanup as the Maps tutorial pages
-- [ ] 8. **Prototype markers** (D5). Add a short "Kept as prototype --- not live" header to [`src/components/Maps/AGENT.md`](../../charcoal-client/src/components/Maps/AGENT.md) stating what is preserved (D3 force-graph art; the view/edit-shared-simulation pattern), that no route reaches it, and that it should not be swept as an orphan. Do the same for `Settings` (kept by intent, awaiting a spine affordance) so the next reader does not re-litigate either.
+- [X] 8. **Prototype markers** (D5). Add a short "Kept as prototype --- not live" header to [`src/components/Maps/AGENT.md`](../../charcoal-client/src/components/Maps/AGENT.md) stating what is preserved (D3 force-graph art; the view/edit-shared-simulation pattern), that no route reaches it, and that it should not be swept as an orphan. Do the same for `Settings` (kept by intent, awaiting a spine affordance) so the next reader does not re-litigate either.
 - [ ] 9. **Durable doc pass.** [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) still documents the pre-refactor world --- Library routes, tab navigation, and a `/Library/Edit/Asset/:AssetId/*` routing table that no longer exists. Rewrite its routing and mode sections to match the spine. **This is the step that must not be skipped** --- with step 8 it is the only part of this plan that outlives the plan.
 - [ ] 10. **Delete this planning file.**
 
