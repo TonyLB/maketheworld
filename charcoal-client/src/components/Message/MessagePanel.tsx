@@ -14,7 +14,6 @@ import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { OnboardingKey } from '../Onboarding/checkpoints'
 import { getPlayer } from '../../slices/player'
-import { useNavigate } from 'react-router-dom'
 import { openWorkbench } from '../../slices/UI/workbench'
 import { openThinkingDashboard } from '../../slices/UI/thinkingDashboard'
 import { putClientSettings } from '../../slices/settings'
@@ -22,8 +21,7 @@ import { setForceCharacterSelection } from '../../slices/UI/playSpine'
 
 export const MessagePanel: FunctionComponent<{}> = () => {
     const dispatch = useDispatch()
-    const navigate = useNavigate()
-    const { CharacterId, scopedId } = useActiveCharacter()
+    const { CharacterId } = useActiveCharacter()
     // Removed useAutoPin - tab navigation removed
     useOnboardingCheckpoint('navigatePlay')
     useOnboardingCheckpoint('navigateInPlayEdit', { requireSequence: true })
@@ -44,12 +42,9 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         if (mode in modeMapping) {
             dispatch(addOnboardingComplete([modeMapping[mode]]))
         }
-        if (mode === 'Command' && entry.toLowerCase().trim() === 'map') {
-            navigate(`/Character/${scopedId}/Map/`)
-        }
         // Development-only: Magic word "edit" to open workbench for testing
         // TODO: Remove when Phase 3 entry ritual is implemented
-        else if (mode === 'Command' && entry.toLowerCase().trim() === 'edit') {
+        if (mode === 'Command' && entry.toLowerCase().trim() === 'edit') {
             dispatch(openWorkbench())
         }
         else if (mode === 'Command' && entry.toLowerCase().trim() === '/dashboard') {
@@ -59,7 +54,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
             dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
         }
         return true
-    }, [dispatch, CharacterId, scopedId, navigate])
+    }, [dispatch, CharacterId])
     return (
         <>
             <Box sx={{
