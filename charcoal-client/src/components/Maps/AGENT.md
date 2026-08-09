@@ -4,9 +4,9 @@
 
 No route reaches this tree today. The `/Character/:CharacterId/Map/` route and all live nav call
 sites into it (the `map` command, the LineEntry SpeedDial map action, the Options-mode map avatar)
-were removed in the client UI inventory sweep
-([`taskPlanning/charcoal-client/AGENT.uiInventory.planning.md`](../../../../../taskPlanning/charcoal-client/AGENT.uiInventory.planning.md),
-D1/D6). This is deliberate retention, not an oversight --- do **not** sweep it as an orphan in a
+were removed in the client UI inventory sweep, because `Maps` is functionally dead --- no map
+ephemera flows reach it --- while its D3 force-graph work below is reduced-to-practice art worth
+keeping. This is deliberate retention, not an oversight --- do **not** sweep it as an orphan in a
 future dead-code pass.
 
 What's preserved:

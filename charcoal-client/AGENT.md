@@ -4,15 +4,17 @@
 
 ## Overview
 
-The Charcoal Client is a React-based frontend that provides users with two distinct modes of interaction with the Make The World collaborative storytelling platform:
+The Charcoal Client is a React-based frontend for the Make The World collaborative storytelling
+platform, built around a single **play spine** (the always-present character transcript at `/`)
+with **authoring** reached through a Workbench overlay rather than a separate routed mode:
 
-1. **Authoring Mode**: Creating, editing, and managing world content
-2. **Playing Mode**: Experiencing the world through character perspectives
+1. **Authoring**: Creating, editing, and managing world content via the Workbench overlay
+2. **Playing**: Experiencing the world through the play spine, filtered by character perspective
 
 ### Key Concepts
 
 - **Component identity (authoring)**: List rows, navigation, and `byUniversalId` use `ComponentUUID` (`ref.universalKey`); reference list remove/match uses `StandardReference.sameKey`. Labels use `componentDisplayLabel` only. See [Workbench AGENT.md](src/components/Workbench/AGENT.md#component-identity-client).
-- **Dual Mode Architecture**: Clear separation between authoring capabilities and character-based gameplay
+- **Spine + Overlay Architecture**: The play spine is the root surface; authoring opens as a Workbench overlay over it, driven by Redux state rather than routing
 - **Character-Centric Play**: All in-game interaction happens through character context
 - **Asset-Based Authoring**: World building through structured asset creation and editing
 - **Real-Time Messaging**: WebSocket-based communication for live storytelling
@@ -35,43 +37,44 @@ The Charcoal Client is a React-based frontend that provides users with two disti
 
 ## User Experience Modes
 
-The client implements the fundamental architectural distinction between authoring and playing contexts. This dual-mode design reflects the core [Architectural Philosophy](../AGENT.architecture.philosophy.md) of perception-driven processing and is supported by the backend [Event Architecture](../AGENT.architecture.events.md).
+The client is anchored on a single **play spine** (routed at `/`): exactly one worldview, one
+scrolling transcript, always present. Authoring is not a separate route tree — it is a
+**Workbench overlay** opened from within the play spine, driven by Redux state rather than
+navigation. The client still distinguishes authoring information (structure, WML, admin) from
+playing information (character-filtered fiction), and that distinction reflects the core
+[Architectural Philosophy](../AGENT.architecture.philosophy.md) of perception-driven processing
+and is supported by the backend [Event Architecture](../AGENT.architecture.events.md) — but the
+two are no longer separate routed "modes" a user switches between.
 
-### 🎨 **Authoring Mode - Collaborative Creator**
+### 🎨 **Authoring - Workbench Overlay**
 
-In authoring mode, users work as **collaborating authors** to create and extend the world. This mode provides:
+Authoring happens through the **Workbench**, an always-mounted overlay (`WorkbenchContainer` in
+`AppLayout`) opened via `dispatch(openWorkbench())` from the play spine (e.g.
+`Message/MessagePanel.tsx`) rather than through a route. See
+[`src/components/Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for the breadcrumb
+navigation, component editing session model, and StandardForm mutation patterns — that document
+is the authority for how authoring actually works today.
 
 **Information Scope:**
 - Full access to underlying world structure and data
-- Visibility into WML markup and asset relationships  
+- Visibility into WML markup and asset relationships
 - Administrative capabilities within granted permissions
 - Meta-information about how content should be rendered in fiction
 
-**Primary Components:**
-- **Library System** (`/Library/`): Browse and manage personal and shared assets
-- **Asset Editor** (`/Library/Edit/Asset/:AssetId/*`): Comprehensive WML editing interface
-- **Character Editor** (`/Library/Edit/Character/:AssetId/*`): Character creation and management
-- **Map Editor**: Visual map creation and room/exit management
-- **WML Editor**: Direct markup editing with syntax highlighting
-
-**Routing Patterns:**
-```
-/Library/                           - Asset browser and management
-/Library/Edit/Asset/:AssetId/*      - Asset editing interface  
-/Library/Edit/Character/:AssetId/*  - Character editing
-/Draft/*                           - Draft asset editing
-```
-
 **Key Features:**
-- Direct WML manipulation and editing
-- Asset version control and collaboration
-- Administrative permission management
+- Form-based WML editing (breadcrumb-navigated component sessions, not raw markup by default)
+- Draft-centric editing; read-only behavior for published assets
 - Cross-asset dependency tracking
-- Structured content creation tools
 
-### 🎭 **Playing Mode - Character Perspective**
+**Kept-not-live prototypes:** a separate, more fully-developed map editor lives at
+`Workbench/MapEdit/` (drag-to-position rooms, exit-drawing) and is intentionally retained even
+though nothing currently routes to it — see
+[`Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for why.
 
-In playing mode, users experience the world **through the lens of their character**, maintaining narrative immersion:
+### 🎭 **Playing - Play Spine**
+
+The play spine renders the world **through the lens of the active character**, maintaining
+narrative immersion. It is the client's root surface (`/`), not one tab among several.
 
 **Information Scope:**
 - World information filtered through character's perspective and knowledge
@@ -80,17 +83,17 @@ In playing mode, users experience the world **through the lens of their characte
 - Character-limited permissions and sensory access
 
 **Primary Components:**
+- **Play Spine Root** (`/`): auto-selects a character when there is exactly one option, otherwise
+  shows a character-selection modal; renders the message panel once a character is active
 - **Active Character Context** (`/Character/:CharacterId/*`): Character-scoped interaction
 - **Message Panel** (`/Character/:CharacterId/Play`): Live messaging and interaction
-- **Character Map View** (`/Character/:CharacterId/Map/`): In-character map navigation
 - **Thinking jobs dashboard** (operator overlay): Command **`/dashboard`** in play opens completed jobs (**`thinkingJobs`**) and per-segment result detail (**`thinkingResults`** / **`fetchThinkingResult`**). See [`src/components/ThinkingDashboard/AGENT.md`](src/components/ThinkingDashboard/AGENT.md).
 - **Perception System**: Character-filtered world information
 
-**Routing Patterns:**
-```
-/Character/:CharacterId/Play        - Character messaging interface
-/Character/:CharacterId/Map/        - Character map view
-```
+Note: there is no character-scoped map route. In-character map navigation was de-wired (the `map`
+command, SpeedDial, and Options-mode avatar entry points were removed) because `Maps` is
+functionally dead — kept only as a D3 force-graph prototype. See
+[`src/components/Maps/AGENT.md`](src/components/Maps/AGENT.md).
 
 **Message Types & Perspective:**
 - **`SayMessage`**: Character dialogue and speech
@@ -159,23 +162,31 @@ The client maintains persistent WebSocket connections that serve different purpo
 
 ### Routing Structure
 
-The application uses React Router to enforce the authoring/playing distinction:
+There is exactly one root surface, `/`, which renders the play spine. Everything else is reached
+by explicit in-app navigation or a typed URL. The full route table, from
+[`src/components/AppLayout/index.tsx`](src/components/AppLayout/index.tsx):
 
 ```typescript
-// Authoring routes - full world access
-<Route path="/Library/" element={<Library />} />
-<Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-<Route path="/Draft/*" element={<EditAsset />} />
-
-// Playing routes - character-scoped access  
-<Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch />} />
+<Route path="/SignIn" element={signInOrUp} />
+<Route path="/Character/Archived" element={<InDevelopment />} />
+<Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+<Route path="/Who/" element={whoPanel} />
+<Route path="/Settings/" element={settingsPanel} />
+<Route path="/" element={<PlaySpineRoot messagePanel={messagePanel} />} />
 ```
+
+`CharacterRouterSwitch` adds one nested route, `Play`, inside the `ActiveCharacter` context.
+
+**The Workbench overlay is not a route.** It is always mounted in `AppLayout` and toggled by Redux
+state (`slices/UI/workbench`), so authoring can open over the play spine regardless of the current
+URL. `Settings` is routed (`/Settings/`) but URL-only today — nothing in the live UI navigates to
+it yet; see [`Settings/AGENT.md`](src/components/Settings/AGENT.md).
 
 ### Context Providers
 
-**LibraryAsset Context** (Authoring):
-- Asset-level state management
-- WML editing capabilities
+**Workbench state** (Authoring, Redux + `WorkbenchComponentProvider`/`useWorkbenchComponent`):
+- Asset-level state management (`useWorkbenchAsset`), see [`Workbench/AGENT.md`](src/components/Workbench/AGENT.md)
+- WML editing via `StandardForm` mutation
 - Cross-asset relationship tracking
 - Administrative permissions
 
@@ -187,10 +198,10 @@ The application uses React Router to enforce the authoring/playing distinction:
 
 ### State Management
 
-- **Author State**: Asset editing, WML manipulation, permissions
+- **Author State**: Workbench overlay open/asset id (`slices/UI/workbench`), component editing sessions
 - **Character State**: Character information, location, available actions
 - **Message State**: Real-time communication with character filtering
-- **Navigation State**: Tab management for multiple contexts
+- **Navigation State**: Route state for the play spine and character context; the Workbench overlay is state-driven, not route-driven
 
 ## Integration Points
 
@@ -222,22 +233,24 @@ The application uses React Router to enforce the authoring/playing distinction:
 ### Authoring Workflow
 
 ```typescript
-// 1. Navigate to Library
-navigate('/Library/')
+// 1. Open the Workbench overlay from the play spine (not a route navigation)
+dispatch(openWorkbench())
 
-// 2. Select or create asset
-navigate('/Library/Edit/Asset/MyAsset/')
-
-// 3. Edit WML content
+// 2. Edit WML content via a component session (see Workbench/AGENT.md
+//    for the working-copy / debounced-flush two-tier model)
 updateStandard({ type: 'update', update: (draft) => {
     // Modify StandardForm structure
     return draft
 }})
 
-// 4. Add components (rooms, features, etc.)
+// 3. Add components (rooms, features, etc.)
 const component = standardComponentFactory({ tag: 'Room', key: 'Room1' })
 draft._components = [...draft._components, component]
 ```
+
+See [`Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for the full API contract:
+breadcrumb stack navigation, `useWorkbenchComponent` / `useWorkbenchAssetMeta` sessions, and the
+consistency layer that reconciles local drafts with `standardForm`.
 
 ### Playing Workflow  
 
@@ -277,11 +290,10 @@ case 'SayMessage':
 
 ### Getting Started - Authoring Mode
 
-1. **Workbench (Form-Based)**: See [`src/components/Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for the overlay authoring interface, breadcrumb navigation, and component editing patterns
-2. **Library Overview**: Start at [`src/components/Library/index.tsx`](src/components/Library/index.tsx)
-3. **Asset Editing**: Examine [`src/components/Library/Edit/EditAsset.tsx`](src/components/Library/Edit/EditAsset.tsx)
-4. **WML Integration**: Review [`src/components/Library/Edit/WMLEdit.tsx`](src/components/Library/Edit/WMLEdit.tsx)
-5. **Component Creation**: Study [`src/components/Library/Edit/WMLComponentDetail.tsx`](src/components/Library/Edit/WMLComponentDetail.tsx)
+1. **Workbench (Form-Based)**: See [`src/components/Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for the overlay authoring interface, breadcrumb navigation, and component editing patterns — this is the only authoring surface today
+2. **Overlay entry point**: [`src/components/AppLayout/index.tsx`](src/components/AppLayout/index.tsx) — `WorkbenchContainer` wiring
+3. **Opening the overlay**: [`src/components/Message/MessagePanel.tsx`](src/components/Message/MessagePanel.tsx) — `dispatch(openWorkbench())`
+4. **Component editing**: Study `useWorkbenchComponent` and `useWorkbenchAssetMeta`, documented in [`Workbench/AGENT.md`](src/components/Workbench/AGENT.md)
 
 ### Getting Started - Playing Mode
 
@@ -300,24 +312,26 @@ case 'SayMessage':
 
 ### Current State
 
-- **Dual Mode Support**: Complete separation between authoring and playing contexts
+- **Play-Spine-Anchored**: A single always-present play spine at `/`, with authoring as a Workbench overlay rather than a competing route tree (the chat-spine refactor; see [`AGENT.chatSpine.planning.md`](AGENT.chatSpine.planning.md) for the "Current System State" it replaced)
 - **Character Perspective**: Full character-scoped information filtering
 - **Real-Time Messaging**: WebSocket-based live communication
-- **Asset Management**: Comprehensive content creation and editing tools
+- **Asset Management**: Comprehensive content creation and editing tools via the Workbench overlay
 - **WML Integration**: Full support for world markup language processing
+- **Orphaned pre-refactor surfaces removed**: `Explore`, `Home`, `Knowledge`, `Library`, and unreferenced legacy components were swept out; `Maps` and `Workbench/MapEdit/` are deliberately kept as unwired D3 prototypes (see [`Maps/AGENT.md`](src/components/Maps/AGENT.md), [`Workbench/AGENT.md`](src/components/Workbench/AGENT.md))
 
 ### Architecture Strengths
 
-- **Clear Separation**: Authoring and playing modes are architecturally distinct
+- **Single Worldview**: The play spine never shows more than one worldview at a time
 - **Character Immersion**: Playing mode maintains strict character perspective
 - **Real-Time Capability**: Live updates without breaking immersion
 - **Collaborative Tools**: Multi-user content creation and editing
+- **Overlay Authoring**: Workbench can open over the play spine without a route change, preserving context
 
 ### Areas for Continued Development
 
 - **Mobile Optimization**: Enhanced responsive design for authoring tools
 - **Performance**: Large asset handling and real-time optimization
-- **User Experience**: Streamlined transitions between authoring and playing modes
+- **User Experience**: Streamlined transitions between the play spine and the Workbench overlay
 - **Accessibility**: Enhanced support for assistive technologies
 - **Documentation**: Continued expansion of component and pattern documentation
 
@@ -334,4 +348,4 @@ case 'SayMessage':
   - Accessibility enhancements
   - Integration with the broader StandardExit API patterns
 
-This documentation will continue to evolve as the client system grows and new patterns emerge. The fundamental distinction between authoring and playing modes remains central to the user experience design.
+This documentation will continue to evolve as the client system grows and new patterns emerge. The fundamental distinction between authoring and playing information scope remains central to the user experience design, even though both are now reached through one spine-anchored surface rather than separate routed modes.
