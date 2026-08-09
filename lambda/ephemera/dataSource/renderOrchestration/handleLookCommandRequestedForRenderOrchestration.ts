@@ -105,9 +105,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
 
     if (isEphemeraFeatureId(componentId) || isEphemeraKnowledgeId(componentId)) {
         const prepared = await prepareFeatureKnowledgeRenderForCharacter(characterId, componentId)
-        const targets: PublishTarget[] = payload.directResponse
-            ? [`SESSION#${await internalCache.Global.get('SessionId')}` as PublishTarget]
-            : [characterId]
+        const targets: PublishTarget[] = [characterId]
         await registerLookSlot(
             messageBus,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets, contentStream: 'render', format: 'full' },

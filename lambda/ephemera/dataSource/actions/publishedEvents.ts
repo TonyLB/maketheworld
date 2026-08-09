@@ -183,8 +183,6 @@ export type LookCommandRequestedPublishedPayload = {
     /** Room, Feature, Knowledge, Object (stub, shortName only --- see PK-6), or Character host for this look. */
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId;
     confidence: number;
-    /** When true on Knowledge looks, fan-in targets SESSION#... */
-    directResponse?: boolean;
 }
 
 /** One catalog line on the bus; aligns with Objects Change add row (EphemeraMetaRoomObject) minus uuid. */
@@ -424,9 +422,6 @@ export const isLookCommandRequestedPublishedPayload = (
         && !isEphemeraObjectId(v.componentId)
         && !isEphemeraCharacterId(v.componentId)
     ) {
-        return false
-    }
-    if (v.directResponse !== undefined && typeof v.directResponse !== 'boolean') {
         return false
     }
     if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {

@@ -241,7 +241,6 @@ export const handler = async (event: any, context: any) => {
                             type: 'LookComponent',
                             componentId: request.to,
                             confidence: 1,
-                            ...(request.directResponse ? { directResponse: true } : {}),
                         },
                         source: 'link',
                     })

@@ -491,7 +491,7 @@ async function handleFeatureKnowledgeOrchestrationErrorOrDeferred(
 
 /**
  * Object description fan-in: single-viewer, terminal-only-once, mirrors handleFeatureKnowledge*'s
- * featureDescription arm exactly (no directResponse/SESSION# targeting --- Object has no such
+ * featureDescription arm exactly (no SESSION# targeting --- Object has no such
  * concept). Object rides the real `ensureAuthoredCatalog` (Phase 4) same as Feature/Knowledge/
  * Character, so `renderedContent` here may have no authored `SITUATION#DEFAULT` facet yet; resolve
  * the object's own live shortName as a fallback so it never renders nameless.
@@ -567,7 +567,7 @@ async function handleObjectOrchestrationErrorOrDeferred(payload: ErrorLikePayloa
 
 /**
  * Character fan-in: single-viewer, terminal-only-once, mirrors `handleObjectRenderPertains`'s
- * trio shape exactly (no directResponse/SESSION# targeting --- Character has no such concept).
+ * trio shape exactly (no SESSION# targeting --- Character has no such concept).
  * Unlike Object, Character has real `render` content, so it builds its WML via
  * `characterRenderWmlFromCacheRecord` instead of the shortName-only Object builder.
  */

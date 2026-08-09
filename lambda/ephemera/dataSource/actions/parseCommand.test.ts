@@ -468,7 +468,6 @@ describe('parseCommand type guards', () => {
             type: 'LookComponent',
             componentId: 'KNOWLEDGE#1' as const,
             confidence: 1,
-            directResponse: true,
         })).toBe(true)
         expect(isParseCommandLookComponentResult({
             type: 'LookComponent',
@@ -484,12 +483,6 @@ describe('parseCommand type guards', () => {
             type: 'LookComponent',
             componentId: 'ROOM#1' as EphemeraRoomId,
             confidence: 1.5,
-        })).toBe(false)
-        expect(isParseCommandLookComponentResult({
-            type: 'LookComponent',
-            componentId: 'KNOWLEDGE#1' as const,
-            confidence: 1,
-            directResponse: 'yes' as unknown as boolean,
         })).toBe(false)
     })
 

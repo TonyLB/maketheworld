@@ -1,5 +1,27 @@
 # Maps Components - Agent Navigation Guide
 
+## Kept as prototype --- not live
+
+No route reaches this tree today. The `/Character/:CharacterId/Map/` route and all live nav call
+sites into it (the `map` command, the LineEntry SpeedDial map action, the Options-mode map avatar)
+were removed in the client UI inventory sweep, because `Maps` is functionally dead --- no map
+ephemera flows reach it --- while its D3 force-graph work below is reduced-to-practice art worth
+keeping. This is deliberate retention, not an oversight --- do **not** sweep it as an orphan in a
+future dead-code pass.
+
+What's preserved:
+
+- **`MapDThree`** --- reduced-to-practice D3.js force-graph work: custom forces (cascade, bounding,
+  grid-influence, exit-seeker, flex-link), an iterator/tree simulation architecture. See
+  [`AGENT.d3.md`](AGENT.d3.md).
+- **`View` + `Controller` + `Edit/Area`** --- the view/edit-shared-simulation integration pattern:
+  `View` wires a read-only display through the same `Controller` + `Edit/Area` stack that `Edit`
+  uses. That pattern, not the specific UI, is the reusable part.
+
+A second, more fully-developed `MapDThree` integration (drag-to-position rooms, exit-drawing tool)
+is kept in `Workbench/MapEdit/` --- see
+[`Workbench/AGENT.md`](../Workbench/AGENT.md) for that half.
+
 ## Overview
 
 The Maps components provide visual map creation, editing, and viewing capabilities for the Make The World platform. This system handles both authoring (map creation/editing) and playing (character map navigation) contexts, with a primary focus on **conflict resolution and layer management** for maps that combine content from multiple asset layers.

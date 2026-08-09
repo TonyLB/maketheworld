@@ -380,7 +380,7 @@ describe('app handler', () => {
             )
         })
 
-        it('routes knowledge link to sendActionAssessed LookComponent with directResponse', async () => {
+        it('routes knowledge link to sendActionAssessed LookComponent', async () => {
             await handler(
                 {
                     requestContext: { connectionId: 'test-connection' },
@@ -388,7 +388,6 @@ describe('app handler', () => {
                         message: 'link',
                         CharacterId: 'CHARACTER#abc',
                         to: 'KNOWLEDGE#lore',
-                        directResponse: true,
                     }),
                 },
                 {}
@@ -403,7 +402,6 @@ describe('app handler', () => {
                         type: 'LookComponent',
                         componentId: 'KNOWLEDGE#lore',
                         confidence: 1,
-                        directResponse: true,
                     },
                     source: 'link',
                 }

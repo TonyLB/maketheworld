@@ -177,8 +177,6 @@ export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
     confidence: ParseCommandConfidence
-    /** When true on Knowledge looks, fan-in targets SESSION#... */
-    directResponse?: boolean
 }
 
 /** Trusted UI speech (Say / Narrate / OOC). Not produced by Bedrock parse. */
@@ -483,9 +481,6 @@ export function isParseCommandLookComponentResult(
         && !isEphemeraObjectId(result.componentId)
         && !isEphemeraCharacterId(result.componentId)
     ) {
-        return false
-    }
-    if (result.directResponse !== undefined && typeof result.directResponse !== 'boolean') {
         return false
     }
     return isParseConfidence(result.confidence)

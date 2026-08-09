@@ -857,7 +857,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockSendRenderRequested).not.toHaveBeenCalled()
         })
 
-        it('streams Look Command Requested for knowledge with directResponse', async () => {
+        it('streams Look Command Requested for knowledge component', async () => {
             const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -874,7 +874,6 @@ describe('ephemeraActionsDataSource', () => {
                             type: 'LookComponent' as const,
                             componentId: 'KNOWLEDGE#lore' as const,
                             confidence: 1,
-                            directResponse: true,
                         },
                         source: 'link' as const,
                     }),
@@ -891,7 +890,6 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     componentId: 'KNOWLEDGE#lore',
                     confidence: 1,
-                    directResponse: true,
                 },
             })
         })
