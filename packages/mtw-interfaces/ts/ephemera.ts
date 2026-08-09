@@ -89,7 +89,6 @@ export type LinkAPIMessage = {
     message: 'link';
     to: EphemeraFeatureId | EphemeraCharacterId | EphemeraKnowledgeId;
     CharacterId?: EphemeraCharacterId;
-    directResponse?: boolean;
 }
 
 export type CommandAPIMessage = {

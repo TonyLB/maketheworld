@@ -1,9 +1,9 @@
 # Client UI Inventory and Obsolete-Code Sweep
 
-**Status**: IN PROGRESS (2026-08-08) --- D1-D8 all resolved. **Recommended order** steps 3-6 (Slice A
+**Status**: IN PROGRESS (2026-08-08) --- D1-D8 all resolved. **Recommended order** steps 3-7 (Slice A
 --- unreferenced leaves; Slice B --- `Explore`; Slice C --- `Home` + Library residue; Slice D --- `Maps`
-de-wiring) are done. Next step: **Recommended order** step 7 (Slice E --- `Knowledge` +
-`directResponse`).
+de-wiring; Slice E --- `Knowledge` + `directResponse`) are done. Next step: **Recommended order**
+step 8 (prototype markers, D5).
 
 **Framework**: [`taskPlanning/AGENT.md`](../AGENT.md) --- durability tiers and what belongs here vs in
 package docs. This plan is disposable; anything worth keeping after the sweep moves into
@@ -239,13 +239,14 @@ the parent. Each numbered step is intended to be a **separately reviewable commi
   - [X] Removed the now-dangling `MapEditor` re-export from `Workbench/index.ts`; documented `Workbench/MapEdit/` in `Workbench/AGENT.md` as a kept-not-live prototype (D8)
   - [X] Verify: `npm run test:single` (97 files / 776 tests, unchanged from baseline) + `npx tsc --noEmit` (pre-existing unrelated errors only, confirmed via `git stash` diff)
   - Explicitly **out of scope** (investigated, deferred by user decision): the `pageMapView`/`pageDraftMap`/`pageDraftExit`/`pageDraftRoom` onboarding tutorial content in `checkpoints.tsx` still walks a user through the removed flow; it is Skip/Back/Home-escapable so no one gets stuck, just permanently skip-only. Not touched this slice
-- [ ] 7. **Slice E --- `Knowledge` + `directResponse`** (D3). **Cross-package; land the client before the lambda.**
-  - [ ] Client: delete `src/components/Knowledge`, its `/Knowledge/` routes, and the `perceptionCache` comment at `index.ts:24`
-  - [ ] Interfaces: drop `directResponse` from `mtw-interfaces/ts/ephemera.ts:92`
-  - [ ] Lambda: unwind `app.ts:244`, `actions/index.ts:437`, `actions/baseClasses.ts:181,488`, `actions/publishedEvents.ts:187,429`, and the `handleLookCommandRequestedForRenderOrchestration.ts:108-109` targeting branch
-  - [ ] Reword (do not delete) the doc comments that cite `directResponse` as a contrast case
-  - [ ] **Guard:** leave all general `SESSION#` targeting machinery intact --- see the scoping guard above
-  - [ ] Verify client (`npm run test:single`) **and** the full ephemera suite, including `*.integration.test.ts`, which sit outside `tsconfig` and are not covered by `tsc`
+- [X] 7. **Slice E --- `Knowledge` + `directResponse`** (D3). **Cross-package; land the client before the lambda.**
+  - [X] Client: delete `src/components/Knowledge`, its `/Knowledge/` routes, and the `perceptionCache` comment at `index.ts:24`
+  - [X] Interfaces: drop `directResponse` from `mtw-interfaces/ts/ephemera.ts:92`
+  - [X] Lambda: unwind `app.ts:244`, `actions/index.ts:437`, `actions/baseClasses.ts:181,488`, `actions/publishedEvents.ts:187,429`, and the `handleLookCommandRequestedForRenderOrchestration.ts:108-109` targeting branch
+  - [X] Reword (do not delete) the doc comments that cite `directResponse` as a contrast case
+  - [X] **Guard:** leave all general `SESSION#` targeting machinery intact --- see the scoping guard above
+  - [X] Verify client (`npm run test:single`) **and** the full ephemera suite, including `*.integration.test.ts`, which sit outside `tsconfig` and are not covered by `tsc`
+  - Explicitly **out of scope** (found while implementing, same shape as the Slice D Maps-tutorial deferral): `Onboarding/checkpoints.tsx`'s `pageTemporaryTabs` sub-items `navigateKnowledge` and `knowledgeDetail` walk the user through the now-deleted Knowledge tab; their `useOnboardingCheckpoint` calls lived only in the deleted `Knowledge/index.tsx`, so those checkpoints are simply unreachable now. This tutorial page already referenced a deleted "Home" tab and "Explore" section from Slices B/C. Skip/Back/Home-escapable, so not touched this slice --- left for the same future onboarding-content cleanup as the Maps tutorial pages
 - [ ] 8. **Prototype markers** (D5). Add a short "Kept as prototype --- not live" header to [`src/components/Maps/AGENT.md`](../../charcoal-client/src/components/Maps/AGENT.md) stating what is preserved (D3 force-graph art; the view/edit-shared-simulation pattern), that no route reaches it, and that it should not be swept as an orphan. Do the same for `Settings` (kept by intent, awaiting a spine affordance) so the next reader does not re-litigate either.
 - [ ] 9. **Durable doc pass.** [`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md) still documents the pre-refactor world --- Library routes, tab navigation, and a `/Library/Edit/Asset/:AssetId/*` routing table that no longer exists. Rewrite its routing and mode sections to match the spine. **This is the step that must not be skipped** --- with step 8 it is the only part of this plan that outlives the plan.
 - [ ] 10. **Delete this planning file.**

@@ -32,7 +32,6 @@ import CheckpointOverlay from '../Message/CheckpointOverlay'
 
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
-import Knowledge from '../Knowledge'
 import { OnboardingPanel } from '../Onboarding'
 import { getClientSettings, getCurrentCharacterId } from '../../slices/settings'
 import { getForceCharacterSelection, setForceCharacterSelection } from '../../slices/UI/playSpine'
@@ -215,8 +214,6 @@ export const AppLayout = ({ whoPanel, settingsPanel, messagePanel, onboardingPan
             <Route path="/SignIn" element={signInOrUp} />
             <Route path="/Character/Archived" element={<InDevelopment />} />
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-            <Route path="/Knowledge/" element={<Knowledge />} />
-            <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
             <Route path="/Who/" element={whoPanel} />
             <Route path="/Settings/" element={settingsPanel} />
             <Route path="/" element={<PlaySpineRoot messagePanel={messagePanel} />} />

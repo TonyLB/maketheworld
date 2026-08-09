@@ -434,7 +434,6 @@ const publishStreamEventsForIntent = async (
                     characterId,
                     componentId: parseResult.componentId,
                     confidence: parseResult.confidence,
-                    ...(parseResult.directResponse ? { directResponse: true } : {}),
                 },
             })
         }

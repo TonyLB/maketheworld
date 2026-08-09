@@ -183,41 +183,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         })
     })
 
-    it('resolves SESSION# targets for a directResponse knowledge look', async () => {
-        mockPrepareFeatureKnowledgeRenderForCharacter.mockResolvedValue({
-            componentId: 'KNOWLEDGE#Lore',
-            characterId: 'CHARACTER#C',
-            perspective: { assetStack: ['ASSET#A'] },
-            perspectiveKey: 'pk-knowledge',
-            renderCommand: {
-                componentId: 'KNOWLEDGE#Lore',
-                perspective: { assetStack: ['ASSET#A'] },
-                characterId: 'CHARACTER#C',
-                allowGeneration: false,
-            },
-        })
-
-        await handleLookCommandRequestedForRenderOrchestration(messageBus, {
-            type: 'Look Command Requested',
-            characterId: 'CHARACTER#C',
-            componentId: 'KNOWLEDGE#Lore',
-            confidence: 1,
-            directResponse: true,
-        }, streamEvent)
-
-        expect(internalCacheMock.Global.get).toHaveBeenCalledWith('SessionId')
-        expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
-            messageBus,
-            expect.any(String),
-            expect.objectContaining({
-                componentId: 'KNOWLEDGE#Lore',
-                targets: ['SESSION#sess-123'],
-            }),
-            expect.any(Function)
-        )
-    })
-
-    it('targets the character directly for a non-directResponse knowledge look', async () => {
+    it('targets the character directly for a knowledge look', async () => {
         mockPrepareFeatureKnowledgeRenderForCharacter.mockResolvedValue({
             componentId: 'KNOWLEDGE#Lore',
             characterId: 'CHARACTER#C',

@@ -19,11 +19,9 @@ const perceptionCacheSlice = createSlice({
                 .forEach((message) => {
                     // Process PerceptionMessage with WML parsing
                     const enhancedMessage = processPerceptionMessage(message)
-                    
-                    // For anonymous knowledge exploration, we cache PerceptionMessages
-                    // The backend sends to SESSION#${SessionId} for directResponse, but the Target
-                    // field may not be included in the message payload itself
-                    // We cache all PerceptionMessages for anonymous access
+
+                    // The Target field may not be included in the message payload itself,
+                    // so we cache all PerceptionMessages for anonymous access
                     const componentUUID = message.metaData.componentUUID
                     const cacheKey: PerceptionCacheKey = `ANONYMOUS::${componentUUID}`
                     state[cacheKey] = enhancedMessage

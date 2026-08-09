@@ -409,7 +409,7 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload(minimal)).toBe(true)
     })
 
-    it('accepts feature and knowledge componentId with optional directResponse', () => {
+    it('accepts feature and knowledge componentId', () => {
         expect(isLookCommandRequestedPublishedPayload({
             ...minimal,
             componentId: 'FEATURE#door',
@@ -417,7 +417,6 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload({
             ...minimal,
             componentId: 'KNOWLEDGE#lore',
-            directResponse: true,
         })).toBe(true)
     })
 
@@ -445,13 +444,6 @@ describe('isLookCommandRequestedPublishedPayload', () => {
         expect(isLookCommandRequestedPublishedPayload({ ...minimal, componentId: 'SESSION#x' })).toBe(
             false,
         )
-    })
-
-    it('rejects invalid directResponse', () => {
-        expect(isLookCommandRequestedPublishedPayload({
-            ...minimal,
-            directResponse: 'yes' as unknown as boolean,
-        })).toBe(false)
     })
 
     it('rejects non-finite confidence', () => {

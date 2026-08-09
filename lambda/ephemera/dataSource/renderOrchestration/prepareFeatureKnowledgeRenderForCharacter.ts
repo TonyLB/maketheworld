@@ -63,8 +63,7 @@ export function intersectParticipationOrderWithCharacterVisibility(
 /**
  * Resolve Feature/Knowledge perspective and the render command for correlated description +
  * passive render. Perspective = character-visible assets intersected with component vertical
- * participation order. `directResponse` (SESSION#... targeting for Knowledge) is resolved by the
- * caller against messageOrchestration's ingress registry (Phase 7), not here.
+ * participation order.
  */
 export async function prepareFeatureKnowledgeRenderForCharacter(
     characterId: EphemeraCharacterId,
