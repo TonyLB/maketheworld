@@ -20,9 +20,9 @@ The evidence base later phases argue from. Each case is written against **today'
 
 **Annotation line, uniform across cases:** read-side | write-side --- part kind (~~AB-16~~ **descriptive only since 2026-08-06** --- the row is retired and the tag no longer decides anything; kept because it still reads usefully) --- Improvisation | Recognition (AB-14) --- description | mechanism (AB-19) --- which of the [three improvisation gaps](AGENT.abstractionLayers.planning.md#improvisation-is-the-objects-lanes-mechanism-generalized) it exercises. These tallies are the direct input to Phases 1 and 2, which is why the shape is fixed now rather than after the remaining cases land.
 
-**The axis tag is the exception, and lives in the [axis tally](#axis-tally-c1--c16) instead of on the line.** It was assigned to all eleven cases at once on 2026-08-07, it is read as a column rather than per case, and keeping one home stops it drifting from a per-case copy. **Note the convergence rather than duplicating it:** AB-19's *description or mechanism* tag on each line is **apprehension versus reasoning under an earlier name**, which is why the retro-fit cost nothing and why the two should not both be maintained as though they were independent.
+**The axis tag is the exception, and lives in the [axis tally](#axis-tally-c1--c21) instead of on the line.** It was assigned to all eleven cases at once on 2026-08-07, it is read as a column rather than per case, and keeping one home stops it drifting from a per-case copy. **Note the convergence rather than duplicating it:** AB-19's *description or mechanism* tag on each line is **apprehension versus reasoning under an earlier name**, which is why the retro-fit cost nothing and why the two should not both be maintained as though they were independent.
 
-### Axis tally (C1--C16)
+### Axis tally (C1--C21)
 
 **Retro-fitted 2026-08-07** against [the five axes](AGENT.abstractionLayers.planning.md#the-five-axes-what-the-graphs-flexibility-is-in-service-to). **The axis tag lives here rather than on each case's annotation line, deliberately:** it is the one tag assigned across the whole corpus at once, reading it as a column is the point, and a single home means it cannot drift from a per-case copy. New cases add a row.
 
@@ -46,10 +46,15 @@ The evidence base later phases argue from. Each case is written against **today'
 | [C14](#c14-the-tray-its-cups-and-how-many-times-it-gets-picked-up) --- the tray, its cups, and how many times it gets picked up | **Mutation** | Positioning, Reasoning | Carry closure and composition turn out to be one computation in two types; which of two survivors (durable vs ephemeral) wins is AB-6's stored/derived fork again, on repetition count. Positioning secondarily: `defer`'s missing resolution path turns out to be a representable-boundary gap, not an ambiguity, and ports close it |
 | [C15](#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away) --- the microphone, the wire, and the speaker two rooms away | **Apprehension** | Reasoning | Fails C10's own local-apprehensibility test, unlike a rope or thread; the missing *unauthored* above-scale case, and the first Recognition-tagged case above human scale |
 | [C16](#c16-the-bare-table-and-the-room-that-is-just-a-mess) --- the bare table, and the room that is just a mess | **Reasoning** | Apprehension | Two negative cases: no candidate pattern at all (the table), and a candidate pattern that still shouldn't mint, per AB-9's guardrail (the mess) |
+| [C17](#c17-the-professional-kitchen-the-chefs-knife-and-the-stand-mixer-nobody-asked-about) --- the professional kitchen | **Authoring** | Apprehension, Mutation | The corpus's **first authoring-primary case**. A coarse authored envelope licenses a chef's knife no consumer can read; `noMatch` is the closed-world assumption answering *established absent* to everything nobody has asked. **Establishes a three-valued detail space whose third value is settled, not pending** |
+| [C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin) --- three place settings | **Authoring** | Reasoning | Three constructions produce **structurally identical** wholes carrying **different improvisation licences**, so licence is not readable off the graph. C3's byte-identical finding from the opposite end |
+| [C19](#c19-filling-out-the-place-setting-and-the-tavern-that-ran-out-of-napkins) --- filling out the place setting | **Authoring** | Mutation, Reasoning | C18's dynamic counterpart: a whole **moves** between licence states, so C18's three cases are states not kinds. Settles licence transfer as **copy, not reference** --- causality propagates, licence does not |
+| **C20** --- the tightly-authored closed world | *(queued)* | --- | **Not yet written, and re-aimed 2026-08-09.** P5's first falsification case, now targeting **clause 1** (unbounded by default) rather than clause 3. Its original subject --- the warm-but-poor tavern --- was retired when the contradiction it rested on turned out to be a drafting error in clause 3's wording; that scenario now lives as a **PL-1 illustration**. Listed here so the numbering gap is not read as a lost case |
+| [C21](#c21-two-ways-to-say-there-are-no-firearms) --- two ways to say there are no firearms | **Authoring** | Reasoning | Identical exclusion, different generative content: a causal account is defeasible in-fiction, a bare genre-forbid is not. Opens whether the latter is a **social contract** rather than a fictional contribution |
 
 **Seven results worth reading off the column rather than the rows.**
 
-1. **Authoring has no primary case.** Eleven cases and zero coverage. C4 and C8 touch it secondarily and that is all. **This is a measurement, not a to-do:** the initiative has evaluated representations for players and LLMs and never once from the position of the person writing the world. C10 and C11 are both *authored* and both record that neither AB-14 trigger fires, so the corpus has improvisation at human scale and authorship above it **with nothing crossing**.
+1. ~~**Authoring has no primary case.**~~ **Closed 2026-08-09 by [C17](#c17-the-professional-kitchen-the-chefs-knife-and-the-stand-mixer-nobody-asked-about), after sixteen cases.** The measurement stands as history and is worth keeping: for sixteen cases the initiative evaluated representations for players and LLMs and never once from the position of the person writing the world, with C4 and C8 touching the axis secondarily and nothing else. C10 and C11 are both *authored* and both record that neither AB-14 trigger fires, so the corpus had improvisation at human scale and authorship above it **with nothing crossing** --- **and the crossing is exactly what C17 supplies**: an authored envelope that gains improvised interior structure on demand. **[C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin) is the second, one day later**, and the pair is worth reading together: C17 asks what an authored coarse description **licenses**, C18 asks which wholes **carry** such a description at all. Once the axis had one case it immediately produced another, which is normal for an opened axis and is not evidence the hole was small. **Note how long it took, rather than only that it closed** --- the hole was named on 2026-08-07, survived three cases written after it was named, and closed only when a case was built for it deliberately. An axis nothing bites on does not acquire coverage by accident.
 2. **The positioning-primary cases are the ones that discriminated least.** C6 explicitly added zero `H1-dependent` rows; C7 discriminated once and then the axis went quiet. That is the filter behaving exactly as [the frame](AGENT.abstractionLayers.planning.md#the-five-axes-what-the-graphs-flexibility-is-in-service-to) predicts, arrived at from the corpus side.
 3. **[C11](#c11-the-rube-goldberg-machine) bit on none of the five, and that is a sixth mode worth naming.** Clause 1a was not falsified by an audience noticing anything --- it was falsified by **internal contradiction**, one object taking two incompatible rules. A case can therefore discriminate by making a proposal *inconsistent with itself*, independent of any consumer. Rare, decisive when it happens, and it should not be forced into an axis it does not belong to.
 4. **[C13](#c13-taking-and-returning-the-fork) is the corpus's first case authored against a hypothesis's own clause table rather than mined or offered as a hard scenario**, and the first mutation-primary case that is not a worked *success* (C9, C12 both showed a scheme handling an operation correctly; C13 shows H3 currently cannot). The corpus had tested representability under static and fixed-depth-operational conditions eleven cases running; testing a hypothesis's edges by deliberately mutating across the seams it just drew is a distinct kind of case, worth watching for going forward rather than assuming C1--C12's mix of origins will keep surfacing it on its own.
@@ -676,6 +681,298 @@ Two later references to "the intercom" --- one from `ROOM#A`, one from `ROOM#B` 
 **Annotations.** Read-side only, both halves --- no write-side content in either. (i): no trigger (neither AB-14 mode fires); all five axes empty. (ii): Recognition, description only (AB-19); exercises AB-9's guardrail directly, with zero relational edges to mint from even under the mechanism reading.
 
 **Rows grounded.** AB-14 (i: no candidate trigger; ii: fires as description only), AB-9 (ii: the guardrail's second exercise, and its first against a zero-edge case), AB-19 (ii: description/mechanism split applied, not re-derived), AB-20 (i: the on-demand-reference scope note), H3 clause 3 (i: legal-but-unchosen decomposition, the concept this bullet exists to bound), and the [Recommended order](AGENT.abstractionLayers.planning.md#recommended-order) Phase 0 bullet this case closes.
+
+### C17. The professional kitchen, the chef's knife, and the stand mixer nobody asked about
+
+**Origin:** proposed 2026-08-09 from conversation, to close the corpus's **largest measured hole** --- [Recommended order](AGENT.abstractionLayers.planning.md#recommended-order)'s standing bullet asks for a case *primary* on **authoring**, and names the wanted shape almost verbatim: *"a kitchen with all the expected fixings", then* **is there a chef's knife?** Sixteen cases had left it at zero. **Written deliberately without a representation proposal** --- the case's job is to establish the requirement; how it is stored is not decided here and nothing below should be read as proposing a mechanism.
+
+**The state.** `ROOM#Kitchen`, authored coarsely: its description says, in prose, that it holds everything a working professional kitchen needs. Its `positionGraph` holds few `Object` nodes or none --- the authored coarseness is **not** a claim about a node set.
+
+**The operations, three beats.** (1) A player asks *"is there a chef's knife?"* --- and the answer should be yes, with a knife that is thereafter a real, manipulable, durable referent. (2) Nobody asks about a stand mixer, ever. (3) A player asks *"is there a deep fryer?"* and the answer is **no** --- and asking again five minutes later must still be **no**.
+
+#### Finding 1: three values, and exactly one of them is missing from storage
+
+**The vocabulary is fixed here deliberately, and Finding 4 is why.** A detail is in one of three states, and the third is **not** a stage on the way to the other two:
+
+| Value | Example after the beats above | How it is recorded | Today |
+| --- | --- | --- | --- |
+| **Established present** | the chef's knife | An ordinary improvisation mint --- `ASSET#IMPROVISATION` pair + `Meta::Object` + placement ([`spawnImprovisationObjectsBatch.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts)) | **Yes** |
+| **Established absent** | the deep fryer | A record that the question was put and answered *no* | **No --- and this is the entire storage gap** |
+| **Not established** | the stand mixer | **Nothing at all.** Absence from both of the above *is* the representation | **Yes, trivially** |
+
+**Correcting an earlier framing of this case rather than restating it:** the third value was first written up as a missing state the initiative had never named. It is not missing. **Not-established is correctly represented by nothing**, and that it costs zero is not a convenience --- it is the only property that lets the model survive [an unbounded detail space](#finding-4-not-established-is-a-settled-value-and-any-vocabulary-implying-otherwise-is-a-defect). A design that gave *not established* a record would have to enumerate the things nobody has asked about, which is not finite.
+
+**So the storage gap is one row of the table, not two**, and it is the negative. **The asymmetry is the finding:** a positive determination is durable *by construction* because it produces rows; a negative determination produces nothing, so the entire cost of durability lands on one side. **This is [AB-21](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s identity obligation in its negative form** --- that row's *"repeated reference silently multiplies the world"* becomes *repeated reference silently re-rolls the world* --- and `stableKey`, the hook AB-21 names, does not reach it: there is no component to key.
+
+#### Finding 2: `noMatch` already answers, and it answers with a determination the world never made
+
+**The code site, and it is one line.** [`resolveObjectSpan.ts:8`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resolveObjectSpan.ts) --- `noMatch: 'ObjectManipulation resolution failed: no such object in the room'`. The catalog it fails against is built from `[...positionGraph.objectIds]` and nothing else ([`roomObjectCatalogForCharacter.ts:76`](../../../../../lambda/ephemera/dataSource/actions/roomObjectCatalogForCharacter.ts)), so authored prose about a fully-equipped kitchen licenses **zero** referents.
+
+**So the failure mode is not silence --- it is a confident wrong answer.** All three of Finding 1's values collapse into the same terminal string, which reads to a player as *there is no chef's knife*. The world commits to an absence it never decided, on every question nobody has asked yet.
+
+**Name the frame, because it is the defect rather than an implementation slip.** `noMatch` is the **closed-world assumption** --- *not present in the graph, therefore false* --- and Finding 1's three values are the **open-world** reading, where absence of a record and a record of absence are different facts. This is the same *kind* of correction [P4's dataflow reframe](AGENT.abstractionLayers.planning.md#retraction-dissolves-under-a-dataflow-reading-and-that-reading-is-the-ludic-native-one) made: not a better mechanism, a different frame in which the hard problem stops being posed. **A resemblance to flag before someone reads the two sections as contradicting each other:** P4 holds that *the graph holds states, not beliefs*, and an explicit negative fact looks knowledge-base-shaped. It is not. *There is no deep fryer* is a fact about the kitchen, not a belief about the fiction, and it carries no justification structure to unwind --- P4's target was **retraction**, and nothing here retracts. Compatible, but close enough to be worth saying once.
+
+**And the authored envelope has nowhere structured to live either**, checked rather than assumed: `SchemaRoomTag` ([`packages/mtw-base/ts/schema/components.ts:45`](../../../../../packages/mtw-base/ts/schema/components.ts)) carries `key`, map coordinates and render children --- there is no slot in which "what this room is understood to contain" could be anything but prose. **This is [C1](#c1-look-at-the-character-standing-here-look-at-the-north-wall)'s near-miss twin and the difference is exact:** the north wall has **no node kind it could occupy**; the chef's knife has a node kind (`Object`) and no node, and a coarse authorial statement that it should exist which no consumer can read.
+
+#### Finding 3: a fourth improvisation gap, and it is the negative record specifically
+
+[Improvisation is the objects lane's mechanism, generalized](AGENT.abstractionLayers.planning.md#improvisation-is-the-objects-lanes-mechanism-generalized) names three gaps --- no composition relation, Recognition's set-valued identity, `shortName`-derived embeddings. **None covers this.** All three concern **minting a thing**, and the lane is good at that. The fourth gap is that a question can be answered **no** and the lane has no artifact for it: every mechanism it owns produces a component, and *there is no deep fryer* is precisely the answer that produces none. **Stated this narrowly on purpose** --- the gap is not "no support for coarse worlds," which would be unbounded; it is one missing record with a known trigger.
+
+#### Finding 4: *not established* is a settled value, and any vocabulary implying otherwise is a defect
+
+**The case's sharpest requirement, and it is about naming before it is about mechanism.** [P4](AGENT.abstractionLayers.planning.md#proposal-p4-settling-dataflow-and-narrative-heat)'s `unsettled` means *impulses are pending and a read must wait for them to converge on a value*. The stand mixer has **no pending impulse and never will, absent someone asking**: nothing is queued, nothing is converging, and nothing is wrong. **The read obligations are opposite** --- `unsettled` says *block*; *not established* says *proceed, and answer that it is not established*. A room full of things nobody has asked about is **fully settled**.
+
+**Why this is a naming rule and not a distinction to note in passing: the space of narrative detail is infinite.** Any vocabulary suggesting that detailing is a **process that finishes** --- *unsettled*, *undetermined*, *pending*, *partial*, *incomplete*, *remainder*, *exhaustive* --- describes a convergence that cannot occur and will be built toward anyway. A term implying a total makes *how far along are we* look like a legitimate question to ask of a kitchen, and it is not a question with an answer. **The plan already has this discipline and the precedent is explicit:** [AB-0](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) locked *Abstraction Fractal* **with its negative statement** on the reasoning that "the name reads like a noun while asserting that there is nothing to type, so someone will mint the type." Same failure, different word class --- these names read like stages while asserting there is no sequence, so someone will build the progress bar. **The triple fixed in Finding 1 --- established present / established absent / not established --- is chosen to have no such reading**, and the words above are named here so a later pass rejects them rather than re-deriving why.
+
+**Consequence for [PS-3](AGENT.abstractionLayers.planning.md#open-questions-p4-sub-questions-ids-stable-never-reused), recorded before it is answered rather than after.** That row is writing one settle-state vocabulary for four consumers that all want "wait." This is a **fifth consumer that must not share it** --- a shared flag would make a read into a coarse kitchen block on a settle nobody scheduled, and would import exactly the convergence implication this finding rules out.
+
+#### Finding 5: coarsening over *not-established* detail is not scale-relative truth, and the two are indistinguishable from outside
+
+[Scale-relative truth](AGENT.abstractionLayers.planning.md#clean-fractal-dirty-implementation) holds that a coarse answer is *a different correct answer* at its level, **lossless at the level read**, with a finer truth beneath it that it is not an approximation of. A port's coarsening --- *"the rope is tied to the boulder"*, interior knows which end --- fits exactly.
+
+**"The kitchen has whatever a professional kitchen has" has no finer truth beneath it.** Not elided, not summarized: not established. **A reader cannot tell the two apart**, which means coarsening machinery must not assume there is a fine answer to defer to. That is a **fourth outcome the clean/dirty table does not offer** --- and the table's own note records it has been short an outcome twice already (AB-16's "no difference", then scale-relative truth itself), so a third is a pattern rather than a coincidence.
+
+#### Finding 6: a candidate resolution for the AB-9 / AB-14 collision, offered not chosen
+
+[AB-9](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s guardrail --- *description selects among levels that already exist and must never create one* --- collides with AB-14 on [C8](#c8-the-flashlight-that-vanished-when-someone-looked-at-it), and the three candidate resolutions on record either pick a side or defer the mint. **This case supplies a fourth**, because it makes the guardrail's word *exist* ambiguous in a productive way: the authored envelope **licenses** the chef's knife without there being a node for it. Restated as **"description must never widen what the world licenses,"** the guardrail permits resolution inside an authored envelope while keeping the scope control it exists for --- the envelope is authored, so nothing widens. **Stronger than the three on record in that respect**, and **not asserted**: it needs testing against C8, whose flashlight has an envelope only by *implication of its type* rather than by authorship, which may or may not count.
+
+#### Finding 7: the negative record is where authored and improvised truth actually collide, and the merge stack cannot arbitrate it
+
+**The collision.** A negative is established in play --- *there is no deep fryer* --- and an author later edits the kitchen to include one. Both are true statements about the same world made by different authorities, and something has to give. **This is the same question as [AB-29](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s play-versus-asset bifurcation**, arriving on the negative side, and it is a **clearer instance than the ones that opened that row** --- a licensing relation vanishing is a second-order consequence of an edit, while this is a direct contradiction between two assertions about one fact.
+
+**The reflex answer is the participation stack, and it does not apply.** `ASSET#IMPROVISATION` is a merge layer, and layered merge is exactly the codebase's conflict-resolution mechanism --- composite `ComponentData` composes an object's body across the assets in its stack, which is why [Improvisation is the objects lane's mechanism, generalized](AGENT.abstractionLayers.planning.md#improvisation-is-the-objects-lanes-mechanism-generalized) can say provenance is invisible downstream. **But that stack resolves conflicts between layers *of a component that exists*.** It answers *what is this thing like* --- and existence itself is not merge output: an improvised object exists by its pair row plus placement, an authored one by being in an active asset. **A negative fact has no component to be a layer of**, so the two claims are not two versions of one thing the stack could rank. The mechanism everyone will reach for first is the wrong shape, and it is worth having checked rather than assumed.
+
+**AB-29's bifurcation gains a third branch, and it is the one with no precedent:**
+
+| Branch | Is there an operation to make illegal? | Existing posture |
+| --- | --- | --- |
+| **Play-driven** | Yes --- someone did something | The shipped boundary-edge discipline; the conflict is content |
+| **Asset-withdrawn** | No --- an overlay deactivated | The **eviction ladder**'s trim-and-repair, one layer over |
+| **Asset-added** *(this case)* | **No --- and nothing is being withdrawn either** | **None.** Trim-and-repair has nothing to trim; the new thing arrives rather than departs |
+
+**The mirror direction is easier and should not be mistaken for the same problem.** An improvised *positive* (the minted chef's knife) contradicted by an authored edit at least leaves a component to evict, which is AB-29's second branch behaving normally. The negative has no rows to remove --- only a claim to withdraw --- which is why this branch is the hard one.
+
+**Not resolved here, and deliberately:** which authority wins, whether the loser's record is deleted or retained as superseded, and whether the collision is narratable in-fiction (a deep fryer that *was not there* becoming a deep fryer that is) or must be silent. Those are representation and policy questions; this case establishes only that the collision is real, is first-order, and has no mechanism. **The representation half is now [AB-42](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) through AB-44**, opened 2026-08-09 from this case.
+
+#### The fork this case does not decide
+
+The coarse envelope could belong to the **room** or to a **whole** inside it (`OBJECT#KitchenFittings` or similar). Under the fractal's no-privileged-level claim these should be one mechanism, and whether they are is a real test of it: [H3](AGENT.abstractionLayers.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice)'s ports are the boundary mechanism for a **whole**, and a room carrying negative records has no port to hang them on. **Left open deliberately** --- it is a representation question, and this case is written to establish the requirement rather than to answer it. **Note the fork is narrower than it first looks**, given Finding 1: what has to live somewhere is the **negative list**, since the other two values need no carrier at all.
+
+**Verdict.** The corpus's authoring hole is closed, and by the shape the bullet reserved rather than a substitute. The case establishes one requirement --- **a detail is established-present, established-absent, or not established, and the third is a settled value rather than a stage** --- and three consequences: the negative record is the one thing storage lacks, `noMatch` currently answers *established absent* to every question the world has not decided (the closed-world assumption, named as the defect), and *not established* must not be conflated with P4's `unsettled` or with port coarsening, both of which it superficially resembles and neither of which it is. **The naming rule in Finding 4 is the part most likely to be lost and hardest to recover:** the detail space is infinite, so any vocabulary implying a detailing process completes is a defect, and the terms are enumerated there for rejection rather than re-derivation. The case resolves AB-5, AB-9, AB-14 and AB-21 no further than giving each its first instance where the *authored* side is what bites.
+
+**Annotations.** Read-side trigger, write-side effect --- part kind n/a (the question is participation and licensing, upstream of composition) --- **Improvisation**, on-demand and downward, and **AB-21's *latent* flavor**: a professional kitchen has whatever it has, as a room has walls --- **description shading into mechanism**, since the knife becomes manipulable --- **exercises none of the three improvisation gaps and names a fourth** (no artifact for an established-absent answer), which is the annotation line's first addition rather than assignment.
+
+**Rows grounded.** AB-5 (primary --- *when does minting happen* gains a case where the answer is "possibly never, and that is correct"), AB-9 (a fourth candidate resolution to the C8 collision), AB-14 (the first authored envelope for its on-demand trigger to fire inside), AB-21 (the identity obligation's negative form, where `stableKey` does not reach), AB-29 (**a third branch for its bifurcation --- asset-*added*, where neither the boundary-edge discipline nor trim-and-repair applies --- plus the finding that the participation stack cannot arbitrate an existence claim**), AB-19 (description/mechanism, with the knife crossing from one to the other), PS-3 (a fifth consumer with the opposite read obligation), the [clean/dirty table](AGENT.abstractionLayers.planning.md#clean-fractal-dirty-implementation) (a fourth outcome), and the [Recommended order](AGENT.abstractionLayers.planning.md#recommended-order) Phase 0 authoring bullet, which this case closes.
+
+### C18. Three place settings, and only two of them may have a napkin
+
+**Origin:** proposed 2026-08-09 from conversation, immediately after [C17](#c17-the-professional-kitchen-the-chefs-knife-and-the-stand-mixer-nobody-asked-about) established the three-valued detail space. **Deliberately a separate case from [C4](#c4-the-place-setting-at-the-faerie-court)**, which uses the same fiction to ask about situational meaning and a state carrier --- a different question with a different answer.
+
+**The state.** Three `OBJECT#PlaceSetting` wholes, in three different taverns, each with `Plate`, `Cup`, `Fork`, `Knife`, `Spoon` as parts. **Under [H3](AGENT.abstractionLayers.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice) they are structurally identical** --- a root node, five `part` edges, sibling links, a port to the room. They differ only in how each came to exist:
+
+| | Construction |
+| --- | --- |
+| **(1) Authored** | A WML author wrote a place setting on the table |
+| **(2) Minted from a coarse envelope** | The tavern is authored coarsely --- *all the things a tavern needs* --- and a player asking about the table caused a place setting to be minted, per C17 |
+| **(3) Recognized** | Five separate objects already existed on the table; the system recognized that they compose |
+
+**The operation.** A napkin is asked for, or the system considers narrating one. **(1) and (2) may improvise it. (3) may not.**
+
+#### Finding 1: identical structure, different licence --- so the licence cannot be read off the graph
+
+The three wholes are indistinguishable as graphs: same root, same parts, same edges, same ports. **Whatever decides the napkin question is therefore not in the structure**, and cannot be recovered by inspecting it. It has to be recorded.
+
+**This is [C3](#c3-the-snare-trap-coyote-cannot-name)'s byte-identical finding running the other direction, and the pairing is worth keeping.** C3: two *different* situations (a rope tied to a branch, and the same objects in a heap) produce **identical** context, so the structure loses a distinction that matters. Here: three constructions produce **identical** structure carrying **different permissions**, so the structure never had the distinction to lose. Same defect --- structure under-determines --- reached from opposite ends.
+
+#### Finding 2: the discriminator is intensional versus extensional, and the plan already wrote the rule down without noticing
+
+**Provenance is the *symptom*; the sharper statement is what the whole is defined by.** (1) and (2) have a **coarse intensional description** --- *a place setting*, *what a tavern needs* --- which names a concept whose constituents are open, so a napkin falls inside something already said. (3) is **extensional**: it is *these five objects*, and the name was applied to them afterward. Nothing about it licenses a sixth member, because its content **is** the five.
+
+**And [improvisation gap 2](AGENT.abstractionLayers.planning.md#improvisation-is-the-objects-lanes-mechanism-generalized) states this already, as a description of a shortfall rather than as a rule:** *"Recognition creates an aggregate over things that already exist: its body is nearly empty and its member set is the content."* **A sentence written to say what the lane cannot store turns out to state the licensing rule exactly** --- an empty body is precisely the absence of an intensional description, and the member-set-as-content is precisely extensionality. Noted rather than treated as a coincidence: this plan has repeatedly found a requirement pre-registered in text written for another purpose.
+
+#### Finding 3: it confirms C17's proposed restatement of AB-9's guardrail, on a case that restatement was not derived from
+
+[AB-9](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s guardrail as written --- *description selects among levels that already exist and must never create one* --- **does not decide this**, because all three cases already have their level; the question is what may be added inside it. [C17 Finding 6](#finding-6-a-candidate-resolution-for-the-ab-9--ab-14-collision-offered-not-chosen) proposed restating it as **"description must never widen what the world licenses."** Apply it:
+
+| Case | Was a napkin licensed? | Verdict |
+| --- | --- | --- |
+| (1) authored | Yes --- *a place setting* is a coarse term with open constituents | Minting does not widen. **Permitted** |
+| (2) minted from envelope | Yes --- inherited from *all the things a tavern needs* | Minting does not widen. **Permitted** |
+| (3) recognized | **No** --- nothing was said beyond the five objects | Minting would widen. **Forbidden** |
+
+**All three correct, on a case built after the restatement and not from it.** That is a second independent confirmation and it strengthens Finding 6 considerably --- **but it is not the test Finding 6 actually asked for**, which was C8, whose flashlight has an envelope only by *implication of its type* rather than by authorship. That check is still owed and this case does not discharge it.
+
+#### Finding 4: the scope trap, and why it is structural rather than a rule to remember
+
+**Superseded in its repair the same day it was written, and both versions are kept because the supersession is the point.**
+
+**The trap.** The tempting content for case (3) is *"there is nothing else on this table."* **That is wrong, and wrong in exactly the way C17 diagnosed.** Nobody looked for a napkin. Recording its absence as a fact about the fiction **establishes a negative nobody established** --- the closed-world assumption sneaking back one scale down, on the very construct built to keep it out. Worse, read carelessly it is *hungry*: it reaches outward to imply there are no napkins in the **tavern**.
+
+~~**The repair as first written:** state the content narrowly --- *this whole does not license improvisation of further members* --- and take care not to overclaim.~~ **Withdrawn 2026-08-09 as too weak.** That is a **rule**, and a rule is a thing a later reader has to remember and apply correctly.
+
+**The repair that holds, and it is [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item)'s:** make improvisational licence a **first-class item attached to an entity**. A limit then reaches exactly as far as its holder, so the place setting's closure **cannot** reach the tavern --- not because that reading is forbidden but because there is nothing to write it on. **The hungry reading becomes unrepresentable rather than prohibited**, which is the difference between an invariant and a warning. **Worth recording as a pattern this plan keeps rediscovering:** a defect stated as *do not do X* is weaker than a construct in which X cannot be said, and the second is available more often than it looks.
+
+#### Finding 5: licence is the primary construct and negatives are its shadow --- not a third kind of negative
+
+**As first written, this finding read the licence limit as a third kind of negative that AB-42--AB-44 had not been scoped for.** That was the right observation and the wrong direction of fit. **Under [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item) the relationship inverts:** licence is the primary thing, unbounded by default, and **a negative is a recorded narrowing of it** --- a blanket negative being a narrowing to zero. The cluster was not missing a category; it was describing the shadow and calling it the object.
+
+| Row, as opened | Under the inversion |
+| --- | --- |
+| **AB-43** --- what is a negative keyed by? | **Half dissolves.** A blanket limit is keyed by **the entity it attaches to**, an id that exists. The original question was a category error: a licence limit is keyed by its *holder*, not by what it denies. Narrowing limits still need a description of the closed region |
+| **AB-44** --- inert or load-bearing? | **Sharpened, not widened.** The question becomes **does closing licence for X also assert X is absent?** Licence-closure universal, causal force variable --- and the two do not simply collapse, because **authoring** can add a deep fryer to a kitchen whose licence is closed |
+| **AB-42** --- node or collection? | **Both costs move favourably.** Accumulation collapses to one licence per entity rather than one node per negative, and a licence **coarsens** where negative nodes do not; the node-kind objection becomes principled, since a *licence* node is an ordinary construct where a *negative* node was an awkward third tag |
+
+**The finding that survives unchanged is the one this case was built for:** licence is **not derivable from structure**, because the three place settings are identical as graphs. Everything else here is a consequence of taking that seriously.
+
+**Verdict.** The case establishes that **improvisation licence is a property of a whole, is not derivable from its structure, and is determined by whether the whole has an intensional description or only a member list.** It confirms C17 Finding 6's guardrail restatement on fresh ground and identifies the scope trap a naive "blanket negative" falls into. **Its second-order result is larger than its first:** pressing on what the record should *say* produced [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item), which reorganizes the whole negatives cluster and turns this case's Finding 4 from a rule into an invariant. It resolves no row; it opens **AB-45** and supplies P5's motivating case.
+
+**Annotations.** Write-side --- part kind n/a (the question is licence, not composition) --- **all three AB-14 triggers at once, which no prior case has**: authored (no trigger), Improvisation-on-demand, and Recognition, compared directly rather than tagged singly --- **mechanism**, since the licence gates a write --- **exercises gap 2** and finds its own text states the rule.
+
+**Rows grounded.** **AB-45** (opened by this case), AB-9 (guardrail restatement confirmed on fresh ground; the C8 test still owed), AB-42/AB-43/AB-44 (all three shown to be scoped for fact-negatives, with a second route to a per-kind AB-42 answer), AB-14 (its two triggers compared against a third, authored, non-trigger), AB-19 (description/mechanism, since the licence gates a write), and AB-29 (provenance turning out to be *not* fully invisible downstream --- see AB-45).
+
+### C19. Filling out the place setting, and the tavern that ran out of napkins
+
+**Origin:** proposed 2026-08-09 from conversation, as **[C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin)'s dynamic counterpart.** C18 compares three place settings as static snapshots and reads, alone, as though its three cases were three **kinds**. This case runs one place setting through the transitions and shows they are **states**.
+
+**The beats.**
+
+1. A well-stocked tavern, authored coarsely, with an open licence to improvise furnishings. The player fetches `Plate`, `Fork`, `Knife` and places them on a table.
+2. The system recognizes a `PlaceSetting`. It is **extensional** --- its member set is its content --- so per C18 its improvisation licence is **zero**.
+3. The player says *"fill out the place setting with everything else it needs."* Licence is **imported** from the tavern; the limit is removed; the place setting now holds its **own** licence. Spoon, napkin, glass become improvisable **as members of it**.
+4. The player asks whether the tavern has napkins in stock. For whatever reason, the answer is improvised **no** --- the *tavern's* licence narrows.
+5. **Does the place setting still license a napkin? Yes.**
+
+#### Finding 1: C18's three cases are states, not kinds, and it took a dynamic case to see it
+
+C18 tags a whole *authored*, *minted-from-envelope*, or *recognized* and derives its licence from that. Nothing in it says a whole can **move** between those categories --- and read on its own it implies the reverse, since provenance is a fact about how a thing came to exist and does not ordinarily change. **Beat 3 moves one.** **The negative lock is not permanent, and nothing in the model ever made it so** --- which is a correction to how C18 reads rather than to what it claims.
+
+#### Finding 2: the import is not a new mechanism --- it is the whole acquiring an intensional description
+
+C18's discriminator is **intensional versus extensional**. Beat 2's place setting is extensional, which is *why* its licence is zero. **The player's utterance supplies an intensional description** --- *everything a place setting needs* --- and that is the entire content of the import. **So licence transfer needs no machinery of its own**: it is the same property C18 already identified, acquired rather than inherited. **A transition mechanism falling out of an existing discriminator rather than requiring a new one is the weak evidence-of-a-real-joint signal this plan has taken seriously before.**
+
+**Who authorized it is already answered:** AB-20 holds that *"the player's own reference is the licence"*, so beat 3 is ordinary on-demand minting with player authorization, not a privileged operation.
+
+#### Finding 3: import is a copy, and the cascade is declined on purpose
+
+Beat 5 is the case's decision. **Imported licence is independent thereafter** --- beat 4's tavern-level narrowing does not reach into the place setting. The alternative is to keep the provenance graph of every imported licence and propagate narrowings through it, which is **possible and is being declined**: a standing cost on every licence read and every narrowing, to correct a small set of edge cases. Recorded in full at [P5](AGENT.abstractionLayers.planning.md#licence-transfer-import-is-a-copy-and-provenance-is-deliberately-not-traced-2026-08-09), with a re-open trigger.
+
+#### Finding 4: the local answer is the fictionally correct one, so this is not a concession
+
+**Worth separating from Finding 3, because a decision defended only on cost invites re-litigation the first time it looks wrong.** The napkin was laid out at beat 3, **before** anyone discovered at beat 4 that the storeroom was empty. A tavern being out of napkins *now* is a claim about **stock**, not about what is already set on a table. **The cheap answer and the right answer coincide here**, and the case should be remembered that way rather than as scalability overriding correctness.
+
+**Where it would genuinely bite, stated so the limit is owned:** if *no napkins* meant a **world or genre rule** rather than a stock fact, the place setting improvising one would be wrong. **The repair is scope, not propagation** --- attach the limit where it actually holds; a genre rule was never the tavern's licence. That is [C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin) Finding 4's move arriving a third time, and its third arrival is the reason to trust it.
+
+**And even where it bites, it may not matter, which is the frame this case should be read under.** Per [Fiction is a fault-tolerant medium](AGENT.abstractionLayers.planning.md#fiction-is-a-fault-tolerant-medium--and-what-that-does-not-excuse-2026-08-09), a napkin whose provenance sits in tension with a fact about the storeroom is a **coherence** defect, not a **structural** one --- there is still exactly one napkin, correctly keyed and correctly placed. **And it is low-salience coherence at that**: no scene had leaned on the tavern's napkin supply, and strain tracks salience rather than contradiction-count. **The medium absorbs that and does not absorb structural defects**, so this case's decision spends only the cheap currency. **Do not read beat 5 as "we accepted a bug for performance"**; read it as spending the currency the medium is tolerant in.
+
+**Verdict.** The case supplies the transition C18 lacked, shows it requires no new mechanism, and settles licence transfer as **copy rather than reference** with provenance deliberately untraced. **Its general result is an asymmetry worth carrying beyond this cluster: causality propagates, licence does not.** Permission is held, not transmitted --- the first entry in the relation-kind register whose propagation policy is *none*.
+
+**Annotations.** Write-side --- part kind n/a (licence, not composition) --- **Recognition at beat 2, then Improvisation-on-demand at beat 3 on the same whole**, which no prior case does --- **mechanism** --- exercises **gap 2**, and is the first case to show a gap-2 aggregate **leaving** the extensional state.
+
+**Rows grounded.** AB-45 and [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item) (licence transfer, and the no-cascade decision), AB-20 (its *player's reference is the licence* clause doing load-bearing work on a licence-widening act), AB-14 (both triggers on one whole in sequence), AB-19 (mechanism-recognition at beat 2), AB-42/AB-43/AB-44 (a licence that **changes**, which strengthens the manipulable-so-node argument), and the [relation-kind register](AGENT.abstractionLayers.planning.md#the-relation-kind-register) (propagation policy *none*).
+
+### C21. Two ways to say there are no firearms
+
+**Origin:** proposed 2026-08-09 from conversation. **Written before [C20](AGENT.abstractionLayers.planning.md#recommended-order), which is queued rather than abandoned** --- C20 is a deliberate falsification exercise against P5's clause table and should not be rushed to keep numbering tidy; ids are stable and never reused, so the gap is expected.
+
+**Raised under a conditional --- *if* world-constraints are inherited through an Area-like extrapolation of permission structures --- and it survives the conditional being false**, which is worth stating because it makes the case stronger than it was pitched. Bare-exclusion versus causal-account is a distinction about the **form** of a constraint, independent of the mechanism by which constraints reach downward.
+
+**The state.** Two authored fantasy settings whose firearm exclusion is identical in extension:
+
+| | Authored as |
+| --- | --- |
+| **(A)** | *"A fantasy setting in which firearms have not been invented or widely crafted"* |
+| **(B)** | *"A fantasy setting, without firearms"* |
+
+**Four probes.** (1) A player asks whether the town blacksmith could make a gun. (2) A player spends real effort researching gunpowder and building a prototype. (3) The system considers improvising an alchemist's blasting powder. (4) A player asks **why** there are no firearms.
+
+#### Finding 1: identical exclusion, different generative content --- and this is the corpus's third case of that shape
+
+**(A) is a positive fact with a narrowing as its *consequence*; (B) is the narrowing.** (A) entails a technology level, an absent gunsmithing trade, a grade of metallurgy, and what a foreign trader might plausibly be carrying. (B) entails exactly one thing.
+
+**Note the family rather than the instance.** [C3](#c3-the-snare-trap-coyote-cannot-name): different situations, **byte-identical** context. [C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin): identical structure, different permissions. **C21: identical exclusion, different behaviour.** Three cases where the representation cannot see a difference that matters --- and each time the missing thing turned out to be *how it came to be that way* rather than *what it is*.
+
+#### Finding 2: four behavioural differences, all testable on the four probes
+
+| | (A) causal account | (B) bare exclusion |
+| --- | --- | --- |
+| **Probe 1** --- could the blacksmith? | *No, and here is what he lacks* --- answerable in-world | *No.* There is nothing to say about why |
+| **Probe 2** --- player builds a prototype | **Should succeed.** *Not invented* is a state, and changing it is a story --- arguably a good one | Pushing on the genre boundary, not an in-world obstacle |
+| **Probe 3** --- improvise blasting powder | **Licensed.** The constraint shapes the neighbourhood rather than excluding it | Excluded with the category |
+| **Probe 4** --- why no firearms? | Has a diegetic answer | **Has none, and inventing one is a category error** |
+
+**Probe 2 is the load-bearing one: (A) is defeasible in-fiction and (B) is not.** That is the sharpest form of the distinction --- **(A) locates the constraint inside the diegesis, (B) outside it.**
+
+#### Finding 3: (B) behaves like a social contract, not like a fictional contribution
+
+**The framing that makes the difference a difference in *kind*.** (B) is a statement about **what kind of story we are telling** --- the same family as lines-and-veils, session-zero boundaries, and other out-of-character agreements about the fiction rather than facts within it. Four consequences, none of which (A) shares:
+
+1. **Inviolable rather than weighted.** Every other fact in this design is graded --- [narrative weight](AGENT.abstractionLayers.planning.md#narrative-integrity-is-in-service-to-reincorporation-2026-08-09), AB-46. **No weight on the other side justifies breaching a social contract**, which makes it the first thing in the model that is not a matter of degree.
+2. **Contradicting it is not a narrative-integrity fault.** Under the [reincorporation frame](AGENT.abstractionLayers.planning.md#narrative-integrity-is-in-service-to-reincorporation-2026-08-09), (A) is a **contribution** and contradicting it strains the story. Breaching (B) is not *the story strained* --- it is **the system doing what it was told not to do**. Different failure mode, different repair.
+3. **No diegetic explanation exists, and none should be invented.** Probe 4 under (B) must decline rather than improvise.
+4. **It constrains *narration*, not only world-state.** (B) forbids describing a firearm, mentioning one in a flashback, giving an NPC a reminiscence about one. **[P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item)'s licence governs what may be *minted*; this governs what may be *said*.** Different consumer, and the one difference that does not reduce.
+
+#### Finding 4: two constructs, one enforcement point --- settled after two reversals in a day
+
+**The position moved twice on 2026-08-09 and the movement is recorded rather than smoothed, because it is informative.** Draft 1: two constructs, on an unrepresentability argument. Draft 2: one construct, after a mint-time gate turned out to be sufficient. **Draft 3, below: two constructs again, on an argument neither earlier draft had made.** **This is not thrashing --- each turn supplied a *new* consideration rather than re-arguing an old one**, which is what a genuinely balanced question looks like while it is being settled. A reader arriving cold should trust draft 3 more than draft 1 despite them agreeing, because draft 3 has survived the objection that overturned draft 1.
+
+**The settled answer: they are two constructs, and they share one enforcement point.**
+
+| | **Genre boundary** (bare forbid) | **Weighted world fact** (causal account) |
+| --- | --- | --- |
+| **Overturnable by play?** | **No.** No in-fiction effort changes it | **Yes**, by effort proportional to weight |
+| **Out-of-character response** | *"This will never be allowed until a consensus change of the underlying genre rules --- if you want it, persuade other **players**, outside the fiction"* | *"Nobody has ever done this. It is **possible**, but a significant and long-term quest"* |
+| **Escalation channel** | Out-of-character, to **moderators** | None --- the answer is in-fiction precedent and the effort to overturn it |
+| **Reincorporation** | Not a contribution to be weighed; a boundary on the space of contributions | An ordinary contribution, weighted (**AB-46**) |
+| **Write authority** | Out-of-character **table negotiation** | Authoring, or play |
+| **Instrumentation signal** | A genre-break attempt | An ambitious player |
+
+**The argument that settles it, and it is stronger than draft 1's.** Draft 1 argued that type separation keeps a category error unrepresentable --- **which depends on someone eventually making a mistake.** This argument holds **even under perfect discipline**: unify the two as *a licence narrowing with weight infinite*, and **every one of the six rows above becomes a branch on whether the weight is infinite.** Six consumers, six branches, and the only thing actually shared is a storage shape. **A sentinel value that changes behaviour at every read site is not a unification** --- it is two constructs with extra steps, and the compromise position (*one construct with a discriminating field*) collapses the same way, since a field that determines every behaviour is a type distinction spelled as an enum.
+
+**What survives from draft 2, and it is the durable part: one enforcement point.** A **mint-time gate is sufficient for both**, and neither needs a narration-time twin. Players cannot be stopped from assembling a tube, powder and shot and asking for a gun; the system refuses to mint the abstraction and thereafter **steadily refuses to reason about it**.
+
+| | Blast radius | Caught by a mint gate? |
+| --- | --- | --- |
+| A minted `OBJECT#Gun` --- interacted with, reasoned over, load-bearing three sessions later | **Large**, and expensive to unwind | **Yes** |
+| A stray NPC line --- *back when I served with the gunners* | **Small.** A sentence nobody built on | No |
+
+**That is [the integrity->prevention / coherence->damping split](AGENT.abstractionLayers.planning.md#the-feedback-regime-is-the-thing-to-measure-and-it-decides-which-solutions-to-look-for-2026-08-09) applied correctly, not a leak tolerated.** **And the refusal is structurally silent rather than obeyed:** an unminted abstraction produces no packet, so no reasoning step has anything to comply with. **Bounded context doing a third job**, after scalability and fault isolation.
+
+**Draft 2's error, named because its shape recurs in this plan.** The mint-gate finding removed **one** of draft 1's two objections, and that was treated as making the case for unification. **An objection falling is not a conclusion arriving** --- the mirror of the failure this plan already logs in the other direction, where a caveat nobody acts on quietly becomes an assumption.
+
+**Two consequences beyond the question.** **(i) AB-46 gains concrete semantics: weight is the effort required to overturn** --- pleasingly symmetric with *how much investment stands behind it*, since the more that went in the more it takes to undo. **(ii) The legibility caution raised in draft 2 is answered rather than carried:** both constructs now have a legible out-of-character response, and the weighted one **turns a refusal into a quest hook**, which is what probe 2 said should happen.
+
+~~**Finding 4, drafts 1 and 2** --- the unrepresentability argument, and the one-construct reversal --- **are superseded by draft 3 above, which absorbs everything from draft 2 that survived.**~~ Full reasoning for both is in [the Progress table](AGENT.abstractionLayers.planning.md#progress); it is not reproduced here, since the surviving content is stated above and duplicating the dead drafts would make this case the longest in the corpus for no evidential gain.
+
+#### Finding 5: what it does to P5's clause table
+
+| Clause | Effect |
+| --- | --- |
+| **2** --- a negative is a narrowing, not a fact about the world | **Can store (B); flattens (A).** (A) *is* a fact about the world that yields a narrowing, so storing it as the narrowing discards the generative half. **Not a falsification** --- (A) should be stored as the positive fact and the narrowing derived --- **but P5 has no mechanism for deriving a narrowing from a fact** |
+| **8** --- causality propagates, licence does not | **Under pressure.** If a positive fact entails a licence state, **something propagated.** *Derived-from* is arguably not *propagated-along*, but the distinction is thin and entirely unworked |
+| **9** --- a licence is a shaped space | **Supported, and given content.** (A) shapes gradiently (blasting powder yes, firearm no); (B) is a clean cut. *Warm but poor* only gestured at this |
+| **PL-1** --- which ancestor facts are relevant locally | **A second and orthogonal aspect**, and after C20's re-aiming, **the aspect this case supplies is the one that survived.** Reach *through containment* turned out to be permitted by clause 3 and selected by PL-1; what this case adds is how much **derivable** content one ancestor fact carries, which no clause governs |
+
+#### Finding 6: the distinction is scale-invariant, which is a check the fractal passes
+
+**The same distinction exists four levels down.** A tavern authored *poor* versus one authored *stripped by the war*: the second generates bitter patrons, empty racks where things used to be, and a grievance. **The fractal predicts that a real distinction holds at every level, and this one does** --- which is evidence the distinction is structural rather than an artifact of world-scale, where it was first noticed.
+
+**Consequently it should feed [PL-1](AGENT.abstractionLayers.planning.md#open-questions-p5-sub-questions-ids-stable-never-reused)'s tavern illustration** --- authoring that tavern as *poor* versus *war-stripped* tests this seam at the scale the illustration already occupies, at no extra cost. **Redirected 2026-08-09 from C20**, which was re-aimed at the closed-world case and no longer has a tavern in it.
+
+#### Finding 7: the gate produces moderation instrumentation for free, and that may be the larger prize
+
+**Recorded because the mechanism yields it, not as a proposal --- the moderation system that would consume this is out of scope for this initiative** (see the [Verdict](#c21-two-ways-to-say-there-are-no-firearms)).
+
+**Every refusal is an event.** A mint gate has to evaluate anyway, so *someone attempted a thing this world forbids* is already computed and merely not recorded. **And under Finding 2's probe 3 it is graded rather than binary:** a causal-account constraint licenses near-misses, so the ladder is observable --- blasting powder, then a tube, then shot, then *make me a gun*. **That is approach detection, not merely violation detection**, and it falls out of the near-miss behaviour rather than needing its own mechanism.
+
+**Worth stating plainly: automated instrumentation of players approaching a genre break would be novel for this class of game**, where moderation has historically been reactive --- player reports and log review after the fact. **Even a mediocre version is a substantial win**, because the expensive interval is between attempt and human attention, and that is exactly the interval this shortens.
+
+**Verdict.** The distinction is real, has four testable behavioural consequences, and bears on P5 in three places. **The representation question it opened resolved within the case rather than outside it** --- both arguments for two constructs fell to the observation that a **mint-time gate** is sufficient, so the answer is *one construct with a discriminating field and a distinct write authority*, recorded as **AB-47** with its lean reversed from this case's first draft. **Two results outlive the question that produced them:** a bare genre-forbid is **inviolable rather than weighted**, which is the first thing in this design that is not a matter of degree and therefore bounds AB-46; and the gate yields **moderation instrumentation for free**, including graded *approach* detection, which is out of scope here and plausibly the larger prize.
+
+**Scope note, agreed 2026-08-09.** The **overall social contract and the human moderation practice around it** need addressing, and **not in this plan** --- this initiative owns the representation and the gate, not the table's agreement or the moderator's workflow. Finding 7 is recorded so the free signal is not rediscovered, not as a claim on that work.
+
+**Annotations.** Read-side and write-side both --- part kind n/a --- **authored, so neither AB-14 trigger fires**, which puts it with C10/C11/C12 --- **mechanism**, since probes 2 and 3 gate writes --- exercises no improvisation gap, and is the **first case to question whether a constraint belongs in the fiction at all**.
+
+**Rows grounded.** **AB-47** (opened by this case), P5 clauses 2, 8 and 9 and **PL-1** (a second, orthogonal aspect), AB-46 (the first construct in the design that is **not** a matter of degree, which bounds narrative weight's reach), AB-19 (description/mechanism, and probe 4's *decline rather than improvise*), and [PL-1](AGENT.abstractionLayers.planning.md#open-questions-p5-sub-questions-ids-stable-never-reused)'s tavern illustration, which this case widens at no cost.
 
 ### Parks deliberately not mined
 
