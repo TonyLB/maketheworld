@@ -1043,6 +1043,40 @@ Beat 5 is the case's decision. **Imported licence is independent thereafter** --
 
 **Rows grounded.** **AB-47** (opened by this case), P5 clauses 2, 8 and 9 and **PL-1** (a second, orthogonal aspect), AB-46 (the first construct in the design that is **not** a matter of degree, which bounds narrative weight's reach), AB-19 (description/mechanism, and probe 4's *decline rather than improvise*), and [PL-1](AGENT.abstractionLayers.planning.md#open-questions-p5-sub-questions-ids-stable-never-reused)'s tavern illustration, which this case widens at no cost.
 
+### C22. The ship's wheel and the lighthouse
+
+**Origin:** proposed 2026-08-10 from conversation, and **it had already done argumentative work before it was written** --- a ship's cabin (a `Room` that moves) is what defeated a proposed *Features may only be subjects toward Room / Area / Feature targets* rule, on the grounds that mobility is a per-instance fact and not a kind fact. This plan records that it has *"twice mistaken a remembered claim for a verified one"*; writing this case makes that three caught rather than three made. **Phase 0 discipline observed: this case states the situation and what breaks. The candidate answer that prompted it lives at [P3's port-chain subsection](AGENT.abstractionLayers.planning.md#candidate-perceptual-links-as-port-chains-through-the-containment-hierarchy-2026-08-10) and deliberately not here.**
+
+**The setup.** `AREA#Boat` --- comprising several rooms, one of them `ROOM#Bridge` --- is **nested inside** `AREA#Bay`, and moves: it can relocate to `AREA#NearShore`. Two things are described from the bridge, and today both would be Features:
+
+| | `FEATURE#ShipsWheel` | `FEATURE#Lighthouse` |
+| --- | --- | --- |
+| Where it is | **In the room.** Integral --- removing it changes what the bridge is | **Not in the room.** It stands in the bay; the bridge can *see* it |
+| Manipulable | **Yes** --- turn it, and the boat's heading changes | Not from here. (At its own level: sail to it, land, climb it) |
+| Travels with the boat | **Yes**, necessarily | **No**, necessarily |
+| Why non-transferable | It is *part of* something | It is *not here* |
+
+**State today.** Neither exists on the graph at all: the node `tag` union is `'Character' | 'Object'`, so **Features are not graph nodes**, and the wheel and the lighthouse are equally unrepresentable. Beyond that shared gap the two diverge, and four separate invariants stop the lighthouse specifically:
+
+1. **No relation kind fits.** `HostRelationalEdgeKind` is `'On' | 'Under' | 'Against' | 'Custom'`, plus the proposed `In` / `PartOf` / `Held` / `Worn`. *Visible from here* is none of them --- not spatial (not siblings in one graph), not containment (**the lighthouse must not travel with the boat**, which is the defining fact), not causal.
+2. **Relations are intra-host.** [`applyStepSequenceCore`](../../../../../lambda/ephemera/dataSource/positions/positionGraph/manipulation/kernel/applyStepSequenceCore.ts) derives a relational step's shared host live and **throws** on mismatch. The bridge and the lighthouse are not in one host and cannot be.
+3. **Areas do not move.** Nothing in the model relocates an Area, or nests one inside another as a *movable* member.
+4. **Nothing dissolves by distance.** Every dissolution the model has is **action**-triggered --- transfer, reabsorption, fission, `removeObject`'s assert-and-throw. Sailing far enough that a lighthouse drops below the horizon is dissolution driven by a **continuously changing quantity**, and there is no trigger shape for it.
+
+**The finding this case exists for, and it corrects a distinction proposed in the conversation that produced it.** The wheel and the lighthouse look like **two roles of Feature** --- one *mutation-limited but present*, one *apprehension-only*. **They are not two roles. They are the same thing at two levels of the containment hierarchy:** a Feature of a Room and a Feature of an Area. The lighthouse is apprehension-only **from the bridge**, which is a fact about distance and traversal depth, not about the lighthouse. It is fully manipulable at its own level. **So this is [scale-relative truth](AGENT.abstractionLayers.planning.md#clean-fractal-dirty-implementation) misread as a kind distinction** --- the same error as whole-and-part-as-types, proposed on the same day three instances of it were written up. **Recorded rather than quietly dropped**, because *"these are two different sorts of thing"* will read as true to the next reader too.
+
+**Why that matters beyond the case:** a *two-roles* reading would have split `Feature` into two tags and given them different rules --- and [any rule that gives one thing two behaviours by level is not a rule](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports). The level reading needs **no new tag**: one `Feature`, reached at whatever depth it lives.
+
+**A boundary this case puts on [AB-41](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s new clause.** *Ephemeral wholes may not absorb a Feature* was reasoned from a **distal** exemplar (a mountain nobody may pocket). The wheel is an **integral** Feature and **must** travel when its whole does. The clause therefore has to bite on **absorption into an ephemeral utility whole** and not on **legitimate containment-carry** --- and the guard's stated rationale ("scenery does not move") is now known to cover two situations with opposite requirements.
+
+**What it also reaches, flagged rather than explored.** Nested, movable Areas is **AB-12(b)'s "Area as a bigger Object"** third --- recorded as *untouched*, and **not** covered by the rooms-nesting-in-rooms park, which is Room-to-Room only. This case cannot be neutral about it: without the nesting there is no intermediate graph in which the boat's position relative to the lighthouse can live, and no level at which relocation can be reasoned about.
+
+**Prior art already in the corpus, one scale down.** [C15](#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away) --- microphone and speaker two rooms apart --- is cross-host **perceptual** linkage, recognised rather than authored. Same family; C22 adds *distance-dependence* and *a mobile container* to it.
+
+**Annotations.** Both read-side and write-side (the wheel is manipulable; the lighthouse's link must be maintained under movement). Trigger: authored, not improvised --- neither AB-14 mode fires, the fourth such case after C10/C11/C12. Parts are **heterogeneous separable**. Exercises **gap 4** (no artifact for a relation the model has no kind for).
+
+**Rows grounded.** AB-30 (a third status: the lighthouse is *referrable from a distance*, neither the wall's addressable-not-a-member nor an ordinary member), AB-12(b) (forces the Area third), AB-41 (bounds the new Feature clause), AB-9 (which level gets presented, and from where), AB-6 / AB-39 (is *shown* stored or evaluated, and against which snapshot), P4 (dissolution by continuously changing quantity is a dataflow case, not a truth-maintenance one), the relation-kind register (a kind with no family), and H3 clause 8 (apprehension scale, its first case with a concrete demand).
+
 ### Parks deliberately not mined
 
 The other four parks in [The dependency is asymmetric](AGENT.abstractionLayers.planning.md#the-dependency-is-asymmetric-representation-unblocks-reasoning)'s right-hand column were considered and excluded, so a later reader does not re-check them: **BD-24** / iteration 6 and **C3** / `MultipleCommands` are *demand*-blocked (no concrete case currently demands either), **BD-18** / backtrack channel is *architecture*-blocked and is a sibling initiative to schedule against rather than absorb, and iteration 2's remaining fallback steps are prompt and calibration work. None would move on a representation change, so none yields a corpus case.
