@@ -22,7 +22,7 @@ The evidence base later phases argue from. Each case is written against **today'
 
 **The axis tag is the exception, and lives in the [axis tally](#axis-tally-c1--c21) instead of on the line.** It was assigned to all eleven cases at once on 2026-08-07, it is read as a column rather than per case, and keeping one home stops it drifting from a per-case copy. **Note the convergence rather than duplicating it:** AB-19's *description or mechanism* tag on each line is **apprehension versus reasoning under an earlier name**, which is why the retro-fit cost nothing and why the two should not both be maintained as though they were independent.
 
-### Axis tally (C1--C21)
+### Axis tally (C1--C21, all written)
 
 **Retro-fitted 2026-08-07** against [the five axes](AGENT.abstractionLayers.planning.md#the-five-axes-what-the-graphs-flexibility-is-in-service-to). **The axis tag lives here rather than on each case's annotation line, deliberately:** it is the one tag assigned across the whole corpus at once, reading it as a column is the point, and a single home means it cannot drift from a per-case copy. New cases add a row.
 
@@ -49,7 +49,7 @@ The evidence base later phases argue from. Each case is written against **today'
 | [C17](#c17-the-professional-kitchen-the-chefs-knife-and-the-stand-mixer-nobody-asked-about) --- the professional kitchen | **Authoring** | Apprehension, Mutation | The corpus's **first authoring-primary case**. A coarse authored envelope licenses a chef's knife no consumer can read; `noMatch` is the closed-world assumption answering *established absent* to everything nobody has asked. **Establishes a three-valued detail space whose third value is settled, not pending** |
 | [C18](#c18-three-place-settings-and-only-two-of-them-may-have-a-napkin) --- three place settings | **Authoring** | Reasoning | Three constructions produce **structurally identical** wholes carrying **different improvisation licences**, so licence is not readable off the graph. C3's byte-identical finding from the opposite end |
 | [C19](#c19-filling-out-the-place-setting-and-the-tavern-that-ran-out-of-napkins) --- filling out the place setting | **Authoring** | Mutation, Reasoning | C18's dynamic counterpart: a whole **moves** between licence states, so C18's three cases are states not kinds. Settles licence transfer as **copy, not reference** --- causality propagates, licence does not |
-| **C20** --- the tightly-authored closed world | *(queued)* | --- | **Not yet written, and re-aimed 2026-08-09.** P5's first falsification case, now targeting **clause 1** (unbounded by default) rather than clause 3. Its original subject --- the warm-but-poor tavern --- was retired when the contradiction it rested on turned out to be a drafting error in clause 3's wording; that scenario now lives as a **PL-1 illustration**. Listed here so the numbering gap is not read as a lost case |
+| [C20](#c20-the-locked-room-and-nothing-obvious) --- the locked room, and *nothing obvious* | **Authoring** | Reasoning, Mutation | P5's first falsification case, **re-aimed twice before landing**. Narrowings turn out not to be extensional: *no **obvious** entrances* denotes a **manner of minting**, not a set of things --- which vindicates clause 1 and falsifies an assumption clause 2 never stated |
 | [C21](#c21-two-ways-to-say-there-are-no-firearms) --- two ways to say there are no firearms | **Authoring** | Reasoning | Identical exclusion, different generative content: a causal account is defeasible in-fiction, a bare genre-forbid is not. Opens whether the latter is a **social contract** rather than a fictional contribution |
 
 **Seven results worth reading off the column rather than the rows.**
@@ -869,6 +869,73 @@ Beat 5 is the case's decision. **Imported licence is independent thereafter** --
 **Annotations.** Write-side --- part kind n/a (licence, not composition) --- **Recognition at beat 2, then Improvisation-on-demand at beat 3 on the same whole**, which no prior case does --- **mechanism** --- exercises **gap 2**, and is the first case to show a gap-2 aggregate **leaving** the extensional state.
 
 **Rows grounded.** AB-45 and [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item) (licence transfer, and the no-cascade decision), AB-20 (its *player's reference is the licence* clause doing load-bearing work on a licence-widening act), AB-14 (both triggers on one whole in sequence), AB-19 (mechanism-recognition at beat 2), AB-42/AB-43/AB-44 (a licence that **changes**, which strengthens the manipulable-so-node argument), and the [relation-kind register](AGENT.abstractionLayers.planning.md#the-relation-kind-register) (propagation policy *none*).
+
+### C20. The locked room, and "nothing obvious"
+
+**Origin:** P5's first falsification case, **re-aimed twice before being written** and written 2026-08-09. **The re-aimings are recorded because each one found the previous target was this plan's error rather than P5's defect**, which is a pattern worth watching rather than smoothing: **clause 3** (retired --- the contradiction was a direction-neutral reading of a containment scope), then **clause 1** (retired --- the closed world it needed turns out to be something this system should decline to support, per Finding 1), now **clause 2**.
+
+**The state.** A locked-room mystery. One door, no windows; the door is known to have been locked during the murder and for hours afterward. The room's inaccessibility **is** the puzzle. Two ways an author might record that:
+
+| | Authored restriction |
+| --- | --- |
+| **(A)** | *No ways into or out of this room may be improvised* |
+| **(B)** | *No **obvious** ways into or out of this room may be improvised* |
+
+**The exchange the case turns on**, which is a learned technique GMs arrive at early and get a great deal of mileage from:
+
+> **PC:** Is there another way into or out of the room?
+> **GM:** Nothing *obvious*.
+
+#### Finding 1: (A) is a thing the system should decline to represent, and that is a bound worth stating
+
+**A puzzle solvable only by the solution its author first envisioned is bad design**, and decades of indie RPG practice show no benefit to that degree of authorial control. **This is [AB-19](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s rejection at world scale** --- that row killed the authored-pattern-vocabulary shortcut partly because *it limits players to what someone anticipated*, and railroading is the same objection with a larger radius. **Recorded as a stated bound in the manner of AB-1's *this does not license a simulator***: the model should make (A) awkward rather than convenient, and no clause should be shaped to serve it.
+
+#### Finding 2: the bound must be disambiguated from AB-47, or the two read as contradictory
+
+**A genre forbid is absolutist too** --- *no firearms*, inviolable, social contract ([AB-47](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)). The difference, and it needs writing down: **a genre boundary constrains the *palette*; railroading constrains the *path*.** One puts a whole category out of play by agreement among participants; the other permits exactly one route through. **Both are absolute and only one is legitimate**, so *no absolutist authorial control* is the wrong formulation of Finding 1's bound and *no authorial control over the path* is the right one.
+
+#### Finding 3: clause 2 has been assuming narrowings are extensional --- (B) falsifies it
+
+**[Clause 2](AGENT.abstractionLayers.planning.md#the-scheme-as-a-clause-table-numbered-2026-08-09) says a negative is a recorded narrowing.** Every instance the plan has worked --- *no deep fryer*, *no napkins in stock*, a place setting closed to further members --- **denotes a set of things.** **(B) does not.** *Obvious* is a **predicate that must be evaluated**, and *is this entrance obvious?* is not decidable by lookup at any vocabulary size.
+
+**So there are now two judgment points, where PL-1 established one.** [PL-1](AGENT.abstractionLayers.planning.md#open-questions-p5-sub-questions-ids-stable-never-reused): **which** ancestor facts are relevant is a judgment. **New here:** **whether a candidate falls inside a narrowing** is also a judgment. **This makes [AB-43](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) materially worse** --- *describe a closed region* may have **no descriptive answer at all** for some regions, only a predicate a reasoning step evaluates. **Found by numbering the clauses**, exactly as that exercise was meant to produce: an assumption nobody had stated could not be falsified until it was written down.
+
+#### Finding 4: narrowings may constrain *manner* rather than *content* --- and that is what saves clause 1
+
+**(B) does not say the entrance does not exist.** It says it **may not be established cheaply**. So the three-value model is untouched --- the entrance is **not established** --- and [clause 1](AGENT.abstractionLayers.planning.md#the-scheme-as-a-clause-table-numbered-2026-08-09)'s unbounded-by-default survives intact. **What the narrowing shapes is *how* a thing may become established, not *whether*.**
+
+| Kind | Example | Denotes |
+| --- | --- | --- |
+| **Content narrowing** | *no deep fryer* | A set of things that may not be minted |
+| **Manner narrowing** | *no **obvious** entrances* | A **way of minting** that is not permitted |
+
+**This is the case's central structural finding**, and it is why the closed world was the wrong target: **the locked room never needed one.** A high-weight manner narrowing does the whole job, which is [AB-46](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s *weight is the effort required to overturn* doing exactly the work it was defined for.
+
+**One refinement, because weight alone is not sufficient.** A player could spend real effort and still propose a *cheap* door. What separates *the dumbwaiter the investigators found by examining the kitchen* from *a door we forgot to mention* is that the first **builds on established fiction** and the second conjures. **Obvious, in this sense, means ungrounded** --- so the manner being required is **reincorporation**, arriving as a **licence shape** rather than as the fault measure [it was introduced as](AGENT.abstractionLayers.planning.md#narrative-integrity-is-in-service-to-reincorporation-2026-08-09).
+
+#### Finding 5: "Nothing obvious" is the narrowing narrated --- a third response mode, and an in-fiction one
+
+**[AB-47](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) supplies two out-of-character responses** --- *persuade other players* for a genre boundary, *possible but a long-term quest* for a weighted world fact. **This is a third, and it is diegetic:** the system reports its own constraint back **inside the fiction**, and the player correctly infers the shape without the frame ever breaking.
+
+**It answers the legibility caution better than either OOC form does.** That caution --- silent refusal is safe but not legible, and cannot be explained in-world because there is no in-world reason --- **was answered for genre boundaries and left awkward for weighted facts.** *Nothing obvious* costs nothing narratively, requires no out-of-character aside, and **is not a refusal at all**: it is an answer that happens to encode the constraint.
+
+#### Finding 6: the response is itself a mint --- it converts an *unknown* into a *mystery*
+
+**Mystery is not the same as unknown, and both are *not established*.** An unknown is something nobody asked about, on which nothing rides, and which is cheap to establish. **A mystery is a commitment that there is an answer worth earning.** Answering *nothing obvious* **creates** that commitment where none existed --- so the reply is a **positive contribution**, not a withholding.
+
+**Which means a well-formed narrowing generates as much as it forbids.** [C21 Finding 1](#finding-1-identical-exclusion-different-generative-content--and-this-is-the-corpuss-third-case-of-that-shape) drew the generative/restrictive split as a property of the constraint's **form**; this is the same split arriving as a property of the **response**. **Two independent routes to it**, which is this plan's usual evidence that a joint is real.
+
+#### Finding 7: and it does not require the answer to exist yet --- which is why it is cheap
+
+**The GM saying *nothing obvious* need not know about the dumbwaiter.** The phrase commits to a **shape of future answer**, not to a fact. The dumbwaiter invented three sessions later, when a player earns it by examining the kitchen, is **retroactively licensed** by it.
+
+**So the construct is *not established* plus a promise**, and it costs one sentence. **Sharpened 2026-08-09: the promise is specifically a *minimum-investment floor*** --- *this will not be revealed before a certain amount of player effort* --- **not a deferral.** A mystery whose answer is available on request is worthless, which is why the floor is the whole construct and why *nothing obvious* works where *no* does not. **That also makes a mystery a [manner narrowing](AGENT.abstractionLayers.planning.md#the-scheme-as-a-clause-table-numbered-2026-08-09) applied to something not yet established** --- Finding 4's split reaching the case that motivated it, rather than a second construct. **That is the whole reason the technique works in practice**, and it is a strong argument that the model should support it directly rather than requiring an author to pre-place a hidden exit --- which would be (A) wearing better clothes, since the solution would again be the one the author envisioned.
+
+**Verdict.** **Clause 1 survives and is vindicated** --- the locked room never needed a closed world. **Clause 2 is falsified in an assumption it never stated**: narrowings are not always extensional, and a manner narrowing denotes a way of minting rather than a set of things. **Clause 9 gains its hardest content** and **AB-43 gets materially worse**, since some regions are predicates rather than descriptions. **AB-46 does real work** as the effort behind a manner narrowing, refined by reincorporation as the manner required. And the case records a **bound** (no authorial control over the path) with its disambiguation from AB-47 (which controls the palette). **Three targets over three re-aimings, and only the third was P5's rather than this plan's** --- worth noting before the next falsification case is queued.
+
+**Annotations.** Read-side and write-side --- part kind n/a --- **authored, so neither AB-14 trigger fires**, with C10/C11/C12/C21 --- **mechanism** --- exercises no improvisation gap; its subject is the *manner* of minting rather than the minting.
+
+**Rows grounded.** P5 clauses **1** (vindicated), **2** (falsified in its extensional assumption) and **9** (hardest content), **AB-43** (worsened --- predicates, not descriptions), **AB-46** (effort behind a manner narrowing), **AB-47** (palette-versus-path disambiguation, and a third response mode), **AB-19** (its rejection restated at world scale as a bound), **PL-1** (a second judgment point beside relevance), and [C21](#c21-two-ways-to-say-there-are-no-firearms) (generative-versus-restrictive, reached from the response side).
 
 ### C21. Two ways to say there are no firearms
 
