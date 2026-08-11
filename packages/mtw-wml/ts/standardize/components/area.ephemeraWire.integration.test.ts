@@ -7,7 +7,7 @@ const areaData: StandardAreaData = {
     key: 'downtown',
     universalKey: 'AREA#downtown',
     shortName: 'Downtown',
-    positionGraph: {
+    ludicGraph: {
         nodes: [
             { tag: 'Room', key: 'cafe' },
             { tag: 'Feature', key: 'fountain' },
@@ -37,8 +37,8 @@ describe('StandardArea ephemeraWire integration', () => {
         const assetResult = standardComponentFactory(node)
         const wireResult = standardComponentFactory(node)
 
-        expect((assetResult.component as StandardArea).positionGraph.nodes.toJSON()).toEqual(
-            (wireResult.component as StandardArea).positionGraph.nodes.toJSON()
+        expect((assetResult.component as StandardArea).ludicGraph.nodes.toJSON()).toEqual(
+            (wireResult.component as StandardArea).ludicGraph.nodes.toJSON()
         )
     })
 })

@@ -10,7 +10,7 @@ import {
     WorkbenchShortNameField
 } from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
-import PositionGraphNodesEditor from './PositionGraphNodesEditor'
+import LudicGraphNodesEditor from './LudicGraphNodesEditor'
 import ExitEdgeListEditor from './ExitEdgeListEditor'
 
 export const AreaEditor: FunctionComponent = () => {
@@ -60,7 +60,7 @@ export const AreaEditor: FunctionComponent = () => {
                         >
                             <WorkbenchShortNameField />
                             <Spacer />
-                            <PositionGraphNodesEditor AreaId={universalKey} />
+                            <LudicGraphNodesEditor AreaId={universalKey} />
                             <Spacer />
                             <ExitEdgeListEditor AreaId={universalKey} />
                         </Box>

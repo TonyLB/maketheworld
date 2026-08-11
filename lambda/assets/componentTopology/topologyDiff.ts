@@ -26,14 +26,14 @@ const roomIdFromExitEndpoint = (
     if (direct?.startsWith('ROOM#')) {
         return direct as ComponentUUID
     }
-    const nodeMatch = area.positionGraph.nodes.payload.find((node) => node.sameKey(ref))
+    const nodeMatch = area.ludicGraph.nodes.payload.find((node) => node.sameKey(ref))
     const fromNode = nodeMatch?.universalKey
     return fromNode?.startsWith('ROOM#') ? (fromNode as ComponentUUID) : undefined
 }
 
 const roomIdsFromArea = (area: StandardArea): ComponentUUID[] => {
     const ids = new Set<ComponentUUID>()
-    for (const edge of area.positionGraph?.edges?.items ?? []) {
+    for (const edge of area.ludicGraph?.edges?.items ?? []) {
         const fromKey = roomIdFromExitEndpoint(area, edge.from)
         const toKey = roomIdFromExitEndpoint(area, edge.to)
         if (fromKey) {

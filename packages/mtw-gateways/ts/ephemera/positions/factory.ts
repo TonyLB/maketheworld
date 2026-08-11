@@ -21,7 +21,7 @@ import type {
 } from './types'
 
 /**
- * Per-invocation read + memo handler for ephemera play position graphs.
+ * Per-invocation read + memo handler for ephemera play ludic graphs.
  * Dynamo writes stay in positions membership persistence; memo APIs patch in-memory state only.
  */
 export class PositionsCacheHandler {

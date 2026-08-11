@@ -57,7 +57,7 @@ export function projectRoomExits(
     const facets: StandardExitFacet[] = []
 
     for (const area of mergedAreas) {
-        for (const edge of area.positionGraph.edges.items) {
+        for (const edge of area.ludicGraph.edges.items) {
             const fromRef = referenceFromExitEndpoint(edge.from)
             const toRef = referenceFromExitEndpoint(edge.to)
             const forwardLabel = literalPlainString(edge.payload.forward)

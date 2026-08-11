@@ -31,7 +31,7 @@ List-only helper: [`referenceListMutations.ts`](referenceListMutations.ts) (`rem
 For lists where each item is **navigated to** or **selected via dialog** (e.g. Room Features, Guidance). No per-item data editing in the list itself. Both delegate to **`ReferenceListControlled`**.
 
 - **Structure**: `ReferenceListEditorGeneric` inside `MakeTheWorldAccordion`. Each item: card with `ListItemButton` (title, optional subtitle/icon), optional delete `IconButton`. Optional Add / Reference existing / Import rows.
-- **Session usage**: Room Guidance/Features ([`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts)) and Area position-graph participants per tag ([`areaPositionGraphNodesAccessors.ts`](../../AreaEdit/areaPositionGraphNodesAccessors.ts)) wire **`onItemClick`** with **`pushBreadcrumb`** to drill into referenced components while keeping the parent on the stack ([`PositionGraphNodesEditor.tsx`](../../AreaEdit/PositionGraphNodesEditor.tsx)).
+- **Session usage**: Room Guidance/Features ([`roomReferenceListAccessors.ts`](../../RoomEdit/roomReferenceListAccessors.ts)) and Area position-graph participants per tag ([`areaLudicGraphNodesAccessors.ts`](../../AreaEdit/areaLudicGraphNodesAccessors.ts)) wire **`onItemClick`** with **`pushBreadcrumb`** to drill into referenced components while keeping the parent on the stack ([`LudicGraphNodesEditor.tsx`](../../AreaEdit/LudicGraphNodesEditor.tsx)).
 - **Asset usage**: `ReferenceListEditor` with `listContext` when no parent session (reserved for future non-provider call sites). **[`TopLevelEditor`](TopLevelEditor.tsx)** uses the asset-meta session pattern on **`working.topLevel`**; see [Asset root / `_topLevel`](#asset-root--_toplevel).
 
 ---

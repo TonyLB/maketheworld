@@ -1,17 +1,17 @@
-import { StandardPositionGraph } from "./positionGraph"
+import { StandardLudicGraph } from "./ludicGraph"
 import StandardReference from "../keys/reference"
 import { ReferenceList } from "./reference"
 
-describe("StandardPositionGraph", () => {
+describe("StandardLudicGraph", () => {
     describe("empty omission", () => {
         it("omits nodes in toJSON for default graph", () => {
-            const graph = new StandardPositionGraph()
+            const graph = new StandardLudicGraph()
             expect(graph.nodes.payload.length).toBe(0)
             expect(graph.toJSON()).toBeUndefined()
         })
 
         it("omits nodes in toJSON for fromJSON with empty object", () => {
-            const graph = StandardPositionGraph.fromJSON({})
+            const graph = StandardLudicGraph.fromJSON({})
             expect(graph.nodes.payload.length).toBe(0)
             expect(graph.toJSON()).toBeUndefined()
         })
@@ -19,7 +19,7 @@ describe("StandardPositionGraph", () => {
 
     describe("round-trip", () => {
         it("serializes heterogeneous nodes", () => {
-            const graph = StandardPositionGraph.fromJSON({
+            const graph = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Area', key: 'downtown' },
                     { tag: 'Room', key: 'cafe' },
@@ -40,13 +40,13 @@ describe("StandardPositionGraph", () => {
 
     describe("merge", () => {
         it("merges heterogeneous nodes and combines ref counts for matching keys", () => {
-            const base = StandardPositionGraph.fromJSON({
+            const base = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Area', key: 'downtown', ref: 1 },
                     { tag: 'Room', key: 'cafe', ref: 1 },
                 ],
             })
-            const incoming = StandardPositionGraph.fromJSON({
+            const incoming = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Room', key: 'cafe', ref: 1 },
                     { tag: 'Feature', key: 'fountain', ref: 1 },
@@ -62,13 +62,13 @@ describe("StandardPositionGraph", () => {
 
     describe("diff", () => {
         it("diffs heterogeneous nodes across tags", () => {
-            const base = StandardPositionGraph.fromJSON({
+            const base = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Area', key: 'downtown', ref: 1 },
                     { tag: 'Room', key: 'cafe', ref: 1 },
                 ],
             })
-            const incoming = StandardPositionGraph.fromJSON({
+            const incoming = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Room', key: 'cafe', ref: 2 },
                     { tag: 'Feature', key: 'fountain', ref: 1 },
@@ -82,10 +82,10 @@ describe("StandardPositionGraph", () => {
         })
 
         it("returns undefined when diff is empty", () => {
-            const graph = StandardPositionGraph.fromJSON({
+            const graph = StandardLudicGraph.fromJSON({
                 nodes: [{ tag: 'Room', key: 'cafe', ref: 1 }],
             })
-            const same = StandardPositionGraph.fromJSON({
+            const same = StandardLudicGraph.fromJSON({
                 nodes: [{ tag: 'Room', key: 'cafe', ref: 1 }],
             })
             expect(graph.diff(same)).toBeUndefined()
@@ -94,13 +94,13 @@ describe("StandardPositionGraph", () => {
 
     describe("equals", () => {
         it("is order-insensitive for equivalent heterogeneous lists", () => {
-            const graphA = StandardPositionGraph.fromJSON({
+            const graphA = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Area', key: 'downtown' },
                     { tag: 'Room', key: 'cafe', ref: 2 },
                 ],
             })
-            const graphB = StandardPositionGraph.fromJSON({
+            const graphB = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Room', key: 'cafe', ref: 2 },
                     { tag: 'Area', key: 'downtown' },
@@ -109,15 +109,15 @@ describe("StandardPositionGraph", () => {
             expect(graphA.equals(graphB)).toBe(true)
         })
 
-        it("returns false for non-StandardPositionGraph", () => {
-            const graph = new StandardPositionGraph()
-            expect(graph.equals({} as StandardPositionGraph)).toBe(false)
+        it("returns false for non-StandardLudicGraph", () => {
+            const graph = new StandardLudicGraph()
+            expect(graph.equals({} as StandardLudicGraph)).toBe(false)
         })
     })
 
     describe("nodesByTag", () => {
         it("filters by tag without mutating source graph", () => {
-            const graph = StandardPositionGraph.fromJSON({
+            const graph = StandardLudicGraph.fromJSON({
                 nodes: [
                     { tag: 'Area', key: 'downtown' },
                     { tag: 'Room', key: 'cafe' },
@@ -133,7 +133,7 @@ describe("StandardPositionGraph", () => {
 
     describe("clone", () => {
         it("clones nodes independently", () => {
-            const graph = StandardPositionGraph.fromJSON({
+            const graph = StandardLudicGraph.fromJSON({
                 nodes: [{ tag: 'Room', key: 'cafe', ref: 1 }],
             })
             const cloned = graph.clone()
@@ -148,7 +148,7 @@ describe("StandardPositionGraph", () => {
             const list = new ReferenceList([
                 new StandardReference({ tag: 'Room', key: 'cafe' }),
             ])
-            const graph = new StandardPositionGraph(list)
+            const graph = new StandardLudicGraph(list)
             expect(graph.toJSON()?.nodes).toHaveLength(1)
         })
     })

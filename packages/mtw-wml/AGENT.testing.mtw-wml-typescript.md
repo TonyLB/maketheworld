@@ -31,19 +31,19 @@ rg "tag:\s*'Room'" lambda/assets lambda/ephemera --glob "*.test.ts" -n
 
 ## Optional regression searches (Area)
 
-After changes to Area, `StandardPositionGraph`, or related WML/schema wiring:
+After changes to Area, `StandardLudicGraph`, or related WML/schema wiring:
 
 ```bash
-npm --prefix packages/mtw-wml run test -- --watchAll=false --testPathPattern="area|positionGraph"
+npm --prefix packages/mtw-wml run test -- --watchAll=false --testPathPattern="area|ludicGraph"
 npx tsc -p packages/mtw-wml/tsconfig.json --noEmit
 rg "ComponentTag|'Area'|AREA#" packages/mtw-wml packages/mtw-base --glob "*.{ts,tsx}"
-rg "<PositionGraph" packages/mtw-wml packages/mtw-base --glob "*.{ts,tsx,md}"
+rg "<LudicGraph" packages/mtw-wml packages/mtw-base --glob "*.{ts,tsx,md}"
 rg "self-reference|selfReference" packages/mtw-wml/ts/standardize/components --glob "*area*"
 ```
 
 **Fixture tips:**
 
-- **WML:** Flat participant children under `<Area>`; do not introduce a `<PositionGraph>` wrapper.
-- **JSON:** Expect **`positionGraph: { nodes }`** only; omit when empty.
+- **WML:** Flat participant children under `<Area>`; do not introduce a `<LudicGraph>` wrapper.
+- **JSON:** Expect **`ludicGraph: { nodes }`** only; omit when empty.
 - **Universal keys:** `AREA#...` in JSON; `<Area uuid=(...) />` in WML for universal-key wire form.
 

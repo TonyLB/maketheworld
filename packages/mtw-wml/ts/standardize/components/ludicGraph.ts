@@ -1,17 +1,17 @@
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import {
-    PositionGraphNodeTag,
-    StandardPositionGraphData,
-} from "./dataTypes/positionGraph"
+    LudicGraphNodeTag,
+    StandardLudicGraphData,
+} from "./dataTypes/ludicGraph"
 import { ExitEdgeList } from "../keys/edges/exitEdge"
 
-export class StandardPositionGraph {
+export class StandardLudicGraph {
     _nodes: ReferenceList
     _edges: ExitEdgeList
 
-    constructor(arg?: StandardPositionGraph | StandardPositionGraphData | ReferenceList) {
-        if (arg instanceof StandardPositionGraph) {
+    constructor(arg?: StandardLudicGraph | StandardLudicGraphData | ReferenceList) {
+        if (arg instanceof StandardLudicGraph) {
             this._nodes = new ReferenceList(arg._nodes)
             this._edges = new ExitEdgeList(arg._edges)
             return
@@ -22,7 +22,7 @@ export class StandardPositionGraph {
             return
         }
         if (arg && typeof arg === 'object' && ('nodes' in arg || 'edges' in arg)) {
-            const data = arg as StandardPositionGraphData
+            const data = arg as StandardLudicGraphData
             this._nodes = new ReferenceList(
                 data.nodes?.map((reference) => new StandardReference(reference)) ?? []
             )
@@ -33,8 +33,8 @@ export class StandardPositionGraph {
         this._edges = new ExitEdgeList([])
     }
 
-    static fromJSON(data?: StandardPositionGraphData): StandardPositionGraph {
-        return new StandardPositionGraph(data)
+    static fromJSON(data?: StandardLudicGraphData): StandardLudicGraph {
+        return new StandardLudicGraph(data)
     }
 
     get nodes(): ReferenceList {
@@ -45,7 +45,7 @@ export class StandardPositionGraph {
         return this._edges
     }
 
-    toJSON(): StandardPositionGraphData | undefined {
+    toJSON(): StandardLudicGraphData | undefined {
         const nodesJSON = this._nodes.payload.length ? this._nodes.toJSON() : undefined
         const edgesJSON = this._edges.length ? this._edges.toJSON() : undefined
         if (!nodesJSON && !edgesJSON) {
@@ -57,41 +57,41 @@ export class StandardPositionGraph {
         }
     }
 
-    merge(other: StandardPositionGraph): StandardPositionGraph {
+    merge(other: StandardLudicGraph): StandardLudicGraph {
         const mergedNodes = this._nodes.merge(other._nodes) ?? new ReferenceList([])
         const mergedEdges = this._edges.merge(other._edges) ?? new ExitEdgeList([])
-        return new StandardPositionGraph({
+        return new StandardLudicGraph({
             nodes: mergedNodes.toJSON(),
             edges: mergedEdges.toJSON(),
         })
     }
 
-    diff(other: StandardPositionGraph): StandardPositionGraph | undefined {
+    diff(other: StandardLudicGraph): StandardLudicGraph | undefined {
         const diffedNodes = this._nodes.diff(other._nodes) ?? new ReferenceList([])
         const diffedEdges = this._edges.diff(other._edges) ?? new ExitEdgeList([])
         if (diffedNodes.isEmpty() && diffedEdges.isEmpty()) {
             return undefined
         }
-        return new StandardPositionGraph({
+        return new StandardLudicGraph({
             ...(diffedNodes.payload.length ? { nodes: diffedNodes.toJSON() } : {}),
             ...(diffedEdges.length ? { edges: diffedEdges.toJSON() } : {}),
         })
     }
 
-    equals(other: StandardPositionGraph): boolean {
-        if (!(other instanceof StandardPositionGraph)) {
+    equals(other: StandardLudicGraph): boolean {
+        if (!(other instanceof StandardLudicGraph)) {
             return false
         }
         return this._nodes.equals(other._nodes) && this._edges.equals(other._edges)
     }
 
-    clone(): StandardPositionGraph {
-        return new StandardPositionGraph(this)
+    clone(): StandardLudicGraph {
+        return new StandardLudicGraph(this)
     }
 
-    nodesByTag(tag: PositionGraphNodeTag): ReferenceList {
+    nodesByTag(tag: LudicGraphNodeTag): ReferenceList {
         return this._nodes.filter((item) => item.tag === tag)
     }
 }
 
-export default StandardPositionGraph
+export default StandardLudicGraph

@@ -15,7 +15,7 @@ describe('StandardArea class', () => {
         key: 'downtown',
         universalKey: 'AREA#downtown',
         shortName: 'Downtown',
-        positionGraph: {
+        ludicGraph: {
             nodes: [
                 { tag: 'Area', key: 'oldTown' },
                 { tag: 'Room', key: 'cafe' },
@@ -30,14 +30,14 @@ describe('StandardArea class', () => {
         expect(testArea.key).toEqual('downtown')
         expect(testArea.universalKey).toEqual('AREA#downtown')
         expect(testArea.shortName?.toJSON()).toEqual('Downtown')
-        expect(testArea.positionGraph.nodes.toJSON()).toEqual(heterogeneousAreaData.positionGraph!.nodes)
+        expect(testArea.ludicGraph.nodes.toJSON()).toEqual(heterogeneousAreaData.ludicGraph!.nodes)
         expect(testArea.toJSON()).toEqual(heterogeneousAreaData)
     })
 
-    it('should omit empty positionGraph in toJSON', () => {
+    it('should omit empty ludicGraph in toJSON', () => {
         const testArea = new StandardArea({ tag: 'Area', key: 'empty' })
         expect(testArea.toJSON()).toEqual({ tag: 'Area', key: 'empty' })
-        expect('positionGraph' in testArea.toJSON()).toBe(false)
+        expect('ludicGraph' in testArea.toJSON()).toBe(false)
     })
 
     it('should construct from schema with four reference consumers appending to nodes', () => {
@@ -53,7 +53,7 @@ describe('StandardArea class', () => {
         }
         const instance = new StandardArea(undefined as any)
         instance.fromSchema(node)
-        expect(instance.positionGraph.nodes.toJSON()).toEqual([
+        expect(instance.ludicGraph.nodes.toJSON()).toEqual([
             { tag: 'Area', key: 'oldTown' },
             { tag: 'Room', key: 'cafe' },
             { tag: 'Feature', key: 'fountain' },
@@ -74,7 +74,7 @@ describe('StandardArea class', () => {
         expect(() => instance.fromSchema(node)).toThrow(/rejects to= attribute/)
     })
 
-    it('should ingest area exit endpoint tags into positionGraph.edges', () => {
+    it('should ingest area exit endpoint tags into ludicGraph.edges', () => {
         const node: GenericTreeNode<SchemaTag> = {
             data: { tag: 'Area', key: 'region' },
             children: [
@@ -93,7 +93,7 @@ describe('StandardArea class', () => {
         }
         const instance = new StandardArea(undefined as any)
         instance.fromSchema(node)
-        expect(instance.positionGraph.edges.toJSON()).toEqual([{
+        expect(instance.ludicGraph.edges.toJSON()).toEqual([{
             tag: 'Exit',
             uuid: 'highwayToTown',
             from: { key: 'highway', tag: 'Room' },
@@ -102,11 +102,11 @@ describe('StandardArea class', () => {
         }])
     })
 
-    it('should merge positionGraph edges by uuid', () => {
+    it('should merge ludicGraph edges by uuid', () => {
         const base = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#highway' }],
                 edges: [{
                     tag: 'Exit',
@@ -120,7 +120,7 @@ describe('StandardArea class', () => {
         const incoming = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 edges: [{
                     tag: 'Exit',
                     uuid: 'highwayToTown',
@@ -131,14 +131,14 @@ describe('StandardArea class', () => {
             },
         })
         const merged = base.merge(incoming)! as StandardArea
-        expect((merged.positionGraph.edges.toJSON()[0] as StandardExitEdgeData).to).toEqual('ROOM#ghi')
+        expect((merged.ludicGraph.edges.toJSON()[0] as StandardExitEdgeData).to).toEqual('ROOM#ghi')
     })
 
     it('should merge uuid-only stub with To overlay through StandardArea', () => {
         const base = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 edges: [{
                     tag: 'Exit',
                     uuid: 'edge-a1b2c3d4',
@@ -149,7 +149,7 @@ describe('StandardArea class', () => {
         const incoming = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 edges: [{
                     tag: 'Exit',
                     uuid: 'edge-a1b2c3d4',
@@ -159,7 +159,7 @@ describe('StandardArea class', () => {
             },
         })
         const merged = base.merge(incoming)! as StandardArea
-        expect(merged.positionGraph.edges.toJSON()).toEqual([{
+        expect(merged.ludicGraph.edges.toJSON()).toEqual([{
             tag: 'Exit',
             uuid: 'edge-a1b2c3d4',
             to: 'ROOM#townCenter',
@@ -167,14 +167,14 @@ describe('StandardArea class', () => {
         }])
     })
 
-    it('should reject self-reference in positionGraph.nodes from JSON', () => {
+    it('should reject self-reference in ludicGraph.nodes from JSON', () => {
         expect(() => new StandardArea({
             tag: 'Area',
             key: 'downtown',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Area', key: 'downtown' }],
             },
-        })).toThrow('Area cannot reference itself in positionGraph.nodes')
+        })).toThrow('Area cannot reference itself in ludicGraph.nodes')
     })
 
     it('should reject self-reference by universalKey from JSON', () => {
@@ -182,10 +182,10 @@ describe('StandardArea class', () => {
             tag: 'Area',
             key: 'downtown',
             universalKey: 'AREA#downtown',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Area', universalKey: 'AREA#downtown' }],
             },
-        })).toThrow('Area cannot reference itself in positionGraph.nodes')
+        })).toThrow('Area cannot reference itself in ludicGraph.nodes')
     })
 
     it('should reject self-reference from schema', () => {
@@ -196,32 +196,32 @@ describe('StandardArea class', () => {
             ],
         }
         const instance = new StandardArea(undefined as any)
-        expect(() => instance.fromSchema(node)).toThrow('Area cannot reference itself in positionGraph.nodes')
+        expect(() => instance.fromSchema(node)).toThrow('Area cannot reference itself in ludicGraph.nodes')
     })
 
-    it('should merge positionGraph nodes', () => {
+    it('should merge ludicGraph nodes', () => {
         const base = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'cafe' }],
             },
         })
         const incoming = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Feature', key: 'fountain' }],
             },
         })
         const merged = base.merge(incoming) as StandardArea
-        expect(merged.positionGraph.nodes.toJSON()).toEqual([
+        expect(merged.ludicGraph.nodes.toJSON()).toEqual([
             { tag: 'Room', key: 'cafe' },
             { tag: 'Feature', key: 'fountain' },
         ])
     })
 
-    it('should return true for isEmpty when no shortName and empty position graph', () => {
+    it('should return true for isEmpty when no shortName and empty ludic graph', () => {
         const area = new StandardArea({
             tag: 'Area',
             universalKey: 'AREA#WORLD',
@@ -258,13 +258,13 @@ describe('StandardArea class', () => {
         const withoutShortName = new StandardArea({
             tag: 'Area',
             key: 'test',
-            positionGraph: { nodes: [{ tag: 'Room', key: 'r1' }] },
+            ludicGraph: { nodes: [{ tag: 'Room', key: 'r1' }] },
         })
         const withEmptyShortName = new StandardArea({
             tag: 'Area',
             key: 'test',
             shortName: '',
-            positionGraph: { nodes: [{ tag: 'Room', key: 'r1' }] },
+            ludicGraph: { nodes: [{ tag: 'Room', key: 'r1' }] },
         })
 
         expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
@@ -279,10 +279,10 @@ describe('StandardArea class', () => {
         const test = new StandardArea({
             tag: 'Area',
             key: 'test',
-            positionGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
+            ludicGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
         })
         const added = test.withChild(new StandardReference({ tag: 'Feature', key: 'feat1' })) as StandardArea
-        expect(added.positionGraph.nodes.toJSON()).toEqual([
+        expect(added.ludicGraph.nodes.toJSON()).toEqual([
             { tag: 'Room', key: 'room1' },
             { tag: 'Feature', key: 'feat1' },
         ])
@@ -298,7 +298,7 @@ describe('StandardArea class', () => {
         const testArea = new StandardArea({
             tag: 'Area',
             key: 'test',
-            positionGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
+            ludicGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
         })
         const keys = testArea._payload.referencedKeys()
         expect(keys).toHaveLength(2)
@@ -310,7 +310,7 @@ describe('StandardArea class', () => {
         const testArea = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway' }],
                 edges: [{
                     tag: 'Exit',
@@ -334,7 +334,7 @@ describe('StandardArea class', () => {
         const testArea = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
                 edges: [{
                     tag: 'Exit',
@@ -355,7 +355,7 @@ describe('StandardArea class', () => {
         const testArea = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
                 edges: [{
                     tag: 'Exit',
@@ -378,7 +378,7 @@ describe('StandardArea class', () => {
             expect(() => new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [
                         { tag: 'Room', key: 'highway' },
                         { tag: 'Room', key: 'townCenter' },
@@ -398,7 +398,7 @@ describe('StandardArea class', () => {
             expect(() => new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'highway' }],
                     edges: [{
                         tag: 'Exit',
@@ -415,7 +415,7 @@ describe('StandardArea class', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'unrelated' }],
                     edges: [{
                         tag: 'Exit',
@@ -426,7 +426,7 @@ describe('StandardArea class', () => {
                     }],
                 },
             })
-            expect(area.positionGraph.edges.toJSON()).toHaveLength(1)
+            expect(area.ludicGraph.edges.toJSON()).toHaveLength(1)
         })
 
         it('should accept edge when neither endpoint is in nodes from schema', () => {
@@ -445,14 +445,14 @@ describe('StandardArea class', () => {
             }
             const instance = new StandardArea(undefined as any)
             instance.fromSchema(node)
-            expect(instance.positionGraph.edges.toJSON()).toHaveLength(1)
+            expect(instance.ludicGraph.edges.toJSON()).toHaveLength(1)
         })
 
         it('should accept merge when incoming edge has no endpoint in nodes', () => {
             const base = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'highway' }],
                     edges: [{
                         tag: 'Exit',
@@ -466,7 +466,7 @@ describe('StandardArea class', () => {
             const incoming = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     edges: [{
                         tag: 'Exit',
                         uuid: 'e2',
@@ -477,14 +477,14 @@ describe('StandardArea class', () => {
                 },
             })
             const merged = base.merge(incoming)! as StandardArea
-            expect(merged.positionGraph.edges.toJSON()).toHaveLength(2)
+            expect(merged.ludicGraph.edges.toJSON()).toHaveLength(2)
         })
 
         it('should accept uuid-only edge from JSON', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     edges: [{
                         tag: 'Exit',
                         uuid: 'edge-a1b2c3d4',
@@ -492,7 +492,7 @@ describe('StandardArea class', () => {
                     }],
                 },
             })
-            expect(area.positionGraph.edges.toJSON()).toEqual([{
+            expect(area.ludicGraph.edges.toJSON()).toEqual([{
                 tag: 'Exit',
                 uuid: 'edge-a1b2c3d4',
                 payload: {},
@@ -508,7 +508,7 @@ describe('StandardArea class', () => {
             }
             const instance = new StandardArea(undefined as any)
             instance.fromSchema(node)
-            expect(instance.positionGraph.edges.toJSON()).toEqual([{
+            expect(instance.ludicGraph.edges.toJSON()).toEqual([{
                 tag: 'Exit',
                 uuid: 'edge-a1b2c3d4',
                 payload: {},
@@ -521,7 +521,7 @@ describe('StandardArea class', () => {
             const area = new StandardArea({ tag: 'Area', key: 'test' })
             const { payload: result, inlineRemainder } = area._payload.assureReferences([])
 
-            expect(result.positionGraph.nodes.payload.length).toBe(0)
+            expect(result.ludicGraph.nodes.payload.length).toBe(0)
             expect(inlineRemainder).toEqual([])
         })
 
@@ -531,9 +531,9 @@ describe('StandardArea class', () => {
 
             const { payload: result } = area._payload.assureReferences([roomRef])
 
-            expect(result.positionGraph.nodes.payload.length).toBe(1)
-            expect(result.positionGraph.nodes.payload[0].ref).toBe(0)
-            expect(result.positionGraph.nodes.payload[0].sameKey(roomRef)).toBe(true)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].ref).toBe(0)
+            expect(result.ludicGraph.nodes.payload[0].sameKey(roomRef)).toBe(true)
         })
 
         it('should return non-bucket tags as inlineRemainder', () => {
@@ -542,7 +542,7 @@ describe('StandardArea class', () => {
 
             const { payload: result, inlineRemainder } = area._payload.assureReferences([mapRef])
 
-            expect(result.positionGraph.nodes.payload.length).toBe(0)
+            expect(result.ludicGraph.nodes.payload.length).toBe(0)
             expect(inlineRemainder.length).toBe(1)
             expect(inlineRemainder[0].tag).toBe('Map')
         })
@@ -551,7 +551,7 @@ describe('StandardArea class', () => {
     it('should construct via standardComponentFactory from JSON', () => {
         const { component } = standardComponentFactory(heterogeneousAreaData)
         expect(component).toBeInstanceOf(StandardArea)
-        expect((component as StandardArea).positionGraph.nodes.payload.length).toBe(4)
+        expect((component as StandardArea).ludicGraph.nodes.payload.length).toBe(4)
     })
 
     it('should construct via standardComponentFactory from schema node', () => {
@@ -563,16 +563,16 @@ describe('StandardArea class', () => {
         }
         const { component } = standardComponentFactory(node)
         expect(component).toBeInstanceOf(StandardArea)
-        expect((component as StandardArea).positionGraph.nodes.toJSON()).toEqual([{ tag: 'Room', key: 'cafe' }])
+        expect((component as StandardArea).ludicGraph.nodes.toJSON()).toEqual([{ tag: 'Room', key: 'cafe' }])
     })
 
-    it('should invert positionGraph nodes', () => {
+    it('should invert ludicGraph nodes', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'test',
-            positionGraph: { nodes: [{ tag: 'Room', key: 'room1', ref: 1 }] },
+            ludicGraph: { nodes: [{ tag: 'Room', key: 'room1', ref: 1 }] },
         })
         const inverted = area.invert()
-        expect(inverted.positionGraph.nodes.payload[0].ref).toBeLessThan(0)
+        expect(inverted.ludicGraph.nodes.payload[0].ref).toBeLessThan(0)
     })
 })

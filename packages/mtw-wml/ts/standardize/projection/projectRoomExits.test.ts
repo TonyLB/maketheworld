@@ -20,7 +20,7 @@ describe('projectRoomExits', () => {
             tag: 'Area',
             key: 'region',
             universalKey: 'AREA#region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [
                     { tag: 'Room', universalKey: highway },
                     { tag: 'Room', universalKey: townCenter },
@@ -47,7 +47,7 @@ describe('projectRoomExits', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: loopRoom }],
                 edges: [{
                     tag: 'Exit',
@@ -69,7 +69,7 @@ describe('projectRoomExits', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
                     tag: 'Exit',
@@ -94,7 +94,7 @@ describe('projectRoomExits', () => {
             tag: 'Area',
             key: 'areaA',
             universalKey: 'AREA#areaA',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
                     tag: 'Exit',
@@ -109,7 +109,7 @@ describe('projectRoomExits', () => {
             tag: 'Area',
             key: 'areaB',
             universalKey: 'AREA#areaB',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
                     tag: 'Exit',
@@ -131,7 +131,7 @@ describe('projectRoomExits', () => {
         const base = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
                     tag: 'Exit',
@@ -145,7 +145,7 @@ describe('projectRoomExits', () => {
         const incoming = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 edges: [{
                     tag: 'Exit',
                     uuid: 'highwayToTown',
@@ -166,7 +166,7 @@ describe('projectRoomExits', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [
                     { tag: 'Room', universalKey: highway },
                     { tag: 'Room', universalKey: townCenter },
@@ -200,7 +200,7 @@ describe('projectRoomExits', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
                     tag: 'Exit',
@@ -220,7 +220,7 @@ describe('projectRoomExits', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
                         tag: 'Exit',
@@ -237,7 +237,7 @@ describe('projectRoomExits', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
                         tag: 'Exit',
@@ -255,7 +255,7 @@ describe('projectRoomExits', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
                         tag: 'Exit',
@@ -273,7 +273,7 @@ describe('projectRoomExits', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
                         tag: 'Exit',
@@ -296,7 +296,7 @@ describe('projectRoomExits', () => {
         const area = new StandardArea({
             tag: 'Area',
             key: 'region',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [
                     { tag: 'Room', universalKey: highway },
                     { tag: 'Room', universalKey: townCenter },

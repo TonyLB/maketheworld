@@ -10,24 +10,24 @@ import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
 import type { ComponentTag } from '../foundations/ReferenceList/ReferenceListEditor'
 import {
-    POSITION_GRAPH_NODE_TAGS,
-    PositionGraphNodeTag,
+    LUDIC_GRAPH_NODE_TAGS,
+    LudicGraphNodeTag,
     findEdgesMissingParticipantEndpoint
 } from './areaEditMutations'
-import { areaPositionGraphNodesTagAccessor } from './areaPositionGraphNodesAccessors'
+import { areaLudicGraphNodesTagAccessor } from './areaLudicGraphNodesAccessors'
 
-export type PositionGraphNodesEditorProps = {
+export type LudicGraphNodesEditorProps = {
     AreaId: ComponentUUID
 }
 
-const NODE_TAG_LABELS: Record<PositionGraphNodeTag, string> = {
+const NODE_TAG_LABELS: Record<LudicGraphNodeTag, string> = {
     Room: 'Rooms',
     Feature: 'Features',
     Character: 'Characters',
     Area: 'Areas'
 }
 
-const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
+const NODE_TAG_IMPORT: Partial<Record<LudicGraphNodeTag, boolean>> = {
     Room: true,
     Feature: true,
     Character: false,
@@ -35,12 +35,12 @@ const NODE_TAG_IMPORT: Partial<Record<PositionGraphNodeTag, boolean>> = {
 }
 
 const TagNodesSection: FunctionComponent<{
-    nodeTag: PositionGraphNodeTag
+    nodeTag: LudicGraphNodeTag
     onItemClick: (id: string) => void
     excludeUniversalKey?: ComponentUUID
 }> = ({ nodeTag, onItemClick, excludeUniversalKey }) => {
     const listAccessor = useMemo(
-        () => areaPositionGraphNodesTagAccessor(nodeTag),
+        () => areaLudicGraphNodesTagAccessor(nodeTag),
         [nodeTag]
     )
 
@@ -66,7 +66,7 @@ const TagNodesSection: FunctionComponent<{
     )
 }
 
-export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEditorProps> = ({
+export const LudicGraphNodesEditor: FunctionComponent<LudicGraphNodesEditorProps> = ({
     AreaId
 }) => {
     const dispatch = useDispatch()
@@ -104,7 +104,7 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
         if (!area) {
             return undefined
         }
-        const count = area.positionGraph.nodes.payload.length
+        const count = area.ludicGraph.nodes.payload.length
         return count ? `${count} participant${count === 1 ? '' : 's'}` : undefined
     }, [area])
 
@@ -127,7 +127,7 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
                     {participantRuleViolations.map((edge) => edge.uuid).join(', ')}
                 </Alert>
             )}
-            {POSITION_GRAPH_NODE_TAGS.map((nodeTag) => (
+            {LUDIC_GRAPH_NODE_TAGS.map((nodeTag) => (
                 <TagNodesSection
                     key={nodeTag}
                     nodeTag={nodeTag}
@@ -139,4 +139,4 @@ export const PositionGraphNodesEditor: FunctionComponent<PositionGraphNodesEdito
     )
 }
 
-export default PositionGraphNodesEditor
+export default LudicGraphNodesEditor

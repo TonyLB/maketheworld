@@ -1,6 +1,6 @@
 # Positions read surfaces (`ts/ephemera/positions`)
 
-Play position graph read handler for ephemera. **Authoritative writers:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)) via **`applyHostEffects`**; relational edge writers via [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering).
+Play ludic graph read handler for ephemera. **Authoritative writers:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/)) via **`applyHostEffects`**; relational edge writers via [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) per [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering).
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
 
@@ -19,10 +19,10 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 
 | | |
 | --- | --- |
-| **Is** | Dynamo read + invocation memo for stored membership **topology** and **adjacency**; structural projection to `StandardPositionGraphData` |
+| **Is** | Dynamo read + invocation memo for stored membership **topology** and **adjacency**; structural projection to `StandardLudicGraphData` |
 | **Is not** | Roster display authority, affordance wire compose, or exit topology (`ComponentTopology` / `AffordanceCache`) |
 
-**`PlayLudicGraph`** is a topology-only type (alias of `StandardPositionGraphData`); see type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope). Normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
+**`PlayLudicGraph`** is a topology-only type (alias of `StandardLudicGraphData`); see type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope). Normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
 
 This package owns **read projection** (`PlayLudicGraph`, [`project.ts`](project.ts)); it does **not** own play manipulation simulation. After cache read, ephemera manipulation uses **`EphemeraLudicGraph`** --- see [`lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md).
 
@@ -75,7 +75,7 @@ Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoin
 
 - **`getLudicGraph(componentId)`** --- forward **topology** graph for room or character hosts (Dynamo load + memo).
 - **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array** of eligible host ids --- **`ROOM#`** and/or **`CHARACTER#`** in v1). Transfer-planning / reverse reads only; kernel graph-grounded persist **must not** call this to discover priors.
-- **Forward memo:** **`set`** / **`invalidate`** on position graphs for room or character hosts (`ludicGraphCacheKey`).
+- **Forward memo:** **`set`** / **`invalidate`** on ludic graphs for room or character hosts (`ludicGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 
 All memo APIs patch in-memory state only; **no Dynamo write-through**.

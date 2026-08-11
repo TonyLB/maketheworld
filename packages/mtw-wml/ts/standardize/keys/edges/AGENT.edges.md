@@ -2,7 +2,7 @@
 
 ## Overview
 
-Edges model **Area `positionGraph.edges`**: stable **`uuid`** identity with **two editable endpoint references** (`From` / `To`) and a **literal payload** (`Forward` / `Back`). This is **not** the room-local [`ExitFacetList`](../facets/exit.ts) pattern (one ref + string description).
+Edges model **Area `ludicGraph.edges`**: stable **`uuid`** identity with **two editable endpoint references** (`From` / `To`) and a **literal payload** (`Forward` / `Back`). This is **not** the room-local [`ExitFacetList`](../facets/exit.ts) pattern (one ref + string description).
 
 ## Topology invariants
 
@@ -11,12 +11,12 @@ Steady-state names for Area topology design rules. Use these in docs, comments, 
 | Steady-state name | Meaning (summary) |
 | --- | --- |
 | **Bidirectional topology** | Every Area exit edge is traversable in both directions; `Forward` from the From room, `Back` from the To room. |
-| **Edge list pattern** | `positionGraph.edges` is a uuid-keyed list of `{ uuid, from?, to?, payload }` items parallel to facets but not using `facetClassFactory`. |
+| **Edge list pattern** | `ludicGraph.edges` is a uuid-keyed list of `{ uuid, from?, to?, payload }` items parallel to facets but not using `facetClassFactory`. |
 | **Area exit endpoint tags** | Area `<Exit>` uses `<From>` / `<To>` child tags (ComponentUUID or legalKey string bodies), not `from=` / `to=` attributes; rejects legacy `to=` under Area. |
 | **Edge uuid identity** | Merge/diff/edit identity is the edge `uuid` within one Area, not the `(from, to)` pair. |
-| **Participant endpoint rule** | When **both** endpoints are resolved, at least one must match a ref in `positionGraph.nodes` for the edge to participate in topology semantics (portal: one inside, one outside is allowed). |
+| **Participant endpoint rule** | When **both** endpoints are resolved, at least one must match a ref in `ludicGraph.nodes` for the edge to participate in topology semantics (portal: one inside, one outside is allowed). |
 | **Incomplete edge** | An edge with missing and/or unset `From` and/or `To` (may still carry `uuid` and labels). Valid in asset storage; ignored by semantic projection until complete. |
-| **Position graph shape** | `StandardArea.positionGraph` is `{ nodes, edges }`; Exit is the first edge union member. |
+| **Ludic graph shape** | `StandardArea.ludicGraph` is `{ nodes, edges }`; Exit is the first edge union member. |
 | **Room wire projection** | Runtime `StandardRoom.exits` is synthesized from Area edges, not stored on the room blueprint row. |
 
 ## Contrast with facets
@@ -92,7 +92,7 @@ Incomplete edges (uuid-only or one-sided) omit unset endpoint tags on emit.
 
 - **Area exit endpoint tags:** Reject `to=` attribute (legacy room shape); require `uuid`; `<From>` / `<To>` optional when incomplete; reject bare String body (legacy description)
 - **Storage:** Incomplete edges and fully resolved edges that violate the **participant endpoint rule** are **valid** in `StandardArea` ingest, merge, and JSON --- they are not standardize hard errors.
-- **Participant endpoint rule (warnings / lint):** When **both** endpoints resolve, at least one must match a participant in **`positionGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Use [`edgeSatisfiesParticipantRule`](../../components/areaTopologyValidation.ts) and [`findEdgesViolatingParticipantRule`](../../components/areaTopologyValidation.ts) for UI warnings or optional strict lint (`assertEdgeSatisfiesParticipantRule`). Incomplete edges do not violate this rule.
+- **Participant endpoint rule (warnings / lint):** When **both** endpoints resolve, at least one must match a participant in **`ludicGraph.nodes`** (`sameKey`); portal edges (one inside, one outside) allowed. Use [`edgeSatisfiesParticipantRule`](../../components/areaTopologyValidation.ts) and [`findEdgesViolatingParticipantRule`](../../components/areaTopologyValidation.ts) for UI warnings or optional strict lint (`assertEdgeSatisfiesParticipantRule`). Incomplete edges do not violate this rule.
 
 **`referencedKeys()`:** **`From`** / **`To`** endpoints emit **`referenceType: 'Edge'`** (subset cascade -> Room **`Stub`**). See [`standardForm.subset.test.ts`](../../integration/standardForm.subset.test.ts).
 
@@ -103,7 +103,7 @@ Incomplete edges (uuid-only or one-sided) omit unset endpoint tags on emit.
 1. The room matches a **resolved** `From` or `To` endpoint, **and**
 2. The peer ref and label (`Forward` / `Back`) satisfy existing projection rules.
 
-All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoints resolved but neither in `positionGraph.nodes`), missing labels, non-`ROOM#` peers --- produce **zero facets** with no throw. Storage and authoring may hold incomplete data until the author finishes the edge.
+All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoints resolved but neither in `ludicGraph.nodes`), missing labels, non-`ROOM#` peers --- produce **zero facets** with no throw. Storage and authoring may hold incomplete data until the author finishes the edge.
 
 ## Authoring vs runtime
 
@@ -111,7 +111,7 @@ All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoin
 | --- | --- |
 | **Asset blueprint** | **Never stored.** Room-local **`<Exit to=`** is forbidden on asset **`StandardForm`** (constructor throw + **`validate()`**). |
 | **ephemeraWire wire** | **`StandardRoom.exits`** may carry legacy **`ExitFacetList`** on composed forms (affordance publish, nav). |
-| **Runtime projection** | Live navigable exits are synthesized from merged **Area** **`positionGraph.edges`**, not from per-asset room blueprint rows. Play **room membership** (who is in which room) is a separate manipulation-truth graph owned by [`mtw.ephemera.positions`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority). |
+| **Runtime projection** | Live navigable exits are synthesized from merged **Area** **`ludicGraph.edges`**, not from per-asset room blueprint rows. Play **room membership** (who is in which room) is a separate manipulation-truth graph owned by [`mtw.ephemera.positions`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority). |
 
 ## Room wire projection
 
@@ -119,7 +119,7 @@ At ephemeraWire, room **`ExitFacetList`** is synthesized from merged Area edges 
 
 ## Future edge members
 
-**Position graph shape / Edge list pattern:** `positionGraph.edges` is a **tagged union**; **Exit** is the first member only. Additional edge kinds add a new `tag`, payload module, and item class via [`edgeClassFactory`](./edgeFactory.ts) / [`edgeListClassFactory`](./edgeListFactory.ts) --- same list merge-by-`uuid` habit within one Area.
+**Ludic graph shape / Edge list pattern:** `ludicGraph.edges` is a **tagged union**; **Exit** is the first member only. Additional edge kinds add a new `tag`, payload module, and item class via [`edgeClassFactory`](./edgeFactory.ts) / [`edgeListClassFactory`](./edgeListFactory.ts) --- same list merge-by-`uuid` habit within one Area.
 
 ### Endpoint wrapper (planned abstraction)
 
@@ -140,7 +140,7 @@ No subclass hierarchy is required if the factory + shared class suffice; **`Stan
 
 ### List typing note
 
-v1 [`StandardPositionGraph`](../../components/positionGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
+v1 [`StandardLudicGraph`](../../components/ludicGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
 
 Play-time **Relational** edges (`On`, `Under`, `Against`, `Custom`) are prototyped on ephemera room host graphs ([`EphemeraPositionRelationalEdgeData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts)); heterogeneous WML **`EdgeList`** for room/container graphs is TBD.
 

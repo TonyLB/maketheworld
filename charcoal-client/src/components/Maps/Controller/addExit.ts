@@ -8,7 +8,7 @@ export const addExitFactory = ({ standardForm, editable, addImport, updateStanda
     updateStandard: (action: UpdateStandardPayload) => void
 }) => ({ to, from }: { to: `ROOM#${string}`; from: `ROOM#${string}` }) => {
     // Room-local exit authoring was removed in asset mode (M6). Topology edges belong on
-    // Area positionGraph.edges; use the Workbench Area editor instead. Map exit drag tools
+    // Area ludicGraph.edges; use the Workbench Area editor instead. Map exit drag tools
     // remain visible for UX continuity but do not mutate the Redux asset draft.
     void standardForm
     void editable

@@ -6,7 +6,7 @@ import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/referen
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 
-import { areaPositionGraphNodesTagAccessor } from './areaPositionGraphNodesAccessors'
+import { areaLudicGraphNodesTagAccessor } from './areaLudicGraphNodesAccessors'
 
 const areaWml = deIndentWML(`
     <Asset uuid=(test)>
@@ -18,14 +18,14 @@ const areaWml = deIndentWML(`
     </Asset>
 `)
 
-describe('areaPositionGraphNodesTagAccessor', () => {
+describe('areaLudicGraphNodesTagAccessor', () => {
     it('getReferenceList returns tag slice only', () => {
         const form = new StandardForm(areaWml)
         const area = form.byUniversalId['AREA#a1']
         if (!(area instanceof StandardArea)) {
             throw new Error('Expected StandardArea')
         }
-        const accessor = areaPositionGraphNodesTagAccessor('Room')
+        const accessor = areaLudicGraphNodesTagAccessor('Room')
         const slice = accessor.getReferenceList(area)
         expect(slice.payload.every((ref) => ref.tag === 'Room')).toBe(true)
         expect(slice.payload.length).toBe(2)
@@ -37,7 +37,7 @@ describe('areaPositionGraphNodesTagAccessor', () => {
         if (!(area instanceof StandardArea)) {
             throw new Error('Expected StandardArea')
         }
-        const accessor = areaPositionGraphNodesTagAccessor('Room')
+        const accessor = areaLudicGraphNodesTagAccessor('Room')
         const newRoomSlice = new ReferenceList([
             new StandardReference({ universalKey: 'ROOM#r3' as ComponentUUID, tag: 'Room' })
         ])
@@ -45,7 +45,7 @@ describe('areaPositionGraphNodesTagAccessor', () => {
         const rooms = accessor.getReferenceList(area)
         expect(rooms.payload.length).toBe(1)
         expect(rooms.payload[0].universalKey).toBe('ROOM#r3')
-        const features = areaPositionGraphNodesTagAccessor('Feature').getReferenceList(area)
+        const features = areaLudicGraphNodesTagAccessor('Feature').getReferenceList(area)
         expect(features.payload.length).toBe(1)
         expect(features.payload[0].universalKey).toBe('FEATURE#f1')
     })
