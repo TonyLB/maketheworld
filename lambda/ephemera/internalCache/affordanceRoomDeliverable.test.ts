@@ -44,7 +44,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.resetAllMocks()
         internalCache.clear()
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
-        jest.spyOn(internalCache.Positions, 'getPositionGraph').mockResolvedValue(testPositionGraph('ROOM#ParityOne'))
+        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testPositionGraph('ROOM#ParityOne'))
     })
 
     it('builds structural room WML from aggregate shortName, affordance topology, and roster', async () => {
@@ -262,7 +262,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
         )
         jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
-        jest.spyOn(internalCache.Positions, 'getPositionGraph').mockResolvedValue(
+        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
             testPositionGraph('ROOM#ObjRoom', {
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#foo' }],
             })

@@ -28,17 +28,17 @@ const assertForwardHostId = (
     throw new Error(`Positions cache set requires forward host ROOM# or CHARACTER#; got ${hostId}`)
 }
 
-export class EphemeraPositionsCacheData {
+export class EphemeraLudicGraphCacheData {
     private readonly _gateway: PositionsCacheHandler
 
     constructor(db: EphemeraPositionsReadDB) {
         this._gateway = createPositionsCacheHandler(db)
     }
 
-    async getPositionGraph(
+    async getLudicGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId
     ): Promise<EphemeraLudicGraph> {
-        const envelope = await this._gateway.getPositionGraph(componentId)
+        const envelope = await this._gateway.getLudicGraph(componentId)
         return EphemeraLudicGraph.fromPlayEnvelope(componentId, envelope)
     }
 
@@ -77,5 +77,5 @@ export class EphemeraPositionsCacheData {
     }
 }
 
-export const createEphemeraPositionsCacheData = (db: EphemeraPositionsReadDB): EphemeraPositionsCacheData =>
-    new EphemeraPositionsCacheData(db)
+export const createEphemeraLudicGraphCacheData = (db: EphemeraPositionsReadDB): EphemeraLudicGraphCacheData =>
+    new EphemeraLudicGraphCacheData(db)

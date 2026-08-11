@@ -15,7 +15,7 @@ jest.mock('../../../../internalCache', () => ({
         Positions: {
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
-            getPositionGraph: jest.fn(),
+            getLudicGraph: jest.fn(),
         },
     },
 }))
@@ -74,7 +74,7 @@ describe('executeObjectMove', () => {
         it('re-derives the carry closure fresh and commits via the general kernel', async () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
             wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
@@ -111,7 +111,7 @@ describe('executeObjectMove', () => {
                 ],
             })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
             wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
@@ -151,7 +151,7 @@ describe('executeObjectMove', () => {
                 ],
             })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
             wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
@@ -196,7 +196,7 @@ describe('executeObjectMove', () => {
         it('re-derives the carry closure fresh and commits via the general kernel', async () => {
             const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
             const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : characterGraph
             )
             wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph })
@@ -233,7 +233,7 @@ describe('executeObjectMove', () => {
                     { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
                 ],
             })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : characterGraph
             )
             wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph })
@@ -278,7 +278,7 @@ describe('executeObjectMove', () => {
         it('returns the compiled plan and the commit captures on success', async () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
             wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
@@ -304,7 +304,7 @@ describe('executeObjectMove', () => {
         it('compiles no capture steps when narration is absent (object-lifecycle move)', async () => {
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
             wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
@@ -328,7 +328,7 @@ describe('executeObjectMove', () => {
         it('returns ok: false without committing when the executor verdict is not legal', async () => {
             const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
             const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : emptyCharacterGraph
             )
 

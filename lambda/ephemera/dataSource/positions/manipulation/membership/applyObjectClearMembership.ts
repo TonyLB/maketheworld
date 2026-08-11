@@ -50,7 +50,7 @@ export const applyObjectClearMembership = async (
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const hostId of diff.froms) {
-        const graph = await internalCache.Positions.getPositionGraph(hostId)
+        const graph = await internalCache.Positions.getLudicGraph(hostId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
         for (const { edge } of outcomes) {
             hostByReferencedId.set(edge.from, hostId)

@@ -8,15 +8,15 @@ import type {
 
 import type { EphemeraPositionsReadDB } from './fetch'
 import {
-    getCharacterPositionGraphFromDynamo,
-    getRoomPositionGraphFromDynamo,
+    getCharacterLudicGraphFromDynamo,
+    getRoomLudicGraphFromDynamo,
 } from './fetch'
 import { queryMembershipContainersFromDynamo } from './adjacency'
-import { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
-import { projectComponentGraphFromStoredPositionGraph } from './project'
+import { membershipContainersCacheKey, ludicGraphCacheKey } from './keys'
+import { projectComponentGraphFromStoredLudicGraph } from './project'
 import type {
     MembershipContainersCacheSetParams,
-    PlayPositionGraph,
+    PlayLudicGraph,
     PositionsCacheSetParams,
 } from './types'
 
@@ -25,15 +25,15 @@ import type {
  * Dynamo writes stay in positions membership persistence; memo APIs patch in-memory state only.
  */
 export class PositionsCacheHandler {
-    private readonly _PositionGraphCache: DeferredCache<PlayPositionGraph>
-    private _PositionGraphStore: Record<string, PlayPositionGraph> = {}
+    private readonly _LudicGraphCache: DeferredCache<PlayLudicGraph>
+    private _LudicGraphStore: Record<string, PlayLudicGraph> = {}
     private readonly _MembershipContainersCache: DeferredCache<EphemeraMembershipHostId[]>
     private _MembershipContainersStore: Record<string, EphemeraMembershipHostId[]> = {}
 
     constructor(private readonly db: EphemeraPositionsReadDB) {
-        this._PositionGraphCache = new DeferredCache<PlayPositionGraph>({
+        this._LudicGraphCache = new DeferredCache<PlayLudicGraph>({
             callback: (key, value) => {
-                this._PositionGraphStore[key] = value
+                this._LudicGraphStore[key] = value
             },
         })
         this._MembershipContainersCache = new DeferredCache<EphemeraMembershipHostId[]>({
@@ -43,18 +43,18 @@ export class PositionsCacheHandler {
         })
     }
 
-    async getPositionGraph(
+    async getLudicGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId
-    ): Promise<PlayPositionGraph> {
-        const key = positionGraphCacheKey(componentId)
-        if (!this._PositionGraphCache.isCached(key)) {
-            this._PositionGraphCache.add({
+    ): Promise<PlayLudicGraph> {
+        const key = ludicGraphCacheKey(componentId)
+        if (!this._LudicGraphCache.isCached(key)) {
+            this._LudicGraphCache.add({
                 promiseFactory: async (keys: string[]) => {
-                    const out: Record<string, PlayPositionGraph> = {}
+                    const out: Record<string, PlayLudicGraph> = {}
                     await Promise.all(
                         keys.map(async (cacheKey) => {
-                            const id = cacheKey.replace('::positionGraph', '')
-                            out[cacheKey] = await this.loadPositionGraphFromDynamo(id)
+                            const id = cacheKey.replace('::ludicGraph', '')
+                            out[cacheKey] = await this.loadLudicGraphFromDynamo(id)
                         })
                     )
                     return out
@@ -63,8 +63,8 @@ export class PositionsCacheHandler {
                 transform: (out) => out,
             })
         }
-        await this._PositionGraphCache.get(key)
-        return this._PositionGraphStore[key]
+        await this._LudicGraphCache.get(key)
+        return this._LudicGraphStore[key]
     }
 
     async getMembershipContainers(
@@ -91,22 +91,22 @@ export class PositionsCacheHandler {
         return this._MembershipContainersStore[key]
     }
 
-    private async loadPositionGraphFromDynamo(
+    private async loadLudicGraphFromDynamo(
         componentId: string
-    ): Promise<PlayPositionGraph> {
+    ): Promise<PlayLudicGraph> {
         if (isEphemeraRoomId(componentId)) {
-            const stored = await getRoomPositionGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredPositionGraph(
+            const stored = await getRoomLudicGraphFromDynamo(this.db, componentId)
+            return projectComponentGraphFromStoredLudicGraph(
                 stored ?? { nodes: [], edges: [] }
             )
         }
         if (isEphemeraCharacterId(componentId)) {
-            const stored = await getCharacterPositionGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredPositionGraph(
+            const stored = await getCharacterLudicGraphFromDynamo(this.db, componentId)
+            return projectComponentGraphFromStoredLudicGraph(
                 stored ?? { nodes: [], edges: [] }
             )
         }
-        return projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })
+        return projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
     }
 
     private async loadMembershipContainersFromDynamo(
@@ -122,9 +122,9 @@ export class PositionsCacheHandler {
     }
 
     set(params: PositionsCacheSetParams): void {
-        const key = positionGraphCacheKey(params.componentId)
-        this._PositionGraphStore[key] = params.graph
-        this._PositionGraphCache.set(Infinity, key, params.graph)
+        const key = ludicGraphCacheKey(params.componentId)
+        this._LudicGraphStore[key] = params.graph
+        this._LudicGraphCache.set(Infinity, key, params.graph)
     }
 
     setMembershipContainers(params: MembershipContainersCacheSetParams): void {
@@ -134,9 +134,9 @@ export class PositionsCacheHandler {
     }
 
     invalidate(componentId: EphemeraCharacterId | EphemeraRoomId): void {
-        const key = positionGraphCacheKey(componentId)
-        delete this._PositionGraphStore[key]
-        this._PositionGraphCache.invalidate(key)
+        const key = ludicGraphCacheKey(componentId)
+        delete this._LudicGraphStore[key]
+        this._LudicGraphCache.invalidate(key)
     }
 
     invalidateMembershipContainers(componentId: EphemeraPositionAdjacencyContainedId): void {
@@ -146,14 +146,14 @@ export class PositionsCacheHandler {
     }
 
     clear(): void {
-        this._PositionGraphCache.clear()
-        this._PositionGraphStore = {}
+        this._LudicGraphCache.clear()
+        this._LudicGraphStore = {}
         this._MembershipContainersCache.clear()
         this._MembershipContainersStore = {}
     }
 
     async flush(): Promise<void> {
-        await this._PositionGraphCache.flush()
+        await this._LudicGraphCache.flush()
         await this._MembershipContainersCache.flush()
     }
 }

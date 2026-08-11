@@ -28,7 +28,7 @@ export type HeldInventoryCatalogDeps = {
 }
 
 const defaultDeps = (): HeldInventoryCatalogDeps => ({
-    getPositionGraph: (characterId) => internalCache.Positions.getPositionGraph(characterId),
+    getPositionGraph: (characterId) => internalCache.Positions.getLudicGraph(characterId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []

@@ -42,7 +42,7 @@ export type RoomObjectCatalogDeps = {
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
     getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
-    getPositionGraph: (roomId) => internalCache.Positions.getPositionGraph(roomId),
+    getPositionGraph: (roomId) => internalCache.Positions.getLudicGraph(roomId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []

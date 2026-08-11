@@ -13,7 +13,7 @@ export async function collectCoyoteOccupiedStableKeys(
 ): Promise<ReadonlySet<string>> {
     const getGameRooms = deps?.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
     const getObjectIdsInRoom = deps?.getObjectIdsInRoom
-        ?? (async (roomId: EphemeraRoomId) => [...(await internalCache.Positions.getPositionGraph(roomId)).objectIds])
+        ?? (async (roomId: EphemeraRoomId) => [...(await internalCache.Positions.getLudicGraph(roomId)).objectIds])
     const getObjectMeta = deps?.getObjectMeta
         ?? ((objectId: EphemeraObjectId) => internalCache.ObjectEphemeraMeta.get(objectId))
 

@@ -62,7 +62,7 @@ export const applyObjectRelationalChange = async (
 
     if (args.transferFromHostId !== undefined) {
         const fromHostId = args.transferFromHostId
-        const sourceGraph: EphemeraLudicGraph = await internalCache.Positions.getPositionGraph(fromHostId)
+        const sourceGraph: EphemeraLudicGraph = await internalCache.Positions.getLudicGraph(fromHostId)
 
         const closure = computeCarryClosure(args.subjectId, sourceGraph)
         const outcomes = boundaryEdgeOutcomes(closure.members, sourceGraph)

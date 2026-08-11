@@ -33,9 +33,9 @@ import {
     ThinkingScheduleReadCache,
 } from '@tonylb/mtw-gateways/ts/ephemera/thinking';
 import {
-    createEphemeraPositionsCacheData,
-    EphemeraPositionsCacheData,
-} from './positionsCache';
+    createEphemeraLudicGraphCacheData,
+    EphemeraLudicGraphCacheData,
+} from './ludicGraphCache';
 import {
     createImprovisationComponentDataCacheHandler,
     type ImprovisationComponentDataCache,
@@ -91,7 +91,7 @@ export class InternalCache {
     Conversations: ConversationsData = new ConversationsData(this.Global)
     RenderCache: RenderCacheData = new RenderCacheData()
     AffordanceCache: AffordanceCacheData = new AffordanceCacheData()
-    Positions: EphemeraPositionsCacheData = createEphemeraPositionsCacheData(ephemeraDB)
+    Positions: EphemeraLudicGraphCacheData = createEphemeraLudicGraphCacheData(ephemeraDB)
     PlayerMeta: CachePlayerMetaData;
     PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
@@ -170,7 +170,7 @@ export class InternalCache {
             this.AffordanceCache,
             (roomId) => this.ComponentEphemeraMeta.get(roomId),
             {
-                getPositionGraph: (roomId) => this.Positions.getPositionGraph(roomId),
+                getPositionGraph: (roomId) => this.Positions.getLudicGraph(roomId),
                 getImprovisationObject: (objectId) => this.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
             }
         )

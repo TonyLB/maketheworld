@@ -34,7 +34,7 @@ export async function hydrateRoomRosterFromCharacterIds(
 export async function getRoomCharacterList(
     roomId: EphemeraRoomId
 ): Promise<RoomCharacterListItem[]> {
-    const graph = await internalCache.Positions.getPositionGraph(roomId)
+    const graph = await internalCache.Positions.getLudicGraph(roomId)
     const characterIds = [...graph.characterIds]
     return hydrateRoomRosterFromCharacterIds(characterIds)
 }

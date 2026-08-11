@@ -206,7 +206,7 @@ export type EphemeraLudicGraphData = {
     edges?: EphemeraLudicRelationalEdgeData[];
 }
 
-/** Value of Meta::*.positionGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
+/** Value of Meta::*.ludicGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
 export type EphemeraLudicGraphFieldPayload = Omit<EphemeraLudicGraphData, 'hostId'>
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
@@ -269,7 +269,7 @@ export type EphemeraMetaRoom = {
     //
     // Play-time membership graph (slice 2+ authority). Character + Object nodes shipped (Object: nodes only).
     //
-    positionGraph?: EphemeraLudicGraphFieldPayload;
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
 
     //
     // v1 world-state fields for state-driven, cache-backed Room rendering.
@@ -322,7 +322,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
     if ('objects' in value) {
         return false
     }
-    if ('positionGraph' in value && !isEphemeraLudicGraphFieldPayload(value.positionGraph)) {
+    if ('ludicGraph' in value && !isEphemeraLudicGraphFieldPayload(value.ludicGraph)) {
         return false
     }
     return true
@@ -333,8 +333,8 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
 //
 // The full row also carries `RoomStack`, `Name`, `HomeId`, `assets`, and other fields typed for
 // lambda `CharacterMeta` / eviction-ladder reads --- not duplicated here. This interface names
-// only the positions-owned slice we validate on Dynamo fetch (e.g. `getCharacterPositionGraphFromDynamo`
-// projects `positionGraph` via `Pick<EphemeraMetaCharacter, 'positionGraph'>`). Do not treat the
+// only the positions-owned slice we validate on Dynamo fetch (e.g. `getCharacterLudicGraphFromDynamo`
+// projects `ludicGraph` via `Pick<EphemeraMetaCharacter, 'ludicGraph'>`). Do not treat the
 // type name as a complete meta document shape.
 //
 export type EphemeraMetaCharacter = {
@@ -344,7 +344,7 @@ export type EphemeraMetaCharacter = {
     //
     // Play-time inventory graph (D16 / character host). v1: Object membership nodes only.
     //
-    positionGraph?: EphemeraLudicGraphFieldPayload;
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
 }
 
 /** Validates the positions slice of a `Meta::Character` row; does not assert presentation / ladder fields. */
@@ -358,12 +358,12 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
     if (!isEphemeraCharacterId(value.EphemeraId) || value.DataCategory !== 'Meta::Character') {
         return false
     }
-    if ('positionGraph' in value) {
-        const positionGraph = value.positionGraph
-        if (!isEphemeraLudicGraphFieldPayload(positionGraph)) {
+    if ('ludicGraph' in value) {
+        const ludicGraph = value.ludicGraph
+        if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
             return false
         }
-        const hasCharacterNode = positionGraph.nodes.some((node) => node.tag === 'Character')
+        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character')
         if (hasCharacterNode) {
             return false
         }

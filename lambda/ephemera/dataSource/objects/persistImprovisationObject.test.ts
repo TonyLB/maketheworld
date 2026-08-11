@@ -555,7 +555,7 @@ describe('persistImprovisationObject', () => {
                     return {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Object', universalKey: objectId }],
                         },
                     }
@@ -564,7 +564,7 @@ describe('persistImprovisationObject', () => {
                     return {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Object', universalKey: objectTwo }],
                         },
                     }
@@ -589,7 +589,7 @@ describe('persistImprovisationObject', () => {
             getRoomPositionGraph: async (room) => ({
                 EphemeraId: room,
                 DataCategory: 'Meta::Room',
-                positionGraph: { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
+                ludicGraph: { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
             }),
         })
 

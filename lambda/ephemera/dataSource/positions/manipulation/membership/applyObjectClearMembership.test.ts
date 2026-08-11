@@ -17,7 +17,7 @@ jest.mock('../../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             getMembershipContainers: jest.fn(),
-            getPositionGraph: jest.fn(),
+            getLudicGraph: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -92,7 +92,7 @@ describe('applyObjectClearMembership', () => {
     it('clears character inventory and streams Object Moved', async () => {
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([CHARACTER_ID])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(characterGraph)
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(characterGraph)
         wireTransactWrite({ [CHARACTER_ID]: characterGraph })
 
         const result = await applyObjectClearMembership(
@@ -128,7 +128,7 @@ describe('applyObjectClearMembership', () => {
     it('clears room placement and publishes RoomUpdate', async () => {
         const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(roomGraph)
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)
         wireTransactWrite({ [FROM_ROOM]: roomGraph })
 
         await applyObjectClearMembership(
@@ -151,7 +151,7 @@ describe('applyObjectClearMembership', () => {
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
         })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockResolvedValue(roomGraph)
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)
         const lastDraft = wireTransactWrite({ [FROM_ROOM]: roomGraph })
 
         const result = await applyObjectClearMembership(
@@ -186,7 +186,7 @@ describe('applyObjectClearMembership', () => {
         const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : characterGraph
         )
         wireTransactWrite({ [FROM_ROOM]: roomGraph, [CHARACTER_ID]: characterGraph })

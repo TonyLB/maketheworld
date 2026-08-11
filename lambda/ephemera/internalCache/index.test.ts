@@ -52,7 +52,7 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
-    it('getRoomCharacterList derives roster from Positions.getPositionGraph on each call', async () => {
+    it('getRoomCharacterList derives roster from Positions.getLudicGraph on each call', async () => {
         const expectedOutput = [
             {
                 EphemeraId: 'CHARACTER#123' as const,
@@ -67,7 +67,7 @@ describe('InternalCache', () => {
                 SessionIds: [],
             },
         ]
-        const getPositionGraphSpy = jest.spyOn(internalCache.Positions, 'getPositionGraph')
+        const getLudicGraphSpy = jest.spyOn(internalCache.Positions, 'getLudicGraph')
             .mockResolvedValue(testPositionGraph('ROOM#1234', {
                 nodes: [
                     { tag: 'Character', universalKey: 'CHARACTER#123' },
@@ -104,12 +104,12 @@ describe('InternalCache', () => {
         })
 
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getPositionGraphSpy).toHaveBeenCalledTimes(1)
-        expect(getPositionGraphSpy).toHaveBeenCalledWith('ROOM#1234')
+        expect(getLudicGraphSpy).toHaveBeenCalledTimes(1)
+        expect(getLudicGraphSpy).toHaveBeenCalledWith('ROOM#1234')
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getPositionGraphSpy).toHaveBeenCalledTimes(2)
+        expect(getLudicGraphSpy).toHaveBeenCalledTimes(2)
 
-        getPositionGraphSpy.mockRestore()
+        getLudicGraphSpy.mockRestore()
     })
 
     it('flush includes GenerationContext handler', async () => {

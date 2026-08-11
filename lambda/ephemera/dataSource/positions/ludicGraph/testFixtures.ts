@@ -1,6 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
 import { EphemeraLudicGraph } from './index'
 
@@ -13,5 +13,5 @@ export const testPositionGraph = (
 /** Test helper: host-bound graph from play read envelope (supports Exit edges). */
 export const testPositionGraphFromEnvelope = (
     hostId: EphemeraMembershipHostId,
-    envelope: PlayPositionGraph = { nodes: [] }
+    envelope: PlayLudicGraph = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromPlayEnvelope(hostId, envelope)

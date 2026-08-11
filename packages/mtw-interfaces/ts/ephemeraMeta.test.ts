@@ -273,22 +273,22 @@ describe('isEphemeraLudicGraphData', () => {
     })
 })
 
-describe('isEphemeraMetaRoom positionGraph', () => {
-    it('accepts Meta::Room with positionGraph', () => {
+describe('isEphemeraMetaRoom ludicGraph', () => {
+    it('accepts Meta::Room with ludicGraph', () => {
         expect(isEphemeraMetaRoom({
             EphemeraId: 'ROOM#Test',
             DataCategory: 'Meta::Room',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             },
         })).toBe(true)
     })
 
-    it('rejects invalid positionGraph on Meta::Room', () => {
+    it('rejects invalid ludicGraph on Meta::Room', () => {
         expect(isEphemeraMetaRoom({
             EphemeraId: 'ROOM#Test',
             DataCategory: 'Meta::Room',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Other' }],
             },
         })).toBe(false)
@@ -307,18 +307,18 @@ describe('isEphemeraMetaRoom positionGraph', () => {
     })
 })
 
-describe('isEphemeraMetaCharacter positionGraph', () => {
-    it('accepts Meta::Character with object-only positionGraph', () => {
+describe('isEphemeraMetaCharacter ludicGraph', () => {
+    it('accepts Meta::Character with object-only ludicGraph', () => {
         expect(isEphemeraMetaCharacter({
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Character',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
             },
         })).toBe(true)
     })
 
-    it('accepts Meta::Character without positionGraph', () => {
+    it('accepts Meta::Character without ludicGraph', () => {
         expect(isEphemeraMetaCharacter({
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Character',
@@ -329,7 +329,7 @@ describe('isEphemeraMetaCharacter positionGraph', () => {
         expect(isEphemeraMetaCharacter({
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Character',
-            positionGraph: {
+            ludicGraph: {
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta' }],
             },
         })).toBe(false)

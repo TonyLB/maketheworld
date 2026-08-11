@@ -1,8 +1,8 @@
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
-    extractCharacterIdsFromPlayPositionGraph,
-    extractObjectIdsFromPlayPositionGraph,
-    projectComponentGraphFromStoredPositionGraph,
+    extractCharacterIdsFromPlayLudicGraph,
+    extractObjectIdsFromPlayLudicGraph,
+    projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -56,9 +56,9 @@ export class RelationalEdgeStillReferencedError extends Error {
     }
 }
 
-const extractPlayOnlyEdges = (envelope: PlayPositionGraph): PlayPositionGraph['edges'] => {
+const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges'] => {
     const edges = envelope.edges ?? []
-    const playOnly: NonNullable<PlayPositionGraph['edges']> = []
+    const playOnly: NonNullable<PlayLudicGraph['edges']> = []
     for (const rawEdge of edges) {
         if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
             continue
@@ -78,13 +78,13 @@ export class EphemeraLudicGraph {
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
-    private readonly _playOnlyEdges: PlayPositionGraph['edges'] | undefined
+    private readonly _playOnlyEdges: PlayLudicGraph['edges'] | undefined
 
     private constructor(
         hostId: EphemeraMembershipHostId,
         nodes: EphemeraLudicGraphNode[],
         edges: EphemeraLudicRelationalEdgeData[] | undefined,
-        playOnlyEdges: PlayPositionGraph['edges'] | undefined = undefined
+        playOnlyEdges: PlayLudicGraph['edges'] | undefined = undefined
     ) {
         this.hostId = hostId
         this._nodes = nodes
@@ -131,15 +131,15 @@ export class EphemeraLudicGraph {
 
     static fromPlayEnvelope(
         hostId: EphemeraMembershipHostId,
-        envelope: PlayPositionGraph
+        envelope: PlayLudicGraph
     ): EphemeraLudicGraph {
         const relationalEdges = extractRelationalEdgesFromStored(envelope).map(toStoredRelationalEdge)
         const playOnlyEdges = extractPlayOnlyEdges(envelope)
         return new EphemeraLudicGraph(
             hostId,
             [
-                ...extractCharacterIdsFromPlayPositionGraph(envelope).map(characterNode),
-                ...extractObjectIdsFromPlayPositionGraph(envelope).map(objectNode),
+                ...extractCharacterIdsFromPlayLudicGraph(envelope).map(characterNode),
+                ...extractObjectIdsFromPlayLudicGraph(envelope).map(objectNode),
             ],
             relationalEdges.length > 0 ? relationalEdges : undefined,
             playOnlyEdges
@@ -182,8 +182,8 @@ export class EphemeraLudicGraph {
         }
     }
 
-    toPlayEnvelope(): PlayPositionGraph {
-        const projected = projectComponentGraphFromStoredPositionGraph(this.toStored())
+    toPlayEnvelope(): PlayLudicGraph {
+        const projected = projectComponentGraphFromStoredLudicGraph(this.toStored())
         const playOnly = this._playOnlyEdges ?? []
         if (playOnly.length === 0) {
             return projected
@@ -209,7 +209,7 @@ export class EphemeraLudicGraph {
         return new EphemeraLudicGraph(this.hostId, this._nodes, edges, this._playOnlyEdges)
     }
 
-    private withPlayOnlyEdges(edges: PlayPositionGraph['edges'] | undefined): EphemeraLudicGraph {
+    private withPlayOnlyEdges(edges: PlayLudicGraph['edges'] | undefined): EphemeraLudicGraph {
         return new EphemeraLudicGraph(this.hostId, this._nodes, this._edges, edges)
     }
 

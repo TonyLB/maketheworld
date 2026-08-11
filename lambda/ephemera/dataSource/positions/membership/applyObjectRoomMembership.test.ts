@@ -17,7 +17,7 @@ jest.mock('../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             getMembershipContainers: jest.fn(),
-            getPositionGraph: jest.fn(),
+            getLudicGraph: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -91,7 +91,7 @@ describe('applyObjectRoomMembership', () => {
         const fromRoomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
@@ -140,7 +140,7 @@ describe('applyObjectRoomMembership', () => {
         })
         const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
@@ -173,7 +173,7 @@ describe('applyObjectRoomMembership', () => {
         })
         const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })

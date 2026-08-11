@@ -382,7 +382,7 @@ export const persistClearCoyoteGameImprovisationObjects = async (
 
         for (const roomId of affectedRoomIds) {
             const meta = await getRoomPositionGraph(roomId)
-            for (const objectId of collectObjectIdsFromPositionGraph(meta?.positionGraph)) {
+            for (const objectId of collectObjectIdsFromPositionGraph(meta?.ludicGraph)) {
                 objectIdSet.add(objectId)
             }
         }

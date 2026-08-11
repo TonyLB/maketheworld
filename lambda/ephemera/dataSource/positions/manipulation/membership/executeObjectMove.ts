@@ -106,8 +106,8 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
         return { ok: false }
     }
 
-    const fromGraph = await internalCache.Positions.getPositionGraph(args.fromHostId)
-    const toGraph = await internalCache.Positions.getPositionGraph(args.toHostId)
+    const fromGraph = await internalCache.Positions.getLudicGraph(args.fromHostId)
+    const toGraph = await internalCache.Positions.getLudicGraph(args.toHostId)
     const graphsByHost = new Map<string, EphemeraLudicGraph>([
         [args.fromHostId, fromGraph],
         [args.toHostId, toGraph],

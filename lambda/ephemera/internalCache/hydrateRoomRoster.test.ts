@@ -136,11 +136,11 @@ describe('getRoomCharacterList', () => {
         internalCache.clear()
     })
 
-    it('hydrates roster from stored positionGraph without activeCharacters Dynamo read', async () => {
+    it('hydrates roster from stored ludicGraph without activeCharacters Dynamo read', async () => {
         ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('positionGraph')) {
+            if (ProjectionFields?.includes('ludicGraph')) {
                 return {
-                    positionGraph: {
+                    ludicGraph: {
                         nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
                     },
                 }
@@ -173,7 +173,7 @@ describe('getRoomCharacterList', () => {
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
-                ProjectionFields: ['positionGraph'],
+                ProjectionFields: ['ludicGraph'],
             })
         )
     })
@@ -204,9 +204,9 @@ describe('getRoomCharacterList', () => {
         expect(ephemeraMock.getItem).not.toHaveBeenCalled()
     })
 
-    it('returns empty roster when stored positionGraph is absent', async () => {
+    it('returns empty roster when stored ludicGraph is absent', async () => {
         ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('positionGraph')) {
+            if (ProjectionFields?.includes('ludicGraph')) {
                 return {}
             }
             throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)

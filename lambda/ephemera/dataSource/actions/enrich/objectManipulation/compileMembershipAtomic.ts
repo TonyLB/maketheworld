@@ -42,7 +42,7 @@ export type CompileMembershipAtomicResult =
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
-    getPositionGraph: (hostId) => internalCache.Positions.getPositionGraph(hostId),
+    getPositionGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
 export async function compileMembershipAtomic(

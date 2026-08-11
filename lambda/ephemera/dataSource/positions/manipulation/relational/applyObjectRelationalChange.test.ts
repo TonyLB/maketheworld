@@ -11,7 +11,7 @@ jest.mock('../../../../internalCache', () => ({
         Positions: {
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
-            getPositionGraph: jest.fn(),
+            getLudicGraph: jest.fn(),
         },
     },
 }))
@@ -165,7 +165,7 @@ describe('applyObjectRelationalChange', () => {
         it('BD-16 worked example: moves the tray from the character to the room and establishes the relation, atomically', async () => {
             const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )
             const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
@@ -206,7 +206,7 @@ describe('applyObjectRelationalChange', () => {
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: KEYRING_ID, kind: 'Against' }],
             })
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )
             const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
@@ -238,7 +238,7 @@ describe('applyObjectRelationalChange', () => {
         it('aborts the whole transact --- no partial move, no partial relation, no fact streams --- when the subject is no longer on the source host at commit time', async () => {
             const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
             const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
-            ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )
             const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })

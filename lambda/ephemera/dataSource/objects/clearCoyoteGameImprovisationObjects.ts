@@ -16,9 +16,9 @@ import { persistDeleteImprovisationObject } from './persistImprovisationObject'
 
 export type ClearCoyoteGameImprovisationObjectsArgs = {
     getGameRooms?: () => Promise<string[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getPositionGraph>;
+    getRoomPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
-    getCharacterPositionGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getPositionGraph>;
+    getCharacterPositionGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
 }
 
 export type ClearCoyoteGameImprovisationObjectsResult =
@@ -46,10 +46,10 @@ export const clearCoyoteGameImprovisationObjects = async (
 ): Promise<ClearCoyoteGameImprovisationObjectsResult> => {
     const getGameRooms = args.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
     const getRoomPositionGraph = args.getRoomPositionGraph
-        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getPositionGraph(roomId))
+        ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getLudicGraph(roomId))
     const getActiveCharacters = args.getActiveCharactersInCoyoteRooms ?? collectActiveCharactersInCoyoteRooms
     const getCharacterPositionGraph = args.getCharacterPositionGraph
-        ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getPositionGraph(characterId))
+        ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getLudicGraph(characterId))
 
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)

@@ -6,7 +6,7 @@ import type {
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
@@ -32,7 +32,7 @@ export const toStoredRelationalEdge = (
 })
 
 export function extractRelationalEdgesFromStored(
-    graph: EphemeraLudicGraphFieldPayload | PlayPositionGraph
+    graph: EphemeraLudicGraphFieldPayload | PlayLudicGraph
 ): HostRelationalEdge[] {
     const edges = graph.edges ?? []
     const relationalEdges: HostRelationalEdge[] = []

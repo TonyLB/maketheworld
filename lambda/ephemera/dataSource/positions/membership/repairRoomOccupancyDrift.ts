@@ -20,7 +20,7 @@ export type RepairRoomOccupancyDriftArgs = {
 }
 
 export type RepairRoomOccupancyDriftDependencies = {
-    getPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getPositionGraph>;
+    getPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: typeof internalCache.CharacterMeta.get;
@@ -32,7 +32,7 @@ const listGraphCharacterIds = async (
     roomId: EphemeraRoomId,
     getPositionGraph: RepairRoomOccupancyDriftDependencies['getPositionGraph']
 ): Promise<EphemeraCharacterId[]> => {
-    const loader = getPositionGraph ?? ((id) => internalCache.Positions.getPositionGraph(id))
+    const loader = getPositionGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
     const positionGraph = await loader(roomId)
     return [...positionGraph.characterIds].filter(isEphemeraCharacterId)
 }

@@ -1,9 +1,9 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
-    projectComponentGraphFromStoredPositionGraph,
-    extractCharacterIdsFromPlayPositionGraph,
-    extractObjectIdsFromPlayPositionGraph,
+    projectComponentGraphFromStoredLudicGraph,
+    extractCharacterIdsFromPlayLudicGraph,
+    extractObjectIdsFromPlayLudicGraph,
 } from './project'
 import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
@@ -15,25 +15,25 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#Skates' as EphemeraObjectId
 
-const emptyGraph = projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })
+const emptyGraph = projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
 
 describe('positions project', () => {
-    it('extractCharacterIdsFromPlayPositionGraph walks character nodes', () => {
-        expect(extractCharacterIdsFromPlayPositionGraph({
+    it('extractCharacterIdsFromPlayLudicGraph walks character nodes', () => {
+        expect(extractCharacterIdsFromPlayLudicGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
             edges: [],
         })).toEqual([characterId])
     })
 
-    it('extractObjectIdsFromPlayPositionGraph walks object nodes', () => {
-        expect(extractObjectIdsFromPlayPositionGraph({
+    it('extractObjectIdsFromPlayLudicGraph walks object nodes', () => {
+        expect(extractObjectIdsFromPlayLudicGraph({
             nodes: [{ tag: 'Object', universalKey: objectId }],
             edges: [],
         })).toEqual([objectId])
     })
 
-    it('projectComponentGraphFromStoredPositionGraph maps stored nodes to topology only', () => {
-        const graph = projectComponentGraphFromStoredPositionGraph({
+    it('projectComponentGraphFromStoredLudicGraph maps stored nodes to topology only', () => {
+        const graph = projectComponentGraphFromStoredLudicGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
         expect(graph).toEqual({
@@ -45,8 +45,8 @@ describe('positions project', () => {
         })
     })
 
-    it('projectComponentGraphFromStoredPositionGraph includes Object nodes', () => {
-        const graph = projectComponentGraphFromStoredPositionGraph({
+    it('projectComponentGraphFromStoredLudicGraph includes Object nodes', () => {
+        const graph = projectComponentGraphFromStoredLudicGraph({
             nodes: [
                 { tag: 'Character', universalKey: characterId },
                 { tag: 'Object', universalKey: objectId },
@@ -61,8 +61,8 @@ describe('positions project', () => {
         })
     })
 
-    it('projectComponentGraphFromStoredPositionGraph passes through relational edges', () => {
-        const graph = projectComponentGraphFromStoredPositionGraph({
+    it('projectComponentGraphFromStoredLudicGraph passes through relational edges', () => {
+        const graph = projectComponentGraphFromStoredLudicGraph({
             nodes: [
                 { tag: 'Object', universalKey: objectId },
                 { tag: 'Object', universalKey: 'OBJECT#Table' },
@@ -86,8 +86,8 @@ describe('positions project', () => {
         }])
     })
 
-    it('projectComponentGraphFromStoredPositionGraph returns empty graph for absent nodes', () => {
-        expect(projectComponentGraphFromStoredPositionGraph({ nodes: [], edges: [] })).toEqual({
+    it('projectComponentGraphFromStoredLudicGraph returns empty graph for absent nodes', () => {
+        expect(projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })).toEqual({
             nodes: [],
             edges: [],
         })
@@ -95,12 +95,12 @@ describe('positions project', () => {
 })
 
 describe('PositionsCacheHandler', () => {
-    it('loads room graph topology from stored positionGraph', async () => {
+    it('loads room graph topology from stored ludicGraph', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
-                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('positionGraph')) {
+                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('ludicGraph')) {
                     return {
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Character', universalKey: characterId }],
                         },
                     }
@@ -110,18 +110,18 @@ describe('PositionsCacheHandler', () => {
         }
         const handler = createPositionsCacheHandler(db)
 
-        const graph = await handler.getPositionGraph(roomId)
+        const graph = await handler.getLudicGraph(roomId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredPositionGraph({
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
-    it('returns empty graph when stored room positionGraph is absent', async () => {
+    it('returns empty graph when stored room ludicGraph is absent', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
-                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('positionGraph')) {
+                if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('ludicGraph')) {
                     return {}
                 }
                 throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
@@ -129,18 +129,18 @@ describe('PositionsCacheHandler', () => {
         }
         const handler = createPositionsCacheHandler(db)
 
-        const graph = await handler.getPositionGraph(roomId)
+        const graph = await handler.getLudicGraph(roomId)
 
         expect(graph).toEqual(emptyGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
-    it('loads character inventory graph from Meta::Character.positionGraph', async () => {
+    it('loads character inventory graph from Meta::Character.ludicGraph', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
-                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('positionGraph')) {
+                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('ludicGraph')) {
                     return {
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Object', universalKey: objectId }],
                         },
                     }
@@ -150,23 +150,23 @@ describe('PositionsCacheHandler', () => {
         }
         const handler = createPositionsCacheHandler(db)
 
-        const graph = await handler.getPositionGraph(characterId)
+        const graph = await handler.getLudicGraph(characterId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredPositionGraph({
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
             nodes: [{ tag: 'Object', universalKey: objectId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 Key: { EphemeraId: characterId, DataCategory: 'Meta::Character' },
-                ProjectionFields: ['positionGraph'],
+                ProjectionFields: ['ludicGraph'],
             })
         )
     })
 
-    it('returns empty graph when stored character positionGraph is absent', async () => {
+    it('returns empty graph when stored character ludicGraph is absent', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
-                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('positionGraph')) {
+                if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('ludicGraph')) {
                     return {}
                 }
                 throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
@@ -174,7 +174,7 @@ describe('PositionsCacheHandler', () => {
         }
         const handler = createPositionsCacheHandler(db)
 
-        const graph = await handler.getPositionGraph(characterId)
+        const graph = await handler.getLudicGraph(characterId)
 
         expect(graph).toEqual(emptyGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)
@@ -239,19 +239,19 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectComponentGraphFromStoredPositionGraph({
+        const graph = projectComponentGraphFromStoredLudicGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
 
         handler.set({ componentId: roomId, graph })
-        await expect(handler.getPositionGraph(roomId)).resolves.toEqual(graph)
+        await expect(handler.getLudicGraph(roomId)).resolves.toEqual(graph)
         expect(db.getItem).not.toHaveBeenCalled()
 
         handler.invalidate(roomId)
-        await handler.getPositionGraph(roomId)
+        await handler.getLudicGraph(roomId)
         expect(getItem).toHaveBeenCalledWith(
             expect.objectContaining({
-                ProjectionFields: ['positionGraph'],
+                ProjectionFields: ['ludicGraph'],
             })
         )
     })
@@ -260,12 +260,12 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectComponentGraphFromStoredPositionGraph({
+        const graph = projectComponentGraphFromStoredLudicGraph({
             nodes: [{ tag: 'Object', universalKey: objectId }],
         })
 
         handler.set({ componentId: characterId, graph })
-        await expect(handler.getPositionGraph(characterId)).resolves.toEqual(graph)
+        await expect(handler.getLudicGraph(characterId)).resolves.toEqual(graph)
         expect(db.getItem).not.toHaveBeenCalled()
     })
 

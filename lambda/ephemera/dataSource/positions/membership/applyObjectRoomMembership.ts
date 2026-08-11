@@ -71,7 +71,7 @@ export const applyObjectRoomMembership = async (
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraRoomId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const roomId of diff.froms) {
-        const graph = await internalCache.Positions.getPositionGraph(roomId)
+        const graph = await internalCache.Positions.getLudicGraph(roomId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
         for (const { edge } of outcomes) {
             hostByReferencedId.set(edge.from, roomId)

@@ -26,7 +26,7 @@ export type CoyoteRoomObjectSnapshotDeps = {
 export type CoyoteRoomObjectsByRoom = Record<EphemeraRoomId, CoyoteStagedObject[]>
 
 const defaultGetObjectIdsInRoom = async (roomId: EphemeraRoomId): Promise<EphemeraObjectId[]> => {
-    const graph = await internalCache.Positions.getPositionGraph(roomId)
+    const graph = await internalCache.Positions.getLudicGraph(roomId)
     return [...graph.objectIds]
 }
 

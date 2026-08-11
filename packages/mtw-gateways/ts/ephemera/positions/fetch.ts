@@ -39,32 +39,32 @@ export async function getRoomActiveCharactersFromDynamo(
     return row?.activeCharacters ?? []
 }
 
-export async function getRoomPositionGraphFromDynamo(
+export async function getRoomLudicGraphFromDynamo(
     db: EphemeraPositionsReadDB,
     roomId: EphemeraRoomId
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> {
-    const row = await db.getItem<Pick<EphemeraMetaRoom, 'positionGraph'>>({
+    const row = await db.getItem<Pick<EphemeraMetaRoom, 'ludicGraph'>>({
         Key: {
             EphemeraId: roomId,
             DataCategory: 'Meta::Room',
         },
-        ProjectionFields: ['positionGraph'],
+        ProjectionFields: ['ludicGraph'],
     })
-    return row?.positionGraph
+    return row?.ludicGraph
 }
 
-export async function getCharacterPositionGraphFromDynamo(
+export async function getCharacterLudicGraphFromDynamo(
     db: EphemeraPositionsReadDB,
     characterId: EphemeraCharacterId
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> {
-    const row = await db.getItem<Pick<EphemeraMetaCharacter, 'positionGraph'>>({
+    const row = await db.getItem<Pick<EphemeraMetaCharacter, 'ludicGraph'>>({
         Key: {
             EphemeraId: characterId,
             DataCategory: 'Meta::Character',
         },
-        ProjectionFields: ['positionGraph'],
+        ProjectionFields: ['ludicGraph'],
     })
-    return row?.positionGraph
+    return row?.ludicGraph
 }
 
 export async function getCharacterRoomIdFromDynamo(

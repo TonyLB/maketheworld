@@ -14,7 +14,7 @@ export type RepairObjectPlacementDriftArgs = {
 }
 
 export type RepairObjectPlacementDriftDependencies = {
-    getPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getPositionGraph>;
+    getPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
     applyMembership?: typeof applyObjectRoomMembership;
     syncAdjacency?: typeof syncObjectMembershipAdjacencyToRoom;
@@ -24,7 +24,7 @@ const listGraphObjectIds = async (
     roomId: EphemeraRoomId,
     getPositionGraph: RepairObjectPlacementDriftDependencies['getPositionGraph']
 ): Promise<EphemeraObjectId[]> => {
-    const loader = getPositionGraph ?? ((id) => internalCache.Positions.getPositionGraph(id))
+    const loader = getPositionGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
     const positionGraph = await loader(roomId)
     return [...positionGraph.objectIds].filter(isEphemeraObjectId)
 }
