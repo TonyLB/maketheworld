@@ -3,9 +3,9 @@ import {
     isEphemeraMetaObject,
     isEphemeraMetaRoom,
     isEphemeraMetaRoomObject,
-    isEphemeraPositionGraphData,
-    isEphemeraPositionGraphFieldPayload,
-    isEphemeraPositionGraphNode,
+    isEphemeraLudicGraphData,
+    isEphemeraLudicGraphFieldPayload,
+    isEphemeraLudicGraphNode,
 } from './ephemeraMeta'
 
 const baseRow = {
@@ -145,37 +145,37 @@ describe('isEphemeraMetaObject', () => {
     })
 })
 
-describe('isEphemeraPositionGraphNode', () => {
+describe('isEphemeraLudicGraphNode', () => {
     it('accepts character node with universalKey', () => {
-        expect(isEphemeraPositionGraphNode({
+        expect(isEphemeraLudicGraphNode({
             tag: 'Character',
             universalKey: 'CHARACTER#Alpha',
         })).toBe(true)
     })
 
     it('accepts object node with universalKey', () => {
-        expect(isEphemeraPositionGraphNode({
+        expect(isEphemeraLudicGraphNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
         })).toBe(true)
     })
 
     it('rejects non-character non-object tag', () => {
-        expect(isEphemeraPositionGraphNode({
+        expect(isEphemeraLudicGraphNode({
             tag: 'Room',
             universalKey: 'ROOM#Test',
         })).toBe(false)
     })
 
     it('rejects invalid universalKey', () => {
-        expect(isEphemeraPositionGraphNode({
+        expect(isEphemeraLudicGraphNode({
             tag: 'Character',
             universalKey: 'ROOM#Test',
         })).toBe(false)
     })
 
     it('rejects asset-local key on play node', () => {
-        expect(isEphemeraPositionGraphNode({
+        expect(isEphemeraLudicGraphNode({
             tag: 'Character',
             universalKey: 'CHARACTER#Alpha',
             key: 'hero',
@@ -183,22 +183,22 @@ describe('isEphemeraPositionGraphNode', () => {
     })
 })
 
-describe('isEphemeraPositionGraphFieldPayload', () => {
+describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts character nodes with empty edges', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [],
         })).toBe(true)
     })
 
     it('accepts graph without edges field', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(true)
     })
 
     it('accepts mixed character and object nodes', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
                 { tag: 'Object', universalKey: 'OBJECT#helmet' },
@@ -207,7 +207,7 @@ describe('isEphemeraPositionGraphFieldPayload', () => {
     })
 
     it('accepts relational edges on room host graph', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -222,7 +222,7 @@ describe('isEphemeraPositionGraphFieldPayload', () => {
     })
 
     it('rejects Custom relational edge without relationLabel', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#rope' },
                 { tag: 'Object', universalKey: 'OBJECT#crate' },
@@ -237,36 +237,36 @@ describe('isEphemeraPositionGraphFieldPayload', () => {
     })
 
     it('rejects invalid edge envelope', () => {
-        expect(isEphemeraPositionGraphFieldPayload({
+        expect(isEphemeraLudicGraphFieldPayload({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],
         })).toBe(false)
     })
 })
 
-describe('isEphemeraPositionGraphData', () => {
+describe('isEphemeraLudicGraphData', () => {
     it('accepts host-bound graph with room hostId', () => {
-        expect(isEphemeraPositionGraphData({
+        expect(isEphemeraLudicGraphData({
             hostId: 'ROOM#Test',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(true)
     })
 
     it('accepts host-bound graph with character hostId', () => {
-        expect(isEphemeraPositionGraphData({
+        expect(isEphemeraLudicGraphData({
             hostId: 'CHARACTER#Beta',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
         })).toBe(true)
     })
 
     it('rejects missing hostId', () => {
-        expect(isEphemeraPositionGraphData({
+        expect(isEphemeraLudicGraphData({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
 
     it('rejects invalid hostId', () => {
-        expect(isEphemeraPositionGraphData({
+        expect(isEphemeraLudicGraphData({
             hostId: 'OBJECT#helmet',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
