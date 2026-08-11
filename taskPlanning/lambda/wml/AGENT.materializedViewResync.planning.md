@@ -1,6 +1,6 @@
 # WML materialized-view resync (`.ndjson` from `.wml`)
 
-**Status:** Not started. Designed 2026-08-11 in conversation, out of a gap found while executing [`AGENT.ludicGraphRename.planning.md`](../ephemera/dataSource/positions/AGENT.ludicGraphRename.planning.md)'s Phase 4.5 (OD-10). This plan follows [`taskPlanning/AGENT.md`](../../AGENT.md); skim it once for durability and content-split conventions before editing this file.
+**Status:** In progress. Phase 1 (event type) done 2026-08-11; next is Phase 2 (routing). Designed 2026-08-11 in conversation, out of a gap found while executing [`AGENT.ludicGraphRename.planning.md`](../ephemera/dataSource/positions/AGENT.ludicGraphRename.planning.md)'s Phase 4.5 (OD-10). This plan follows [`taskPlanning/AGENT.md`](../../AGENT.md); skim it once for durability and content-split conventions before editing this file.
 
 ## Why this exists (do not re-argue in this plan)
 
@@ -77,8 +77,8 @@ Plan-only: decisions being made in order to execute this feature. Do not copy in
 
 Use `[ ]` for pending and `[X]` for complete; mark nested lines `[X]` as each sub-step finishes.
 
-- [ ] **Phase 1. Add the event type.** `packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`: add `DiagnosticsWMLMaterializedViewFindingEvent` (per [Design](#design-settled-in-conversation-2026-08-11-not-re-litigated-here)), fold it into whatever union type aggregates diagnostics events for serialization (check how `DiagnosticsCacheConsistencyFindingEvent` is threaded through the file's serializer/deserializer, roughly lines 349-357 and 443-457 per prior tracing --- re-verify against live code, not this note, before editing), and add/adjust type guards analogous to `isDiagnosticsCacheConsistencyFindingEvent` if that pattern exists.
-  - [ ] `cd packages/mtw-interfaces && npm test`
+- [X] **Phase 1. Add the event type.** `packages/mtw-interfaces/ts/eventBridge/diagnostics/index.ts`: add `DiagnosticsWMLMaterializedViewFindingEvent` (per [Design](#design-settled-in-conversation-2026-08-11-not-re-litigated-here)), fold it into whatever union type aggregates diagnostics events for serialization (check how `DiagnosticsCacheConsistencyFindingEvent` is threaded through the file's serializer/deserializer, roughly lines 349-357 and 443-457 per prior tracing --- re-verify against live code, not this note, before editing), and add/adjust type guards analogous to `isDiagnosticsCacheConsistencyFindingEvent` if that pattern exists.
+  - [X] `cd packages/mtw-interfaces && npm test`
 - [ ] **Phase 2. Wire routing.** `template.yaml`'s `WMLFunction` `Diagnostics` `CloudWatchEvent` block (`~1689-1697`): add `WML Materialized View Finding` to the `detail-type` list. Resolve **OD-1** here if it turns out to matter for how the event is published/consumed.
 - [ ] **Phase 3. Implement the handler.** `lambda/wml/dataSource/mtw-wml.ts`: add `processWMLMaterializedViewFinding`, dispatched from the `isDiagnosticsEnvelope` branch alongside `processS3StructureFinding`. Implements the 5-step body from [Design](#design-settled-in-conversation-2026-08-11-not-re-litigated-here) --- `AssetWorkspace.fromUUID` -> `loadWML()` -> `pushJSON()` -> `streamEvent({ header: { type: 'Content Update' } })`. Resolve **OD-4** (idempotency) with an explicit test case. Add/adjust the envelope type guard in `lambda/wml/dataSource/subscribedEvents.ts` if the existing catch-all (`dataSourceKey: 'mtw.diagnostics'`, no `type` narrowing --- `subscribedEvents.ts:32,39-40`) doesn't already cover a new `type` value cleanly.
   - [ ] `cd lambda/wml && npm test`
