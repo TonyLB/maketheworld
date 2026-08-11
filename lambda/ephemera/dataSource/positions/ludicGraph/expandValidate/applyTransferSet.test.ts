@@ -2,7 +2,7 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { applyTransferSet } from './applyTransferSet'
-import { testPositionGraph } from '../testFixtures'
+import { testLudicGraph } from '../testFixtures'
 import { RelationalEdgeStillReferencedError } from '../index'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -14,8 +14,8 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('applyTransferSet', () => {
     it('legal: moves a complete set with no boundary edges and mutates both graphs', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
@@ -28,7 +28,7 @@ describe('applyTransferSet', () => {
     it("legal: BD-13's worked example, with the tray-table dissolve edge already explicitly removed", () => {
         // Simulates an explicit DissolveRelationStep having already run in the same kernel-apply
         // loop --- the real precondition this function assumes.
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -38,7 +38,7 @@ describe('applyTransferSet', () => {
                 { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
             ],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
 
@@ -52,7 +52,7 @@ describe('applyTransferSet', () => {
     })
 
     it('illegal (unresolvedDissolveEdge): the tray-table dissolve edge was NOT pre-removed', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -63,7 +63,7 @@ describe('applyTransferSet', () => {
                 { tag: 'Relational', from: trayId, to: tableId, kind: 'On' },
             ],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
 
@@ -73,7 +73,7 @@ describe('applyTransferSet', () => {
     })
 
     it('illegal: an incomplete transfer set (unaccounted carry boundary edge) is rejected, not auto-grown', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -84,7 +84,7 @@ describe('applyTransferSet', () => {
                 { tag: 'Relational', from: bookId, to: trayId, kind: 'On' },
             ],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
 
@@ -92,14 +92,14 @@ describe('applyTransferSet', () => {
     })
 
     it('defer: an Under boundary edge on the subject moving requires interaction assessment', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Under' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
@@ -107,14 +107,14 @@ describe('applyTransferSet', () => {
     })
 
     it('defer: a Custom boundary edge is not decidable', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
@@ -125,14 +125,14 @@ describe('applyTransferSet', () => {
         // glass On tray: both endpoints are in the transfer set (internal, not boundary). Without
         // stripping internal edges before the per-object removeObject loop, removing tray first
         // would throw on its still-live edge to glass (not yet removed).
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
             ],
             edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         expect(() => applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))).not.toThrow()
 
@@ -144,14 +144,14 @@ describe('applyTransferSet', () => {
     })
 
     it('never leaks a raw RelationalEdgeStillReferencedError past an unresolved boundary dissolve edge', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
         expect(() => applyTransferSet(sourceGraph, destGraph, new Set([trayId]))).not.toThrow(
             RelationalEdgeStillReferencedError

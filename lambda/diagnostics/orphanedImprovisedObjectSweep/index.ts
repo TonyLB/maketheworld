@@ -26,7 +26,7 @@ import { isOrphanedImprovisedObject } from './classification'
 type HostMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraLudicGraphFieldPayload
+    ludicGraph?: EphemeraLudicGraphFieldPayload
 }
 
 type ImprovisationPairRow = {
@@ -92,20 +92,20 @@ const defaultLoadGraphObjectIds = async (): Promise<Set<EphemeraObjectId>> => {
     const [roomRows, characterRows] = await Promise.all([
         queryAllEphemeraRowsByDataCategory<HostMetaRow>({
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph'],
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
         }),
         queryAllEphemeraRowsByDataCategory<HostMetaRow>({
             dataCategory: 'Meta::Character',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph'],
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
         }),
     ])
 
     const objectIds = new Set<EphemeraObjectId>()
     for (const row of [...roomRows, ...characterRows]) {
-        if (!row.positionGraph) {
+        if (!row.ludicGraph) {
             continue
         }
-        const projected = projectComponentGraphFromStoredLudicGraph(row.positionGraph)
+        const projected = projectComponentGraphFromStoredLudicGraph(row.ludicGraph)
         for (const graphObjectId of extractObjectIdsFromPlayLudicGraph(projected)) {
             if (isEphemeraObjectId(graphObjectId)) {
                 objectIds.add(graphObjectId)
@@ -200,7 +200,7 @@ const classifyObject = async (
         hasPairRow: Boolean(pairRow),
         hasMetaRow: Boolean(metaRow),
         membershipContainers,
-        onAnyPositionGraph: graphObjectIds.has(objectId),
+        onAnyLudicGraph: graphObjectIds.has(objectId),
     })
 }
 

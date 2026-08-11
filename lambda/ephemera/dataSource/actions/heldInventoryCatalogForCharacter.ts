@@ -21,14 +21,14 @@ export type HeldInventoryCatalogForCharacter = {
 }
 
 export type HeldInventoryCatalogDeps = {
-    getPositionGraph: (characterId: EphemeraCharacterId) => Promise<EphemeraLudicGraph>
+    getLudicGraph: (characterId: EphemeraCharacterId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     getComponentAggregate: ComponentAggregateMergedCache['get']
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 
 const defaultDeps = (): HeldInventoryCatalogDeps => ({
-    getPositionGraph: (characterId) => internalCache.Positions.getLudicGraph(characterId),
+    getLudicGraph: (characterId) => internalCache.Positions.getLudicGraph(characterId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []
@@ -67,8 +67,8 @@ export async function getHeldInventoryCatalogForCharacter(
     partialDeps: Partial<HeldInventoryCatalogDeps> = {}
 ): Promise<HeldInventoryCatalogForCharacter> {
     const deps: HeldInventoryCatalogDeps = { ...defaultDeps(), ...partialDeps }
-    const positionGraph = await deps.getPositionGraph(characterId)
-    const objectIds = [...positionGraph.objectIds]
+    const ludicGraph = await deps.getLudicGraph(characterId)
+    const objectIds = [...ludicGraph.objectIds]
     if (objectIds.length === 0) {
         return { entries: [] }
     }

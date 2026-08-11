@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph } from '../positions/ludicGraph/testFixtures'
+import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 
 import {
     embeddingAtCosineSimilarity,
@@ -30,30 +30,30 @@ import {
 } from './parseCommand'
 
 /** Slice 4b: both room and character graphs are now fetched before selection runs; respond by hostId. */
-const hostAwareGetPositionGraph = (overrides: Record<string, unknown> = {}) =>
+const hostAwareGetLudicGraph = (overrides: Record<string, unknown> = {}) =>
     jest.fn().mockImplementation(async (hostId: string) => (
         overrides[hostId] ?? (
             hostId === 'CHARACTER#123'
-                ? testPositionGraph('CHARACTER#123' as EphemeraCharacterId)
-                : testPositionGraph('ROOM#Bridge' as EphemeraRoomId)
+                ? testLudicGraph('CHARACTER#123' as EphemeraCharacterId)
+                : testLudicGraph('ROOM#Bridge' as EphemeraRoomId)
         )
     ))
 
 const objectManipulationPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
-    getPositionGraph: hostAwareGetPositionGraph(),
+    getLudicGraph: hostAwareGetLudicGraph(),
 })
 
 const objectManipulationDropPositionsReadDepsForTests = () => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['CHARACTER#123' as EphemeraCharacterId]),
-    getPositionGraph: hostAwareGetPositionGraph(),
+    getLudicGraph: hostAwareGetLudicGraph(),
 })
 
 const relationalPositionsReadDepsForTests = (
     objectIds: EphemeraObjectId[] = ['OBJECT#Broom' as EphemeraObjectId, 'OBJECT#Table' as EphemeraObjectId]
 ) => ({
     getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
-    getPositionGraph: jest.fn().mockResolvedValue(testPositionGraph('ROOM#Bridge' as EphemeraRoomId, {
+    getLudicGraph: jest.fn().mockResolvedValue(testLudicGraph('ROOM#Bridge' as EphemeraRoomId, {
         nodes: objectIds.map((id) => ({ tag: 'Object' as const, universalKey: id })),
     })),
 })
@@ -1203,8 +1203,8 @@ describe('parseCommand LLM path', () => {
                     invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: {
                         getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
-                        getPositionGraph: jest.fn().mockResolvedValue(
-                            testPositionGraph('ROOM#Bridge' as EphemeraRoomId, {
+                        getLudicGraph: jest.fn().mockResolvedValue(
+                            testLudicGraph('ROOM#Bridge' as EphemeraRoomId, {
                                 nodes: [
                                     { tag: 'Object' as const, universalKey: ropeId },
                                     { tag: 'Object' as const, universalKey: crateId },

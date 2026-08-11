@@ -3,7 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
+import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from './index'
 import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 
@@ -180,7 +180,7 @@ describe('getRoomCharacterList', () => {
 
     it('uses memo-patched graph without Dynamo read', async () => {
         internalCache.Positions.set(
-            testPositionGraph(TOWN_SQUARE, {
+            testLudicGraph(TOWN_SQUARE, {
                 nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
             })
         )

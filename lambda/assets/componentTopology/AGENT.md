@@ -6,14 +6,14 @@ Non-replayable derived **Assets** DataSource that publishes skinny **`TopologyIn
 
 Notify downstream consumers when room topology may have changed (**`mtw.ephemera.affordanceCache`** catalog bump + orchestration fan-out, shipped M4):
 
-- **Area** `positionGraph` **nodes** / **edges** edits
+- **Area** `ludicGraph` **nodes** / **edges** edits
 - **`referencedBy`** / partition row changes on **`ROOM#`** endpoints from **`cacheAsset`** and asset purge from **`decacheAsset`**
 
 ## Invalidation sources
 
 | Source | Mechanism |
 | --- | --- |
-| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`positionGraph`** |
+| `mtw.assets` **Component Updated / Removed** | Subscribe; `detectTopologyInvalidations` on **Area** **`ludicGraph`** |
 | `cacheAsset` | `emitTopologyInvalidatedForRoomTargets` when Edge-type **`referencedBy`** changes on **`ROOM#`** targets in **`diff._components`** |
 | `decacheAsset` | `emitTopologyInvalidatedForRoomTargets` when **`ROOM#`** partition rows are deleted (branch C; overlay purge removes edge topology contribution) |
 

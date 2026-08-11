@@ -7,12 +7,12 @@ import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
 export type ObjectManipulationPositionsReadDeps = {
     getMembershipContainers: (objectId: EphemeraObjectId) => Promise<EphemeraMembershipHostId[]>
-    getPositionGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+    getLudicGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
 export type MembershipObservation = {
     containers: EphemeraMembershipHostId[]
-    positionGraph?: EphemeraLudicGraph
+    ludicGraph?: EphemeraLudicGraph
 }
 
 export async function observeMembershipForObject(
@@ -21,8 +21,8 @@ export async function observeMembershipForObject(
 ): Promise<MembershipObservation> {
     const containers = await deps.getMembershipContainers(objectId)
     if (containers.length === 1) {
-        const positionGraph = await deps.getPositionGraph(containers[0])
-        return { containers, positionGraph }
+        const ludicGraph = await deps.getLudicGraph(containers[0])
+        return { containers, ludicGraph }
     }
     return { containers }
 }

@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { factsForStep } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
-import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -65,7 +65,7 @@ describe('factsForStep', () => {
     })
 
     it('establishRelation produces one Object Relation Changed fact, host re-derived from finalGraphs', () => {
-        const finalGraph = testPositionGraph(roomId, {
+        const finalGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -88,7 +88,7 @@ describe('factsForStep', () => {
     })
 
     it('dissolveRelation maps operation to dissolve', () => {
-        const finalGraph = testPositionGraph(roomId, {
+        const finalGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
@@ -110,8 +110,8 @@ describe('factsForStep', () => {
     })
 
     it('a multi-step array processed via flatMap preserves output order (dissolve-before-move)', () => {
-        const finalSourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
-        const finalDestGraph = testPositionGraph(characterId, {
+        const finalSourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const finalDestGraph = testLudicGraph(characterId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -140,8 +140,8 @@ describe('factsForStep', () => {
     })
 
     it('dissolveRelation falls back to priorGraphs when the subject was removed entirely (destroy sequence)', () => {
-        const finalGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
-        const priorGraph = testPositionGraph(roomId, {
+        const finalGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const priorGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },

@@ -27,7 +27,7 @@ export type ExpandSameHostResult =
  * shape, opposite direction of inference.
  *
  * Satisfaction is determined by fetching the subject's current host graph
- * and calling **its own** `bothObjectsOnGraph` (`positionGraph/index.ts`)
+ * and calling **its own** `bothObjectsOnGraph` (`ludicGraph/index.ts`)
  * --- the exact pure method `applyRelationalPatch` already uses --- rather
  * than comparing `subjectHost`/`objectHost` for equality. That keeps this
  * Expansion step and any future commit-time re-verification (BD-15 slice 3,

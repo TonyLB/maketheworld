@@ -27,8 +27,8 @@ Links for how diegetic logic relates to shipped ephemera lanes and authoring. Lo
 
 | Doc | Role |
 | --- | --- |
-| [`../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) | Area `positionGraph` Exit edges |
-| [`../../../packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.md) | `StandardPositionGraph`, Area / Room components |
+| [`../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) | Area `ludicGraph` Exit edges |
+| [`../../../packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.md) | `StandardLudicGraph`, Area / Room components |
 
 ---
 

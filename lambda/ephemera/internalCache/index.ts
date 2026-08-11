@@ -170,7 +170,7 @@ export class InternalCache {
             this.AffordanceCache,
             (roomId) => this.ComponentEphemeraMeta.get(roomId),
             {
-                getPositionGraph: (roomId) => this.Positions.getLudicGraph(roomId),
+                getLudicGraph: (roomId) => this.Positions.getLudicGraph(roomId),
                 getImprovisationObject: (objectId) => this.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
             }
         )

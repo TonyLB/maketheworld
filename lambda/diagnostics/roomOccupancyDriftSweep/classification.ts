@@ -21,18 +21,18 @@ export const normalizeRoomId = (value: unknown): string | undefined => {
     return roomId.startsWith('ROOM#') ? roomId : `ROOM#${roomId}`
 }
 
-export const listGraphCharacterIds = (positionGraph: unknown): string[] => {
-    if (!isEphemeraLudicGraphFieldPayload(positionGraph)) {
+export const listGraphCharacterIds = (ludicGraph: unknown): string[] => {
+    if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
         return []
     }
     return extractCharacterIdsFromPlayLudicGraph(
-        projectComponentGraphFromStoredLudicGraph(positionGraph)
+        projectComponentGraphFromStoredLudicGraph(ludicGraph)
     )
 }
 
 /**
  * Graph-forward occupancy drift for one room.
- * Per character node on the room positionGraph:
+ * Per character node on the room ludicGraph:
  * - drift when no live sessions (ghost on graph), or
  * - drift when in-play but membership adjacency does not list this roomId.
  *

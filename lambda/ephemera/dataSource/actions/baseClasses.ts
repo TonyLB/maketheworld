@@ -282,7 +282,7 @@ export type ParseCommandMultipleCommandsResult = {
 }
 
 /**
- * Intent discrimination only: player intent is membership host transfer (which positionGraph hosts the object).
+ * Intent discrimination only: player intent is membership host transfer (which ludicGraph hosts the object).
  * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
  * Terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
@@ -302,7 +302,7 @@ export type ParseCommandObjectMembershipIntentResult = {
 }
 
 /**
- * Intent discrimination only: player intent is an in-host edge between objects on a host positionGraph.
+ * Intent discrimination only: player intent is an in-host edge between objects on a host ludicGraph.
  * No `verbClass` at classify; operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
  * No object spans at classify either --- the relational route resolves spans entirely from Parse's
  * skeleton (see `enrich/objectManipulation/AGENT.md`, relational branch).
@@ -697,7 +697,7 @@ export type ParseCommandInput = {
     command: string
     /** Parse-request character; required for drop complexity pre-gates (actor host match). */
     characterId?: EphemeraCharacterId
-    /** Actor's current room positionGraph host (BD-6 relational compiler). */
+    /** Actor's current room ludicGraph host (BD-6 relational compiler). */
     hostRoomId?: EphemeraRoomId
     roomExits?: {
         normalizedName: string

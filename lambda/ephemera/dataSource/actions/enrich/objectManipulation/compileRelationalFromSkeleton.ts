@@ -47,7 +47,7 @@ export type CompileRelationalFromSkeletonResult =
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
-    getPositionGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
+    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
 /**
@@ -108,7 +108,7 @@ export async function compileRelationalFromSkeleton(
     const characterId = input.characterId
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const roomGraph = await positionsReadDeps.getPositionGraph(hostRoomId)
+    const roomGraph = await positionsReadDeps.getLudicGraph(hostRoomId)
     if (!roomGraph) {
         return {
             type: 'Error',
@@ -175,7 +175,7 @@ export async function compileRelationalFromSkeleton(
     const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
     for (const hostId of hostByObjectId.values()) {
         if (!hostGraphMap.has(hostId)) {
-            hostGraphMap.set(hostId, await positionsReadDeps.getPositionGraph(hostId))
+            hostGraphMap.set(hostId, await positionsReadDeps.getLudicGraph(hostId))
         }
     }
     const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)

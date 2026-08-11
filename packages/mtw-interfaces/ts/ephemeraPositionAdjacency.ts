@@ -12,7 +12,7 @@ import {
 // PK = contained component (CHARACTER# or OBJECT#); SK = POSITION#${hostEphemeraId}.
 //
 // I5: one row per host room; multi-room drift yields multiple rows under the same object PK;
-// stored room positionGraph wins; adjacency kept in sync at persist (S2-5).
+// stored room ludicGraph wins; adjacency kept in sync at persist (S2-5).
 //
 
 export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const

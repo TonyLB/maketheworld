@@ -19,7 +19,7 @@ export type ExecuteStepSequenceDeps = {
 }
 
 /**
- * Iteration 9/Phase 3's sequencing contract: invoke the positionGraph (mutation) kernel first,
+ * Iteration 9/Phase 3's sequencing contract: invoke the ludicGraph (mutation) kernel first,
  * `await` its commit to completion, and only then invoke the perception kernel against the same
  * shared, already-grounded `KernelStep[]` list --- never list order, never parallel. This is a
  * property of *invocation* (the `await` below), not an assumption baked into how `steps` happens to

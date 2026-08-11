@@ -50,10 +50,10 @@ export function roleOfObjectInEdge(
  * stay with `boundaryEdgeOutcomes` and Expansion (PB-9).
  *
  * This is a rooted graph, which is precisely what `EphemeraLudicGraph`
- * would already be if it carried a root. If `positionGraph` ever gains a
+ * would already be if it carried a root. If `ludicGraph` ever gains a
  * root concept, this shape should collapse into it rather than persist as a
  * parallel shape re-expressing the same idea (see the reciprocal note on the
- * `positionGraph` side).
+ * `ludicGraph` side).
  */
 export type CarryClosureFragment = {
     rootId: EphemeraObjectId

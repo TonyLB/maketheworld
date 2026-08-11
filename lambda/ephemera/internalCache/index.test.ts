@@ -1,7 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
-import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
+import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from "."
 import { getRoomCharacterList } from './hydrateRoomRoster'
 
@@ -68,7 +68,7 @@ describe('InternalCache', () => {
             },
         ]
         const getLudicGraphSpy = jest.spyOn(internalCache.Positions, 'getLudicGraph')
-            .mockResolvedValue(testPositionGraph('ROOM#1234', {
+            .mockResolvedValue(testLudicGraph('ROOM#1234', {
                 nodes: [
                     { tag: 'Character', universalKey: 'CHARACTER#123' },
                     { tag: 'Character', universalKey: 'CHARACTER#456' },

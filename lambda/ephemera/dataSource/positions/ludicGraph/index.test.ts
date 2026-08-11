@@ -194,8 +194,8 @@ describe('EphemeraLudicGraph', () => {
         it('survives Immer draft revocation --- fromFieldPayload must plain-copy nodes/edges, not retain the draft\'s own element references (regression: MultiKeyUpdate reducers in mtw-utilities/ts/dynamoDB/mixins/transact.ts build their draft via immer produce(), which revokes every draft proxy the instant the reducer returns; a graph built from that draft and retained past the reducer throws "Cannot perform \'get\' on a proxy that has been revoked" on first node/edge property read otherwise)', () => {
             const { produce } = require('immer')
             let escapedGraph: EphemeraLudicGraph | undefined
-            produce({ positionGraph: { nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }] } }, (draft: any) => {
-                escapedGraph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, draft.positionGraph)
+            produce({ ludicGraph: { nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }] } }, (draft: any) => {
+                escapedGraph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, draft.ludicGraph)
             })
             // The producer has returned; `draft` and everything reachable from it is now revoked.
             expect(() => escapedGraph!.toPlayEnvelope()).not.toThrow()

@@ -65,7 +65,7 @@ function makeCustomTemplate(verbOptions: string[]): DeterministicTemplate {
 /**
  * Containment language ("in"/"inside"/"into") is a recognized-but-unsupported
  * shape, not an ambiguous one: the current relation model (On/Under/Against/
- * Custom, a positionGraph edge) has no representation for object-containment
+ * Custom, a ludicGraph edge) has no representation for object-containment
  * at all. Any string that structurally matches this shape always defers --
  * normalizeRelationSpan.ts already treats this exact phrase set as
  * nestingDefer for the post-Parse path.

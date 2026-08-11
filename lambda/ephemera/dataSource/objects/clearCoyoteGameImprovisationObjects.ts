@@ -16,9 +16,9 @@ import { persistDeleteImprovisationObject } from './persistImprovisationObject'
 
 export type ClearCoyoteGameImprovisationObjectsArgs = {
     getGameRooms?: () => Promise<string[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    getRoomLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
-    getCharacterPositionGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    getCharacterLudicGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
 }
 
 export type ClearCoyoteGameImprovisationObjectsResult =
@@ -45,10 +45,10 @@ export const clearCoyoteGameImprovisationObjects = async (
     deps: ClearCoyoteGameImprovisationObjectsDependencies = {}
 ): Promise<ClearCoyoteGameImprovisationObjectsResult> => {
     const getGameRooms = args.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
-    const getRoomPositionGraph = args.getRoomPositionGraph
+    const getRoomLudicGraph = args.getRoomLudicGraph
         ?? ((roomId: EphemeraRoomId) => internalCache.Positions.getLudicGraph(roomId))
     const getActiveCharacters = args.getActiveCharactersInCoyoteRooms ?? collectActiveCharactersInCoyoteRooms
-    const getCharacterPositionGraph = args.getCharacterPositionGraph
+    const getCharacterLudicGraph = args.getCharacterLudicGraph
         ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getLudicGraph(characterId))
 
     const bus = deps.messageBus ?? messageBus
@@ -61,7 +61,7 @@ export const clearCoyoteGameImprovisationObjects = async (
 
     const objectIdSet = new Set<EphemeraObjectId>()
     for (const roomId of affectedRoomIds) {
-        const graph = await getRoomPositionGraph(roomId)
+        const graph = await getRoomLudicGraph(roomId)
         for (const objectId of graph.objectIds) {
             objectIdSet.add(objectId)
         }
@@ -69,7 +69,7 @@ export const clearCoyoteGameImprovisationObjects = async (
 
     const activeCharacters = await getActiveCharacters()
     for (const characterId of activeCharacters) {
-        const graph = await getCharacterPositionGraph(characterId)
+        const graph = await getCharacterLudicGraph(characterId)
         for (const objectId of graph.objectIds) {
             objectIdSet.add(objectId)
         }

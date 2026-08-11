@@ -36,7 +36,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
+                getRoomLudicGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [],
             },
             { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
@@ -57,7 +57,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
+                getRoomLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
@@ -95,9 +95,9 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
+                getRoomLudicGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
-                getCharacterPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
+                getCharacterLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
                     nodes: [objectNode(OBJECT_HELD)],
                     edges: [],
                 }),
@@ -127,12 +127,12 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
+                getRoomLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
-                getCharacterPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
+                getCharacterLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
                     nodes: [objectNode(OBJECT_HELD), objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),

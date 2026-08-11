@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectClearMembership } from './applyObjectClearMembership'
-import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -90,7 +90,7 @@ describe('applyObjectClearMembership', () => {
     })
 
     it('clears character inventory and streams Object Moved', async () => {
-        const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([CHARACTER_ID])
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(characterGraph)
         wireTransactWrite({ [CHARACTER_ID]: characterGraph })
@@ -126,7 +126,7 @@ describe('applyObjectClearMembership', () => {
     })
 
     it('clears room placement and publishes RoomUpdate', async () => {
-        const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)
         wireTransactWrite({ [FROM_ROOM]: roomGraph })
@@ -143,7 +143,7 @@ describe('applyObjectClearMembership', () => {
     })
 
     it('BD-35: destroying an object with a relational edge dissolves it and streams Object Relation Changed --- dissolve only, no cascade', async () => {
-        const roomGraph = testPositionGraph(FROM_ROOM, {
+        const roomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
@@ -183,8 +183,8 @@ describe('applyObjectClearMembership', () => {
     })
 
     it('BD-35: destroying an object present on multiple hosts sweeps each host and clears from all', async () => {
-        const roomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID])
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : characterGraph

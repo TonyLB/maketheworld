@@ -187,7 +187,7 @@ export function makePatternTemplate(
  * structural match means "recognized shape, known-unsupported" rather than
  * "matched" -- e.g. containment language ("in"/"into") for a relational
  * command, which the current relation model (On/Under/Against/Custom, a
- * positionGraph edge) has no representation for at all. Always defers on
+ * ludicGraph edge) has no representation for at all. Always defers on
  * structural match; never produces `matched` or reads/assembles intent.
  */
 export function makeDeferPatternTemplate(

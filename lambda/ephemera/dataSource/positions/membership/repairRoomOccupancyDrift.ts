@@ -20,7 +20,7 @@ export type RepairRoomOccupancyDriftArgs = {
 }
 
 export type RepairRoomOccupancyDriftDependencies = {
-    getPositionGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: typeof internalCache.CharacterMeta.get;
@@ -30,11 +30,11 @@ export type RepairRoomOccupancyDriftDependencies = {
 
 const listGraphCharacterIds = async (
     roomId: EphemeraRoomId,
-    getPositionGraph: RepairRoomOccupancyDriftDependencies['getPositionGraph']
+    getLudicGraph: RepairRoomOccupancyDriftDependencies['getLudicGraph']
 ): Promise<EphemeraCharacterId[]> => {
-    const loader = getPositionGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
-    const positionGraph = await loader(roomId)
-    return [...positionGraph.characterIds].filter(isEphemeraCharacterId)
+    const loader = getLudicGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
+    const ludicGraph = await loader(roomId)
+    return [...ludicGraph.characterIds].filter(isEphemeraCharacterId)
 }
 
 const containersIncludeRoom = (containers: EphemeraRoomId[], roomId: EphemeraRoomId): boolean =>
@@ -59,7 +59,7 @@ export const repairRoomOccupancyDrift = async (
     const applyMembership = deps?.applyMembership ?? applyCharacterRoomMembership
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
-    const characterIds = await listGraphCharacterIds(args.roomId, deps?.getPositionGraph)
+    const characterIds = await listGraphCharacterIds(args.roomId, deps?.getLudicGraph)
     let ghostsPurged = 0
     let adjacencySynced = 0
 

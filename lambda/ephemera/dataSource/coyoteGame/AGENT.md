@@ -39,7 +39,7 @@ Pipeline-local docs:
 3. Invalidates and reloads `internalCache.CoyoteGame.get('intent')`, emits stream events keyed by **`characterId`**.
 4. **`publish`es** final hypothesis render tree to the same requester only.
 
-Staged-object reads use **`positionGraph`** + **`Meta::Object`** + improvisation pair via [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (`CoyoteStagedObject`).
+Staged-object reads use **`ludicGraph`** + **`Meta::Object`** + improvisation pair via [`utilities/coyoteRoomObjectSnapshot.ts`](utilities/coyoteRoomObjectSnapshot.ts) (`CoyoteStagedObject`).
 
 Hypothesis generation chain:
 

@@ -142,7 +142,7 @@ No subclass hierarchy is required if the factory + shared class suffice; **`Stan
 
 v1 [`StandardLudicGraph`](../../components/ludicGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
 
-Play-time **Relational** edges (`On`, `Under`, `Against`, `Custom`) are prototyped on ephemera room host graphs ([`EphemeraPositionRelationalEdgeData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts)); heterogeneous WML **`EdgeList`** for room/container graphs is TBD.
+Play-time **Relational** edges (`On`, `Under`, `Against`, `Custom`) are prototyped on ephemera room host graphs ([`EphemeraLudicRelationalEdgeData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts)); heterogeneous WML **`EdgeList`** for room/container graphs is TBD.
 
 ## Related docs
 

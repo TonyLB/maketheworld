@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { testPositionGraph } from '../../../../positions/ludicGraph/testFixtures'
+import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import { expandSameHost } from './expandSameHost'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -13,7 +13,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('expandSameHost', () => {
     it('is satisfied when subject and object already share a host', () => {
-        const graph = testPositionGraph(ROOM_ID, {
+        const graph = testLudicGraph(ROOM_ID, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
@@ -33,7 +33,7 @@ describe('expandSameHost', () => {
     })
 
     it('repairs "put tray on table": tray held, table in the room --- subject moves to object\'s host', () => {
-        const subjectGraph = testPositionGraph(CHARACTER_ID, {
+        const subjectGraph = testLudicGraph(CHARACTER_ID, {
             nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
             edges: [],
         })
@@ -60,7 +60,7 @@ describe('expandSameHost', () => {
     })
 
     it('repairs "attach charm to necklace": charm in the room, necklace held --- subject moves to object\'s host', () => {
-        const subjectGraph = testPositionGraph(ROOM_ID, {
+        const subjectGraph = testLudicGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: CHARM_ID }],
             edges: [],
         })
@@ -87,7 +87,7 @@ describe('expandSameHost', () => {
     })
 
     it('defers on a Custom relation kind when hosts differ', () => {
-        const subjectGraph = testPositionGraph(CHARACTER_ID, {
+        const subjectGraph = testLudicGraph(CHARACTER_ID, {
             nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
             edges: [],
         })
@@ -135,7 +135,7 @@ describe('expandSameHost', () => {
     })
 
     it('treats a negated assertion as satisfied when subject and object do not already share a host (ternary-safe)', () => {
-        const subjectGraph = testPositionGraph(CHARACTER_ID, {
+        const subjectGraph = testLudicGraph(CHARACTER_ID, {
             nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
             edges: [],
         })
@@ -153,7 +153,7 @@ describe('expandSameHost', () => {
     })
 
     it('errors on a violated negated assertion (no repair rule for "keep these apart")', () => {
-        const graph = testPositionGraph(ROOM_ID, {
+        const graph = testLudicGraph(ROOM_ID, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
                 { tag: 'Object', universalKey: TABLE_ID },

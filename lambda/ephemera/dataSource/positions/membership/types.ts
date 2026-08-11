@@ -54,7 +54,7 @@ export type MembershipGraphPersistSuccess = {
     postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraLudicGraphFieldPayload>>;
 }
 
-export type UpdatePositionGraphsResult =
+export type UpdateLudicGraphsResult =
     | MembershipGraphPersistSuccess
     | { ok: true; persisted: false; diff: MembershipDiff }
     | MembershipApplyErrorResult

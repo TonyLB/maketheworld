@@ -106,7 +106,7 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 // First-class improvisational objects (shipped steady state)
 //
 // ADR: three-way split mirrors Character --- merge body on component pair row,
-// play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
+// play meta on Meta::Object, placement on ludicGraph + POSITION#ROOM adjacency.
 // Optional fourth adjacency row (EMBEDDING#IMPROMPTU): see ephemeraEmbedding.ts.
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
@@ -164,7 +164,7 @@ export type EphemeraLudicGraphNode =
 
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
-/** In-host relational edge on room positionGraph (Phase B establishRelation / dissolveRelation). */
+/** In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation). */
 export type EphemeraLudicRelationalEdgeData = {
     tag: 'Relational';
     from: EphemeraObjectId;

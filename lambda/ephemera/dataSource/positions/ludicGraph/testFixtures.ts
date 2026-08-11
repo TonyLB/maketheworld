@@ -5,13 +5,13 @@ import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/
 import { EphemeraLudicGraph } from './index'
 
 /** Test helper: host-bound graph from field payload shape. */
-export const testPositionGraph = (
+export const testLudicGraph = (
     hostId: EphemeraMembershipHostId,
     payload: EphemeraLudicGraphFieldPayload = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromFieldPayload(hostId, payload)
 
 /** Test helper: host-bound graph from play read envelope (supports Exit edges). */
-export const testPositionGraphFromEnvelope = (
+export const testLudicGraphFromEnvelope = (
     hostId: EphemeraMembershipHostId,
     envelope: PlayLudicGraph = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromPlayEnvelope(hostId, envelope)

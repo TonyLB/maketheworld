@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
+import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -44,7 +44,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.resetAllMocks()
         internalCache.clear()
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
-        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testPositionGraph('ROOM#ParityOne'))
+        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph('ROOM#ParityOne'))
     })
 
     it('builds structural room WML from aggregate shortName, affordance topology, and roster', async () => {
@@ -263,7 +263,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         )
         jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
         jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
-            testPositionGraph('ROOM#ObjRoom', {
+            testLudicGraph('ROOM#ObjRoom', {
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#foo' }],
             })
         )

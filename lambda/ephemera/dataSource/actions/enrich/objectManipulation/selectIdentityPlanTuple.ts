@@ -212,7 +212,7 @@ export const sandboxMembershipDryRun = (
     }
 
     const baseOutcome = validateMembershipPlanDryRun(candidate, {
-        positionGraph: state.get(sourceHostId),
+        ludicGraph: state.get(sourceHostId),
         actorCharacterId,
     })
     if (baseOutcome.verdict !== 'legal') {

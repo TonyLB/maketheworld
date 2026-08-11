@@ -33,7 +33,7 @@ export const resolveLegalRoomIdFromRoomStack = (
 
 /**
  * Character room for presentation and delivery:
- * 1. Play membership (`positionGraph` adjacency) when in play.
+ * 1. Play membership (`ludicGraph` adjacency) when in play.
  * 2. Trimmed `RoomStack` top frame when out of play (disconnect, orientation before connect).
  *
  * Does not read legacy `Meta::Character.RoomId`. For connect with trim-only persist, use

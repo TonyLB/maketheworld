@@ -5,7 +5,7 @@ export type OrphanClassificationInput = {
     hasPairRow: boolean
     hasMetaRow: boolean
     membershipContainers: string[]
-    onAnyPositionGraph: boolean
+    onAnyLudicGraph: boolean
 }
 
 /**
@@ -16,7 +16,7 @@ export const isOrphanedImprovisedObject = (args: OrphanClassificationInput): boo
     if (!args.hasPairRow || !args.hasMetaRow) {
         return false
     }
-    if (args.onAnyPositionGraph) {
+    if (args.onAnyLudicGraph) {
         return false
     }
     return args.membershipContainers.length === 0

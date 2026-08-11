@@ -23,7 +23,7 @@ type MetaSessionRow = {
 type RoomMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraLudicGraphFieldPayload
+    ludicGraph?: EphemeraLudicGraphFieldPayload
 }
 
 const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {
@@ -85,7 +85,7 @@ const adjacencyCharactersForSession = async (sessionId: string): Promise<string[
 
 /**
  * Read-only diagnostics sweep for room occupancy drift (graph-forward, S2-6-DR).
- * Compares Meta::Room.positionGraph character nodes against connections session adjacency
+ * Compares Meta::Room.ludicGraph character nodes against connections session adjacency
  * and membership adjacency reverse index. Does not detect stale adjacency without a graph node.
  */
 export const roomOccupancyDriftSweep = async (params?: {
@@ -109,7 +109,7 @@ export const roomOccupancyDriftSweep = async (params?: {
         queryAllMetaSessionRows(),
         queryAllEphemeraRowsByDataCategory<RoomMetaRow>({
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph']
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph']
         })
     ])
 
@@ -130,7 +130,7 @@ export const roomOccupancyDriftSweep = async (params?: {
 
     const graphCharacterIds = new Set<EphemeraCharacterId>()
     for (const room of roomMetaRows) {
-        for (const characterId of listGraphCharacterIds(room.positionGraph)) {
+        for (const characterId of listGraphCharacterIds(room.ludicGraph)) {
             if (isEphemeraCharacterId(characterId)) {
                 graphCharacterIds.add(characterId)
             }
@@ -150,7 +150,7 @@ export const roomOccupancyDriftSweep = async (params?: {
         if (!roomId) {
             continue
         }
-        const characterIdsOnGraph = listGraphCharacterIds(room.positionGraph)
+        const characterIdsOnGraph = listGraphCharacterIds(room.ludicGraph)
         const drift = roomHasOccupancyDrift({
             roomId,
             graphCharacterIds: characterIdsOnGraph,

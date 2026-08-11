@@ -22,7 +22,7 @@ One Dynamo item per **`(ROOM#, perspectiveKey)`**:
 | `DataCategory` | `Affordance::${perspectiveKey}` |
 | `assetStack` | Participation order at hydrate time |
 | `catalogVersion` / `hydratedCatalogVersion` | Stale gate (mirror render **`Cache::`**) |
-| `topology` | Embedded **`ProjectedRoomTopology`** --- **`exits`** as **`ExitFacetList`** JSON from **`projectRoomExits`** over merged Area **`positionGraph.edges`** at participation order (via **`ComponentTopology.get`** during hydrate) |
+| `topology` | Embedded **`ProjectedRoomTopology`** --- **`exits`** as **`ExitFacetList`** JSON from **`projectRoomExits`** over merged Area **`ludicGraph.edges`** at participation order (via **`ComponentTopology.get`** during hydrate) |
 
 ## CloudWatch instrumentation
 

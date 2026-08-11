@@ -11,7 +11,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: true,
             hasMetaRow: true,
             membershipContainers: [],
-            onAnyPositionGraph: false,
+            onAnyLudicGraph: false,
         })).toBe(true)
     })
 
@@ -21,7 +21,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: true,
             hasMetaRow: true,
             membershipContainers: [ROOM_ID],
-            onAnyPositionGraph: true,
+            onAnyLudicGraph: true,
         })).toBe(false)
     })
 
@@ -31,7 +31,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: true,
             hasMetaRow: true,
             membershipContainers: [],
-            onAnyPositionGraph: true,
+            onAnyLudicGraph: true,
         })).toBe(false)
     })
 
@@ -41,7 +41,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: true,
             hasMetaRow: false,
             membershipContainers: [],
-            onAnyPositionGraph: false,
+            onAnyLudicGraph: false,
         })).toBe(false)
     })
 
@@ -51,7 +51,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: false,
             hasMetaRow: true,
             membershipContainers: [],
-            onAnyPositionGraph: false,
+            onAnyLudicGraph: false,
         })).toBe(false)
     })
 
@@ -61,7 +61,7 @@ describe('isOrphanedImprovisedObject', () => {
             hasPairRow: true,
             hasMetaRow: true,
             membershipContainers: [ROOM_ID],
-            onAnyPositionGraph: false,
+            onAnyLudicGraph: false,
         })).toBe(false)
     })
 })

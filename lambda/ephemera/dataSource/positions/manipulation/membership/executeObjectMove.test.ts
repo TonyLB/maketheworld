@@ -28,7 +28,7 @@ jest.mock('../../../../internalUtils/dateUtil', () => ({
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
 import { executeObjectMove } from './executeObjectMove'
-import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -72,8 +72,8 @@ describe('executeObjectMove', () => {
 
     describe('room -> character (take-hold)', () => {
         it('re-derives the carry closure fresh and commits via the general kernel', async () => {
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
@@ -99,7 +99,7 @@ describe('executeObjectMove', () => {
         })
 
         it('BD-28: carrying the tray severs tray-table and streams an Object Relation Changed fact for it, previously silent', async () => {
-            const roomGraph = testPositionGraph(ROOM_ID, {
+            const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: GLASS_ID },
@@ -110,7 +110,7 @@ describe('executeObjectMove', () => {
                     { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
                 ],
             })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
@@ -138,7 +138,7 @@ describe('executeObjectMove', () => {
         })
 
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {
-            const roomGraph = testPositionGraph(ROOM_ID, {
+            const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: CUP_ID },
@@ -150,7 +150,7 @@ describe('executeObjectMove', () => {
                     { tag: 'Relational', from: CUP_ID, to: CHANDELIER_ID, kind: 'Under' },
                 ],
             })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
@@ -194,8 +194,8 @@ describe('executeObjectMove', () => {
 
     describe('character -> room (drop)', () => {
         it('re-derives the carry closure fresh and commits via the general kernel', async () => {
-            const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
-            const characterGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : characterGraph
             )
@@ -221,8 +221,8 @@ describe('executeObjectMove', () => {
         })
 
         it('BD-28: dropping the tray severs tray-table (tray stays boundary-clean, table stays held) and streams the fact', async () => {
-            const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
-            const characterGraph = testPositionGraph(CHARACTER_ID, {
+            const emptyRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
@@ -276,8 +276,8 @@ describe('executeObjectMove', () => {
      */
     describe('result shape (Phase 4)', () => {
         it('returns the compiled plan and the commit captures on success', async () => {
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
@@ -302,8 +302,8 @@ describe('executeObjectMove', () => {
         })
 
         it('compiles no capture steps when narration is absent (object-lifecycle move)', async () => {
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
@@ -326,8 +326,8 @@ describe('executeObjectMove', () => {
         })
 
         it('returns ok: false without committing when the executor verdict is not legal', async () => {
-            const emptyRoomGraph = testPositionGraph(ROOM_ID, { nodes: [], edges: [] })
-            const emptyCharacterGraph = testPositionGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const emptyRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : emptyCharacterGraph
             )

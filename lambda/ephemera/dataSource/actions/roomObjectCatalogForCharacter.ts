@@ -30,7 +30,7 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
+    getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     resolvePerspective: (
         roomId: EphemeraRoomId,
@@ -42,7 +42,7 @@ export type RoomObjectCatalogDeps = {
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
     getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
-    getPositionGraph: (roomId) => internalCache.Positions.getLudicGraph(roomId),
+    getLudicGraph: (roomId) => internalCache.Positions.getLudicGraph(roomId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []
@@ -72,8 +72,8 @@ export async function getRoomObjectCatalogForCharacter(
         return { roomId: null, entries: [] }
     }
 
-    const positionGraph = await deps.getPositionGraph(roomId)
-    const objectIds = [...positionGraph.objectIds]
+    const ludicGraph = await deps.getLudicGraph(roomId)
+    const objectIds = [...ludicGraph.objectIds]
     if (objectIds.length === 0) {
         return { roomId, entries: [] }
     }

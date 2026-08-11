@@ -12,7 +12,7 @@ const graphWithCharacter = {
 }
 
 describe('listGraphCharacterIds', () => {
-    it('extracts character ids from a stored positionGraph', () => {
+    it('extracts character ids from a stored ludicGraph', () => {
         expect(listGraphCharacterIds(graphWithCharacter)).toEqual([characterId])
     })
 

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
+import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 import {
     observeMembershipForObject,
     objectTouchesExitEdgeOnGraph,
@@ -15,37 +15,37 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 describe('observeMembershipForObject', () => {
     it('returns containers only when more than one host', async () => {
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId, 'CHARACTER#Alfred'])
-        const getPositionGraph = jest.fn()
+        const getLudicGraph = jest.fn()
 
         const result = await observeMembershipForObject(broomId, {
             getMembershipContainers,
-            getPositionGraph,
+            getLudicGraph,
         })
 
         expect(result).toEqual({ containers: [roomId, 'CHARACTER#Alfred'] })
-        expect(getPositionGraph).not.toHaveBeenCalled()
+        expect(getLudicGraph).not.toHaveBeenCalled()
     })
 
-    it('fetches positionGraph for sole host', async () => {
-        const graph = testPositionGraph(roomId, {
+    it('fetches ludicGraph for sole host', async () => {
+        const graph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Object', universalKey: broomId }],
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getPositionGraph = jest.fn().mockResolvedValue(graph)
+        const getLudicGraph = jest.fn().mockResolvedValue(graph)
 
         const result = await observeMembershipForObject(broomId, {
             getMembershipContainers,
-            getPositionGraph,
+            getLudicGraph,
         })
 
-        expect(result).toEqual({ containers: [roomId], positionGraph: graph })
-        expect(getPositionGraph).toHaveBeenCalledWith(roomId)
+        expect(result).toEqual({ containers: [roomId], ludicGraph: graph })
+        expect(getLudicGraph).toHaveBeenCalledWith(roomId)
     })
 })
 
 describe('objectTouchesExitEdgeOnGraph', () => {
     it('returns false when graph has no edges', () => {
-        expect(objectTouchesExitEdgeOnGraph(testPositionGraph(roomId), broomId)).toBe(false)
+        expect(objectTouchesExitEdgeOnGraph(testLudicGraph(roomId), broomId)).toBe(false)
     })
 
     it('returns true when an exit edge references the object', () => {
@@ -56,7 +56,7 @@ describe('objectTouchesExitEdgeOnGraph', () => {
             to: tableId,
             payload: {},
         }
-        const graph = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
+        const graph = testLudicGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
 
         expect(objectTouchesExitEdgeOnGraph(graph, broomId)).toBe(true)
         expect(objectTouchesExitEdgeOnGraph(graph, vaseId)).toBe(false)
@@ -70,7 +70,7 @@ describe('objectTouchesExitEdgeOnGraph', () => {
             to: broomId,
             payload: {},
         }
-        const graph = testPositionGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
+        const graph = testLudicGraphFromEnvelope(roomId, { nodes: [], edges: [edge] })
 
         expect(objectTouchesExitEdgeOnGraph(graph, broomId)).toBe(true)
     })

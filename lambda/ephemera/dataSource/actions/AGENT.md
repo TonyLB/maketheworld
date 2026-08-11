@@ -69,7 +69,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Scope and non-goals
 
-- **Uniqueness:** **`stableKey`** must be unique across the **union** of graph-placed improvisational objects in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Occupancy is keyed by **`Meta::Object`** **`stableKey`** on **`OBJECT#`** ids placed via **`positionGraph`**; collisions are forbidden **across** those rooms.
+- **Uniqueness:** **`stableKey`** must be unique across the **union** of graph-placed improvisational objects in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Occupancy is keyed by **`Meta::Object`** **`stableKey`** on **`OBJECT#`** ids placed via **`ludicGraph`**; collisions are forbidden **across** those rooms.
 - **Outside scope:** No contract that **`stableKey`** stays unique outside that Coyote game-room set (other rooms or features). Persisted **[`EphemeraMetaRoomObject`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** rows require a non-empty **`stableKey`** after trim; environments with historical Dynamo rows that omit it need migration or loads may fail **`isEphemeraMetaRoomObject`** validation.
 
 ### Enforcement model

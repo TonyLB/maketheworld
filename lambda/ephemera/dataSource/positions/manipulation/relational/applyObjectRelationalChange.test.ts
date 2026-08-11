@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 
@@ -27,7 +27,7 @@ const BROOM_ID = 'OBJECT#Broom' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-const roomGraphWithObjects = testPositionGraph(ROOM_ID, {
+const roomGraphWithObjects = testLudicGraph(ROOM_ID, {
     nodes: [
         { tag: 'Object' as const, universalKey: BROOM_ID },
         { tag: 'Object' as const, universalKey: TABLE_ID },
@@ -67,7 +67,7 @@ describe('applyObjectRelationalChange', () => {
     })
 
     it('surfaces a kernel failure', async () => {
-        const roomGraphMissingObjects = testPositionGraph(ROOM_ID, { nodes: [] })
+        const roomGraphMissingObjects = testLudicGraph(ROOM_ID, { nodes: [] })
         const transactWrite = makeTransactWriteMock({ [ROOM_ID]: roomGraphMissingObjects })
 
         const result = await applyObjectRelationalChange(
@@ -127,7 +127,7 @@ describe('applyObjectRelationalChange', () => {
         const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const TOP_ID = 'OBJECT#Top' as EphemeraObjectId
-        const characterGraph = testPositionGraph(CHARACTER_ID, {
+        const characterGraph = testLudicGraph(CHARACTER_ID, {
             nodes: [
                 { tag: 'Object' as const, universalKey: STRING_ID },
                 { tag: 'Object' as const, universalKey: TOP_ID },
@@ -163,8 +163,8 @@ describe('applyObjectRelationalChange', () => {
         const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 
         it('BD-16 worked example: moves the tray from the character to the room and establishes the relation, atomically', async () => {
-            const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            const heldGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )
@@ -198,14 +198,14 @@ describe('applyObjectRelationalChange', () => {
 
         it('BD-28: repairing the transfer severs a boundary relation left behind on the character and streams the dissolve fact first', async () => {
             const KEYRING_ID = 'OBJECT#Keyring' as EphemeraObjectId
-            const heldGraph = testPositionGraph(CHARACTER_ID, {
+            const heldGraph = testLudicGraph(CHARACTER_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: KEYRING_ID },
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: KEYRING_ID, kind: 'Against' }],
             })
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )
@@ -236,8 +236,8 @@ describe('applyObjectRelationalChange', () => {
         })
 
         it('aborts the whole transact --- no partial move, no partial relation, no fact streams --- when the subject is no longer on the source host at commit time', async () => {
-            const heldGraph = testPositionGraph(CHARACTER_ID, { nodes: [] })
-            const roomGraph = testPositionGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            const heldGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === CHARACTER_ID ? heldGraph : roomGraph
             )

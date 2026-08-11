@@ -62,7 +62,7 @@ Practical interpretation notes:
 Needed state:
 - rooms
 - player location
-- improvisational **`OBJECT#`** entities (improvisation pair + **`Meta::Object`** + **`positionGraph`** placement --- see [`lambda/ephemera/dataSource/objects/AGENT.md`](lambda/ephemera/dataSource/objects/AGENT.md))
+- improvisational **`OBJECT#`** entities (improvisation pair + **`Meta::Object`** + **`ludicGraph`** placement --- see [`lambda/ephemera/dataSource/objects/AGENT.md`](lambda/ephemera/dataSource/objects/AGENT.md))
 - short memory of prior attempts
 
 Not needed for this MVP:

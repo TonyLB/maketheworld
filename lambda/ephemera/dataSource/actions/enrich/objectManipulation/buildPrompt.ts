@@ -100,11 +100,11 @@ export function buildObjectManipulationComplexityPrompt(
     options: {
         objectId: EphemeraObjectId
         containers: readonly EphemeraMembershipHostId[]
-        positionGraph?: EphemeraLudicGraph
+        ludicGraph?: EphemeraLudicGraph
     }
 ): ParseObjectManipulationEnrichPromptParts {
-    const touchingEdges = options.positionGraph !== undefined
-        ? summarizeTouchingEdges(options.positionGraph, options.objectId)
+    const touchingEdges = options.ludicGraph !== undefined
+        ? summarizeTouchingEdges(options.ludicGraph, options.objectId)
         : []
     const dynamicSuffix = [
         `Player command: ${command.trim()}`,
