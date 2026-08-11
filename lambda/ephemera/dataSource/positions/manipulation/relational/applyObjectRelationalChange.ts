@@ -6,8 +6,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import type { EphemeraPositionGraph } from '../../positionGraph'
-import { boundaryEdgeOutcomes, computeCarryClosure } from '../../positionGraph/expandValidate/interactionUnderTransfer'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { boundaryEdgeOutcomes, computeCarryClosure } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import { fromExecutorStep } from '../kernel/kernelStep'
 import type { MutationKernelStep } from '../kernel/kernelStep'
@@ -62,7 +62,7 @@ export const applyObjectRelationalChange = async (
 
     if (args.transferFromHostId !== undefined) {
         const fromHostId = args.transferFromHostId
-        const sourceGraph: EphemeraPositionGraph = await internalCache.Positions.getPositionGraph(fromHostId)
+        const sourceGraph: EphemeraLudicGraph = await internalCache.Positions.getPositionGraph(fromHostId)
 
         const closure = computeCarryClosure(args.subjectId, sourceGraph)
         const outcomes = boundaryEdgeOutcomes(closure.members, sourceGraph)

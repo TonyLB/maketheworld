@@ -122,7 +122,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * not own-enumerable).
  *
  * The Immer hazard sometimes cited alongside that is **not** a class-vs-plain distinction, and an
- * earlier revision of this comment overstated it. `EphemeraPositionGraph` instances cross a
+ * earlier revision of this comment overstated it. `EphemeraLudicGraph` instances cross a
  * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
  * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
  * rather than retaining the draft's own element references --- see its doc comment. The real rule is

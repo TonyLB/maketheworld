@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'

@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 
 jest.mock('../../../../internalCache', () => ({
@@ -38,7 +38,7 @@ const roomGraphWithObjects = testPositionGraph(ROOM_ID, {
  * Simulates `transactWrite`'s `MultiKeyUpdate` handling, matching
  * `commitStepSequence.test.ts`'s convention.
  */
-const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     const transactWrite: any = jest.fn(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
         if (!multiKeyItem) {
@@ -50,7 +50,7 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGrap
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)

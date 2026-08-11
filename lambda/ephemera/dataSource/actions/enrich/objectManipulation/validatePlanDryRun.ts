@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import type {
     IdentityPlanCandidate,
@@ -33,12 +33,12 @@ export type DryRunOutcome = {
 
 export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
-    positionGraph?: EphemeraPositionGraph
+    positionGraph?: EphemeraLudicGraph
     actorCharacterId?: EphemeraCharacterId
 }
 
 export type ValidateRelationalPlanContext = {
-    positionGraph: EphemeraPositionGraph
+    positionGraph: EphemeraLudicGraph
 }
 
 /**

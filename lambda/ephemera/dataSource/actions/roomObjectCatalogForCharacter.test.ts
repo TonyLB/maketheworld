@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
-import { testPositionGraph } from '../../dataSource/positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../../dataSource/positions/ludicGraph/testFixtures'
 import {
     getRoomObjectCatalogForCharacter,
     roomObjectLabelsFromCatalog,

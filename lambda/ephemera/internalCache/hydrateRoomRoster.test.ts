@@ -3,7 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from './index'
 import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 

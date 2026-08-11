@@ -23,7 +23,7 @@ export type HostRelationalEdge = {
 
 /**
  * One add/remove of an in-host relational edge on a fixed host graph (Room or
- * Character) --- `EphemeraPositionGraph.applyRelationalPatch`'s own input
+ * Character) --- `EphemeraLudicGraph.applyRelationalPatch`'s own input
  * shape (`positionGraph/index.ts`), still load-bearing after
  * `applyHostRelationalPatch.ts`/`planHostRelationalPatch.ts` retired (Migrate
  * slice, 2026-07-23): every relational-effect call site builds one of these

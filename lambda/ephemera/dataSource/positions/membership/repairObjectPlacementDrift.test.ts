@@ -7,7 +7,7 @@ jest.mock('./syncObjectMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testPositionGraph } from '../positionGraph/testFixtures'
+import { testPositionGraph } from '../ludicGraph/testFixtures'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
 import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'

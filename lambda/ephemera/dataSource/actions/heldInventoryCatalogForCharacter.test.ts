@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
-import { testPositionGraph } from '../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../positions/ludicGraph/testFixtures'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId

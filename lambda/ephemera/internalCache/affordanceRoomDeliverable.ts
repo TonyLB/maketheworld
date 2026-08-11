@@ -17,7 +17,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
-import type { EphemeraPositionGraph } from '../dataSource/positions/positionGraph'
+import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -33,7 +33,7 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 }
 
 export type AffordanceRoomDeliverableObjectReads = {
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
+    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 

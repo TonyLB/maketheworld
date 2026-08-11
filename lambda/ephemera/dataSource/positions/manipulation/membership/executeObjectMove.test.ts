@@ -28,8 +28,8 @@ jest.mock('../../../../internalUtils/dateUtil', () => ({
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
 import { executeObjectMove } from './executeObjectMove'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
@@ -43,7 +43,7 @@ const CHARACTER_ID = 'CHARACTER#alpha' as EphemeraCharacterId
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
  * `commitStepSequence.test.ts` already establishes.
  */
-const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const wireTransactWrite = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     (ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
         if (!multiKeyItem) {
@@ -55,7 +55,7 @@ const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) 
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)

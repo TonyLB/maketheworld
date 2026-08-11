@@ -9,7 +9,7 @@ import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import { EphemeraPositionGraph, graphFromMeta, hostDataCategory } from '../../positionGraph'
+import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
 import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
 import { streamMembershipFact } from '../../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
@@ -46,7 +46,7 @@ export type CommitStepSequenceDeps = {
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
 
-const seedGraphMemos = (graphs: EphemeraPositionGraph[]): void => {
+const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
     for (const graph of graphs) {
         if (isEphemeraRoomId(graph.hostId)) {
             internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
@@ -89,7 +89,7 @@ export const commitStepSequence = async (
     const transactWrite = deps.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
 
-    let committedGraphs: Map<EphemeraMembershipHostId, EphemeraPositionGraph> | undefined
+    let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // PB-D: assignment, not append --- the reducer body can run more than once under
     // `exponentialBackoffWrapper`'s retry, so this is overwritten whole on every invocation, never
     // accumulated across attempts.
@@ -99,14 +99,14 @@ export const commitStepSequence = async (
     // sequence (object-lifecycle destroy), leaving it absent from every post-apply graph. `factsForStep`
     // falls back to this snapshot to re-derive that endpoint's host --- the host it actually held the
     // edge on, right before removal --- rather than throwing.
-    let priorGraphs: Map<EphemeraMembershipHostId, EphemeraPositionGraph> | undefined
+    let priorGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
 
     const multiKeyItem: CommitStepSequenceTransactItem = {
         MultiKeyUpdate: {
             Keys: [...footprint].map((hostId) => ({ EphemeraId: hostId, DataCategory: hostDataCategory(hostId) })),
-            updateKeys: ['positionGraph'],
+            updateKeys: ['ludicGraph'],
             reducer: (draft: Record<string, any>) => {
-                const graphs = new Map<EphemeraMembershipHostId, EphemeraPositionGraph>()
+                const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
                 for (const hostId of footprint) {
                     const entry = Object.values(draft).find(
                         (item: any) => item.EphemeraId === hostId && item.DataCategory === hostDataCategory(hostId)
@@ -130,7 +130,7 @@ export const commitStepSequence = async (
                     const entry = Object.values(draft).find(
                         (item: any) => item.EphemeraId === hostId && item.DataCategory === hostDataCategory(hostId)
                     )!
-                    entry.positionGraph = graph.toStored()
+                    entry.ludicGraph = graph.toStored()
                 }
                 committedGraphs = new Map(outcome.graphs)
                 // PB-F/PB-E: capture values are already plain `EphemeraCharacterId[]`, never Immer

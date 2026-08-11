@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../../../positions/ludicGraph/testFixtures'
 import { relationalIdentityPlanCandidateFromSpans } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ObjectSpanCandidate } from './spanResolution'
@@ -22,7 +22,7 @@ const span = (
     locus: { kind: 'room' },
 })
 
-const onTableEdge: EphemeraPositionRelationalEdgeData = {
+const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,

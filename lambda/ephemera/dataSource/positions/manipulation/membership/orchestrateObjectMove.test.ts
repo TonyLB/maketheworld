@@ -17,7 +17,7 @@ import { resolveObjectMovePresentationLabels } from '../../../perception/resolve
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../kernel/compile/moveBundleSlotIds'
-import type { CarryClosureFragment } from '../../positionGraph/expandValidate/interactionUnderTransfer'
+import type { CarryClosureFragment } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 
 const executeObjectMoveMock = executeObjectMove as jest.MockedFunction<typeof executeObjectMove>
 const resolveLabelsMock = resolveObjectMovePresentationLabels as jest.MockedFunction<

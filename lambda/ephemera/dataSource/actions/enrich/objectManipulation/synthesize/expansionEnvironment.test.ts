@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { createExpansionEnvironment, lookupOrComputeClosure } from './expansionEnvironment'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -8,8 +8,8 @@ const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-const buildGraph = (): EphemeraPositionGraph => {
-    let graph = EphemeraPositionGraph.empty(ROOM_ID)
+const buildGraph = (): EphemeraLudicGraph => {
+    let graph = EphemeraLudicGraph.empty(ROOM_ID)
     for (const objectId of [TRAY_ID, CUP_ID, TABLE_ID]) {
         graph = graph.addObject(objectId)
     }

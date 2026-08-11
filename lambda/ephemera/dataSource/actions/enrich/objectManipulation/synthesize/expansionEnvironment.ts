@@ -1,15 +1,15 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { computeCarryClosure, type CarryClosureFragment } from '../../../../positions/positionGraph/expandValidate/interactionUnderTransfer'
-import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import { computeCarryClosure, type CarryClosureFragment } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
+import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment, GroupId } from './executorTypes'
 
 let groupIdCounter = 0
 
 /** Fresh per executor run --- the shared environment for one worklist's lifetime. */
 export const createExpansionEnvironment = (
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraPositionGraph | undefined,
+    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined,
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
 ): ExpansionEnvironment => ({
     settledGroups: new Map(),
@@ -35,7 +35,7 @@ const mintGroupId = (): GroupId => `group-${(groupIdCounter += 1)}`
 export const lookupOrComputeClosure = (
     env: ExpansionEnvironment,
     startId: EphemeraObjectId,
-    graph: EphemeraPositionGraph
+    graph: EphemeraLudicGraph
 ): CarryClosureFragment => {
     const existingGroupId = env.groupIdByObject.get(startId)
     if (existingGroupId !== undefined) {

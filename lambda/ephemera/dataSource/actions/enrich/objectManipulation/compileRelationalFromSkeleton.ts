@@ -8,7 +8,7 @@ import type {
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
@@ -172,13 +172,13 @@ export async function compileRelationalFromSkeleton(
     const getCurrentHostForExpansion = (objectId: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
         hostByObjectId.get(objectId)
 
-    const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraPositionGraph>([[hostRoomId, roomGraph]])
+    const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
     for (const hostId of hostByObjectId.values()) {
         if (!hostGraphMap.has(hostId)) {
             hostGraphMap.set(hostId, await positionsReadDeps.getPositionGraph(hostId))
         }
     }
-    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraPositionGraph | undefined => hostGraphMap.get(hostId)
+    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
 
     type PreparedCandidate = {
         step: EstablishRelationStep | DissolveRelationStep

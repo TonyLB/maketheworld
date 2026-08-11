@@ -1,17 +1,17 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { EphemeraPositionGraph } from '../index'
+import type { EphemeraLudicGraph } from '../index'
 import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 
 export type ApplyTransferSetOutcome =
-    | { verdict: 'legal'; sourceGraph: EphemeraPositionGraph; destGraph: EphemeraPositionGraph }
+    | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
     | { verdict: 'illegal'; reasonCode: 'incompleteTransferSet' | 'unresolvedDissolveEdge' }
     | { verdict: 'defer'; decidable: boolean; reasonCode: 'transferInteractionDefer' }
 
 /**
  * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
  * edge that should dissolve has already been severed by an explicit `DissolveRelationStep` earlier
- * in the same kernel-apply loop --- it does not rely on `EphemeraPositionGraph.removeObject`'s
+ * in the same kernel-apply loop --- it does not rely on `EphemeraLudicGraph.removeObject`'s
  * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
  * boundary edge still present at this point is therefore treated as `illegal`
  * (`unresolvedDissolveEdge`), not silently resolved.
@@ -28,8 +28,8 @@ export type ApplyTransferSetOutcome =
  * calls it.
  */
 export function applyTransferSet(
-    sourceGraph: EphemeraPositionGraph,
-    destGraph: EphemeraPositionGraph,
+    sourceGraph: EphemeraLudicGraph,
+    destGraph: EphemeraLudicGraph,
     transferSet: ReadonlySet<EphemeraObjectId>
 ): ApplyTransferSetOutcome {
     const boundaryOutcomes = boundaryEdgeOutcomes(transferSet, sourceGraph)

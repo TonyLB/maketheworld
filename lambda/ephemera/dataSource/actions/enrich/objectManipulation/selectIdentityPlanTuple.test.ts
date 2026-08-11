@@ -6,7 +6,7 @@ import { selectIdentityPlanTuple } from './selectIdentityPlanTuple'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { buildSandboxState } from './sandboxState'
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId

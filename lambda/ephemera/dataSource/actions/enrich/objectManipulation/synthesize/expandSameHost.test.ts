@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { testPositionGraph } from '../../../../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../../../../positions/ludicGraph/testFixtures'
 import { expandSameHost } from './expandSameHost'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId

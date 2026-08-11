@@ -12,7 +12,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 import internalCache from '../../internalCache'
-import type { EphemeraPositionGraph } from '../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 
@@ -21,7 +21,7 @@ export type HeldInventoryCatalogForCharacter = {
 }
 
 export type HeldInventoryCatalogDeps = {
-    getPositionGraph: (characterId: EphemeraCharacterId) => Promise<EphemeraPositionGraph>
+    getPositionGraph: (characterId: EphemeraCharacterId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     getComponentAggregate: ComponentAggregateMergedCache['get']
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>

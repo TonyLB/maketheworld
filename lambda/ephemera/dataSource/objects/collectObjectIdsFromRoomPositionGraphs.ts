@@ -1,8 +1,8 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 export const collectObjectIdsFromPositionGraph = (
-    graph: EphemeraPositionGraphFieldPayload | undefined
+    graph: EphemeraLudicGraphFieldPayload | undefined
 ): EphemeraObjectId[] => {
     if (!graph?.nodes) {
         return []
@@ -13,7 +13,7 @@ export const collectObjectIdsFromPositionGraph = (
 }
 
 export const collectObjectIdsFromRoomPositionGraphs = (
-    roomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload | undefined>>
+    roomGraphs: Partial<Record<EphemeraRoomId, EphemeraLudicGraphFieldPayload | undefined>>
 ): EphemeraObjectId[] => {
     const ids = new Set<EphemeraObjectId>()
     for (const graph of Object.values(roomGraphs)) {

@@ -3,9 +3,9 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import {
     characterNode,
-    EphemeraPositionGraph,
+    EphemeraLudicGraph,
     objectNode,
-} from '../dataSource/positions/positionGraph'
+} from '../dataSource/positions/ludicGraph'
 import { createEphemeraPositionsCacheData } from './positionsCache'
 
 const ROOM_ID = 'ROOM#town' as EphemeraRoomId
@@ -24,14 +24,14 @@ describe('EphemeraPositionsCacheData', () => {
 
         const graph = await cache.getPositionGraph(ROOM_ID)
 
-        expect(graph).toBeInstanceOf(EphemeraPositionGraph)
+        expect(graph).toBeInstanceOf(EphemeraLudicGraph)
         expect(graph.hostId).toBe(ROOM_ID)
         expect([...graph.characterIds]).toEqual([CHARACTER_A])
     })
 
     it('set throws when graph.hostId is not a forward host id', () => {
         const cache = createEphemeraPositionsCacheData({ getItem: jest.fn() })
-        const graph = EphemeraPositionGraph.fromFieldPayload(OBJECT_A as EphemeraMembershipHostId, { nodes: [] })
+        const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_A as EphemeraMembershipHostId, { nodes: [] })
 
         expect(() => cache.set(graph)).toThrow(/forward host ROOM# or CHARACTER#/)
     })
@@ -40,7 +40,7 @@ describe('EphemeraPositionsCacheData', () => {
         const cache = createEphemeraPositionsCacheData({
             getItem: jest.fn().mockResolvedValue(undefined),
         })
-        const original = EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
+        const original = EphemeraLudicGraph.fromFieldPayload(ROOM_ID, {
             nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             edges: [],
         })

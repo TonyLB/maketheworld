@@ -3,16 +3,16 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
 export type ObjectManipulationPositionsReadDeps = {
     getMembershipContainers: (objectId: EphemeraObjectId) => Promise<EphemeraMembershipHostId[]>
-    getPositionGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraPositionGraph>
+    getPositionGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
 export type MembershipObservation = {
     containers: EphemeraMembershipHostId[]
-    positionGraph?: EphemeraPositionGraph
+    positionGraph?: EphemeraLudicGraph
 }
 
 export async function observeMembershipForObject(
@@ -28,7 +28,7 @@ export async function observeMembershipForObject(
 }
 
 export function objectTouchesExitEdgeOnGraph(
-    graph: EphemeraPositionGraph,
+    graph: EphemeraLudicGraph,
     objectId: EphemeraObjectId
 ): boolean {
     const envelope = graph.toPlayEnvelope()

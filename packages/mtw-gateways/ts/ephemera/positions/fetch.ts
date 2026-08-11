@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import type {
     EphemeraMetaCharacter,
     EphemeraMetaRoom,
-    EphemeraPositionGraphFieldPayload,
+    EphemeraLudicGraphFieldPayload,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -42,7 +42,7 @@ export async function getRoomActiveCharactersFromDynamo(
 export async function getRoomPositionGraphFromDynamo(
     db: EphemeraPositionsReadDB,
     roomId: EphemeraRoomId
-): Promise<EphemeraPositionGraphFieldPayload | undefined> {
+): Promise<EphemeraLudicGraphFieldPayload | undefined> {
     const row = await db.getItem<Pick<EphemeraMetaRoom, 'positionGraph'>>({
         Key: {
             EphemeraId: roomId,
@@ -56,7 +56,7 @@ export async function getRoomPositionGraphFromDynamo(
 export async function getCharacterPositionGraphFromDynamo(
     db: EphemeraPositionsReadDB,
     characterId: EphemeraCharacterId
-): Promise<EphemeraPositionGraphFieldPayload | undefined> {
+): Promise<EphemeraLudicGraphFieldPayload | undefined> {
     const row = await db.getItem<Pick<EphemeraMetaCharacter, 'positionGraph'>>({
         Key: {
             EphemeraId: characterId,

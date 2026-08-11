@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectClearMembership } from './applyObjectClearMembership'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     ephemeraDB: {
@@ -42,7 +42,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
  * `commitStepSequence.test.ts`/`executeObjectMove.test.ts` already establish. Exposes the
  * mutated draft so a test can inspect final graph state directly, without re-invoking the reducer.
  */
-const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const wireTransactWrite = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     const lastDraft: { current: Record<string, any> | undefined } = { current: undefined }
     ;(ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
@@ -55,7 +55,7 @@ const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) 
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)
@@ -173,10 +173,10 @@ describe('applyObjectClearMembership', () => {
 
         // Dissolve only, no cascade: the table --- the other endpoint of the severed relation --- was
         // never carried along or removed. It stays on the room's graph exactly as before.
-        const { EphemeraPositionGraph } = require('../../positionGraph')
-        const finalRoomGraph = EphemeraPositionGraph.fromFieldPayload(
+        const { EphemeraLudicGraph } = require('../../ludicGraph')
+        const finalRoomGraph = EphemeraLudicGraph.fromFieldPayload(
             FROM_ROOM,
-            lastDraft.current![`${FROM_ROOM}#Meta::Room`].positionGraph
+            lastDraft.current![`${FROM_ROOM}#Meta::Room`].ludicGraph
         )
         expect(finalRoomGraph.objectIds.has(TABLE_ID)).toBe(true)
         expect(finalRoomGraph.objectIds.has(OBJECT_ID)).toBe(false)

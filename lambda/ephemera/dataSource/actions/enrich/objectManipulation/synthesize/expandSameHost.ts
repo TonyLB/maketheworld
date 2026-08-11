@@ -2,7 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { TransferMembershipStep } from '../parsePlanStep'
 
 /**
@@ -49,7 +49,7 @@ export const expandSameHost = (
         negate: boolean
     },
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined,
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraPositionGraph | undefined
+    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
 ): ExpandSameHostResult => {
     const { subjectId, objectId, relationKind, negate } = input
 

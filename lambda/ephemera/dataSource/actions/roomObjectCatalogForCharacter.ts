@@ -11,7 +11,7 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import internalCache from '../../internalCache'
-import type { EphemeraPositionGraph } from '../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import { shortNameFromComponent, shortNameFromMergedAggregate } from '../objects/objectShortName'
@@ -30,7 +30,7 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
+    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     resolvePerspective: (
         roomId: EphemeraRoomId,

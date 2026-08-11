@@ -1,8 +1,8 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
-import { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
@@ -18,7 +18,7 @@ const roomGraphWithObjects = {
     edges: [],
 } as unknown as PlayPositionGraph
 
-const onTableEdge: EphemeraPositionRelationalEdgeData = {
+const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
@@ -26,7 +26,7 @@ const onTableEdge: EphemeraPositionRelationalEdgeData = {
 }
 
 const graphFromEnvelope = (envelope: PlayPositionGraph) =>
-    EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, envelope)
+    EphemeraLudicGraph.fromPlayEnvelope(HOST_ID, envelope)
 
 describe('evaluateRelationalLegality', () => {
     it('allows establish when both nodes are on graph with clean topology', () => {

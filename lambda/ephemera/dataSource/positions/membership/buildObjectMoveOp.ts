@@ -1,6 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { CarryClosureFragment } from '../positionGraph/expandValidate/interactionUnderTransfer'
+import type { CarryClosureFragment } from '../ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../manipulation/types'
 import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
 

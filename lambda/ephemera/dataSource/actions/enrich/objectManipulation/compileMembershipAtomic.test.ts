@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
+import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 import { compileMembershipAtomic } from './compileMembershipAtomic'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 

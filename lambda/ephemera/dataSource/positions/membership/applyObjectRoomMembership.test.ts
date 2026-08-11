@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
-import { testPositionGraph } from '../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../positionGraph'
+import { testPositionGraph } from '../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../ludicGraph'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     ephemeraDB: {
@@ -41,7 +41,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
  * `commitStepSequence.test.ts`/`executeObjectMove.test.ts` already establish.
  */
-const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const wireTransactWrite = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     (ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
         if (!multiKeyItem) {
@@ -53,7 +53,7 @@ const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) 
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)

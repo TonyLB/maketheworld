@@ -1,7 +1,7 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
-import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from "."
 import { getRoomCharacterList } from './hydrateRoomRoster'
 

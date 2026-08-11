@@ -1,6 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import {
     isTransferMembershipStep,
     type EstablishRelationStep,
@@ -12,7 +12,7 @@ import type { NormalizedRelation } from '../relationKind'
 import { detectRelationalCycle } from './detectRelationalCycle'
 
 export type RelationalCandidateGraphLookup = {
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraPositionGraph | undefined
+    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
 }
 
 export type FilterLegalRelationalCandidatesResult =

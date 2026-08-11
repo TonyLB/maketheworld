@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-import { EphemeraPositionGraph, objectNode } from '../positions/positionGraph'
+import { EphemeraLudicGraph, objectNode } from '../positions/ludicGraph'
 import type { ObjectsChangedPayload } from './events'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
 
@@ -36,7 +36,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraPositionGraph.empty(ROOM_A),
+                getRoomPositionGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [],
             },
             { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
@@ -57,7 +57,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraPositionGraph.fromFieldPayload(ROOM_A, {
+                getRoomPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
@@ -95,9 +95,9 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraPositionGraph.empty(ROOM_A),
+                getRoomPositionGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
-                getCharacterPositionGraph: async () => EphemeraPositionGraph.fromFieldPayload(CHARACTER_A, {
+                getCharacterPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
                     nodes: [objectNode(OBJECT_HELD)],
                     edges: [],
                 }),
@@ -127,12 +127,12 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 getGameRooms: async () => ['VORTEX'],
-                getRoomPositionGraph: async () => EphemeraPositionGraph.fromFieldPayload(ROOM_A, {
+                getRoomPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
-                getCharacterPositionGraph: async () => EphemeraPositionGraph.fromFieldPayload(CHARACTER_A, {
+                getCharacterPositionGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
                     nodes: [objectNode(OBJECT_HELD), objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),

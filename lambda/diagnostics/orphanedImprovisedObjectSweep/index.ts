@@ -13,7 +13,7 @@ import {
     IMPROVISATION_ASSET_ID,
     isEphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -26,7 +26,7 @@ import { isOrphanedImprovisedObject } from './classification'
 type HostMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraPositionGraphFieldPayload
+    positionGraph?: EphemeraLudicGraphFieldPayload
 }
 
 type ImprovisationPairRow = {

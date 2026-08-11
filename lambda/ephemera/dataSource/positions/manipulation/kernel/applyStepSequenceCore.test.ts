@@ -3,8 +3,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import type { MutationKernelStep } from './kernelStep'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -14,8 +14,8 @@ const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 const graphsMap = (
-    ...entries: [EphemeraMembershipHostId, EphemeraPositionGraph][]
-): Map<EphemeraMembershipHostId, EphemeraPositionGraph> => new Map(entries)
+    ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
+): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('applyStepSequenceCore', () => {
     it('BD-13 carry: explicit dissolveRelation before transferMembership composes correctly', () => {

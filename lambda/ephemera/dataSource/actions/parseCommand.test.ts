@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph } from '../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../positions/ludicGraph/testFixtures'
 
 import {
     embeddingAtCosineSimilarity,

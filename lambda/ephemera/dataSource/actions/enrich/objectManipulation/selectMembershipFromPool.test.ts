@@ -6,7 +6,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
 import type { SpanCandidatePool } from './spanResolution'
 import { buildSandboxState } from './sandboxState'
-import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../../../positions/ludicGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId

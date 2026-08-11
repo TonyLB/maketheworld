@@ -3,8 +3,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { factsForStep } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -14,8 +14,8 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const beatAnchorTime = 1_700_000_000_000
 
 const graphsMap = (
-    ...entries: [EphemeraMembershipHostId, EphemeraPositionGraph][]
-): Map<EphemeraMembershipHostId, EphemeraPositionGraph> => new Map(entries)
+    ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
+): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('factsForStep', () => {
     it('transferMembership with object-only entityIds produces one Object Moved fact per object', () => {

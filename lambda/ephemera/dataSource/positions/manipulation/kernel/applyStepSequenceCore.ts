@@ -2,14 +2,14 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../positionGraph'
-import { applyTransferSet } from '../../positionGraph/expandValidate/applyTransferSet'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferSet'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
 const findHostOf = (
     id: EphemeraObjectId,
-    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId | undefined => {
     for (const [hostId, graph] of graphs) {
         if (graph.objectIds.has(id)) {
@@ -57,7 +57,7 @@ const findHostOf = (
  */
 export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
-    initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
+    initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): MutationKernelApplyOutcome => {
     const graphs = new Map(initialGraphs)
     const captures = new Map<string, readonly EphemeraCharacterId[]>()

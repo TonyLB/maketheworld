@@ -4,7 +4,7 @@ import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../..
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import { buildSandboxState } from '../sandboxState'
-import { testPositionGraph } from '../../../../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../../../../positions/ludicGraph/testFixtures'
 import {
     invokeIdentityOnlyFallback,
     proposeIdentityOnlyFallbackTuples,

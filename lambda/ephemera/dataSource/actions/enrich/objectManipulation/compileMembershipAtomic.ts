@@ -1,6 +1,6 @@
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
@@ -80,7 +80,7 @@ export async function compileMembershipAtomic(
         frame.characterId !== undefined ? positionsReadDeps.getPositionGraph(frame.characterId) : undefined,
     ])
     const sandboxState = buildSandboxState(
-        [roomGraph, characterGraph].filter((graph): graph is EphemeraPositionGraph => graph !== undefined)
+        [roomGraph, characterGraph].filter((graph): graph is EphemeraLudicGraph => graph !== undefined)
     )
 
     const selection = selectMembershipFromPool({

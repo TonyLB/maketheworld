@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 
 /**
  * Directed-cycle check over one host's relational edges of a single kind
@@ -26,7 +26,7 @@ type CycleWalkResult = {
 }
 
 export function detectRelationalCycle(
-    graph: EphemeraPositionGraph,
+    graph: EphemeraLudicGraph,
     kind: 'On' | 'Under'
 ): boolean {
     const adjacency = graph.relationalEdges

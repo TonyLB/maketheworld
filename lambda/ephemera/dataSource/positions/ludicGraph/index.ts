@@ -8,13 +8,13 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
-    EphemeraPositionGraphData,
-    EphemeraPositionGraphFieldPayload,
-    EphemeraPositionGraphNode,
-    EphemeraPositionRelationalEdgeData,
+    EphemeraLudicGraphData,
+    EphemeraLudicGraphFieldPayload,
+    EphemeraLudicGraphNode,
+    EphemeraLudicRelationalEdgeData,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -30,12 +30,12 @@ import {
 export type { HostRelationalEdge } from './baseClasses'
 export { edgesMatch, nodeHasRelationalEdge, toStoredRelationalEdge, edgeReferencesObjectId } from './baseClasses'
 
-export const characterNode = (universalKey: EphemeraCharacterId): EphemeraPositionGraphNode => ({
+export const characterNode = (universalKey: EphemeraCharacterId): EphemeraLudicGraphNode => ({
     tag: 'Character',
     universalKey,
 })
 
-export const objectNode = (universalKey: EphemeraObjectId): EphemeraPositionGraphNode => ({
+export const objectNode = (universalKey: EphemeraObjectId): EphemeraLudicGraphNode => ({
     tag: 'Object',
     universalKey,
 })
@@ -60,7 +60,7 @@ const extractPlayOnlyEdges = (envelope: PlayPositionGraph): PlayPositionGraph['e
     const edges = envelope.edges ?? []
     const playOnly: NonNullable<PlayPositionGraph['edges']> = []
     for (const rawEdge of edges) {
-        if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
+        if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
             continue
         }
         try {
@@ -73,17 +73,17 @@ const extractPlayOnlyEdges = (envelope: PlayPositionGraph): PlayPositionGraph['e
     return playOnly.length > 0 ? playOnly : undefined
 }
 
-export class EphemeraPositionGraph {
+export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
 
-    private readonly _nodes: EphemeraPositionGraphNode[]
-    private readonly _edges: EphemeraPositionRelationalEdgeData[] | undefined
+    private readonly _nodes: EphemeraLudicGraphNode[]
+    private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
     private readonly _playOnlyEdges: PlayPositionGraph['edges'] | undefined
 
     private constructor(
         hostId: EphemeraMembershipHostId,
-        nodes: EphemeraPositionGraphNode[],
-        edges: EphemeraPositionRelationalEdgeData[] | undefined,
+        nodes: EphemeraLudicGraphNode[],
+        edges: EphemeraLudicRelationalEdgeData[] | undefined,
         playOnlyEdges: PlayPositionGraph['edges'] | undefined = undefined
     ) {
         this.hostId = hostId
@@ -92,12 +92,12 @@ export class EphemeraPositionGraph {
         this._playOnlyEdges = playOnlyEdges
     }
 
-    static empty(hostId: EphemeraMembershipHostId): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(hostId, [], undefined)
+    static empty(hostId: EphemeraMembershipHostId): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(hostId, [], undefined)
     }
 
-    static fromJSON(data: EphemeraPositionGraphData): EphemeraPositionGraph {
-        return EphemeraPositionGraph.fromFieldPayload(data.hostId, {
+    static fromJSON(data: EphemeraLudicGraphData): EphemeraLudicGraph {
+        return EphemeraLudicGraph.fromFieldPayload(data.hostId, {
             nodes: data.nodes,
             ...(data.edges !== undefined ? { edges: data.edges } : {}),
         })
@@ -108,21 +108,21 @@ export class EphemeraPositionGraph {
      * than retaining `payload`'s own element references. This matters when `payload` comes
      * from an Immer `produce()` draft (every `MultiKeyUpdate` reducer in
      * `mtw-utilities/ts/dynamoDB/mixins/transact.ts` builds one) --- Immer revokes all draft
-     * proxies synchronously the instant the reducer returns, so an `EphemeraPositionGraph`
+     * proxies synchronously the instant the reducer returns, so an `EphemeraLudicGraph`
      * that merely re-wrapped the draft's own node/edge objects would carry revoked proxies
      * the moment any caller retained it past the reducer's synchronous scope (e.g.
      * `applyObjectSetTransfer.ts` assigning `committedGraphs` from the reducer, for use by
      * the synchronous cache seed that runs after `transactWrite` resolves) --- "Cannot
      * perform 'get' on a proxy that has been revoked" on first property read. Node/edge
-     * shapes are flat (`EphemeraPositionGraphNode`/`EphemeraPositionRelationalEdgeData` in
+     * shapes are flat (`EphemeraLudicGraphNode`/`EphemeraLudicRelationalEdgeData` in
      * `mtw-interfaces/ts/ephemeraMeta.ts`), so a shallow per-element copy fully severs the
      * live reference.
      */
     static fromFieldPayload(
         hostId: EphemeraMembershipHostId,
-        payload: EphemeraPositionGraphFieldPayload
-    ): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(
+        payload: EphemeraLudicGraphFieldPayload
+    ): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(
             hostId,
             payload.nodes.map((node) => ({ ...node })),
             payload.edges !== undefined ? payload.edges.map((edge) => ({ ...edge })) : undefined
@@ -132,10 +132,10 @@ export class EphemeraPositionGraph {
     static fromPlayEnvelope(
         hostId: EphemeraMembershipHostId,
         envelope: PlayPositionGraph
-    ): EphemeraPositionGraph {
+    ): EphemeraLudicGraph {
         const relationalEdges = extractRelationalEdgesFromStored(envelope).map(toStoredRelationalEdge)
         const playOnlyEdges = extractPlayOnlyEdges(envelope)
-        return new EphemeraPositionGraph(
+        return new EphemeraLudicGraph(
             hostId,
             [
                 ...extractCharacterIdsFromPlayPositionGraph(envelope).map(characterNode),
@@ -166,7 +166,7 @@ export class EphemeraPositionGraph {
         return extractRelationalEdgesFromStored(this.toStored())
     }
 
-    toJSON(): EphemeraPositionGraphData {
+    toJSON(): EphemeraLudicGraphData {
         const stored = this.toStored()
         return {
             hostId: this.hostId,
@@ -175,7 +175,7 @@ export class EphemeraPositionGraph {
         }
     }
 
-    toStored(): EphemeraPositionGraphFieldPayload {
+    toStored(): EphemeraLudicGraphFieldPayload {
         return {
             nodes: [...this._nodes],
             ...(this._edges !== undefined ? { edges: [...this._edges] } : {}),
@@ -194,31 +194,31 @@ export class EphemeraPositionGraph {
         }
     }
 
-    clone(): EphemeraPositionGraph {
+    clone(): EphemeraLudicGraph {
         return this
             .withNodes([...this._nodes])
             .withEdges(this._edges !== undefined ? [...this._edges] : undefined)
             .withPlayOnlyEdges(this._playOnlyEdges !== undefined ? [...this._playOnlyEdges] : undefined)
     }
 
-    private withNodes(nodes: EphemeraPositionGraphNode[]): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(this.hostId, nodes, this._edges, this._playOnlyEdges)
+    private withNodes(nodes: EphemeraLudicGraphNode[]): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(this.hostId, nodes, this._edges, this._playOnlyEdges)
     }
 
-    private withEdges(edges: EphemeraPositionRelationalEdgeData[] | undefined): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(this.hostId, this._nodes, edges, this._playOnlyEdges)
+    private withEdges(edges: EphemeraLudicRelationalEdgeData[] | undefined): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(this.hostId, this._nodes, edges, this._playOnlyEdges)
     }
 
-    private withPlayOnlyEdges(edges: PlayPositionGraph['edges'] | undefined): EphemeraPositionGraph {
-        return new EphemeraPositionGraph(this.hostId, this._nodes, this._edges, edges)
+    private withPlayOnlyEdges(edges: PlayPositionGraph['edges'] | undefined): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(this.hostId, this._nodes, this._edges, edges)
     }
 
     private storedRelationalEdges(): HostRelationalEdge[] {
         return extractRelationalEdgesFromStored({ nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}) })
     }
 
-    equals(other: EphemeraPositionGraph): boolean {
-        if (!(other instanceof EphemeraPositionGraph)) {
+    equals(other: EphemeraLudicGraph): boolean {
+        if (!(other instanceof EphemeraLudicGraph)) {
             return false
         }
         if (this.hostId !== other.hostId) {
@@ -256,7 +256,7 @@ export class EphemeraPositionGraph {
         return true
     }
 
-    addCharacter(characterId: EphemeraCharacterId): EphemeraPositionGraph {
+    addCharacter(characterId: EphemeraCharacterId): EphemeraLudicGraph {
         if (this.characterIds.has(characterId)) {
             return this
         }
@@ -267,17 +267,17 @@ export class EphemeraPositionGraph {
      * BD-36's character half of the assert-and-throw contract --- vacuously satisfied today, since
      * `HostRelationalEdge` is `EphemeraObjectId`-typed and a character node can never be referenced
      * by one (the widening that would make this load-bearing, character-relation authoring, is
-     * explicitly deferred; see `positionGraph/AGENT.md` --- Known limitation (deferred)). No
+     * explicitly deferred; see `ludicGraph/AGENT.md` --- Known limitation (deferred)). No
      * edge-stripping of any kind follows the (currently vacuous) assert.
      */
-    removeCharacter(characterId: EphemeraCharacterId): EphemeraPositionGraph {
+    removeCharacter(characterId: EphemeraCharacterId): EphemeraLudicGraph {
         this.assertNoRelationalEdgesReferencing(characterId)
         return this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Character' && node.universalKey === characterId))
         )
     }
 
-    addObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+    addObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
         if (this.objectIds.has(objectId)) {
             return this
         }
@@ -296,7 +296,7 @@ export class EphemeraPositionGraph {
      * `removeObject` it was disambiguated from was itself deleted --- this is the only
      * implementation now.)
      */
-    removeObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+    removeObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
         this.assertNoRelationalEdgesReferencing(objectId)
         const withoutNode = this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId))
@@ -310,7 +310,7 @@ export class EphemeraPositionGraph {
         }
     }
 
-    private withoutPlayOnlyEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraPositionGraph {
+    private withoutPlayOnlyEdgesReferencingObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
         if (this._playOnlyEdges === undefined) {
             return this
         }
@@ -318,7 +318,7 @@ export class EphemeraPositionGraph {
         return this.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
     }
 
-    addRelationalEdge(edge: HostRelationalEdge): EphemeraPositionGraph {
+    addRelationalEdge(edge: HostRelationalEdge): EphemeraLudicGraph {
         const stored = this.storedRelationalEdges()
         if (stored.some((candidate) => edgesMatch(candidate, edge))) {
             return this
@@ -326,7 +326,7 @@ export class EphemeraPositionGraph {
         return this.withEdges([...(this._edges ?? []), toStoredRelationalEdge(edge)])
     }
 
-    removeRelationalEdge(edge: HostRelationalEdge): EphemeraPositionGraph {
+    removeRelationalEdge(edge: HostRelationalEdge): EphemeraLudicGraph {
         return this.withEdges(
             this.storedRelationalEdges()
                 .filter((existing) => !edgesMatch(existing, edge))
@@ -343,7 +343,7 @@ export class EphemeraPositionGraph {
         return nodeHasRelationalEdge(nodeId, this.relationalEdges)
     }
 
-    applyRelationalPatch(patch: HostRelationalPatch): EphemeraPositionGraph {
+    applyRelationalPatch(patch: HostRelationalPatch): EphemeraLudicGraph {
         if (patch.hostId !== this.hostId) {
             throw new Error(`HostRelationalPatch hostId ${patch.hostId} does not match graph hostId ${this.hostId}`)
         }
@@ -378,37 +378,37 @@ export class EphemeraPositionGraph {
 export const seedFromActiveCharacters = (
     activeCharacters: EphemeraRoomActiveCharacter[],
     hostId: EphemeraMembershipHostId
-): EphemeraPositionGraph =>
-    EphemeraPositionGraph.fromFieldPayload(hostId, {
+): EphemeraLudicGraph =>
+    EphemeraLudicGraph.fromFieldPayload(hostId, {
         nodes: activeCharacters.map(({ EphemeraId }) => characterNode(EphemeraId)),
         edges: [],
     })
 
 export const fromRoomMeta = (
     meta: {
-        positionGraph?: EphemeraPositionGraphFieldPayload;
+        ludicGraph?: EphemeraLudicGraphFieldPayload;
         activeCharacters?: EphemeraRoomActiveCharacter[];
     } | Record<string, unknown>,
     hostId: EphemeraMembershipHostId
-): EphemeraPositionGraph => {
+): EphemeraLudicGraph => {
     const record = meta as {
-        positionGraph?: EphemeraPositionGraphFieldPayload;
+        ludicGraph?: EphemeraLudicGraphFieldPayload;
         activeCharacters?: EphemeraRoomActiveCharacter[];
     }
-    if (record.positionGraph) {
-        return EphemeraPositionGraph.fromFieldPayload(hostId, record.positionGraph)
+    if (record.ludicGraph) {
+        return EphemeraLudicGraph.fromFieldPayload(hostId, record.ludicGraph)
     }
     return seedFromActiveCharacters(record.activeCharacters ?? [], hostId)
 }
 
 export const fromCharacterMeta = (
     meta: {
-        positionGraph?: EphemeraPositionGraphFieldPayload;
+        ludicGraph?: EphemeraLudicGraphFieldPayload;
     } | Record<string, unknown>,
     hostId: EphemeraMembershipHostId
-): EphemeraPositionGraph => {
-    const record = meta as { positionGraph?: EphemeraPositionGraphFieldPayload }
-    return EphemeraPositionGraph.fromFieldPayload(hostId, record.positionGraph ?? { nodes: [], edges: [] })
+): EphemeraLudicGraph => {
+    const record = meta as { ludicGraph?: EphemeraLudicGraphFieldPayload }
+    return EphemeraLudicGraph.fromFieldPayload(hostId, record.ludicGraph ?? { nodes: [], edges: [] })
 }
 
 /**
@@ -421,5 +421,5 @@ export const fromCharacterMeta = (
 export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
     isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'
 
-export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraPositionGraph =>
+export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraLudicGraph =>
     isEphemeraRoomId(hostId) ? fromRoomMeta(meta, hostId) : fromCharacterMeta(meta, hostId)

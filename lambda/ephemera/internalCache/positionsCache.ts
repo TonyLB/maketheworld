@@ -1,6 +1,6 @@
 /**
  * Ephemera invocation memo for play position graphs.
- * Wraps mtw-gateways PositionsCacheHandler; exposes EphemeraPositionGraph at the read/write boundary.
+ * Wraps mtw-gateways PositionsCacheHandler; exposes EphemeraLudicGraph at the read/write boundary.
  */
 import {
     createPositionsCacheHandler,
@@ -15,7 +15,7 @@ import type {
     EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { EphemeraPositionGraph } from '../dataSource/positions/positionGraph'
+import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 export type { MembershipContainersCacheSetParams }
 
@@ -37,12 +37,12 @@ export class EphemeraPositionsCacheData {
 
     async getPositionGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId
-    ): Promise<EphemeraPositionGraph> {
+    ): Promise<EphemeraLudicGraph> {
         const envelope = await this._gateway.getPositionGraph(componentId)
-        return EphemeraPositionGraph.fromPlayEnvelope(componentId, envelope)
+        return EphemeraLudicGraph.fromPlayEnvelope(componentId, envelope)
     }
 
-    set(graph: EphemeraPositionGraph): void {
+    set(graph: EphemeraLudicGraph): void {
         const componentId = assertForwardHostId(graph.hostId)
         this._gateway.set({
             componentId,

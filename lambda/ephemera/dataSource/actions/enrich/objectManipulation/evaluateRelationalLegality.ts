@@ -4,9 +4,9 @@ import type { RelationalOperationKind } from '../../baseClasses'
 import {
     edgesMatch,
     nodeHasRelationalEdge,
-    type EphemeraPositionGraph,
+    type EphemeraLudicGraph,
     type HostRelationalEdge,
-} from '../../../positions/positionGraph'
+} from '../../../positions/ludicGraph'
 import type { NormalizedRelation } from './relationKind'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
@@ -15,7 +15,7 @@ export type RelationalLegalityInput = {
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     normalizedRelation: NormalizedRelation
-    graph: EphemeraPositionGraph
+    graph: EphemeraLudicGraph
 }
 
 export type RelationalLegalityOutcome =

@@ -2,8 +2,8 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { commitStepSequence } from './commitStepSequence'
 import type { MutationKernelStep } from './kernelStep'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testPositionGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -35,7 +35,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
  * builds a draft `Record` from `graphsByHost` and invokes the reducer directly, standing in for
  * whatever is actually in the database at the moment of commit.
  */
-const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     const lastItems: { current: any[] | undefined } = { current: undefined }
     const transactWrite: any = jest.fn(async (items: any[]): Promise<void> => {
         lastItems.current = items
@@ -49,7 +49,7 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraPositionGrap
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)
@@ -425,7 +425,7 @@ describe('commitStepSequence', () => {
                     draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                         EphemeraId: key.EphemeraId,
                         DataCategory: key.DataCategory,
-                        positionGraph: roomGraph.toStored(),
+                        ludicGraph: roomGraph.toStored(),
                     }
                 })
                 multiKeyItem.reducer(draft)

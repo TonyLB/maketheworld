@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
-import { testPositionGraph } from '../positions/positionGraph/testFixtures'
+import { testPositionGraph } from '../positions/ludicGraph/testFixtures'
 import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
