@@ -267,7 +267,7 @@ This document is part of a coordinated event flow documentation effort across th
 - Event serialization: `packages/mtw-interfaces/ts/eventBridge/wml/index.test.ts`
 
 **Integration Testing Needs**:
-- End-to-end event flow from WML edit to Assets Lambda cache update
+- End-to-end event flow from WML edit to Assets Lambda cache update. The `WML Materialized View Finding` -> `Content Update` leg (real `WMLEventSerializer` round trip into real, unmocked `handleContentUpdate`/`cacheAsset`, leaf I/O only mocked) is covered by [`lambda/assets/dataSource/contentUpdate.integration.test.ts`](../assets/dataSource/contentUpdate.integration.test.ts). The `applyEdit` -> `Content Update` leg, and the genuinely cross-process leg (real `PutEventsCommand` -> real Lambda invocation), remain manual/unverified --- no cross-Lambda test harness exists in this repo.
 - Zone transition coordination with coordination service
 - Conflict resolution and merge failure handling
 - Event ordering and causality verification
