@@ -106,7 +106,7 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
 // First-class improvisational objects (shipped steady state)
 //
 // ADR: three-way split mirrors Character --- merge body on component pair row,
-// play meta on Meta::Object, placement on positionGraph + POSITION#ROOM adjacency.
+// play meta on Meta::Object, placement on ludicGraph + POSITION#ROOM adjacency.
 // Optional fourth adjacency row (EMBEDDING#IMPROMPTU): see ephemeraEmbedding.ts.
 //
 // - One component pair row (OBJECT#, ASSET#...) + one (OBJECT#, Meta::Object) per spawned object.
@@ -152,7 +152,7 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
 }
 
 /** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes (nodes only). */
-export type EphemeraPositionGraphNode =
+export type EphemeraLudicGraphNode =
     | {
         tag: 'Character';
         universalKey: EphemeraCharacterId;
@@ -164,8 +164,8 @@ export type EphemeraPositionGraphNode =
 
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
-/** In-host relational edge on room positionGraph (Phase B establishRelation / dissolveRelation). */
-export type EphemeraPositionRelationalEdgeData = {
+/** In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation). */
+export type EphemeraLudicRelationalEdgeData = {
     tag: 'Relational';
     from: EphemeraObjectId;
     to: EphemeraObjectId;
@@ -175,11 +175,11 @@ export type EphemeraPositionRelationalEdgeData = {
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
 
-export const isEphemeraPositionRelationalEdgeData = (value: unknown): value is EphemeraPositionRelationalEdgeData => {
+export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
     }
-    const edge = value as EphemeraPositionRelationalEdgeData
+    const edge = value as EphemeraLudicRelationalEdgeData
     if (edge.tag !== 'Relational') {
         return false
     }
@@ -199,21 +199,21 @@ export const isEphemeraPositionRelationalEdgeData = (value: unknown): value is E
 }
 
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
-export type EphemeraPositionGraphData = {
+export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
-    nodes: EphemeraPositionGraphNode[];
+    nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
-    edges?: EphemeraPositionRelationalEdgeData[];
+    edges?: EphemeraLudicRelationalEdgeData[];
 }
 
-/** Value of Meta::*.positionGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
-export type EphemeraPositionGraphFieldPayload = Omit<EphemeraPositionGraphData, 'hostId'>
+/** Value of Meta::*.ludicGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
+export type EphemeraLudicGraphFieldPayload = Omit<EphemeraLudicGraphData, 'hostId'>
 
-export const isEphemeraPositionGraphNode = (value: unknown): value is EphemeraPositionGraphNode => {
+export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const entry = value as EphemeraPositionGraphNode
+    const entry = value as EphemeraLudicGraphNode
     if ('key' in entry) {
         return false
     }
@@ -226,35 +226,35 @@ export const isEphemeraPositionGraphNode = (value: unknown): value is EphemeraPo
     return false
 }
 
-export const isEphemeraPositionGraphFieldPayload = (value: unknown): value is EphemeraPositionGraphFieldPayload => {
+export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is EphemeraLudicGraphFieldPayload => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const graph = value as EphemeraPositionGraphFieldPayload
+    const graph = value as EphemeraLudicGraphFieldPayload
     if (!Array.isArray(graph.nodes)) {
         return false
     }
-    if (!graph.nodes.every((entry) => isEphemeraPositionGraphNode(entry))) {
+    if (!graph.nodes.every((entry) => isEphemeraLudicGraphNode(entry))) {
         return false
     }
     if ('edges' in graph) {
         const edges = graph.edges
-        if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraPositionRelationalEdgeData(entry))) {
+        if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
             return false
         }
     }
     return true
 }
 
-export const isEphemeraPositionGraphData = (value: unknown): value is EphemeraPositionGraphData => {
+export const isEphemeraLudicGraphData = (value: unknown): value is EphemeraLudicGraphData => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const graph = value as EphemeraPositionGraphData
+    const graph = value as EphemeraLudicGraphData
     if (typeof graph.hostId !== 'string' || !isEphemeraMembershipHostId(graph.hostId)) {
         return false
     }
-    return isEphemeraPositionGraphFieldPayload(graph)
+    return isEphemeraLudicGraphFieldPayload(graph)
 }
 
 export type EphemeraMetaRoom = {
@@ -269,7 +269,7 @@ export type EphemeraMetaRoom = {
     //
     // Play-time membership graph (slice 2+ authority). Character + Object nodes shipped (Object: nodes only).
     //
-    positionGraph?: EphemeraPositionGraphFieldPayload;
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
 
     //
     // v1 world-state fields for state-driven, cache-backed Room rendering.
@@ -322,7 +322,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
     if ('objects' in value) {
         return false
     }
-    if ('positionGraph' in value && !isEphemeraPositionGraphFieldPayload(value.positionGraph)) {
+    if ('ludicGraph' in value && !isEphemeraLudicGraphFieldPayload(value.ludicGraph)) {
         return false
     }
     return true
@@ -333,8 +333,8 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
 //
 // The full row also carries `RoomStack`, `Name`, `HomeId`, `assets`, and other fields typed for
 // lambda `CharacterMeta` / eviction-ladder reads --- not duplicated here. This interface names
-// only the positions-owned slice we validate on Dynamo fetch (e.g. `getCharacterPositionGraphFromDynamo`
-// projects `positionGraph` via `Pick<EphemeraMetaCharacter, 'positionGraph'>`). Do not treat the
+// only the positions-owned slice we validate on Dynamo fetch (e.g. `getCharacterLudicGraphFromDynamo`
+// projects `ludicGraph` via `Pick<EphemeraMetaCharacter, 'ludicGraph'>`). Do not treat the
 // type name as a complete meta document shape.
 //
 export type EphemeraMetaCharacter = {
@@ -344,7 +344,7 @@ export type EphemeraMetaCharacter = {
     //
     // Play-time inventory graph (D16 / character host). v1: Object membership nodes only.
     //
-    positionGraph?: EphemeraPositionGraphFieldPayload;
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
 }
 
 /** Validates the positions slice of a `Meta::Character` row; does not assert presentation / ladder fields. */
@@ -358,12 +358,12 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
     if (!isEphemeraCharacterId(value.EphemeraId) || value.DataCategory !== 'Meta::Character') {
         return false
     }
-    if ('positionGraph' in value) {
-        const positionGraph = value.positionGraph
-        if (!isEphemeraPositionGraphFieldPayload(positionGraph)) {
+    if ('ludicGraph' in value) {
+        const ludicGraph = value.ludicGraph
+        if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
             return false
         }
-        const hasCharacterNode = positionGraph.nodes.some((node) => node.tag === 'Character')
+        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character')
         if (hasCharacterNode) {
             return false
         }

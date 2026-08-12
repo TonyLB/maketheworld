@@ -108,9 +108,11 @@ Transform silent failures into observable, self-repairing system:
 **Pattern**: Maintains backward compatibility - Phase 2 gracefully degrades, Phase 3 actively heals.
 
 #### WML Lambda Self-Diagnostics
-**Status**: Foundation exists, self-validation needed
+**Status**: First slice shipped (manual trigger); periodic sweep still open
 
-Create comprehensive self-validation system:
+**Shipped**: A manually-triggerable `WML Materialized View Finding` diagnostic event (source `mtw.diagnostics`) that resyncs a stale `.ndjson` materialized view from a fresh `.wml` parse and propagates the fix to `lambda/assets`/DynamoDB via a chained `Content Update` publish. See [`AGENT.selfRepair.md`](AGENT.selfRepair.md)'s Scenario 4 for repair mechanics and [`../AGENT.event.md`](../AGENT.event.md) for the event contract and manual trigger command.
+
+**Still open**: Detection is entirely manual --- no periodic/automatic sweep exists yet to find `.ndjson`/`.wml` drift across all assets and emit findings on its own. A future slice can add that sweep as a separate initiative once the manual primitive above has been exercised in practice:
 
 - **Create `lambda/wml/diagnostics/`** directory for self-validation
 - **Listen for `Diagnostic Run Started`** events from mtw.diagnostics

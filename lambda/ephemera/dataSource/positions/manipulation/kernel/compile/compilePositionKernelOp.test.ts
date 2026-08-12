@@ -3,7 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
 import type { MembershipNarrationSpec, ObjectMoveNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
-import type { CarryClosureFragment } from '../../../positionGraph/expandValidate/interactionUnderTransfer'
+import type { CarryClosureFragment } from '../../../ludicGraph/expandValidate/interactionUnderTransfer'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'

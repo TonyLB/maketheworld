@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
-import { testPositionGraph } from '../positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
@@ -24,7 +24,7 @@ const catalogPerspectiveDeps = {
 describe('getHeldInventoryCatalogForCharacter', () => {
     it('returns empty catalog when character inventory graph has no objects', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
-            getPositionGraph: async () => testPositionGraph(characterId),
+            getLudicGraph: async () => testLudicGraph(characterId),
             getImprovisationObject: async () => ({}),
         })
 
@@ -34,7 +34,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
     it('returns catalog entries from improvisation fallback when aggregate has no shortName', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
-            getPositionGraph: async () => testPositionGraph(characterId, {
+            getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [
                     { tag: 'Object', universalKey: broomId },
                     { tag: 'Object', universalKey: anvilId },
@@ -60,7 +60,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
     it('prefers merged ComponentAggregate shortName over improvisation', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
-            getPositionGraph: async () => testPositionGraph(characterId, {
+            getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [{ tag: 'Object', universalKey: authoredId }],
             }),
             getComponentAggregate: async () => ([
@@ -83,7 +83,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
     it('skips objects without any shortName', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
-            getPositionGraph: async () => testPositionGraph(characterId, {
+            getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [{ tag: 'Object', universalKey: noNameId }],
             }),
             getImprovisationObject: async () => ({ component: new StandardObject({ tag: 'Object' }) }),

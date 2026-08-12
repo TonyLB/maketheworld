@@ -550,12 +550,12 @@ describe('persistImprovisationObject', () => {
 
         const result = await persistClearCoyoteGameImprovisationObjects({
             getGameRooms: async () => ['VORTEX', 'CORNER'],
-            getRoomPositionGraph: async (room) => {
+            getRoomLudicGraph: async (room) => {
                 if (room === 'ROOM#VORTEX') {
                     return {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Object', universalKey: objectId }],
                         },
                     }
@@ -564,7 +564,7 @@ describe('persistImprovisationObject', () => {
                     return {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
-                        positionGraph: {
+                        ludicGraph: {
                             nodes: [{ tag: 'Object', universalKey: objectTwo }],
                         },
                     }
@@ -586,10 +586,10 @@ describe('persistImprovisationObject', () => {
     it('persistClearCoyoteGameImprovisationObjects is a no-op when graphs have no Object nodes', async () => {
         const result = await persistClearCoyoteGameImprovisationObjects({
             getGameRooms: async () => ['VORTEX'],
-            getRoomPositionGraph: async (room) => ({
+            getRoomLudicGraph: async (room) => ({
                 EphemeraId: room,
                 DataCategory: 'Meta::Room',
-                positionGraph: { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
+                ludicGraph: { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
             }),
         })
 

@@ -17,7 +17,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
-import type { EphemeraPositionGraph } from '../dataSource/positions/positionGraph'
+import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -33,14 +33,14 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 }
 
 export type AffordanceRoomDeliverableObjectReads = {
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
+    getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 
 /**
  * Per-invocation compose memo keyed by (roomId, perspectiveKey): builds affordance-channel
  * room header StandardForm (shortName via ComponentAggregate, exits via AffordanceCache,
- * roster via graph, objects via positionGraph + improvisation merge). Called from perception on Affordances Pertain only.
+ * roster via graph, objects via ludicGraph + improvisation merge). Called from perception on Affordances Pertain only.
  */
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
@@ -90,10 +90,10 @@ export class AffordanceRoomDeliverableData {
         roomId: EphemeraRoomId,
         perspectiveKey: string
     ): Promise<StandardForm> {
-        const [affordanceRow, roomCharacterList, positionGraph] = await Promise.all([
+        const [affordanceRow, roomCharacterList, ludicGraph] = await Promise.all([
             this._affordanceCache.getAffordanceRow(roomId, perspectiveKey),
             getRoomCharacterList(roomId),
-            this._objectReads.getPositionGraph(roomId),
+            this._objectReads.getLudicGraph(roomId),
         ])
 
         if (affordanceRow === undefined) {
@@ -102,7 +102,7 @@ export class AffordanceRoomDeliverableData {
             )
         }
 
-        const objectIds = [...positionGraph.objectIds]
+        const objectIds = [...ludicGraph.objectIds]
         const mergeParticipationOrder = appendImprovisationToPerspective(
             affordanceRow.assetStack,
             objectIds

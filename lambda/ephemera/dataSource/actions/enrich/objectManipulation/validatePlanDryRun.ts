@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import type {
     IdentityPlanCandidate,
@@ -33,12 +33,12 @@ export type DryRunOutcome = {
 
 export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
-    positionGraph?: EphemeraPositionGraph
+    ludicGraph?: EphemeraLudicGraph
     actorCharacterId?: EphemeraCharacterId
 }
 
 export type ValidateRelationalPlanContext = {
-    positionGraph: EphemeraPositionGraph
+    ludicGraph: EphemeraLudicGraph
 }
 
 /**
@@ -87,8 +87,8 @@ function escalateExitEdgeIfNeeded(
     context: ValidateMembershipPlanContext
 ): DryRunOutcome {
     if (
-        context.positionGraph !== undefined
-        && objectTouchesExitEdgeOnGraph(context.positionGraph, objectId)
+        context.ludicGraph !== undefined
+        && objectTouchesExitEdgeOnGraph(context.ludicGraph, objectId)
     ) {
         return {
             verdict: 'defer',
@@ -112,7 +112,7 @@ export function validateRelationalPlanDryRun(
         subjectId: candidate.subject.objectId,
         targetId: candidate.target.objectId,
         normalizedRelation: candidate.plan.relation,
-        graph: context.positionGraph,
+        graph: context.ludicGraph,
     })
     if (legality.type === 'allow') {
         return { verdict: 'legal', decidable: true }

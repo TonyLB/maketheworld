@@ -7,7 +7,7 @@ jest.mock('./syncObjectMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testPositionGraph } from '../positionGraph/testFixtures'
+import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
 import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
@@ -19,7 +19,7 @@ const OBJECT_B = 'OBJECT#Broom' as EphemeraObjectId
 describe('repairObjectPlacementDrift', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn()
-    const getPositionGraph = jest.fn()
+    const getLudicGraph = jest.fn()
     const getMembershipContainers = jest.fn()
     const applyMembership = applyObjectRoomMembership as jest.Mock
     const syncAdjacency = syncObjectMembershipAdjacencyToRoom as jest.Mock
@@ -32,11 +32,11 @@ describe('repairObjectPlacementDrift', () => {
 
     const runRepair = () => repairObjectPlacementDrift(
         { roomId: ROOM_ID, messageBus: messageBus as any, streamEvent },
-        { getPositionGraph, getMembershipContainers, applyMembership, syncAdjacency }
+        { getLudicGraph, getMembershipContainers, applyMembership, syncAdjacency }
     )
 
     it('syncs adjacency when graph lists object but index omits room', async () => {
-        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
+        getLudicGraph.mockResolvedValue(testLudicGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_A }],
         }))
         getMembershipContainers.mockResolvedValue([])
@@ -49,7 +49,7 @@ describe('repairObjectPlacementDrift', () => {
     })
 
     it('scrubs multi-room drift via end-state apply keeping finding room', async () => {
-        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
+        getLudicGraph.mockResolvedValue(testLudicGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_B }],
         }))
         getMembershipContainers.mockResolvedValue(['ROOM#Other', ROOM_ID])
@@ -64,7 +64,7 @@ describe('repairObjectPlacementDrift', () => {
     })
 
     it('BD-35: multi-room scrub suppresses relational facts --- a drift fixup is a silent internal correction', async () => {
-        getPositionGraph.mockResolvedValue(testPositionGraph(ROOM_ID, {
+        getLudicGraph.mockResolvedValue(testLudicGraph(ROOM_ID, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_B }],
         }))
         getMembershipContainers.mockResolvedValue(['ROOM#Other', ROOM_ID])

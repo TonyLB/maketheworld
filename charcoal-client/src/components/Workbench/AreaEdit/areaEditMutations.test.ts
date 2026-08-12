@@ -48,10 +48,10 @@ describe('areaEditMutations', () => {
 
     it('filters and merges nodes by tag', () => {
         const area = getArea()
-        const roomNodes = filterNodesByTag(area.positionGraph.nodes, 'Room')
+        const roomNodes = filterNodesByTag(area.ludicGraph.nodes, 'Room')
         expect(roomNodes.payload).toHaveLength(2)
         const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1', universalKey: 'FEATURE#feat1' })
-        const merged = mergeNodesTagSlice(area.positionGraph.nodes, 'Feature', new ReferenceList([featureRef]))
+        const merged = mergeNodesTagSlice(area.ludicGraph.nodes, 'Feature', new ReferenceList([featureRef]))
         expect(merged.payload.some((ref) => ref.tag === 'Feature')).toBe(true)
         expect(merged.payload.filter((ref) => ref.tag === 'Room')).toHaveLength(2)
     })
@@ -60,18 +60,18 @@ describe('areaEditMutations', () => {
         const area = getArea()
         const featureRef = new StandardReference({ tag: 'Feature', universalKey: 'FEATURE#new' })
         const withFeature = addNodeToArea(area, featureRef)
-        expect(withFeature.positionGraph.nodes.payload.some((ref) => ref.universalKey === 'FEATURE#new')).toBe(true)
+        expect(withFeature.ludicGraph.nodes.payload.some((ref) => ref.universalKey === 'FEATURE#new')).toBe(true)
 
         const withoutFeature = removeNodeFromArea(withFeature, featureRef)
-        expect(withoutFeature.positionGraph.nodes.payload.some((ref) => ref.universalKey === 'FEATURE#new')).toBe(false)
+        expect(withoutFeature.ludicGraph.nodes.payload.some((ref) => ref.universalKey === 'FEATURE#new')).toBe(false)
     })
 
     it('adds edge when participant endpoint rule satisfied', () => {
         const area = getArea()
         addEdgeToArea(area, 'ROOM#highway', 'ROOM#town', 'highwayToTown')
-        expect(area.positionGraph.edges.items).toHaveLength(1)
-        expect(area.positionGraph.edges.items[0].uuid).toEqual('highwayToTown')
-        expect(edgeSatisfiesParticipantRule(area, area.positionGraph.edges.items[0])).toBe(true)
+        expect(area.ludicGraph.edges.items).toHaveLength(1)
+        expect(area.ludicGraph.edges.items[0].uuid).toEqual('highwayToTown')
+        expect(edgeSatisfiesParticipantRule(area, area.ludicGraph.edges.items[0])).toBe(true)
     })
 
     it('stores edge when participant endpoint rule violated', () => {
@@ -87,15 +87,15 @@ describe('areaEditMutations', () => {
             throw new Error('Expected StandardArea')
         }
         addEdgeToArea(area, 'ROOM#a', 'ROOM#b', 'orphan')
-        expect(area.positionGraph.edges.items).toHaveLength(1)
-        expect(area.positionGraph.edges.items[0].uuid).toEqual('orphan')
-        expect(edgeSatisfiesParticipantRule(area, area.positionGraph.edges.items[0])).toBe(false)
+        expect(area.ludicGraph.edges.items).toHaveLength(1)
+        expect(area.ludicGraph.edges.items[0].uuid).toEqual('orphan')
+        expect(edgeSatisfiesParticipantRule(area, area.ludicGraph.edges.items[0])).toBe(false)
     })
 
     it('addEmptyExitEdge creates uuid-only stub in graph', () => {
         const area = getArea()
         const edge = addEmptyExitEdge(area)
-        expect(area.positionGraph.edges.items).toHaveLength(1)
+        expect(area.ludicGraph.edges.items).toHaveLength(1)
         expect(edge.uuid).toBeTruthy()
         expect(edge.toJSON()).toEqual({
             tag: 'Exit',
@@ -108,14 +108,14 @@ describe('areaEditMutations', () => {
         const area = getArea()
         const edge = addEmptyExitEdge(area, 'customStub')
         expect(edge.uuid).toEqual('customStub')
-        expect(area.positionGraph.edges.items[0].uuid).toEqual('customStub')
+        expect(area.ludicGraph.edges.items[0].uuid).toEqual('customStub')
     })
 
     it('retargets From on stub via updateEdgeInArea', () => {
         const area = getArea()
         addEmptyExitEdge(area, 'stubEdge')
         updateEdgeInArea(area, 'stubEdge', (edge) => retargetEdgeEndpoint(edge, 'from', 'ROOM#highway'))
-        const edge = area.positionGraph.edges.items[0]
+        const edge = area.ludicGraph.edges.items[0]
         expect(referenceFromExitEndpoint(edge.from)?.universalKey).toEqual('ROOM#highway')
         expect(referenceFromExitEndpoint(edge.to)).toBeUndefined()
     })
@@ -124,7 +124,7 @@ describe('areaEditMutations', () => {
         const area = getArea()
         addEmptyExitEdge(area, 'stubEdge')
         updateEdgeInArea(area, 'stubEdge', (edge) => retargetEdgeEndpoint(edge, 'to', 'ROOM#town'))
-        const edge = area.positionGraph.edges.items[0]
+        const edge = area.ludicGraph.edges.items[0]
         expect(referenceFromExitEndpoint(edge.to)?.universalKey).toEqual('ROOM#town')
         expect(referenceFromExitEndpoint(edge.from)).toBeUndefined()
     })
@@ -139,15 +139,15 @@ describe('areaEditMutations', () => {
         const area = getArea()
         addEdgeToArea(area, 'ROOM#highway', 'ROOM#town', 'highwayToTown')
         updateEdgeInArea(area, 'highwayToTown', (edge) => retargetEdgeEndpoint(edge, 'to', 'ROOM#highway'))
-        const edge = area.positionGraph.edges.items[0]
+        const edge = area.ludicGraph.edges.items[0]
         const toRef = edge.to
         expect(edge.uuid).toEqual('highwayToTown')
 
         updateEdgeInArea(area, 'highwayToTown', (current) =>
             updateEdgePayloadLiteral(current, 'forward', 'east')
         )
-        expect(updateEdgePayloadLiteral(area.positionGraph.edges.items[0], 'forward', 'east')).toBeTruthy()
-        const updated = area.positionGraph.edges.items[0]
+        expect(updateEdgePayloadLiteral(area.ludicGraph.edges.items[0], 'forward', 'east')).toBeTruthy()
+        const updated = area.ludicGraph.edges.items[0]
         expect(updated.payload?.forward?.toJSON()).toEqual('east')
     })
 
@@ -155,7 +155,7 @@ describe('areaEditMutations', () => {
         const area = getArea()
         addEdgeToArea(area, 'ROOM#highway', 'ROOM#town', 'highwayToTown')
         removeEdgeFromArea(area, 'highwayToTown')
-        expect(area.positionGraph.edges.items).toHaveLength(0)
+        expect(area.ludicGraph.edges.items).toHaveLength(0)
     })
 
     it('finds edges missing participant endpoint after node removal', () => {
@@ -168,14 +168,14 @@ describe('areaEditMutations', () => {
         const violations = findEdgesMissingParticipantEndpoint(withoutBoth)
         expect(violations).toHaveLength(1)
         expect(violations[0].uuid).toEqual('highwayToTown')
-        expect(() => assertEdgeSatisfiesParticipantRule(withoutBoth, violations[0])).toThrow(/requires at least one endpoint in positionGraph.nodes/)
+        expect(() => assertEdgeSatisfiesParticipantRule(withoutBoth, violations[0])).toThrow(/requires at least one endpoint in ludicGraph.nodes/)
     })
 
     it('resolveEndpointLabel returns (unset) for absent endpoint', () => {
         const form = new StandardForm(baseWML)
         const area = getArea()
         addEmptyExitEdge(area, 'stubEdge')
-        const edge = area.positionGraph.edges.items[0]
+        const edge = area.ludicGraph.edges.items[0]
         expect(resolveEndpointLabel(edge, 'from', form)).toEqual('(unset)')
         expect(resolveEndpointLabel(edge, 'to', form)).toEqual('(unset)')
     })
@@ -184,7 +184,7 @@ describe('areaEditMutations', () => {
         it('returns undefined for stub edge with both endpoints unset', () => {
             const area = getArea()
             addEmptyExitEdge(area, 'stubEdge')
-            const edge = area.positionGraph.edges.items[0]
+            const edge = area.ludicGraph.edges.items[0]
             expect(exitEndpointSelectorIsExcluded(area, edge, 'from')).toBeUndefined()
             expect(exitEndpointSelectorIsExcluded(area, edge, 'to')).toBeUndefined()
         })
@@ -193,7 +193,7 @@ describe('areaEditMutations', () => {
             const area = getArea()
             addEmptyExitEdge(area, 'stubEdge')
             updateEdgeInArea(area, 'stubEdge', (e) => retargetEdgeEndpoint(e, 'from', 'ROOM#highway'))
-            const edge = area.positionGraph.edges.items[0]
+            const edge = area.ludicGraph.edges.items[0]
             expect(exitEndpointSelectorIsExcluded(area, edge, 'to')).toBeUndefined()
         })
 
@@ -213,7 +213,7 @@ describe('areaEditMutations', () => {
             }
             addEmptyExitEdge(area, 'portalEdge')
             updateEdgeInArea(area, 'portalEdge', (e) => retargetEdgeEndpoint(e, 'to', 'ROOM#outside'))
-            const edge = area.positionGraph.edges.items[0]
+            const edge = area.ludicGraph.edges.items[0]
             const isExcluded = exitEndpointSelectorIsExcluded(area, edge, 'from')
             expect(isExcluded).toBeDefined()
             expect(isExcluded!('ROOM#highway' as ComponentUUID)).toBe(false)
@@ -236,7 +236,7 @@ describe('areaEditMutations', () => {
             }
             addEmptyExitEdge(area, 'portalEdge')
             updateEdgeInArea(area, 'portalEdge', (e) => retargetEdgeEndpoint(e, 'from', 'ROOM#outside'))
-            const edge = area.positionGraph.edges.items[0]
+            const edge = area.ludicGraph.edges.items[0]
             const isExcluded = exitEndpointSelectorIsExcluded(area, edge, 'to')
             expect(isExcluded).toBeDefined()
             expect(isExcluded!('ROOM#highway' as ComponentUUID)).toBe(false)

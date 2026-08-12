@@ -779,6 +779,140 @@ describe('WML DataSource', () => {
         })
     })
 
+    describe('WML Materialized View Finding Event Processing', () => {
+        const makeEvent = (assetId: string) => ({
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: 0,
+                type: 'WML Materialized View Finding' as const
+            },
+            getContent: () => Promise.resolve({
+                type: 'WML Materialized View Finding' as const,
+                assetId,
+                diagnosticRunId: 'test-run-456',
+                timestamp: '2025-10-18T12:00:00.000Z'
+            })
+        })
+
+        it('should reparse .wml, rewrite .ndjson, and publish Content Update', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStandardForm = new StandardForm('<Asset uuid=(test-asset)><Room uuid=(VORTEX) /></Asset>')
+
+            const workspace: any = {
+                standard: undefined,
+                loadWML: jest.fn().mockImplementation(async function (this: any) {
+                    this.standard = mockStandardForm
+                }),
+                pushJSON: jest.fn().mockResolvedValue(undefined)
+            }
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(workspace)
+
+            await wmlDataSource.receiveEvents!({
+                events: [makeEvent('ASSET#test-asset')],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(AssetWorkspaceMock.fromUUID).toHaveBeenCalledWith('ASSET#test-asset', { preferDynamo: false, allowS3Fallback: true })
+            expect(workspace.loadWML).toHaveBeenCalled()
+            expect(workspace.pushJSON).toHaveBeenCalled()
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: { schema: mockStandardForm },
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Content Update', RequestIds: [] }
+            })
+        })
+
+        it('should be idempotent when run twice against the same asset', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStandardForm = new StandardForm('<Asset uuid=(test-asset)><Room uuid=(VORTEX) /></Asset>')
+
+            const workspace: any = {
+                standard: undefined,
+                loadWML: jest.fn().mockImplementation(async function (this: any) {
+                    this.standard = mockStandardForm
+                }),
+                pushJSON: jest.fn().mockResolvedValue(undefined)
+            }
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(workspace)
+
+            const event = makeEvent('ASSET#test-asset')
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })).resolves.not.toThrow()
+            await expect(wmlDataSource.receiveEvents!({
+                events: [event],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })).resolves.not.toThrow()
+
+            expect(workspace.pushJSON).toHaveBeenCalledTimes(2)
+            expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+        })
+
+        it('should no-op when the asset workspace is not found', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(undefined)
+
+            await wmlDataSource.receiveEvents!({
+                events: [makeEvent('ASSET#missing-asset')],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should skip pushJSON and streamEvent when the .wml load fails, to avoid overwriting .ndjson with empty content', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            const workspace: any = {
+                standard: undefined,
+                status: { wml: 'Clean' },
+                loadWML: jest.fn().mockImplementation(async function (this: any) {
+                    this.status.wml = 'Error'
+                }),
+                pushJSON: jest.fn().mockResolvedValue(undefined)
+            }
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(workspace)
+
+            await wmlDataSource.receiveEvents!({
+                events: [makeEvent('ASSET#test-asset')],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(workspace.loadWML).toHaveBeenCalled()
+            expect(workspace.pushJSON).not.toHaveBeenCalled()
+            expect(mockStreamEvent).not.toHaveBeenCalled()
+        })
+
+        it('should normalize a bare assetId to ASSET#-prefixed form', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStandardForm = new StandardForm('<Asset uuid=(test-asset)><Room uuid=(VORTEX) /></Asset>')
+
+            const workspace: any = {
+                standard: undefined,
+                loadWML: jest.fn().mockImplementation(async function (this: any) {
+                    this.standard = mockStandardForm
+                }),
+                pushJSON: jest.fn().mockResolvedValue(undefined)
+            }
+            AssetWorkspaceMock.fromUUID.mockResolvedValue(workspace)
+
+            await wmlDataSource.receiveEvents!({
+                events: [makeEvent('test-asset')],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(AssetWorkspaceMock.fromUUID).toHaveBeenCalledWith('ASSET#test-asset', { preferDynamo: false, allowS3Fallback: true })
+        })
+    })
+
     describe('Create Snapshot Event Processing', () => {
         it('should process successful snapshot creation', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)

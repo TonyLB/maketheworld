@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { relationalIdentityPlanCandidateFromSpans } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ObjectSpanCandidate } from './spanResolution'
@@ -22,7 +22,7 @@ const span = (
     locus: { kind: 'room' },
 })
 
-const onTableEdge: EphemeraPositionRelationalEdgeData = {
+const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
@@ -38,7 +38,7 @@ describe('validateRelationalPlanDryRun', () => {
             { type: 'enum', kind: 'On' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
-            positionGraph: testPositionGraph(roomId, {
+            ludicGraph: testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object' as const, universalKey: broomId },
                     { tag: 'Object' as const, universalKey: tableId },
@@ -55,7 +55,7 @@ describe('validateRelationalPlanDryRun', () => {
             { type: 'enum', kind: 'On' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
-            positionGraph: testPositionGraph(roomId, { nodes: [] }),
+            ludicGraph: testLudicGraph(roomId, { nodes: [] }),
         })).toEqual({
             verdict: 'illegal',
             decidable: true,
@@ -71,7 +71,7 @@ describe('validateRelationalPlanDryRun', () => {
             { type: 'enum', kind: 'On' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
-            positionGraph: testPositionGraph(roomId, {
+            ludicGraph: testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object' as const, universalKey: broomId },
                     { tag: 'Object' as const, universalKey: tableId },
@@ -92,7 +92,7 @@ describe('validateRelationalPlanDryRun', () => {
             { type: 'enum', kind: 'Under' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
-            positionGraph: testPositionGraph(roomId, {
+            ludicGraph: testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object' as const, universalKey: broomId },
                     { tag: 'Object' as const, universalKey: tableId },

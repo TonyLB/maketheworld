@@ -10,7 +10,7 @@ describe('areaTopologyValidation', () => {
     const areaWithNodes = new StandardArea({
         tag: 'Area',
         key: 'region',
-        positionGraph: {
+        ludicGraph: {
             nodes: [
                 { tag: 'Room', key: 'highway' },
                 { tag: 'Room', key: 'townCenter' },
@@ -72,7 +72,7 @@ describe('areaTopologyValidation', () => {
             const area = new StandardArea({
                 tag: 'Area',
                 key: 'region',
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'highway' }],
                     edges: [
                         bothInGraphEdge.toJSON(),
@@ -94,7 +94,7 @@ describe('areaTopologyValidation', () => {
 
         it('should throw for orphan edges', () => {
             expect(() => assertEdgeSatisfiesParticipantRule(areaWithNodes, orphanEdge))
-                .toThrow(/requires at least one endpoint in positionGraph.nodes/)
+                .toThrow(/requires at least one endpoint in ludicGraph.nodes/)
         })
 
         it('should not throw for incomplete edges', () => {

@@ -1,12 +1,12 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
-    EphemeraPositionGraphFieldPayload,
-    EphemeraPositionRelationalEdgeData,
+    EphemeraLudicGraphFieldPayload,
+    EphemeraLudicRelationalEdgeData,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
@@ -21,7 +21,7 @@ const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge
-): EphemeraPositionRelationalEdgeData => ({
+): EphemeraLudicRelationalEdgeData => ({
     tag: 'Relational',
     from: edge.from,
     to: edge.to,
@@ -32,13 +32,13 @@ export const toStoredRelationalEdge = (
 })
 
 export function extractRelationalEdgesFromStored(
-    graph: EphemeraPositionGraphFieldPayload | PlayPositionGraph
+    graph: EphemeraLudicGraphFieldPayload | PlayLudicGraph
 ): HostRelationalEdge[] {
     const edges = graph.edges ?? []
     const relationalEdges: HostRelationalEdge[] = []
 
     for (const rawEdge of edges) {
-        if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
+        if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
             relationalEdges.push({
                 from: rawEdge.from,
                 to: rawEdge.to,
@@ -106,7 +106,7 @@ export function edgeReferencesObjectId(
     rawEdge: unknown,
     objectId: EphemeraObjectId
 ): boolean {
-    if (isEphemeraPositionRelationalEdgeData(rawEdge)) {
+    if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
         return rawEdge.from === objectId || rawEdge.to === objectId
     }
 

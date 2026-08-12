@@ -6,7 +6,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
 import type { SpanCandidatePool } from './spanResolution'
 import { buildSandboxState } from './sandboxState'
-import { testPositionGraph } from '../../../positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
@@ -22,14 +22,14 @@ const catalog: ObjectManipulationCatalogEntry[] = [
     { objectId: mopId, normalizedShortName: 'mop', catalogScope: 'room' },
 ]
 
-const roomGraph = testPositionGraph(roomId, {
+const roomGraph = testLudicGraph(roomId, {
     nodes: [
         { tag: 'Object' as const, universalKey: bagId },
         { tag: 'Object' as const, universalKey: broomId },
         { tag: 'Object' as const, universalKey: mopId },
     ],
 })
-const characterGraph = testPositionGraph(characterId, {
+const characterGraph = testLudicGraph(characterId, {
     nodes: [{ tag: 'Object' as const, universalKey: satchelId }],
 })
 const sandboxState = buildSandboxState([roomGraph, characterGraph])
@@ -124,7 +124,7 @@ describe('selectMembershipFromPool', () => {
         const carryCatalog: ObjectManipulationCatalogEntry[] = [
             { objectId: trayId, normalizedShortName: 'tray', catalogScope: 'room' },
         ]
-        const roomGraphWithCarry = testPositionGraph(roomId, {
+        const roomGraphWithCarry = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
                 { tag: 'Object' as const, universalKey: glassId },

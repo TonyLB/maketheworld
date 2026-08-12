@@ -34,7 +34,7 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
         return null
     }, [AreaId, standardForm])
 
-    const edges = useMemo(() => area?.positionGraph.edges.items ?? [], [area])
+    const edges = useMemo(() => area?.ludicGraph.edges.items ?? [], [area])
 
     const edgeSummary = useMemo(() => {
         if (!edges.length) {

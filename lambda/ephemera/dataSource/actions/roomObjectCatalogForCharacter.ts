@@ -11,7 +11,7 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import internalCache from '../../internalCache'
-import type { EphemeraPositionGraph } from '../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import { shortNameFromComponent, shortNameFromMergedAggregate } from '../objects/objectShortName'
@@ -30,7 +30,7 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    getPositionGraph: (roomId: EphemeraRoomId) => Promise<EphemeraPositionGraph>
+    getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     resolvePerspective: (
         roomId: EphemeraRoomId,
@@ -42,7 +42,7 @@ export type RoomObjectCatalogDeps = {
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
     getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
-    getPositionGraph: (roomId) => internalCache.Positions.getPositionGraph(roomId),
+    getLudicGraph: (roomId) => internalCache.Positions.getLudicGraph(roomId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []
@@ -72,8 +72,8 @@ export async function getRoomObjectCatalogForCharacter(
         return { roomId: null, entries: [] }
     }
 
-    const positionGraph = await deps.getPositionGraph(roomId)
-    const objectIds = [...positionGraph.objectIds]
+    const ludicGraph = await deps.getLudicGraph(roomId)
+    const objectIds = [...ludicGraph.objectIds]
     if (objectIds.length === 0) {
         return { roomId, entries: [] }
     }

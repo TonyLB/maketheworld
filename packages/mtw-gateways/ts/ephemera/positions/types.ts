@@ -1,18 +1,18 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { StandardPositionGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/positionGraph'
+import type { StandardLudicGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 
 /**
- * Gateway read envelope for play position graphs (Room or Character host).
- * Topology only: normalized to `StandardPositionGraphData`.
- * Dynamo manipulation truth: `EphemeraPositionGraphFieldPayload` on `Meta::Room.positionGraph`.
+ * Gateway read envelope for play ludic graphs (Room or Character host).
+ * Topology only: normalized to `StandardLudicGraphData`.
+ * Dynamo manipulation truth: `EphemeraLudicGraphFieldPayload` on `Meta::Room.ludicGraph`.
  * Mental model: lambda/ephemera/dataSource/positions/AGENT.concepts.md#graph-roles-shared-shape-different-authority
  */
-export type PlayPositionGraph = StandardPositionGraphData
+export type PlayLudicGraph = StandardLudicGraphData
 
 export type PositionsCacheSetParams = {
     componentId: EphemeraCharacterId | EphemeraRoomId;
-    graph: PlayPositionGraph;
+    graph: PlayLudicGraph;
 }
 
 export type MembershipContainersCacheSetParams = {

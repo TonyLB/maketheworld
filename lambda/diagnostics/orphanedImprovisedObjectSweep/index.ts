@@ -1,8 +1,8 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    extractObjectIdsFromPlayPositionGraph,
-    projectComponentGraphFromStoredPositionGraph,
+    extractObjectIdsFromPlayLudicGraph,
+    projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
     DiagnosticsEventSerializer,
@@ -13,7 +13,7 @@ import {
     IMPROVISATION_ASSET_ID,
     isEphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -26,7 +26,7 @@ import { isOrphanedImprovisedObject } from './classification'
 type HostMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraPositionGraphFieldPayload
+    ludicGraph?: EphemeraLudicGraphFieldPayload
 }
 
 type ImprovisationPairRow = {
@@ -92,21 +92,21 @@ const defaultLoadGraphObjectIds = async (): Promise<Set<EphemeraObjectId>> => {
     const [roomRows, characterRows] = await Promise.all([
         queryAllEphemeraRowsByDataCategory<HostMetaRow>({
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph'],
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
         }),
         queryAllEphemeraRowsByDataCategory<HostMetaRow>({
             dataCategory: 'Meta::Character',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph'],
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
         }),
     ])
 
     const objectIds = new Set<EphemeraObjectId>()
     for (const row of [...roomRows, ...characterRows]) {
-        if (!row.positionGraph) {
+        if (!row.ludicGraph) {
             continue
         }
-        const projected = projectComponentGraphFromStoredPositionGraph(row.positionGraph)
-        for (const graphObjectId of extractObjectIdsFromPlayPositionGraph(projected)) {
+        const projected = projectComponentGraphFromStoredLudicGraph(row.ludicGraph)
+        for (const graphObjectId of extractObjectIdsFromPlayLudicGraph(projected)) {
             if (isEphemeraObjectId(graphObjectId)) {
                 objectIds.add(graphObjectId)
             }
@@ -200,7 +200,7 @@ const classifyObject = async (
         hasPairRow: Boolean(pairRow),
         hasMetaRow: Boolean(metaRow),
         membershipContainers,
-        onAnyPositionGraph: graphObjectIds.has(objectId),
+        onAnyLudicGraph: graphObjectIds.has(objectId),
     })
 }
 

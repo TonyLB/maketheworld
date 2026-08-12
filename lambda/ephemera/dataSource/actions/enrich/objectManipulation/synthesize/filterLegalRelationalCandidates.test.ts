@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { ParsePlanStep } from '../parsePlanStep'
 import { filterLegalRelationalCandidates } from './filterLegalRelationalCandidates'
 
@@ -11,10 +11,10 @@ const TABLE = 'OBJECT#Table' as EphemeraObjectId
 const BENCH = 'OBJECT#Bench' as EphemeraObjectId
 
 const cleanGraph = () =>
-    EphemeraPositionGraph.empty(HOST_ID).addObject(BROOM).addObject(TABLE).addObject(BENCH)
+    EphemeraLudicGraph.empty(HOST_ID).addObject(BROOM).addObject(TABLE).addObject(BENCH)
 
-const lookupFor = (graph: EphemeraPositionGraph) => ({
-    getGraph: (hostId: EphemeraMembershipHostId): EphemeraPositionGraph | undefined =>
+const lookupFor = (graph: EphemeraLudicGraph) => ({
+    getGraph: (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined =>
         hostId === HOST_ID ? graph : undefined,
 })
 

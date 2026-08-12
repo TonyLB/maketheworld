@@ -5,7 +5,7 @@ import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import { detectTopologyInvalidations } from './topologyDiff'
 
 describe('detectTopologyInvalidations', () => {
-    it('emits room-scoped invalidation for Area with positionGraph edges', () => {
+    it('emits room-scoped invalidation for Area with ludicGraph edges', () => {
         const form = new StandardForm(deIndentWML(`
             <Asset uuid=(test)>
                 <Area uuid=(region) key=(region)>

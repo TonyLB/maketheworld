@@ -9,6 +9,7 @@ import {
     isOrphanedImprovisedObjectFindingEvent,
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
+    isWMLMaterializedViewFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -98,6 +99,27 @@ describe('DiagnosticsEventSerializer', () => {
                 status: 'stale',
                 diagnosticRunId: 'run-789',
                 timestamp: '2025-10-18T14:00:00.000Z'
+            })
+        })
+
+        it('should serialize WML Materialized View Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#primitives',
+                diagnosticRunId: 'run-wml-1',
+                timestamp: '2025-10-18T14:10:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('WML Materialized View Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#primitives',
+                diagnosticRunId: 'run-wml-1',
+                timestamp: '2025-10-18T14:10:00.000Z'
             })
         })
 
@@ -382,6 +404,57 @@ describe('DiagnosticsEventSerializer', () => {
                 })
                 expect(internal).toBeNull()
             }
+        })
+
+        it('should deserialize WML Materialized View Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#primitives',
+                diagnosticRunId: 'run-wml-2',
+                timestamp: '2025-10-18T14:15:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('WML Materialized View Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#primitives',
+                diagnosticRunId: 'run-wml-2',
+                timestamp: '2025-10-18T14:15:00.000Z'
+            })
+        })
+
+        it('should deserialize WML Materialized View Finding with defaults for optional fields', async () => {
+            const externalEvent: any = {
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#test-asset'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('WML Materialized View Finding')
+            })
+
+            expect(internal).toBeDefined()
+            expect(internal).toMatchObject({
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#test-asset'
+            })
+            if (internal && internal.type === 'WML Materialized View Finding') {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
+        })
+
+        it('should return null for WML Materialized View Finding with missing required fields', async () => {
+            const internal = await serializer.deserialize({
+                content: { type: 'WML Materialized View Finding' },
+                header: diagnosticsHeader('WML Materialized View Finding')
+            })
+            expect(internal).toBeNull()
         })
 
         it('should deserialize Heal Global Values for assets lambda', async () => {
@@ -780,6 +853,12 @@ describe('DiagnosticsEventSerializer', () => {
                     diagnosticRunId: 'test-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
                 })).toBe(true)
+                expect(isDiagnosticsEventUpdate({
+                    type: 'WML Materialized View Finding',
+                    assetId: 'ASSET#primitives',
+                    diagnosticRunId: 'test-123',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                })).toBe(true)
             })
 
             it('should return false for invalid events', () => {
@@ -818,6 +897,26 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isCacheConsistencyFindingEvent({})).toBe(false)
                 expect(isCacheConsistencyFindingEvent({ type: 'Cache Consistency Finding' })).toBe(false)
                 expect(isCacheConsistencyFindingEvent({ type: 'Cache Consistency Finding', assetId: 'x', status: 'repaired' })).toBe(false)
+            })
+        })
+
+        describe('isWMLMaterializedViewFindingEvent', () => {
+            it('should return true for valid WML Materialized View Finding event', () => {
+                const event = {
+                    type: 'WML Materialized View Finding',
+                    assetId: 'ASSET#primitives',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isWMLMaterializedViewFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid events', () => {
+                expect(isWMLMaterializedViewFindingEvent(null)).toBe(false)
+                expect(isWMLMaterializedViewFindingEvent(undefined)).toBe(false)
+                expect(isWMLMaterializedViewFindingEvent({})).toBe(false)
+                expect(isWMLMaterializedViewFindingEvent({ type: 'Wrong Type', assetId: 'ASSET#x' })).toBe(false)
+                expect(isWMLMaterializedViewFindingEvent({ type: 'WML Materialized View Finding' })).toBe(false)
             })
         })
 
@@ -999,6 +1098,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Cache Consistency Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip WML Materialized View Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'WML Materialized View Finding',
+                assetId: 'ASSET#primitives',
+                diagnosticRunId: 'run-wml-rt',
+                timestamp: '2025-10-18T16:05:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('WML Materialized View Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('WML Materialized View Finding')
             })
 
             expect(deserialized).toEqual(original)

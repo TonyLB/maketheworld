@@ -20,11 +20,11 @@ import { StandardSituationData, StandardSituationInputData, isStandardSituationD
 import { StandardAreaData, isStandardAreaData } from "./area"
 import { StandardObjectData, isStandardObjectData } from "./object"
 import {
-    POSITION_GRAPH_NODE_TAGS,
-    StandardPositionGraphData,
-    isStandardPositionGraphData,
-} from "./positionGraph"
-import type { PositionGraphNodeTag } from "./positionGraph"
+    LUDIC_GRAPH_NODE_TAGS,
+    StandardLudicGraphData,
+    isStandardLudicGraphData,
+} from "./ludicGraph"
+import type { LudicGraphNodeTag } from "./ludicGraph"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -33,8 +33,8 @@ import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
 import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
-export type { StandardRoomObjectData, StandardRoomRenderData, StandardPositionGraphData, PositionGraphNodeTag }
-export { POSITION_GRAPH_NODE_TAGS, isStandardPositionGraphData }
+export type { StandardRoomObjectData, StandardRoomRenderData, StandardLudicGraphData, LudicGraphNodeTag }
+export { LUDIC_GRAPH_NODE_TAGS, isStandardLudicGraphData }
 export {
     isStandardCharacterData,
     isStandardRoomData,

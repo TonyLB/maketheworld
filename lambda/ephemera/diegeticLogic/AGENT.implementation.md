@@ -68,7 +68,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 | --- | --- | --- | --- |
 | **`takeHold`** | Shipped | room -> character | v1 reference vertical |
 | **`drop`** | Shipped | character -> room | Symmetric delta; held-catalog at classify/enrich |
-| Relational attach (`establishRelation` / `dissolveRelation`) | Shipped (Phase B) | in-host edge on room **`positionGraph`** | Parse -> actions stream -> positions apply -> perception fan-in; operator fiction in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) |
+| Relational attach (`establishRelation` / `dissolveRelation`) | Shipped (Phase B) | in-host edge on room **`ludicGraph`** | Parse -> actions stream -> positions apply -> perception fan-in; operator fiction in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) |
 
 ---
 

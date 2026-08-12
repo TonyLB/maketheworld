@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../../types'
-import type { CarryClosureFragment } from '../../../positionGraph/expandValidate/interactionUnderTransfer'
+import type { CarryClosureFragment } from '../../../ludicGraph/expandValidate/interactionUnderTransfer'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import type { MembershipEmissionCopyKind } from '../kernelStep'
 

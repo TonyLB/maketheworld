@@ -2,7 +2,7 @@
 
 Graph-grounded persist for `mtw.ephemera.positions`. Every membership and relational mutation --- navigate/connect/disconnect, object place/spawn/destroy/edit/drift-repair, take-hold/drop, establish/dissolve --- is expressed as an ordered **step sequence** and committed through one kernel entrypoint, [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts). Per-operator coordinators own ingress shape and the fact/cache/bus bundle; the kernel owns transaction atomicity, legality re-verification, and fact streaming.
 
-**Play graph model:** [`../positionGraph/`](../positionGraph/) is the shared in-memory primitive. The kernel loads host graphs via `graphFromMeta`, simulates with `EphemeraPositionGraph`'s pure mutators, and persists via `toStored()`. See [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md).
+**Play graph model:** [`../ludicGraph/`](../ludicGraph/) is the shared in-memory primitive. The kernel loads host graphs via `graphFromMeta`, simulates with `EphemeraLudicGraph`'s pure mutators, and persists via `toStored()`. See [`../ludicGraph/AGENT.md`](../ludicGraph/AGENT.md).
 
 Contracts: [`../AGENT.contract.md`](../AGENT.contract.md). Concepts: [`../AGENT.concepts.md`](../AGENT.concepts.md).
 
@@ -117,7 +117,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 | **Validate** | The reducer re-runs [`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) against freshly-fetched graphs; a non-`legal` verdict throws and aborts the whole transact rather than applying a stale plan |
 | **Transact** | One `transactWrite`: the `MultiKeyUpdate` item plus plain sibling adjacency `Put`/`Delete` items, under `exponentialBackoffWrapper` retrying `TransactionCanceledException` |
 | **Output** | `MutationKernelCommitResult` --- `{ ok: true, beatAnchorTime, steps, captures }` or `{ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage }`. **`captures` exists only on the success branch**, which is what makes "narrate only a committed mutation" a type-level guarantee rather than a convention |
-| **Conflict** | On conflict between graph and adjacency, **`positionGraph` wins** (unchanged positions authority) |
+| **Conflict** | On conflict between graph and adjacency, **`ludicGraph` wins** (unchanged positions authority) |
 
 **Footprint derivation.** `transferMembership` contributes every `fromHostIds` member plus `toHostId` when non-null --- all decided at grounding time. `capture` contributes its `hostId`, which is the whole point of it being an array step: a capture may name a host no mutation touches, and `MultiKeyUpdate` cannot be re-entered mid-reducer to lock a newly-discovered one. `establishRelation`/`dissolveRelation` carry no host field, so both endpoints' *pre-transaction* host comes from the injected `getCurrentHost` resolver. The footprint is a lock-set declaration only, never trusted as ground truth: the reducer independently re-derives each relational step's shared host from the locked graphs.
 
@@ -137,7 +137,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 
 | Step shape | Behavior |
 | --- | --- |
-| **Real transfer** | Object subset routes through [`applyTransferSet`](../positionGraph/expandValidate/applyTransferSet.ts) --- the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox. Relational edges *internal* to the transfer set are re-materialized on the destination graph by `applyTransferSet` itself, derived live from the freshly-fetched source graph --- never precomputed and passed in. Character subset is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge |
+| **Real transfer** | Object subset routes through [`applyTransferSet`](../ludicGraph/expandValidate/applyTransferSet.ts) --- the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox. Relational edges *internal* to the transfer set are re-materialized on the destination graph by `applyTransferSet` itself, derived live from the freshly-fetched source graph --- never precomputed and passed in. Character subset is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge |
 | **Pure remove** | Presence-check then `removeObject`/`removeCharacter` per departure host. **No** boundary sweep here --- the caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the entity carried. A residual edge makes `removeObject` throw, by design |
 | **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |
@@ -278,7 +278,7 @@ Public coordinator APIs remain membership-shaped at ingress --- **not** raw step
 
 ### Host-local relational patch
 
-Relational operations add/remove **edges** on a fixed host `positionGraph` without changing membership host. They do **not** route through the shared membership adapter; they compose with membership transfer by appearing in the same step sequence.
+Relational operations add/remove **edges** on a fixed host `ludicGraph` without changing membership host. They do **not** route through the shared membership adapter; they compose with membership transfer by appearing in the same step sequence.
 
 ```text
 Per-operator ingress (relational)     Object Establish Relation | Object Dissolve Relation
@@ -294,11 +294,11 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | --- | --- |
 | **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
 | **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
-| **Edge helpers** | [`../positionGraph/`](../positionGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
+| **Edge helpers** | [`../ludicGraph/`](../ludicGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
 
-**Kernel rules for relational steps.** The step carries no host field: `applyStepSequenceCore` derives the shared host live and throws on mismatch. `EphemeraPositionGraph.applyRelationalPatch` is the single legality authority (including `bothObjectsOnGraph`); `op: 'add'` is idempotent when the exact edge is already present, and removing an absent edge is rejected. Host may be a Room or a Character graph. **No adjacency dual-write.**
+**Kernel rules for relational steps.** The step carries no host field: `applyStepSequenceCore` derives the shared host live and throws on mismatch. `EphemeraLudicGraph.applyRelationalPatch` is the single legality authority (including `bothObjectsOnGraph`); `op: 'add'` is idempotent when the exact edge is already present, and removing an absent edge is rejected. Host may be a Room or a Character graph. **No adjacency dual-write.**
 
 **Repair transfers.** When ingress carries `transferFromHostId`, the coordinator re-derives the carry closure and boundary-edge outcomes fresh from the live source graph rather than trusting a Plan-stage snapshot. A surviving `carry` outcome on the boundary is an internal inconsistency (`RELATIONAL_TRANSFER_INCONSISTENT`); a `defer` outcome means the candidate went stale and needs LLM validation (`RELATIONAL_TRANSFER_DEFERRED`). Only `dissolve` outcomes become steps.
 
@@ -338,7 +338,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Steps apply in array order and are never resorted | [`applyStepSequenceCore.ts`](kernel/applyStepSequenceCore.ts) |
 | Facts stream in step order, before the `RoomUpdate` publish loop | [`factsForStep.ts`](kernel/factsForStep.ts) |
 | Relational edges are forward-graph only --- no adjacency dual-write | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
-| On graph/adjacency conflict, `positionGraph` wins | [`../positionGraph/`](../positionGraph/) |
+| On graph/adjacency conflict, `ludicGraph` wins | [`../ludicGraph/`](../ludicGraph/) |
 | Transfer planning lives in the shared adapter (`adapters/`) or the Synthesize executor, never in the kernel | [`adapters/`](adapters/) |
 | A capture step carries no write payload and cannot reach the write set | [`kernelStep.ts`](kernel/kernelStep.ts) (shape), [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Captures are recorded by assignment, never append, so a reducer retry cannot duplicate them | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
@@ -348,7 +348,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 ### Anti-patterns
 
-- New `update*PositionGraphs` modules bundling planner + transact.
+- New `update*LudicGraphs` modules bundling planner + transact.
 - Per-verb diff computers outside the shared adapter.
 - Route-specific kernel wrappers over `commitStepSequence` (this recreates, one layer up, exactly the organization the unified kernel exists to retire).
 - Kernel prior-read via `getMembershipContainers`.
@@ -408,7 +408,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`types.ts`](types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` (the last is `EphemeraPositionGraph.applyRelationalPatch`'s own input shape) |
+| [`types.ts`](types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` (the last is `EphemeraLudicGraph.applyRelationalPatch`'s own input shape) |
 
 ---
 
@@ -434,7 +434,7 @@ npm --prefix lambda/ephemera run test -- --watchAll=false \
 rg -n "getMembershipContainers" \
   lambda/ephemera/dataSource/positions/manipulation/kernel/
 
-rg -n "updatePositionGraphs|updateObjectPositionGraphs|updateTakeHoldPositionGraphs|updateDropPositionGraphs" \
+rg -n "updateLudicGraphs|updateObjectLudicGraphs|updateTakeHoldLudicGraphs|updateDropLudicGraphs" \
   lambda/ephemera/dataSource/positions/
 ```
 
@@ -448,6 +448,6 @@ rg -n "updatePositionGraphs|updateObjectPositionGraphs|updateTakeHoldPositionGra
 | [`../AGENT.md`](../AGENT.md) | Positions package entry |
 | [`../AGENT.contract.md`](../AGENT.contract.md) | Shipped normative rules |
 | [`../AGENT.concepts.md`](../AGENT.concepts.md) | Mental models: membership, eviction ladder, graph roles |
-| [`../positionGraph/AGENT.md`](../positionGraph/AGENT.md) | Shared play graph primitive |
+| [`../ludicGraph/AGENT.md`](../ludicGraph/AGENT.md) | Shared play graph primitive |
 | [`../../actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md) | Object manipulation parse steady-state; atomic operator playbook |
 | [`../../../diegeticLogic/AGENT.implementation.md`](../../../diegeticLogic/AGENT.implementation.md) | Operator intent/fact/presentation playbooks |

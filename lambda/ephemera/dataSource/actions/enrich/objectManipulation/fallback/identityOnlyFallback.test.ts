@@ -4,7 +4,7 @@ import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../..
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import { buildSandboxState } from '../sandboxState'
-import { testPositionGraph } from '../../../../positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import {
     invokeIdentityOnlyFallback,
     proposeIdentityOnlyFallbackTuples,
@@ -125,10 +125,10 @@ describe('identityOnlyFallback', () => {
         })
 
         it('resolves a real LLM-proposed candidate through the shared sandbox dry run', async () => {
-            const roomGraph = testPositionGraph(roomId, {
+            const roomGraph = testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object' as const, universalKey: bagId }],
             })
-            const characterGraph = testPositionGraph(characterId, { nodes: [] })
+            const characterGraph = testLudicGraph(characterId, { nodes: [] })
             const sandboxState = buildSandboxState([roomGraph, characterGraph])
             const body = JSON.stringify({ candidates: [{ objectId: bagId, confidence: 0.95 }] })
 

@@ -1,4 +1,4 @@
-import { boundaryEdgeOutcomes } from '../../../../positions/positionGraph/expandValidate/interactionUnderTransfer'
+import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
 import { groundAssertion } from './groundAssertion'

@@ -20,7 +20,7 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import messageBus from '../../messageBus'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../renderCache/queryAllRenderCacheDataCategoriesForComponent'
-import { collectObjectIdsFromPositionGraph } from './collectObjectIdsFromRoomPositionGraphs'
+import { collectObjectIdsFromLudicGraph } from './collectObjectIdsFromRoomLudicGraphs'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
@@ -61,7 +61,7 @@ export type DeleteImprovisationObjectArgs = {
 
 export type ClearCoyoteGameImprovisationObjectsArgs = {
     getGameRooms?: () => Promise<string[]>;
-    getRoomPositionGraph?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
+    getRoomLudicGraph?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
 }
 
 export type PersistImprovisationObjectDependencies = {
@@ -360,11 +360,11 @@ export const persistDeleteImprovisationObject = async (
     }
 }
 
-const defaultGetRoomPositionGraph = async (roomId: EphemeraRoomId) =>
+const defaultGetRoomLudicGraph = async (roomId: EphemeraRoomId) =>
     internalCache.ComponentEphemeraMeta.get(roomId)
 
 /**
- * Coyote-scoped bulk delete: enumerate OBJECT# ids from stored positionGraph on game rooms,
+ * Coyote-scoped bulk delete: enumerate OBJECT# ids from stored ludicGraph on game rooms,
  * then delete pair + Meta::Object + EMBEDDING#IMPROMPTU rows. Does not mutate graphs (Phase 4 placement).
  */
 export const persistClearCoyoteGameImprovisationObjects = async (
@@ -373,7 +373,7 @@ export const persistClearCoyoteGameImprovisationObjects = async (
 ): Promise<{ ok: true; deletedObjectIds: EphemeraObjectId[]; affectedRoomIds: EphemeraRoomId[] } | { ok: false; errorMessage: string }> => {
     const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
     const getGameRooms = args.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
-    const getRoomPositionGraph = args.getRoomPositionGraph ?? defaultGetRoomPositionGraph
+    const getRoomLudicGraph = args.getRoomLudicGraph ?? defaultGetRoomLudicGraph
 
     try {
         const gameRooms = await getGameRooms()
@@ -381,8 +381,8 @@ export const persistClearCoyoteGameImprovisationObjects = async (
         const objectIdSet = new Set<EphemeraObjectId>()
 
         for (const roomId of affectedRoomIds) {
-            const meta = await getRoomPositionGraph(roomId)
-            for (const objectId of collectObjectIdsFromPositionGraph(meta?.positionGraph)) {
+            const meta = await getRoomLudicGraph(roomId)
+            for (const objectId of collectObjectIdsFromLudicGraph(meta?.ludicGraph)) {
                 objectIdSet.add(objectId)
             }
         }

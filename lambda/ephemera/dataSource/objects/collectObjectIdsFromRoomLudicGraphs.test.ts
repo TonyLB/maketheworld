@@ -1,16 +1,16 @@
 import {
-    collectObjectIdsFromPositionGraph,
-    collectObjectIdsFromRoomPositionGraphs,
-} from './collectObjectIdsFromRoomPositionGraphs'
+    collectObjectIdsFromLudicGraph,
+    collectObjectIdsFromRoomLudicGraphs,
+} from './collectObjectIdsFromRoomLudicGraphs'
 
-describe('collectObjectIdsFromRoomPositionGraphs', () => {
+describe('collectObjectIdsFromRoomLudicGraphs', () => {
     const objectA = 'OBJECT#a' as const
     const objectB = 'OBJECT#b' as const
     const roomOne = 'ROOM#One' as const
     const roomTwo = 'ROOM#Two' as const
 
     it('collects Object nodes from a single graph', () => {
-        expect(collectObjectIdsFromPositionGraph({
+        expect(collectObjectIdsFromLudicGraph({
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#X' },
                 { tag: 'Object', universalKey: objectA },
@@ -19,7 +19,7 @@ describe('collectObjectIdsFromRoomPositionGraphs', () => {
     })
 
     it('dedupes across room graphs', () => {
-        expect(collectObjectIdsFromRoomPositionGraphs({
+        expect(collectObjectIdsFromRoomLudicGraphs({
             [roomOne]: {
                 nodes: [{ tag: 'Object', universalKey: objectA }],
             },
@@ -33,9 +33,9 @@ describe('collectObjectIdsFromRoomPositionGraphs', () => {
     })
 
     it('returns empty when graphs have no Object nodes', () => {
-        expect(collectObjectIdsFromRoomPositionGraphs({
+        expect(collectObjectIdsFromRoomLudicGraphs({
             [roomOne]: { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
         })).toEqual([])
-        expect(collectObjectIdsFromPositionGraph(undefined)).toEqual([])
+        expect(collectObjectIdsFromLudicGraph(undefined)).toEqual([])
     })
 })

@@ -1,12 +1,12 @@
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isStandardPositionGraphData, StandardPositionGraphData } from "./positionGraph"
+import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 
 export type StandardAreaData = {
     tag: 'Area';
     shortName?: StandardEditableData<string>;
-    positionGraph?: StandardPositionGraphData;
+    ludicGraph?: StandardLudicGraphData;
 } & StandardBaseData
 
 export const isStandardAreaData = (arg: unknown): arg is StandardAreaData => {
@@ -16,7 +16,7 @@ export const isStandardAreaData = (arg: unknown): arg is StandardAreaData => {
 
     return checkAll(
         ('tag' in arg && arg.tag === 'Area'),
-        (!('positionGraph' in arg) || isStandardPositionGraphData(arg.positionGraph)),
+        (!('ludicGraph' in arg) || isStandardLudicGraphData(arg.ludicGraph)),
         checkTypes(arg, {},
         {
             key: 'key',

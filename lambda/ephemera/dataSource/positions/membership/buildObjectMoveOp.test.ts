@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { buildObjectMoveOp } from './buildObjectMoveOp'
-import type { CarryClosureFragment } from '../positionGraph/expandValidate/interactionUnderTransfer'
+import type { CarryClosureFragment } from '../ludicGraph/expandValidate/interactionUnderTransfer'
 
 const TRAY = 'OBJECT#Tray' as EphemeraObjectId
 const GLASS = 'OBJECT#Glass' as EphemeraObjectId

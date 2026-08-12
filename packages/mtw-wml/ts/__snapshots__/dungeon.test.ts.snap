@@ -988,7 +988,7 @@ exports[`large WML test should standardize properly 1`] = `
   },
   {
     "key": "dungeonTopology",
-    "positionGraph": {
+    "ludicGraph": {
       "edges": [
         {
           "from": {

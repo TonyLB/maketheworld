@@ -142,7 +142,7 @@ Track resolutions here or in linked **`AGENT.md`** files next to code. Mark **[X
 ### Fact ownership (agreed)
 
 - **Room-render channel** owns **render-backed** presentation: **ShortName**, **assets**, **DisplayName / Summary / Description** via **`<Render>`** / **`renderCache`** pipeline (see **Implementation-level aggregation** above).
-- **Room-affordances channel** owns structured facts: **exits** (from Area **`positionGraph.edges`** projection), **characters** present, **objects**, **features**.
+- **Room-affordances channel** owns structured facts: **exits** (from Area **`ludicGraph.edges`** projection), **characters** present, **objects**, **features**.
 - **Situation / Lens / Guidance** are **not** forwarded for this UI slice.
 - **`RoomUpdate`:** **Server** added affordance **`PerceptionMessage`** in **Phase B** (see **Phase B server migration (agreed)** above). **Phase C client** stops using **`RoomUpdate`** for the sticky-header path and keeps it **off** visible rows (**[Phase C client composition (agreed)](#phase-c-client-composition-agreed)**), without mandating storage purge; **server** wire **`RoomUpdate`** emission is **retired** (internal bus hook still drives affordance publishes only).
 

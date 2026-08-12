@@ -30,7 +30,7 @@ Concept extension of [`../AGENT.concepts.md`](../AGENT.concepts.md). Normative r
 
 ## Relation to positions (today)
 
-Shipped play graphs hold **membership** (character and object **nodes** in rooms; adjacency reverse index) and **in-host relational edges** on room **`positionGraph`** (`On`, `Under`, `Against`, `Custom` + label --- Phase B). Nested containment (`in` / inside) remains future work ([`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges)).
+Shipped play graphs hold **membership** (character and object **nodes** in rooms; adjacency reverse index) and **in-host relational edges** on room **`ludicGraph`** (`On`, `Under`, `Against`, `Custom` + label --- Phase B). Nested containment (`in` / inside) remains future work ([`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-ludic-graphs-container-scale-and-edges)).
 
 Operator fiction and transcript obligations for shipped manipulation verbs: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md). Normative persist and ingress rules: [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md).
 
@@ -38,6 +38,6 @@ Operator fiction and transcript obligations for shipped manipulation verbs: [`AG
 
 ## Future: nested containment (post-vertical)
 
-v1 in-room objects are **top-level nodes** on **`Meta::Room.positionGraph`**, sufficient for **`takeHold`** on loose objects. Later slices may add nested portable containment, non-local extent via relational claims, and derived scene closures --- without dual-authority membership or monolithic room indexes.
+v1 in-room objects are **top-level nodes** on **`Meta::Room.ludicGraph`**, sufficient for **`takeHold`** on loose objects. Later slices may add nested portable containment, non-local extent via relational claims, and derived scene closures --- without dual-authority membership or monolithic room indexes.
 
-Design direction when nested container-host manipulation ships: fractal hosts in [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-position-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md). Shipped operators: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).
+Design direction when nested container-host manipulation ships: fractal hosts in [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md#fractal-ludic-graphs-container-scale-and-edges); unknowns / elaborate vs assert in [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md). Shipped operators: [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md).

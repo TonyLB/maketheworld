@@ -1,14 +1,14 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { MutationKernelStep } from './kernelStep'
 
 export type StepSequenceFootprint = ReadonlySet<EphemeraMembershipHostId>
 
 /**
  * A capture step's (PB-J) output: rosters snapshotted mid-walk, keyed by the caller-assigned
- * `captureId`. Plain arrays, never the live `EphemeraPositionGraph`-backed `Set` --- these values
+ * `captureId`. Plain arrays, never the live `EphemeraLudicGraph`-backed `Set` --- these values
  * are handed out past the `MultiKeyUpdate` reducer boundary (PB-E), and, once a narration branch
  * consumes them (Phase 2), past the transaction entirely.
  */
@@ -24,7 +24,7 @@ export type MutationKernelCaptures = ReadonlyMap<string, readonly EphemeraCharac
  * was captured so far, since nothing commits.
  */
 export type MutationKernelApplyOutcome =
-    | { verdict: 'legal'; graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>; captures: MutationKernelCaptures }
+    | { verdict: 'legal'; graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>; captures: MutationKernelCaptures }
     | { verdict: 'illegal'; reasonCode: string }
     | { verdict: 'defer'; decidable: boolean; reasonCode: string }
 

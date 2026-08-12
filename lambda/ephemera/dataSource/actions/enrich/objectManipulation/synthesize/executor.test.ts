@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipChange } from '../plan/ungroundedPrimitive'
 import type { GroundingContext } from './groundReferent'
@@ -24,7 +24,7 @@ const emptyGroundingContext: GroundingContext = {
 
 describe('runExecutor', () => {
     it('BD-13: carries a connected object and dissolves a boundary edge, transferMembership retiring after its paired isolatedFromRelations', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addObject(CUP_ID)
             .addObject(TABLE_ID)
@@ -72,8 +72,8 @@ describe('runExecutor', () => {
     })
 
     it("BD-16: repairs a sameHost violation, the repair transfer (and its own isolatedFromRelations) retiring before the paired relational Change", () => {
-        const characterGraph = EphemeraPositionGraph.empty(CHARACTER_ID).addObject(SAUCER_ID)
-        const roomGraph = EphemeraPositionGraph.empty(ROOM_ID).addObject(CUP_ID)
+        const characterGraph = EphemeraLudicGraph.empty(CHARACTER_ID).addObject(SAUCER_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(CUP_ID)
 
         const env = createExpansionEnvironment(
             (hostId) => {
@@ -113,7 +113,7 @@ describe('runExecutor', () => {
     })
 
     it('BD-16: a satisfied sameHost mints no repair, the relational Change retires alone', () => {
-        const roomGraph = EphemeraPositionGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
@@ -142,7 +142,7 @@ describe('runExecutor', () => {
     })
 
     it('BD-28: a lone isolatedFromRelations (no paired transfer) mints its DissolveRelationSteps directly', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addObject(TABLE_ID)
             .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'On' })
@@ -165,7 +165,7 @@ describe('runExecutor', () => {
     })
 
     it('errors if a carry-classified edge survives to command-expansion time (internal-consistency guard)', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addObject(CUP_ID)
             .addRelationalEdge({ from: CUP_ID, to: TRAY_ID, kind: 'On' })
@@ -188,7 +188,7 @@ describe('runExecutor', () => {
     })
 
     it('defers the whole run on a Custom-kind boundary edge, not a partial result', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addObject(WEIRD_ID)
             .addRelationalEdge({ from: TRAY_ID, to: WEIRD_ID, kind: 'Custom', relationLabel: 'tangled up with' })
@@ -221,7 +221,7 @@ describe('runExecutor', () => {
     })
 
     it('runs a fully-grounded seed with no GroundingContext supplied', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID).addObject(TRAY_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? graph : undefined),
             (id) => (id === TRAY_ID ? ROOM_ID : undefined)
@@ -246,7 +246,7 @@ describe('runExecutor', () => {
     })
 
     it('errors rather than throwing when an ungrounded instruction is seeded with no GroundingContext', () => {
-        const graph = EphemeraPositionGraph.empty(ROOM_ID).addObject(TRAY_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? graph : undefined),
             (id) => (id === TRAY_ID ? ROOM_ID : undefined)

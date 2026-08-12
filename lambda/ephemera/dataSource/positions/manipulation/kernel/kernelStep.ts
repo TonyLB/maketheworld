@@ -48,13 +48,13 @@ export type MutationKernelCaptureStep = {
 }
 
 /**
- * The positionGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
+ * The ludicGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
  * `computeStepSequenceFootprint.ts`, `factsForStep.ts`) --- `transactWrite` bundling, footprint
  * locking, fact-streaming --- exists only to solve mutation problems, so it keeps accepting this
  * narrower type. `MutationKernelCaptureStep` joins it (PB-J), widening it for the first time since
  * the `describe` widening was drawn *against* --- capture reads a host's roster, so it needs the same
  * footprint-locking and reducer-walk machinery every other mutation step gets, even though it writes
- * nothing. A `describe` step must never reach any of these; the positionGraph kernel's own type-guard
+ * nothing. A `describe` step must never reach any of these; the ludicGraph kernel's own type-guard
  * filter (Phase 3) excludes it before a step sequence is ever built, so this alias --- not the widened
  * `KernelStep` --- is what those files' signatures should keep using.
  */
@@ -87,7 +87,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * Everything the copy-generator needs and nothing the presentation kernel's plumbing does --- the
  * structural form of the same boundary `kind: 'narrate'` draws at the walk-dispatch level (see
  * `PresentationKernelNarrateStep` below). Discriminated on narration *family*, deliberately not on
- * `direction`: `direction` is a membership-narration concept (leave/arrive between positionGraph
+ * `direction`: `direction` is a membership-narration concept (leave/arrive between ludicGraph
  * hosts), not a universal property of narration, and the axis a second member actually arrives along
  * is family --- and Phase 4 paid that prediction off exactly: `ObjectMoveNarrationSpec` shares not
  * one field with `MembershipNarrationSpec`, carrying item/actor vocabulary instead, while a
@@ -110,7 +110,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  *   3. per-family *modules* can't already solve it.
  *
  * That third condition is what usually settles it. Heavy per-family logic --- e.g. an object-move
- * narration doing complex work across several positionGraphs' captures --- reads like class
+ * narration doing complex work across several ludicGraphs' captures --- reads like class
  * pressure, but it is cohesion pressure, and a module named for the family
  * (`objectTransferNarration.ts` exporting one builder) gives the same locality while keeping
  * `buildNarrationCopy` a two-line dispatcher. Complex capture work needs
@@ -122,7 +122,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * not own-enumerable).
  *
  * The Immer hazard sometimes cited alongside that is **not** a class-vs-plain distinction, and an
- * earlier revision of this comment overstated it. `EphemeraPositionGraph` instances cross a
+ * earlier revision of this comment overstated it. `EphemeraLudicGraph` instances cross a
  * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
  * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
  * rather than retaining the draft's own element references --- see its doc comment. The real rule is
@@ -240,7 +240,7 @@ export type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNa
  * `MutationKernelTransferStep` literals, not through this adapter, since they never go through the
  * Synthesize executor at all. `describe` steps pass through unchanged, same as the relational kinds.
  *
- * Overloaded (not just declared as `ExecutorParsePlanStep => KernelStep`) so that the positionGraph
+ * Overloaded (not just declared as `ExecutorParsePlanStep => KernelStep`) so that the ludicGraph
  * kernel's mutation-only call sites --- which only ever pass a `TransferMembershipStep`/relational
  * step, never a `describe` step --- get `MutationKernelStep` back statically, with no cast needed at
  * the call site.

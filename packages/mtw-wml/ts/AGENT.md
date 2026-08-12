@@ -106,7 +106,7 @@ standard form, the data would be expressed as follows:
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
-**Area (spatial regions):** **`<Area />`** is a first-class component for large spatial regions. Participant references (other Areas, Rooms, Features, Characters) are **direct children** of `<Area>` --- there is no `<PositionGraph>` wrapper tag. JSON stores **`positionGraph: { nodes?, edges? }`** (topology edges on **`edges`**). Areas are strong candidates for asset **`topLevel`** authoring. Implementation: [**StandardArea**](./standardize/components/AGENT.implementation.md#standardarea-), [`keys/edges/AGENT.edges.md`](./standardize/keys/edges/AGENT.edges.md), [`dataTypes/AGENT.md`](./standardize/components/dataTypes/AGENT.md) (**StandardAreaData**), integration tests in [`area.integration.test.ts`](./standardize/components/area.integration.test.ts).
+**Area (spatial regions):** **`<Area />`** is a first-class component for large spatial regions. Participant references (other Areas, Rooms, Features, Characters) are **direct children** of `<Area>` --- there is no `<LudicGraph>` wrapper tag. JSON stores **`ludicGraph: { nodes?, edges? }`** (topology edges on **`edges`**). Areas are strong candidates for asset **`topLevel`** authoring. Implementation: [**StandardArea**](./standardize/components/AGENT.implementation.md#standardarea-), [`keys/edges/AGENT.edges.md`](./standardize/keys/edges/AGENT.edges.md), [`dataTypes/AGENT.md`](./standardize/components/dataTypes/AGENT.md) (**StandardAreaData**), integration tests in [`area.integration.test.ts`](./standardize/components/area.integration.test.ts).
 
 ```xml
 <Asset uuid=(World)>
@@ -180,7 +180,7 @@ should be delivered to when activated) or with data relevant only in the context
 the `Map` example above).
 
 There are also **tags** which themselves act as ways to represent *data associated with* a link between two
-components. **Area topology** uses **`<Exit uuid=(...)>`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** on **`positionGraph.edges`** (canonical authoring). Legacy room-local **`<Exit to=(...)>`** parses for ephemeraWire but is **forbidden in asset authoring**; live play exits are projected from Area edges. See [`standardize/keys/edges/AGENT.edges.md`](./standardize/keys/edges/AGENT.edges.md). A **`Link`** tag represents a connection to another component used to style text in a description.
+components. **Area topology** uses **`<Exit uuid=(...)>`** with **`<From>`**, **`<To>`**, **`<Forward>`**, **`<Back>`** on **`ludicGraph.edges`** (canonical authoring). Legacy room-local **`<Exit to=(...)>`** parses for ephemeraWire but is **forbidden in asset authoring**; live play exits are projected from Area edges. See [`standardize/keys/edges/AGENT.edges.md`](./standardize/keys/edges/AGENT.edges.md). A **`Link`** tag represents a connection to another component used to style text in a description.
 
 #### **Content**
 

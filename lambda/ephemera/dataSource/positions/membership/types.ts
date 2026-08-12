@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 
 export type RoomStackItem = {
@@ -51,10 +51,10 @@ export type MembershipGraphPersistSuccess = {
     persisted: true;
     diff: MembershipDiff;
     /** Post-mutation room topology per affected room; coordinator seeds Positions memo. */
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraPositionGraphFieldPayload>>;
+    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraLudicGraphFieldPayload>>;
 }
 
-export type UpdatePositionGraphsResult =
+export type UpdateLudicGraphsResult =
     | MembershipGraphPersistSuccess
     | { ok: true; persisted: false; diff: MembershipDiff }
     | MembershipApplyErrorResult

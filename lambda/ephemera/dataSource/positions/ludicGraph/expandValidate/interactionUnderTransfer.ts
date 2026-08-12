@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraPositionGraph, HostRelationalEdge } from '../index'
+import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
@@ -49,11 +49,11 @@ export function roleOfObjectInEdge(
  * `members`) --- the induced subgraph, not the severed boundary edges, which
  * stay with `boundaryEdgeOutcomes` and Expansion (PB-9).
  *
- * This is a rooted graph, which is precisely what `EphemeraPositionGraph`
- * would already be if it carried a root. If `positionGraph` ever gains a
+ * This is a rooted graph, which is precisely what `EphemeraLudicGraph`
+ * would already be if it carried a root. If `ludicGraph` ever gains a
  * root concept, this shape should collapse into it rather than persist as a
  * parallel shape re-expressing the same idea (see the reciprocal note on the
- * `positionGraph` side).
+ * `ludicGraph` side).
  */
 export type CarryClosureFragment = {
     rootId: EphemeraObjectId
@@ -72,7 +72,7 @@ export type CarryClosureFragment = {
  */
 export function computeCarryClosure(
     startId: EphemeraObjectId,
-    graph: EphemeraPositionGraph
+    graph: EphemeraLudicGraph
 ): CarryClosureFragment {
     const closureSet = new Set<EphemeraObjectId>([startId])
     const internalEdges: HostRelationalEdge[] = []
@@ -115,7 +115,7 @@ export type BoundaryEdgeOutcome = {
  */
 export function boundaryEdgeOutcomes(
     transferSet: ReadonlySet<EphemeraObjectId>,
-    graph: EphemeraPositionGraph
+    graph: EphemeraLudicGraph
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {

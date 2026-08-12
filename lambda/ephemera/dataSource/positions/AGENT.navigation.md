@@ -8,7 +8,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 
 | Doc | Role |
 | --- | --- |
-| [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) | Area `positionGraph.edges`, Exit edges, `projectRoomExits` |
+| [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) | Area `ludicGraph.edges`, Exit edges, `projectRoomExits` |
 | [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) | **StandardArea**, **StandardRoom** |
 | [`lambda/assets/componentTopology/AGENT.md`](../../../assets/componentTopology/AGENT.md) | `TopologyInvalidated` publisher |
 

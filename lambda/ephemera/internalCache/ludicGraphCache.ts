@@ -1,6 +1,6 @@
 /**
  * Ephemera invocation memo for play position graphs.
- * Wraps mtw-gateways PositionsCacheHandler; exposes EphemeraPositionGraph at the read/write boundary.
+ * Wraps mtw-gateways PositionsCacheHandler; exposes EphemeraLudicGraph at the read/write boundary.
  */
 import {
     createPositionsCacheHandler,
@@ -15,7 +15,7 @@ import type {
     EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { EphemeraPositionGraph } from '../dataSource/positions/positionGraph'
+import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 export type { MembershipContainersCacheSetParams }
 
@@ -28,21 +28,21 @@ const assertForwardHostId = (
     throw new Error(`Positions cache set requires forward host ROOM# or CHARACTER#; got ${hostId}`)
 }
 
-export class EphemeraPositionsCacheData {
+export class EphemeraLudicGraphCacheData {
     private readonly _gateway: PositionsCacheHandler
 
     constructor(db: EphemeraPositionsReadDB) {
         this._gateway = createPositionsCacheHandler(db)
     }
 
-    async getPositionGraph(
+    async getLudicGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId
-    ): Promise<EphemeraPositionGraph> {
-        const envelope = await this._gateway.getPositionGraph(componentId)
-        return EphemeraPositionGraph.fromPlayEnvelope(componentId, envelope)
+    ): Promise<EphemeraLudicGraph> {
+        const envelope = await this._gateway.getLudicGraph(componentId)
+        return EphemeraLudicGraph.fromPlayEnvelope(componentId, envelope)
     }
 
-    set(graph: EphemeraPositionGraph): void {
+    set(graph: EphemeraLudicGraph): void {
         const componentId = assertForwardHostId(graph.hostId)
         this._gateway.set({
             componentId,
@@ -77,5 +77,5 @@ export class EphemeraPositionsCacheData {
     }
 }
 
-export const createEphemeraPositionsCacheData = (db: EphemeraPositionsReadDB): EphemeraPositionsCacheData =>
-    new EphemeraPositionsCacheData(db)
+export const createEphemeraLudicGraphCacheData = (db: EphemeraPositionsReadDB): EphemeraLudicGraphCacheData =>
+    new EphemeraLudicGraphCacheData(db)

@@ -1,8 +1,8 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { PlayPositionGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
-import { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import { evaluateRelationalLegality } from './evaluateRelationalLegality'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 
@@ -16,17 +16,17 @@ const roomGraphWithObjects = {
         { tag: 'Object' as const, universalKey: tableId },
     ],
     edges: [],
-} as unknown as PlayPositionGraph
+} as unknown as PlayLudicGraph
 
-const onTableEdge: EphemeraPositionRelationalEdgeData = {
+const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
     kind: 'On',
 }
 
-const graphFromEnvelope = (envelope: PlayPositionGraph) =>
-    EphemeraPositionGraph.fromPlayEnvelope(HOST_ID, envelope)
+const graphFromEnvelope = (envelope: PlayLudicGraph) =>
+    EphemeraLudicGraph.fromPlayEnvelope(HOST_ID, envelope)
 
 describe('evaluateRelationalLegality', () => {
     it('allows establish when both nodes are on graph with clean topology', () => {
@@ -45,7 +45,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({ type: 'allow' })
     })
 
@@ -55,7 +55,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'Under' },
-            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.complexRelational,
@@ -71,7 +71,7 @@ describe('evaluateRelationalLegality', () => {
             graph: graphFromEnvelope({
                 nodes: [{ tag: 'Object' as const, universalKey: tableId }],
                 edges: [],
-            } as unknown as PlayPositionGraph),
+            } as unknown as PlayLudicGraph),
         })).toEqual({
             type: 'error',
             errorMessage: objectManipulationErrorMessages.notOnHostGraph,
@@ -84,7 +84,7 @@ describe('evaluateRelationalLegality', () => {
             subjectId: broomId,
             targetId: tableId,
             normalizedRelation: { type: 'enum', kind: 'On' },
-            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayPositionGraph),
+            graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({ type: 'allow' })
     })
 

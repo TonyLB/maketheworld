@@ -1,16 +1,16 @@
-export { membershipContainersCacheKey, positionGraphCacheKey } from './keys'
+export { membershipContainersCacheKey, ludicGraphCacheKey } from './keys'
 
 export type {
     MembershipContainersCacheSetParams,
-    PlayPositionGraph,
+    PlayLudicGraph,
     PositionsCacheSetParams,
 } from './types'
 
 export type { EphemeraPositionsReadDB } from './fetch'
 export {
     getRoomActiveCharactersFromDynamo,
-    getRoomPositionGraphFromDynamo,
-    getCharacterPositionGraphFromDynamo,
+    getRoomLudicGraphFromDynamo,
+    getCharacterLudicGraphFromDynamo,
     getCharacterRoomIdFromDynamo,
     isPositionsComponentId,
 } from './fetch'
@@ -28,9 +28,9 @@ export type {
 } from './adjacency'
 
 export {
-    projectComponentGraphFromStoredPositionGraph,
-    extractCharacterIdsFromPlayPositionGraph,
-    extractObjectIdsFromPlayPositionGraph,
+    projectComponentGraphFromStoredLudicGraph,
+    extractCharacterIdsFromPlayLudicGraph,
+    extractObjectIdsFromPlayLudicGraph,
 } from './project'
 
 export {

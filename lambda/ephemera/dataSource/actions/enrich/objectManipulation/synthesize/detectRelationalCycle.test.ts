@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { detectRelationalCycle } from './detectRelationalCycle'
 
 const HOST_ID = 'ROOM#Bridge' as EphemeraRoomId
@@ -9,7 +9,7 @@ const B = 'OBJECT#B' as EphemeraObjectId
 const C = 'OBJECT#C' as EphemeraObjectId
 
 const emptyGraph = () =>
-    EphemeraPositionGraph.empty(HOST_ID).addObject(A).addObject(B).addObject(C)
+    EphemeraLudicGraph.empty(HOST_ID).addObject(A).addObject(B).addObject(C)
 
 describe('detectRelationalCycle', () => {
     it('reports no cycle when there are no edges', () => {

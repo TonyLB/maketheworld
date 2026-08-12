@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { testPositionGraph } from '../testFixtures'
+import { testLudicGraph } from '../testFixtures'
 import {
     boundaryEdgeOutcomes,
     classifyInteractionUnderTransfer,
@@ -34,7 +34,7 @@ describe('classifyInteractionUnderTransfer', () => {
 })
 
 describe('roleOfObjectInEdge', () => {
-    const edge: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+    const edge: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
 
     it('returns subject when objectId is the from endpoint', () => {
         expect(roleOfObjectInEdge(bookId, edge)).toBe('subject')
@@ -51,8 +51,8 @@ describe('roleOfObjectInEdge', () => {
 
 describe('computeCarryClosure', () => {
     it('absorbs the subject of an On edge when the target moves (single hop)', () => {
-        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
-        const graph = testPositionGraph(roomId, {
+        const bookOnTray: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: bookId },
@@ -68,9 +68,9 @@ describe('computeCarryClosure', () => {
     })
 
     it('absorbs a three-deep chain to a fixpoint (glass on book, book on tray, get tray)', () => {
-        const glassOnBook: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
-        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
-        const graph = testPositionGraph(roomId, {
+        const glassOnBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
+        const bookOnTray: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: bookId },
@@ -90,8 +90,8 @@ describe('computeCarryClosure', () => {
     })
 
     it('does not absorb across an Under edge in either direction', () => {
-        const bootsUnderTable: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bootsId, to: tableId, kind: 'Under' }
-        const graph = testPositionGraph(roomId, {
+        const bootsUnderTable: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bootsId, to: tableId, kind: 'Under' }
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: bootsId },
                 { tag: 'Object', universalKey: tableId },
@@ -104,9 +104,9 @@ describe('computeCarryClosure', () => {
     })
 
     it('terminates on a malformed cyclic edge set instead of looping', () => {
-        const aOnB: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: aId, to: bId, kind: 'On' }
-        const bOnA: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bId, to: aId, kind: 'On' }
-        const graph = testPositionGraph(roomId, {
+        const aOnB: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: aId, to: bId, kind: 'On' }
+        const bOnA: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bId, to: aId, kind: 'On' }
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: aId },
                 { tag: 'Object', universalKey: bId },
@@ -124,10 +124,10 @@ describe('computeCarryClosure', () => {
 
 describe('boundaryEdgeOutcomes', () => {
     it('reports only the true external edge for a resolved transfer set', () => {
-        const glassOnBook: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
-        const bookOnTray: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
-        const trayOnTable: EphemeraPositionRelationalEdgeData = { tag: 'Relational', from: trayId, to: tableId, kind: 'On' }
-        const graph = testPositionGraph(roomId, {
+        const glassOnBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'On' }
+        const bookOnTray: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
+        const trayOnTable: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: trayId, to: tableId, kind: 'On' }
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: bookId },

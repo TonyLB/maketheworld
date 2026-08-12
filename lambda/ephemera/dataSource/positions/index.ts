@@ -3,7 +3,7 @@
  *
  * General-purpose ephemera lane for **positions in play** -- the home for any
  * "where is X right now" projection ephemera owns. Membership authority is
- * `Meta::Room.positionGraph` + adjacency index (S2-6).
+ * `Meta::Room.ludicGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
  * (`Character Navigate`, `Character Home`, `Object Take Hold`, `Object Drop`,

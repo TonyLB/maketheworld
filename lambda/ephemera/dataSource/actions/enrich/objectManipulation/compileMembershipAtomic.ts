@@ -1,6 +1,6 @@
 import { invokeBedrockObjectManipulationEnrich } from '../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import internalCache from '../../../../internalCache'
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
@@ -42,7 +42,7 @@ export type CompileMembershipAtomicResult =
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
-    getPositionGraph: (hostId) => internalCache.Positions.getPositionGraph(hostId),
+    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
 export async function compileMembershipAtomic(
@@ -76,11 +76,11 @@ export async function compileMembershipAtomic(
     // completeness, all decided here now, with real graph access --- not post-select).
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
     const [roomGraph, characterGraph] = await Promise.all([
-        frame.hostRoomId !== undefined ? positionsReadDeps.getPositionGraph(frame.hostRoomId) : undefined,
-        frame.characterId !== undefined ? positionsReadDeps.getPositionGraph(frame.characterId) : undefined,
+        frame.hostRoomId !== undefined ? positionsReadDeps.getLudicGraph(frame.hostRoomId) : undefined,
+        frame.characterId !== undefined ? positionsReadDeps.getLudicGraph(frame.characterId) : undefined,
     ])
     const sandboxState = buildSandboxState(
-        [roomGraph, characterGraph].filter((graph): graph is EphemeraPositionGraph => graph !== undefined)
+        [roomGraph, characterGraph].filter((graph): graph is EphemeraLudicGraph => graph !== undefined)
     )
 
     const selection = selectMembershipFromPool({
@@ -150,7 +150,7 @@ export async function compileMembershipAtomic(
     const complexityPromptParts = buildObjectManipulationComplexityPrompt(frame.command, {
         objectId,
         containers: observation.containers,
-        positionGraph: observation.positionGraph,
+        ludicGraph: observation.ludicGraph,
     })
     const complexityInvoke = await invokeComplexity(complexityPromptParts)
 

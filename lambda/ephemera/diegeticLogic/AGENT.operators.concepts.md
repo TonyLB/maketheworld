@@ -24,7 +24,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 
 **Player fiction:** The character picks up an object that is present in the current room. The object leaves the room's play membership graph and enters the character's inventory graph in **one** atomic apply --- not a separate "in plain sight" fiction with unchanged storage.
 
-**Graph delta:** Remove **`Object`** node from source **`Meta::Room.positionGraph`**; add **`Object`** node to **`Meta::Character.positionGraph`**; update adjacency reverse index accordingly.
+**Graph delta:** Remove **`Object`** node from source **`Meta::Room.ludicGraph`**; add **`Object`** node to **`Meta::Character.ludicGraph`**; update adjacency reverse index accordingly.
 
 **Lane split:**
 
@@ -59,7 +59,7 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 
 **Player fiction:** The character releases a held object. The object leaves the character's inventory graph and enters the current room's play membership graph in **one** atomic apply --- symmetric inverse of pick-up, not a separate "in plain sight" fiction with unchanged storage.
 
-**Graph delta:** Remove **`Object`** node from **`Meta::Character.positionGraph`**; add **`Object`** node to **`Meta::Room.positionGraph`**; update adjacency reverse index accordingly.
+**Graph delta:** Remove **`Object`** node from **`Meta::Character.ludicGraph`**; add **`Object`** node to **`Meta::Room.ludicGraph`**; update adjacency reverse index accordingly.
 
 **Lane split:**
 
@@ -72,7 +72,7 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
 | Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-**Persist path:** [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence, committed via [`commitStepSequence`](../dataSource/positions/manipulation/kernel/commitStepSequence.ts) in one transact. **Must not** add `updateDropPositionGraphs` or any `update*PositionGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
+**Persist path:** [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence, committed via [`commitStepSequence`](../dataSource/positions/manipulation/kernel/commitStepSequence.ts) in one transact. **Must not** add `updateDropLudicGraphs` or any `update*LudicGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
 
 **Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
 
@@ -96,7 +96,7 @@ Copy is **deterministic template** (no copy-generating LLM hop), assembled by th
 
 **Player fiction:** The character places or arranges one in-room object relative to another on the **room host graph** without changing membership host --- e.g. putting a broom on a table or leaning a ladder against a wall.
 
-**Graph delta:** Add directed edge on **`Meta::Room.positionGraph`**: `from` = subject, `to` = target, `kind` (`On` | `Under` | `Against` | `Custom`), optional **`relationLabel`** when `kind === 'Custom'` (BD-3). No adjacency dual-write for relational edges.
+**Graph delta:** Add directed edge on **`Meta::Room.ludicGraph`**: `from` = subject, `to` = target, `kind` (`On` | `Under` | `Against` | `Custom`), optional **`relationLabel`** when `kind === 'Custom'` (BD-3). No adjacency dual-write for relational edges.
 
 **Lane split:**
 
@@ -131,7 +131,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 
 **Player fiction:** The character removes an existing in-host relational link between two objects on the room graph --- e.g. taking a rope off a crate. Membership hosts are unchanged.
 
-**Graph delta:** Remove matching directed edge on **`Meta::Room.positionGraph`** (`op: 'remove'`); edge match includes **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
+**Graph delta:** Remove matching directed edge on **`Meta::Room.ludicGraph`** (`op: 'remove'`); edge match includes **`from`**, **`to`**, **`kind`**, and **`relationLabel`** when **`Custom`**.
 
 **Lane split:**
 

@@ -4,7 +4,7 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { boundaryEdgeOutcomes } from '../positionGraph/expandValidate/interactionUnderTransfer'
+import { boundaryEdgeOutcomes } from '../ludicGraph/expandValidate/interactionUnderTransfer'
 import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
 import type { MutationKernelStep } from '../manipulation/kernel/kernelStep'
@@ -71,7 +71,7 @@ export const applyObjectRoomMembership = async (
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraRoomId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const roomId of diff.froms) {
-        const graph = await internalCache.Positions.getPositionGraph(roomId)
+        const graph = await internalCache.Positions.getLudicGraph(roomId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
         for (const { edge } of outcomes) {
             hostByReferencedId.set(edge.from, roomId)

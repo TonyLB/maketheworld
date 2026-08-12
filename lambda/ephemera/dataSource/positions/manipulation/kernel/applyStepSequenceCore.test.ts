@@ -3,8 +3,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import type { MutationKernelStep } from './kernelStep'
-import { testPositionGraph } from '../../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -14,12 +14,12 @@ const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 const graphsMap = (
-    ...entries: [EphemeraMembershipHostId, EphemeraPositionGraph][]
-): Map<EphemeraMembershipHostId, EphemeraPositionGraph> => new Map(entries)
+    ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
+): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('applyStepSequenceCore', () => {
     it('BD-13 carry: explicit dissolveRelation before transferMembership composes correctly', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
@@ -30,7 +30,7 @@ describe('applyStepSequenceCore', () => {
                 { tag: 'Relational', from: trayId, to: tableId, kind: 'On' },
             ],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
@@ -50,8 +50,8 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('BD-16 repaired: transferMembership before establishRelation lands the relation on the shared destination host', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const destGraph = testPositionGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+        const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
             { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
@@ -67,7 +67,7 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('BD-28 alone: a bare dissolveRelation step actually removes the edge, no membership change', () => {
-        const graph = testPositionGraph(roomId, {
+        const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
@@ -86,8 +86,8 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('BD-33 structural throw: relational step whose endpoints resolve to different hosts throws (not a verdict)', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const otherGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+        const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
         const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
 
         expect(() => applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, otherGraph]))).toThrow(
@@ -96,7 +96,7 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
@@ -107,8 +107,8 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('illegal (staleTransferCandidate, object): object absent from source host', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [] })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
@@ -119,7 +119,7 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('illegal (staleRelationalCandidate): a relational step endpoint unresolvable across the footprint graphs', () => {
-        const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
             verdict: 'illegal',
@@ -128,14 +128,14 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('defer propagation: an underlying applyTransferSet defer (Custom boundary edge) surfaces unchanged', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
@@ -147,14 +147,14 @@ describe('applyStepSequenceCore', () => {
     })
 
     it('unresolvedDissolveEdge propagation: a sequence that omits a needed dissolveRelation before its transferMembership', () => {
-        const sourceGraph = testPositionGraph(roomId, {
+        const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
         })
-        const destGraph = testPositionGraph(characterId, { nodes: [] })
+        const destGraph = testLudicGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
@@ -167,8 +167,8 @@ describe('applyStepSequenceCore', () => {
 
     describe('BD-36 entity-kind split', () => {
         it('character-only transferMembership: legal via addCharacter/removeCharacter, no boundary-edge involvement', () => {
-            const sourceGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
@@ -182,13 +182,13 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('mixed entityIds (object + character) in one step: both land correctly under a single verdict', () => {
-            const sourceGraph = testPositionGraph(roomId, {
+            const sourceGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },
                     { tag: 'Character', universalKey: characterId },
                 ],
             })
-            const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'transferMembership',
@@ -208,8 +208,8 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('stale character candidate: character absent from source host', () => {
-            const sourceGraph = testPositionGraph(roomId, { nodes: [] })
-            const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const sourceGraph = testLudicGraph(roomId, { nodes: [] })
+            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
@@ -220,7 +220,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it("removeCharacter's vacuous assert never spuriously fires on an unrelated object-object edge", () => {
-            const sourceGraph = testPositionGraph(roomId, {
+            const sourceGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Character', universalKey: characterId },
                     { tag: 'Object', universalKey: trayId },
@@ -228,7 +228,7 @@ describe('applyStepSequenceCore', () => {
                 ],
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
-            const destGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
@@ -242,8 +242,8 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('character-only pure remove (toHostId null, disconnect-shaped): removes the character from every fromHostIds member', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'transferMembership',
@@ -262,7 +262,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('character-only pure add (fromHostIds empty, connect-from-nowhere-shaped): adds the character to toHostId only', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set(), toHostId: roomId },
             ]
@@ -275,7 +275,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('character-only pure remove: illegal (staleTransferCandidate) when the character is already absent from a fromHostIds member', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
@@ -288,8 +288,8 @@ describe('applyStepSequenceCore', () => {
 
     describe('object-lifecycle Migrate row: pure remove / pure add / multi-from', () => {
         it('pure remove (toHostId null): removes the object from every fromHostIds member, no destination graph needed', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'transferMembership',
@@ -308,7 +308,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('pure remove with a residual edge throws (removeObject), not a silent strip', () => {
-            const roomGraph = testPositionGraph(roomId, {
+            const roomGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },
                     { tag: 'Object', universalKey: tableId },
@@ -326,7 +326,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('pure remove preceded by an explicit dissolveRelation succeeds (destroy-shaped sequence)', () => {
-            const roomGraph = testPositionGraph(roomId, {
+            const roomGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },
                     { tag: 'Object', universalKey: tableId },
@@ -349,7 +349,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('pure add (fromHostIds empty): adds the object to toHostId only, no source graph needed', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set(), toHostId: roomId },
             ]
@@ -362,7 +362,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('pure remove: illegal (staleTransferCandidate) when the object is already absent from a fromHostIds member', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
@@ -375,8 +375,8 @@ describe('applyStepSequenceCore', () => {
 
     describe('capture step (PB-J)', () => {
         it('a capture before a mutation step snapshots the entity as still present', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: roomId, captureId: 'before' },
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
@@ -390,8 +390,8 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('the same capture placed after the mutation does not see the entity', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testPositionGraph(otherRoomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
                 { kind: 'capture', hostId: roomId, captureId: 'after' },
@@ -405,7 +405,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('a capture naming a host absent from the graphs map is illegal (hostNotInFootprint)', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: otherRoomId, captureId: 'missing' }]
 
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
@@ -415,7 +415,7 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('a capture step never contributes to the returned graphs map', () => {
-            const roomGraph = testPositionGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: roomId, captureId: 'only' }]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))

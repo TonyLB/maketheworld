@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
-import { testPositionGraph } from '../positionGraph/testFixtures'
-import type { EphemeraPositionGraph } from '../positionGraph'
+import { testLudicGraph } from '../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../ludicGraph'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     ephemeraDB: {
@@ -17,7 +17,7 @@ jest.mock('../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             getMembershipContainers: jest.fn(),
-            getPositionGraph: jest.fn(),
+            getLudicGraph: jest.fn(),
             set: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
@@ -41,7 +41,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
  * `commitStepSequence.test.ts`/`executeObjectMove.test.ts` already establish.
  */
-const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) => {
+const wireTransactWrite = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     (ephemeraDB.transactWrite as jest.Mock).mockImplementation(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
         if (!multiKeyItem) {
@@ -53,7 +53,7 @@ const wireTransactWrite = (graphsByHost: Record<string, EphemeraPositionGraph>) 
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
-                positionGraph: graph.toStored(),
+                ludicGraph: graph.toStored(),
             }
         })
         multiKeyItem.reducer(draft)
@@ -88,10 +88,10 @@ describe('applyObjectRoomMembership', () => {
     })
 
     it('runs membership-changed bundle when placement changes', async () => {
-        const fromRoomGraph = testPositionGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
+        const fromRoomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
@@ -131,16 +131,16 @@ describe('applyObjectRoomMembership', () => {
     })
 
     it('BD-35: a relational edge on the departure room dissolves --- streams Object Relation Changed, no cascade', async () => {
-        const fromRoomGraph = testPositionGraph(FROM_ROOM, {
+        const fromRoomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
         })
-        const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
@@ -164,16 +164,16 @@ describe('applyObjectRoomMembership', () => {
     })
 
     it('suppressRelationalFacts: true suppresses the dissolve fact, Object Moved still streams (drift-repair usage)', async () => {
-        const fromRoomGraph = testPositionGraph(FROM_ROOM, {
+        const fromRoomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
         })
-        const toRoomGraph = testPositionGraph(TO_ROOM, { nodes: [] })
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        ;(internalCache.Positions.getPositionGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
         )
         wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })

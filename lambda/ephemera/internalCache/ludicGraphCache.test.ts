@@ -3,56 +3,56 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import {
     characterNode,
-    EphemeraPositionGraph,
+    EphemeraLudicGraph,
     objectNode,
-} from '../dataSource/positions/positionGraph'
-import { createEphemeraPositionsCacheData } from './positionsCache'
+} from '../dataSource/positions/ludicGraph'
+import { createEphemeraLudicGraphCacheData } from './ludicGraphCache'
 
 const ROOM_ID = 'ROOM#town' as EphemeraRoomId
 const CHARACTER_A = 'CHARACTER#Alpha' as const
 const OBJECT_A = 'OBJECT#a' as EphemeraObjectId
 
-describe('EphemeraPositionsCacheData', () => {
-    it('getPositionGraph returns host-bound class', async () => {
-        const cache = createEphemeraPositionsCacheData({
+describe('EphemeraLudicGraphCacheData', () => {
+    it('getLudicGraph returns host-bound class', async () => {
+        const cache = createEphemeraLudicGraphCacheData({
             getItem: jest.fn().mockResolvedValue({
-                positionGraph: {
+                ludicGraph: {
                     nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
                 },
             }),
         })
 
-        const graph = await cache.getPositionGraph(ROOM_ID)
+        const graph = await cache.getLudicGraph(ROOM_ID)
 
-        expect(graph).toBeInstanceOf(EphemeraPositionGraph)
+        expect(graph).toBeInstanceOf(EphemeraLudicGraph)
         expect(graph.hostId).toBe(ROOM_ID)
         expect([...graph.characterIds]).toEqual([CHARACTER_A])
     })
 
     it('set throws when graph.hostId is not a forward host id', () => {
-        const cache = createEphemeraPositionsCacheData({ getItem: jest.fn() })
-        const graph = EphemeraPositionGraph.fromFieldPayload(OBJECT_A as EphemeraMembershipHostId, { nodes: [] })
+        const cache = createEphemeraLudicGraphCacheData({ getItem: jest.fn() })
+        const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_A as EphemeraMembershipHostId, { nodes: [] })
 
         expect(() => cache.set(graph)).toThrow(/forward host ROOM# or CHARACTER#/)
     })
 
     it('set then get round-trips membership nodes', async () => {
-        const cache = createEphemeraPositionsCacheData({
+        const cache = createEphemeraLudicGraphCacheData({
             getItem: jest.fn().mockResolvedValue(undefined),
         })
-        const original = EphemeraPositionGraph.fromFieldPayload(ROOM_ID, {
+        const original = EphemeraLudicGraph.fromFieldPayload(ROOM_ID, {
             nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             edges: [],
         })
 
         cache.set(original)
-        const loaded = await cache.getPositionGraph(ROOM_ID)
+        const loaded = await cache.getLudicGraph(ROOM_ID)
 
         expect(loaded.equals(original)).toBe(true)
     })
 
     it('getMembershipContainers delegates to gateway', async () => {
-        const cache = createEphemeraPositionsCacheData({
+        const cache = createEphemeraLudicGraphCacheData({
             getItem: jest.fn(),
             query: jest.fn().mockResolvedValue([
                 { DataCategory: `POSITION#${ROOM_ID}` },

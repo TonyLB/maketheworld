@@ -58,7 +58,7 @@ Tags can have properties that convey information about them. WML supports severa
 ### Parentheses `(value)` - Key References
 Used for references to components or other keys. The value is treated as a key identifier.
 
-**Canonical authoring (Area topology):** navigational edges live on **Area** **`positionGraph.edges`**, not under **Room**. Area exits use **area exit endpoint tags** (`<From>` / `<To>` child tags, not `to=` attributes). Validation rules: [Topology invariants](../ts/standardize/keys/edges/AGENT.edges.md#topology-invariants) in [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md).
+**Canonical authoring (Area topology):** navigational edges live on **Area** **`ludicGraph.edges`**, not under **Room**. Area exits use **area exit endpoint tags** (`<From>` / `<To>` child tags, not `to=` attributes). Validation rules: [Topology invariants](../ts/standardize/keys/edges/AGENT.edges.md#topology-invariants) in [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md).
 
 ```
 <Exit uuid=(highwayToTown)>
@@ -101,7 +101,7 @@ Both shapes parse at the schema layer; which shape is legal under **Room** vs **
 | **ephemeraWire `StandardForm`** | Legacy **`to=`** facets may appear on **`StandardRoom.exits`** in composed wire forms. |
 | **Play / affordances** | Live exit labels come from **Area** topology via **`projectRoomExits`**, not room blueprint rows. See [`AGENT.edges.md`](../ts/standardize/keys/edges/AGENT.edges.md). |
 
-**`StandardArea`** ingests topology exits into **`positionGraph.edges`** (reject legacy **`to=`** under Area).
+**`StandardArea`** ingests topology exits into **`ludicGraph.edges`** (reject legacy **`to=`** under Area).
 
 ### Quoted Strings `"value"` - Literal Strings
 Used for string values that should be preserved exactly as written.

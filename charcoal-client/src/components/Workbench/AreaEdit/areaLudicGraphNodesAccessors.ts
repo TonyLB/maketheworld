@@ -4,19 +4,19 @@ import type { ReferenceListSessionAccessor } from '../foundations/ReferenceList/
 import {
     filterNodesByTag,
     mergeNodesTagSlice,
-    PositionGraphNodeTag,
-    setAreaPositionGraphNodes
+    LudicGraphNodeTag,
+    setAreaLudicGraphNodes
 } from './areaEditMutations'
 
-export function areaPositionGraphNodesTagAccessor(
-    nodeTag: PositionGraphNodeTag
+export function areaLudicGraphNodesTagAccessor(
+    nodeTag: LudicGraphNodeTag
 ): ReferenceListSessionAccessor<StandardArea> {
     return {
-        getReferenceList: (area) => filterNodesByTag(area.positionGraph.nodes, nodeTag),
+        getReferenceList: (area) => filterNodesByTag(area.ludicGraph.nodes, nodeTag),
         setReferenceList: (area, tagSlice) => {
-            setAreaPositionGraphNodes(
+            setAreaLudicGraphNodes(
                 area,
-                mergeNodesTagSlice(area.positionGraph.nodes, nodeTag, tagSlice)
+                mergeNodesTagSlice(area.ludicGraph.nodes, nodeTag, tagSlice)
             )
         }
     }

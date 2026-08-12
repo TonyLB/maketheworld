@@ -3,7 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testPositionGraph } from '../dataSource/positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from './index'
 import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 
@@ -136,11 +136,11 @@ describe('getRoomCharacterList', () => {
         internalCache.clear()
     })
 
-    it('hydrates roster from stored positionGraph without activeCharacters Dynamo read', async () => {
+    it('hydrates roster from stored ludicGraph without activeCharacters Dynamo read', async () => {
         ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('positionGraph')) {
+            if (ProjectionFields?.includes('ludicGraph')) {
                 return {
-                    positionGraph: {
+                    ludicGraph: {
                         nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
                     },
                 }
@@ -173,14 +173,14 @@ describe('getRoomCharacterList', () => {
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
-                ProjectionFields: ['positionGraph'],
+                ProjectionFields: ['ludicGraph'],
             })
         )
     })
 
     it('uses memo-patched graph without Dynamo read', async () => {
         internalCache.Positions.set(
-            testPositionGraph(TOWN_SQUARE, {
+            testLudicGraph(TOWN_SQUARE, {
                 nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
             })
         )
@@ -204,9 +204,9 @@ describe('getRoomCharacterList', () => {
         expect(ephemeraMock.getItem).not.toHaveBeenCalled()
     })
 
-    it('returns empty roster when stored positionGraph is absent', async () => {
+    it('returns empty roster when stored ludicGraph is absent', async () => {
         ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('positionGraph')) {
+            if (ProjectionFields?.includes('ludicGraph')) {
                 return {}
             }
             throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)

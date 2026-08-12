@@ -6,7 +6,7 @@ import { selectIdentityPlanTuple } from './selectIdentityPlanTuple'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { buildSandboxState } from './sandboxState'
-import { testPositionGraph, testPositionGraphFromEnvelope } from '../../../positions/positionGraph/testFixtures'
+import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
@@ -33,7 +33,7 @@ const candidate = (
     locus,
 })
 
-const roomGraph = testPositionGraph(roomId, {
+const roomGraph = testLudicGraph(roomId, {
     nodes: [
         { tag: 'Object' as const, universalKey: bagId },
         { tag: 'Object' as const, universalKey: broomId },
@@ -43,7 +43,7 @@ const roomGraph = testPositionGraph(roomId, {
         { tag: 'Object' as const, universalKey: glassId },
     ],
 })
-const characterGraph = testPositionGraph(characterId, {
+const characterGraph = testLudicGraph(characterId, {
     nodes: [{ tag: 'Object' as const, universalKey: satchelId }],
 })
 const sandboxState = buildSandboxState([roomGraph, characterGraph])
@@ -182,7 +182,7 @@ describe('selectIdentityPlanTuple', () => {
     })
 
     it('defers (not resolved) when the object touches an exit edge (Slice 4b: now decided during selection)', () => {
-        const roomGraphWithExit = testPositionGraphFromEnvelope(roomId, {
+        const roomGraphWithExit = testLudicGraphFromEnvelope(roomId, {
             nodes: [{ tag: 'Object' as const, universalKey: broomId }],
             edges: [{ tag: 'Exit', uuid: 'edge-1', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, payload: {} }],
         })
@@ -204,7 +204,7 @@ describe('selectIdentityPlanTuple', () => {
     })
 
     it('Slice 3: a carry-related object (glass On tray) computes the real closure via Expansion and resolves with the full transfer set', () => {
-        const roomGraphWithCarry = testPositionGraph(roomId, {
+        const roomGraphWithCarry = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
                 { tag: 'Object' as const, universalKey: glassId },
@@ -232,7 +232,7 @@ describe('selectIdentityPlanTuple', () => {
 
     it('Slice 3: BD-13\'s own "get tray" shape (glass On tray, tray On table) also computes the full closure + dissolve, and resolves', () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
-        const roomGraphWithCarryAndDissolve = testPositionGraph(roomId, {
+        const roomGraphWithCarryAndDissolve = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: trayId },
                 { tag: 'Object' as const, universalKey: glassId },
@@ -277,7 +277,7 @@ describe('selectIdentityPlanTuple', () => {
 
     it('Slice 2: an Against-classified boundary edge still cleanly dissolves (no carry, no dissolve-apply needed), stays legal', () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
-        const roomGraphWithAgainst = testPositionGraph(roomId, {
+        const roomGraphWithAgainst = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: broomId },
                 { tag: 'Object' as const, universalKey: tableId },
@@ -303,7 +303,7 @@ describe('selectIdentityPlanTuple', () => {
 
     it('Slice 2: a Custom-kind boundary edge still defers (unchanged shape, now reachable via real classification)', () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
-        const roomGraphWithCustom = testPositionGraph(roomId, {
+        const roomGraphWithCustom = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: broomId },
                 { tag: 'Object' as const, universalKey: tableId },

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 
@@ -80,13 +80,13 @@ export function buildObjectManipulationIdentityPrompt(
     }
 }
 
-function summarizeTouchingEdges(graph: EphemeraPositionGraph, objectId: EphemeraObjectId): string[] {
+function summarizeTouchingEdges(graph: EphemeraLudicGraph, objectId: EphemeraObjectId): string[] {
     const envelope = graph.toPlayEnvelope()
     const edges = envelope.edges ?? []
     const summaries: string[] = []
     for (let i = 0; i < edges.length; i++) {
         if (objectTouchesExitEdgeOnGraph(
-            EphemeraPositionGraph.fromPlayEnvelope(graph.hostId, { nodes: envelope.nodes, edges: [edges[i]] }),
+            EphemeraLudicGraph.fromPlayEnvelope(graph.hostId, { nodes: envelope.nodes, edges: [edges[i]] }),
             objectId
         )) {
             summaries.push(`edge[${i}]`)
@@ -100,11 +100,11 @@ export function buildObjectManipulationComplexityPrompt(
     options: {
         objectId: EphemeraObjectId
         containers: readonly EphemeraMembershipHostId[]
-        positionGraph?: EphemeraPositionGraph
+        ludicGraph?: EphemeraLudicGraph
     }
 ): ParseObjectManipulationEnrichPromptParts {
-    const touchingEdges = options.positionGraph !== undefined
-        ? summarizeTouchingEdges(options.positionGraph, options.objectId)
+    const touchingEdges = options.ludicGraph !== undefined
+        ? summarizeTouchingEdges(options.ludicGraph, options.objectId)
         : []
     const dynamicSuffix = [
         `Player command: ${command.trim()}`,

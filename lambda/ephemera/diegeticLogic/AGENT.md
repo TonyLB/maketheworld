@@ -25,7 +25,7 @@ Operations proposed here are expected to **graduate** into existing lanes (`posi
 
 - **Narrative transcript** sort time and `MessageId` revision semantics --- [`../AGENT.narrativeTranscript.concepts.md`](../AGENT.narrativeTranscript.concepts.md)
 - **Multi-channel** room header composition --- [`../AGENT.multiChannel.concepts.md`](../AGENT.multiChannel.concepts.md)
-- **Play manipulation storage** (`positionGraph`, adjacency, eviction ladder) --- [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md)
+- **Play manipulation storage** (`ludicGraph`, adjacency, eviction ladder) --- [`../dataSource/positions/AGENT.concepts.md`](../dataSource/positions/AGENT.concepts.md)
 - Coyote **beat-level** causal tropes --- [`../dataSource/coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md)
 
 ## Graduation rule

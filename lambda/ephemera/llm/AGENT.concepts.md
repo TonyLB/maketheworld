@@ -36,7 +36,7 @@ Ephemera pipelines split work into two complementary lanes. The **root anti-patt
 | **Semantic reasoning** (LLM) | Understanding, judgment, ambiguity resolution that cannot close over closed-world inputs | Player language; operator intent; narrative contradiction; interaction-complexity assessment when closed legality cannot decide |
 | **Deterministic computation** (code) | Graph/catalog truth, legality when rules close, validation, aggregation, context packaging | Membership pre-gates; catalog resolve; `normalizeRelationSpan`; Coyote combine/cluster before plan-select |
 
-Semantic reasoning **includes** player-intent parsing but is **not limited to it**. Assessing whether a proposed `positionGraph` change is narratively contradictory, or whether existing relational topology requires interaction reasoning (BD-10 defer), belongs in the semantic-reasoning lane when deterministic rules cannot close the case.
+Semantic reasoning **includes** player-intent parsing but is **not limited to it**. Assessing whether a proposed `ludicGraph` change is narratively contradictory, or whether existing relational topology requires interaction reasoning (BD-10 defer), belongs in the semantic-reasoning lane when deterministic rules cannot close the case.
 
 ---
 

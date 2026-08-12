@@ -1,8 +1,8 @@
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
-    extractCharacterIdsFromPlayPositionGraph,
-    projectComponentGraphFromStoredPositionGraph,
+    extractCharacterIdsFromPlayLudicGraph,
+    projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 const asTrimmedString = (value: unknown): string | undefined => {
@@ -21,18 +21,18 @@ export const normalizeRoomId = (value: unknown): string | undefined => {
     return roomId.startsWith('ROOM#') ? roomId : `ROOM#${roomId}`
 }
 
-export const listGraphCharacterIds = (positionGraph: unknown): string[] => {
-    if (!isEphemeraPositionGraphFieldPayload(positionGraph)) {
+export const listGraphCharacterIds = (ludicGraph: unknown): string[] => {
+    if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
         return []
     }
-    return extractCharacterIdsFromPlayPositionGraph(
-        projectComponentGraphFromStoredPositionGraph(positionGraph)
+    return extractCharacterIdsFromPlayLudicGraph(
+        projectComponentGraphFromStoredLudicGraph(ludicGraph)
     )
 }
 
 /**
  * Graph-forward occupancy drift for one room.
- * Per character node on the room positionGraph:
+ * Per character node on the room ludicGraph:
  * - drift when no live sessions (ghost on graph), or
  * - drift when in-play but membership adjacency does not list this roomId.
  *

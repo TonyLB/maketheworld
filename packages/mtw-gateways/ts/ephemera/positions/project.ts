@@ -1,18 +1,18 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPositionRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 
-import type { PlayPositionGraph } from './types'
+import type { PlayLudicGraph } from './types'
 
 /**
- * Forward read: stored topology from any eligible host Meta::*.positionGraph.
+ * Forward read: stored topology from any eligible host Meta::*.ludicGraph.
  * Roster display metadata is hydrated at read time in ephemera internalCache (S2-6-H).
  */
-export const projectComponentGraphFromStoredPositionGraph = (
-    stored: EphemeraPositionGraphFieldPayload
-): PlayPositionGraph => {
+export const projectComponentGraphFromStoredLudicGraph = (
+    stored: EphemeraLudicGraphFieldPayload
+): PlayLudicGraph => {
     const nodes: StandardReferenceData[] = stored.nodes.flatMap((node): StandardReferenceData[] => {
         if (node.tag === 'Character') {
             return [{ tag: 'Character', universalKey: node.universalKey }]
@@ -22,17 +22,17 @@ export const projectComponentGraphFromStoredPositionGraph = (
         }
         return []
     })
-    const relationalEdges = (stored.edges ?? []).filter(isEphemeraPositionRelationalEdgeData)
+    const relationalEdges = (stored.edges ?? []).filter(isEphemeraLudicRelationalEdgeData)
     return {
         nodes,
         edges: relationalEdges.length > 0
-            ? relationalEdges as unknown as PlayPositionGraph['edges']
+            ? relationalEdges as unknown as PlayLudicGraph['edges']
             : [],
     }
 }
 
-export const extractCharacterIdsFromPlayPositionGraph = (
-    graph: PlayPositionGraph
+export const extractCharacterIdsFromPlayLudicGraph = (
+    graph: PlayLudicGraph
 ): EphemeraCharacterId[] =>
     (graph.nodes ?? []).flatMap((node): EphemeraCharacterId[] => {
         if (typeof node === 'string') {
@@ -44,8 +44,8 @@ export const extractCharacterIdsFromPlayPositionGraph = (
         return []
     })
 
-export const extractObjectIdsFromPlayPositionGraph = (
-    graph: PlayPositionGraph
+export const extractObjectIdsFromPlayLudicGraph = (
+    graph: PlayLudicGraph
 ): EphemeraObjectId[] =>
     (graph.nodes ?? []).flatMap((node): EphemeraObjectId[] => {
         if (typeof node === 'string') {

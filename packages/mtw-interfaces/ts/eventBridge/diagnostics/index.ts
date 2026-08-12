@@ -31,6 +31,13 @@ export type DiagnosticsCacheConsistencyFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsWMLMaterializedViewFindingEvent = {
+    type: 'WML Materialized View Finding'
+    assetId: string
+    diagnosticRunId: string
+    timestamp: string
+}
+
 export type RenderCacheTargetCatalog = {
     ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId
     perspectiveKey: string
@@ -92,6 +99,7 @@ export type DiagnosticsHealGlobalValuesContent = {
 export type DiagnosticsEventUpdate =
     | DiagnosticsS3StructureFindingEvent
     | DiagnosticsCacheConsistencyFindingEvent
+    | DiagnosticsWMLMaterializedViewFindingEvent
     | DiagnosticsEphemeraRenderCacheFindingEvent
     | DiagnosticsStaleSessionIdFindingEvent
     | DiagnosticsRoomOccupancyDriftFindingEvent
@@ -116,6 +124,13 @@ export type DiagnosticsCacheConsistencyFindingEventExternal = {
     type: 'Cache Consistency Finding'
     assetId: string
     status: 'stale' | 'missing'
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
+export type DiagnosticsWMLMaterializedViewFindingEventExternal = {
+    type: 'WML Materialized View Finding'
+    assetId: string
     diagnosticRunId?: string
     timestamp?: string
 }
@@ -167,6 +182,7 @@ export type DiagnosticsComponentVerticalMisalignedFindingEventExternal = {
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
+    | DiagnosticsWMLMaterializedViewFindingEventExternal
     | DiagnosticsEphemeraRenderCacheFindingEventExternal
     | DiagnosticsStaleSessionIdFindingEventExternal
     | DiagnosticsRoomOccupancyDriftFindingEventExternal
@@ -240,6 +256,15 @@ export const isCacheConsistencyFindingEvent = (event: any): event is Diagnostics
     )
 }
 
+export const isWMLMaterializedViewFindingEvent = (event: any): event is DiagnosticsWMLMaterializedViewFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'WML Materialized View Finding' &&
+        typeof event.assetId === 'string'
+    )
+}
+
 export const isEphemeraRenderCacheFindingEvent = (event: any): event is DiagnosticsEphemeraRenderCacheFindingEvent => {
     return Boolean(
         event &&
@@ -308,7 +333,8 @@ export const isComponentVerticalMisalignedFindingEvent = (
 }
 
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
-    return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
+    return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isWMLMaterializedViewFindingEvent(event) ||
+        isEphemeraRenderCacheFindingEvent(event) ||
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) ||
@@ -351,6 +377,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 type: 'Cache Consistency Finding',
                 assetId: content.assetId,
                 status: content.status,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'WML Materialized View Finding' && isWMLMaterializedViewFindingEvent(content)) {
+            return {
+                type: 'WML Materialized View Finding',
+                assetId: content.assetId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -451,6 +485,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 type: 'Cache Consistency Finding',
                 assetId: content.assetId,
                 status: content.status as 'stale' | 'missing',
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'WML Materialized View Finding') {
+            if (typeof content.assetId !== 'string') {
+                return null
+            }
+            return {
+                type: 'WML Materialized View Finding',
+                assetId: content.assetId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

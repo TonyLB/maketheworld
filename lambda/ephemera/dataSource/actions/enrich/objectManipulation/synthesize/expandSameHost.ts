@@ -2,7 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraPositionGraph } from '../../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { TransferMembershipStep } from '../parsePlanStep'
 
 /**
@@ -27,7 +27,7 @@ export type ExpandSameHostResult =
  * shape, opposite direction of inference.
  *
  * Satisfaction is determined by fetching the subject's current host graph
- * and calling **its own** `bothObjectsOnGraph` (`positionGraph/index.ts`)
+ * and calling **its own** `bothObjectsOnGraph` (`ludicGraph/index.ts`)
  * --- the exact pure method `applyRelationalPatch` already uses --- rather
  * than comparing `subjectHost`/`objectHost` for equality. That keeps this
  * Expansion step and any future commit-time re-verification (BD-15 slice 3,
@@ -49,7 +49,7 @@ export const expandSameHost = (
         negate: boolean
     },
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined,
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraPositionGraph | undefined
+    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
 ): ExpandSameHostResult => {
     const { subjectId, objectId, relationKind, negate } = input
 

@@ -2,7 +2,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { queryMembershipContainersFromDynamo } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/streamEventPublisher'
@@ -23,7 +23,7 @@ type MetaSessionRow = {
 type RoomMetaRow = {
     EphemeraId: string
     DataCategory: string
-    positionGraph?: EphemeraPositionGraphFieldPayload
+    ludicGraph?: EphemeraLudicGraphFieldPayload
 }
 
 const unfoldPages = async <T>(firstPage: QueryPageEnvelope<T>): Promise<T[]> => {
@@ -85,7 +85,7 @@ const adjacencyCharactersForSession = async (sessionId: string): Promise<string[
 
 /**
  * Read-only diagnostics sweep for room occupancy drift (graph-forward, S2-6-DR).
- * Compares Meta::Room.positionGraph character nodes against connections session adjacency
+ * Compares Meta::Room.ludicGraph character nodes against connections session adjacency
  * and membership adjacency reverse index. Does not detect stale adjacency without a graph node.
  */
 export const roomOccupancyDriftSweep = async (params?: {
@@ -109,7 +109,7 @@ export const roomOccupancyDriftSweep = async (params?: {
         queryAllMetaSessionRows(),
         queryAllEphemeraRowsByDataCategory<RoomMetaRow>({
             dataCategory: 'Meta::Room',
-            projectionFields: ['EphemeraId', 'DataCategory', 'positionGraph']
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph']
         })
     ])
 
@@ -130,7 +130,7 @@ export const roomOccupancyDriftSweep = async (params?: {
 
     const graphCharacterIds = new Set<EphemeraCharacterId>()
     for (const room of roomMetaRows) {
-        for (const characterId of listGraphCharacterIds(room.positionGraph)) {
+        for (const characterId of listGraphCharacterIds(room.ludicGraph)) {
             if (isEphemeraCharacterId(characterId)) {
                 graphCharacterIds.add(characterId)
             }
@@ -150,7 +150,7 @@ export const roomOccupancyDriftSweep = async (params?: {
         if (!roomId) {
             continue
         }
-        const characterIdsOnGraph = listGraphCharacterIds(room.positionGraph)
+        const characterIdsOnGraph = listGraphCharacterIds(room.ludicGraph)
         const drift = roomHasOccupancyDrift({
             roomId,
             graphCharacterIds: characterIdsOnGraph,

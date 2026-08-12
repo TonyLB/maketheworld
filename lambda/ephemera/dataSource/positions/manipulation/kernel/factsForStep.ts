@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraPositionGraph } from '../../positionGraph'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
 import { buildCharacterMovedFact } from '../../membership/buildCharacterMovedFact'
 import { buildObjectRelationalFact } from '../relational/buildObjectRelationalFact'
@@ -15,7 +15,7 @@ import type { MutationKernelStep } from './kernelStep'
 
 const findHostOf = (
     objectId: EphemeraObjectId,
-    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId | undefined => {
     for (const [hostId, graph] of graphs) {
         if (graph.objectIds.has(objectId)) {
@@ -59,9 +59,9 @@ const findHostOf = (
  */
 export const factsForStep = (
     step: MutationKernelStep,
-    finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph>,
+    finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
     beatAnchorTime: number,
-    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraPositionGraph> = finalGraphs,
+    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph> = finalGraphs,
     characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map(),
     narratedInline?: boolean
 ): (ObjectMovedPublishedPayload | CharacterMovedPublishedPayload | ObjectRelationChangedPublishedPayload)[] => {

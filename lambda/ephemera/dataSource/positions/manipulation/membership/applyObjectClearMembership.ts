@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import { boundaryEdgeOutcomes } from '../../positionGraph/expandValidate/interactionUnderTransfer'
+import { boundaryEdgeOutcomes } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 import { planObjectClearFromAllHosts } from '../adapters/planObjectClearFromAllHosts'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
@@ -23,7 +23,7 @@ const defaultGetMembershipContainers = async (
 
 /**
  * Migrate row (object-lifecycle, BD-35): retired `applyHostEffects` (whose transact-item builders
- * called `EphemeraPositionGraph.removeObject`'s silent edge-strip) in favor of the general kernel.
+ * called `EphemeraLudicGraph.removeObject`'s silent edge-strip) in favor of the general kernel.
  * Every departure host's edges referencing the object are swept explicitly via `boundaryEdgeOutcomes`
  * on the singleton `{objectId}` set (no carry-closure growth --- there is no destination for a carry
  * partner to move into, so every outcome, carry/dissolve/defer alike, collapses to "sever it": the
@@ -50,7 +50,7 @@ export const applyObjectClearMembership = async (
     const hostByReferencedId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const hostId of diff.froms) {
-        const graph = await internalCache.Positions.getPositionGraph(hostId)
+        const graph = await internalCache.Positions.getLudicGraph(hostId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
         for (const { edge } of outcomes) {
             hostByReferencedId.set(edge.from, hostId)

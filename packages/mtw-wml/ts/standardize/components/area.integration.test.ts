@@ -11,7 +11,7 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 describe('StandardArea integration', () => {
     describe('Schema render', () => {
-        it('should render top-level Area with heterogeneous positionGraph children', () => {
+        it('should render top-level Area with heterogeneous ludicGraph children', () => {
             const test = new StandardForm(`<Asset uuid=(Test)>
                 <Area uuid=(downtown) key=(downtown)>
                     <ShortName>Downtown</ShortName>
@@ -35,7 +35,7 @@ describe('StandardArea integration', () => {
             `))
         })
 
-        it('should render empty Area without positionGraph wrapper', () => {
+        it('should render empty Area without ludicGraph wrapper', () => {
             const test = new StandardForm(`<Asset uuid=(Test)><Area uuid=(empty) key=(empty) /></Asset>`)
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)><Area uuid=(empty) key=(empty) /></Asset>
@@ -82,7 +82,7 @@ describe('StandardArea integration', () => {
                 </Area>
             </Asset>`)
             const area = test.byUniversalId['AREA#region'] as StandardArea
-            expect(area.positionGraph.edges.toJSON()).toHaveLength(1)
+            expect(area.ludicGraph.edges.toJSON()).toHaveLength(1)
             expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Area uuid=(region) key=(region)>

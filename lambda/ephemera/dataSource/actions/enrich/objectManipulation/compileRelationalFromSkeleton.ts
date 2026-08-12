@@ -8,7 +8,7 @@ import type {
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import type { EphemeraPositionGraph } from '../../../positions/positionGraph'
+import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
@@ -47,7 +47,7 @@ export type CompileRelationalFromSkeletonResult =
 
 const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
-    getPositionGraph: (hostId) => internalCache.Positions.getPositionGraph(hostId),
+    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
 /**
@@ -108,7 +108,7 @@ export async function compileRelationalFromSkeleton(
     const characterId = input.characterId
 
     const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const roomGraph = await positionsReadDeps.getPositionGraph(hostRoomId)
+    const roomGraph = await positionsReadDeps.getLudicGraph(hostRoomId)
     if (!roomGraph) {
         return {
             type: 'Error',
@@ -172,13 +172,13 @@ export async function compileRelationalFromSkeleton(
     const getCurrentHostForExpansion = (objectId: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
         hostByObjectId.get(objectId)
 
-    const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraPositionGraph>([[hostRoomId, roomGraph]])
+    const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
     for (const hostId of hostByObjectId.values()) {
         if (!hostGraphMap.has(hostId)) {
-            hostGraphMap.set(hostId, await positionsReadDeps.getPositionGraph(hostId))
+            hostGraphMap.set(hostId, await positionsReadDeps.getLudicGraph(hostId))
         }
     }
-    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraPositionGraph | undefined => hostGraphMap.get(hostId)
+    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
 
     type PreparedCandidate = {
         step: EstablishRelationStep | DissolveRelationStep

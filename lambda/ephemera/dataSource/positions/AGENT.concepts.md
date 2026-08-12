@@ -2,7 +2,7 @@
 
 This file records **mental models and vocabulary** for `mtw.ephemera.positions` --- what positions **mean** in the game world, not how we migrate or wire code. Normative obligations for shipped behavior: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
+Cross-area topology authoring (Area `ludicGraph`, Exit edges): [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
 ---
 
@@ -10,18 +10,18 @@ Cross-area topology authoring (Area `positionGraph`, Exit edges): [`packages/mtw
 
 | Term | Meaning |
 | --- | --- |
-| **Position graph** | A `{ nodes, edges }` structure: heterogeneous **nodes** (references to things in space) and uuid-keyed **edges** (typed relationships between endpoints). Same pattern as Area `positionGraph` in WML; may exist at multiple **scales**. |
+| **Ludic graph** | A `{ nodes, edges }` structure: heterogeneous **nodes** (references to things in space) and uuid-keyed **edges** (typed relationships between endpoints). Same pattern as Area `ludicGraph` in WML; may exist at multiple **scales**. |
 | **Graph role** | Which question a graph instance answers and **who may mutate it** --- see [Graph roles](#graph-roles-shared-shape-different-authority). Same shape, different authority boundary. |
 | **Scale** | Which component **hosts** the graph: Area (macro), Room (in-room), Character/container (inventory), etc. |
-| **Authored graph** | Blueprint / asset truth merged at participation order (WML `StandardArea.positionGraph`, future `StandardRoom.positionGraph`). |
+| **Authored graph** | Blueprint / asset truth merged at participation order (WML `StandardArea.ludicGraph`, future `StandardRoom.ludicGraph`). |
 | **Play graph** | Ephemera runtime mutations: who is in which room **now**, object placement in play, etc. |
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`positionGraph`**; reverse via **adjacency index**. Roster display hydrates at read time. |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`ludicGraph`**; reverse via **adjacency index**. Roster display hydrates at read time. |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder). |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
-| **`EphemeraPositionGraph`** | Host-bound in-memory play manipulation model (class in [`positionGraph/`](positionGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
+| **`EphemeraLudicGraph`** | Host-bound in-memory play manipulation model (class in [`ludicGraph/`](ludicGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
 
 ---
 
@@ -31,8 +31,8 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 
 | Graph role | Question | Authoritative writer | Steady-state example |
 | --- | --- | --- | --- |
-| **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `positionGraph` (Exit edges, macro layout) |
-| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.positionGraph` + adjacency index; simulated via **`EphemeraPositionGraph`** |
+| **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `ludicGraph` (Exit edges, macro layout) |
+| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.ludicGraph` + adjacency index; simulated via **`EphemeraLudicGraph`** |
 | **Materialized presentation** | What does this **consumer** see at this perspective? | Consumer-specific materialization (e.g. affordanceCache) | `Affordance::` row `topology.exits` |
 | **Ephemeral presentation** | What is the **wire-ready** view at read time? | Ephemera compose (cross-cache) | Hydrated roster in `AffordanceRoomDeliverable` |
 
@@ -44,19 +44,19 @@ Five names, five roles --- same `{ nodes, edges }` shape, different **authority*
 
 | Type | Layer | Role |
 | --- | --- | --- |
-| **`EphemeraPositionGraphFieldPayload`** | Dynamo `Meta::*.positionGraph` attribute | Stored attribute; Character + Object **identity** nodes; `hostId` omitted (row `EphemeraId` is authoritative) |
-| **`EphemeraPositionGraphData`** | `@tonylb/mtw-interfaces` | Manipulation JSON with **`hostId`**; `toJSON()` / read-boundary assemble shape |
-| **`EphemeraPositionGraph`** | [`lambda/ephemera/.../positionGraph/`](positionGraph/) | Host-bound manipulation **class**; immutable simulation API |
-| **`PlayPositionGraph`** | `@tonylb/mtw-gateways` | Topology-only **read envelope** (alias of `StandardPositionGraphData`) |
-| **`StandardPositionGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only v1; asset merge authority) |
+| **`EphemeraLudicGraphFieldPayload`** | Dynamo `Meta::*.ludicGraph` attribute | Stored attribute; Character + Object **identity** nodes; `hostId` omitted (row `EphemeraId` is authoritative) |
+| **`EphemeraLudicGraphData`** | `@tonylb/mtw-interfaces` | Manipulation JSON with **`hostId`**; `toJSON()` / read-boundary assemble shape |
+| **`EphemeraLudicGraph`** | [`lambda/ephemera/.../ludicGraph/`](ludicGraph/) | Host-bound manipulation **class**; immutable simulation API |
+| **`PlayLudicGraph`** | `@tonylb/mtw-gateways` | Topology-only **read envelope** (alias of `StandardLudicGraphData`) |
+| **`StandardLudicGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only v1; asset merge authority) |
 
-**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraPositionGraph`** -> simulate -> `toStored()` persist; **`internalCache.Positions.getPositionGraph`** -> wrapper **`fromPlayEnvelope`** -> class. Module detail: [`positionGraph/AGENT.md`](positionGraph/AGENT.md).
+**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraLudicGraph`** -> simulate -> `toStored()` persist; **`internalCache.Positions.getLudicGraph`** -> wrapper **`fromPlayEnvelope`** -> class. Module detail: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getPositionGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`**, not from stored `positionGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
+Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getLudicGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`**, not from stored `ludicGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
 
 #### WML convergence (future)
 
-Relational edge **wire types** should stay aligned between **`EphemeraPositionRelationalEdgeData`** (stored play JSON) and future WML **`Relational`** tag members (BD-2/BD-3). **Authority** stays separate: WML **`StandardPositionGraph`** owns authored blueprint and seed/snapshot import; **`EphemeraPositionGraph`** owns live play mutation. Adapters (`fromPlayEnvelope`, future `fromWML`) are the seam --- do not merge classes or Dynamo write paths. Future WML **`EdgeList`** consolidation is deferred until heterogeneous room/container edge lists ship in mtw-wml.
+Relational edge **wire types** should stay aligned between **`EphemeraLudicRelationalEdgeData`** (stored play JSON) and future WML **`Relational`** tag members (BD-2/BD-3). **Authority** stays separate: WML **`StandardLudicGraph`** owns authored blueprint and seed/snapshot import; **`EphemeraLudicGraph`** owns live play mutation. Adapters (`fromPlayEnvelope`, future `fromWML`) are the seam --- do not merge classes or Dynamo write paths. Future WML **`EdgeList`** consolidation is deferred until heterogeneous room/container edge lists ship in mtw-wml.
 
 **Cross-links:** gateway handler scope --- [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
 
@@ -72,7 +72,7 @@ This is why several rules downstream look redundant but are not: forward reads m
 
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each room hosts **`Meta::Room.positionGraph`** --- character and object **nodes**, plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom`).
+- Each room hosts **`Meta::Room.ludicGraph`** --- character and object **nodes**, plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom`).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
@@ -84,7 +84,7 @@ A character should appear in **at most one** room graph at steady state; duplica
 Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation:
 
 - **Existence** (improvisation pair + **`Meta::Object`**) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md)).
-- **Where** the object is in play: **`Object`** node on the delivery room **`positionGraph`** + **`OBJECT#`** adjacency row (**I5**).
+- **Where** the object is in play: **`Object`** node on the delivery room **`ludicGraph`** + **`OBJECT#`** adjacency row (**I5**).
 - **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
 - **Place / remove:** [`applyObjectRoomMembership`](membership/applyObjectRoomMembership.ts) end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
 - **In-host relational edges:** [`manipulation/relational/`](manipulation/relational/) coordinators build relational steps for the kernel; emits **`Object Relation Changed`**. Containment (`in` / inside) deferred to a future nesting operator.
@@ -94,11 +94,11 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 
 Held-object inventory is **positions-owned** play manipulation on the character host:
 
-- **Storage:** optional **`Meta::Character.positionGraph`** --- same **`EphemeraPositionGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
+- **Storage:** optional **`Meta::Character.ludicGraph`** --- same **`EphemeraLudicGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
-- **Read:** **`internalCache.Positions.getPositionGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
+- **Read:** **`internalCache.Positions.getLudicGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
-- **Cross-host apply:** [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. It grounds its transfer set through the Synthesize executor and commits through the kernel --- **no** new `update*PositionGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. See [Intent vs. world-effect](#intent-vs-world-effect).
+- **Cross-host apply:** [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. It grounds its transfer set through the Synthesize executor and commits through the kernel --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. See [Intent vs. world-effect](#intent-vs-world-effect).
 
 ### Manipulation layering (membership transfer)
 
@@ -126,7 +126,7 @@ Per-operator coordinators       verb-specific follow-on only (the kernel owns th
 | --- | --- |
 | **Manipulation kernel** | Graph-grounded persist executor: accept an explicit step sequence, lock the affected hosts, re-validate against freshly-fetched graphs, transact, dual-write adjacency, stream facts |
 | **Step sequence** | The ordered instruction list the kernel executes. Order is meaningful and never resorted --- a `dissolveRelation` step mutates the graph before a following `transferMembership` step reads it |
-| **Host-local relational patch** | Add/remove **edges** on a fixed host `positionGraph` without changing membership host. [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
+| **Host-local relational patch** | Add/remove **edges** on a fixed host `ludicGraph` without changing membership host. [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
 | **Shared membership adapter** | Reusable **transfer planner** for routes with fixed room-host targets: membership observation + apply mode (`end-state` / `bounded`) -> projected `froms`/`to` |
 | **Per-operator coordinator** | Verb-specific ingress wrapper: plans (or runs the executor), then commits; owns only the follow-on effects specific to its verb |
 | **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); projected to bus facts as `froms[]` / `to` |
@@ -229,7 +229,7 @@ Area **topology**, **room membership**, and the **eviction ladder** answer diffe
 | Question | Domain | Play expression (today) |
 | --- | --- | --- |
 | Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
-| Which **room** is this character in; who is on the roster? | Play-time **membership** | `positionGraph` nodes, adjacency index; roster hydrated at read time |
+| Which **room** is this character in; who is on the roster? | Play-time **membership** | `ludicGraph` nodes, adjacency index; roster hydrated at read time |
 | **Where can this character legally be placed** given their asset access? | **Eviction ladder** (`RoomStack`) | Trim frames to accessible assets; top surviving frame -> proposed room; membership apply when endpoint differs (connect: from nowhere; asset loss: from illegal room) |
 
 Exit topology does **not** imply roster membership. Membership does **not** define exits. The ladder is **not** roster membership --- it is **character-local evidence** for resolving a legal membership endpoint. Consumers that need several views compose **separate projections**.
@@ -256,7 +256,7 @@ When the world is built from **layered assets** (canon plus temporary or persona
 
 | Trigger | Starting state | Outcome when legal room differs |
 | --- | --- | --- |
-| **Connect** | Out of play --- purged from `positionGraph` / adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
+| **Connect** | Out of play --- purged from `ludicGraph` / adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
 | **Asset visibility** | In play at a room that may be invalid after asset loss | Relocate to resolved room (`froms: [illegal...]` -> `to`) |
 
 **Disconnect asymmetry:** disconnect **purges** authoritative play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That preserved stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
@@ -281,19 +281,19 @@ Code paths: [`AGENT.implementation.md`](AGENT.implementation.md#eviction-ladder-
 
 Operator design for play-time relational mutations (including unknowns): [`../../diegeticLogic/AGENT.md`](../../diegeticLogic/AGENT.md).
 
-### Fractal position graphs (container scale and edges)
+### Fractal ludic graphs (container scale and edges)
 
 The same **node + edge** pattern recurs at finer granularity beyond room character nodes:
 
 ```text
-Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (future)
+Area.ludicGraph              Room.ludicGraph (shipped v1)      Container graph (future)
   rooms, macro edges    ->    characters (nodes only)       ->  inventory / nested objects
   Exit, bearing, ...        in-room edges (slice 5+)            In, On, ...
 ```
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Container scale (D16 shipped v1):** **`Meta::Character.positionGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. Object **`OBJECT#`** / Area hosts deferred until needed.
+**Container scale (D16 shipped v1):** **`Meta::Character.ludicGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. Object **`OBJECT#`** / Area hosts deferred until needed.
 
 **The container corner of this ladder is superseded by [Wholes, parts, and ports](#wholes-parts-and-ports) below** (2026-08-07). "Container graph (future)" named the level without saying what a level *is*; the next subsection does, and it is the shape any object-scale work should be built against.
 
@@ -321,9 +321,9 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 
 **Status: Target, and deliberately narrow.** **Three** **shape** claims, and nothing else. The first two were fixed as a **locked frame** on 2026-08-06 after the design work that produced them stopped moving, and the third on 2026-08-09; recorded here, ahead of implementation, because everything still being designed is being designed *inside* them, and a reader who does not know them will mis-read the code that eventually lands. No claim names a record format, an identifier scheme, or a hosting model.
 
-1. **A whole has its own graph, with a root node.** Parts are nodes in it; part relations are edges in it. A whole is therefore *both* a graph and a node in another graph --- `EphemeraPositionGraph` is the recursive type, and "the same relation at every level" is a property of the data rather than a claim about the model.
+1. **A whole has its own graph, with a root node.** Parts are nodes in it; part relations are edges in it. A whole is therefore *both* a graph and a node in another graph --- `EphemeraLudicGraph` is the recursive type, and "the same relation at every level" is a property of the data rather than a claim about the model.
 2. **Boundary crossings are mediated by an explicit binding the interior owns** --- not by direct addressing of interior nodes from outside. That binding is a **port**.
-3. **Every `positionGraph` has the same internal structure, whatever kind of host it belongs to.** Exactly **one** root node, **present in the graph's own node list** and therefore usable as an endpoint of relations like any other node, with the graph carrying a **designation of which node that is**. Object, Room, Character, Area --- and anything that later acquires a graph --- all look the same inside. **A root node is not a privileged kind of node:** the same object is the root of its own graph and an ordinary member of its container's, which is *whole and part are roles, not kinds* restated at the node level. Do not mint a root-node type, and do not write a rule that gives roots different behaviour.
+3. **Every `ludicGraph` has the same internal structure, whatever kind of host it belongs to.** Exactly **one** root node, **present in the graph's own node list** and therefore usable as an endpoint of relations like any other node, with the graph carrying a **designation of which node that is**. Object, Room, Character, Area --- and anything that later acquires a graph --- all look the same inside. **A root node is not a privileged kind of node:** the same object is the root of its own graph and an ordinary member of its container's, which is *whole and part are roles, not kinds* restated at the node level. Do not mint a root-node type, and do not write a rule that gives roots different behaviour.
 
 **Clause 3 is conditional, and that is the whole of its scope: it constrains graphs that exist and mints none.** It does **not** say which things are hosts, and it does **not** put Room, Area or Feature into the part-of ladder --- **a uniform graph interior is not a uniform containment ladder.** Reading an inventory claim out of a structure claim is the specific error to avoid here; see the warning below on the room boundary, which clause 3 leaves exactly as it was.
 
@@ -334,7 +334,7 @@ Area.positionGraph          Room.positionGraph (shipped v1)   Container graph (f
 | **Whole** | **A way of referring to something while discussing its parts --- not a type, not a category, and not a thing anything can be a member of.** *"The whole comprising these parts."* Any host, viewed from the inside. **It denotes nothing that "host with a root node" does not already denote**, and clause 3 makes that identity exact rather than approximate |
 | **Part** | A node in a host's graph other than the root, reached from the root by a containment edge. **The counterpart term**, used when discussing the thing that contains it |
 | *(both, of one object)* | **Whole and part are roles relative to a level, not kinds of object.** The same thing is a part of what contains it and a whole of what it contains, **simultaneously and at every level** --- a string is a part of a machine and a whole of its spans. Any rule that gives parts and wholes different behaviour is therefore not a rule at all, since it assigns two behaviours to one object. **Do not type either word.** The failure mode is live rather than hypothetical: a *room-or-whole* fork was written into design work on 2026-08-09, two days after this claim was locked, treating a room as though it were not a whole |
-| **Port** | A **single-use** boundary slot on a whole, allocated by that whole: **one** port records **one** crossing between two position graphs. Two connections to the same host are two ports |
+| **Port** | A **single-use** boundary slot on a whole, allocated by that whole: **one** port records **one** crossing between two ludic graphs. Two connections to the same host are two ports |
 | **Egress / ingress** | A port's two ends --- the host it exits to, and its presence on that host's side |
 | **Coarsening** | Failed addressing resolves to the **last successfully addressed host** rather than dangling. `OBJECT#BAG:4` with no live port 4 reads as `OBJECT#BAG`: "tied to the bag's strap" degrades to "tied to the bag" |
 | **Scale-relative truth** | The model may give **different** answers at different levels with **both correct** --- the coarse one is not an approximation of the fine one. The requirement is that answers be *consistent*, never that they be the same |

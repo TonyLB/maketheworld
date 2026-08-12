@@ -9,7 +9,7 @@ import {
 
 /**
  * CPG-5's referent-kind abstraction (see `dataSource/actions/AGENT.concepts.md`): the
- * three `EphemeraPositionGraph`-groundable referent kinds Object-manipulation-style
+ * three `EphemeraLudicGraph`-groundable referent kinds Object-manipulation-style
  * resolution (Identify/Grounding) can point at, as one named union rather than the
  * ad hoc `EphemeraObjectId | EphemeraCharacterId` pair repeated at each call site.
  * Knowledge is deliberately excluded --- it has no graph position and routes through

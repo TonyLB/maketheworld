@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
-import { testPositionGraph } from '../../dataSource/positions/positionGraph/testFixtures'
+import { testLudicGraph } from '../../dataSource/positions/ludicGraph/testFixtures'
 import {
     getRoomObjectCatalogForCharacter,
     roomObjectLabelsFromCatalog,
@@ -30,7 +30,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
     it('returns empty catalog when character has no room', async () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             getMembershipContainers: async () => [],
-            getPositionGraph: async () => testPositionGraph(roomId),
+            getLudicGraph: async () => testLudicGraph(roomId),
             getImprovisationObject: async () => ({}),
         })
 
@@ -41,7 +41,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => testPositionGraph(roomId, {
+            getLudicGraph: async () => testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: broomId },
                     { tag: 'Object', universalKey: anvilId },
@@ -70,7 +70,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => testPositionGraph(roomId, {
+            getLudicGraph: async () => testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object', universalKey: authoredId }],
             }),
             getComponentAggregate: async () => ([
@@ -94,7 +94,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
-            getPositionGraph: async () => testPositionGraph(roomId, {
+            getLudicGraph: async () => testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object', universalKey: noNameId }],
             }),
             getImprovisationObject: async () => ({ component: new StandardObject({ tag: 'Object' }) }),
