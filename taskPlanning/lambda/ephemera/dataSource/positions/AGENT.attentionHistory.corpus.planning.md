@@ -94,6 +94,8 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **If presence-filtering wins, the room-scoped commitment in P6 narrows** and AH-6's per-character-window candidate stops being an option and becomes a requirement.
 
+**Re-scoped 2026-08-12, before being worked, and it shrank.** [The ledger-as-instruction-set frame](AGENT.attentionHistory.planning.md#the-attention-ledger-as-an-instruction-set-2026-08-12) surfaced that `manipulation/kernel`'s **`capture` step already solves audience-at-that-beat**: it snapshots a host's occupants mid-walk, and that snapshot *is* the audience narration is delivered to, precisely because "the audience for *Tess left* has to be who was standing in the room at that beat." **So this is no longer a question about whether attention can be time-correct --- shipped code does that --- but a narrower one: does an attention promotion attach to the captured roster, or to the host?** Read `capture`'s semantics before working this case; a version of it argued from first principles will re-derive machinery that exists.
+
 *Annotation:* promotion --- AH-2, AH-6 --- endpoint-only suffices --- **B can name the revolver on arrival versus must open the chest for themselves.**
 
 **Not yet worked.**
