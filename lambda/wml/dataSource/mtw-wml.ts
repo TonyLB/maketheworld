@@ -6,8 +6,9 @@ import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
 import { CoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from './localApiEvents'
-import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { DiagnosticsEventUpdate, isS3StructureFindingEvent, isWMLMaterializedViewFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
@@ -340,6 +341,44 @@ const processS3StructureFinding = async (
     }
 }
 
+const processWMLMaterializedViewFinding = async (
+    event: StreamingEventEnvelope<DiagnosticsEventUpdate>,
+    streamEvent: WmlStreamEventFn
+): Promise<void> => {
+    const payload = await event.getContent()
+    if (!payload || !isWMLMaterializedViewFindingEvent(payload)) return
+    const assetId = AssetKey(payload.assetId)
+    if (!isSchemaAssetUUID(assetId)) {
+        console.error(`Invalid AssetId format: ${assetId}`)
+        return
+    }
+    try {
+        const workspace = await AssetWorkspace.fromUUID(assetId, { preferDynamo: false, allowS3Fallback: true })
+        if (!workspace) {
+            console.error(`WML Materialized View Finding: Asset ${assetId} not found`)
+            return
+        }
+        await workspace.loadWML()
+        if (!workspace.standard) {
+            console.error(`WML Materialized View Finding: ${assetId} .wml could not be loaded (status: ${workspace.status.wml}); skipping .ndjson rewrite to avoid overwriting with empty content`)
+            return
+        }
+        await workspace.pushJSON()
+        try {
+            await streamEvent({
+                update: { schema: workspace.standard },
+                streamKey: assetId,
+                header: { type: 'Content Update', RequestIds: [] }
+            })
+        } catch (streamError) {
+            console.error(`Error streaming Content Update for ${assetId} (materialized view resync):`, streamError)
+        }
+        console.log(`Self-repair: Resynced materialized view for ${assetId} from .wml source`)
+    } catch (error) {
+        console.error(`Error processing WML Materialized View Finding for ${assetId}:`, error)
+    }
+}
+
 //
 // mtw.wml DataSource: snapshot-on-subscribe via S3 sidecar, then Content Update / Merge Conflict events.
 //
@@ -378,6 +417,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
             }
             if (isDiagnosticsEnvelope(event)) {
                 await processS3StructureFinding(event, streamEvent)
+                await processWMLMaterializedViewFinding(event, streamEvent)
             }
         }))
     },
