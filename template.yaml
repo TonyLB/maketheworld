@@ -1695,6 +1695,7 @@ Resources:
                   - mtw.diagnostics
                 detail-type:
                   - S3 Structure Finding
+                  - WML Materialized View Finding
           InitializeSubscriptions:
             Type: CloudWatchEvent
             Properties:
