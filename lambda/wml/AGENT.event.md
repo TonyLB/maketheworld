@@ -28,7 +28,17 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 - `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
 - `Merge Conflict` - Edit application failed due to conflicts
 
-**Event Subscriptions**: Subscribes to `api.wml` events (Apply Edit, Move Asset, Purge Asset, **Canonize Asset**, Decanonize) and `mtw.diagnostics`. **Canonize Asset** runs when internal coordination sends it (for example from the operator **`promoteToCanon`** path). There is **no** separate EventBridge subscription that invents canonize from outside the lambda; **Decanonize** has no product or operator call path yet.
+**Event Subscriptions**: Subscribes to `api.wml` events (Apply Edit, Move Asset, Purge Asset, **Canonize Asset**, Decanonize) and `mtw.diagnostics` (`S3 Structure Finding`, `WML Materialized View Finding`). **Canonize Asset** runs when internal coordination sends it (for example from the operator **`promoteToCanon`** path). There is **no** separate EventBridge subscription that invents canonize from outside the lambda; **Decanonize** has no product or operator call path yet.
+
+**`WML Materialized View Finding`** (`mtw.diagnostics`): manual-trigger-only diagnostic that forces a stale `.ndjson` cache to resync from a current `.wml` parse --- see [`s3Storage/AGENT.selfRepair.md`](s3Storage/AGENT.selfRepair.md)'s Scenario 4 for repair mechanics. Handled by `processWMLMaterializedViewFinding` in [`dataSource/mtw-wml.ts`](dataSource/mtw-wml.ts), dispatched alongside `processS3StructureFinding` from the same `isDiagnosticsEnvelope` branch. Manual trigger:
+```bash
+aws events put-events --entries '[{
+  "EventBusName": "mtw-bus", "Source": "mtw.diagnostics",
+  "DetailType": "WML Materialized View Finding",
+  "Detail": "{\"assetId\":\"ASSET#primitives\",\"diagnosticRunId\":\"manual-1\",\"timestamp\":\"2026-08-11T00:00:00.000Z\"}"
+}]'
+```
+`assetId` accepts a bare id too --- the handler normalizes via `AssetKey()` before use.
 
 **Implementation**: [`./dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)
 
@@ -240,7 +250,7 @@ This document is part of a coordinated event flow documentation effort across th
 ### Key Implementation Files
 
 **DataSource Core**:
-- `lambda/wml/dataSource/mtw-wml.ts` - Main DataSource implementation
+- `lambda/wml/dataSource/mtw-wml.ts` - Main DataSource implementation, including diagnostics handlers `processS3StructureFinding` and `processWMLMaterializedViewFinding`
 - `lambda/wml/dataSource/abstract.ts` - WML-specific base class
 - `lambda/wml/dataSource/coordinationSerializer.ts` - Coordination event types
 - `lambda/wml/messageBus/` - MessageBus implementation

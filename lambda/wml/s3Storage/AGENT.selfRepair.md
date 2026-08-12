@@ -221,6 +221,24 @@ if (state.manifestMissing && state.materializedViewMissing) {
 
 ---
 
+### Scenario 4: Materialized View Present but Stale
+
+**When**: `.ndjson` exists but was serialized by an older `StandardComponent.toJSON()`/`fromJSON()` shape than the current `.wml` parser produces (for example after a field rename). Not detected by `workspace.status.s3Missing` --- the file is present, just stale --- so this scenario falls entirely outside the `fetchAndDecideRepair`/`applyStorageOperation` pipeline that Scenarios 1-3 share.
+
+**Detection**: Not automatic yet. No periodic sweep exists (deferred; see [`AGENT.development.md`](AGENT.development.md)'s "WML Lambda Self-Diagnostics"). Detected today by manual inspection or suspicion after a schema-shape change.
+
+**Trigger**: Manual `WML Materialized View Finding` diagnostic event (`mtw.diagnostics` source, `lambda/wml` DataSource). See [`AGENT.event.md`](../AGENT.event.md) for the event contract and manual trigger command.
+
+**Resolution** (`processWMLMaterializedViewFinding`, `lambda/wml/dataSource/mtw-wml.ts`):
+1. `AssetWorkspace.fromUUID` loads the workspace.
+2. `workspace.loadWML()` re-parses `.wml` fresh into a new `StandardForm`.
+3. If `workspace.standard` is set after that (i.e. the parse succeeded), `workspace.pushJSON()` rewrites `.ndjson` with the fresh content, then `streamEvent({ header: { type: 'Content Update' } })` publishes so `lambda/assets`/DynamoDB also resync.
+4. If `loadWML()` failed, `workspace.standard` stays unset and the handler skips `pushJSON()`/`streamEvent()` entirely --- otherwise an unconditional `pushJSON()` would overwrite a healthy `.ndjson` with an empty `StandardForm`.
+
+**Idempotent**: safe to re-trigger on an asset whose `.ndjson` is already fresh (confirmed by test).
+
+---
+
 ## Scenario Comparison Matrix
 
 | Scenario | Manifest | Materialized View | Repair Strategy | Baseline Source |
@@ -229,6 +247,7 @@ if (state.manifestMissing && state.materializedViewMissing) {
 | 2. View Loss | ✅ Exists | ❌ Missing | Reconstruction | Reconstructed from manifest |
 | 3A. First Write | ❌ Missing | ❌ Missing | Synthesize Empty | Created empty form |
 | 3B. Not Found | ❌ Missing | ❌ Missing | Error | N/A |
+| 4. View Stale | ✅ Exists | ✅ Exists (stale) | Manual diagnostic resync | Fresh `.wml` parse |
 
 ---
 
