@@ -245,7 +245,7 @@ Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside 
 | `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` | Forward position graph memo from **`postApplyGraphs`** (**`EphemeraLudicGraph`**) |
+| `internalCache.Positions.set` | Forward ludic graph memo from **`postApplyGraphs`** (**`EphemeraLudicGraph`**) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo |
 | `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
 | `streamEvent` (required; from DataSource `receiveEvents`) | `Character Moved` when `changed` |
