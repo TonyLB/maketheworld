@@ -30,9 +30,9 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## Phase 0 corpus
 
-**Nine seed cases, stated 2026-08-12 from conversation. None worked.** Each records its setup and what it discriminates; findings are deliberately absent.
+**Ten seed cases: A1--A9 stated 2026-08-12, A10 added 2026-08-13. None worked.** Each records its setup and what it discriminates; findings are deliberately absent.
 
-**The corpus's known blind spot, recorded up front on the parent's precedent:** every case below is **single-room**. Attention across a boundary --- a character who can see into the next room, a whole spanning two rooms with different attention states in each --- is untested, and a claim that survives A1--A9 has not yet met that. **Expect at least one cross-boundary case before AH-1 is answered.**
+**The corpus's known blind spot, recorded up front on the parent's precedent:** every case below is **single-room**. Attention across a boundary --- a character who can see into the next room, a whole spanning two rooms with different attention states in each --- is untested, and a claim that survives A1--A10 has not yet met that. **Expect at least one cross-boundary case before AH-1 is answered.**
 
 ### A1: The occupant who steps out and right back in
 
@@ -156,6 +156,32 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Not yet worked.**
 
+### A10: The book on the table, and the books on the shelf
+
+**Setup.** A room holds a table and a bookshelf. **One book lies on the table; several more stand on the shelf.** Players look at the table. They then type a command referencing `book`.
+
+**What it discriminates.** **Whether attention is permitted to suppress an ambiguity check that has a real basis.** The referent fast path today would find several plausible `book` candidates, compute a joint relevance for each, and abstain when the top two sit within `T_MARGIN` --- handing the command to the slow path, which is the **correct** outcome given the evidence it has. Attention would break that tie in favour of the book on the table. **The question is whether it is entitled to.**
+
+**Both directions are defensible, which is what makes it corpus rather than a bug report:**
+
+- **Attention gates.** The reference resolves immediately to the book they were just looking at. This is almost certainly what the player meant, it is fast, and it is exactly the intent-tracking `ludicCache` exists to provide.
+- **Attention does not gate.** The system asks which book, because *several books* is a genuine fact about the room and the player never said which. **Attention did not make the other books stop existing.**
+
+**Why this case outranks its size, and it is a [clause 4](AGENT.abstractionLayers.planning.md#the-five-clauses) problem rather than a tuning problem.** The plan's degradation guarantee is that an error in the attention record costs **slow**, never **wrong**. **A tie broken by attention violates that directly:** if the player meant a shelf book --- visible, referrable, never handled --- the system does not fall through to a slower path. It resolves **confidently, silently, and wrongly, fast.** That is the one failure mode the design declares non-negotiable, and attention near the accept/abstain gate is the first mechanism proposed that can produce it.
+
+**The trap is that filtering does not escape it either.** Narrowing the candidate pool by attention *before* scoring removes the very competitor whose presence would have fired the margin gate. **The suppression is inherent to using attention near the gate, not a property of one of the two mechanisms** --- so this case cannot be answered by choosing filter-versus-rank.
+
+**Two escapes to grade against, rather than to assume:**
+
+1. **Attention orders but never gates.** It ranks what the slow path is shown and is barred from influencing the margin. Clause 4 preserved exactly; the round trip is not saved, only better aimed.
+2. **Attention may gate, but the narration must disclose the assumption** --- *"You pick up the book you were reading."* **This is the escape only a narrative system affords:** a wrong fast resolution that announces what it assumed is visible and correctable in the next beat, where a silent one is not. Whether *fast-wrong-and-obvious* is a genuinely different category from *fast-wrong* is the judgement this case exists to force.
+
+**Vary it deliberately when working the case.** If the players looked at the *bookshelf* rather than the table, attention points at the ambiguous set instead of away from it --- and an attention record that promotes several siblings equally must not manufacture confidence it does not have.
+
+*Annotation:* promotion --- **AH-3**, AH-2, and the [clause 4](AGENT.abstractionLayers.planning.md#the-five-clauses) guarantee --- endpoint-only suffices --- **the reference binds silently to the attended book versus the system asks which book, and the difference is player-visible in both directions: a saved round trip when it is right, and a wrong object handled without comment when it is not.**
+
+**Not yet worked.**
+
 ---
 
 ## Retention-axis tally
@@ -166,7 +192,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 | Case | Endpoint-only or needs path | What forced it | Confidence |
 | --- | --- | --- | --- |
-| *(A1--A9 --- not yet worked)* | | | |
+| *(A1--A10 --- not yet worked)* | | | |
 
 ## Coverage gaps, recorded up front
 
