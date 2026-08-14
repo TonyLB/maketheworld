@@ -1099,7 +1099,7 @@ Phase 6 adds its own commands here.
 | **Phase 0. Build the worked-example corpus** | **Effectively complete** --- [C1--C22](AGENT.abstractionLayers.corpus.planning.md#phase-0-corpus) written 2026-08-05 to 2026-08-09, and every checklist item satisfied except one: *cases where the axes interact*. The [axis tally](AGENT.abstractionLayers.corpus.planning.md#axis-tally-c1--c21-all-written) is the standing measure of where the corpus is thin |
 | **Phase 1. Resolve AB-1 provisionally** | **Done (2026-08-07)** --- one substrate, distinct relation kinds above it, explicitly not one type. Its sub-item, reconciling the multi-host contract clause, is still open |
 | **Phase 2. Answer every remaining row provisionally, in one pass** | Not started |
-| **Phase 3. Consistency pass** | **Partly done** --- the [parts-and-ports back-sweep](AGENT.abstractionLayers.proposals.planning.md#the-parts-and-ports-back-sweep) ran 2026-08-10 across all three tranches, 64 rows read, 36 implicated. Its other item, counting the `H1-dependent` set, is unmarked and predates H1's withdrawal |
+| **Phase 3. Consistency pass** | **Partly done** --- the [parts-and-ports back-sweep](AGENT.abstractionLayers.proposals.planning.md#the-parts-and-ports-back-sweep-2026-08-10) ran 2026-08-10 across all three tranches, 64 rows read, 36 implicated. Its other item, counting the `H1-dependent` set, is unmarked and predates H1's withdrawal |
 | **Phase 4. Close what the corpus can settle; park the rest with a named trigger** | Not started |
 | **Phase 5. Choose the thinnest vertical slice** | Not started |
 | **Phase 6. Build the slice, then graduate** | Not started |
