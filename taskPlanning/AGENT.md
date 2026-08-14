@@ -15,6 +15,18 @@ Think of documentation in four rough tiers:
 
 Task plans sit **above** chat: they record goals, ordering, progress, and verification so work can resume without re-deriving context. They sit **below** package docs: they should not duplicate architecture that belongs in `AGENT*.md` files next to code.
 
+## Two shapes of task plan --- and which one you are writing
+
+**Most plans are implementation plans, and this file is all you need for them.** A worklist of slices, a few open forks hanging off it, verification per slice.
+
+**Some initiatives are design-stage:** the deliverable of the next several phases is a **settled set of answers rather than code**, the open questions outnumber the steps, and the evidence needed to answer them has to be built (a corpus of worked cases) rather than read out of the codebase. Those follow **[`AGENT.designVariant.md`](AGENT.designVariant.md)** --- **Keep**, an authoring-rules sibling like the migration runbook below, not deleted when an initiative finishes.
+
+That variant **extends** this file and overrides four clauses: resolved decision rows are **graduated** rather than removed, open decisions may block no slice at all, code is licensed by an explicit **tier** (provisional / locked / Prototype) rather than by shipping, and Progress is a phase-grain status view rather than a running log. Its overrides table is authoritative where the two disagree.
+
+**If you are unsure, you are writing an implementation plan.** A long document is not by itself a reason to switch --- a fat **Open decisions** section is normal here.
+
+**That variant is itself provisional** (extracted 2026-08-14 from two unfinished initiatives, several of its rules never yet executed) and **this file is not.** Where a design plan finds a variant clause unworkable, the clause is amended --- see its [confidence table](AGENT.designVariant.md#confidence-and-how-this-file-is-expected-to-change). Do not read that asymmetry backwards and treat the variant as the stricter document because it is the more specific one.
+
 ## AGENT documentation taxonomy and migration
 
 **Authoring rules (steady state):** [Root `AGENT.md` -- AGENT documentation taxonomy](../AGENT.md#agent-documentation-taxonomy) --- file roles, decision tree, touch policy.
@@ -48,6 +60,8 @@ To start a migration: copy the template into the `taskPlanning/` subfolder that 
 
 ### Open decisions (implementation --- plan only)
 
+**Design-stage initiatives use the counterpart section instead** --- `## Open decisions (design --- plan only)`, with different columns and a **graduation** rule in place of *remove the row*. See [`AGENT.designVariant.md`](AGENT.designVariant.md#open-decisions-design--plan-only). The rest of this section still applies to them.
+
 Decisions you are making **in order to implement** an upcoming slice belong in the task plan until they ship. They are **plan debt**, not mental models.
 
 **Use a named section** in each active task plan:
@@ -73,7 +87,7 @@ A short table is enough: **ID**, **decision**, **blocks slice**, **status** (Ope
 
 **When a slice ships:**
 
-1. Remove resolved rows from **Open decisions**.
+1. Remove resolved rows from **Open decisions**. (**Design-stage plans graduate instead of removing** --- the verdict stays as a one-line row, the derivation moves to the reasoning trail; see [Graduating a resolved row](AGENT.designVariant.md#graduating-a-resolved-row).)
 2. Add falsifiable rules to **`AGENT.contract.md`** (not concepts).
 3. Update **`AGENT.implementation.md`** (paths and behavior).
 4. Update **`AGENT.concepts.md`** only when a **target mental model** graduates (Target -> Shipped) or new **vocabulary** is introduced --- not for implementation forks.
@@ -97,6 +111,7 @@ Add `AGENT.development.md` when a subtree has non-obvious tooling (Vitest vs Jes
 
 ## Creating a new task planning document
 
+0. **Decide which shape you are writing** --- implementation (this file) or design-stage ([`AGENT.designVariant.md`](AGENT.designVariant.md)). Deciding late is expensive: the two differ in section set, decision-row columns, and what Progress records.
 1. **Choose a folder** under `taskPlanning/` that matches the code area (e.g. `charcoal-client/`, `lambda/ephemera/`). Create the folder if needed.
 2. **Name the file** `AGENT.<shortTaskSlug>.planning.md` (or a consistent house pattern your team prefers).
 3. **Link this framework** at the top or in **Getting Started**: readers should skim [`taskPlanning/AGENT.md`](AGENT.md) (this file) once so they understand durability and content split.
