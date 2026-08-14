@@ -46,13 +46,16 @@ Everything else in [`AGENT.md`](AGENT.md) is unmodified. These four clauses are.
 
 In this order. The control surface comes before the argument, because a cold reader needs to know what is live before they can safely read anything.
 
+**Amended 2026-08-14, from the first reshape: the order splits the control surface around the argument, and that is not a compromise.** *Status*, *Getting Started* and *Recommended order* read cold --- they say what stage this is and what to do next, in ordinary English. *Open decisions* does not: **its rows are written in the vocabulary the argument establishes**, and a reader who meets them first meets undefined terms. So Recommended order is promoted **above** the design body and the decision table stays below it. **Graduation does not change this** --- a self-sufficient verdict cell removes the reader's dependence on the *derivation*, not on the *vocabulary*, so do not expect a Settled register to unlock promotion.
+
 1. **Status** --- stage, what is next, and whether **any** code is in scope.
 2. **Getting Started** --- per the base doc's [testing-doc pattern](AGENT.md#getting-started-testing-doc-pattern), plus one clause specific to this variant: **name which sections are live design and which are retained-but-superseded.** A design plan that records supersessions accumulates confident prose for models nobody is building.
 3. **What is inherited as settled** *(sub-plans only)* --- a table of premises taken from the parent, with the consequence for this plan. Its job is to stop the sub-plan re-arguing its own foundation; see [`AGENT.attentionHistory.planning.md`](lambda/ephemera/dataSource/positions/AGENT.attentionHistory.planning.md) for the pattern.
-4. **Phase 0 corpus** --- the evidence base, usually its own file. Cases are written against *today's* model and state which limit they hit. **Do not propose solutions in the corpus.**
-5. **Open decisions (design --- plan only)** and the **Settled register** beneath it.
-6. **Recommended order** --- checkboxes per the base doc.
-7. **Verification**, **Progress**, **Lifecycle**.
+4. **Recommended order** --- checkboxes per the base doc. **Above the design body**, per the amendment: it is the section a returning reader opens for, and it does not depend on the argument.
+5. **The design body** --- why the initiative exists, the frames and vocabulary the rows argue in, and any **locked frame**. *Added as an organ 2026-08-14: the first list omitted it, which made the order look like it ranked control surface against argument when in fact the argument sits between two halves of the control surface.* A lock lives here, not in the proposal record --- see [the ladder](#the-companion-file-ladder).
+6. **Phase 0 corpus** --- the evidence base, usually its own file. Cases are written against *today's* model and state which limit they hit. **Do not propose solutions in the corpus.**
+7. **Open decisions (design --- plan only)** and the **Settled register** beneath it.
+8. **Verification**, **Progress**, **Lifecycle**.
 
 ## Open decisions (design --- plan only)
 
@@ -198,8 +201,8 @@ Applying this file's own [constraint-arrival taxonomy](#open-decisions-design--p
 | Inherited-as-settled table | One initiative (the sub-plan), where it worked | Provisional |
 | Recognition test for the variant | Written 2026-08-14 as description; has never been used to *reject* a candidate | Provisional |
 | Organ **set** | Converged in both | **Derived** |
-| Organ **order** (control surface before argument) | New here; **neither plan is currently in this order** | Provisional |
-| Getting Started, incl. naming live vs superseded sections | Prompted by its absence costing real confusion in one plan | Provisional |
+| Organ **order** (control surface before argument) | Executed once, 2026-08-14; **amended on first use** --- the design body was a missing organ, and Open decisions could not promote with the rest | **Derived**, amended |
+| Getting Started, incl. naming live vs superseded sections | Prompted by its absence costing real confusion in one plan; **written once**, and the live/superseded clause was the part with real work in it | Provisional, **executed** |
 | Decision-row size limit | New, from observing 17.8 KB single-line rows and edits hiding each other | Provisional |
 | **Graduating resolved rows** | New. **Never executed** | **Untested** |
 | Companion-file ladder, four classes | All four now exist; the proposal record was built 2026-08-14 and needed **two amendments on first use** (status table, normative-content carve-out) | **Derived**, amended |
@@ -235,7 +238,8 @@ Named now so they are checked rather than rediscovered. Each is resolved by *doi
 | **DV-1** | How many resolved rows carry a live remainder? If most do, "graduate" is really "split, then graduate," and the rule understates the work. | The first graduation pass |
 | ~~**DV-2**~~ | ~~Does one proposal-record file hold live and superseded schemes without re-creating the confusion it was split to fix?~~ **Answered 2026-08-14: yes, but only with a mandatory live-versus-superseded header table** --- no internal division needed, and topic-splitting would have fragmented the cross-references. The ladder gained that requirement plus a carve-out for normative content. | Closed |
 | **DV-3** | Does the reasoning trail actually duplicate the Progress journal? If not, compaction **destroys** rather than relocates. | Verifying before the first compaction |
-| **DV-4** | Is the organ order right, or does putting the control surface first strand the argument sections without their setup? | A cold read after the first reshape |
+| ~~**DV-4**~~ | ~~Is the organ order right, or does putting the control surface first strand the argument sections without their setup?~~ **Answered 2026-08-14: the question had the wrong subject.** Nothing strands the argument sections --- what would have stranded is the *reader*, had **Open decisions** been promoted with the rest, because decision rows are written in the argument's vocabulary. The control surface splits: Status / Getting Started / Recommended order above, decisions below. The list also turned out to be **missing an organ** (the design body), which is why the order read as control-surface-versus-argument in the first place. | Closed |
+| **DV-4a** | Does that split hold for a plan whose decision rows are *short*? The vocabulary dependence here is a function of 5--20 KB rows; a plan with terse rows may promote its whole control surface cleanly, which would make the split a consequence of row size rather than of the variant. | The second design plan to be reshaped |
 | **DV-5** | Does the recognition test ever say *no*? A test that admits everything is not a test. | The next plan that is nearly, but not, a design initiative |
 | **DV-6** | Does the Settled register survive disposal --- do its rows actually route cleanly to contract / implementation / concepts? | The first initiative to dispose |
 | **DV-7** | Does the routing rule actually catch method findings, or do they keep landing inline because that is where they are noticed? If routing only ever happens in a later sweep, the rule should say *sweep* rather than *route*. | Watching where the next method finding lands |
