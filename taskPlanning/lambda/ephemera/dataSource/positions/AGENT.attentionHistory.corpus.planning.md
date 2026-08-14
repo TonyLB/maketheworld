@@ -10,7 +10,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## What counts as a case here, and how it differs from the C-series
 
-**The [C-series](AGENT.abstractionLayers.corpus.planning.md) rule cannot apply, and pretending otherwise would produce a corpus of nothing.** That rule is: *a case that cites a remembered claim rather than a line of code is not yet corpus.* **Attention has no shipped implementation at all** --- there is no code site for a case to stop at, and there will not be until this plan graduates.
+**The [C-series](AGENT.abstractionLayers.corpus.planning.md) rule cannot apply, and pretending otherwise would produce a corpus of nothing.** That rule is: *a case that cites a remembered claim rather than a line of code is not yet corpus.* **(The C-series [restated its rules 2026-08-14](AGENT.abstractionLayers.corpus.planning.md#phase-0-corpus) and now admits a second kind --- a case against an unbuilt proposal, anchored to the clause it falsifies. That second rule does not rescue attention either, for the same reason: it anchors to a proposal's clause table, and attention's cases turn on play. The split below stands unchanged.)** **Attention has no shipped implementation at all** --- there is no code site for a case to stop at, and there will not be until this plan graduates.
 
 **The discipline is transplanted rather than dropped, and the replacement is stricter in the way that matters:**
 

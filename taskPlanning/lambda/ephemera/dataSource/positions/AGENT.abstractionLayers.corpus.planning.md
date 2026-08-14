@@ -10,7 +10,18 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## Phase 0 corpus
 
-The evidence base later phases argue from. Each case is written against **today's** model and names the **code site** where it stops --- a case that cites a remembered claim rather than a line of code is not yet corpus.
+The evidence base later phases argue from. **Two admission rules, because this corpus does two jobs --- restated 2026-08-14 to describe what it has actually been doing since [C13](#c13-taking-and-returning-the-fork), rather than only what it set out to do.**
+
+1. **A case against today's model names the code site where it stops.** A case that cites a remembered claim rather than a line of code is not yet corpus. **This was the sole stated rule from C1 until this restatement, and it is not an implementation requirement** --- it asks where current code *fails*, not that current code be able to *handle* the case. [C7](#c7-ariadnes-thread) satisfies it in full and nothing anywhere can run Ariadne's thread.
+2. **A case against an unbuilt proposal names the clause it falsifies**, and states what each candidate reading produces. There is no code site to name; the anchor is the proposal's own clause table.
+
+**Rule 2 is a description of drift, and this corpus recorded that drift twice before acting on it** --- [result 4](#axis-tally-c1--c21-all-written) (C13 is the first case authored against a hypothesis's clause table rather than mined or offered as a hard scenario) and [result 5](#axis-tally-c1--c21-all-written) (C14 is the first to compare mechanisms that *all work*, rather than one representation against a limit). Both were flagged *worth watching*. **This restatement is what discharges the watching**; the drift itself is recorded, not undone, and no case has been re-homed.
+
+**The drift is measurable, and it had outrun rule 1.** Code references per case block: C1--C2 fourteen, C13 fourteen, C14 seventeen, C17 ten --- and **C18, C20 and C21 name none at all.** They are not weaker cases (C20 is among the most carefully worked in the file); they are anchored to [P5](AGENT.abstractionLayers.proposals.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item)'s clause table instead, which rule 1 had no room for and rule 2 now states. **What the gap actually cost is routing** --- the stated rule was three cases out of date, and a case graded against it gets sent to the wrong file. That happened on 2026-08-14 and is what prompted this.
+
+**The origin is not superseded by rule 2.** This corpus began as *fictional realities any representation must be able to express, with credit for expressing them in a way that can be reasoned over and mutated* --- still exactly what the [axis tally](#axis-tally-c1--c21-all-written)'s Reasoning and Mutation columns measure, and still the job the known blind spots below (two-level depth, scale of apprehension) belong to. Rule 2 adds a second activity alongside the first.
+
+**What neither rule admits, recorded so the next case is routed correctly: cases about how a `ludicCache` is *built* from `ludicGraph`s.** They can name no code site (CC1 is unwritten) and falsify no proposal clause (the reducer is a Channel C mechanism, not a P-row). Those go to [`AGENT.abstractionLayers.ludicCache.corpus.planning.md`](AGENT.abstractionLayers.ludicCache.corpus.planning.md), opened 2026-08-14, which states a third rule for them.
 
 **Cases C1--C4 were mined from the ladder's data-blocked parks** (see [The dependency is asymmetric](AGENT.abstractionLayers.planning.md#the-dependency-is-asymmetric-representation-unblocks-reasoning)) rather than invented, per Phase 0's first sub-step. Mining them produced three corrections to this plan, recorded in [Discussion record](AGENT.abstractionLayers.discussion.planning.md#discussion-record) and applied in place.
 
