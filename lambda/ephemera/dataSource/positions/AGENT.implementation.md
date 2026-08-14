@@ -89,6 +89,15 @@ ludicGraph/  <-- shared primitive
   ^-- actions/enrich/objectManipulation/synthesize/ (selection-time sandbox; shares applyTransferSet with the kernel)
 ```
 
+### `ludicCache/` (`ludicCache` prototype types, Channel C)
+
+Type contract for the `ludicCache` prototype (CC0b, [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#recommended-order)) --- types only so far; the rebuild function (CC1) lands here next. Fulfils the `EphemeraLudicCacheData` naming reservation in [`internalCache/AGENT.md`](../../internalCache/AGENT.md).
+
+| File | Role |
+| --- | --- |
+| [`ludicCache/types.ts`](ludicCache/types.ts) | **`EphemeraLudicCacheData`**, **`EphemeraLudicCacheNode`**, **`EphemeraLudicCacheEdge`**, **`EphemeraLudicCacheCrossing`** + type guards |
+| [`ludicCache/types.test.ts`](ludicCache/types.test.ts) | Unit tests |
+
 ### `navigate/` (shared execution + post-persist orchestration)
 
 | File | Role |

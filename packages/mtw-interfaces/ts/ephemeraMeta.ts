@@ -151,7 +151,7 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
     return true
 }
 
-/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes (nodes only). */
+/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes (nodes only). */
 export type EphemeraLudicGraphNode =
     | {
         tag: 'Character';
@@ -160,6 +160,10 @@ export type EphemeraLudicGraphNode =
     | {
         tag: 'Object';
         universalKey: EphemeraObjectId;
+    }
+    | {
+        tag: 'Room';
+        universalKey: EphemeraRoomId;
     }
 
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
@@ -222,6 +226,9 @@ export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudic
     }
     if (entry.tag === 'Object') {
         return isEphemeraObjectId(entry.universalKey)
+    }
+    if (entry.tag === 'Room') {
+        return isEphemeraRoomId(entry.universalKey)
     }
     return false
 }

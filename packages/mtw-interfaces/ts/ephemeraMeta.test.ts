@@ -160,10 +160,17 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(true)
     })
 
-    it('rejects non-character non-object tag', () => {
+    it('accepts room node with universalKey', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Room',
             universalKey: 'ROOM#Test',
+        })).toBe(true)
+    })
+
+    it('rejects unrecognized tag', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Feature',
+            universalKey: 'FEATURE#Test',
         })).toBe(false)
     })
 
@@ -171,6 +178,13 @@ describe('isEphemeraLudicGraphNode', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Character',
             universalKey: 'ROOM#Test',
+        })).toBe(false)
+    })
+
+    it('rejects room node with invalid universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Room',
+            universalKey: 'CHARACTER#Alpha',
         })).toBe(false)
     })
 
@@ -289,7 +303,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             EphemeraId: 'ROOM#Test',
             DataCategory: 'Meta::Room',
             ludicGraph: {
-                nodes: [{ tag: 'Room', universalKey: 'ROOM#Other' }],
+                nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Other' }],
             },
         })).toBe(false)
     })
