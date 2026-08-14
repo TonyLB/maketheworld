@@ -16,7 +16,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 > **A case is corpus when two candidate designs would produce a *different player-visible outcome*.** Name the outcome, in both directions.
 
-**A case where the designs differ only in cost is not corpus** --- it is a benchmark, and it belongs to AH-1's measurement rather than to Phase 0. **A case where they produce the same play is not a case at all**, however interesting the internals. This is [the parent's falsification clause](AGENT.abstractionLayers.planning.md#what-counts-as-a-falsification-case-learned-the-hard-way-2026-08-05) with *named axis* replaced by *named play difference*, because attention has one consumer and does not need the axis half.
+**A case where the designs differ only in cost is not corpus** --- it is a benchmark, and it belongs to AH-1's measurement rather than to Phase 0. **A case where they produce the same play is not a case at all**, however interesting the internals. This is [the parent's falsification clause](AGENT.abstractionLayers.proposals.planning.md#what-counts-as-a-falsification-case-learned-the-hard-way-2026-08-05) with *named axis* replaced by *named play difference*, because attention has one consumer and does not need the axis half.
 
 **Scope reminder, and it will disqualify tempting cases.** Attention serves **reference-location** only. A case about what a room's prose *says* is a **description** case --- it belongs to the parent, not here. The test: if the case's payoff is what the player *reads*, it is out; if the payoff is what the player can successfully *refer to*, it is in.
 
@@ -50,7 +50,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Setup.** A rope is surfaced in room A. Another character picks it up and carries it to room B. A player in room A types `untie rope`.
 
-**What it discriminates.** Whether **removal demotes**, or whether the stale handle is simply allowed to fail through. **Under fall-through it costs nothing to leave the entry**: the handle resolves to an address, the graph says the rope is not here, and the refusal is correct and already paid for by [P6 clause 4](AGENT.abstractionLayers.planning.md#the-five-clauses). **Under active demotion**, mutation must write to the attention record --- which puts attention on the write path and re-opens a latency question the design has so far avoided entirely.
+**What it discriminates.** Whether **removal demotes**, or whether the stale handle is simply allowed to fail through. **Under fall-through it costs nothing to leave the entry**: the handle resolves to an address, the graph says the rope is not here, and the refusal is correct and already paid for by [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#the-five-clauses). **Under active demotion**, mutation must write to the attention record --- which puts attention on the write path and re-opens a latency question the design has so far avoided entirely.
 
 **The trap to check for.** *"You don't see any rope"* versus *"the rope is no longer here"* are different fictional registers, and the second is better play. If the good message requires the stale entry to still exist, then **demotion is actively harmful here** and the cheap option is also the right one.
 
@@ -66,7 +66,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Run this early.** AH-3 blocks more rows than any other, and the answer changes what a "surfacing event" even records --- which is AH-1's input.
 
-**It also tests the ingress list**, the cache's [first real consumer](AGENT.abstractionLayers.planning.md#which-axes-want-the-ingress-list-and-why-pq-1-does-not-reverse-2026-08-12): if the lockbox exposes a port that is live in the crate, does opening the crate promote that port, the object behind it, or neither?
+**It also tests the ingress list**, the cache's [first real consumer](AGENT.abstractionLayers.proposals.planning.md#which-axes-want-the-ingress-list-and-why-pq-1-does-not-reverse-2026-08-12): if the lockbox exposes a port that is live in the crate, does opening the crate promote that port, the object behind it, or neither?
 
 *Annotation:* promotion --- **AH-3**, AH-1 --- endpoint-only suffices --- **`flip switch` binds immediately versus requires opening the lockbox first.**
 
@@ -74,7 +74,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ### A4: "Is there a screwdriver?" --- "No."
 
-**Setup.** A player asks whether there is a screwdriver in the workshop. There is not, and under [P5](AGENT.abstractionLayers.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item) the system mints that absence as a fact rather than merely declining. A minute later, the same or another player asks again.
+**Setup.** A player asks whether there is a screwdriver in the workshop. There is not, and under [P5](AGENT.abstractionLayers.proposals.planning.md#proposal-p5-improvisational-licence-as-a-first-class-graph-item) the system mints that absence as a fact rather than merely declining. A minute later, the same or another player asks again.
 
 **What it discriminates.** **Whether a negative takes salience.** If the minted absence is not recorded in attention, the second ask re-enters improvisation and **may mint a different answer** --- which is a continuity break, not a performance problem. If it is recorded, *"the screwdriver"* becomes a referrable handle that resolves to *there isn't one*, a different and better register than *"you don't see any screwdriver."*
 
@@ -167,7 +167,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 - **Attention gates.** The reference resolves immediately to the book they were just looking at. This is almost certainly what the player meant, it is fast, and it is exactly the intent-tracking `ludicCache` exists to provide.
 - **Attention does not gate.** The system asks which book, because *several books* is a genuine fact about the room and the player never said which. **Attention did not make the other books stop existing.**
 
-**Why this case outranks its size, and it is a [clause 4](AGENT.abstractionLayers.planning.md#the-five-clauses) problem rather than a tuning problem.** The plan's degradation guarantee is that an error in the attention record costs **slow**, never **wrong**. **A tie broken by attention violates that directly:** if the player meant a shelf book --- visible, referrable, never handled --- the system does not fall through to a slower path. It resolves **confidently, silently, and wrongly, fast.** That is the one failure mode the design declares non-negotiable, and attention near the accept/abstain gate is the first mechanism proposed that can produce it.
+**Why this case outranks its size, and it is a [clause 4](AGENT.abstractionLayers.proposals.planning.md#the-five-clauses) problem rather than a tuning problem.** The plan's degradation guarantee is that an error in the attention record costs **slow**, never **wrong**. **A tie broken by attention violates that directly:** if the player meant a shelf book --- visible, referrable, never handled --- the system does not fall through to a slower path. It resolves **confidently, silently, and wrongly, fast.** That is the one failure mode the design declares non-negotiable, and attention near the accept/abstain gate is the first mechanism proposed that can produce it.
 
 **The trap is that filtering does not escape it either.** Narrowing the candidate pool by attention *before* scoring removes the very competitor whose presence would have fired the margin gate. **The suppression is inherent to using attention near the gate, not a property of one of the two mechanisms** --- so this case cannot be answered by choosing filter-versus-rank.
 
@@ -178,7 +178,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Vary it deliberately when working the case.** If the players looked at the *bookshelf* rather than the table, attention points at the ambiguous set instead of away from it --- and an attention record that promotes several siblings equally must not manufacture confidence it does not have.
 
-*Annotation:* promotion --- **AH-3**, AH-2, and the [clause 4](AGENT.abstractionLayers.planning.md#the-five-clauses) guarantee --- endpoint-only suffices --- **the reference binds silently to the attended book versus the system asks which book, and the difference is player-visible in both directions: a saved round trip when it is right, and a wrong object handled without comment when it is not.**
+*Annotation:* promotion --- **AH-3**, AH-2, and the [clause 4](AGENT.abstractionLayers.proposals.planning.md#the-five-clauses) guarantee --- endpoint-only suffices --- **the reference binds silently to the attended book versus the system asks which book, and the difference is player-visible in both directions: a saved round trip when it is right, and a wrong object handled without comment when it is not.**
 
 **Not yet worked.**
 

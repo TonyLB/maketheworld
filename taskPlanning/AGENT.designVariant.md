@@ -123,6 +123,10 @@ A design plan outgrows one file. **Split by durability class, not by size or top
 | **Evidence corpus** (`.corpus.planning.md`) | Worked cases, written against today's model | Before arguing any row |
 | **Reasoning trail** (`.discussion.planning.md`) | Chronological record, plus graduated row detail keyed by ID | Only when you need *why* a row is shaped the way it is |
 
+**A proposal record must open with a live-versus-superseded table** --- added 2026-08-14, from the first extraction. One file holding both is fine, and topic-splitting it would fragment the cross-references; but **which schemes are live is invisible from the section headings**, and a superseded proposal reads exactly like a live one --- dense, confident, internally consistent. The table is what makes the single class safe. Without it the file *is* the hazard the split was supposed to relieve.
+
+**Normative content is not a proposal, and stays on the control surface.** A frame that rows may not re-argue belongs with the open decisions it constrains, not in the record of things once considered. Same test as the base doc's: proposals are what you are choosing between, and a lock is not.
+
 **They dispose together.** The split is an organizational convenience, not four lifecycles. **One asymmetry to decide at disposal:** the corpus is the only class with a plausible claim to outliving the initiative, so ask whether it graduates somewhere durable rather than being deleted with the rest.
 
 **Every split owes a link pass.** Inbound `](#anchor)` references become `](Other.md#anchor)`, and a broken cross-file anchor fails **silently**. Make anchor resolution an explicit item in **Verification**, and prefer copying an existing link to deriving a slug --- a `---` in a heading is an em dash, so its anchor takes two hyphens.
@@ -198,7 +202,7 @@ Applying this file's own [constraint-arrival taxonomy](#open-decisions-design--p
 | Getting Started, incl. naming live vs superseded sections | Prompted by its absence costing real confusion in one plan | Provisional |
 | Decision-row size limit | New, from observing 17.8 KB single-line rows and edits hiding each other | Provisional |
 | **Graduating resolved rows** | New. **Never executed** | **Untested** |
-| Companion-file ladder, four classes | Three classes exist in practice; the **proposal record is hypothetical** | Provisional |
+| Companion-file ladder, four classes | All four now exist; the proposal record was built 2026-08-14 and needed **two amendments on first use** (status table, normative-content carve-out) | **Derived**, amended |
 | Progress at phase grain | New. **Never executed**; assumes the reasoning trail already holds the day-by-day | **Untested** |
 | Supersession bound | New | Provisional |
 | **Method findings are an output** | **Proven absence**, measured: 4+ process findings stranded inline in one plan, whose Lifecycle asks only whether the *corpus* graduates | **Derived** |
@@ -229,7 +233,7 @@ Named now so they are checked rather than rediscovered. Each is resolved by *doi
 | # | Question | Settled by |
 | --- | --- | --- |
 | **DV-1** | How many resolved rows carry a live remainder? If most do, "graduate" is really "split, then graduate," and the rule understates the work. | The first graduation pass |
-| **DV-2** | Does one proposal-record file hold live and superseded schemes without re-creating the confusion it was split to fix? The ladder asserts one class; it may need an internal division. | The first proposals extraction |
+| ~~**DV-2**~~ | ~~Does one proposal-record file hold live and superseded schemes without re-creating the confusion it was split to fix?~~ **Answered 2026-08-14: yes, but only with a mandatory live-versus-superseded header table** --- no internal division needed, and topic-splitting would have fragmented the cross-references. The ladder gained that requirement plus a carve-out for normative content. | Closed |
 | **DV-3** | Does the reasoning trail actually duplicate the Progress journal? If not, compaction **destroys** rather than relocates. | Verifying before the first compaction |
 | **DV-4** | Is the organ order right, or does putting the control surface first strand the argument sections without their setup? | A cold read after the first reshape |
 | **DV-5** | Does the recognition test ever say *no*? A test that admits everything is not a test. | The next plan that is nearly, but not, a design initiative |
