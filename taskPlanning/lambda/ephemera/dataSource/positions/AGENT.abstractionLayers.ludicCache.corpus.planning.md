@@ -25,6 +25,12 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 ### The rule
 
 > **A case is corpus when two reducer designs produce a different cache.** Name **which** cache differs and **how**: nodes present, edges present, crossings recorded, or `homeShards` membership.
+>
+> **Then ask the second question, always: does the difference move the *fast/slow* boundary, or the *possible/impossible* one?** A difference in speed is a **case**. A difference in what is **referable at all** is a **defect**, and the case reports it as one.
+
+**The second question is what keeps this corpus honest about the kind of thing a cache is --- added 2026-08-15 from conversation, and it corrects a framing this file opened with.** The [requirement-versus-representation split](../../../../AGENT.designVariant.md#open-decisions-design--plan-only) assumes requirement questions are answerable from the fiction. **For `ludicCache` they are not, because the cache is an optimisation over a structure that already satisfies the fiction.** Whether a player *can* refer to something is settled downstream in the `ludicGraph`; the cache only decides whether that resolution is **pre-computed or falls through to a walk**. So the requirement half re-bases: *must this resolution be on the fast path, or is fall-through acceptable* --- bounded hard by [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure), **an error costs *slow*, never *wrong***.
+
+**The operational test, and it is answerable before any merge rule is chosen: *would the slow path find it?*** If the graph walk reaches the same referent, a cache that pre-computes it is **acceleration** --- benign, and the only cost is cache size. If the walk would **not** reach it, the cache has not accelerated a resolution, it has **created** one, and that is fast-confident-and-wrong: the one failure mode the design declares non-negotiable. **[A10](AGENT.attentionHistory.corpus.planning.md#a10-the-book-on-the-table-and-the-books-on-the-shelf) is the precedent** --- an optimisation that *adds* a candidate near the accept/abstain gate --- not [C15](AGENT.abstractionLayers.corpus.planning.md#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away), which is about apprehension and description and belongs to the parent's axis.
 
 **Extensional difference in the output is the right grain here in a way it is not for either sibling**, because for a reducer the output *is* the artifact. The C-series needs a code anchor because it describes shipped structures; AH needs a play anchor because its output is invisible except through play. A cache is a data structure whose entire job is to be read, so a difference in what it contains is a difference that counts, whether or not a player ever sees it.
 
@@ -40,7 +46,9 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ### Annotation line, uniform across cases
 
-**which CC step(s) it decides** --- **what differs in the cache** (nodes | edges | crossings | homeShards) --- **order-sensitive or order-independent** --- **the difference, stated in both directions.**
+**which CC step(s) it decides** --- **what differs in the cache** (nodes | edges | crossings | homeShards) --- **fast/slow or possible/impossible** --- **order-sensitive or order-independent** --- **the difference, stated in both directions.**
+
+**The third field was added 2026-08-15, after LC1--LC6 were stated.** Their annotation lines predate it and **acquire it when worked**, except where the case's own text already settles it. Reading that column down separates the cases that are about **cost** from the ones that are about the [clause 4 guarantee](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) --- and a case whose answer is *possible/impossible* outranks every performance case in the file regardless of how small it looks.
 
 **The order-sensitivity tag is the one that earns this corpus its keep.** Each case is a vote on whether the reducer must be confluent --- whether merge order is free --- and reading that column down is the direct input to CC1's signature. **Do not fill the [tally](#cache-difference-tally) before the cases are worked**; it is the corpus's output, not its premise.
 
@@ -48,7 +56,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## The corpus
 
-**Six seed cases, stated 2026-08-14 from the conversation that opened this file. None worked.** Each records its setup and what it discriminates; findings are deliberately absent.
+**Seven seed cases --- LC1--LC6 stated 2026-08-14 from the conversation that opened this file, LC7 added 2026-08-15. None worked.** Each records its setup and what it discriminates; findings are deliberately absent.
 
 **The known blind spot, recorded up front on both siblings' precedent: every case below is single-seed.** One cache, built from one host's point of view. A whole that appears in **two** caches --- two rooms each consolidating the same string --- is untested, and a claim that survives LC1--LC6 has not yet met it. **Expect at least one two-cache case before CC1 is called done.**
 
@@ -77,7 +85,7 @@ After the first two merges the cache holds `stringEnd2` (reached from the room) 
 
 **The half of the original question that is not corpus, recorded so it is not re-asked as one.** *Are the sibling links pulled from the working cache plus the incoming `ludicGraph`, or from the already-reduced `OBJECT#string` entry?* **Both can produce the same cache**, so by this file's rule it is a design fork rather than a case. It is real, and it belongs to CC1. **It becomes a case only in the variant above**, where the two sources differ in what they can even see.
 
-*Annotation:* CC1, CC1a --- **edges** --- suspected order-sensitive in the variant, order-independent otherwise --- **the string is one connected object in the cache versus three parts that share a name.**
+*Annotation:* CC1, CC1a --- **edges** --- **fast/slow** (the sibling links exist in `OBJECT#string`'s own graph either way, so a walk finds them; only the cache's pre-computation is at stake, which caps this case's severity below [LC7](#lc7-the-cable-that-passes-straight-through-the-box)) --- suspected order-sensitive in the variant, order-independent otherwise --- **the string is one connected object in the cache versus three parts that share a name.**
 
 **Not yet worked.**
 
@@ -159,15 +167,38 @@ After the first two merges the cache holds `stringEnd2` (reached from the room) 
 
 **Not yet worked.**
 
+### LC7: The cable that passes straight through the box
+
+**Origin:** raised 2026-08-15 while reviewing the merge rules; it is the case the [second admission question](#the-rule) was written from, and the first case in this file whose answer may be *possible/impossible* rather than *fast/slow*.
+
+**Setup.** The standing topology, plus a cable running from `OBJECT#table`, in through the box's **port A**, out through **port B**, to a lamp across the room. Before the box consolidates, the cache holds two edges: `table -Cable-> OBJECT#Box#{port A}` and `OBJECT#Box#{port B} -Cable-> lamp`. Then `OBJECT#Box`'s graph merges.
+
+**What it discriminates.** The merge rules as articulated handle an edge **entering** a host (append a crossing, rewrite the endpoint) and an edge **leaving** one (prepend a crossing, rewrite the start point). **Neither says what to do with an edge that does both**, and whether that is a gap depends on the box's interior:
+
+- **The interior connects port A to port B *via a node*** (a cable segment inside the box). Then the existing rules suffice --- each fires once, both edges terminate at the segment, and the result is correct with no new rule.
+- **The interior connects the ports *directly***, with no node between them. Then **there is nothing to rewrite the terminals to**, and the two cache edges must either be **joined into one** carrying two crossings, or left as a pair pointing at port addresses that no longer lead anywhere the cache represents.
+
+**So the case's first job is to decide whether a port-to-port interior link is even representable**, which is a question about `ludicGraph` rather than about the cache --- and if it is not, LC7 dissolves into the first bullet and costs nothing to have asked.
+
+**Its second job is the one that outranks it.** If the two edges **are** joined, the cache asserts `table -Cable-> lamp`: the lamp becomes locally addressable from the table without mentioning the box. **Apply the operational test --- would the slow path find it?** If a graph walk traverses the box's interior and reaches the lamp anyway, joining is acceleration and benign. If the walk stops at a closed or opaque boundary the join ignores, **the cache has created a resolution rather than accelerated one**, and that is a [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) violation rather than a design preference.
+
+**The variant worth running, and it samples [gap 1](#coverage-gaps-recorded-up-front).** Put the lamp in `ROOM#Cellar` instead of across the room. The pass-through is then also a **boundary** crossing, the walk is much more likely to stop, and the *possible/impossible* reading becomes the likely one rather than the exotic one.
+
+**Note what this case does to the two candidate mechanisms differently**, which is why it is worth working early: under a **concatenate-then-join** pipeline both half-edges are present in the same pass and the join is natural to spot; under a **fold** they are met in separate merges and joining requires retained state. **This is the same question as the retained-state concern**, arriving from the other end --- if pass-through must join, the fold owes the state; if it must not, the state may not be needed at all.
+
+*Annotation:* CC1, CC1b --- **edges, crossings** --- **candidate possible/impossible --- the first in this file** --- order-sensitive under a fold, order-independent under a pipeline --- **the lamp is addressable from the table without reference to the box, versus is not.**
+
+**Not yet worked.**
+
 ---
 
 ## Cache-difference tally
 
 **Empty by design.** Fill as cases are worked, one row each; **reading the order-sensitivity column down is the direct input to CC1's signature**, and pre-filling it would make the corpus argue for a conclusion instead of producing one.
 
-| Case | What differs | Order-sensitive? | What forced it | Confidence |
-| --- | --- | --- | --- | --- |
-| *(LC1--LC6 --- not yet worked)* | | | |
+| Case | What differs | Fast/slow or possible/impossible | Order-sensitive? | What forced it | Confidence |
+| --- | --- | --- | --- | --- | --- |
+| *(LC1--LC7 --- not yet worked)* | | | | | |
 
 ## Coverage gaps, recorded up front
 
