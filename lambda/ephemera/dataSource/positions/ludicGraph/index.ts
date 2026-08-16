@@ -418,15 +418,15 @@ export const fromCharacterMeta = (
  * (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
  * in `applyObjectSetTransfer.ts`.
  *
- * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object`
- * and `Feature` hosts for grounding/validation, but this dispatch was not --- there is no
- * `Meta::Object`/`Meta::Feature` storage for a hosted ludicGraph yet. An Object- or
- * Feature-hosted `transferMembership`/`establishRelation` step now passes grounding and
- * type-checks, then fails **at commit**: this falls into the `Meta::Character` branch,
- * `MultiKeyUpdate`'s fetch finds no matching row, and `commitStepSequence` throws
+ * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object`,
+ * `Feature`, and `Area` hosts for grounding/validation, but this dispatch was not --- there is
+ * no `Meta::Object`/`Meta::Feature`/`Meta::Area` storage for a hosted ludicGraph yet. An
+ * Object-, Feature-, or Area-hosted `transferMembership`/`establishRelation` step now passes
+ * grounding and type-checks, then fails **at commit**: this falls into the `Meta::Character`
+ * branch, `MultiKeyUpdate`'s fetch finds no matching row, and `commitStepSequence` throws
  * "MultiKeyUpdate fetch missing footprint host". Loud, not silent --- but a real dead end
  * until a later slice (see `AGENT.ludicGraphPorts.planning.md`, LP0) teaches this dispatch
- * about Object/Feature storage.
+ * about Object/Feature/Area storage.
  */
 export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
     isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'

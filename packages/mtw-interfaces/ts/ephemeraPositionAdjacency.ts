@@ -1,8 +1,10 @@
 import {
+    isEphemeraAreaId,
     isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraObjectId,
     isEphemeraRoomId,
+    type EphemeraAreaId,
     type EphemeraCharacterId,
     type EphemeraFeatureId,
     type EphemeraObjectId,
@@ -21,16 +23,17 @@ export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const
 
 /**
  * Eligible membership hosts: room, character inventory, object (recursive hosting --- a spring
- * hosted in a box), and feature (a wall hosting a niche as a PartOf member). Area is a deferred,
- * separate slice (LD-9) --- it mints a new component identity rather than widening this one.
+ * hosted in a box), feature (a wall hosting a niche as a PartOf member), and area. Area is a
+ * host only --- it is never itself a member of another host, so it has no counterpart on
+ * EphemeraPositionAdjacencyContainedId.
  *
  * Admission here is not a part-of-ladder claim: widening this union does not put any of these
  * kinds into the containment ladder above the room (see AGENT.concepts.md's premise-11 warning).
  */
-export type EphemeraMembershipHostId = EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId
+export type EphemeraMembershipHostId = EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
 
 export const isEphemeraMembershipHostId = (value: string): value is EphemeraMembershipHostId =>
-    isEphemeraRoomId(value) || isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value)
+    isEphemeraRoomId(value) || isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value)
 
 export type EphemeraPositionAdjacencyDataCategory =
     `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraMembershipHostId}`

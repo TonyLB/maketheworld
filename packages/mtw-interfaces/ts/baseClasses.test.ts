@@ -1,4 +1,4 @@
-import { isEphemeraRoomId, IMPROVISATION_ASSET_ID, isImprovisationAssetId } from './baseClasses'
+import { isEphemeraRoomId, isEphemeraAreaId, IMPROVISATION_ASSET_ID, isImprovisationAssetId } from './baseClasses'
 
 describe('EphemeraId functions', () => {
     it('should correctly flag a key', () => {
@@ -12,6 +12,21 @@ describe('EphemeraId functions', () => {
     })
     it('should throw an exception on nested key', () => {
         expect(() => (isEphemeraRoomId('ROOM#ROOM#TestABC'))).toThrowError()
+    })
+})
+
+describe('EphemeraAreaId functions', () => {
+    it('should correctly flag a key', () => {
+        expect(isEphemeraAreaId('AREA#TestABC')).toBe(true)
+    })
+    it('should correctly reject a mistagged key', () => {
+        expect(isEphemeraAreaId('VARIABLE#TestABC')).toBe(false)
+    })
+    it('should correctly reject a non-key', () => {
+        expect(isEphemeraAreaId('TestABC')).toBe(false)
+    })
+    it('should throw an exception on nested key', () => {
+        expect(() => (isEphemeraAreaId('AREA#AREA#TestABC'))).toThrowError()
     })
 })
 

@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { Change } from '../plan/ungroundedPrimitive'
@@ -186,6 +186,46 @@ describe('groundChange', () => {
                 objectIds: new Set([TRAY_ID]),
                 fromHostId: BOX_ID,
                 toHostId: NICHE_ID,
+            }],
+        })
+    })
+
+    it('admits an Area host candidate for transferMembership (LP0 Area slice)', () => {
+        // Area is not an `EphemeraThingId` (thing.ts deliberately excludes it), so it can
+        // never resolve directly off an objectSpan the way Object/Feature candidates do ---
+        // it can only arrive via `currentHost(X)`, whose `getCurrentHost` callback returns
+        // `EphemeraMembershipHostId`. Ground both `from` and `to` as current hosts of two
+        // different objects to exercise that path.
+        const ANCHOR_ID = 'OBJECT#Anchor' as EphemeraObjectId
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
+            to: currentHostRef(objectSpanRef('anchor', 'anchorRef')),
+        }
+        const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
+        const DOWNTOWN_ID = 'AREA#Downtown' as EphemeraAreaId
+        const context: GroundingContext = {
+            actingCharacterId: CHARACTER_ID,
+            resolvedSpans: new Map([
+                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
+                ['anchorRef', { verdict: 'resolved', candidateIds: [ANCHOR_ID] }],
+            ]),
+            getCurrentHost: (componentId) => {
+                if (componentId === TRAY_ID) return BOX_ID
+                if (componentId === ANCHOR_ID) return DOWNTOWN_ID
+                return undefined
+            },
+        }
+
+        expect(groundChange(change, context)).toEqual({
+            ok: true,
+            candidates: [{
+                kind: 'transferMembership',
+                objectIds: new Set([TRAY_ID]),
+                fromHostId: BOX_ID,
+                toHostId: DOWNTOWN_ID,
             }],
         })
     })

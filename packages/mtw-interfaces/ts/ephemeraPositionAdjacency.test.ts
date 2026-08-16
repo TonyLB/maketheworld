@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
 import {
     buildPositionAdjacencyDataCategory,
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
@@ -14,6 +14,7 @@ const objectHostId = 'OBJECT#Box' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const featureId = 'FEATURE#Niche' as EphemeraFeatureId
 const featureHostId = 'FEATURE#Wall' as EphemeraFeatureId
+const areaHostId = 'AREA#Downtown' as EphemeraAreaId
 
 describe('ephemeraPositionAdjacency key helpers', () => {
     it('buildPositionAdjacencyDataCategory prefixes room host id', () => {
@@ -30,6 +31,10 @@ describe('ephemeraPositionAdjacency key helpers', () => {
 
     it('buildPositionAdjacencyDataCategory prefixes feature host id', () => {
         expect(buildPositionAdjacencyDataCategory(featureHostId)).toBe('POSITION#FEATURE#Wall')
+    })
+
+    it('buildPositionAdjacencyDataCategory prefixes area host id', () => {
+        expect(buildPositionAdjacencyDataCategory(areaHostId)).toBe('POSITION#AREA#Downtown')
     })
 
     it('parsePositionAdjacencyDataCategory round-trips host room id', () => {
@@ -50,6 +55,11 @@ describe('ephemeraPositionAdjacency key helpers', () => {
     it('parsePositionAdjacencyDataCategory round-trips feature host id', () => {
         const dataCategory = buildPositionAdjacencyDataCategory(featureHostId)
         expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(featureHostId)
+    })
+
+    it('parsePositionAdjacencyDataCategory round-trips area host id', () => {
+        const dataCategory = buildPositionAdjacencyDataCategory(areaHostId)
+        expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(areaHostId)
     })
 
     it('parsePositionAdjacencyDataCategory rejects malformed SK', () => {

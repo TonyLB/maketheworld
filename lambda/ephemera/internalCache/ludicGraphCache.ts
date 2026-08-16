@@ -20,12 +20,12 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 export type { MembershipContainersCacheSetParams }
 
 /**
- * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object` and
- * `Feature` hosts, but the play-position cache gateway still only stores ROOM#/CHARACTER#
- * envelopes --- there is no Object/Feature ludicGraph cache entry yet. Same gap as
- * `hostDataCategory` in `dataSource/positions/ludicGraph/index.ts`: an Object- or
- * Feature-hosted step now type-checks through grounding, then throws here instead of at
- * `commitStepSequence`'s `MultiKeyUpdate`, whichever runs first. Loud, not silent.
+ * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object`,
+ * `Feature`, and `Area` hosts, but the play-position cache gateway still only stores
+ * ROOM#/CHARACTER# envelopes --- there is no Object/Feature/Area ludicGraph cache entry yet.
+ * Same gap as `hostDataCategory` in `dataSource/positions/ludicGraph/index.ts`: an Object-,
+ * Feature-, or Area-hosted step now type-checks through grounding, then throws here instead of
+ * at `commitStepSequence`'s `MultiKeyUpdate`, whichever runs first. Loud, not silent.
  */
 const assertForwardHostId = (
     hostId: EphemeraMembershipHostId

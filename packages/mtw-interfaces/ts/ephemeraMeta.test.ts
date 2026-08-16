@@ -289,6 +289,15 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
+    it('accepts host-bound graph with area hostId (LP0 Area slice)', () => {
+        // The Area *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
+        // Only the host union widens here, so the node list still uses an already-shipped tag.
+        expect(isEphemeraLudicGraphData({
+            hostId: 'AREA#Downtown',
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+        })).toBe(true)
+    })
+
     it('rejects missing hostId', () => {
         expect(isEphemeraLudicGraphData({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
