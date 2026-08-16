@@ -9,6 +9,13 @@ import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
 import { queryMembershipContainersFromDynamo } from './adjacency'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import {
+    getRoomLudicGraphFromDynamo,
+    getCharacterLudicGraphFromDynamo,
+    getObjectLudicGraphFromDynamo,
+    getFeatureLudicGraphFromDynamo,
+    getAreaLudicGraphFromDynamo,
+} from '.'
 
 const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -496,5 +503,19 @@ describe('queryMembershipContainersFromDynamo', () => {
         }
 
         await expect(queryMembershipContainersFromDynamo(db, characterId)).resolves.toEqual([roomId])
+    })
+})
+
+describe('get*LudicGraphFromDynamo exports on the package entrypoint (MK5)', () => {
+    it('re-exports get*LudicGraphFromDynamo for all five host kinds from `.`, not just `./fetch`', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockResolvedValue({ ludicGraph: { nodes: [], edges: [] } }),
+        }
+
+        await expect(getRoomLudicGraphFromDynamo(db, roomId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getCharacterLudicGraphFromDynamo(db, characterHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getObjectLudicGraphFromDynamo(db, objectHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getFeatureLudicGraphFromDynamo(db, featureHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getAreaLudicGraphFromDynamo(db, areaHostId)).resolves.toEqual({ nodes: [], edges: [] })
     })
 })

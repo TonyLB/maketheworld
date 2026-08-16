@@ -9,7 +9,7 @@ Play ludic graph read handler for ephemera. **Authoritative writers:** positions
 | Surface | Use |
 | --- | --- |
 | **Primary** | **`createPositionsCacheHandler(ephemeraDB)`** / **`PositionsCacheHandler`** --- register on Ephemera **`internalCache.Positions`**. |
-| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectComponentGraphFromStoredLudicGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
+| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`getObjectLudicGraphFromDynamo`**, **`getFeatureLudicGraphFromDynamo`**, **`getAreaLudicGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectComponentGraphFromStoredLudicGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
@@ -76,9 +76,9 @@ Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoin
 
 ## Handler API ([`factory.ts`](factory.ts))
 
-- **`getLudicGraph(componentId)`** --- forward **topology** graph for room, character, or object hosts (Dynamo load + memo).
+- **`getLudicGraph(componentId)`** --- forward **topology** graph for room, character, object, feature, or area hosts (Dynamo load + memo).
 - **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array** of eligible host ids --- **`ROOM#`** and/or **`CHARACTER#`** in v1). Transfer-planning / reverse reads only; kernel graph-grounded persist **must not** call this to discover priors.
-- **Forward memo:** **`set`** / **`invalidate`** on ludic graphs for room, character, or object hosts (`ludicGraphCacheKey`).
+- **Forward memo:** **`set`** / **`invalidate`** on ludic graphs for room, character, object, feature, or area hosts (`ludicGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 
 All memo APIs patch in-memory state only; **no Dynamo write-through**.

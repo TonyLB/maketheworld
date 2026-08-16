@@ -13,6 +13,7 @@ export {
     getCharacterLudicGraphFromDynamo,
     getObjectLudicGraphFromDynamo,
     getFeatureLudicGraphFromDynamo,
+    getAreaLudicGraphFromDynamo,
     getCharacterRoomIdFromDynamo,
     isPositionsComponentId,
 } from './fetch'
