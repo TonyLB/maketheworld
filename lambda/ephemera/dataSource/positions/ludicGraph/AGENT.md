@@ -47,7 +47,7 @@ class EphemeraLudicGraph {
 }
 ```
 
-Factory helpers on module boundary (not class methods): `fromRoomMeta`, `fromCharacterMeta`, `fromObjectMeta`, `fromFeatureMeta`, `fromAreaMeta`, `seedFromActiveCharacters`. `fromCharacterMeta`/`fromObjectMeta`/`fromFeatureMeta`/`fromAreaMeta` are thin, host-named wrappers over one shared plain-serde body (MD-1(c), [`AGENT.membershipHostKernel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.membershipHostKernel.planning.md)) --- a direct `ludicGraph` field read with a trivial empty default, no reconstruction source. `hostDataCategory`/`graphFromMeta` dispatch `Meta::Room` / `Meta::Character` / `Meta::Object` / `Meta::Feature` / `Meta::Area`.
+Factory helpers on module boundary (not class methods): `fromRoomMeta`, `fromCharacterMeta`, `fromObjectMeta`, `fromFeatureMeta`, `fromAreaMeta`, `seedFromActiveCharacters`. `fromCharacterMeta`/`fromObjectMeta`/`fromFeatureMeta`/`fromAreaMeta` are thin, host-named wrappers over one shared `fromPlainHostMeta` body --- a direct `ludicGraph` field read with a trivial empty default, no reconstruction source. `fromRoomMeta` is the one exception, layering the `seedFromActiveCharacters` fallback on the same decode. Rule: [Host storage: one shared serde, one documented exception](../AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). `hostDataCategory`/`graphFromMeta` dispatch `Meta::Room` / `Meta::Character` / `Meta::Object` / `Meta::Feature` / `Meta::Area`.
 
 Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`.
 

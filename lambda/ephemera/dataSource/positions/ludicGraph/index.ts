@@ -451,13 +451,7 @@ export const fromAreaMeta = (
  * host's `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` record
  * directly (`MultiKeyUpdate` reducers). Promoted here (2026-07-15, BD-15/16 slice 3) once a third
  * call site (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
- * in `applyObjectSetTransfer.ts`.
- *
- * KNOWN GAP (LP0, 2026-08-16; narrowed MK2, MK3, MK4): `EphemeraMembershipHostId` was widened to
- * admit `Object`, `Feature`, and `Area` hosts for grounding/validation, but this dispatch only
- * covered Room/Character at first. MK2 taught it about `Meta::Object`; MK3 taught it about
- * `Meta::Feature`; MK4 taught it about `Meta::Area`. All five host kinds now dispatch correctly ---
- * see `AGENT.membershipHostKernel.planning.md`, MK6 for retiring this comment once cleanup lands.
+ * in `applyObjectSetTransfer.ts`. Dispatches all five `EphemeraMembershipHostId` kinds.
  */
 export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' | 'Meta::Area' =>
     isEphemeraRoomId(hostId)

@@ -32,7 +32,7 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 | Graph role | Question | Authoritative writer | Steady-state example |
 | --- | --- | --- | --- |
 | **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `ludicGraph` (Exit edges, macro layout) |
-| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::Room.ludicGraph` + adjacency index; simulated via **`EphemeraLudicGraph`** |
+| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::<Kind>.ludicGraph` (any membership host kind) + adjacency index; simulated via **`EphemeraLudicGraph`** |
 | **Materialized presentation** | What does this **consumer** see at this perspective? | Consumer-specific materialization (e.g. affordanceCache) | `Affordance::` row `topology.exits` |
 | **Ephemeral presentation** | What is the **wire-ready** view at read time? | Ephemera compose (cross-cache) | Hydrated roster in `AffordanceRoomDeliverable` |
 
@@ -76,6 +76,8 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
+
+**Room is the worked example here, not the only host.** The same forward-graph shape is stored on every membership host kind as **`Meta::<Kind>.ludicGraph`** (Room, Character, Object, Feature, Area), through one shared serde --- see [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). Room's `activeCharacters` reconstruction fallback is the one host-side irregularity. **This says nothing about which kinds are levels in a part-of ladder** --- that a kind can host a graph is an inventory fact, not a structure claim (see the [wholes/parts warning](#wholes-parts-and-ports)).
 
 A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
 

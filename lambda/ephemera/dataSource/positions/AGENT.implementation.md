@@ -73,9 +73,11 @@ The **intent payload** column is the only per-operator row that genuinely varies
 
 Host-bound **`EphemeraLudicGraph`** class --- membership + relational simulation; sole in-memory primitive for kernel, transact reducers, and read-only actions observation. Spec: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
 
+**Host serde.** `fromCharacterMeta` / `fromObjectMeta` / `fromFeatureMeta` / `fromAreaMeta` are thin, host-named wrappers over one shared `fromPlainHostMeta` body (direct `ludicGraph` field read, trivial empty default). `fromRoomMeta` is the one irregular case --- it layers the `seedFromActiveCharacters` absent-value fallback on top of the same decode. Rule: [Host storage: one shared serde, one documented exception](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception).
+
 | File | Role |
 | --- | --- |
-| [`ludicGraph/index.ts`](ludicGraph/index.ts) | **`EphemeraLudicGraph` class** + factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) |
+| [`ludicGraph/index.ts`](ludicGraph/index.ts) | **`EphemeraLudicGraph` class** + factories (`fromRoomMeta`, `fromCharacterMeta`, `fromObjectMeta`, `fromFeatureMeta`, `fromAreaMeta`, `seedFromActiveCharacters`); `hostDataCategory` / `graphFromMeta` five-way `Meta::*` dispatch |
 | [`ludicGraph/baseClasses.ts`](ludicGraph/baseClasses.ts) | **`HostRelationalEdge`** parsed view; relational parse/match/serialize helpers |
 | [`ludicGraph/index.test.ts`](ludicGraph/index.test.ts) | Unit tests |
 
@@ -249,7 +251,7 @@ Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside 
 
 | System | Use |
 | --- | --- |
-| `ephemeraDB.transactWrite` | `Meta::Room.ludicGraph`; adjacency rows |
+| `ephemeraDB.transactWrite` | `Meta::<Kind>.ludicGraph` (Room / Character / Object / Feature / Area); adjacency rows |
 | `ephemeraDB.optimisticUpdate` | `Meta::Character.RoomStack` on navigate (parallel tail) and trim-only connect paths |
 | `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
 | `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |

@@ -20,10 +20,8 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 export type { MembershipContainersCacheSetParams }
 
 /**
- * KNOWN GAP (LP0, 2026-08-16; narrowed MK2, MK3, MK4): `EphemeraMembershipHostId` was widened to
- * admit `Object`, `Feature`, and `Area` hosts. MK2 taught this gateway about Object; MK3 taught it
- * about Feature; MK4 taught it about Area. All five host kinds now pass through --- see
- * `AGENT.membershipHostKernel.planning.md`, MK6 for retiring this comment once cleanup lands.
+ * Narrows a membership host id to the subset the play-position cache gateway forwards on.
+ * Accepts all five `EphemeraMembershipHostId` kinds --- Room, Character, Object, Feature, Area.
  */
 const assertForwardHostId = (
     hostId: EphemeraMembershipHostId
