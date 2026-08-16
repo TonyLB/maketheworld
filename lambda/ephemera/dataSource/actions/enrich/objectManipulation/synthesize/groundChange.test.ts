@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { Change } from '../plan/ungroundedPrimitive'
@@ -156,6 +156,36 @@ describe('groundChange', () => {
                 objectIds: new Set([TRAY_ID]),
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
+            }],
+        })
+    })
+
+    it('admits Object and Feature host candidates for transferMembership (LP0 widened EphemeraMembershipHostId)', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
+            to: objectSpanRef('niche', 'nicheRef'),
+        }
+        const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
+        const NICHE_ID = 'FEATURE#Niche' as EphemeraFeatureId
+        const context: GroundingContext = {
+            actingCharacterId: CHARACTER_ID,
+            resolvedSpans: new Map([
+                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
+                ['nicheRef', { verdict: 'resolved', candidateIds: [NICHE_ID] }],
+            ]),
+            getCurrentHost: (componentId) => (componentId === TRAY_ID ? BOX_ID : undefined),
+        }
+
+        expect(groundChange(change, context)).toEqual({
+            ok: true,
+            candidates: [{
+                kind: 'transferMembership',
+                objectIds: new Set([TRAY_ID]),
+                fromHostId: BOX_ID,
+                toHostId: NICHE_ID,
             }],
         })
     })

@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
 import {
     buildPositionAdjacencyDataCategory,
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
@@ -10,7 +10,10 @@ import {
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#helmet' as EphemeraObjectId
+const objectHostId = 'OBJECT#Box' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
+const featureId = 'FEATURE#Niche' as EphemeraFeatureId
+const featureHostId = 'FEATURE#Wall' as EphemeraFeatureId
 
 describe('ephemeraPositionAdjacency key helpers', () => {
     it('buildPositionAdjacencyDataCategory prefixes room host id', () => {
@@ -19,6 +22,14 @@ describe('ephemeraPositionAdjacency key helpers', () => {
 
     it('buildPositionAdjacencyDataCategory prefixes character host id', () => {
         expect(buildPositionAdjacencyDataCategory(characterHostId)).toBe('POSITION#CHARACTER#Beta')
+    })
+
+    it('buildPositionAdjacencyDataCategory prefixes object host id', () => {
+        expect(buildPositionAdjacencyDataCategory(objectHostId)).toBe('POSITION#OBJECT#Box')
+    })
+
+    it('buildPositionAdjacencyDataCategory prefixes feature host id', () => {
+        expect(buildPositionAdjacencyDataCategory(featureHostId)).toBe('POSITION#FEATURE#Wall')
     })
 
     it('parsePositionAdjacencyDataCategory round-trips host room id', () => {
@@ -31,9 +42,22 @@ describe('ephemeraPositionAdjacency key helpers', () => {
         expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(characterHostId)
     })
 
+    it('parsePositionAdjacencyDataCategory round-trips object host id', () => {
+        const dataCategory = buildPositionAdjacencyDataCategory(objectHostId)
+        expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(objectHostId)
+    })
+
+    it('parsePositionAdjacencyDataCategory round-trips feature host id', () => {
+        const dataCategory = buildPositionAdjacencyDataCategory(featureHostId)
+        expect(parsePositionAdjacencyDataCategory(dataCategory)).toBe(featureHostId)
+    })
+
     it('parsePositionAdjacencyDataCategory rejects malformed SK', () => {
         expect(parsePositionAdjacencyDataCategory('POSITION#not-a-room')).toBeUndefined()
-        expect(parsePositionAdjacencyDataCategory('POSITION#OBJECT#held')).toBeUndefined()
+        // NOTE: 'OBJECT#held' is now a legal host (LP0 widened EphemeraMembershipHostId to
+        // include Object), so this no longer exercises a rejection --- KNOWLEDGE is not an
+        // eligible host tag and stands in for "well-formed tagged id, wrong tag" instead.
+        expect(parsePositionAdjacencyDataCategory('POSITION#KNOWLEDGE#held')).toBeUndefined()
         expect(parsePositionAdjacencyDataCategory('Meta::Room')).toBeUndefined()
         expect(parsePositionAdjacencyDataCategory(`${EPHEMERA_POSITION_ADJACENCY_PREFIX}`)).toBeUndefined()
     })
@@ -58,6 +82,20 @@ describe('isEphemeraPositionAdjacencyRow', () => {
         expect(isEphemeraPositionAdjacencyRow({
             EphemeraId: objectId,
             DataCategory: buildPositionAdjacencyDataCategory(characterHostId),
+        })).toBe(true)
+    })
+
+    it('accepts valid feature-contained adjacency row on feature host (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: featureId,
+            DataCategory: buildPositionAdjacencyDataCategory(featureHostId),
+        })).toBe(true)
+    })
+
+    it('accepts valid object adjacency row on object host (recursive hosting)', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: objectId,
+            DataCategory: buildPositionAdjacencyDataCategory(objectHostId),
         })).toBe(true)
     })
 

@@ -38,7 +38,7 @@ describe('expandSameHost', () => {
             edges: [],
         })
         const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraCharacterId | EphemeraRoomId) =>
+        const getGraph = (hostId: EphemeraMembershipHostId) =>
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
@@ -65,7 +65,7 @@ describe('expandSameHost', () => {
             edges: [],
         })
         const getCurrentHost = (id: EphemeraObjectId) => (id === CHARM_ID ? ROOM_ID : CHARACTER_ID)
-        const getGraph = (hostId: EphemeraCharacterId | EphemeraRoomId) =>
+        const getGraph = (hostId: EphemeraMembershipHostId) =>
             hostId === ROOM_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
@@ -92,7 +92,7 @@ describe('expandSameHost', () => {
             edges: [],
         })
         const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraCharacterId | EphemeraRoomId) =>
+        const getGraph = (hostId: EphemeraMembershipHostId) =>
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
@@ -140,7 +140,7 @@ describe('expandSameHost', () => {
             edges: [],
         })
         const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraCharacterId | EphemeraRoomId) =>
+        const getGraph = (hostId: EphemeraMembershipHostId) =>
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(

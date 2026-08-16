@@ -81,6 +81,16 @@ describe('isObjectMovedPublishedPayload', () => {
         })).toBe(true)
     })
 
+    it('accepts object and feature membership host endpoints (LP0 widened EphemeraMembershipHostId)', () => {
+        expect(isObjectMovedPublishedPayload({
+            type: 'Object Moved',
+            objectId: 'OBJECT#spring',
+            froms: ['OBJECT#Box'],
+            to: 'FEATURE#Wall',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(true)
+    })
+
     it('rejects invalid membership host ids', () => {
         expect(isObjectMovedPublishedPayload({
             ...minimal,
@@ -88,7 +98,7 @@ describe('isObjectMovedPublishedPayload', () => {
         })).toBe(false)
         expect(isObjectMovedPublishedPayload({
             ...minimal,
-            to: 'FEATURE#invalid',
+            to: 'KNOWLEDGE#invalid',
         })).toBe(false)
     })
 

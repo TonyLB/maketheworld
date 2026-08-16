@@ -19,13 +19,21 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 export type { MembershipContainersCacheSetParams }
 
+/**
+ * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object` and
+ * `Feature` hosts, but the play-position cache gateway still only stores ROOM#/CHARACTER#
+ * envelopes --- there is no Object/Feature ludicGraph cache entry yet. Same gap as
+ * `hostDataCategory` in `dataSource/positions/ludicGraph/index.ts`: an Object- or
+ * Feature-hosted step now type-checks through grounding, then throws here instead of at
+ * `commitStepSequence`'s `MultiKeyUpdate`, whichever runs first. Loud, not silent.
+ */
 const assertForwardHostId = (
     hostId: EphemeraMembershipHostId
 ): EphemeraCharacterId | EphemeraRoomId => {
     if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId)) {
         return hostId
     }
-    throw new Error(`Positions cache set requires forward host ROOM# or CHARACTER#; got ${hostId}`)
+    throw new Error(`Positions cache requires forward host ROOM# or CHARACTER#; got ${hostId}`)
 }
 
 export class EphemeraLudicGraphCacheData {
@@ -36,10 +44,11 @@ export class EphemeraLudicGraphCacheData {
     }
 
     async getLudicGraph(
-        componentId: EphemeraCharacterId | EphemeraRoomId
+        componentId: EphemeraMembershipHostId
     ): Promise<EphemeraLudicGraph> {
-        const envelope = await this._gateway.getLudicGraph(componentId)
-        return EphemeraLudicGraph.fromPlayEnvelope(componentId, envelope)
+        const forwardId = assertForwardHostId(componentId)
+        const envelope = await this._gateway.getLudicGraph(forwardId)
+        return EphemeraLudicGraph.fromPlayEnvelope(forwardId, envelope)
     }
 
     set(graph: EphemeraLudicGraph): void {

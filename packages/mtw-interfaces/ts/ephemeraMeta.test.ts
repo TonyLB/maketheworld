@@ -273,6 +273,22 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
+    it('accepts host-bound graph with object hostId (recursive hosting, LP0)', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'OBJECT#Box',
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#Spring' }],
+        })).toBe(true)
+    })
+
+    it('accepts host-bound graph with feature hostId (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
+        // The Feature *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
+        // Only the host union widens here, so the node list still uses an already-shipped tag.
+        expect(isEphemeraLudicGraphData({
+            hostId: 'FEATURE#Wall',
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+        })).toBe(true)
+    })
+
     it('rejects missing hostId', () => {
         expect(isEphemeraLudicGraphData({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
@@ -281,7 +297,7 @@ describe('isEphemeraLudicGraphData', () => {
 
     it('rejects invalid hostId', () => {
         expect(isEphemeraLudicGraphData({
-            hostId: 'OBJECT#helmet',
+            hostId: 'KNOWLEDGE#helmet',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })

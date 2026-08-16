@@ -417,6 +417,16 @@ export const fromCharacterMeta = (
  * Promoted here (2026-07-15, BD-15/16 slice 3) once a third call site
  * (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
  * in `applyObjectSetTransfer.ts`.
+ *
+ * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object`
+ * and `Feature` hosts for grounding/validation, but this dispatch was not --- there is no
+ * `Meta::Object`/`Meta::Feature` storage for a hosted ludicGraph yet. An Object- or
+ * Feature-hosted `transferMembership`/`establishRelation` step now passes grounding and
+ * type-checks, then fails **at commit**: this falls into the `Meta::Character` branch,
+ * `MultiKeyUpdate`'s fetch finds no matching row, and `commitStepSequence` throws
+ * "MultiKeyUpdate fetch missing footprint host". Loud, not silent --- but a real dead end
+ * until a later slice (see `AGENT.ludicGraphPorts.planning.md`, LP0) teaches this dispatch
+ * about Object/Feature storage.
  */
 export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' =>
     isEphemeraRoomId(hostId) ? 'Meta::Room' : 'Meta::Character'
