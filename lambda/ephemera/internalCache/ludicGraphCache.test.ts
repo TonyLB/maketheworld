@@ -32,11 +32,11 @@ describe('EphemeraLudicGraphCacheData', () => {
         expect([...graph.characterIds]).toEqual([CHARACTER_A])
     })
 
-    it('set throws when graph.hostId is not a forward host id (Area, still unsupported)', () => {
+    it('set throws when graph.hostId is not a forward host id', () => {
         const cache = createEphemeraLudicGraphCacheData({ getItem: jest.fn() })
-        const graph = EphemeraLudicGraph.fromFieldPayload(AREA_ID as EphemeraMembershipHostId, { nodes: [] })
+        const graph = EphemeraLudicGraph.fromFieldPayload('BOGUS#NotAHost' as EphemeraMembershipHostId, { nodes: [] })
 
-        expect(() => cache.set(graph)).toThrow(/forward host ROOM#, CHARACTER#, OBJECT#, or FEATURE#/)
+        expect(() => cache.set(graph)).toThrow(/forward host ROOM#, CHARACTER#, OBJECT#, FEATURE#, or AREA#/)
     })
 
     it('set then get round-trips membership nodes', async () => {
@@ -80,6 +80,21 @@ describe('EphemeraLudicGraphCacheData', () => {
 
         cache.set(original)
         const loaded = await cache.getLudicGraph(FEATURE_HOST_ID)
+
+        expect(loaded.equals(original)).toBe(true)
+    })
+
+    it('set then get round-trips membership nodes for an Area host (MK4)', async () => {
+        const cache = createEphemeraLudicGraphCacheData({
+            getItem: jest.fn().mockResolvedValue(undefined),
+        })
+        const original = EphemeraLudicGraph.fromFieldPayload(AREA_ID, {
+            nodes: [characterNode(CHARACTER_A)],
+            edges: [],
+        })
+
+        cache.set(original)
+        const loaded = await cache.getLudicGraph(AREA_ID)
 
         expect(loaded.equals(original)).toBe(true)
     })

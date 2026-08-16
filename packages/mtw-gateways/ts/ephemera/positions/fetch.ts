@@ -1,10 +1,10 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraMetaRoom,
     EphemeraLudicGraphFieldPayload,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export type EphemeraPositionsReadDB = {
     getItem<Item extends Record<string, unknown>>(props: {
@@ -40,13 +40,13 @@ export async function getRoomActiveCharactersFromDynamo(
 
 /**
  * Every host kind's `ludicGraph` field is the same `EphemeraLudicGraphFieldPayload` shape
- * (MD-1(c)) --- the four exported `get*LudicGraphFromDynamo` below differ only in which
+ * (MD-1(c)) --- the five exported `get*LudicGraphFromDynamo` below differ only in which
  * `DataCategory` they key on, so they're thin, type-narrowed wrappers over this one read.
  */
 async function getHostLudicGraphFromDynamo(
     db: EphemeraPositionsReadDB,
     hostId: string,
-    dataCategory: 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature'
+    dataCategory: 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' | 'Meta::Area'
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> {
     const row = await db.getItem<{ ludicGraph?: EphemeraLudicGraphFieldPayload }>({
         Key: {
@@ -82,6 +82,12 @@ export const getFeatureLudicGraphFromDynamo = (
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
     getHostLudicGraphFromDynamo(db, featureId, 'Meta::Feature')
 
+export const getAreaLudicGraphFromDynamo = (
+    db: EphemeraPositionsReadDB,
+    areaId: EphemeraAreaId
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, areaId, 'Meta::Area')
+
 export async function getCharacterRoomIdFromDynamo(
     db: EphemeraPositionsReadDB,
     characterId: EphemeraCharacterId
@@ -108,5 +114,5 @@ export async function getCharacterRoomIdFromDynamo(
 
 export const isPositionsComponentId = (
     componentId: string
-): componentId is EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId =>
-    isEphemeraCharacterId(componentId) || isEphemeraRoomId(componentId) || isEphemeraObjectId(componentId) || isEphemeraFeatureId(componentId)
+): componentId is EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId =>
+    isEphemeraCharacterId(componentId) || isEphemeraRoomId(componentId) || isEphemeraObjectId(componentId) || isEphemeraFeatureId(componentId) || isEphemeraAreaId(componentId)

@@ -8,6 +8,8 @@ import {
     type EphemeraObjectId,
     isEphemeraFeatureId,
     type EphemeraFeatureId,
+    isEphemeraAreaId,
+    type EphemeraAreaId,
 } from './baseClasses'
 import { areCoyoteObjectTropeFieldsValid, type CoyoteTropeAffinity } from './coyotePlanAffinities'
 import {
@@ -188,6 +190,36 @@ export const isEphemeraMetaFeature = (entry: unknown): entry is EphemeraMetaFeat
         return false
     }
     if ('ludicGraph' in f && !isEphemeraLudicGraphFieldPayload(f.ludicGraph)) {
+        return false
+    }
+    return true
+}
+
+/**
+ * ephemeraDB play meta for AREA#. No pre-existing `Meta::Area` record of any kind exists yet
+ * (checked before MK4, same as MK3's Feature finding), so this carries no non-ludicGraph fields:
+ * MD-1(c)'s plain shape, same as Character/Object/Feature.
+ */
+export type EphemeraMetaArea = {
+    EphemeraId: EphemeraAreaId;
+    DataCategory: 'Meta::Area';
+
+    //
+    // Area-hosted play membership graph (MK4). Same EphemeraLudicGraphFieldPayload shape as
+    // Meta::Room/Meta::Character/Meta::Object/Meta::Feature; no fallback source when absent (MD-1(c)).
+    //
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
+}
+
+export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea => {
+    if (typeof entry !== 'object' || entry === null) {
+        return false
+    }
+    const a = entry as Record<string, unknown>
+    if (typeof a.EphemeraId !== 'string' || !isEphemeraAreaId(a.EphemeraId) || a.DataCategory !== 'Meta::Area') {
+        return false
+    }
+    if ('ludicGraph' in a && !isEphemeraLudicGraphFieldPayload(a.ludicGraph)) {
         return false
     }
     return true
