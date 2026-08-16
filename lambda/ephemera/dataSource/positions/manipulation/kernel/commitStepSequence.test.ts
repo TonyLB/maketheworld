@@ -215,6 +215,28 @@ describe('commitStepSequence', () => {
         expect(keyedHosts).toEqual(new Set([ROOM_ID, CHARACTER_ID]))
     })
 
+    it('MK2: an Object-hosted transfer commits through Meta::Object, not Meta::Character', async () => {
+        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: GLASS_ID }] })
+        const trayHostGraph = testLudicGraph(TRAY_ID, { nodes: [] })
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayHostGraph })
+
+        const steps: MutationKernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: TRAY_ID },
+        ]
+
+        const result = await commitStepSequence(
+            { steps },
+            { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+        )
+
+        expect(result.ok).toBe(true)
+
+        const items = transactWrite.mock.calls[0][0]
+        const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+        const trayKey = multiKeyItem.Keys.find((key: any) => key.EphemeraId === TRAY_ID)
+        expect(trayKey.DataCategory).toBe('Meta::Object')
+    })
+
     describe('object-lifecycle Migrate row: pure remove, suppressRelationalFacts', () => {
         it('destroy-shaped sequence (explicit dissolve + pure remove) commits, streams the dissolve fact, adjacency Delete-only', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {

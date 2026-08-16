@@ -14,6 +14,7 @@ const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#Skates' as EphemeraObjectId
+const objectHostId = 'OBJECT#Tray' as EphemeraObjectId
 
 const emptyGraph = projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
 
@@ -180,6 +181,51 @@ describe('PositionsCacheHandler', () => {
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
+    it('loads object-hosted graph from Meta::Object.ludicGraph (MK2)', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Object' && ProjectionFields?.includes('ludicGraph')) {
+                    return {
+                        ludicGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: objectHostId, DataCategory: 'Meta::Object' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
+    })
+
+    it('returns empty graph when stored object ludicGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Object' && ProjectionFields?.includes('ludicGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
     it('loads membership containers for OBJECT# from room adjacency on miss', async () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn(),
@@ -267,6 +313,28 @@ describe('PositionsCacheHandler', () => {
         handler.set({ componentId: characterId, graph })
         await expect(handler.getLudicGraph(characterId)).resolves.toEqual(graph)
         expect(db.getItem).not.toHaveBeenCalled()
+    })
+
+    it('memo set and invalidate patch object-hosted forward graph without Dynamo write (MK2)', async () => {
+        const getItem = jest.fn().mockResolvedValue({})
+        const db: EphemeraPositionsReadDB = { getItem }
+        const handler = createPositionsCacheHandler(db)
+        const graph = projectComponentGraphFromStoredLudicGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        })
+
+        handler.set({ componentId: objectHostId, graph })
+        await expect(handler.getLudicGraph(objectHostId)).resolves.toEqual(graph)
+        expect(db.getItem).not.toHaveBeenCalled()
+
+        handler.invalidate(objectHostId)
+        await handler.getLudicGraph(objectHostId)
+        expect(getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: objectHostId, DataCategory: 'Meta::Object' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
     })
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {

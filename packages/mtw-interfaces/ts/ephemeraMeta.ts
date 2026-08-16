@@ -129,6 +129,12 @@ export type EphemeraMetaObject = {
     stableKey: string;
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
+
+    //
+    // Object-hosted play membership graph (MK2). Same EphemeraLudicGraphFieldPayload shape as
+    // Meta::Room/Meta::Character; no fallback source when absent (MD-1(c)).
+    //
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
 }
 
 export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObject => {
@@ -146,6 +152,9 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
         return false
     }
     if ('shortName' in o || 'uuid' in o) {
+        return false
+    }
+    if ('ludicGraph' in o && !isEphemeraLudicGraphFieldPayload(o.ludicGraph)) {
         return false
     }
     return true

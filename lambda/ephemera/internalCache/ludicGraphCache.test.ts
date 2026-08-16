@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import {
@@ -11,6 +11,8 @@ import { createEphemeraLudicGraphCacheData } from './ludicGraphCache'
 const ROOM_ID = 'ROOM#town' as EphemeraRoomId
 const CHARACTER_A = 'CHARACTER#Alpha' as const
 const OBJECT_A = 'OBJECT#a' as EphemeraObjectId
+const OBJECT_HOST_ID = 'OBJECT#Tray' as EphemeraObjectId
+const FEATURE_ID = 'FEATURE#Sign' as EphemeraFeatureId
 
 describe('EphemeraLudicGraphCacheData', () => {
     it('getLudicGraph returns host-bound class', async () => {
@@ -29,11 +31,11 @@ describe('EphemeraLudicGraphCacheData', () => {
         expect([...graph.characterIds]).toEqual([CHARACTER_A])
     })
 
-    it('set throws when graph.hostId is not a forward host id', () => {
+    it('set throws when graph.hostId is not a forward host id (Feature, still unsupported)', () => {
         const cache = createEphemeraLudicGraphCacheData({ getItem: jest.fn() })
-        const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_A as EphemeraMembershipHostId, { nodes: [] })
+        const graph = EphemeraLudicGraph.fromFieldPayload(FEATURE_ID as EphemeraMembershipHostId, { nodes: [] })
 
-        expect(() => cache.set(graph)).toThrow(/forward host ROOM# or CHARACTER#/)
+        expect(() => cache.set(graph)).toThrow(/forward host ROOM#, CHARACTER#, or OBJECT#/)
     })
 
     it('set then get round-trips membership nodes', async () => {
@@ -47,6 +49,21 @@ describe('EphemeraLudicGraphCacheData', () => {
 
         cache.set(original)
         const loaded = await cache.getLudicGraph(ROOM_ID)
+
+        expect(loaded.equals(original)).toBe(true)
+    })
+
+    it('set then get round-trips membership nodes for an Object host (MK2)', async () => {
+        const cache = createEphemeraLudicGraphCacheData({
+            getItem: jest.fn().mockResolvedValue(undefined),
+        })
+        const original = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
+            nodes: [characterNode(CHARACTER_A)],
+            edges: [],
+        })
+
+        cache.set(original)
+        const loaded = await cache.getLudicGraph(OBJECT_HOST_ID)
 
         expect(loaded.equals(original)).toBe(true)
     })

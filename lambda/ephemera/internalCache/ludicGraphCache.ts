@@ -8,8 +8,8 @@ import {
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPositionsReadDB } from '@tonylb/mtw-gateways/ts/ephemera/positions/fetch'
 import type { MembershipContainersCacheSetParams } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
@@ -20,20 +20,19 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 export type { MembershipContainersCacheSetParams }
 
 /**
- * KNOWN GAP (LP0, 2026-08-16): `EphemeraMembershipHostId` was widened to admit `Object`,
- * `Feature`, and `Area` hosts, but the play-position cache gateway still only stores
- * ROOM#/CHARACTER# envelopes --- there is no Object/Feature/Area ludicGraph cache entry yet.
- * Same gap as `hostDataCategory` in `dataSource/positions/ludicGraph/index.ts`: an Object-,
- * Feature-, or Area-hosted step now type-checks through grounding, then throws here instead of
- * at `commitStepSequence`'s `MultiKeyUpdate`, whichever runs first. Loud, not silent.
+ * KNOWN GAP (LP0, 2026-08-16; narrowed MK2): `EphemeraMembershipHostId` was widened to admit
+ * `Object`, `Feature`, and `Area` hosts. MK2 taught this gateway about Object. Feature/Area hosts
+ * still type-check through grounding, then throw here instead of at `commitStepSequence`'s
+ * `MultiKeyUpdate`, whichever runs first --- see `AGENT.membershipHostKernel.planning.md`,
+ * MK3/MK4. Loud, not silent.
  */
 const assertForwardHostId = (
     hostId: EphemeraMembershipHostId
-): EphemeraCharacterId | EphemeraRoomId => {
-    if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId)) {
+): EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId => {
+    if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId) || isEphemeraObjectId(hostId)) {
         return hostId
     }
-    throw new Error(`Positions cache requires forward host ROOM# or CHARACTER#; got ${hostId}`)
+    throw new Error(`Positions cache requires forward host ROOM#, CHARACTER#, or OBJECT#; got ${hostId}`)
 }
 
 export class EphemeraLudicGraphCacheData {
@@ -69,7 +68,7 @@ export class EphemeraLudicGraphCacheData {
         this._gateway.setMembershipContainers(params)
     }
 
-    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId): void {
+    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId): void {
         this._gateway.invalidate(componentId)
     }
 

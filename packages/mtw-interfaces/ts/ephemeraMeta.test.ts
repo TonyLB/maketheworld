@@ -143,6 +143,26 @@ describe('isEphemeraMetaObject', () => {
             })
         ).toBe(false)
     })
+
+    it('accepts a hosted ludicGraph (MK2)', () => {
+        expect(
+            isEphemeraMetaObject({
+                ...baseMeta,
+                ludicGraph: {
+                    nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                },
+            })
+        ).toBe(true)
+    })
+
+    it('rejects an invalid ludicGraph payload', () => {
+        expect(
+            isEphemeraMetaObject({
+                ...baseMeta,
+                ludicGraph: { nodes: [{ tag: 'Character', universalKey: 'ROOM#not-a-character' }] },
+            })
+        ).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicGraphNode', () => {

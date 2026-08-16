@@ -100,6 +100,15 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
 - **Cross-host apply:** [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. It grounds its transfer set through the Synthesize executor and commits through the kernel --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. See [Intent vs. world-effect](#intent-vs-world-effect).
 
+### Object-hosted graph (MK2; storage only)
+
+An **`Object`** can itself host a **`ludicGraph`**, the same shared plain shape as the character inventory graph above (MD-1(c)):
+
+- **Storage:** optional **`Meta::Object.ludicGraph`** --- identical **`EphemeraLudicGraphFieldPayload`** shape; empty when absent, no reconstruction source.
+- **Read:** **`internalCache.Positions.getLudicGraph(objectId)`** (forward), backed by **`getObjectLudicGraphFromDynamo`**.
+- **Persist primitives:** same **`manipulation/kernel/`** `commitStepSequence` path as Room/Character, dispatched via `hostDataCategory`/`graphFromMeta`'s `Meta::Object` branch.
+- **Not yet wired:** no route today *produces* a transferMembership/establishRelation step targeting an Object host --- `Object Moved`'s v1 `froms`/`to` endpoints stay **`ROOM#`**/**`CHARACTER#`** only ([`AGENT.contract.md`](AGENT.contract.md), D8). This slice closes the storage-layer dead end LP0 left behind; it does not add a caller that generates Object-hosted membership steps.
+
 ### Manipulation layering (membership transfer)
 
 Every graph mutation is expressed as an ordered **step sequence** and committed through one kernel entrypoint. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
@@ -293,7 +302,7 @@ Area.ludicGraph              Room.ludicGraph (shipped v1)      Container graph (
 
 **Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
 
-**Container scale (D16 shipped v1):** **`Meta::Character.ludicGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. Object **`OBJECT#`** / Area hosts deferred until needed.
+**Container scale (D16 shipped v1; Object storage MK2):** **`Meta::Character.ludicGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. **`Meta::Object.ludicGraph`** storage ships as of MK2 (see [Object-hosted graph](#object-hosted-graph-mk2-storage-only) above) --- no route produces an Object-hosted transfer yet, storage only. Area hosts remain deferred until needed.
 
 **The container corner of this ladder is superseded by [Wholes, parts, and ports](#wholes-parts-and-ports) below** (2026-08-07). "Container graph (future)" named the level without saying what a level *is*; the next subsection does, and it is the shape any object-scale work should be built against.
 

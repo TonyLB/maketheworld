@@ -7,7 +7,10 @@ import {
     RelationalEdgeStillReferencedError,
     characterNode,
     fromCharacterMeta,
+    fromObjectMeta,
     fromRoomMeta,
+    graphFromMeta,
+    hostDataCategory,
     objectNode,
     seedFromActiveCharacters,
     toStoredRelationalEdge,
@@ -21,6 +24,7 @@ const CHARACTER_B = 'CHARACTER#Beta' as EphemeraCharacterId
 const OBJECT_A = 'OBJECT#Skates' as EphemeraObjectId
 const OBJECT_B = 'OBJECT#Table' as EphemeraObjectId
 const OBJECT_C = 'OBJECT#Chair' as EphemeraObjectId
+const OBJECT_HOST_ID = 'OBJECT#Tray' as EphemeraObjectId
 
 describe('EphemeraLudicGraph', () => {
     describe('node builders', () => {
@@ -273,6 +277,25 @@ describe('EphemeraLudicGraph', () => {
             expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ nodes: [], edges: [] })
             const payload = { nodes: [objectNode(OBJECT_A)], edges: [] as [] }
             expect(fromCharacterMeta({ ludicGraph: payload }, HOST_ID).toStored()).toEqual(payload)
+        })
+
+        it('fromObjectMeta uses ludicGraph or empty graph', () => {
+            expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ nodes: [], edges: [] })
+            const payload = { nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+            expect(fromObjectMeta({ ludicGraph: payload }, OBJECT_HOST_ID).toStored()).toEqual(payload)
+        })
+
+        it('hostDataCategory dispatches Room/Object/Character correctly', () => {
+            expect(hostDataCategory(HOST_ID)).toBe('Meta::Room')
+            expect(hostDataCategory(OBJECT_HOST_ID)).toBe('Meta::Object')
+            expect(hostDataCategory(CHARACTER_A)).toBe('Meta::Character')
+        })
+
+        it('graphFromMeta dispatches an Object host through fromObjectMeta', () => {
+            const payload = { nodes: [objectNode(OBJECT_A)], edges: [] as [] }
+            const graph = graphFromMeta({ ludicGraph: payload }, OBJECT_HOST_ID)
+            expect(graph.hostId).toBe(OBJECT_HOST_ID)
+            expect(graph.toStored()).toEqual(payload)
         })
     })
 
