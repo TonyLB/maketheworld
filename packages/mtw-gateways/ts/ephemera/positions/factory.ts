@@ -1,6 +1,6 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
@@ -9,6 +9,7 @@ import type {
 import type { EphemeraPositionsReadDB } from './fetch'
 import {
     getCharacterLudicGraphFromDynamo,
+    getFeatureLudicGraphFromDynamo,
     getObjectLudicGraphFromDynamo,
     getRoomLudicGraphFromDynamo,
 } from './fetch'
@@ -45,7 +46,7 @@ export class PositionsCacheHandler {
     }
 
     async getLudicGraph(
-        componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId
+        componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId
     ): Promise<PlayLudicGraph> {
         const key = ludicGraphCacheKey(componentId)
         if (!this._LudicGraphCache.isCached(key)) {
@@ -113,6 +114,12 @@ export class PositionsCacheHandler {
                 stored ?? { nodes: [], edges: [] }
             )
         }
+        if (isEphemeraFeatureId(componentId)) {
+            const stored = await getFeatureLudicGraphFromDynamo(this.db, componentId)
+            return projectComponentGraphFromStoredLudicGraph(
+                stored ?? { nodes: [], edges: [] }
+            )
+        }
         return projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
     }
 
@@ -140,7 +147,7 @@ export class PositionsCacheHandler {
         this._MembershipContainersCache.set(Infinity, key, params.containers)
     }
 
-    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId): void {
+    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId): void {
         const key = ludicGraphCacheKey(componentId)
         delete this._LudicGraphStore[key]
         this._LudicGraphCache.invalidate(key)

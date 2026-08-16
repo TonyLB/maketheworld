@@ -6,6 +6,8 @@ import {
     type EphemeraCharacterId,
     isEphemeraObjectId,
     type EphemeraObjectId,
+    isEphemeraFeatureId,
+    type EphemeraFeatureId,
 } from './baseClasses'
 import { areCoyoteObjectTropeFieldsValid, type CoyoteTropeAffinity } from './coyotePlanAffinities'
 import {
@@ -155,6 +157,37 @@ export const isEphemeraMetaObject = (entry: unknown): entry is EphemeraMetaObjec
         return false
     }
     if ('ludicGraph' in o && !isEphemeraLudicGraphFieldPayload(o.ludicGraph)) {
+        return false
+    }
+    return true
+}
+
+/**
+ * ephemeraDB play meta for FEATURE#. No pre-existing `Meta::Feature` record of any kind exists
+ * yet (checked before MK3 --- only forward-looking "out of scope" mentions in dataSource/state
+ * and renderOrchestration docs), so unlike `EphemeraMetaObject` this carries no non-ludicGraph
+ * fields: MD-1(c)'s plain shape, same as Character.
+ */
+export type EphemeraMetaFeature = {
+    EphemeraId: EphemeraFeatureId;
+    DataCategory: 'Meta::Feature';
+
+    //
+    // Feature-hosted play membership graph (MK3). Same EphemeraLudicGraphFieldPayload shape as
+    // Meta::Room/Meta::Character/Meta::Object; no fallback source when absent (MD-1(c)).
+    //
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
+}
+
+export const isEphemeraMetaFeature = (entry: unknown): entry is EphemeraMetaFeature => {
+    if (typeof entry !== 'object' || entry === null) {
+        return false
+    }
+    const f = entry as Record<string, unknown>
+    if (typeof f.EphemeraId !== 'string' || !isEphemeraFeatureId(f.EphemeraId) || f.DataCategory !== 'Meta::Feature') {
+        return false
+    }
+    if ('ludicGraph' in f && !isEphemeraLudicGraphFieldPayload(f.ludicGraph)) {
         return false
     }
     return true

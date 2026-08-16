@@ -5,7 +5,7 @@ import {
     projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
     EphemeraLudicGraphData,
@@ -403,9 +403,9 @@ export const fromRoomMeta = (
 
 /**
  * MD-1(c)'s shared plain serde: a direct `ludicGraph` field read with a trivial empty default,
- * no reconstruction from any second source. Every non-Room host kind (Character today; Object as
- * of MK2; Feature/Area to follow) is this same body --- `fromCharacterMeta`/`fromObjectMeta` are
- * thin, host-named wrappers around it, not independent implementations.
+ * no reconstruction from any second source. Every non-Room host kind (Character; Object as of MK2;
+ * Feature as of MK3; Area to follow) is this same body --- `fromCharacterMeta`/`fromObjectMeta`/
+ * `fromFeatureMeta` are thin, host-named wrappers around it, not independent implementations.
  */
 const fromPlainHostMeta = (
     meta: {
@@ -431,21 +431,35 @@ export const fromObjectMeta = (
     hostId: EphemeraMembershipHostId
 ): EphemeraLudicGraph => fromPlainHostMeta(meta, hostId)
 
+export const fromFeatureMeta = (
+    meta: {
+        ludicGraph?: EphemeraLudicGraphFieldPayload;
+    } | Record<string, unknown>,
+    hostId: EphemeraMembershipHostId
+): EphemeraLudicGraph => fromPlainHostMeta(meta, hostId)
+
 /**
- * Shared Room/Character/Object dispatch for kernel primitives that read/write a host's
- * `Meta::Room`/`Meta::Character`/`Meta::Object` record directly (`MultiKeyUpdate` reducers).
- * Promoted here (2026-07-15, BD-15/16 slice 3) once a third call site
+ * Shared Room/Character/Object/Feature dispatch for kernel primitives that read/write a host's
+ * `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature` record directly (`MultiKeyUpdate`
+ * reducers). Promoted here (2026-07-15, BD-15/16 slice 3) once a third call site
  * (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
  * in `applyObjectSetTransfer.ts`.
  *
- * KNOWN GAP (LP0, 2026-08-16; narrowed MK2): `EphemeraMembershipHostId` was widened to admit
- * `Object`, `Feature`, and `Area` hosts for grounding/validation, but this dispatch only covered
- * Room/Character at first. MK2 taught it about `Meta::Object`. Feature/Area still fall into the
- * `Meta::Character` branch and fail **at commit** the same way Object used to --- see
- * `AGENT.membershipHostKernel.planning.md`, MK3/MK4.
+ * KNOWN GAP (LP0, 2026-08-16; narrowed MK2, narrowed again MK3): `EphemeraMembershipHostId` was
+ * widened to admit `Object`, `Feature`, and `Area` hosts for grounding/validation, but this
+ * dispatch only covered Room/Character at first. MK2 taught it about `Meta::Object`; MK3 taught it
+ * about `Meta::Feature`. Area still falls into the `Meta::Character` branch and fails **at
+ * commit** the same way Object/Feature used to --- see `AGENT.membershipHostKernel.planning.md`,
+ * MK4.
  */
-export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' | 'Meta::Object' =>
-    isEphemeraRoomId(hostId) ? 'Meta::Room' : isEphemeraObjectId(hostId) ? 'Meta::Object' : 'Meta::Character'
+export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' =>
+    isEphemeraRoomId(hostId)
+        ? 'Meta::Room'
+        : isEphemeraObjectId(hostId)
+        ? 'Meta::Object'
+        : isEphemeraFeatureId(hostId)
+        ? 'Meta::Feature'
+        : 'Meta::Character'
 
 export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraLudicGraph => {
     if (isEphemeraRoomId(hostId)) {
@@ -453,6 +467,9 @@ export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMem
     }
     if (isEphemeraObjectId(hostId)) {
         return fromObjectMeta(meta, hostId)
+    }
+    if (isEphemeraFeatureId(hostId)) {
+        return fromFeatureMeta(meta, hostId)
     }
     return fromCharacterMeta(meta, hostId)
 }

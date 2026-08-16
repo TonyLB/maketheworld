@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     projectComponentGraphFromStoredLudicGraph,
@@ -15,6 +15,7 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#Skates' as EphemeraObjectId
 const objectHostId = 'OBJECT#Tray' as EphemeraObjectId
+const featureHostId = 'FEATURE#Sign' as EphemeraFeatureId
 
 const emptyGraph = projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
 
@@ -221,6 +222,51 @@ describe('PositionsCacheHandler', () => {
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getLudicGraph(objectHostId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads feature-hosted graph from Meta::Feature.ludicGraph (MK3)', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Feature' && ProjectionFields?.includes('ludicGraph')) {
+                    return {
+                        ludicGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(featureHostId)
+
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: featureHostId, DataCategory: 'Meta::Feature' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
+    })
+
+    it('returns empty graph when stored feature ludicGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Feature' && ProjectionFields?.includes('ludicGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(featureHostId)
 
         expect(graph).toEqual(emptyGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)

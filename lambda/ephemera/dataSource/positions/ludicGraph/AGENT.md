@@ -47,7 +47,7 @@ class EphemeraLudicGraph {
 }
 ```
 
-Factory helpers on module boundary (not class methods): `fromRoomMeta`, `fromCharacterMeta`, `fromObjectMeta`, `seedFromActiveCharacters`. `fromCharacterMeta`/`fromObjectMeta` are thin, host-named wrappers over one shared plain-serde body (MD-1(c), [`AGENT.membershipHostKernel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.membershipHostKernel.planning.md)) --- a direct `ludicGraph` field read with a trivial empty default, no reconstruction source. `hostDataCategory`/`graphFromMeta` dispatch `Meta::Room` / `Meta::Character` / `Meta::Object` (Feature/Area pending).
+Factory helpers on module boundary (not class methods): `fromRoomMeta`, `fromCharacterMeta`, `fromObjectMeta`, `fromFeatureMeta`, `seedFromActiveCharacters`. `fromCharacterMeta`/`fromObjectMeta`/`fromFeatureMeta` are thin, host-named wrappers over one shared plain-serde body (MD-1(c), [`AGENT.membershipHostKernel.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.membershipHostKernel.planning.md)) --- a direct `ludicGraph` field read with a trivial empty default, no reconstruction source. `hostDataCategory`/`graphFromMeta` dispatch `Meta::Room` / `Meta::Character` / `Meta::Object` / `Meta::Feature` (Area pending).
 
 Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.hostId` / `patch.hostId === this.hostId`.
 

@@ -35,6 +35,7 @@ Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/intern
 | **`getLudicGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.ludicGraph` topology only; empty graph when absent |
 | **`getLudicGraph(characterId)`** | What does this character **contain**? (inventory) | Stored `Meta::Character.ludicGraph` topology only; empty graph when absent |
 | **`getLudicGraph(objectId)`** | What does this object **contain**? (MK2, storage only --- no route produces one yet) | Stored `Meta::Object.ludicGraph` topology only; empty graph when absent |
+| **`getLudicGraph(featureId)`** | What does this feature **contain**? (MK3, storage only --- no route produces one yet) | Stored `Meta::Feature.ludicGraph` topology only; empty graph when absent |
 | **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only; room hosts only at steady state. **Transfer-planning observation** --- manipulation kernel persist **must not** use this for prior discovery ([M1](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering)). |
 | **`getMembershipContainers(objectId)`** | Which hosts **contain** this object? | Adjacency index only --- `ROOM#` or `CHARACTER#` hosts (**D16** / **I5**). Same transfer-planning role as character reverse reads. |
 
@@ -44,18 +45,18 @@ Handler API unchanged from slice 1c.
 
 Play membership persistence converges on two authoritative structures. **Conflict policy:** stored **`ludicGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch. Persist writers route through [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering) (adapter plans membership host transfer; kernel applies graph-grounded **`HostEffect[]`**).
 
-### Forward: host `ludicGraph` (`Meta::Room`, `Meta::Character`, `Meta::Object`, ...)
+### Forward: host `ludicGraph` (`Meta::Room`, `Meta::Character`, `Meta::Object`, `Meta::Feature`, ...)
 
 | Field | Shape |
 | --- | --- |
-| **`ludicGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16) / Object hosting (MK2): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
+| **`ludicGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16) / Object hosting (MK2) / Feature hosting (MK3): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
 | **`ludicGraph.edges`** | In-host relational edges on room host graphs (`tag: 'Relational'`, BD-2/BD-3); projected on gateway read. Exit edges remain out of scope for v1 room graphs. |
 
-**Types:** [`EphemeraLudicGraphFieldPayload`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), and [`EphemeraMetaObject`](../../../../mtw-interfaces/ts/ephemeraMeta.ts). Host-bound manipulation JSON: [`EphemeraLudicGraphData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
+**Types:** [`EphemeraLudicGraphFieldPayload`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaObject`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), and [`EphemeraMetaFeature`](../../../../mtw-interfaces/ts/ephemeraMeta.ts). Host-bound manipulation JSON: [`EphemeraLudicGraphData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
 **Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load. Roster compose is ephemera-only: **`getRoomCharacterList`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
 
-**Read helpers:** **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`getObjectLudicGraphFromDynamo`** in [`fetch.ts`](fetch.ts). Forward load projects via **`projectComponentGraphFromStoredLudicGraph`** ([`project.ts`](project.ts)).
+**Read helpers:** **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`getObjectLudicGraphFromDynamo`**, **`getFeatureLudicGraphFromDynamo`** in [`fetch.ts`](fetch.ts). Forward load projects via **`projectComponentGraphFromStoredLudicGraph`** ([`project.ts`](project.ts)).
 
 ### Reverse: membership adjacency index
 

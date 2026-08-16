@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
 import {
@@ -7,6 +7,7 @@ import {
     RelationalEdgeStillReferencedError,
     characterNode,
     fromCharacterMeta,
+    fromFeatureMeta,
     fromObjectMeta,
     fromRoomMeta,
     graphFromMeta,
@@ -25,6 +26,7 @@ const OBJECT_A = 'OBJECT#Skates' as EphemeraObjectId
 const OBJECT_B = 'OBJECT#Table' as EphemeraObjectId
 const OBJECT_C = 'OBJECT#Chair' as EphemeraObjectId
 const OBJECT_HOST_ID = 'OBJECT#Tray' as EphemeraObjectId
+const FEATURE_HOST_ID = 'FEATURE#Sign' as EphemeraFeatureId
 
 describe('EphemeraLudicGraph', () => {
     describe('node builders', () => {
@@ -285,9 +287,16 @@ describe('EphemeraLudicGraph', () => {
             expect(fromObjectMeta({ ludicGraph: payload }, OBJECT_HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('hostDataCategory dispatches Room/Object/Character correctly', () => {
+        it('fromFeatureMeta uses ludicGraph or empty graph', () => {
+            expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ nodes: [], edges: [] })
+            const payload = { nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+            expect(fromFeatureMeta({ ludicGraph: payload }, FEATURE_HOST_ID).toStored()).toEqual(payload)
+        })
+
+        it('hostDataCategory dispatches Room/Object/Feature/Character correctly', () => {
             expect(hostDataCategory(HOST_ID)).toBe('Meta::Room')
             expect(hostDataCategory(OBJECT_HOST_ID)).toBe('Meta::Object')
+            expect(hostDataCategory(FEATURE_HOST_ID)).toBe('Meta::Feature')
             expect(hostDataCategory(CHARACTER_A)).toBe('Meta::Character')
         })
 
@@ -295,6 +304,13 @@ describe('EphemeraLudicGraph', () => {
             const payload = { nodes: [objectNode(OBJECT_A)], edges: [] as [] }
             const graph = graphFromMeta({ ludicGraph: payload }, OBJECT_HOST_ID)
             expect(graph.hostId).toBe(OBJECT_HOST_ID)
+            expect(graph.toStored()).toEqual(payload)
+        })
+
+        it('graphFromMeta dispatches a Feature host through fromFeatureMeta', () => {
+            const payload = { nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+            const graph = graphFromMeta({ ludicGraph: payload }, FEATURE_HOST_ID)
+            expect(graph.hostId).toBe(FEATURE_HOST_ID)
             expect(graph.toStored()).toEqual(payload)
         })
     })
