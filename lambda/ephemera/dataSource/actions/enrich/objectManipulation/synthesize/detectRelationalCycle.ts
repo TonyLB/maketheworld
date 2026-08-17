@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 
@@ -29,10 +30,18 @@ export function detectRelationalCycle(
     graph: EphemeraLudicGraph,
     kind: 'On' | 'Under'
 ): boolean {
+    /**
+     * `edge.from`/`.to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
+     * host-kind component --- but `'On'`/`'Under'` are spatial placement kinds that only
+     * ever connect Objects in practice; a non-Object endpoint here would not be a cycle
+     * this operator's semantics care about, so it's filtered out rather than asserted on.
+     */
     const adjacency = graph.relationalEdges
-        .filter((edge) => edge.kind === kind)
+        .filter((edge) => edge.kind === kind && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to))
         .reduce((acc, edge) => {
-            acc.set(edge.from, [...(acc.get(edge.from) ?? []), edge.to])
+            const from = edge.from as EphemeraObjectId
+            const to = edge.to as EphemeraObjectId
+            acc.set(from, [...(acc.get(from) ?? []), to])
             return acc
         }, new Map<EphemeraObjectId, EphemeraObjectId[]>())
 

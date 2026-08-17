@@ -295,11 +295,16 @@ export type EphemeraLudicGraphNode =
 
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
-/** In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation). */
+/**
+ * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
+ * `from`/`to` are `EphemeraLudicTerminalPrimitive` (LP4) --- any legal host-kind component,
+ * not only Objects --- matching what LP0 already made a legal host. Port-address terminals
+ * (`EphemeraLudicPortAddress`) are Stage 2/LP7, deliberately not admitted here yet.
+ */
 export type EphemeraLudicRelationalEdgeData = {
     tag: 'Relational';
-    from: EphemeraObjectId;
-    to: EphemeraObjectId;
+    from: EphemeraLudicTerminalPrimitive;
+    to: EphemeraLudicTerminalPrimitive;
     kind: HostRelationalEdgeKind;
     relationLabel?: string;
 }
@@ -314,7 +319,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (edge.tag !== 'Relational') {
         return false
     }
-    if (!isEphemeraObjectId(edge.from) || !isEphemeraObjectId(edge.to)) {
+    if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !isEphemeraLudicTerminalPrimitive(edge.from) || !isEphemeraLudicTerminalPrimitive(edge.to)) {
         return false
     }
     if (!HOST_RELATIONAL_EDGE_KINDS.has(edge.kind)) {

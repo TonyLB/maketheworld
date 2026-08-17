@@ -1,4 +1,4 @@
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ExecutorDissolveRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
@@ -84,13 +84,20 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         toHostId: op.to,
     }
 
-    const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? []).map((edge) => ({
-        kind: 'dissolveRelation',
-        subjectId: edge.from,
-        targetId: edge.to,
-        relationKind: edge.kind,
-        ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
-    }))
+    // LP4 widened HostRelationalEdge.from/to; dissolved-under-transfer edges are still
+    // Object-only in practice here too (see applyObjectRelationalChange.ts's identical fix).
+    const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? []).map((edge) => {
+        if (!isEphemeraObjectId(edge.from) || !isEphemeraObjectId(edge.to)) {
+            throw new Error(`Dissolved edge ${edge.from} -> ${edge.to} has a non-Object endpoint`)
+        }
+        return {
+            kind: 'dissolveRelation' as const,
+            subjectId: edge.from,
+            targetId: edge.to,
+            relationKind: edge.kind,
+            ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
+        }
+    })
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 

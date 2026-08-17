@@ -2,6 +2,7 @@ import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraOb
 import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
 
 import {
+    edgeReferencesObjectId,
     edgesMatch,
     EphemeraLudicGraph,
     RelationalEdgeStillReferencedError,
@@ -13,6 +14,7 @@ import {
     fromRoomMeta,
     graphFromMeta,
     hostDataCategory,
+    nodeHasRelationalEdge,
     objectNode,
     seedFromActiveCharacters,
     toStoredRelationalEdge,
@@ -396,6 +398,70 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.nodeHasRelationalEdge(OBJECT_A)).toBe(true)
             expect(graph.nodeHasRelationalEdge(OBJECT_B)).toBe(true)
             expect(graph.nodeHasRelationalEdge('OBJECT#Missing' as EphemeraObjectId)).toBe(false)
+        })
+
+        // LP4: from/to admit any legal host-kind component now (any node's universalKey), not
+        // only Objects -- this is the regression test that would have caught the original
+        // narrowness, when bothObjectsOnGraph checked presence against `objectIds` only.
+        it('bothObjectsOnGraph finds a non-Object terminal by its node presence', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                nodes: [objectNode(OBJECT_A), { tag: 'Room', universalKey: 'ROOM#Nested' as EphemeraRoomId }],
+                edges: [],
+            })
+            expect(graph.bothObjectsOnGraph(OBJECT_A, 'ROOM#Nested' as EphemeraRoomId)).toBe(true)
+            expect(graph.bothObjectsOnGraph(OBJECT_A, 'ROOM#Missing' as EphemeraRoomId)).toBe(false)
+        })
+
+        it('nodeHasRelationalEdge detects a Room terminal participating in an edge', () => {
+            const edges = [{ from: OBJECT_A, to: 'ROOM#Nested' as EphemeraRoomId, kind: 'On' as const }]
+            expect(nodeHasRelationalEdge('ROOM#Nested' as EphemeraRoomId, edges)).toBe(true)
+            expect(nodeHasRelationalEdge('ROOM#Missing' as EphemeraRoomId, edges)).toBe(false)
+        })
+
+        // LP3/PQ-10: `EphemeraLudicRelationalEdgeData.from`/`.to` are `EphemeraLudicTerminalPrimitive`-
+        // typed as of LP4 (still no port-address terminals -- that's LP7), and
+        // `isEphemeraLudicRelationalEdgeData` correctly rejects a non-string terminal today (fixed
+        // in the same change -- it used to throw instead of returning `false`, see the
+        // `edgeReferencesObjectId`/`extractRelationalEdgesFromStored` boundary test below). So a
+        // port-qualified terminal cannot reach a *stored-edge* read path (`removeObject`/
+        // `edgeReferencesObjectId` on parsed data) through any typed or validated production call
+        // yet -- that only becomes reachable once LP7 widens the schema and its guard together.
+        // What CAN be tested now is the comparison logic itself, at the two call shapes that don't
+        // go through that validator: `bothObjectsOnGraph` (takes typed params directly) and the
+        // `HostRelationalEdge`-level helpers (`nodeHasRelationalEdge`, `edgesMatch`), which is
+        // exactly the logic `assertNoRelationalEdgesReferencing`/`edgeReferencesObjectId`
+        // internally reuse -- so this is the real coverage for those two sites' fix as well.
+        describe('port-qualified terminals (LP3/PQ-10)', () => {
+            const portTerminal = (owner: EphemeraObjectId, port: string) => ({ owner, port })
+
+            it('bothObjectsOnGraph resolves a port-qualified terminal to its owner', () => {
+                const graph = graphWithObjects()
+                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(true)
+                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_C, 'ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(false)
+            })
+
+            it('nodeHasRelationalEdge finds a port-qualified edge (the original vacuous-pass hazard, at the level reachable today)', () => {
+                const edges = [{ from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'On' as const }]
+                expect(nodeHasRelationalEdge(OBJECT_A, edges)).toBe(true)
+                expect(nodeHasRelationalEdge(OBJECT_C, edges)).toBe(false)
+            })
+
+            it('edgesMatch distinguishes a port-qualified terminal from its bare owner', () => {
+                const bare = { from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }
+                const portQualified = { from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'On' as const }
+                expect(edgesMatch(bare, portQualified)).toBe(false)
+                expect(edgesMatch(portQualified, portQualified)).toBe(true)
+            })
+
+            it('edgeReferencesObjectId correctly rejects a port-qualified raw edge today, rather than throwing', () => {
+                // Before this fix, isEphemeraLudicRelationalEdgeData called isEphemeraObjectId(edge.from)
+                // unconditionally, and a non-string .from crashed with "value.split is not a function"
+                // instead of returning false. A port address is not yet a legal stored terminal (that's
+                // LP4/LP7), so the correct behavior today is a clean `false`, not a throw.
+                const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'On' }
+                expect(() => edgeReferencesObjectId(rawEdge, OBJECT_A)).not.toThrow()
+                expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(false)
+            })
         })
 
         it('addRelationalEdge appends stored edge', () => {

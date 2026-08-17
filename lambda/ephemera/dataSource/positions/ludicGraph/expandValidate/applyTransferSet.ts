@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../index'
 import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
@@ -55,8 +56,10 @@ export function applyTransferSet(
         return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
     }
 
+    // LP4 widened HostRelationalEdge.from/to; transferSet is still Object-only here
+    // (see interactionUnderTransfer.ts's identical LP4-vs-LP4a boundary).
     const internalEdges = sourceGraph.relationalEdges.filter(
-        (edge) => transferSet.has(edge.from) && transferSet.has(edge.to)
+        (edge) => isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to) && transferSet.has(edge.from) && transferSet.has(edge.to)
     )
 
     // Internal edges are stripped from sourceGraph *before* the per-object removeObject loop, since

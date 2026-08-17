@@ -371,6 +371,62 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],
         })).toBe(false)
     })
+
+    // LP4: from/to admit any legal host-kind component now, not only Objects --- matching
+    // what LP0 already made a legal host.
+    it('accepts a relational edge with Room and Character terminals', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'ROOM#Kitchen',
+                to: 'CHARACTER#Alpha',
+                kind: 'On',
+            }],
+        })).toBe(true)
+    })
+
+    it('rejects a relational edge terminal with an illegal tag', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#table' }],
+            edges: [{
+                tag: 'Relational',
+                from: 'ASSET#bogus',
+                to: 'OBJECT#table',
+                kind: 'On',
+            }],
+        })).toBe(false)
+    })
+
+    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-fix guard called
+    // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
+    // function" instead of returning false. A port-qualified terminal is not yet a legal edge
+    // endpoint (that widening is LP7), so rejecting it cleanly is the correct behavior.
+    it('rejects a port-qualified relational edge terminal without throwing', () => {
+        const edges = [{
+            tag: 'Relational',
+            from: { owner: 'OBJECT#broom', port: 'ab6129d' },
+            to: 'OBJECT#table',
+            kind: 'On',
+        }]
+        expect(() => isEphemeraLudicGraphFieldPayload({
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#broom' },
+                { tag: 'Object', universalKey: 'OBJECT#table' },
+            ],
+            edges,
+        })).not.toThrow()
+        expect(isEphemeraLudicGraphFieldPayload({
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#broom' },
+                { tag: 'Object', universalKey: 'OBJECT#table' },
+            ],
+            edges,
+        })).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicGraphData', () => {

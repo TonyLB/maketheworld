@@ -308,8 +308,8 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
 type HostRelationalEdge = {
-    from: EphemeraId   // subject node on host graph (v1: EphemeraObjectId)
-    to: EphemeraId     // target node on host graph (v1: EphemeraObjectId)
+    from: EphemeraLudicTerminalPrimitive   // subject node on host graph (LP4: any legal host kind)
+    to: EphemeraLudicTerminalPrimitive     // target node on host graph (LP4: any legal host kind)
     kind: HostRelationalEdgeKind
     /** Required when kind === 'Custom'; persisted on the stored edge (BD-3). */
     relationLabel?: string

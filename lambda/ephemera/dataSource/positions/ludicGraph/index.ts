@@ -12,9 +12,10 @@ import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicGraphNode,
     EphemeraLudicRelationalEdgeData,
+    EphemeraLudicTerminalPrimitive,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -162,6 +163,16 @@ export class EphemeraLudicGraph {
         )
     }
 
+    /**
+     * Every node's `universalKey`, regardless of tag --- a kind-indifferent presence/catalog
+     * scan ("what's here to look at"), additive alongside the typed `characterIds`/`objectIds`
+     * accessors rather than replacing them (see `AGENT.md`, Node model). Named `nodeIds`, not
+     * `thingIds` --- `EphemeraThingId` includes Feature, which is not a graph node yet.
+     */
+    get nodeIds(): Set<EphemeraLudicTerminalPrimitive> {
+        return new Set(this._nodes.map((node) => node.universalKey))
+    }
+
     get relationalEdges(): HostRelationalEdge[] {
         return extractRelationalEdgesFromStored(this.toStored())
     }
@@ -305,7 +316,7 @@ export class EphemeraLudicGraph {
     }
 
     private assertNoRelationalEdgesReferencing(id: EphemeraObjectId | EphemeraCharacterId): void {
-        if (this.relationalEdges.some((edge) => edge.from === id || edge.to === id)) {
+        if (this.relationalEdges.some((edge) => ephemeraLudicTerminalRefersTo(edge.from, id) || ephemeraLudicTerminalRefersTo(edge.to, id))) {
             throw new RelationalEdgeStillReferencedError(id, this.hostId)
         }
     }
@@ -334,12 +345,21 @@ export class EphemeraLudicGraph {
         )
     }
 
-    bothObjectsOnGraph(from: EphemeraObjectId, to: EphemeraObjectId): boolean {
-        const objectIds = this.objectIds
-        return objectIds.has(from) && objectIds.has(to)
+    /**
+     * Node presence is always keyed by the owning component, never by a port, so a
+     * port-qualified terminal is resolved to its owner before the membership check
+     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
+     * host-kind component, not only Objects --- so presence is checked against every node's
+     * `universalKey` (`nodeIds`), not only `objectIds`. Despite the name (kept for callers;
+     * see `AGENT.md`'s "Relational edge names"), this has always been a node-presence check,
+     * not an object-only one, once a non-Object terminal can appear.
+     */
+    bothObjectsOnGraph(from: EphemeraLudicTerminalPrimitive, to: EphemeraLudicTerminalPrimitive): boolean {
+        const nodeIds = this.nodeIds
+        return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }
 
-    nodeHasRelationalEdge(nodeId: EphemeraObjectId): boolean {
+    nodeHasRelationalEdge(nodeId: EphemeraLudicTerminalPrimitive): boolean {
         return nodeHasRelationalEdge(nodeId, this.relationalEdges)
     }
 

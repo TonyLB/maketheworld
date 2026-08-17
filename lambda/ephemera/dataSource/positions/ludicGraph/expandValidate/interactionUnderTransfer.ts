@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
@@ -87,7 +88,14 @@ export function computeCarryClosure(
                 continue
             }
             const otherId = movedRole === 'subject' ? edge.to : edge.from
-            if (closureSet.has(otherId)) {
+            /**
+             * LP4 widened `edge.from`/`.to` to `EphemeraLudicTerminalPrimitive`, but carry
+             * closure is still Object-only here (this module's `CarryClosureFragment`
+             * collapse into a rooted `ludicGraph` is LP4a's job, not this slice's) --- a
+             * non-Object `otherId` can't occur in practice yet, since nothing produces a
+             * relational edge with a non-Object endpoint, but skip rather than assume.
+             */
+            if (!isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
                 continue
             }
             if (classifyInteractionUnderTransfer(edge.kind, movedRole) === 'carry') {
@@ -119,8 +127,9 @@ export function boundaryEdgeOutcomes(
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        const fromInSet = transferSet.has(edge.from)
-        const toInSet = transferSet.has(edge.to)
+        // Same LP4-vs-LP4a boundary as computeCarryClosure above: transferSet is Object-only.
+        const fromInSet = isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
+        const toInSet = isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
         if (fromInSet === toInSet) {
             continue
         }
