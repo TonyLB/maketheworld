@@ -225,6 +225,59 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
     return true
 }
 
+//
+// Ludic graph edge/port terminals (LP2). A terminal is either a bare component id (the
+// EphemeraLudicTerminalPrimitive branch) or a structured port address on that component
+// (EphemeraLudicPortAddress). The parsed shape IS the stored shape --- no string form, no
+// separator parsing, in the domain layer (see AGENT.ludicGraphPorts.planning.md, PQ-9). The
+// serde/Dynamo string boundary is deferred to a later slice, gated on a port address needing
+// to stand free of an edge.
+//
+
+export type EphemeraLudicTerminalPrimitive =
+    | EphemeraRoomId | EphemeraCharacterId
+    | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
+
+export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is EphemeraLudicTerminalPrimitive =>
+    typeof value === 'string' && (
+        isEphemeraRoomId(value) || isEphemeraCharacterId(value) ||
+        isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value)
+    )
+
+/** owner is the whole that ALLOCATED this port (premise 12 / LD-10 naming). */
+export type EphemeraLudicPortAddress = {
+    owner: EphemeraLudicTerminalPrimitive;
+    port: string;
+}
+
+export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLudicPortAddress => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const address = value as EphemeraLudicPortAddress
+    return isEphemeraLudicTerminalPrimitive(address.owner) && typeof address.port === 'string' && address.port.length > 0
+}
+
+export type EphemeraLudicTerminalId =
+    | EphemeraLudicTerminalPrimitive
+    | EphemeraLudicPortAddress
+
+/** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified. */
+export const ephemeraLudicTerminalOwner = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive =>
+    typeof terminal === 'string' ? terminal : terminal.owner
+
+/** Full terminal equality --- a primitive and a port address on the same owner are NOT equal. */
+export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
+    if (typeof a === 'string' || typeof b === 'string') {
+        return a === b
+    }
+    return a.owner === b.owner && a.port === b.port
+}
+
+/** True when a terminal (qualified or not) resolves to the given component id. */
+export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicTerminalPrimitive): boolean =>
+    ephemeraLudicTerminalOwner(terminal) === id
+
 /** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes (nodes only). */
 export type EphemeraLudicGraphNode =
     | {

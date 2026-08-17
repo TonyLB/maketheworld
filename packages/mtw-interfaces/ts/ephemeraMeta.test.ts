@@ -6,6 +6,11 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
+    isEphemeraLudicTerminalPrimitive,
+    isEphemeraLudicPortAddress,
+    ephemeraLudicTerminalOwner,
+    ephemeraLudicTerminalsEqual,
+    ephemeraLudicTerminalRefersTo,
 } from './ephemeraMeta'
 
 const baseRow = {
@@ -162,6 +167,96 @@ describe('isEphemeraMetaObject', () => {
                 ludicGraph: { nodes: [{ tag: 'Character', universalKey: 'ROOM#not-a-character' }] },
             })
         ).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicTerminalPrimitive', () => {
+    it('accepts a room id', () => {
+        expect(isEphemeraLudicTerminalPrimitive('ROOM#A')).toBe(true)
+    })
+
+    it('accepts a character id', () => {
+        expect(isEphemeraLudicTerminalPrimitive('CHARACTER#Alpha')).toBe(true)
+    })
+
+    it('accepts an object id', () => {
+        expect(isEphemeraLudicTerminalPrimitive('OBJECT#helmet')).toBe(true)
+    })
+
+    it('accepts a feature id', () => {
+        expect(isEphemeraLudicTerminalPrimitive('FEATURE#Wall')).toBe(true)
+    })
+
+    it('accepts an area id', () => {
+        expect(isEphemeraLudicTerminalPrimitive('AREA#Test')).toBe(true)
+    })
+
+    it('rejects a non-tagged string', () => {
+        expect(isEphemeraLudicTerminalPrimitive('BOGUS#X')).toBe(false)
+    })
+
+    it('rejects a port-address object', () => {
+        expect(isEphemeraLudicTerminalPrimitive({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicPortAddress', () => {
+    it('accepts a well-formed port address', () => {
+        expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(true)
+    })
+
+    it('rejects a bare unqualified id', () => {
+        expect(isEphemeraLudicPortAddress('OBJECT#BOX')).toBe(false)
+    })
+
+    it('rejects a malformed owner', () => {
+        expect(isEphemeraLudicPortAddress({ owner: 'BOGUS#X', port: 'ab6129d' })).toBe(false)
+    })
+
+    it('rejects an empty port segment', () => {
+        expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+    })
+})
+
+describe('ephemeraLudicTerminalOwner', () => {
+    it('returns the primitive unchanged for a bare id', () => {
+        expect(ephemeraLudicTerminalOwner('ROOM#A')).toBe('ROOM#A')
+    })
+
+    it('returns .owner for a port-qualified terminal', () => {
+        expect(ephemeraLudicTerminalOwner({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe('OBJECT#BOX')
+    })
+})
+
+describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
+    it('treats identical primitives as equal', () => {
+        expect(ephemeraLudicTerminalsEqual('OBJECT#BOX', 'OBJECT#BOX')).toBe(true)
+    })
+
+    it('treats different primitives as unequal', () => {
+        expect(ephemeraLudicTerminalsEqual('OBJECT#BOX', 'OBJECT#ROPE')).toBe(false)
+    })
+
+    it('treats a primitive and a port address on the same owner as unequal terminals', () => {
+        const address = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
+        expect(ephemeraLudicTerminalsEqual('OBJECT#BOX', address)).toBe(false)
+    })
+
+    it('but ephemeraLudicTerminalRefersTo matches a port address on its owner', () => {
+        const address = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
+        expect(ephemeraLudicTerminalRefersTo(address, 'OBJECT#BOX')).toBe(true)
+    })
+
+    it('treats two port addresses with the same owner and port as equal', () => {
+        const a = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
+        const b = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
+        expect(ephemeraLudicTerminalsEqual(a, b)).toBe(true)
+    })
+
+    it('treats two port addresses with the same owner and different port as unequal', () => {
+        const a = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
+        const b = { owner: 'OBJECT#BOX' as const, port: 'k7m2q9' }
+        expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
     })
 })
 
