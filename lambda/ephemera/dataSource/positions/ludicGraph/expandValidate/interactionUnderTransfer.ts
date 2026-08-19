@@ -87,8 +87,10 @@ export function computeCarryClosure(
              * closure is still Object-only here (this module's collapse into a rooted
              * `ludicGraph` is LP4a's job, not the Object-only narrowing's) --- a non-Object
              * `otherId` can't occur in practice yet, since nothing produces a relational edge
-             * with a non-Object endpoint, but skip rather than assume. This narrow retires via
-             * LP4g/LP4h, not this slice.
+             * with a non-Object endpoint, but skip rather than assume. LP4h checked and does
+             * not retire this narrow --- its scope is `applyTransferSet`'s transfer-set
+             * parameter, not this module. This remains unowned; see `ludicGraph/AGENT.md`'s
+             * "Character-relation widening, deferred (BD-36)" note.
              */
             if (!isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
                 continue
@@ -128,6 +130,9 @@ export function boundaryEdgeOutcomes(
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
         // Same LP4-vs-LP4a boundary as computeCarryClosure above: transferSet is Object-only.
+        // LP4h widened its caller's transfer set to Object | Character but filters back down to
+        // Object before calling in here (applyTransferSet.ts) --- this function's own scope is
+        // unchanged, and remains unowned the same way computeCarryClosure's narrow does above.
         const fromInSet = isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
         const toInSet = isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
         if (fromInSet === toInSet) {
