@@ -278,7 +278,17 @@ export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: Ephem
 export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicTerminalPrimitive): boolean =>
     ephemeraLudicTerminalOwner(terminal) === id
 
-/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes (nodes only). */
+/**
+ * Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes
+ * (nodes only); LP4b widened to the full terminal-kind set (Feature, Area), closing the
+ * referential-integrity gap LP4 named: terminal kinds already admitted Feature/Area and this
+ * union did not, so a terminal could name no backing node.
+ *
+ * Widening this union is not a part-of-ladder claim: adding a tag here says a kind may appear
+ * in a graph's node list, not that it belongs above the room in the containment ladder --- see
+ * AGENT.concepts.md's premise-11 warning (the same guard already written on
+ * EphemeraPositionAdjacencyContainedId).
+ */
 export type EphemeraLudicGraphNode =
     | {
         tag: 'Character';
@@ -291,6 +301,14 @@ export type EphemeraLudicGraphNode =
     | {
         tag: 'Room';
         universalKey: EphemeraRoomId;
+    }
+    | {
+        tag: 'Feature';
+        universalKey: EphemeraFeatureId;
+    }
+    | {
+        tag: 'Area';
+        universalKey: EphemeraAreaId;
     }
 
 export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
@@ -363,6 +381,12 @@ export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudic
     }
     if (entry.tag === 'Room') {
         return isEphemeraRoomId(entry.universalKey)
+    }
+    if (entry.tag === 'Feature') {
+        return isEphemeraFeatureId(entry.universalKey)
+    }
+    if (entry.tag === 'Area') {
+        return isEphemeraAreaId(entry.universalKey)
     }
     return false
 }

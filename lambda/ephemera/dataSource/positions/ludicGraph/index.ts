@@ -177,7 +177,10 @@ export class EphemeraLudicGraph {
      * Every node's `universalKey`, regardless of tag --- a kind-indifferent presence/catalog
      * scan ("what's here to look at"), additive alongside the typed `characterIds`/`objectIds`
      * accessors rather than replacing them (see `AGENT.md`, Node model). Named `nodeIds`, not
-     * `thingIds` --- `EphemeraThingId` includes Feature, which is not a graph node yet.
+     * `thingIds` --- the two sets still differ, though not for the reason they used to (LP4b
+     * widened node tags to the full terminal-kind set, so Feature is a node now too):
+     * `nodeIds` also admits Room/Area, which `EphemeraThingId` (a catalog/Identify-layer type,
+     * not a graph-node type) does not.
      */
     get nodeIds(): Set<EphemeraLudicTerminalPrimitive> {
         return new Set(this._nodes.map((node) => node.universalKey))

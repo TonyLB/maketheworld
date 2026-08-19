@@ -42,7 +42,7 @@ describe('isEphemeraLudicCacheNode', () => {
 
     it('rejects a node whose base shape is invalid', () => {
         expect(isEphemeraLudicCacheNode({
-            tag: 'Feature',
+            tag: 'Bogus',
             universalKey: 'FEATURE#Test',
             shortName: 'a feature',
             homeShards: ['ROOM#Test'],

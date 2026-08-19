@@ -283,11 +283,53 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(true)
     })
 
-    it('rejects unrecognized tag', () => {
+    it('accepts feature node with universalKey', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Feature',
             universalKey: 'FEATURE#Test',
+        })).toBe(true)
+    })
+
+    it('rejects feature node with invalid universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Feature',
+            universalKey: 'ROOM#Test',
         })).toBe(false)
+    })
+
+    it('accepts area node with universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Area',
+            universalKey: 'AREA#Downtown',
+        })).toBe(true)
+    })
+
+    it('rejects area node with invalid universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Area',
+            universalKey: 'OBJECT#helmet',
+        })).toBe(false)
+    })
+
+    it('rejects unrecognized tag', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Bogus',
+            universalKey: 'FEATURE#Test',
+        })).toBe(false)
+    })
+
+    it('node tags cover exactly the terminal-primitive kinds (LP4b)', () => {
+        const cases: { tag: 'Character' | 'Object' | 'Room' | 'Feature' | 'Area'; universalKey: string }[] = [
+            { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+            { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            { tag: 'Room', universalKey: 'ROOM#Test' },
+            { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+            { tag: 'Area', universalKey: 'AREA#Downtown' },
+        ]
+        cases.forEach(({ universalKey, ...node }) => {
+            expect(isEphemeraLudicGraphNode({ ...node, universalKey })).toBe(true)
+            expect(isEphemeraLudicTerminalPrimitive(universalKey)).toBe(true)
+        })
     })
 
     it('rejects invalid universalKey', () => {
@@ -490,8 +532,6 @@ describe('isEphemeraLudicGraphData', () => {
     })
 
     it('accepts host-bound graph with feature hostId (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
-        // The Feature *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
-        // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
             rootId: 'FEATURE#Wall',
@@ -499,13 +539,30 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
+    it('accepts feature host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'FEATURE#Wall',
+            rootId: 'FEATURE#Wall',
+            nodes: [
+                { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+                { tag: 'Feature', universalKey: 'FEATURE#Niche' },
+            ],
+        })).toBe(true)
+    })
+
     it('accepts host-bound graph with area hostId (LP0 Area slice)', () => {
-        // The Area *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
-        // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
             rootId: 'AREA#Downtown',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+        })).toBe(true)
+    })
+
+    it('accepts area host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'AREA#Downtown',
+            rootId: 'AREA#Downtown',
+            nodes: [{ tag: 'Area', universalKey: 'AREA#Downtown' }],
         })).toBe(true)
     })
 
@@ -550,7 +607,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             DataCategory: 'Meta::Room',
             ludicGraph: {
                 rootId: 'ROOM#Test',
-                nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Other' }],
+                nodes: [{ tag: 'Feature', universalKey: 'OBJECT#Other' }],
             },
         })).toBe(false)
     })
