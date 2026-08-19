@@ -95,6 +95,25 @@ describe('applyStepSequenceCore', () => {
         )
     })
 
+    it('LP4g payoff: establishRelation with a non-Object (Character) subject commits, findHostOf resolves via nodeIds', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+        })
+        const steps: MutationKernelStep[] = [
+            { kind: 'establishRelation', subjectId: characterId, targetId: tableId, relationKind: 'On' },
+        ]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        const nextGraph = outcome.graphs.get(roomId)!
+        expect(nextGraph.relationalEdges).toEqual([{ from: characterId, to: tableId, kind: 'On' }])
+    })
+
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: MutationKernelStep[] = [

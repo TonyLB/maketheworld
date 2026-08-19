@@ -20,9 +20,10 @@ import type {
  * null}` shape exactly --- this is what lets one step kind cover a real transfer (both populated,
  * the only shape the two player routes ever produce), a pure add (`fromHostIds` empty --- spawn),
  * and a pure remove (`toHostId` null --- destroy/clear, a stray-room scrub with no consolidation
- * target). Relational steps are reused verbatim from the executor's types: relational edges stay
- * `EphemeraObjectId`-typed this iteration (BD-36's character-relation widening is explicitly
- * deferred), so there is nothing to generalize there.
+ * target). Relational steps are reused verbatim from the executor's types: `subjectId`/`targetId`
+ * are `EphemeraLudicTerminalPrimitive`-typed (LP4g, 2026-08-19 --- widened from `EphemeraObjectId`
+ * once reading the kernel's write path end to end showed no consumer branches on entity kind), so
+ * there is nothing to generalize here.
  */
 export type MutationKernelTransferStep = {
     kind: 'transferMembership'

@@ -15,7 +15,7 @@ import {
     HeaderGuard,
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     ObjectDissolveRelationPublishedPayload,
     ObjectEstablishRelationPublishedPayload,
@@ -130,7 +130,17 @@ export const toObjectManipulationPresentationLeg = async (
 
     if (isPerceptionPositionsObjectRelationChangedEnvelope(envelope)) {
         const content = await envelope.getContent()
-        if (!isObjectRelationChangedPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
+        if (
+            !isObjectRelationChangedPublishedPayload(content)
+            || !isEphemeraRoomId(content.hostId)
+            // LP4g widened ObjectRelationChangedPublishedPayload's subjectId/targetId to
+            // EphemeraLudicTerminalPrimitive, but this leg (and the whole presentation
+            // fan-in it feeds) is still EphemeraObjectId-only --- deliberately deferred,
+            // matching the Character-hosted-narration gap above rather than widening the
+            // narration stack in this slice. See `ludicGraph/AGENT.md`'s BD-36 paragraph.
+            || !isEphemeraObjectId(content.subjectId)
+            || !isEphemeraObjectId(content.targetId)
+        ) {
             // See the establishRelation branch above --- Character-hosted narration not built yet.
             return []
         }

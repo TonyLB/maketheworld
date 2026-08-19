@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
 import type { MutationKernelStep } from './kernelStep'
@@ -33,7 +34,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a relational step derives both endpoints host via getCurrentHost', () => {
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }
-        const getCurrentHost = (id: EphemeraObjectId) => (id === trayId ? roomId : otherRoomId)
+        const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
@@ -44,6 +45,12 @@ describe('computeStepSequenceFootprint', () => {
         ]
         const getCurrentHost = () => roomId
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId]))
+    })
+
+    it('LP4g: a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, relationKind: 'On' }
+        const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === characterId ? roomId : otherRoomId)
+        expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
     it('throws when getCurrentHost cannot resolve a relational step endpoint', () => {

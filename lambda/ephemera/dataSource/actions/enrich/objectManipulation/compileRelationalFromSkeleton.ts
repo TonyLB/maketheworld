@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../../internalCache'
@@ -225,6 +226,16 @@ export async function compileRelationalFromSkeleton(
                 step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
         )
         if (!relStep) {
+            continue
+        }
+
+        // LP4g widened the executor's relational step terminals to EphemeraLudicTerminalPrimitive,
+        // but this ingress-facing route's own step shape (EstablishRelationStep/DissolveRelationStep,
+        // parsePlanStep.ts) stays EphemeraObjectId-typed by design (LD-13: containment/non-Object
+        // relational language is a persistence-layer concern, not an ingress one). No candidate this
+        // route grounds is anything but an Object today, so this is a narrow, not a design change ---
+        // same drop-the-candidate idiom the `verdict !== 'legal'` branch above already uses.
+        if (!isEphemeraObjectId(relStep.subjectId) || !isEphemeraObjectId(relStep.targetId)) {
             continue
         }
 

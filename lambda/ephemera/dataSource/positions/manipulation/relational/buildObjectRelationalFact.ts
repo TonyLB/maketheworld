@@ -1,12 +1,16 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { ObjectRelationChangedPublishedPayload } from '../../publishedEvents'
 import type { RelationalIngressOperation } from './types'
 
-export const buildObjectRelationalFact = (args: {
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
+// LP4g: renamed from buildObjectRelationalFact --- subjectId/targetId widened to
+// EphemeraLudicTerminalPrimitive, so `Object` in the old name was a restriction the
+// code no longer has. The published payload's type name and wire `type` string
+// ('Object Relation Changed') are left alone --- they're load-bearing for existing
+// stream consumers/stored events, and renaming them is a separate, unforced change.
+export const buildRelationalFact = (args: {
+    subjectId: EphemeraLudicTerminalPrimitive
+    targetId: EphemeraLudicTerminalPrimitive
     hostId: EphemeraMembershipHostId
     relationKind: HostRelationalEdgeKind
     relationLabel?: string

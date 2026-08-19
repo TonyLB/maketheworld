@@ -230,6 +230,19 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
+    it('LP4g: renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
+        const plan = compilePositionKernelOp(objectOp({
+            dissolvedEdges: [{ from: CHARACTER_ID, to: TRAY, kind: 'On' }],
+        }))
+
+        expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
+            kind: 'dissolveRelation',
+            subjectId: CHARACTER_ID,
+            targetId: TRAY,
+            relationKind: 'On',
+        })
+    })
+
     it('still emits dissolves for a non-narrating move, but no captures', () => {
         const plan = compilePositionKernelOp(objectOp({
             narration: undefined,

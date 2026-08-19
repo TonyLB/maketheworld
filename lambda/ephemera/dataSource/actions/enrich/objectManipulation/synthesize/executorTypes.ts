@@ -6,7 +6,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { Assertion, Change } from '../plan/ungroundedPrimitive'
@@ -20,19 +20,26 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * edit) because the live relational route still constructs/reads
  * `hostRoomId` today; `parsePlanStep.ts` itself only loses the field at the
  * Migrate slice, once the live route stops needing it.
+ *
+ * `subjectId`/`targetId` are `EphemeraLudicTerminalPrimitive` (LP4g, 2026-08-19):
+ * widened from `EphemeraObjectId` once reading the whole kernel write path end to
+ * end showed no consumer branches on entity kind --- the `Object` in this file's
+ * neighboring `buildObjectRelationalFact` was annotation, not behaviour. This is
+ * also the prerequisite for LP4c: a `PartOf` edge legitimately puts a Feature in
+ * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8).
  */
 export type ExecutorEstablishRelationStep = {
     kind: 'establishRelation'
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
+    subjectId: EphemeraLudicTerminalPrimitive
+    targetId: EphemeraLudicTerminalPrimitive
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
 }
 
 export type ExecutorDissolveRelationStep = {
     kind: 'dissolveRelation'
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
+    subjectId: EphemeraLudicTerminalPrimitive
+    targetId: EphemeraLudicTerminalPrimitive
     relationKind: HostRelationalEdgeKind
     relationLabel?: string
 }
