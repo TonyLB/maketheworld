@@ -1,6 +1,6 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
@@ -73,7 +73,12 @@ export const applyObjectRoomMembership = async (
     for (const roomId of diff.froms) {
         const graph = await internalCache.Positions.getLudicGraph(roomId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
+        // LP4 widened HostRelationalEdge.from/to; this sweep is still Object-only in practice
+        // (see applyObjectRelationalChange.ts's identical fix).
         for (const { edge } of outcomes) {
+            if (!isEphemeraObjectId(edge.from) || !isEphemeraObjectId(edge.to)) {
+                throw new Error(`Boundary dissolve edge ${edge.from} -> ${edge.to} has a non-Object endpoint`)
+            }
             hostByReferencedId.set(edge.from, roomId)
             hostByReferencedId.set(edge.to, roomId)
             dissolveSteps.push({

@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../../types'
-import type { CarryClosureFragment } from '../../../ludicGraph/expandValidate/interactionUnderTransfer'
+import type { EphemeraLudicGraph } from '../../../ludicGraph'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import type { MembershipEmissionCopyKind } from '../kernelStep'
 
@@ -12,18 +12,19 @@ import type { MembershipEmissionCopyKind } from '../kernelStep'
  *
  * These are two shapes rather than one because primacy has to come from somewhere and must not be a
  * cross-field invariant (PB-8(b) was rejected for exactly that: an `entityIds` set plus a separate
- * `primaryEntityId` that nothing enforces). For a closure, primacy *is* `fragment.rootId` --- which
+ * `primaryEntityId` that nothing enforces). For a closure, primacy *is* `fragment.rootId` (LP4a: the
+ * closure IS an `EphemeraLudicGraph`, hosted and rooted at the moved object) --- which
  * `computeCarryClosure` records from its `startId` argument rather than deriving from traversal
  * shape, since its BFS guards with `closureSet.has(...)` and so absorbs a doubly-reachable object via
  * whichever edge it happened to reach first. Never read primacy off the fragment's edges.
  *
- * The closure's `edges` are its *internal* edges (the induced subgraph), which is what keeps richer
- * copy reachable later ("the tray, with a cup on it") rather than only a cardinality. Severed
- * boundary edges are a different thing entirely and travel on `dissolvedEdges` below.
+ * The closure's `relationalEdges` are its *internal* edges (the induced subgraph), which is what
+ * keeps richer copy reachable later ("the tray, with a cup on it") rather than only a cardinality.
+ * Severed boundary edges are a different thing entirely and travel on `dissolvedEdges` below.
  */
 export type PositionKernelMovedSet =
     | { kind: 'entity'; entityId: EphemeraObjectId | EphemeraCharacterId }
-    | { kind: 'closure'; fragment: CarryClosureFragment }
+    | { kind: 'closure'; fragment: EphemeraLudicGraph }
 
 /**
  * Membership narration's ingredients (PB-2): navigate/home/connect/disconnect. `leaveCopyKind` is a
@@ -46,7 +47,7 @@ export type MembershipMoveNarrationInput = {
  * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
  * rather than ported: the compiler holds the verb forwards instead of reasoning back to it.
  *
- * `carriedCount` is the *execute-time* closure size (`fragment.members.size`), not the Plan-stage
+ * `carriedCount` is the *execute-time* closure size (`fragment.objectIds.size`), not the Plan-stage
  * intent's object count. `executeObjectMove` re-derives the closure fresh against current graph
  * state rather than trusting the planned set, so the copy reports what actually moved.
  */

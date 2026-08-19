@@ -2,7 +2,7 @@
 
 This file records **falsifiable rules** for `mtw.ephemera.positions` **as implemented today**. Mental models: [`AGENT.concepts.md`](AGENT.concepts.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-Play membership persistence uses **`Meta::Room.ludicGraph`** (forward) + **adjacency index** (reverse) as sole authority --- see [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index). **`Character Moved`** and **`Object Moved`** are **membership host transfer** projections on the bus --- `froms[]` / `to` describe eligible host endpoints, not per-host kernel granularity, and the fact bus shape uses plural **`froms[]`**.
+Play membership persistence uses **`Meta::<Kind>.ludicGraph`** (forward; Room / Character / Object / Feature / Area --- see [Host storage](#host-storage-one-shared-serde-one-documented-exception)) + **adjacency index** (reverse) as sole authority --- see [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index). **`Character Moved`** and **`Object Moved`** are **membership host transfer** projections on the bus --- `froms[]` / `to` describe eligible host endpoints, not per-host kernel granularity, and the fact bus shape uses plural **`froms[]`**.
 
 ---
 
@@ -21,7 +21,7 @@ Mental model: [**Graph roles**](AGENT.concepts.md#graph-roles-shared-shape-diffe
 
 **Positions must own (play manipulation truth):**
 
-- Membership persist (`Meta::Room.ludicGraph`, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
+- Membership persist (`Meta::<Kind>.ludicGraph` on any membership host kind, adjacency index) and eviction ladder (`RoomStack`) bundled with apply per membership sections below.
 - **`Object`** nodes on room **`ludicGraph`** + **`OBJECT#`** adjacency rows (**I5**); objects lane owns existence rows (improvisation pair + **`Meta::Object`**) only.
 - **`Meta::Character.ludicGraph`** for character-hosted inventory (**D16**); cross-host membership apply under [`manipulation/membership/`](manipulation/membership/).
 - **`Character Moved`** and **`Object Moved`** descriptive fact streams --- **membership host transfer projection** from persist outcome at apply.
@@ -152,6 +152,13 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 - **Must** derive **`MembershipDiff.froms`** from observed prior containers removed (may be **`length > 1`** on drift repair).
 - **Must** maintain **`ludicGraph`** + adjacency in the same **`transactWrite`** bundle; **must not** write legacy **`activeCharacters`** / **`RoomId`** membership projections. Mental model: [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 - On conflict between graph and adjacency, **`ludicGraph` wins** (diagnostics repair from graph).
+
+#### Host storage: one shared serde, one documented exception
+
+- Every membership host kind **must** persist its forward graph as **`Meta::<Kind>.ludicGraph`** --- `Meta::Room`, `Meta::Character`, `Meta::Object`, `Meta::Feature`, `Meta::Area` --- carrying the identical **`EphemeraLudicGraphFieldPayload`** shape and decoded through the identical **`fromFieldPayload`**. There is **no** per-kind stored shape.
+- Decode **must** go through **one shared plain-serde body**: a direct `ludicGraph` field read whose absent-value default is a trivial empty graph. Per-kind factory helpers are **thin wrappers** over that body and **must not** add per-kind decode behavior.
+- **`Room` alone** carries an absent-value fallback: when `ludicGraph` is missing, it reconstructs from **`Meta::Room.activeCharacters`** via `seedFromActiveCharacters` rather than defaulting to empty. **This asymmetry is deliberate.** Room is the only host kind with a second data source its graph can be reconstructed from; the others have no connect/disconnect lifecycle and therefore no reconstruction source. **Must not** be "regularized" away, and **must not** be generalized to another kind without first establishing that kind has its own independent second source.
+- Adding a new host kind therefore costs a `Meta::<Kind>` record, a thin wrapper, and a dispatch branch --- **not** a new serde.
 
 ### Membership-changed bundle
 
@@ -293,7 +300,7 @@ Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optiona
 
 ### Edge persist shape (BD-3)
 
-Relational mutations **must** persist on a **fixed host** --- **`Meta::Room.ludicGraph`** or **`Meta::Character.ludicGraph`** forward graph only. Both host kinds are live end to end (BD-15/16): `RelationalIngressArgs.hostId` is an `EphemeraMembershipHostId`, and production ingress genuinely produces a Character host when subject and target already share the acting character's inventory graph. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch)).
+Relational mutations **must** persist on a **fixed host** --- the host's own **`Meta::<Kind>.ludicGraph`** forward graph only. `RelationalIngressArgs.hostId` is an `EphemeraMembershipHostId`, so **any** of the five host kinds is a legal persist target and all five dispatch through storage. **Room and Character are the kinds production ingress is confirmed to produce today** (BD-15/16 --- a Character host arises genuinely when subject and target already share the acting character's inventory graph); Object / Feature / Area are storage-supported and grounding-reachable but have no confirmed production ingress path yet, so **absence of one is not evidence the host kind is illegal**. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch)).
 
 **`HostRelationalPatch`** (kernel input; one add or remove on one host):
 
@@ -301,8 +308,8 @@ Relational mutations **must** persist on a **fixed host** --- **`Meta::Room.ludi
 type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
 
 type HostRelationalEdge = {
-    from: EphemeraId   // subject node on host graph (v1: EphemeraObjectId)
-    to: EphemeraId     // target node on host graph (v1: EphemeraObjectId)
+    from: EphemeraLudicTerminalPrimitive   // subject node on host graph (LP4: any legal host kind)
+    to: EphemeraLudicTerminalPrimitive     // target node on host graph (LP4: any legal host kind)
     kind: HostRelationalEdgeKind
     /** Required when kind === 'Custom'; persisted on the stored edge (BD-3). */
     relationLabel?: string
@@ -466,7 +473,7 @@ Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep
 - **Roster display** **must** hydrate at read time from **`CharacterMeta`** (`Name` -> `DisplayName`, `Color`, `fileURL`) + **`CharacterSessions`** (`SessionIds`) via [`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts); membership topology from stored **`ludicGraph`** nodes only.
 - **Character forward `getLudicGraph`** **must** read stored **`Meta::Character.ludicGraph`** topology only (D16); empty topology when absent. **Must not** use character forward read for room-membership / reverse reads.
 - **Reverse membership reads** (navigate parse endpoint in [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts), membership pre-read in coordinators) **must** use **`internalCache.Positions.getMembershipContainers`** (adjacency index only), not raw `Meta::Character.RoomId` or `CharacterMeta.RoomId`.
-- **Reverse object placement reads** **must** use **`internalCache.Positions.getMembershipContainers(objectId)`** (adjacency only); returns eligible host ids (`ROOM#`, `CHARACTER#` in v1). Empty adjacency means out of play (`[]`). Room-only apply paths **must** filter to **`ROOM#`** hosts when computing room placement diffs.
+- **Reverse object placement reads** **must** use **`internalCache.Positions.getMembershipContainers(objectId)`** (adjacency only); returns eligible host ids (`ROOM#`, `CHARACTER#` in v1). Empty adjacency means out of play (`[]`). **This stays narrow on purpose and is not stale:** the *forward* host union is all five kinds, but **contained-side eligibility is a separate undecided question** (D16 / I5) that the host-storage widening deliberately did not touch. Do not widen this line by analogy with forward storage. Room-only apply paths **must** filter to **`ROOM#`** hosts when computing room placement diffs.
 - **Forward room graph** **must** read stored **`Meta::Room.ludicGraph`** topology only; when graph absent, return empty topology; **must not** merge stored **`activeCharacters`** on gateway forward load for roster display ([sole-authority stance](AGENT.concepts.md#room-play-graph--adjacency-reverse-index)). Forward graph **must** include **`Object`** nodes when present.
 - **Forward character inventory graph** **must** read stored **`Meta::Character.ludicGraph`** topology only (D16); v1 nodes are **`Object`** membership only; empty topology when absent.
 - **Affordance compose** **must** derive in-room object ids via **`graph.objectIds`** on **`Positions.getLudicGraph`** ([`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts)); **`shortName`** from improvisation merge, not room meta.

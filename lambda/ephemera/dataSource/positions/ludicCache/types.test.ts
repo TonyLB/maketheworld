@@ -79,12 +79,22 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(false)
     })
 
+    it('accepts a homeShards entry that is an object or feature host id (LP0 widened EphemeraMembershipHostId)', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Object',
+            universalKey: 'OBJECT#helmet',
+            shortName: 'a helmet',
+            homeShards: ['ROOM#Test', 'OBJECT#Box', 'FEATURE#Wall'],
+            interiorConsolidated: false,
+        })).toBe(true)
+    })
+
     it('rejects a homeShards entry that is not a membership host id', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test', 'OBJECT#helmet'],
+            homeShards: ['ROOM#Test', 'KNOWLEDGE#helmet'],
             interiorConsolidated: false,
         })).toBe(false)
     })
@@ -195,9 +205,22 @@ describe('isEphemeraLudicCacheData', () => {
         })).toBe(true)
     })
 
+    it('accepts an object or feature hostId (LP0 widened EphemeraMembershipHostId)', () => {
+        expect(isEphemeraLudicCacheData({
+            hostId: 'OBJECT#Box',
+            nodes: [],
+            edges: [],
+        })).toBe(true)
+        expect(isEphemeraLudicCacheData({
+            hostId: 'FEATURE#Wall',
+            nodes: [],
+            edges: [],
+        })).toBe(true)
+    })
+
     it('rejects a hostId that is not a membership host id', () => {
         expect(isEphemeraLudicCacheData({
-            hostId: 'OBJECT#helmet',
+            hostId: 'KNOWLEDGE#helmet',
             nodes: [],
             edges: [],
         })).toBe(false)

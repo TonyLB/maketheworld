@@ -9,7 +9,7 @@ Play ludic graph read handler for ephemera. **Authoritative writers:** positions
 | Surface | Use |
 | --- | --- |
 | **Primary** | **`createPositionsCacheHandler(ephemeraDB)`** / **`PositionsCacheHandler`** --- register on Ephemera **`internalCache.Positions`**. |
-| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectComponentGraphFromStoredLudicGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
+| **Secondary** | **`getRoomActiveCharactersFromDynamo`**, **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`getObjectLudicGraphFromDynamo`**, **`getFeatureLudicGraphFromDynamo`**, **`getAreaLudicGraphFromDynamo`**, **`queryMembershipContainersFromDynamo`**, **`projectComponentGraphFromStoredLudicGraph`** in [`fetch.ts`](fetch.ts) / [`project.ts`](project.ts) / [`adjacency.ts`](adjacency.ts) --- package tests, tooling. **Do not** wire new lambda steady-state reads to raw **`fetch`** when **`internalCache.Positions`** is available. |
 
 Deep import: `@tonylb/mtw-gateways/ts/ephemera/positions`.
 
@@ -34,6 +34,9 @@ Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/intern
 | --- | --- | --- |
 | **`getLudicGraph(roomId)`** | What does this room **contain**? | Stored `Meta::Room.ludicGraph` topology only; empty graph when absent |
 | **`getLudicGraph(characterId)`** | What does this character **contain**? (inventory) | Stored `Meta::Character.ludicGraph` topology only; empty graph when absent |
+| **`getLudicGraph(objectId)`** | What does this object **contain**? (MK2, storage only --- no route produces one yet) | Stored `Meta::Object.ludicGraph` topology only; empty graph when absent |
+| **`getLudicGraph(featureId)`** | What does this feature **contain**? (MK3, storage only --- no route produces one yet) | Stored `Meta::Feature.ludicGraph` topology only; empty graph when absent |
+| **`getLudicGraph(areaId)`** | What does this area **contain**? (MK4, storage only --- no route produces one yet) | Stored `Meta::Area.ludicGraph` topology only; empty graph when absent |
 | **`getMembershipContainers(characterId)`** | Which room hosts **contain** this character? | Adjacency index only; room hosts only at steady state. **Transfer-planning observation** --- manipulation kernel persist **must not** use this for prior discovery ([M1](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering)). |
 | **`getMembershipContainers(objectId)`** | Which hosts **contain** this object? | Adjacency index only --- `ROOM#` or `CHARACTER#` hosts (**D16** / **I5**). Same transfer-planning role as character reverse reads. |
 
@@ -43,18 +46,18 @@ Handler API unchanged from slice 1c.
 
 Play membership persistence converges on two authoritative structures. **Conflict policy:** stored **`ludicGraph` wins**; adjacency is kept in sync at persist and repaired from graph on mismatch. Persist writers route through [Manipulation persist layering](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering) (adapter plans membership host transfer; kernel applies graph-grounded **`HostEffect[]`**).
 
-### Forward: host `ludicGraph` (`Meta::Room`, `Meta::Character`, ...)
+### Forward: host `ludicGraph` (`Meta::Room`, `Meta::Character`, `Meta::Object`, `Meta::Feature`, `Meta::Area`)
 
 | Field | Shape |
 | --- | --- |
-| **`ludicGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
+| **`ludicGraph.nodes`** | Membership nodes on the host graph. Room: Character + Object. Character inventory (D16) / Object hosting (MK2) / Feature hosting (MK3) / Area hosting (MK4): **Object** only in v1. Character: `{ tag: 'Character', universalKey }`. Object: `{ tag: 'Object', universalKey }` --- play identity only; no asset-local `key`. |
 | **`ludicGraph.edges`** | In-host relational edges on room host graphs (`tag: 'Relational'`, BD-2/BD-3); projected on gateway read. Exit edges remain out of scope for v1 room graphs. |
 
-**Types:** [`EphemeraLudicGraphFieldPayload`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) and [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts). Host-bound manipulation JSON: [`EphemeraLudicGraphData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
+**Types:** [`EphemeraLudicGraphFieldPayload`](../../../../mtw-interfaces/ts/ephemeraMeta.ts) on [`EphemeraMetaRoom`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaCharacter`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaObject`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), [`EphemeraMetaFeature`](../../../../mtw-interfaces/ts/ephemeraMeta.ts), and [`EphemeraMetaArea`](../../../../mtw-interfaces/ts/ephemeraMeta.ts). Host-bound manipulation JSON: [`EphemeraLudicGraphData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts).
 
 **Topology only on stored graph:** roster display fields (`DisplayName`, `SessionIds`, ...) are **not** merged on gateway forward load. Roster compose is ephemera-only: **`getRoomCharacterList`** hydrates from **`CharacterMeta`** + **`CharacterSessions`** at read time ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)). The package handler exposes topology + adjacency only.
 
-**Read helpers:** **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`** in [`fetch.ts`](fetch.ts). Forward load projects via **`projectComponentGraphFromStoredLudicGraph`** ([`project.ts`](project.ts)).
+**Read helpers:** **`getRoomLudicGraphFromDynamo`**, **`getCharacterLudicGraphFromDynamo`**, **`getObjectLudicGraphFromDynamo`**, **`getFeatureLudicGraphFromDynamo`**, **`getAreaLudicGraphFromDynamo`** in [`fetch.ts`](fetch.ts). Forward load projects via **`projectComponentGraphFromStoredLudicGraph`** ([`project.ts`](project.ts)).
 
 ### Reverse: membership adjacency index
 
@@ -73,9 +76,9 @@ Reverse membership reads use **`getMembershipContainers`** only (no `roomEndpoin
 
 ## Handler API ([`factory.ts`](factory.ts))
 
-- **`getLudicGraph(componentId)`** --- forward **topology** graph for room or character hosts (Dynamo load + memo).
+- **`getLudicGraph(componentId)`** --- forward **topology** graph for room, character, object, feature, or area hosts (Dynamo load + memo).
 - **`getMembershipContainers(componentId)`** --- reverse membership for **`CHARACTER#`** or **`OBJECT#`** (**array** of eligible host ids --- **`ROOM#`** and/or **`CHARACTER#`** in v1). Transfer-planning / reverse reads only; kernel graph-grounded persist **must not** call this to discover priors.
-- **Forward memo:** **`set`** / **`invalidate`** on ludic graphs for room or character hosts (`ludicGraphCacheKey`).
+- **Forward memo:** **`set`** / **`invalidate`** on ludic graphs for room, character, object, feature, or area hosts (`ludicGraphCacheKey`).
 - **Reverse memo:** **`setMembershipContainers`** / **`invalidateMembershipContainers`** (`membershipContainersCacheKey`).
 
 All memo APIs patch in-memory state only; **no Dynamo write-through**.

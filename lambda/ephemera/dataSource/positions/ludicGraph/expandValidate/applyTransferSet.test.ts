@@ -10,6 +10,7 @@ const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const bookId = 'OBJECT#Book' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
+const otherRoomId = 'ROOM#Lobby' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('applyTransferSet', () => {
@@ -141,6 +142,37 @@ describe('applyTransferSet', () => {
         if (outcome.verdict !== 'legal') return
         expect(outcome.destGraph.relationalEdges).toEqual([{ from: glassId, to: trayId, kind: 'On' }])
         expect(outcome.sourceGraph.relationalEdges).toEqual([])
+    })
+
+    it('LP4h legal: a character-only transfer set dispatches via addCharacter/removeCharacter', () => {
+        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+        const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
+
+        const outcome = applyTransferSet(sourceGraph, destGraph, new Set([characterId]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.sourceGraph.characterIds.has(characterId)).toBe(false)
+        expect(outcome.destGraph.characterIds.has(characterId)).toBe(true)
+    })
+
+    it('LP4h legal: a mixed object+character transfer set lands both under one call', () => {
+        const sourceGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Character', universalKey: characterId },
+            ],
+        })
+        const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
+
+        const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, characterId]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.sourceGraph.objectIds.has(trayId)).toBe(false)
+        expect(outcome.sourceGraph.characterIds.has(characterId)).toBe(false)
+        expect(outcome.destGraph.objectIds.has(trayId)).toBe(true)
+        expect(outcome.destGraph.characterIds.has(characterId)).toBe(true)
     })
 
     it('never leaks a raw RelationalEdgeStillReferencedError past an unresolved boundary dissolve edge', () => {

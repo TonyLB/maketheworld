@@ -1,4 +1,5 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../index'
 import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
@@ -30,9 +31,15 @@ export type ApplyTransferSetOutcome =
 export function applyTransferSet(
     sourceGraph: EphemeraLudicGraph,
     destGraph: EphemeraLudicGraph,
-    transferSet: ReadonlySet<EphemeraObjectId>
+    // LP4h: Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
+    // are hosts that never relocate.
+    transferSet: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
 ): ApplyTransferSetOutcome {
-    const boundaryOutcomes = boundaryEdgeOutcomes(transferSet, sourceGraph)
+    // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts, out of LP4h's scope):
+    // no production path produces a character-endpoint relational edge yet, so a character can never
+    // appear on either side of a boundary edge.
+    const objectTransferSet = new Set([...transferSet].filter(isEphemeraObjectId))
+    const boundaryOutcomes = boundaryEdgeOutcomes(objectTransferSet, sourceGraph)
 
     const carryOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'carry')
     if (carryOutcome !== undefined) {
@@ -55,22 +62,31 @@ export function applyTransferSet(
         return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
     }
 
+    // LP4 widened HostRelationalEdge.from/to to the full terminal union; no production path yet
+    // produces a character-endpoint relational edge (LP4h doesn't change that --- see
+    // interactionUnderTransfer.ts), so isEphemeraObjectId(edge.from) still narrows correctly here.
     const internalEdges = sourceGraph.relationalEdges.filter(
-        (edge) => transferSet.has(edge.from) && transferSet.has(edge.to)
+        (edge) => isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to) && transferSet.has(edge.from) && transferSet.has(edge.to)
     )
 
-    // Internal edges are stripped from sourceGraph *before* the per-object removeObject loop, since
-    // removeObject throws if any relational edge --- including an internal one to a sibling not yet
-    // removed --- still references the object being removed.
+    // Internal edges are stripped from sourceGraph *before* the per-entity remove loop, since
+    // removeObject/removeCharacter throws if any relational edge --- including an internal one to a
+    // sibling not yet removed --- still references the entity being removed.
     let nextSourceGraph = sourceGraph
     for (const edge of internalEdges) {
         nextSourceGraph = nextSourceGraph.removeRelationalEdge(edge)
     }
 
     let nextDestGraph = destGraph
-    for (const objectId of transferSet) {
-        nextSourceGraph = nextSourceGraph.removeObject(objectId)
-        nextDestGraph = nextDestGraph.addObject(objectId)
+    for (const id of transferSet) {
+        if (isEphemeraObjectId(id)) {
+            nextSourceGraph = nextSourceGraph.removeObject(id)
+            nextDestGraph = nextDestGraph.addObject(id)
+        }
+        else {
+            nextSourceGraph = nextSourceGraph.removeCharacter(id)
+            nextDestGraph = nextDestGraph.addCharacter(id)
+        }
     }
     for (const edge of internalEdges) {
         nextDestGraph = nextDestGraph.addRelationalEdge(edge)

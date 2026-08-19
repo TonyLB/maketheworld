@@ -8,8 +8,8 @@ import {
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPositionsReadDB } from '@tonylb/mtw-gateways/ts/ephemera/positions/fetch'
 import type { MembershipContainersCacheSetParams } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
@@ -19,13 +19,17 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 
 export type { MembershipContainersCacheSetParams }
 
+/**
+ * Narrows a membership host id to the subset the play-position cache gateway forwards on.
+ * Accepts all five `EphemeraMembershipHostId` kinds --- Room, Character, Object, Feature, Area.
+ */
 const assertForwardHostId = (
     hostId: EphemeraMembershipHostId
-): EphemeraCharacterId | EphemeraRoomId => {
-    if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId)) {
+): EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId => {
+    if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId) || isEphemeraObjectId(hostId) || isEphemeraFeatureId(hostId) || isEphemeraAreaId(hostId)) {
         return hostId
     }
-    throw new Error(`Positions cache set requires forward host ROOM# or CHARACTER#; got ${hostId}`)
+    throw new Error(`Positions cache requires forward host ROOM#, CHARACTER#, OBJECT#, FEATURE#, or AREA#; got ${hostId}`)
 }
 
 export class EphemeraLudicGraphCacheData {
@@ -36,10 +40,11 @@ export class EphemeraLudicGraphCacheData {
     }
 
     async getLudicGraph(
-        componentId: EphemeraCharacterId | EphemeraRoomId
+        componentId: EphemeraMembershipHostId
     ): Promise<EphemeraLudicGraph> {
-        const envelope = await this._gateway.getLudicGraph(componentId)
-        return EphemeraLudicGraph.fromPlayEnvelope(componentId, envelope)
+        const forwardId = assertForwardHostId(componentId)
+        const envelope = await this._gateway.getLudicGraph(forwardId)
+        return EphemeraLudicGraph.fromPlayEnvelope(forwardId, envelope)
     }
 
     set(graph: EphemeraLudicGraph): void {
@@ -60,7 +65,7 @@ export class EphemeraLudicGraphCacheData {
         this._gateway.setMembershipContainers(params)
     }
 
-    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId): void {
+    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId): void {
         this._gateway.invalidate(componentId)
     }
 

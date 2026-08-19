@@ -3,7 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
 import type { MembershipNarrationSpec, ObjectMoveNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
-import type { CarryClosureFragment } from '../../../ludicGraph/expandValidate/interactionUnderTransfer'
+import { EphemeraLudicGraph, objectNode } from '../../../ludicGraph'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
@@ -143,11 +143,9 @@ describe('compilePositionKernelOp --- object moves', () => {
     const TRAY = 'OBJECT#Tray' as EphemeraObjectId
     const GLASS = 'OBJECT#Glass' as EphemeraObjectId
 
-    const fragment = (members: EphemeraObjectId[] = [TRAY]): CarryClosureFragment => ({
-        rootId: TRAY,
-        members: new Set(members),
-        edges: [],
-    })
+    // LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
+    const fragment = (members: EphemeraObjectId[] = [TRAY]): EphemeraLudicGraph =>
+        EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, nodes: members.map(objectNode), edges: [] })
 
     const objectOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
         kind: 'move',

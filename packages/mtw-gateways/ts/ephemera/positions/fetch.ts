@@ -1,11 +1,10 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
-    EphemeraMetaCharacter,
     EphemeraMetaRoom,
     EphemeraLudicGraphFieldPayload,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 export type EphemeraPositionsReadDB = {
     getItem<Item extends Record<string, unknown>>(props: {
@@ -39,33 +38,55 @@ export async function getRoomActiveCharactersFromDynamo(
     return row?.activeCharacters ?? []
 }
 
-export async function getRoomLudicGraphFromDynamo(
+/**
+ * Every host kind's `ludicGraph` field is the same `EphemeraLudicGraphFieldPayload` shape
+ * (MD-1(c)) --- the five exported `get*LudicGraphFromDynamo` below differ only in which
+ * `DataCategory` they key on, so they're thin, type-narrowed wrappers over this one read.
+ */
+async function getHostLudicGraphFromDynamo(
     db: EphemeraPositionsReadDB,
-    roomId: EphemeraRoomId
+    hostId: string,
+    dataCategory: 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' | 'Meta::Area'
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> {
-    const row = await db.getItem<Pick<EphemeraMetaRoom, 'ludicGraph'>>({
+    const row = await db.getItem<{ ludicGraph?: EphemeraLudicGraphFieldPayload }>({
         Key: {
-            EphemeraId: roomId,
-            DataCategory: 'Meta::Room',
+            EphemeraId: hostId,
+            DataCategory: dataCategory,
         },
         ProjectionFields: ['ludicGraph'],
     })
     return row?.ludicGraph
 }
 
-export async function getCharacterLudicGraphFromDynamo(
+export const getRoomLudicGraphFromDynamo = (
+    db: EphemeraPositionsReadDB,
+    roomId: EphemeraRoomId
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, roomId, 'Meta::Room')
+
+export const getCharacterLudicGraphFromDynamo = (
     db: EphemeraPositionsReadDB,
     characterId: EphemeraCharacterId
-): Promise<EphemeraLudicGraphFieldPayload | undefined> {
-    const row = await db.getItem<Pick<EphemeraMetaCharacter, 'ludicGraph'>>({
-        Key: {
-            EphemeraId: characterId,
-            DataCategory: 'Meta::Character',
-        },
-        ProjectionFields: ['ludicGraph'],
-    })
-    return row?.ludicGraph
-}
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, characterId, 'Meta::Character')
+
+export const getObjectLudicGraphFromDynamo = (
+    db: EphemeraPositionsReadDB,
+    objectId: EphemeraObjectId
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, objectId, 'Meta::Object')
+
+export const getFeatureLudicGraphFromDynamo = (
+    db: EphemeraPositionsReadDB,
+    featureId: EphemeraFeatureId
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, featureId, 'Meta::Feature')
+
+export const getAreaLudicGraphFromDynamo = (
+    db: EphemeraPositionsReadDB,
+    areaId: EphemeraAreaId
+): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
+    getHostLudicGraphFromDynamo(db, areaId, 'Meta::Area')
 
 export async function getCharacterRoomIdFromDynamo(
     db: EphemeraPositionsReadDB,
@@ -93,5 +114,5 @@ export async function getCharacterRoomIdFromDynamo(
 
 export const isPositionsComponentId = (
     componentId: string
-): componentId is EphemeraCharacterId | EphemeraRoomId =>
-    isEphemeraCharacterId(componentId) || isEphemeraRoomId(componentId)
+): componentId is EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId =>
+    isEphemeraCharacterId(componentId) || isEphemeraRoomId(componentId) || isEphemeraObjectId(componentId) || isEphemeraFeatureId(componentId) || isEphemeraAreaId(componentId)

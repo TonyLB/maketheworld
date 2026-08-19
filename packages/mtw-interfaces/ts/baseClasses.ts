@@ -74,6 +74,9 @@ export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
 export type EphemeraSituationId = EphemeraWrappedId<'SITUATION'>
 export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION')
 
+export type EphemeraAreaId = EphemeraWrappedId<'AREA'>
+export const isEphemeraAreaId = isEphemeraTaggedId<'AREA'>('AREA')
+
 //
 // EphemeraId is the allowlist of id tags the ephemera/messaging layer treats as first-class
 // (cache keys, message targets, aggregate universal keys, etc.). It is aligned with current
@@ -83,7 +86,7 @@ export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION'
 // EXAMPLE# was removed: Example is no longer a schema component (authored slices use SITUATION#).
 // Legacy EXAMPLE# strings may still appear in stored WML or PerceptionMessage metadata types.
 //
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION' | 'AREA'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraFeatureId(value) ||
@@ -95,7 +98,8 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
     isEphemeraImageId(value) ||
-    isEphemeraSituationId(value)
+    isEphemeraSituationId(value) ||
+    isEphemeraAreaId(value)
 )
 
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'

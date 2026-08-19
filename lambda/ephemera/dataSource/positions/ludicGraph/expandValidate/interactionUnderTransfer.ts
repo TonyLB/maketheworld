@@ -1,7 +1,9 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalRefersTo } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
+import { EphemeraLudicGraph, objectNode, toStoredRelationalEdge, type HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
@@ -33,32 +35,13 @@ export function roleOfObjectInEdge(
     objectId: EphemeraObjectId,
     edge: HostRelationalEdge
 ): TransferEndpointRole | undefined {
-    if (edge.from === objectId) {
+    if (ephemeraLudicTerminalRefersTo(edge.from, objectId)) {
         return 'subject'
     }
-    if (edge.to === objectId) {
+    if (ephemeraLudicTerminalRefersTo(edge.to, objectId)) {
         return 'target'
     }
     return undefined
-}
-
-/**
- * A carry closure is a rooted sub-DAG of the source graph, not just a flat
- * member set (PB-8): `rootId` is the starting entity, `members` the absorbed
- * set, `edges` the closure's *internal* edges only (both endpoints inside
- * `members`) --- the induced subgraph, not the severed boundary edges, which
- * stay with `boundaryEdgeOutcomes` and Expansion (PB-9).
- *
- * This is a rooted graph, which is precisely what `EphemeraLudicGraph`
- * would already be if it carried a root. If `ludicGraph` ever gains a
- * root concept, this shape should collapse into it rather than persist as a
- * parallel shape re-expressing the same idea (see the reciprocal note on the
- * `ludicGraph` side).
- */
-export type CarryClosureFragment = {
-    rootId: EphemeraObjectId
-    members: ReadonlySet<EphemeraObjectId>
-    edges: readonly HostRelationalEdge[]
 }
 
 /**
@@ -69,11 +52,23 @@ export type CarryClosureFragment = {
  * edge set terminates instead of looping. Each `carry` absorption fires on
  * exactly one edge, so that edge is collected as an internal edge in the
  * same pass.
+ *
+ * Returns an `EphemeraLudicGraph` --- a carry closure is a rooted sub-DAG of
+ * the source graph (PB-8), which is exactly what `EphemeraLudicGraph` is
+ * once it carries a root (LP4a). Built with `hostId = rootId = startId` (the
+ * object being moved; `EphemeraObjectId` is a legal `EphemeraMembershipHostId`
+ * member per LP0), `nodes` the absorbed members, `edges` the closure's
+ * *internal* edges only (both endpoints inside the member set) --- the
+ * induced subgraph, not the severed boundary edges, which stay with
+ * `boundaryEdgeOutcomes` and Expansion (PB-9). This collapses the former
+ * standalone `CarryClosureFragment` shape into the class rather than
+ * persisting it as parallel duplication (see the reciprocal note on the
+ * `ludicGraph` side, `AGENT.md`).
  */
 export function computeCarryClosure(
     startId: EphemeraObjectId,
     graph: EphemeraLudicGraph
-): CarryClosureFragment {
+): EphemeraLudicGraph {
     const closureSet = new Set<EphemeraObjectId>([startId])
     const internalEdges: HostRelationalEdge[] = []
     const queue: EphemeraObjectId[] = [startId]
@@ -87,7 +82,17 @@ export function computeCarryClosure(
                 continue
             }
             const otherId = movedRole === 'subject' ? edge.to : edge.from
-            if (closureSet.has(otherId)) {
+            /**
+             * LP4 widened `edge.from`/`.to` to `EphemeraLudicTerminalPrimitive`, but carry
+             * closure is still Object-only here (this module's collapse into a rooted
+             * `ludicGraph` is LP4a's job, not the Object-only narrowing's) --- a non-Object
+             * `otherId` can't occur in practice yet, since nothing produces a relational edge
+             * with a non-Object endpoint, but skip rather than assume. LP4h checked and does
+             * not retire this narrow --- its scope is `applyTransferSet`'s transfer-set
+             * parameter, not this module. This remains unowned; see `ludicGraph/AGENT.md`'s
+             * "Character-relation widening, deferred (BD-36)" note.
+             */
+            if (!isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
                 continue
             }
             if (classifyInteractionUnderTransfer(edge.kind, movedRole) === 'carry') {
@@ -98,7 +103,12 @@ export function computeCarryClosure(
         }
     }
 
-    return { rootId: startId, members: closureSet, edges: internalEdges }
+    return EphemeraLudicGraph.fromJSON({
+        hostId: startId,
+        rootId: startId,
+        nodes: [...closureSet].map(objectNode),
+        edges: internalEdges.map(toStoredRelationalEdge),
+    })
 }
 
 export type BoundaryEdgeOutcome = {
@@ -119,8 +129,12 @@ export function boundaryEdgeOutcomes(
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        const fromInSet = transferSet.has(edge.from)
-        const toInSet = transferSet.has(edge.to)
+        // Same LP4-vs-LP4a boundary as computeCarryClosure above: transferSet is Object-only.
+        // LP4h widened its caller's transfer set to Object | Character but filters back down to
+        // Object before calling in here (applyTransferSet.ts) --- this function's own scope is
+        // unchanged, and remains unowned the same way computeCarryClosure's narrow does above.
+        const fromInSet = isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
+        const toInSet = isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
         if (fromInSet === toInSet) {
             continue
         }

@@ -1,6 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../../internalCache'
@@ -65,7 +66,7 @@ export const applyObjectRelationalChange = async (
         const sourceGraph: EphemeraLudicGraph = await internalCache.Positions.getLudicGraph(fromHostId)
 
         const closure = computeCarryClosure(args.subjectId, sourceGraph)
-        const outcomes = boundaryEdgeOutcomes(closure.members, sourceGraph)
+        const outcomes = boundaryEdgeOutcomes(closure.objectIds, sourceGraph)
 
         const carryOutcome = outcomes.find((entry) => entry.outcome === 'carry')
         if (carryOutcome !== undefined) {
@@ -84,19 +85,27 @@ export const applyObjectRelationalChange = async (
             }
         }
 
+        // LP4 widened HostRelationalEdge.from/to; boundary-dissolve under transfer is still
+        // Object-only in practice (carry closure only ever moves Objects), so a non-Object
+        // endpoint here is a bug worth surfacing loudly rather than silently coercing.
         const dissolveSteps: MutationKernelStep[] = outcomes
             .filter((entry) => entry.outcome === 'dissolve')
-            .map((entry) => ({
-                kind: 'dissolveRelation',
-                subjectId: entry.edge.from,
-                targetId: entry.edge.to,
-                relationKind: entry.edge.kind,
-                ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
-            }))
+            .map((entry) => {
+                if (!isEphemeraObjectId(entry.edge.from) || !isEphemeraObjectId(entry.edge.to)) {
+                    throw new Error(`Boundary dissolve edge ${entry.edge.from} -> ${entry.edge.to} has a non-Object endpoint`)
+                }
+                return {
+                    kind: 'dissolveRelation' as const,
+                    subjectId: entry.edge.from,
+                    targetId: entry.edge.to,
+                    relationKind: entry.edge.kind,
+                    ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+                }
+            })
 
         const transferStep: TransferMembershipStep = {
             kind: 'transferMembership',
-            objectIds: closure.members,
+            objectIds: closure.objectIds,
             fromHostId,
             toHostId: args.hostId,
         }

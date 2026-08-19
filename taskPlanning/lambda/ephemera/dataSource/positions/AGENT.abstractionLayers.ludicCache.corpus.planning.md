@@ -1,0 +1,262 @@
+# ludicCache: the reducer corpus
+
+**Companion to [`AGENT.abstractionLayers.planning.md`](AGENT.abstractionLayers.planning.md), opened 2026-08-14**, on the precedent of the parent's own corpus split and of [`AGENT.attentionHistory.corpus.planning.md`](AGENT.attentionHistory.corpus.planning.md). This file holds **worked cases about how a `ludicCache` is built from `ludicGraph`s, and nothing else.** The channel's steps, decisions and progress stay in the parent's [Channel C](AGENT.abstractionLayers.planning.md#recommended-order).
+
+**Read this as part of the plan, not as an appendix.** A CC step is worded the way it is because of a case here.
+
+**This is a corpus for a *channel*, not for a plan, which is a departure worth naming.** The two sibling corpora each sit beside a plan file of the same stem. There is no `ludicCache` plan --- the cache is Channel C inside the parent --- so this file is named as a child of the parent rather than as its peer. **If Channel C ever graduates to its own plan file, this becomes an ordinary sibling and nothing here needs rewriting.**
+
+This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+
+---
+
+## Why this is a third file, and not cases in either sibling
+
+**The three corpora are partitioned by admission rule, not by subject matter.** That distinction is the whole reason this file exists, and it was learned by getting it wrong: on 2026-08-14 a reducer case was routed to the [attention corpus](AGENT.attentionHistory.corpus.planning.md) (wrong --- it decides no AH row), then to the [C-series](AGENT.abstractionLayers.corpus.planning.md) (also wrong, and for a reason the C-series' own stated rule concealed until it was re-read).
+
+| Corpus | Anchor | A case is admitted when |
+| --- | --- | --- |
+| [C-series](AGENT.abstractionLayers.corpus.planning.md#phase-0-corpus) | today's code, or a proposal's clause table | it names the code site where the model stops, **or** the proposal clause it falsifies |
+| [AH-series](AGENT.attentionHistory.corpus.planning.md#what-counts-as-a-case-here-and-how-it-differs-from-the-c-series) | play | two candidate designs produce a **different player-visible outcome** |
+| **LC-series** (this file) | **the cache** | see below |
+
+**Reducer cases fail both siblings.** They can cite no code --- CC1 is unwritten --- and half of what matters about them never reaches a player, so the AH rule discards exactly the half that decides the mechanism.
+
+### The rule
+
+> **A case is corpus when two reducer designs produce a different cache.** Name **which** cache differs and **how**: nodes present, edges present, crossings recorded, or `homeShards` membership.
+>
+> **Then ask the second question, always: does the difference move the *fast/slow* boundary, or the *possible/impossible* one?** A difference in speed is a **case**. A difference in what is **referable at all** is a **defect**, and the case reports it as one.
+
+**The second question is what keeps this corpus honest about the kind of thing a cache is --- added 2026-08-15 from conversation, and it corrects a framing this file opened with.** The [requirement-versus-representation split](../../../../AGENT.designVariant.md#open-decisions-design--plan-only) assumes requirement questions are answerable from the fiction. **For `ludicCache` they are not, because the cache is an optimisation over a structure that already satisfies the fiction.** Whether a player *can* refer to something is settled downstream in the `ludicGraph`; the cache only decides whether that resolution is **pre-computed or falls through to a walk**. So the requirement half re-bases: *must this resolution be on the fast path, or is fall-through acceptable* --- bounded hard by [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure), **an error costs *slow*, never *wrong***.
+
+**The operational test, and it is answerable before any merge rule is chosen: *would the slow path find it?*** If the graph walk reaches the same referent, a cache that pre-computes it is **acceleration** --- benign, and the only cost is cache size. If the walk would **not** reach it, the cache has not accelerated a resolution, it has **created** one, and that is fast-confident-and-wrong: the one failure mode the design declares non-negotiable. **[A10](AGENT.attentionHistory.corpus.planning.md#a10-the-book-on-the-table-and-the-books-on-the-shelf) is the precedent** --- an optimisation that *adds* a candidate near the accept/abstain gate --- not [C15](AGENT.abstractionLayers.corpus.planning.md#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away), which is about apprehension and description and belongs to the parent's axis.
+
+**Extensional difference in the output is the right grain here in a way it is not for either sibling**, because for a reducer the output *is* the artifact. The C-series needs a code anchor because it describes shipped structures; AH needs a play anchor because its output is invisible except through play. A cache is a data structure whose entire job is to be read, so a difference in what it contains is a difference that counts, whether or not a player ever sees it.
+
+**What this excludes, and the exclusion is load-bearing.** *"Does the merge read the working cache, or the already-reduced entry for the whole?"* is a real and interesting CC1 fork --- and it is **not a case**, because both readings can produce a byte-identical cache. That is a design question, and it belongs in the parent's open decisions. **The operational framing makes non-cases unusually seductive:** mechanism questions feel productive in a way that static mis-framings do not, so this rule needs applying *harder* here than in either sibling, not more loosely. When a case turns out not to discriminate, **record the non-discrimination as the finding** --- [C3](AGENT.abstractionLayers.corpus.planning.md#c3-the-snare-trap-coyote-cannot-name)'s *byte-identical* result is the precedent, and it is one of the more useful results in that file.
+
+### Two case forms
+
+**1. The worked merge.** State a world setup, then a sequence of *"merge graph G as reached from host X"* steps, and say what the cache holds after each. **Precedent: [C9](AGENT.abstractionLayers.corpus.planning.md#c9-coiling-the-rope-back-in)**, the only operational case in the C-series, and by yield the strongest case in it --- it cleared two AB rows outright, dissolved a queued test set, produced a write-count footprint and a membership rule. **Its central finding, *"no edge changes at all --- structure and position are independent,"* is not statable in a static case at all**, because invariance is a property of a transition. That is the argument for this form, and it is empirical rather than aesthetic.
+
+**2. The round trip.** Merge several graphs, then extract from one of the merged hosts, and compare the extraction against what that host contributed. **This form is available here and in neither sibling**, and it is the sharper instrument: it is mechanical. C-series findings are argued and AH findings are adjudicated, but a round trip either closes or it does not. It exists because [extraction is the reducer with a different seed](AGENT.abstractionLayers.planning.md#recommended-order) --- if that framing survives CC1, most of this corpus's leverage comes from here.
+
+**Note what the round trip is *not*: an identity test.** Seeding from `OBJECT#table` yields a cache containing what table reaches, which is not what a room-seeded consolidation contains. The test is whether the extraction is **coherent and sufficient** for its seed, not whether composition and extraction compose to the identity.
+
+### Annotation line, uniform across cases
+
+**which CC step(s) it decides** --- **what differs in the cache** (nodes | edges | crossings | homeShards) --- **fast/slow or possible/impossible** --- **order-sensitive or order-independent** --- **the difference, stated in both directions.**
+
+**The third field was added 2026-08-15, after LC1--LC6 were stated.** Their annotation lines predate it and **acquire it when worked**, except where the case's own text already settles it. Reading that column down separates the cases that are about **cost** from the ones that are about the [clause 4 guarantee](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) --- and a case whose answer is *possible/impossible* outranks every performance case in the file regardless of how small it looks.
+
+**The order-sensitivity tag is the one that earns this corpus its keep.** Each case is a vote on whether the reducer must be confluent --- whether merge order is free --- and reading that column down is the direct input to CC1's signature. **Do not fill the [tally](#cache-difference-tally) before the cases are worked**; it is the corpus's output, not its premise.
+
+---
+
+## The corpus
+
+**Eight seed cases --- LC1--LC6 stated 2026-08-14 from the conversation that opened this file, LC7 and LC8 added 2026-08-15. None worked.** Each records its setup and what it discriminates; findings are deliberately absent.
+
+**The known blind spot, recorded up front on both siblings' precedent: every case below is single-seed.** One cache, built from one host's point of view. A whole that appears in **two** caches --- two rooms each consolidating the same string --- is untested, and a claim that survives LC1--LC6 has not yet met it. **Expect at least one two-cache case before CC1 is called done.**
+
+**The standing topology.** LC1--LC5 all use one arrangement, so that cases can be compared rather than each re-establishing a world:
+
+- `ROOM#Room` contains `OBJECT#table`, `OBJECT#box`, and `OBJECT#string`.
+- `OBJECT#string` has parts `OBJECT#stringEnd1`, `OBJECT#span`, `OBJECT#stringEnd2`, with sibling links `stringEnd1 -- span -- stringEnd2`.
+- **`OBJECT#string` is multi-hosted, and its hosts are its ports' egress targets:** `OBJECT#table` presence-links to `OBJECT#string#{port to stringEnd1}`, `OBJECT#box` presence-links to `OBJECT#string#{port to span}`, `ROOM#Room` presence-links to `OBJECT#string#{port to stringEnd2}`.
+
+**The standing legality rule, recorded 2026-08-15 because a case was written that violated it.** A single cache consolidation covers a **connected sub-DAG** of the host-to-participant edges. **A case that consolidates a host but not one of the hosts on the only path to it is not a case, it is a malformed setup**, and it must be rewritten before it is worked. In particular, given only `A -> B -> D` containment, *"`A` and `D` are consolidated, then `B` merges"* cannot arise. The phenomenon such a setup is usually reaching for is real, and reaching it requires a **diamond** --- a participant with two hosts, one consolidated and one not --- which is how [LC8](#lc8-the-spring-in-the-box-and-in-the-contraption) is built. **This rule was load-bearing and undocumented until now**; it lived only in the authors' heads and in a code comment about a different construct ([`interactionUnderTransfer.ts:46`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/expandValidate/interactionUnderTransfer.ts#L46), on carry closures).
+
+**In plain terms: one end lies on the table, the middle is inside the box, the far end trails on the floor.** This is [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread)'s and [C9](AGENT.abstractionLayers.corpus.planning.md#c9-coiling-the-rope-back-in)'s topology moved inside a single room, which is deliberate --- **it keeps the multi-host question live while removing the cross-room variable**, so LC1--LC5 test the reducer rather than re-testing presence.
+
+### LC1: The sibling link into the unmerged box
+
+**Origin:** raised in conversation 2026-08-14, and it is the case that prompted this file.
+
+**Setup.** The standing topology. Consolidate a cache for `ROOM#Room`, merging in order: `ROOM#Room`, then `OBJECT#table`, then `OBJECT#box`.
+
+After the first two merges the cache holds `stringEnd2` (reached from the room) and `stringEnd1` (reached from the table). **Both carry a sibling link to `OBJECT#span`, which is inside the box and not yet merged.** Then `OBJECT#box` merges.
+
+**What it discriminates. Whether interior sibling links are materialized in the cache at all**, and the two readings produce different edge sets:
+
+- **They are materialized.** The cache gains `span` and two sibling edges, and the string is one connected thing in the cache: a consumer can see that the end on the table and the end on the floor are the same string, and `pull string` has a coherent subject.
+- **They are not.** The cache holds three part-nodes hung off three separate presence edges from three hosts, connected only through the `OBJECT#string` node itself. The string reads as one node with three parts that do not know about each other.
+
+**The variant that makes it sharp, and it should be run.** **Do not merge `OBJECT#box`.** (The box is closed, or the reducer's frontier simply does not reach it.) Now the two sibling links point at a node that is not in the cache. **A materializing reducer either emits a dangling edge or must suppress it** --- and *suppress* means the reducer's output depends on what else got merged, which is the first real pressure toward order-dependence. **A non-materializing reducer has nothing to decide**, and if that asymmetry holds it is an argument for the second reading that has nothing to do with the string.
+
+**The half of the original question that is not corpus, recorded so it is not re-asked as one.** *Are the sibling links pulled from the working cache plus the incoming `ludicGraph`, or from the already-reduced `OBJECT#string` entry?* **Both can produce the same cache**, so by this file's rule it is a design fork rather than a case. It is real, and it belongs to CC1. **It becomes a case only in the variant above**, where the two sources differ in what they can even see.
+
+*Annotation:* CC1, CC1a --- **edges** --- **fast/slow** (the sibling links exist in `OBJECT#string`'s own graph either way, so a walk finds them; only the cache's pre-computation is at stake, which caps this case's severity below [LC7](#lc7-the-cable-that-passes-straight-through-the-box)) --- suspected order-sensitive in the variant, order-independent otherwise --- **the string is one connected object in the cache versus three parts that share a name.**
+
+**Not yet worked.**
+
+### LC2: Box first, table last
+
+**Setup.** The standing topology, merged in the reverse order: `ROOM#Room`, `OBJECT#box`, `OBJECT#table`.
+
+**What it discriminates. Confluence --- whether merge order is free.** This is the case LC1's variant predicts will bite, isolated so it can be answered on its own. **If the two orders produce different caches, the reducer is not a fold** in the sense the design assumes, and CC1's signature has to say what the canonical order is and who chooses it.
+
+**Where it will land if it bites, named in advance.** `homeShards` is an accumulator, so it is order-sensitive **as a list and order-free as a set** --- which makes it a decision about the field's equality rather than about the reducer. Nodes are a union and should be free. **Edges are the exposed surface**, because a spliced crossing edge records the path by which it was built.
+
+**Not the same as [P4](AGENT.abstractionLayers.proposals.planning.md#proposal-p4-settling-dataflow-and-narrative-heat)'s *diamond*, and the distinction is the case's point --- checked 2026-08-14 because the two look alike and share a topology.** P4's [diamond glitch](AGENT.abstractionLayers.proposals.planning.md#two-defects-inherited-with-the-model) is *"a node with two inputs tracing to a common ancestor... reached by the short path before the long one,"* briefly computing a value that was never true. **That is transient wrongness with correct convergence. Non-confluence is the opposite: correct at every step, divergent at the end.** The asymmetry decides what an acceptable answer looks like --- P4 lists *accepting transient glitches* among its fixes, and **that escape is not available here**, because a divergent fixed point does not settle.
+
+**What they do share is the topology, and it is already supplied.** Both need a node reachable by two paths from a common source, which is precisely [H3 clause 6](AGENT.abstractionLayers.proposals.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice)'s *membership is a DAG* --- forced by [C6](AGENT.abstractionLayers.corpus.planning.md#c6-the-rope-the-candle-and-the-impromptu-timer), one part in two wholes. **Take test topologies from there rather than inventing them**, and note that H3 clause 6's own cross-note already anticipated being *"a known P4 cost this clause is now a concrete instance of"* --- the reducer is that clause's second instance, in a different mechanism.
+
+**Where P4's diamond *does* arrive inside the reducer is [LC4](#lc4-the-string-that-is-only-half-opened), not here** --- an observable half-folded cache is the value-that-was-never-true, and `interiorConsolidated` is what determines whether it is a glitch or a legible partial.
+
+*Annotation:* CC1 --- **edges, homeShards** --- **this is the order-sensitivity case** --- **merge order is an implementation detail versus a documented part of the contract.**
+
+**Not yet worked.**
+
+### LC3: Merging the same graph twice
+
+**Setup.** The standing topology. Merge `OBJECT#table` as reached from `ROOM#Room`, then merge it again, identically.
+
+**What it discriminates. Idempotence, and what it costs to get it.** A second identical merge must not duplicate a node, append `homeShards` twice, or grow `crossings`. **That requires identity keys, and edge identity is the hard one:** two edges from `ROOM#Room` to `span` can differ *only* by the crossing path recorded on them, so the key cannot be `(from, to, kind)`.
+
+**Why it is not a hygiene case.** Rebuild is expected to run against a changing world, and a partial or retried rebuild that double-merges is an ordinary failure mode, not an exotic one. **Whatever key answers this case also answers LC2**, since confluence and idempotence are the same question asked about different repeats.
+
+*Annotation:* CC1, CC1b --- **nodes, edges, crossings, homeShards** --- order-independent by construction if it passes --- **a retried merge is free versus a retried merge corrupts the cache.**
+
+**Not yet worked.**
+
+### LC4: The string that is only half opened
+
+**Setup.** The standing topology, with only `ROOM#Room` and `OBJECT#table` merged. The cache now holds `OBJECT#string` with two of its three parts.
+
+**What it discriminates. The grain of `interiorConsolidated`**, which [ships today as a node boolean](../../../../../lambda/ephemera/dataSource/positions/ludicCache/types.ts) on [CC0's stored-never-derived argument](AGENT.abstractionLayers.planning.md#recommended-order). **Here the string is consolidated through two of its three ports, and a node-level boolean has nowhere to put that.** Per-host is a coarsening that fails too, and the case should be varied to show it: put *both* ends on the table, and one host binds two ports of the same node.
+
+**The stake is larger than CC0's empty box, and this is the case's real subject --- absorbed 2026-08-14 from a case proposed as a peer and folded in before it was allocated an id, so no `LC7` gap exists.** A partially-folded cache is **observable**: mid-fold, or after an incremental re-merge, a reader can see `stringEnd1` and `stringEnd2` present with no `span` --- a configuration the world was never in. **In [P4](AGENT.abstractionLayers.proposals.planning.md#proposal-p4-settling-dataflow-and-narrative-heat)'s vocabulary that is a [diamond glitch](AGENT.abstractionLayers.proposals.planning.md#two-defects-inherited-with-the-model) arriving inside the reducer** --- and **the marker is exactly what stops it being one.** A diamond glitch is a defect *because the bad value is indistinguishable from a settled one*; a structure that says *I am not complete* is a legibly partial read instead, the difference between a torn write and a write-in-progress flag. **So `interiorConsolidated`'s larger job is making partial folds safely readable, and CC0's empty box is the smaller half of what it earns.**
+
+**Which is what decides the grain, and closes the loop this corpus was opened by.** A boolean says *incomplete*, so a consumer must distrust the whole node. **Per-binding says *complete along these paths, unknown along that one*, which lets a consumer act on the parts it has** --- and only the second makes incremental rebuild viable at all. **Note the shape of the argument:** this file exists because the typing of containment-paths became hard to reason about statically, and the first case to bite returns a typing decision about containment-paths. **That is the corpus working, not a coincidence to smooth over** --- it is also the reason to be suspicious of settling the grain from this case alone, since a corpus that answers the question that motivated it is the corpus most at risk of confirming its own premise.
+
+**A gap that matters once the marker is load-bearing.** [`isEphemeraLudicCacheData`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/types.ts) validates each node and each edge **independently** --- it does not check that `edge.from` and `edge.to` name nodes present in `nodes`. A mid-fold cache carrying a sibling edge to an absent `span` therefore passes the guard. That is tolerable if the marker is what carries the safety, but **nothing validates the marker's honesty**: a reducer that neglects to set `interiorConsolidated: false` emits a cache that type-checks and lies. **If partial reads are a supported mode rather than an accident, the referential-integrity check is owed** --- and which one is true is this case's decision, not a separate one.
+
+**The second reading, which would retire the field.** CC0 rejected deriving the flag *from whether any node names this host as its home shard*, on the grounds that opened-and-empty and unopened-and-full become indistinguishable. **Under a reducer with port-addressed terminals they are distinguishable:** unexpanded is an edge still terminating at a port address, expanded is an edge terminating at a node with a crossing recorded. **CC0 rejected one derivation, not derivability**, and the port address that supplies the missing distinction did not exist in the representation when that argument was made.
+
+**Check before relying on it.** The derivation needs a contents-less object to *not* carry the relevant port. **PQ-13** forced yes on plain objects carrying a **presence** port; whether that is the same port as the one into an interior is unchecked, and if it is, the derivation collapses back to CC0's original indistinguishability.
+
+*Annotation:* CC1b (not CC1a --- a per-binding flag cannot be typed before bindings are), **and CC0b's shipped field** --- **nodes** --- order-independent --- **a consumer can act on the parts of a half-folded whole that are actually present, versus must distrust the whole node until the fold completes --- which is incremental rebuild being viable or not.** *(The empty-box difference CC0 argued from is the same case's smaller half.)*
+
+**Not yet worked.**
+
+### LC5: The string that is also somewhere else
+
+**Setup.** The standing topology, plus: `OBJECT#string` is long, and a fourth port egresses to `ROOM#Corridor`, which is not part of this cache.
+
+**What it discriminates. What bounds the frontier.** The reducer never asks *where else is this whole present* --- it expands only the ports the current host binds --- so the corridor part is never pulled in. **The case exists to confirm that and to find what it costs**, because the alternative reading is that a whole is always consolidated whole, which is what [P6](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) exists to prevent.
+
+**What the confirming answer establishes, which is more than the case looks worth.** If inclusion is *reachability from the seed through bound ports*, then **nothing is ever filtered out, because nothing irrelevant is ever pulled in** --- and the rebuild has no exclusion step to get wrong. That is a materially different program from a pipeline of list-filters, and it is the reducer framing's main structural claim.
+
+**The negative-case discipline applies** ([A7](AGENT.attentionHistory.corpus.planning.md#a7-the-llm-opens-the-bag)'s precedent). It is stated so the expected answer can be falsified rather than assumed.
+
+*Annotation:* CC1, CC1a --- **nodes** --- order-independent --- **the cache is bounded by what the seed reaches versus by the size of the wholes it touches.**
+
+**Not yet worked.**
+
+### LC6: Extracting the table's view back out
+
+**Setup.** The standing topology, fully consolidated into a `ROOM#Room` cache. Now extract the sub-graph for `OBJECT#table`.
+
+**What it discriminates. Whether the round trip is a usable instrument at all** --- and it is the first case of that form, so it tests the form as much as the reducer. Extraction should yield what table reaches: `stringEnd1`, and `OBJECT#string` as the whole it is a part of. **It should not yield `span` or `stringEnd2`**, which table has no binding to.
+
+**The ambiguity the [`homeShards` correction](AGENT.abstractionLayers.planning.md#recommended-order) introduced, and it is why this case is owed.** With a single home shard, *the sub-graph rooted at X* had one answer. With a list, `OBJECT#string` is hosted by table, room and box at once, and whether the whole comes along in an extraction seeded at table is not derivable from the cache.
+
+**The shipped precedent, which already hit this and has a constraint to inherit.** `computeCarryClosure` in [`interactionUnderTransfer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/expandValidate/interactionUnderTransfer.ts) returns `{ rootId, members, edges }` --- what [`ludicGraph/AGENT.md` --- Known limitation (deferred)](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md#known-limitation-deferred) calls *a rooted ludic graph* in all but name. Its BFS guards with `closureSet.has(...)`, so **it absorbs a doubly-reachable object via whichever edge it traversed first**: the traversal tree is order-dependent even though the induced edge set is not. The constraint that fell out is **`rootId` is recorded, never derived**, pinned in both directions for whoever adds a root concept next. **That is CC1**, and this case is where the inheritance is either confirmed or found insufficient.
+
+*Annotation:* CC1 --- **nodes, edges** --- order-independent if the extraction is seeded rather than derived --- **extraction is the reducer with a different seed versus a second mechanism that must be kept in agreement with it.**
+
+**Not yet worked.**
+
+### LC7: The cable that passes straight through the box
+
+**Origin:** raised 2026-08-15 while reviewing the merge rules; it is the case the [second admission question](#the-rule) was written from, and the first case in this file whose answer may be *possible/impossible* rather than *fast/slow*.
+
+**Setup.** The standing topology, plus a cable running from `OBJECT#table`, in through the box's **port A**, out through **port B**, to a lamp across the room. Before the box consolidates, the cache holds two edges: `table -Cable-> OBJECT#Box#{port A}` and `OBJECT#Box#{port B} -Cable-> lamp`. Then `OBJECT#Box`'s graph merges.
+
+**What it discriminates.** The merge rules as articulated handle an edge **entering** a host (append a crossing, rewrite the endpoint) and an edge **leaving** one (prepend a crossing, rewrite the start point). **Neither says what to do with an edge that does both**, and whether that is a gap depends on the box's interior:
+
+- **The interior connects port A to port B *via a node*** (a cable segment inside the box). Then the existing rules suffice --- each fires once, both edges terminate at the segment, and the result is correct with no new rule. **Sharpened 2026-08-15: this reading is not a pass-through at all.** The box's interior holds *two* edges, `{port A} -> segment` and `segment -> {port B}`, each with one port terminal and one node terminal, and each is an ordinary stitch. **A pass-through that is a single edge is only ever the bare port-to-port form below.**
+- **The interior connects the ports *directly***, with no node between them. Then **there is nothing to rewrite the terminals to**, and the two cache edges must either be **joined into one** carrying two crossings, or left as a pair pointing at port addresses that no longer lead anywhere the cache represents.
+
+**So the case's first job is to decide whether a port-to-port interior link is even representable**, which is a question about `ludicGraph` rather than about the cache --- and if it is not, LC7 dissolves into the first bullet and costs nothing to have asked.
+
+**The form that question should be asked in, settled 2026-08-15.** Not *may a bare port-to-port edge exist?* but ***is there ever a pass-through with no nameable mediator?*** Both shapes represent the same fiction; the discriminator is whether the conduit --- the tube, the cable run, the channel --- **should be addressable**. Give it a node and *look in the tube* becomes a move a player can make; leave it bare and it does not. **That is a representation fork in [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md)'s sense**, and it is answerable without waiting on the reducer.
+
+**Its second job is the one that outranks it.** If the two edges **are** joined, the cache asserts `table -Cable-> lamp`: the lamp becomes locally addressable from the table without mentioning the box. **Apply the operational test --- would the slow path find it?** If a graph walk traverses the box's interior and reaches the lamp anyway, joining is acceleration and benign. If the walk stops at a closed or opaque boundary the join ignores, **the cache has created a resolution rather than accelerated one**, and that is a [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) violation rather than a design preference.
+
+**The variant worth running, and it samples [gap 1](#coverage-gaps-recorded-up-front).** Put the lamp in `ROOM#Cellar` instead of across the room. The pass-through is then also a **boundary** crossing, the walk is much more likely to stop, and the *possible/impossible* reading becomes the likely one rather than the exotic one.
+
+**Note what this case does to the two candidate mechanisms differently**, which is why it is worth working early: under a **concatenate-then-join** pipeline both half-edges are present in the same pass and the join is natural to spot; under a **fold** they are met in separate merges and joining requires retained state.
+
+**Superseded 2026-08-15, and the correction matters.** The clause above read as though pass-through were the thing that forces the fold to retain state. **It is not.** A long edge carrying several crossings arises from **several pairwise stitches across several merges** --- an interior edge of one host may terminate at a port of a *different* unconsolidated participant, so the crossings list grows by one per merge with no multi-way join anywhere. **Crossing count is therefore not evidence that chain composition is needed**, and LC7's real scope is only the bare same-object port-to-port edge, where one merge must join on both ends at once. The retained-state requirement is forced by something else entirely --- sub-graphing, in [LC8](#lc8-the-spring-in-the-box-and-in-the-contraption).
+
+*Annotation:* CC1, CC1b --- **edges, crossings** --- **candidate possible/impossible --- the first in this file** --- order-sensitive under a fold, order-independent under a pipeline --- **the lamp is addressable from the table without reference to the box, versus is not.**
+
+**Not yet worked.**
+
+### LC8: The spring in the box and in the contraption
+
+**Origin:** stated 2026-08-15, replacing a chain formulation that the [standing legality rule](#the-corpus) disqualifies. **It is the case that establishes what the reducer is entitled to read.**
+
+**Setup, and note that it is deliberately not the standing topology.**
+
+- `ROOM#A` contains `OBJECT#B`, a box.
+- `OBJECT#D`, a spring, is inside `OBJECT#B`.
+- `ROOM#A` also contains `OBJECT#C`, an **abstraction of a contraption**. Among its parts, `OBJECT#C` has `OBJECT#D` as part of its **mechanism**.
+
+**`OBJECT#D` therefore has two hosts, and containment is a diamond** --- which is exactly what makes the case legal. Consolidate `ROOM#A`, `OBJECT#B` and `OBJECT#D`; **do not consolidate `OBJECT#C`**. `OBJECT#D` is still reachable through `OBJECT#B`, so the consolidated set stays connected. With `OBJECT#C` unconsolidated, some relationship that runs through the contraption appears in the cache as **two unrelated edges**: one from `ROOM#A` to `OBJECT#C#{first port}`, one from `OBJECT#C#{second port}` to `OBJECT#D`. Then `OBJECT#C` merges.
+
+**What it discriminates, first job.** Whether a single merge can be required to **join on both ends at once**. This is LC7's bare-port-to-port question arriving through containment rather than through a cable, and the two cases should be worked together --- **if the answer differs between them, one of the two framings is wrong.**
+
+**What it discriminates, second job, and this is the one it exists for.** **Sub-graphing drops things.** When each graph merged, it was filtered down to what was relevant *as reached from that host*, and edges whose terminals were not present in that perspective were discarded. **A later merge can ground a terminal that was ungrounded when the filtering happened** --- and at that moment the cache holds no record that the discarded edge ever existed. The two readings:
+
+- **The reducer may consult graphs it has already merged.** Recovery is possible: the discarded edge is found again in its source graph, and a chain may have to be followed across *several* previously merged graphs before it grounds.
+- **The reducer sees only the cache and the incoming graph.** Then the edge is unrecoverable by any later step, and **no re-merge and no ordering rescues it.**
+
+**Apply the operational test.** A graph walk from `ROOM#A` still traverses `OBJECT#C` and reaches `OBJECT#D`, so the slow path finds the relationship either way --- **which makes this *fast/slow* and not a [P6 clause 4](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) violation.** But it is *fast/slow* with an unusual shape: the second reading's cache is not merely slower, it is **permanently missing an edge it can never learn about**, and everything downstream that trusts the cache as complete is wrong about it. **A case whose cost is bounded by the slow path can still be the one that decides the reducer's interface.**
+
+**The variant worth running.** Merge `OBJECT#C` **before** `OBJECT#B`. The same relationship then grounds in the other order, and if the recovered result differs, recovery is order-sensitive and the fold is not confluent.
+
+*Annotation:* CC1, CC1a, CC1b --- **edges** --- **fast/slow, with the caveat above** --- **the variant is the order test** --- **the cache eventually holds `ROOM#A` related through `OBJECT#C` to `OBJECT#D`, versus holds two edges that never meet.**
+
+**Not yet worked.**
+
+---
+
+## Cache-difference tally
+
+**Empty by design.** Fill as cases are worked, one row each; **reading the order-sensitivity column down is the direct input to CC1's signature**, and pre-filling it would make the corpus argue for a conclusion instead of producing one.
+
+| Case | What differs | Fast/slow or possible/impossible | Order-sensitive? | What forced it | Confidence |
+| --- | --- | --- | --- | --- | --- |
+| *(LC1--LC8 --- not yet worked)* | | | | | |
+
+## Coverage gaps, recorded up front
+
+1. **Every case is single-seed.** One cache, one host's point of view --- see the note above the case list. A whole appearing in two caches is untested.
+2. **Every case is human-scale.** [C10](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system) and [C15](AGENT.abstractionLayers.corpus.planning.md#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away) found that scale of apprehension is its own axis; the reducer's frontier behaviour above human scale has not been looked at, and it is exactly where an unbounded merge would show up.
+3. **No case tests re-merge after mutation.** **Narrowed 2026-08-14:** [LC4](#lc4-the-string-that-is-only-half-opened) now covers the half that matters most --- whether a half-folded cache is *legibly* partial --- but **invalidation itself is still untouched**: what happens to a consolidated cache when a merged host's `ludicGraph` changes underneath it, and whether a re-merge is a fresh fold or a patch. The AH corpus records the analogous gap for attention entries. **Note that LC4 makes this gap more urgent rather than less** --- it is the case that establishes incremental rebuild as a live option, and this gap is where incremental rebuild would actually be tested.
+4. **No case tests interaction with attention.** [P6](AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure) makes the cache attention-scoped, so the frontier LC5 bounds is presumably also bounded by salience, and no case here holds both at once.
+5. **Every case presumes the fold.** The cases are stated as merge sequences against a reducer proposed on 2026-08-14 and not yet built. **If CC1 lands a different shape, these are re-run against it, not discarded** --- each case's setup is stated in world terms precisely so that it survives the mechanism. This is a sharper version of the durability risk both siblings carry, and it is the reason the setup/operation split above is enforced.
+6. **No case tests the *bare* port-to-port edge in isolation.** [LC7](#lc7-the-cable-that-passes-straight-through-the-box) and [LC8](#lc8-the-spring-in-the-box-and-in-the-contraption) both reach it, and neither can be finished without it. **It is a `ludicGraph` representation question, not a cache question**, and it should be taken out of this file's hands rather than left as a standing dependency of two cases.
+
+---
+
+## Mechanism findings staged for P7
+
+**These are not case findings, and they are not this file's to keep.** They came out of the 2026-08-15 conversation while stating LC7 and LC8, they are about the reducer rather than about any world, and **P7 is the author's to write.** They are parked here only so they are not lost between sessions; move them out when P7 lands, and delete this section then.
+
+1. **Compose at ports, never at nodes.** A merge may collapse two edges sharing a **port** terminal; it may never collapse two edges sharing a **node** terminal. The justification is semantic rather than mechanical: **ports are not referents and nodes are**, so composing across a port destroys nothing and composing across a node destroys something a player could have named. That makes it a *possible/impossible* rule, not a preference.
+
+    **The primitive this rule needs, and it is not free --- added 2026-08-15.** The rule is a **discrimination between terminal kinds**, run on every terminal of every edge in every merge, so it is the reducer's innermost operation. **The obvious way to write it does not work.** [PQ-9](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused) chose `#` as the port separator precisely so a port address **throws** `Illegal nested EphemeraId` instead of being silently affirmed --- and its own limit (ii) records the price: `isEphemeraObjectId(x)` then **crashes** on a port address rather than returning `false`, so a port address cannot be handed to the tagged-id family even to ask *what kind of thing is this*. PQ-9 already concludes that a **port-aware discriminator must land in the same change as ports**. **P7 should name it as a required primitive rather than assume `isEphemeraObjectId` composed with a negation** --- which is the shape this finding would otherwise be written in, and it would fail at runtime on the first port it met.
+2. **General edge-merge contains edge-stitch, and the argument for building it is not efficiency.** Stitch is merge over a chain of length two. The general form is arguably *less* code --- stitch carries a case split (append a crossing and rewrite the endpoint, versus prepend one and rewrite the start point) that composition does not, since direction falls out of which terminal is shared. **The narrow form is not simpler; it is the same code with an unsettled `ludicGraph` premise baked in as a restriction.** Build the general form to **decline to encode the premise**, not as licensed overengineering --- the second framing is indefensible six months from now and the first is not.
+3. **Entitlement and retention are two questions, and only the first is load-bearing.** *May the reducer consult a graph it has already merged?* --- **yes**, forced by LC8's sub-graphing argument, and this belongs in P7 as settled. *Does it hold those graphs in memory or keep shard ids and re-read on demand?* --- same semantics, different cost, **deferrable to prototype tier.** An earlier objection that retention looked over-built was aimed at the second question and should not have been read as touching the first.
+4. **Rejected, recorded so it is not re-proposed: do not drop anything during sub-graphing.** It makes the cache self-describing and removes recovery entirely. It fails for the reason the cache exists --- **unbounded size is precisely what the ragged frontier and `interiorConsolidated` are there to control.**
+5. **Recovery must be complete at each grounding event, and completeness is cheaper than it first looks.** An earlier statement of this rule demanded a re-check of *all* edges across all merged graphs. **That is wrong and is withdrawn.** Chains can be followed from either end, so recovery is a **keyed walk, not a scan**: every terminal that becomes newly present is a trigger; look it up against retained graphs **indexed on both terminals**; follow the chain, possibly across several graphs, until it grounds. It is complete because **an edge is recoverable only if at least one of its terminals is now present, and every such terminal is a trigger** --- so no recoverable edge is unreachable. **Narrowed 2026-08-15: this needs no index and no new store**, and an earlier statement that "indexing on both ends is the real requirement" is withdrawn as the same over-reach as the scan it replaced. Port-terminal lookup is a direct read *if* a port records its attachments; node-terminal lookup is a linear pass over one shard's edge list, and **which** shards to pass over is bounded by the terminal's recorded hosts, which `homeShards` already carries. What survives is a **shape constraint on the port record, not on the reducer: a port must be navigable from both sides.** A port that records its egress target but not what attaches from inside --- or the reverse --- makes walks succeed in one direction and **silently return nothing** in the other. That belongs to [PQ-4](AGENT.abstractionLayers.planning.md), and it is the one thing here that would break completeness without failing loudly.
+6. **Triggering on newly-present terminals collapses stitching and recovery into one mechanism.** The natural implementation of finding 5 --- *start from the edges left dangling in the cache* --- under-covers, because an edge dropped while **both** its terminals were ungrounded leaves no dangling trace to start from. Triggering instead on **every terminal that becomes representable in the cache** (a node newly present, or a port newly resolved) covers that case, and in doing so it stops being a second mechanism: **extending an existing cache edge into a host that just consolidated, and recovering an edge that sub-graphing discarded, are the same operation under the same trigger.** A merge resolves a set of terminals; each resolved terminal is queried against the cache and against the retained graphs; each hit is composed or walked onward. **This is a simplification only if a terminal is looked up the same way in both stores** --- if the cache is searched one way and the retained graphs another, the two mechanisms are back, wearing one name. **Note that this is a statement about the lookup, not about building an index**; see the narrowing in finding 5.
+
+**One shipped fact that both findings depend on and that does not yet exist: there is no port in the code.** [`EphemeraLudicGraphData`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) is `{ hostId, nodes, edges? }`, nodes are `{ tag, universalKey }` with no attachment record, and edge `from`/`to` are plain `EphemeraObjectId`. **Every finding above that reads a port record is describing something P7 and PQ-4 must build**, and the widening lands in `mtw-interfaces` alongside the `Room` node that CC0b added.
+
+    **Corrected 2026-08-15 --- an earlier draft of this note claimed `from`/`to` "cannot hold a room, let alone a port address", and only half of that is true.** Per [PQ-9](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused)'s limit (i) there is **no compile-time protection either way**: `EphemeraWrappedId<T>` is `` `${T}#${string}` `` and `${string}` matches `ROPE#ab6129d`, so **a port address satisfies `EphemeraObjectId` statically** and assigning one compiles clean. The entire separator difference is runtime behaviour inside the predicate. **The room half stands and is the real widening:** `ROOM#A` does not match `OBJECT#${string}` under any reading, so [LC8](#lc8-the-spring-in-the-box-and-in-the-contraption)'s edge beginning at a room cannot be typed today, and `Room` being a legal *node* since CC0b did not make it a legal *terminal*.

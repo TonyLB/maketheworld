@@ -27,12 +27,15 @@ const findHostOf = (
  * `transferMembership` step reads it, because the worklist that produced this array already
  * guaranteed that order.
  *
- * `transferMembership` (BD-36-generalized, and object-lifecycle-Migrate-row-widened): splits
- * `entityIds` by kind, then dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
- * (`fromHostIds` has exactly one member, `toHostId` non-null): unchanged from before this slice ---
- * the object subset routes through `applyTransferSet` (full boundary-edge legality machinery), the
- * character subset is a direct `removeCharacter`/`addCharacter` swap (a character can never carry a
- * relational edge, BD-36's widening deferred). **Pure remove** (`toHostId === null`): for each host
+ * `transferMembership` (BD-36-generalized, and object-lifecycle-Migrate-row-widened): dispatches by
+ * shape on `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member,
+ * `toHostId` non-null): the whole `entityIds` set --- objects and characters together --- routes
+ * through `applyTransferSet` (LP4h: it dispatches by kind itself, `removeObject`/`addObject` for
+ * objects and `removeCharacter`/`addCharacter` for characters, so no separate character swap is
+ * needed here; only objects get the full boundary-edge legality machinery, since a character can
+ * never carry a relational edge, BD-36's widening deferred). **Pure remove** (`toHostId === null`):
+ * splits `entityIds` by kind (still needed here, unlike the real-transfer branch above) and for each
+ * host
  * in `fromHostIds`, a presence-check then `removeObject`/`removeCharacter` directly --- no
  * boundary-sweep here, since the caller is responsible for having already seeded explicit
  * `dissolveRelation` steps for every edge the entity carried (an object-lifecycle route uses
@@ -96,8 +99,8 @@ export const applyStepSequenceCore = (
                     return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
                 }
 
-                for (const id of characterIds) {
-                    if (!sourceGraph.characterIds.has(id) || destGraph.characterIds.has(id)) {
+                for (const id of step.entityIds) {
+                    if (!sourceGraph.nodeIds.has(id) || destGraph.nodeIds.has(id)) {
                         return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                     }
                 }
@@ -105,13 +108,10 @@ export const applyStepSequenceCore = (
                 let nextSourceGraph = sourceGraph
                 let nextDestGraph = destGraph
 
-                if (objectIds.size > 0) {
-                    for (const id of objectIds) {
-                        if (!nextSourceGraph.objectIds.has(id) || nextDestGraph.objectIds.has(id)) {
-                            return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
-                        }
-                    }
-                    const outcome = applyTransferSet(nextSourceGraph, nextDestGraph, objectIds)
+                if (step.entityIds.size > 0) {
+                    // LP4h: applyTransferSet dispatches both objects and characters itself --- no
+                    // separate character add/remove loop needed here.
+                    const outcome = applyTransferSet(nextSourceGraph, nextDestGraph, step.entityIds)
                     if (outcome.verdict === 'illegal') {
                         return { verdict: 'illegal', reasonCode: outcome.reasonCode }
                     }
@@ -120,13 +120,6 @@ export const applyStepSequenceCore = (
                     }
                     nextSourceGraph = outcome.sourceGraph
                     nextDestGraph = outcome.destGraph
-                }
-
-                for (const id of characterIds) {
-                    // No boundary-sweep, no carry-closure --- HostRelationalEdge is object-only
-                    // (BD-36's widening deferred), so a character can never have a relational edge.
-                    nextSourceGraph = nextSourceGraph.removeCharacter(id)
-                    nextDestGraph = nextDestGraph.addCharacter(id)
                 }
 
                 graphs.set(fromHostId, nextSourceGraph)

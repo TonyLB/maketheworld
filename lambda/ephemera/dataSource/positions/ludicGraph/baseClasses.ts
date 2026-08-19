@@ -3,16 +3,23 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicRelationalEdgeData,
+    EphemeraLudicTerminalPrimitive,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import {
+    ephemeraLudicTerminalRefersTo,
+    ephemeraLudicTerminalsEqual,
+    isEphemeraLudicRelationalEdgeData,
+    isEphemeraLudicTerminalPrimitive,
+} from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
+/** `from`/`to` are `EphemeraLudicTerminalPrimitive` (LP4) --- any legal host-kind component. */
 export type HostRelationalEdge = {
-    from: EphemeraObjectId
-    to: EphemeraObjectId
+    from: EphemeraLudicTerminalPrimitive
+    to: EphemeraLudicTerminalPrimitive
     kind: HostRelationalEdgeKind
     relationLabel?: string
 }
@@ -61,9 +68,9 @@ export function extractRelationalEdgesFromStored(
                 const obj = rawEdge as Record<string, unknown>
                 if (
                     typeof obj.from === 'string'
-                    && isEphemeraObjectId(obj.from)
+                    && isEphemeraLudicTerminalPrimitive(obj.from)
                     && typeof obj.to === 'string'
-                    && isEphemeraObjectId(obj.to)
+                    && isEphemeraLudicTerminalPrimitive(obj.to)
                     && typeof obj.kind === 'string'
                     && HOST_RELATIONAL_EDGE_KINDS.has(obj.kind as HostRelationalEdgeKind)
                 ) {
@@ -85,7 +92,7 @@ export function edgesMatch(
     a: HostRelationalEdge,
     b: HostRelationalEdge
 ): boolean {
-    if (a.from !== b.from || a.to !== b.to || a.kind !== b.kind) {
+    if (!ephemeraLudicTerminalsEqual(a.from, b.from) || !ephemeraLudicTerminalsEqual(a.to, b.to) || a.kind !== b.kind) {
         return false
     }
     if (a.kind === 'Custom') {
@@ -95,10 +102,10 @@ export function edgesMatch(
 }
 
 export function nodeHasRelationalEdge(
-    nodeId: EphemeraObjectId,
+    nodeId: EphemeraLudicTerminalPrimitive,
     edges: readonly HostRelationalEdge[]
 ): boolean {
-    return edges.some((edge) => edge.from === nodeId || edge.to === nodeId)
+    return edges.some((edge) => ephemeraLudicTerminalRefersTo(edge.from, nodeId) || ephemeraLudicTerminalRefersTo(edge.to, nodeId))
 }
 
 /** True when a stored or play envelope edge references objectId as a relational or Exit endpoint. */
@@ -107,7 +114,7 @@ export function edgeReferencesObjectId(
     objectId: EphemeraObjectId
 ): boolean {
     if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
-        return rawEdge.from === objectId || rawEdge.to === objectId
+        return ephemeraLudicTerminalRefersTo(rawEdge.from, objectId) || ephemeraLudicTerminalRefersTo(rawEdge.to, objectId)
     }
 
     try {

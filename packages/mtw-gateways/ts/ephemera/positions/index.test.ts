@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     projectComponentGraphFromStoredLudicGraph,
@@ -9,13 +9,23 @@ import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
 import { queryMembershipContainersFromDynamo } from './adjacency'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import {
+    getRoomLudicGraphFromDynamo,
+    getCharacterLudicGraphFromDynamo,
+    getObjectLudicGraphFromDynamo,
+    getFeatureLudicGraphFromDynamo,
+    getAreaLudicGraphFromDynamo,
+} from '.'
 
 const roomId = 'ROOM#Test' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const characterHostId = 'CHARACTER#Beta' as EphemeraCharacterId
 const objectId = 'OBJECT#Skates' as EphemeraObjectId
+const objectHostId = 'OBJECT#Tray' as EphemeraObjectId
+const featureHostId = 'FEATURE#Sign' as EphemeraFeatureId
+const areaHostId = 'AREA#Overworld' as EphemeraAreaId
 
-const emptyGraph = projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
+const emptyGraph = projectComponentGraphFromStoredLudicGraph({ rootId: roomId, nodes: [], edges: [] })
 
 describe('positions project', () => {
     it('extractCharacterIdsFromPlayLudicGraph walks character nodes', () => {
@@ -34,6 +44,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph maps stored nodes to topology only', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
         expect(graph).toEqual({
@@ -47,6 +58,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph includes Object nodes', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [
                 { tag: 'Character', universalKey: characterId },
                 { tag: 'Object', universalKey: objectId },
@@ -63,6 +75,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph passes through relational edges', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: objectId,
             nodes: [
                 { tag: 'Object', universalKey: objectId },
                 { tag: 'Object', universalKey: 'OBJECT#Table' },
@@ -87,7 +100,7 @@ describe('positions project', () => {
     })
 
     it('projectComponentGraphFromStoredLudicGraph returns empty graph for absent nodes', () => {
-        expect(projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })).toEqual({
+        expect(projectComponentGraphFromStoredLudicGraph({ rootId: roomId, nodes: [], edges: [] })).toEqual({
             nodes: [],
             edges: [],
         })
@@ -113,6 +126,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(roomId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: roomId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledTimes(1)
@@ -153,6 +167,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(characterId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Object', universalKey: objectId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
@@ -175,6 +190,144 @@ describe('PositionsCacheHandler', () => {
         const handler = createPositionsCacheHandler(db)
 
         const graph = await handler.getLudicGraph(characterId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads object-hosted graph from Meta::Object.ludicGraph (MK2)', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Object' && ProjectionFields?.includes('ludicGraph')) {
+                    return {
+                        ludicGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: objectHostId,
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: objectHostId, DataCategory: 'Meta::Object' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
+    })
+
+    it('returns empty graph when stored object ludicGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Object' && ProjectionFields?.includes('ludicGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads feature-hosted graph from Meta::Feature.ludicGraph (MK3)', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Feature' && ProjectionFields?.includes('ludicGraph')) {
+                    return {
+                        ludicGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(featureHostId)
+
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: featureHostId,
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: featureHostId, DataCategory: 'Meta::Feature' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
+    })
+
+    it('returns empty graph when stored feature ludicGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Feature' && ProjectionFields?.includes('ludicGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(featureHostId)
+
+        expect(graph).toEqual(emptyGraph)
+        expect(db.getItem).toHaveBeenCalledTimes(1)
+    })
+
+    it('loads area-hosted graph from Meta::Area.ludicGraph (MK4)', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Area' && ProjectionFields?.includes('ludicGraph')) {
+                    return {
+                        ludicGraph: {
+                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                        },
+                    }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(areaHostId)
+
+        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: areaHostId,
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        }))
+        expect(db.getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: areaHostId, DataCategory: 'Meta::Area' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
+    })
+
+    it('returns empty graph when stored area ludicGraph is absent', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
+                if (Key.DataCategory === 'Meta::Area' && ProjectionFields?.includes('ludicGraph')) {
+                    return {}
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(areaHostId)
 
         expect(graph).toEqual(emptyGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)
@@ -240,6 +393,7 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: roomId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
 
@@ -261,12 +415,36 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Object', universalKey: objectId }],
         })
 
         handler.set({ componentId: characterId, graph })
         await expect(handler.getLudicGraph(characterId)).resolves.toEqual(graph)
         expect(db.getItem).not.toHaveBeenCalled()
+    })
+
+    it('memo set and invalidate patch object-hosted forward graph without Dynamo write (MK2)', async () => {
+        const getItem = jest.fn().mockResolvedValue({})
+        const db: EphemeraPositionsReadDB = { getItem }
+        const handler = createPositionsCacheHandler(db)
+        const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: objectHostId,
+            nodes: [{ tag: 'Character', universalKey: characterId }],
+        })
+
+        handler.set({ componentId: objectHostId, graph })
+        await expect(handler.getLudicGraph(objectHostId)).resolves.toEqual(graph)
+        expect(db.getItem).not.toHaveBeenCalled()
+
+        handler.invalidate(objectHostId)
+        await handler.getLudicGraph(objectHostId)
+        expect(getItem).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Key: { EphemeraId: objectHostId, DataCategory: 'Meta::Object' },
+                ProjectionFields: ['ludicGraph'],
+            })
+        )
     })
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {
@@ -336,5 +514,19 @@ describe('queryMembershipContainersFromDynamo', () => {
         }
 
         await expect(queryMembershipContainersFromDynamo(db, characterId)).resolves.toEqual([roomId])
+    })
+})
+
+describe('get*LudicGraphFromDynamo exports on the package entrypoint (MK5)', () => {
+    it('re-exports get*LudicGraphFromDynamo for all five host kinds from `.`, not just `./fetch`', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockResolvedValue({ ludicGraph: { nodes: [], edges: [] } }),
+        }
+
+        await expect(getRoomLudicGraphFromDynamo(db, roomId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getCharacterLudicGraphFromDynamo(db, characterHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getObjectLudicGraphFromDynamo(db, objectHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getFeatureLudicGraphFromDynamo(db, featureHostId)).resolves.toEqual({ nodes: [], edges: [] })
+        await expect(getAreaLudicGraphFromDynamo(db, areaHostId)).resolves.toEqual({ nodes: [], edges: [] })
     })
 })

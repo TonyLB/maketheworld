@@ -347,10 +347,15 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
     })
 
+    it('accepts an object or feature hostId (LP0 widened EphemeraMembershipHostId)', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'OBJECT#Box' })).toBe(true)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'FEATURE#Wall' })).toBe(true)
+    })
+
     it('rejects invalid ids', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
-        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'OBJECT#x' })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'KNOWLEDGE#x' })).toBe(false)
     })
 })
 
