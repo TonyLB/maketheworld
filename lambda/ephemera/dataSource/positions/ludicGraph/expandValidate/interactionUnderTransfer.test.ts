@@ -49,6 +49,10 @@ describe('roleOfObjectInEdge', () => {
     })
 })
 
+// LP4a: computeCarryClosure returns an EphemeraLudicGraph (the former standalone
+// CarryClosureFragment collapsed into it), rooted and hosted at the starting object
+// (hostId === rootId === startId). Assertions check .rootId/.objectIds/.relationalEdges
+// rather than a bespoke {rootId, members, edges} shape.
 describe('computeCarryClosure', () => {
     it('absorbs the subject of an On edge when the target moves (single hop)', () => {
         const bookOnTray: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
@@ -60,11 +64,11 @@ describe('computeCarryClosure', () => {
             edges: [bookOnTray],
         })
 
-        expect(computeCarryClosure(trayId, graph)).toEqual({
-            rootId: trayId,
-            members: new Set([trayId, bookId]),
-            edges: [{ from: bookId, to: trayId, kind: 'On' }],
-        })
+        const closure = computeCarryClosure(trayId, graph)
+        expect(closure.rootId).toBe(trayId)
+        expect(closure.hostId).toBe(trayId)
+        expect(closure.objectIds).toEqual(new Set([trayId, bookId]))
+        expect(closure.relationalEdges).toEqual([{ from: bookId, to: trayId, kind: 'On' }])
     })
 
     it('absorbs a three-deep chain to a fixpoint (glass on book, book on tray, get tray)', () => {
@@ -79,14 +83,13 @@ describe('computeCarryClosure', () => {
             edges: [glassOnBook, bookOnTray],
         })
 
-        expect(computeCarryClosure(trayId, graph)).toEqual({
-            rootId: trayId,
-            members: new Set([trayId, bookId, glassId]),
-            edges: [
-                { from: bookId, to: trayId, kind: 'On' },
-                { from: glassId, to: bookId, kind: 'On' },
-            ],
-        })
+        const closure = computeCarryClosure(trayId, graph)
+        expect(closure.rootId).toBe(trayId)
+        expect(closure.objectIds).toEqual(new Set([trayId, bookId, glassId]))
+        expect(closure.relationalEdges).toEqual([
+            { from: bookId, to: trayId, kind: 'On' },
+            { from: glassId, to: bookId, kind: 'On' },
+        ])
     })
 
     it('does not absorb across an Under edge in either direction', () => {
@@ -99,8 +102,15 @@ describe('computeCarryClosure', () => {
             edges: [bootsUnderTable],
         })
 
-        expect(computeCarryClosure(tableId, graph)).toEqual({ rootId: tableId, members: new Set([tableId]), edges: [] })
-        expect(computeCarryClosure(bootsId, graph)).toEqual({ rootId: bootsId, members: new Set([bootsId]), edges: [] })
+        const tableClosure = computeCarryClosure(tableId, graph)
+        expect(tableClosure.rootId).toBe(tableId)
+        expect(tableClosure.objectIds).toEqual(new Set([tableId]))
+        expect(tableClosure.relationalEdges).toEqual([])
+
+        const bootsClosure = computeCarryClosure(bootsId, graph)
+        expect(bootsClosure.rootId).toBe(bootsId)
+        expect(bootsClosure.objectIds).toEqual(new Set([bootsId]))
+        expect(bootsClosure.relationalEdges).toEqual([])
     })
 
     it('terminates on a malformed cyclic edge set instead of looping', () => {
@@ -114,11 +124,10 @@ describe('computeCarryClosure', () => {
             edges: [aOnB, bOnA],
         })
 
-        expect(computeCarryClosure(aId, graph)).toEqual({
-            rootId: aId,
-            members: new Set([aId, bId]),
-            edges: [{ from: bId, to: aId, kind: 'On' }],
-        })
+        const closure = computeCarryClosure(aId, graph)
+        expect(closure.rootId).toBe(aId)
+        expect(closure.objectIds).toEqual(new Set([aId, bId]))
+        expect(closure.relationalEdges).toEqual([{ from: bId, to: aId, kind: 'On' }])
     })
 })
 
@@ -138,7 +147,7 @@ describe('boundaryEdgeOutcomes', () => {
         })
         const closure = computeCarryClosure(trayId, graph)
 
-        const outcomes = boundaryEdgeOutcomes(closure.members, graph)
+        const outcomes = boundaryEdgeOutcomes(closure.objectIds, graph)
 
         expect(outcomes).toHaveLength(1)
         expect(outcomes[0]).toEqual({

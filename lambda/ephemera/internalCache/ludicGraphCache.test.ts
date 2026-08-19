@@ -20,6 +20,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         const cache = createEphemeraLudicGraphCacheData({
             getItem: jest.fn().mockResolvedValue({
                 ludicGraph: {
+                    rootId: ROOM_ID,
                     nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
                 },
             }),
@@ -34,7 +35,7 @@ describe('EphemeraLudicGraphCacheData', () => {
 
     it('set throws when graph.hostId is not a forward host id', () => {
         const cache = createEphemeraLudicGraphCacheData({ getItem: jest.fn() })
-        const graph = EphemeraLudicGraph.fromFieldPayload('BOGUS#NotAHost' as EphemeraMembershipHostId, { nodes: [] })
+        const graph = EphemeraLudicGraph.fromFieldPayload('BOGUS#NotAHost' as EphemeraMembershipHostId, { rootId: 'BOGUS#NotAHost' as EphemeraMembershipHostId, nodes: [] })
 
         expect(() => cache.set(graph)).toThrow(/forward host ROOM#, CHARACTER#, OBJECT#, FEATURE#, or AREA#/)
     })
@@ -44,6 +45,7 @@ describe('EphemeraLudicGraphCacheData', () => {
             getItem: jest.fn().mockResolvedValue(undefined),
         })
         const original = EphemeraLudicGraph.fromFieldPayload(ROOM_ID, {
+            rootId: ROOM_ID,
             nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             edges: [],
         })
@@ -59,6 +61,7 @@ describe('EphemeraLudicGraphCacheData', () => {
             getItem: jest.fn().mockResolvedValue(undefined),
         })
         const original = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
+            rootId: OBJECT_HOST_ID,
             nodes: [characterNode(CHARACTER_A)],
             edges: [],
         })
@@ -74,6 +77,7 @@ describe('EphemeraLudicGraphCacheData', () => {
             getItem: jest.fn().mockResolvedValue(undefined),
         })
         const original = EphemeraLudicGraph.fromFieldPayload(FEATURE_HOST_ID, {
+            rootId: FEATURE_HOST_ID,
             nodes: [characterNode(CHARACTER_A)],
             edges: [],
         })
@@ -89,6 +93,7 @@ describe('EphemeraLudicGraphCacheData', () => {
             getItem: jest.fn().mockResolvedValue(undefined),
         })
         const original = EphemeraLudicGraph.fromFieldPayload(AREA_ID, {
+            rootId: AREA_ID,
             nodes: [characterNode(CHARACTER_A)],
             edges: [],
         })

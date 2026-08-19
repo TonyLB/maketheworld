@@ -26,11 +26,9 @@ describe('lookupOrComputeClosure', () => {
 
         const closure = lookupOrComputeClosure(env, TRAY_ID, graph)
 
-        expect(closure).toEqual({
-            rootId: TRAY_ID,
-            members: new Set([TRAY_ID, CUP_ID]),
-            edges: [{ from: CUP_ID, to: TRAY_ID, kind: 'On' }],
-        })
+        expect(closure.rootId).toBe(TRAY_ID)
+        expect(closure.objectIds).toEqual(new Set([TRAY_ID, CUP_ID]))
+        expect(closure.relationalEdges).toEqual([{ from: CUP_ID, to: TRAY_ID, kind: 'On' }])
         expect(env.groupIdByObject.has(TRAY_ID)).toBe(true)
         expect(env.groupIdByObject.has(CUP_ID)).toBe(true)
         expect(env.groupIdByObject.get(TRAY_ID)).toBe(env.groupIdByObject.get(CUP_ID))
@@ -47,11 +45,9 @@ describe('lookupOrComputeClosure', () => {
         // must still find the already-settled group rather than recomputing.
         const closureFromCup = lookupOrComputeClosure(env, CUP_ID, graph)
 
-        expect(closureFromCup).toEqual({
-            rootId: TRAY_ID,
-            members: new Set([TRAY_ID, CUP_ID]),
-            edges: [{ from: CUP_ID, to: TRAY_ID, kind: 'On' }],
-        })
+        expect(closureFromCup.rootId).toBe(TRAY_ID)
+        expect(closureFromCup.objectIds).toEqual(new Set([TRAY_ID, CUP_ID]))
+        expect(closureFromCup.relationalEdges).toEqual([{ from: CUP_ID, to: TRAY_ID, kind: 'On' }])
         expect(env.groupIdByObject.get(CUP_ID)).toBe(groupIdAfterFirst)
         expect(env.settledGroups.size).toBe(1)
     })

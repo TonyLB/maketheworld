@@ -78,7 +78,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     const transferStep: MutationKernelTransferStep = {
         kind: 'transferMembership',
         entityIds: op.moved.kind === 'closure'
-            ? op.moved.fragment.members
+            ? op.moved.fragment.objectIds
             : new Set([op.moved.entityId]),
         fromHostIds: new Set(op.froms),
         toHostId: op.to,

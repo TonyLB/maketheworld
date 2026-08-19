@@ -1,12 +1,12 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { CarryClosureFragment } from '../ludicGraph/expandValidate/interactionUnderTransfer'
+import type { EphemeraLudicGraph } from '../ludicGraph'
 import type { HostRelationalEdge } from '../manipulation/types'
 import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
-    /** Expansion's re-derived carry closure. Its `rootId` is the primary object the copy names. */
-    fragment: CarryClosureFragment
+    /** Expansion's re-derived carry closure (LP4a: an `EphemeraLudicGraph`). Its `rootId` is the primary object the copy names. */
+    fragment: EphemeraLudicGraph
     /** Boundary edges Expansion classified as dissolve; empty for a move that severs nothing. */
     dissolvedEdges: readonly HostRelationalEdge[]
     fromHostId: EphemeraMembershipHostId
@@ -55,7 +55,7 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
                 kind: 'objectMove' as const,
                 characterName: args.narration.characterName,
                 objectShortName: args.narration.objectShortName,
-                carriedCount: args.fragment.members.size,
+                carriedCount: args.fragment.objectIds.size,
             },
         }
         : {}),

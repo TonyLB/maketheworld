@@ -5,6 +5,7 @@ import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraPositionsReadDB } from './fetch'
 import {
@@ -100,34 +101,37 @@ export class PositionsCacheHandler {
         if (isEphemeraRoomId(componentId)) {
             const stored = await getRoomLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [] }
             )
         }
         if (isEphemeraCharacterId(componentId)) {
             const stored = await getCharacterLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [] }
             )
         }
         if (isEphemeraObjectId(componentId)) {
             const stored = await getObjectLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [] }
             )
         }
         if (isEphemeraFeatureId(componentId)) {
             const stored = await getFeatureLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [] }
             )
         }
         if (isEphemeraAreaId(componentId)) {
             const stored = await getAreaLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [] }
             )
         }
-        return projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
+        // Unreachable in practice (componentId's declared type is exhausted above); no natural
+        // root exists here, so falling back to the raw id preserves the pre-LP4a shape rather
+        // than inventing a new default the caller never asked for.
+        return projectComponentGraphFromStoredLudicGraph({ rootId: componentId as unknown as EphemeraLudicTerminalId, nodes: [], edges: [] })
     }
 
     private async loadMembershipContainersFromDynamo(

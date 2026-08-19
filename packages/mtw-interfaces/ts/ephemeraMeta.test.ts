@@ -154,6 +154,7 @@ describe('isEphemeraMetaObject', () => {
             isEphemeraMetaObject({
                 ...baseMeta,
                 ludicGraph: {
+                    rootId: 'OBJECT#helmet',
                     nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
                 },
             })
@@ -315,6 +316,7 @@ describe('isEphemeraLudicGraphNode', () => {
 describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts character nodes with empty edges', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CHARACTER#Alpha',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [],
         })).toBe(true)
@@ -322,12 +324,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     it('accepts graph without edges field', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CHARACTER#Alpha',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(true)
     })
 
     it('accepts mixed character and object nodes', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CHARACTER#Alpha',
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
                 { tag: 'Object', universalKey: 'OBJECT#helmet' },
@@ -337,6 +341,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     it('accepts relational edges on room host graph', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -352,6 +357,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     it('rejects Custom relational edge without relationLabel', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#rope' },
                 { tag: 'Object', universalKey: 'OBJECT#crate' },
@@ -367,6 +373,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     it('rejects invalid edge envelope', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CHARACTER#Alpha',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],
         })).toBe(false)
@@ -376,6 +383,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     // what LP0 already made a legal host.
     it('accepts a relational edge with Room and Character terminals', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
@@ -391,6 +399,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     it('rejects a relational edge terminal with an illegal tag', () => {
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#table',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#table' }],
             edges: [{
                 tag: 'Relational',
@@ -413,6 +422,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             kind: 'On',
         }]
         expect(() => isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -420,6 +430,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             edges,
         })).not.toThrow()
         expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -427,12 +438,37 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             edges,
         })).toBe(false)
     })
+
+    // LP4a: rootId is now required, with no default (gated on LPM's reset).
+    it('rejects a payload missing rootId', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+        })).toBe(false)
+    })
+
+    it('rejects a malformed rootId (neither a terminal primitive nor a port address)', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ASSET#bogus',
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+        })).toBe(false)
+    })
+
+    // LP7 has not wired port terminals into edges yet, but rootId's declared type is the full
+    // EphemeraLudicTerminalId union (AGENT.ludicGraphPorts.planning.md's target declarations),
+    // so the guard must already accept a well-formed port address.
+    it('accepts a port-address rootId', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: { owner: 'OBJECT#box', port: 'ab6129d' },
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
+        })).toBe(true)
+    })
 })
 
 describe('isEphemeraLudicGraphData', () => {
     it('accepts host-bound graph with room hostId', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'ROOM#Test',
+            rootId: 'ROOM#Test',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(true)
     })
@@ -440,6 +476,7 @@ describe('isEphemeraLudicGraphData', () => {
     it('accepts host-bound graph with character hostId', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'CHARACTER#Beta',
+            rootId: 'CHARACTER#Beta',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
         })).toBe(true)
     })
@@ -447,6 +484,7 @@ describe('isEphemeraLudicGraphData', () => {
     it('accepts host-bound graph with object hostId (recursive hosting, LP0)', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'OBJECT#Box',
+            rootId: 'OBJECT#Box',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#Spring' }],
         })).toBe(true)
     })
@@ -456,6 +494,7 @@ describe('isEphemeraLudicGraphData', () => {
         // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
+            rootId: 'FEATURE#Wall',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
         })).toBe(true)
     })
@@ -465,12 +504,14 @@ describe('isEphemeraLudicGraphData', () => {
         // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
+            rootId: 'AREA#Downtown',
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
         })).toBe(true)
     })
 
     it('rejects missing hostId', () => {
         expect(isEphemeraLudicGraphData({
+            rootId: 'CHARACTER#Alpha',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
@@ -478,6 +519,14 @@ describe('isEphemeraLudicGraphData', () => {
     it('rejects invalid hostId', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'KNOWLEDGE#helmet',
+            rootId: 'CHARACTER#Alpha',
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+        })).toBe(false)
+    })
+
+    it('rejects missing rootId', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'ROOM#Test',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
@@ -489,6 +538,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             EphemeraId: 'ROOM#Test',
             DataCategory: 'Meta::Room',
             ludicGraph: {
+                rootId: 'ROOM#Test',
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             },
         })).toBe(true)
@@ -499,6 +549,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             EphemeraId: 'ROOM#Test',
             DataCategory: 'Meta::Room',
             ludicGraph: {
+                rootId: 'ROOM#Test',
                 nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Other' }],
             },
         })).toBe(false)
@@ -523,6 +574,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Character',
             ludicGraph: {
+                rootId: 'CHARACTER#Alpha',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
             },
         })).toBe(true)
@@ -540,6 +592,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Character',
             ludicGraph: {
+                rootId: 'CHARACTER#Alpha',
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta' }],
             },
         })).toBe(false)

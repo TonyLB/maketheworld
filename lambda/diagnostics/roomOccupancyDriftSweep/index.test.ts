@@ -49,7 +49,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { nodes: [graphNode(characterGhost)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterGhost)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {
@@ -80,7 +80,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { nodes: [graphNode(characterOne)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterOne)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {
@@ -111,7 +111,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { nodes: [graphNode(characterOne)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterOne)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {
@@ -137,7 +137,7 @@ describe('roomOccupancyDriftSweep', () => {
         ephemeraQueryMock.mockImplementationOnce(async () => ({
             items: [{
                 EphemeraId: roomAlpha,
-                ludicGraph: { nodes: [] },
+                ludicGraph: { rootId: roomAlpha, nodes: [] },
             }],
         }))
 

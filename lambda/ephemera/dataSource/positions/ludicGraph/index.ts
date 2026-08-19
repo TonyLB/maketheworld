@@ -12,10 +12,11 @@ import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicGraphNode,
     EphemeraLudicRelationalEdgeData,
+    EphemeraLudicTerminalId,
     EphemeraLudicTerminalPrimitive,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -76,6 +77,8 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
 
 export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
+    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived (premise 10) --- LP4a. */
+    readonly rootId: EphemeraLudicTerminalId
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
@@ -83,22 +86,26 @@ export class EphemeraLudicGraph {
 
     private constructor(
         hostId: EphemeraMembershipHostId,
+        rootId: EphemeraLudicTerminalId,
         nodes: EphemeraLudicGraphNode[],
         edges: EphemeraLudicRelationalEdgeData[] | undefined,
         playOnlyEdges: PlayLudicGraph['edges'] | undefined = undefined
     ) {
         this.hostId = hostId
+        this.rootId = rootId
         this._nodes = nodes
         this._edges = edges
         this._playOnlyEdges = playOnlyEdges
     }
 
+    /** A fresh empty host-bound graph is rooted at its own host (concepts clause 3). */
     static empty(hostId: EphemeraMembershipHostId): EphemeraLudicGraph {
-        return new EphemeraLudicGraph(hostId, [], undefined)
+        return new EphemeraLudicGraph(hostId, hostId, [], undefined)
     }
 
     static fromJSON(data: EphemeraLudicGraphData): EphemeraLudicGraph {
         return EphemeraLudicGraph.fromFieldPayload(data.hostId, {
+            rootId: data.rootId,
             nodes: data.nodes,
             ...(data.edges !== undefined ? { edges: data.edges } : {}),
         })
@@ -125,11 +132,13 @@ export class EphemeraLudicGraph {
     ): EphemeraLudicGraph {
         return new EphemeraLudicGraph(
             hostId,
+            payload.rootId,
             payload.nodes.map((node) => ({ ...node })),
             payload.edges !== undefined ? payload.edges.map((edge) => ({ ...edge })) : undefined
         )
     }
 
+    /** Rooted at its own host --- a play envelope carries no independent root designation. */
     static fromPlayEnvelope(
         hostId: EphemeraMembershipHostId,
         envelope: PlayLudicGraph
@@ -137,6 +146,7 @@ export class EphemeraLudicGraph {
         const relationalEdges = extractRelationalEdgesFromStored(envelope).map(toStoredRelationalEdge)
         const playOnlyEdges = extractPlayOnlyEdges(envelope)
         return new EphemeraLudicGraph(
+            hostId,
             hostId,
             [
                 ...extractCharacterIdsFromPlayLudicGraph(envelope).map(characterNode),
@@ -181,6 +191,7 @@ export class EphemeraLudicGraph {
         const stored = this.toStored()
         return {
             hostId: this.hostId,
+            rootId: stored.rootId,
             nodes: stored.nodes,
             ...(stored.edges !== undefined ? { edges: stored.edges } : {}),
         }
@@ -188,6 +199,7 @@ export class EphemeraLudicGraph {
 
     toStored(): EphemeraLudicGraphFieldPayload {
         return {
+            rootId: this.rootId,
             nodes: [...this._nodes],
             ...(this._edges !== undefined ? { edges: [...this._edges] } : {}),
         }
@@ -213,19 +225,19 @@ export class EphemeraLudicGraph {
     }
 
     private withNodes(nodes: EphemeraLudicGraphNode[]): EphemeraLudicGraph {
-        return new EphemeraLudicGraph(this.hostId, nodes, this._edges, this._playOnlyEdges)
+        return new EphemeraLudicGraph(this.hostId, this.rootId, nodes, this._edges, this._playOnlyEdges)
     }
 
     private withEdges(edges: EphemeraLudicRelationalEdgeData[] | undefined): EphemeraLudicGraph {
-        return new EphemeraLudicGraph(this.hostId, this._nodes, edges, this._playOnlyEdges)
+        return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, edges, this._playOnlyEdges)
     }
 
     private withPlayOnlyEdges(edges: PlayLudicGraph['edges'] | undefined): EphemeraLudicGraph {
-        return new EphemeraLudicGraph(this.hostId, this._nodes, this._edges, edges)
+        return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, this._edges, edges)
     }
 
     private storedRelationalEdges(): HostRelationalEdge[] {
-        return extractRelationalEdgesFromStored({ nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}) })
+        return extractRelationalEdgesFromStored({ rootId: this.rootId, nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}) })
     }
 
     equals(other: EphemeraLudicGraph): boolean {
@@ -233,6 +245,9 @@ export class EphemeraLudicGraph {
             return false
         }
         if (this.hostId !== other.hostId) {
+            return false
+        }
+        if (!ephemeraLudicTerminalsEqual(this.rootId, other.rootId)) {
             return false
         }
         const a = this.toStored()
@@ -400,6 +415,7 @@ export const seedFromActiveCharacters = (
     hostId: EphemeraMembershipHostId
 ): EphemeraLudicGraph =>
     EphemeraLudicGraph.fromFieldPayload(hostId, {
+        rootId: hostId,
         nodes: activeCharacters.map(({ EphemeraId }) => characterNode(EphemeraId)),
         edges: [],
     })
@@ -435,7 +451,7 @@ const fromPlainHostMeta = (
     hostId: EphemeraMembershipHostId
 ): EphemeraLudicGraph => {
     const record = meta as { ludicGraph?: EphemeraLudicGraphFieldPayload }
-    return EphemeraLudicGraph.fromFieldPayload(hostId, record.ludicGraph ?? { nodes: [], edges: [] })
+    return EphemeraLudicGraph.fromFieldPayload(hostId, record.ludicGraph ?? { rootId: hostId, nodes: [], edges: [] })
 }
 
 export const fromCharacterMeta = (

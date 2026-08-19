@@ -177,7 +177,7 @@ export type ObjectMoveNarrationSpec = {
     verb: 'takeHold' | 'drop' | 'give'
     characterName: string
     objectShortName: string
-    /** Execute-time carry-closure size (`CarryClosureFragment.members.size`), not the Plan-stage intent's object count. */
+    /** Execute-time carry-closure size (LP4a: `EphemeraLudicGraph.objectIds.size`), not the Plan-stage intent's object count. */
     carriedCount: number
 }
 

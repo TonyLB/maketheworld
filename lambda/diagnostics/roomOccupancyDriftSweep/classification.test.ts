@@ -8,6 +8,7 @@ const roomId = 'ROOM#alpha'
 const characterId = 'CHARACTER#one'
 
 const graphWithCharacter = {
+    rootId: roomId,
     nodes: [{ tag: 'Character' as const, universalKey: characterId }],
 }
 

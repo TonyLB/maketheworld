@@ -17,7 +17,7 @@ import { resolveObjectMovePresentationLabels } from '../../../perception/resolve
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../kernel/compile/moveBundleSlotIds'
-import type { CarryClosureFragment } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
+import { EphemeraLudicGraph, objectNode } from '../../ludicGraph'
 
 const executeObjectMoveMock = executeObjectMove as jest.MockedFunction<typeof executeObjectMove>
 const resolveLabelsMock = resolveObjectMovePresentationLabels as jest.MockedFunction<
@@ -29,11 +29,13 @@ const ROOM = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 const WITNESS = 'CHARACTER#Bob' as EphemeraCharacterId
 
-const fragment: CarryClosureFragment = {
+// LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
+const fragment: EphemeraLudicGraph = EphemeraLudicGraph.fromJSON({
+    hostId: TRAY,
     rootId: TRAY,
-    members: new Set([TRAY]),
+    nodes: [objectNode(TRAY)],
     edges: [],
-}
+})
 
 /**
  * The plan `executeObjectMove` would really have returned, compiled here from the same builder so

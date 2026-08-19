@@ -337,6 +337,8 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
+    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived (premise 10) --- LP4a. */
+    rootId: EphemeraLudicTerminalId;
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];
@@ -370,6 +372,9 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         return false
     }
     const graph = value as EphemeraLudicGraphFieldPayload
+    if (!(typeof graph.rootId === 'string' ? isEphemeraLudicTerminalPrimitive(graph.rootId) : isEphemeraLudicPortAddress(graph.rootId))) {
+        return false
+    }
     if (!Array.isArray(graph.nodes)) {
         return false
     }

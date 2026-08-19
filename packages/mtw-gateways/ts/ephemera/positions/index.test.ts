@@ -25,7 +25,7 @@ const objectHostId = 'OBJECT#Tray' as EphemeraObjectId
 const featureHostId = 'FEATURE#Sign' as EphemeraFeatureId
 const areaHostId = 'AREA#Overworld' as EphemeraAreaId
 
-const emptyGraph = projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })
+const emptyGraph = projectComponentGraphFromStoredLudicGraph({ rootId: roomId, nodes: [], edges: [] })
 
 describe('positions project', () => {
     it('extractCharacterIdsFromPlayLudicGraph walks character nodes', () => {
@@ -44,6 +44,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph maps stored nodes to topology only', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
         expect(graph).toEqual({
@@ -57,6 +58,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph includes Object nodes', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [
                 { tag: 'Character', universalKey: characterId },
                 { tag: 'Object', universalKey: objectId },
@@ -73,6 +75,7 @@ describe('positions project', () => {
 
     it('projectComponentGraphFromStoredLudicGraph passes through relational edges', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: objectId,
             nodes: [
                 { tag: 'Object', universalKey: objectId },
                 { tag: 'Object', universalKey: 'OBJECT#Table' },
@@ -97,7 +100,7 @@ describe('positions project', () => {
     })
 
     it('projectComponentGraphFromStoredLudicGraph returns empty graph for absent nodes', () => {
-        expect(projectComponentGraphFromStoredLudicGraph({ nodes: [], edges: [] })).toEqual({
+        expect(projectComponentGraphFromStoredLudicGraph({ rootId: roomId, nodes: [], edges: [] })).toEqual({
             nodes: [],
             edges: [],
         })
@@ -123,6 +126,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(roomId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: roomId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledTimes(1)
@@ -163,6 +167,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(characterId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Object', universalKey: objectId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
@@ -208,6 +213,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(objectHostId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: objectHostId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
@@ -253,6 +259,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(featureHostId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: featureHostId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
@@ -298,6 +305,7 @@ describe('PositionsCacheHandler', () => {
         const graph = await handler.getLudicGraph(areaHostId)
 
         expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+            rootId: areaHostId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         }))
         expect(db.getItem).toHaveBeenCalledWith(
@@ -385,6 +393,7 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: roomId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
 
@@ -406,6 +415,7 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId,
             nodes: [{ tag: 'Object', universalKey: objectId }],
         })
 
@@ -419,6 +429,7 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
         const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: objectHostId,
             nodes: [{ tag: 'Character', universalKey: characterId }],
         })
 

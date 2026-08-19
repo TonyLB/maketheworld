@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { buildObjectMoveOp } from './buildObjectMoveOp'
-import type { CarryClosureFragment } from '../ludicGraph/expandValidate/interactionUnderTransfer'
+import { EphemeraLudicGraph, objectNode } from '../ludicGraph'
 
 const TRAY = 'OBJECT#Tray' as EphemeraObjectId
 const GLASS = 'OBJECT#Glass' as EphemeraObjectId
@@ -9,23 +9,22 @@ const TABLE = 'OBJECT#Table' as EphemeraObjectId
 const ROOM = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 
-const fragment = (members: EphemeraObjectId[]): CarryClosureFragment => ({
-    rootId: TRAY,
-    members: new Set(members),
-    edges: [],
-})
+// LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
+const fragment = (members: EphemeraObjectId[]): EphemeraLudicGraph =>
+    EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, nodes: members.map(objectNode), edges: [] })
 
 describe('buildObjectMoveOp', () => {
     it('carries the closure as the moved set, with the fragment root as primary', () => {
+        const closure = fragment([TRAY, GLASS])
         const op = buildObjectMoveOp({
-            fragment: fragment([TRAY, GLASS]),
+            fragment: closure,
             dissolvedEdges: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
             bundleId: 'BUNDLE#test',
         })
 
-        expect(op.moved).toEqual({ kind: 'closure', fragment: fragment([TRAY, GLASS]) })
+        expect(op.moved).toEqual({ kind: 'closure', fragment: closure })
         expect(op.froms).toEqual([ROOM])
         expect(op.to).toEqual(CHARACTER)
         expect(op.headerSlot).toBeNull()
