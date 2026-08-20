@@ -125,6 +125,7 @@ export function computeCarryClosure(
         rootId: startId,
         nodes: [...closureSet].map(objectNode),
         edges: internalEdges.map(toStoredRelationalEdge),
+        ports: [],
     })
 }
 

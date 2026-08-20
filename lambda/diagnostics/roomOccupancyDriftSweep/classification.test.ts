@@ -8,7 +8,7 @@ const roomId = 'ROOM#alpha'
 const characterId = 'CHARACTER#one'
 
 const graphWithCharacter = {
-    rootId: roomId,
+    rootId: roomId, ports: [],
     // LP4i: concepts clause 3 requires the root to be present in `nodes`.
     nodes: [
         { tag: 'Room' as const, universalKey: roomId },

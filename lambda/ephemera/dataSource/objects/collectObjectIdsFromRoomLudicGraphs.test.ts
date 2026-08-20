@@ -11,7 +11,7 @@ describe('collectObjectIdsFromRoomLudicGraphs', () => {
 
     it('collects Object nodes from a single graph', () => {
         expect(collectObjectIdsFromLudicGraph({
-            rootId: roomOne,
+            rootId: roomOne, ports: [],
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#X' },
                 { tag: 'Object', universalKey: objectA },
@@ -22,11 +22,11 @@ describe('collectObjectIdsFromRoomLudicGraphs', () => {
     it('dedupes across room graphs', () => {
         expect(collectObjectIdsFromRoomLudicGraphs({
             [roomOne]: {
-                rootId: roomOne,
+                rootId: roomOne, ports: [],
                 nodes: [{ tag: 'Object', universalKey: objectA }],
             },
             [roomTwo]: {
-                rootId: roomTwo,
+                rootId: roomTwo, ports: [],
                 nodes: [
                     { tag: 'Object', universalKey: objectA },
                     { tag: 'Object', universalKey: objectB },
@@ -37,7 +37,7 @@ describe('collectObjectIdsFromRoomLudicGraphs', () => {
 
     it('returns empty when graphs have no Object nodes', () => {
         expect(collectObjectIdsFromRoomLudicGraphs({
-            [roomOne]: { rootId: roomOne, nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
+            [roomOne]: { rootId: roomOne, ports: [], nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
         })).toEqual([])
         expect(collectObjectIdsFromLudicGraph(undefined)).toEqual([])
     })

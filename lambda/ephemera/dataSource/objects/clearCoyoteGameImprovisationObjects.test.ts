@@ -58,7 +58,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             {
                 getGameRooms: async () => ['VORTEX'],
                 getRoomLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
-                    rootId: ROOM_A,
+                    rootId: ROOM_A, ports: [],
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
@@ -99,7 +99,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 getRoomLudicGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
                 getCharacterLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
-                    rootId: CHARACTER_A,
+                    rootId: CHARACTER_A, ports: [],
                     nodes: [objectNode(OBJECT_HELD)],
                     edges: [],
                 }),
@@ -130,13 +130,13 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             {
                 getGameRooms: async () => ['VORTEX'],
                 getRoomLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
-                    rootId: ROOM_A,
+                    rootId: ROOM_A, ports: [],
                     nodes: [objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),
                 getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
                 getCharacterLudicGraph: async () => EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
-                    rootId: CHARACTER_A,
+                    rootId: CHARACTER_A, ports: [],
                     nodes: [objectNode(OBJECT_HELD), objectNode(OBJECT_ROOM)],
                     edges: [],
                 }),

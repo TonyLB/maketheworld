@@ -556,7 +556,7 @@ describe('persistImprovisationObject', () => {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
                         ludicGraph: {
-                            rootId: room,
+                            rootId: room, ports: [],
                             nodes: [{ tag: 'Object', universalKey: objectId }],
                         },
                     }
@@ -566,7 +566,7 @@ describe('persistImprovisationObject', () => {
                         EphemeraId: room,
                         DataCategory: 'Meta::Room',
                         ludicGraph: {
-                            rootId: room,
+                            rootId: room, ports: [],
                             nodes: [{ tag: 'Object', universalKey: objectTwo }],
                         },
                     }
@@ -591,7 +591,7 @@ describe('persistImprovisationObject', () => {
             getRoomLudicGraph: async (room) => ({
                 EphemeraId: room,
                 DataCategory: 'Meta::Room',
-                ludicGraph: { rootId: room, nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
+                ludicGraph: { rootId: room, ports: [], nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
             }),
         })
 

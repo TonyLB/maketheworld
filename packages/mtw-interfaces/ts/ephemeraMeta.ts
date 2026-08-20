@@ -354,6 +354,16 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     return true
 }
 
+/**
+ * An egress-list entry (premise 12): the interior-authoritative half of a port record.
+ * `fromHostId` names the exterior host that refers to this port; it has no interior witness,
+ * so --- like `rootId` (premise 10) --- it is recorded, never derived. LP4d.
+ */
+export type EphemeraLudicGraphPort = {
+    portId: string;
+    fromHostId: EphemeraMembershipHostId;
+}
+
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
@@ -362,6 +372,8 @@ export type EphemeraLudicGraphData = {
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];
+    /** The egress list (premise 12); required and possibly empty --- see LPM's rootId precedent. LP4d. */
+    ports: EphemeraLudicGraphPort[];
 }
 
 /** Value of Meta::*.ludicGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
@@ -393,6 +405,14 @@ export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudic
     return false
 }
 
+export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudicGraphPort => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const entry = value as EphemeraLudicGraphPort
+    return typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId)
+}
+
 export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is EphemeraLudicGraphFieldPayload => {
     if (!value || typeof value !== 'object') {
         return false
@@ -420,6 +440,11 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
             return false
         }
+    }
+    // The egress list (premise 12) is required and possibly empty, not optional like `edges`
+    // --- see LPM's rootId precedent for why no `??= []` belongs at this boundary. LP4d.
+    if (!Array.isArray(graph.ports) || !graph.ports.every((entry) => isEphemeraLudicGraphPort(entry))) {
+        return false
     }
     return true
 }

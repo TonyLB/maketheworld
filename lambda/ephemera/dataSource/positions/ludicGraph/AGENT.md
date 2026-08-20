@@ -24,7 +24,7 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 | --- | --- |
 | `index.ts` | **`EphemeraLudicGraph` class** (immutable instance methods) + module-level factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) + node builders, including `nodeFromId` (LP4i: dispatches an arbitrary `EphemeraLudicTerminalPrimitive` to its correctly-tagged node) |
 | `baseClasses.ts` | **`HostRelationalEdge`** parsed in-memory view; relational parse/match/serialize helpers |
-| `healLudicGraphStructure.ts` | LP4i's self-heal: idempotent, dry-run-capable repair for `ludicGraph` structural staleness, scoped to `rootId`/root-node defaulting only. Never called from a read boundary --- only from the `Ludic Graph Stale Structure Finding` consumer (`positions/index.ts`) or an explicit manual invocation |
+| `healLudicGraphStructure.ts` | LP4i's self-heal: idempotent, dry-run-capable repair for `ludicGraph` structural staleness, scoped to `rootId`/root-node and `ports` (LP4d: defaults a missing/malformed `ports` to `[]`, LD-17's interim posture (b)) defaulting only. Never called from a read boundary --- only from the `Ludic Graph Stale Structure Finding` consumer (`positions/index.ts`) or an explicit manual invocation |
 | `index.test.ts` | Unit tests |
 
 ## Public API
@@ -46,6 +46,8 @@ class EphemeraLudicGraph {
   toPlayEnvelope(): PlayLudicGraph
   clone(): EphemeraLudicGraph
   equals(other: EphemeraLudicGraph): boolean
+
+  get ports(): EphemeraLudicGraphPort[] // egress list (premise 12, LP4d); required, possibly empty; inert until a producer exists
 }
 ```
 

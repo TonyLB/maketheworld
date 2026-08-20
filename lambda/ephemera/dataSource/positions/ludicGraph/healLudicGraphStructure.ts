@@ -4,6 +4,7 @@ import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/e
 import {
     ephemeraLudicTerminalOwner,
     isEphemeraLudicGraphFieldPayload,
+    isEphemeraLudicGraphPort,
     isEphemeraLudicPortAddress,
     isEphemeraLudicTerminalPrimitive,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -47,11 +48,16 @@ const defaultWriteHealedLudicGraph = async (
 }
 
 /**
- * Scoped, canonical repair for the two fields premise 10 (`ludicGraph/AGENT.md`) allows a
- * one-time write to default: `rootId` on a host-bound graph (canonically `hostId`) and the
- * root's own node (canonically derivable from `rootId` alone via `nodeFromId`) --- LP4i.
- * Everything else about the stored shape is left untouched; a row that is stale for any other
- * reason is reported `healable: false` rather than silently rewritten.
+ * Scoped, canonical repair for three fields: `rootId` on a host-bound graph (canonically
+ * `hostId`) and the root's own node (canonically derivable from `rootId` alone via
+ * `nodeFromId`), per premise 10 (`ludicGraph/AGENT.md`) --- LP4i; and `ports`, the egress list
+ * (premise 12), defaulted to `[]` --- LP4d. The `ports` default is LD-17's interim posture (b)
+ * (a graph that exists but carries no recorded `ports` is treated as *not yet written*, not as
+ * *lazily always empty*): it is a one-time write-carrying repair, not a `??=` read-boundary
+ * default (`fromFieldPayload`/the guard stay strict), and it does not resolve LD-17's
+ * materialize-vs-lazy-vs-derive question --- a later slice may need to replace it once
+ * AB-55/LD-17 land. Everything else about the stored shape is left untouched; a row that is
+ * stale for any other reason is reported `healable: false` rather than silently rewritten.
  */
 const computeRepairedPayload = (
     ephemeraId: EphemeraMembershipHostId,
@@ -69,10 +75,16 @@ const computeRepairedPayload = (
     ))
     const repairedNodes = hasRootNode ? nodes : [nodeFromId(rootOwner), ...nodes]
 
+    const storedPorts = ludicGraph.ports
+    const ports = Array.isArray(storedPorts) && storedPorts.every((entry) => isEphemeraLudicGraphPort(entry))
+        ? (storedPorts as EphemeraLudicGraphFieldPayload['ports'])
+        : []
+
     const repaired: EphemeraLudicGraphFieldPayload = {
         rootId,
         nodes: repairedNodes as EphemeraLudicGraphFieldPayload['nodes'],
         ...('edges' in ludicGraph ? { edges: ludicGraph.edges as EphemeraLudicGraphFieldPayload['edges'] } : {}),
+        ports,
     }
     return isEphemeraLudicGraphFieldPayload(repaired) ? repaired : undefined
 }

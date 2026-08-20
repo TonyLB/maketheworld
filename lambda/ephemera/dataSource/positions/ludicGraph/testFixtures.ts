@@ -11,7 +11,7 @@ import { EphemeraLudicGraph } from './index'
 export const testLudicGraph = (
     hostId: EphemeraMembershipHostId,
     payload: Partial<EphemeraLudicGraphFieldPayload> = {}
-): EphemeraLudicGraph => EphemeraLudicGraph.fromFieldPayload(hostId, { nodes: [], rootId: hostId, ...payload })
+): EphemeraLudicGraph => EphemeraLudicGraph.fromFieldPayload(hostId, { nodes: [], rootId: hostId, ports: [], ...payload })
 
 /** Test helper: host-bound graph from play read envelope (supports Exit edges). */
 export const testLudicGraphFromEnvelope = (

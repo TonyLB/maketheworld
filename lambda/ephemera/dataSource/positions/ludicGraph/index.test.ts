@@ -60,14 +60,14 @@ describe('EphemeraLudicGraph', () => {
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
             ], HOST_ID)
             expect(graph.toStored()).toEqual({
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [roomNode(HOST_ID), characterNode(CHARACTER_A), characterNode(CHARACTER_B)],
                 edges: [],
             })
         })
 
         it('returns a graph with only the root node for an empty roster (LP4i)', () => {
-            expect(seedFromActiveCharacters([], HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [roomNode(HOST_ID)], edges: [] })
+            expect(seedFromActiveCharacters([], HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID)], edges: [] })
         })
 
         it('rootId defaults to hostId', () => {
@@ -108,12 +108,12 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('addObject is idempotent when object already present', () => {
-            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [] })
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] })
             expect(graph.addObject(OBJECT_A)).toBe(graph)
         })
 
         it('objectIds returns set of object universal keys', () => {
-            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [] })
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] })
             expect(graph.objectIds).toEqual(new Set([OBJECT_A]))
         })
     })
@@ -121,7 +121,7 @@ describe('EphemeraLudicGraph', () => {
     describe('removeObject (BD-33/BD-35 assert-and-throw)', () => {
         it('throws RelationalEdgeStillReferencedError when a relational edge still references the object', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
@@ -139,7 +139,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('throws when the object is only the edge target, not just the source', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_B, to: OBJECT_A, kind: 'On' }],
             })
@@ -148,7 +148,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('succeeds and removes the node when no relational edge references the object', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [],
             })
@@ -174,7 +174,7 @@ describe('EphemeraLudicGraph', () => {
         it('preserves unrelated relational edges after a successful assert', () => {
             const relational = { tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_C, kind: 'On' as const }
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
                 edges: [relational],
             })
@@ -185,7 +185,7 @@ describe('EphemeraLudicGraph', () => {
     describe('removeCharacter (BD-36 assert-and-throw, vacuous today)', () => {
         it('never throws --- relational edges cannot reference a character, so the assert is always satisfied', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
@@ -203,14 +203,14 @@ describe('EphemeraLudicGraph', () => {
 
     describe('construction and serialization', () => {
         it("empty creates host-bound graph rooted at its own host, with the root's own node present (LP4i, concepts clause 3)", () => {
-            expect(EphemeraLudicGraph.empty(HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [roomNode(HOST_ID)] })
+            expect(EphemeraLudicGraph.empty(HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID)] })
             expect(EphemeraLudicGraph.empty(HOST_ID).hostId).toBe(HOST_ID)
             expect(EphemeraLudicGraph.empty(HOST_ID).rootId).toBe(HOST_ID)
         })
 
         it('fromJSON and fromFieldPayload are equivalent', () => {
             const payload = {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
                 edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }],
             }
@@ -222,26 +222,26 @@ describe('EphemeraLudicGraph', () => {
         it('survives Immer draft revocation --- fromFieldPayload must plain-copy nodes/edges, not retain the draft\'s own element references (regression: MultiKeyUpdate reducers in mtw-utilities/ts/dynamoDB/mixins/transact.ts build their draft via immer produce(), which revokes every draft proxy the instant the reducer returns; a graph built from that draft and retained past the reducer throws "Cannot perform \'get\' on a proxy that has been revoked" on first node/edge property read otherwise)', () => {
             const { produce } = require('immer')
             let escapedGraph: EphemeraLudicGraph | undefined
-            produce({ ludicGraph: { rootId: HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }] } }, (draft: any) => {
+            produce({ ludicGraph: { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }] } }, (draft: any) => {
                 escapedGraph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, draft.ludicGraph)
             })
             // The producer has returned; `draft` and everything reachable from it is now revoked.
             expect(() => escapedGraph!.toPlayEnvelope()).not.toThrow()
             expect(escapedGraph!.toStored()).toEqual({
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
         })
 
         it('toJSON includes hostId and rootId; toStored omits hostId only', () => {
-            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, nodes: [characterNode(CHARACTER_A)] })
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)] })
             expect(graph.toJSON()).toEqual({
                 hostId: HOST_ID,
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A)],
             })
-            expect(graph.toStored()).toEqual({ rootId: HOST_ID, nodes: [characterNode(CHARACTER_A)] })
+            expect(graph.toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)] })
         })
 
         it('fromPlayEnvelope preserves character and object nodes, rooted at its own host', () => {
@@ -254,14 +254,14 @@ describe('EphemeraLudicGraph', () => {
             })
             expect(graph.rootId).toBe(HOST_ID)
             expect(graph.toStored()).toEqual({
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [roomNode(HOST_ID), characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             })
         })
 
         it('toPlayEnvelope round-trips topology', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
@@ -282,21 +282,51 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('equals returns false for different hostId', () => {
-            const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, nodes: [characterNode(CHARACTER_A)] })
-            const b = EphemeraLudicGraph.fromFieldPayload(OTHER_HOST_ID, { rootId: OTHER_HOST_ID, nodes: [characterNode(CHARACTER_A)] })
+            const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)] })
+            const b = EphemeraLudicGraph.fromFieldPayload(OTHER_HOST_ID, { rootId: OTHER_HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)] })
             expect(a.equals(b)).toBe(false)
         })
 
         it('equals returns false for different rootId, same hostId', () => {
-            const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, nodes: [characterNode(CHARACTER_A)] })
-            const b = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: OBJECT_A, nodes: [characterNode(CHARACTER_A)] })
+            const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)] })
+            const b = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: OBJECT_A, ports: [], nodes: [characterNode(CHARACTER_A)] })
             expect(a.equals(b)).toBe(false)
+        })
+
+        // LP4d: ports (premise 12) round-trips through fromFieldPayload/toStored/toJSON/fromJSON
+        // exactly like nodes/edges --- the egress list is not a special case.
+        it('ports round-trips through fromFieldPayload and toStored', () => {
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId }]
+            const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
+                rootId: OBJECT_HOST_ID,
+                nodes: [objectNode(OBJECT_HOST_ID)],
+                ports,
+            })
+            expect(graph.ports).toEqual(ports)
+            expect(graph.toStored().ports).toEqual(ports)
+        })
+
+        it('ports round-trips through toJSON and fromJSON', () => {
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId }]
+            const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
+                rootId: OBJECT_HOST_ID,
+                nodes: [objectNode(OBJECT_HOST_ID)],
+                ports,
+            })
+            const json = graph.toJSON()
+            expect(json.ports).toEqual(ports)
+            expect(EphemeraLudicGraph.fromJSON(json).ports).toEqual(ports)
+        })
+
+        it('fromPlayEnvelope produces an empty ports list --- a play envelope carries no port data (presentation lane, out of scope)', () => {
+            const graph = EphemeraLudicGraph.fromPlayEnvelope(HOST_ID, { nodes: [] })
+            expect(graph.ports).toEqual([])
         })
     })
 
     describe('factories', () => {
         it('fromRoomMeta uses ludicGraph when present', () => {
-            const payload = { rootId: HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [] as [] }
+            const payload = { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] as [] }
             const graph = fromRoomMeta({ ludicGraph: payload, activeCharacters: [] }, HOST_ID)
             expect(graph.toStored()).toEqual(payload)
         })
@@ -310,26 +340,26 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('fromCharacterMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
-            expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [nodeFromId(HOST_ID)], edges: [] })
-            const payload = { rootId: HOST_ID, nodes: [nodeFromId(HOST_ID), objectNode(OBJECT_A)], edges: [] as [] }
+            expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [nodeFromId(HOST_ID)], edges: [] })
+            const payload = { rootId: HOST_ID, ports: [], nodes: [nodeFromId(HOST_ID), objectNode(OBJECT_A)], edges: [] as [] }
             expect(fromCharacterMeta({ ludicGraph: payload }, HOST_ID).toStored()).toEqual(payload)
         })
 
         it('fromObjectMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
-            expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ rootId: OBJECT_HOST_ID, nodes: [objectNode(OBJECT_HOST_ID)], edges: [] })
-            const payload = { rootId: OBJECT_HOST_ID, nodes: [objectNode(OBJECT_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
+            expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ rootId: OBJECT_HOST_ID, ports: [], nodes: [objectNode(OBJECT_HOST_ID)], edges: [] })
+            const payload = { rootId: OBJECT_HOST_ID, ports: [], nodes: [objectNode(OBJECT_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromObjectMeta({ ludicGraph: payload }, OBJECT_HOST_ID).toStored()).toEqual(payload)
         })
 
         it('fromFeatureMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
-            expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ rootId: FEATURE_HOST_ID, nodes: [featureNode(FEATURE_HOST_ID)], edges: [] })
-            const payload = { rootId: FEATURE_HOST_ID, nodes: [featureNode(FEATURE_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
+            expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ rootId: FEATURE_HOST_ID, ports: [], nodes: [featureNode(FEATURE_HOST_ID)], edges: [] })
+            const payload = { rootId: FEATURE_HOST_ID, ports: [], nodes: [featureNode(FEATURE_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromFeatureMeta({ ludicGraph: payload }, FEATURE_HOST_ID).toStored()).toEqual(payload)
         })
 
         it('fromAreaMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
-            expect(fromAreaMeta({}, AREA_HOST_ID).toStored()).toEqual({ rootId: AREA_HOST_ID, nodes: [areaNode(AREA_HOST_ID)], edges: [] })
-            const payload = { rootId: AREA_HOST_ID, nodes: [areaNode(AREA_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
+            expect(fromAreaMeta({}, AREA_HOST_ID).toStored()).toEqual({ rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID)], edges: [] })
+            const payload = { rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromAreaMeta({ ludicGraph: payload }, AREA_HOST_ID).toStored()).toEqual(payload)
         })
 
@@ -342,21 +372,21 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('graphFromMeta dispatches an Object host through fromObjectMeta', () => {
-            const payload = { rootId: OBJECT_HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [] as [] }
+            const payload = { rootId: OBJECT_HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] as [] }
             const graph = graphFromMeta({ ludicGraph: payload }, OBJECT_HOST_ID)
             expect(graph.hostId).toBe(OBJECT_HOST_ID)
             expect(graph.toStored()).toEqual(payload)
         })
 
         it('graphFromMeta dispatches a Feature host through fromFeatureMeta', () => {
-            const payload = { rootId: FEATURE_HOST_ID, nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+            const payload = { rootId: FEATURE_HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
             const graph = graphFromMeta({ ludicGraph: payload }, FEATURE_HOST_ID)
             expect(graph.hostId).toBe(FEATURE_HOST_ID)
             expect(graph.toStored()).toEqual(payload)
         })
 
         it('graphFromMeta dispatches an Area host through fromAreaMeta', () => {
-            const payload = { rootId: AREA_HOST_ID, nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+            const payload = { rootId: AREA_HOST_ID, ports: [], nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
             const graph = graphFromMeta({ ludicGraph: payload }, AREA_HOST_ID)
             expect(graph.hostId).toBe(AREA_HOST_ID)
             expect(graph.toStored()).toEqual(payload)
@@ -366,7 +396,7 @@ describe('EphemeraLudicGraph', () => {
     describe('relational edges', () => {
         const graphWithObjects = () =>
             EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [],
             })
@@ -452,7 +482,7 @@ describe('EphemeraLudicGraph', () => {
         // narrowness, when bothObjectsOnGraph checked presence against `objectIds` only.
         it('bothObjectsOnGraph finds a non-Object terminal by its node presence', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), { tag: 'Room', universalKey: 'ROOM#Nested' as EphemeraRoomId }],
                 edges: [],
             })
@@ -551,7 +581,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('adds relational edge when nodes present', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
             })
             const next = graph.applyRelationalPatch(onTablePatch)
@@ -560,7 +590,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('returns same instance on idempotent add', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
@@ -569,7 +599,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('removes edge when present', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
                 edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
             })
@@ -579,7 +609,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('throws when removing absent edge', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
             })
             expect(() => graph.applyRelationalPatch({ ...onTablePatch, op: 'remove' }))
@@ -588,7 +618,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('throws when nodes missing from graph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A)],
             })
             expect(() => graph.applyRelationalPatch(onTablePatch))
@@ -597,7 +627,7 @@ describe('EphemeraLudicGraph', () => {
 
         it('rejects wrong hostId', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID,
+                rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
             })
             expect(() => graph.applyRelationalPatch({ ...onTablePatch, hostId: OTHER_HOST_ID }))

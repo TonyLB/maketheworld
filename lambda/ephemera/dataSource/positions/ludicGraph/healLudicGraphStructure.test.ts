@@ -14,12 +14,13 @@ describe('healLudicGraphStructure', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
-    it('reports stale: false and writes nothing when the graph already has its root node present (idempotent)', async () => {
+    it('reports stale: false and writes nothing when the graph already has its root node and ports present (idempotent)', async () => {
         const writeHealedLudicGraph = jest.fn()
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
@@ -33,6 +34,7 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
@@ -46,6 +48,7 @@ describe('healLudicGraphStructure', () => {
                     { tag: 'Room', universalKey: ROOM_ID },
                     { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
                 ],
+                ports: [],
             },
         })
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
@@ -57,6 +60,7 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
@@ -69,6 +73,7 @@ describe('healLudicGraphStructure', () => {
                 { tag: 'Room', universalKey: ROOM_ID },
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
             ],
+            ports: [],
         })
     })
 
@@ -83,6 +88,7 @@ describe('healLudicGraphStructure', () => {
                     { tag: 'Object', universalKey: 'OBJECT#table' },
                 ],
                 edges,
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
@@ -97,6 +103,7 @@ describe('healLudicGraphStructure', () => {
                     { tag: 'Object', universalKey: 'OBJECT#table' },
                 ],
                 edges,
+                ports: [],
             },
         })
     })
@@ -106,6 +113,7 @@ describe('healLudicGraphStructure', () => {
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 nodes: [],
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
@@ -115,6 +123,7 @@ describe('healLudicGraphStructure', () => {
             repairedPayload: {
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [],
             },
         })
     })
@@ -125,11 +134,81 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }, { tag: 'NotAKind', universalKey: 'OBJECT#x' }],
+                ports: [],
             }),
             writeHealedLudicGraph,
         })
         expect(outcome).toEqual({ stale: true, healable: false, applied: false })
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
+    })
+
+    // LP4d: ports (premise 12) joins rootId/the root node as a third healable field, defaulted
+    // to [] --- LD-17's interim posture (b): absent means "not yet written," not "always empty."
+    it('defaults a missing ports field to [] while leaving an otherwise-current graph alone', async () => {
+        const writeHealedLudicGraph = jest.fn(async () => undefined)
+        const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
+            getStoredLudicGraph: async () => ({
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toMatchObject({
+            stale: true,
+            healable: true,
+            applied: true,
+            repairedPayload: {
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [],
+            },
+        })
+        expect(writeHealedLudicGraph).toHaveBeenCalledWith(ROOM_ID, {
+            rootId: ROOM_ID,
+            nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+            ports: [],
+        })
+    })
+
+    it('defaults a malformed ports value to [] rather than rejecting the whole row as unhealable', async () => {
+        const writeHealedLudicGraph = jest.fn(async () => undefined)
+        const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
+            getStoredLudicGraph: async () => ({
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus' }],
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toMatchObject({
+            stale: true,
+            healable: true,
+            repairedPayload: { ports: [] },
+        })
+    })
+
+    it('preserves an already-well-formed ports array untouched', async () => {
+        const writeHealedLudicGraph = jest.fn(async () => undefined)
+        const ports = [{ portId: 'ab6129d', fromHostId: 'OBJECT#box' }]
+        const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
+            getStoredLudicGraph: async () => ({
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                ports,
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toMatchObject({
+            stale: true,
+            healable: true,
+            repairedPayload: {
+                nodes: [
+                    { tag: 'Room', universalKey: ROOM_ID },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                ],
+                ports,
+            },
+        })
     })
 
     it('reports healable: false for a non-object stored value', async () => {

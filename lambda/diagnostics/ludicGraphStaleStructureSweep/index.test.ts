@@ -51,6 +51,7 @@ describe('ludicGraphStaleStructureSweep', () => {
                             { tag: 'Room', universalKey: ROOM_ID },
                             { tag: 'Character', universalKey: CHARACTER_ID },
                         ],
+                        ports: [],
                     },
                 }],
                 emitFinding,
@@ -59,6 +60,26 @@ describe('ludicGraphStaleStructureSweep', () => {
 
         expect(result).toEqual({ emittedCount: 0, ephemeraIds: [] })
         expect(emitFinding).not.toHaveBeenCalled()
+    })
+
+    it('emits a finding for a row missing ports even though the root node is present (LP4d proving case)', async () => {
+        const result = await ludicGraphStaleStructureSweep(
+            { diagnosticRunId: 'run-ports', nowMs: 1_700_000_000_000 },
+            {
+                listCandidateRows: async () => [{
+                    EphemeraId: ROOM_ID,
+                    DataCategory: 'Meta::Room',
+                    ludicGraph: {
+                        rootId: ROOM_ID,
+                        nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                    },
+                }],
+                emitFinding,
+            }
+        )
+
+        expect(result).toEqual({ emittedCount: 1, ephemeraIds: [ROOM_ID] })
+        expect(emitFinding).toHaveBeenCalledTimes(1)
     })
 
     it('does not emit for a row with no stored ludicGraph (not yet written, not stale)', async () => {
