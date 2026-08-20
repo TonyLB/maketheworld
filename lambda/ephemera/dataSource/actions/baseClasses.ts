@@ -334,6 +334,7 @@ export type ParseCommandEstablishRelationResult = {
     operationKind: RelationalOperationKind
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
+    /** Deliberately narrow --- ingress lane (LD-13/BD-2): containment (`In`/`PartOf`) must not parse into `establishRelation`. */
     relationKind: 'On' | 'Under' | 'Against' | 'Custom'
     relationLabel?: string
     /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
@@ -673,6 +674,7 @@ export function isParseCommandObjectManipulationResult(
 }
 
 const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
+/** Deliberately narrow --- ingress lane (LD-13/BD-2): containment (`In`/`PartOf`) must not parse into `establishRelation`. */
 const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['On', 'Under', 'Against', 'Custom'])
 
 export function isParseCommandEstablishRelationResult(

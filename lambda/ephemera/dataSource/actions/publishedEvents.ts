@@ -65,6 +65,7 @@ export type ObjectDropPublishedPayload = {
 }
 
 
+/** Deliberately narrow --- ingress lane (LD-13/BD-2): containment (`In`/`PartOf`) must not parse into `establishRelation`. */
 export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
 
 const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([

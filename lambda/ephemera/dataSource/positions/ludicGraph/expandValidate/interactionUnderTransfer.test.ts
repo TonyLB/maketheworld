@@ -31,6 +31,14 @@ describe('classifyInteractionUnderTransfer', () => {
     ] as const)('%s / %s -> %s', (relationKind, movedRole, expected) => {
         expect(classifyInteractionUnderTransfer(relationKind, movedRole)).toBe(expected)
     })
+
+    // LP4c-i: containment kinds are unreachable today (LD-13 keeps them off the ingress path),
+    // and this classifier must refuse to decide them until LD-11 answers what they return --
+    // a default value here would silently answer the open decision.
+    it.each(['In', 'PartOf'] as const)('throws naming LD-11 for %s, rather than silently classifying it', (relationKind) => {
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'subject')).toThrow(/LD-11/)
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'target')).toThrow(/LD-11/)
+    })
 })
 
 describe('roleOfObjectInEdge', () => {

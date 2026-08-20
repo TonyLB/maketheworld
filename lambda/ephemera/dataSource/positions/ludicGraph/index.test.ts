@@ -376,6 +376,20 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
         })
 
+        // LP4c-i: extractRelationalEdgesFromStored's fallback branch has its own
+        // HOST_RELATIONAL_EDGE_KINDS Set literal (baseClasses.ts), separate from
+        // ephemeraMeta.ts's. A stale Set here fails silently -- the edge is simply never
+        // pushed -- so this must be checked directly, not inferred from the primary-path test.
+        it.each(['In', 'PartOf'] as const)('extractRelationalEdgesFromStored survives a %s containment edge', (kind) => {
+            const edges = extractRelationalEdgesFromStored({
+                nodes: [],
+                edges: [
+                    { tag: 'Relational', from: HOST_ID, to: OBJECT_A, kind },
+                ] as unknown as [],
+            })
+            expect(edges).toEqual([{ from: HOST_ID, to: OBJECT_A, kind }])
+        })
+
         it('edgesMatch distinguishes Custom relationLabel', () => {
             expect(edgesMatch(
                 { from: OBJECT_A, to: OBJECT_B, kind: 'On' },

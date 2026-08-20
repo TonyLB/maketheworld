@@ -452,6 +452,43 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
+    // LP4c-i: HostRelationalEdgeKind widened to admit containment ('In'/'PartOf'), and the
+    // guard's runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by hand in lockstep,
+    // since a Set literal has no exhaustiveness requirement against the type union -- a stale
+    // Set would silently drop every containment edge from the stored payload rather than fail
+    // to compile. Accepting each kind here is the agreement check for that Set.
+    it.each(['In', 'PartOf'] as const)('accepts a %s containment edge, root to member', (kind) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'ROOM#Kitchen',
+                to: 'OBJECT#crystalBall',
+                kind,
+            }],
+        })).toBe(true)
+    })
+
+    // LP4c-i: both kinds are non-exclusive -- a member can be simultaneously In and PartOf
+    // the same host, so this must not be modeled as a mutually-exclusive switch anywhere.
+    it('accepts both In and PartOf edges between the same pair, coexisting', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [
+                { tag: 'Relational', from: 'ROOM#Kitchen', to: 'OBJECT#crystalBall', kind: 'In' },
+                { tag: 'Relational', from: 'ROOM#Kitchen', to: 'OBJECT#crystalBall', kind: 'PartOf' },
+            ],
+        })).toBe(true)
+    })
+
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-fix guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
     // function" instead of returning false. A port-qualified terminal is not yet a legal edge

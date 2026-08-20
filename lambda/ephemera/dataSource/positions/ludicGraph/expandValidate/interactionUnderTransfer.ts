@@ -28,6 +28,13 @@ export function classifyInteractionUnderTransfer(
             return 'dissolve'
         case 'Custom':
             return 'defer'
+        case 'In':
+        case 'PartOf':
+            // LP4c-i placeholder: unreachable today (LD-13 keeps containment off the ingress
+            // path), and must stay a throw, not a real classification -- LD-11 decides what
+            // these return. Replace before ludicCache authors containment nesting directly,
+            // which is this throw's actual expiry, not LP4c-ii landing.
+            throw new Error(`classifyInteractionUnderTransfer: containment kind '${relationKind}' not yet classified (LD-11)`)
     }
 }
 

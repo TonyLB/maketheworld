@@ -48,7 +48,7 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 }
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf'])
 
 export type PositionsPublishedPayload =
     | CharacterMovedPublishedPayload

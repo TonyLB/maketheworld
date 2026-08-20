@@ -311,7 +311,9 @@ export type EphemeraLudicGraphNode =
         universalKey: EphemeraAreaId;
     }
 
-export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+export type HostRelationalEdgeKind =
+    | 'On' | 'Under' | 'Against' | 'Custom'   // spatial, player-driven -- unchanged
+    | 'In' | 'PartOf'                          // containment, non-exclusive (premise 9)
 
 /**
  * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
@@ -327,7 +329,7 @@ export type EphemeraLudicRelationalEdgeData = {
     relationLabel?: string;
 }
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

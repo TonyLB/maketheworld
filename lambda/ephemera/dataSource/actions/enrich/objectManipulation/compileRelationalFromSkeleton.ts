@@ -238,6 +238,14 @@ export async function compileRelationalFromSkeleton(
         if (!isEphemeraObjectId(relStep.subjectId) || !isEphemeraObjectId(relStep.targetId)) {
             continue
         }
+        // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment ('In'/
+        // 'PartOf'), but this ingress-facing route's relationKind stays the narrow four-kind set
+        // (LD-13, parsePlanStep.ts) --- same drop-the-candidate idiom as the endpoint guard above.
+        // Unreachable today: no ingress path can produce a containment relStep (isContainmentSpan
+        // routes to nestingDefer before this point).
+        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf') {
+            continue
+        }
 
         const hostId = transferStep !== undefined ? transferStep.toHostId : getCurrentHostForExpansion(candidate.subjectId)
         if (hostId === undefined) {
