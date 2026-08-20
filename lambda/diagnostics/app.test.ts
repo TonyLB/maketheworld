@@ -1,5 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { RenderCacheTargetCatalog } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('./staleSessionSweep', () => ({
@@ -25,6 +26,9 @@ jest.mock('./renderCacheDriftSweep', () => ({
 jest.mock('./orphanedImprovisedObjectSweep', () => ({
     orphanedImprovisedObjectSweep: jest.fn(async () => ({ emittedCount: 0, objectIds: [] as string[] }))
 }))
+jest.mock('./ludicGraphStaleStructureSweep', () => ({
+    ludicGraphStaleStructureSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
+}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
@@ -32,6 +36,7 @@ import { playerMisalignmentSweep } from './playerMisalignmentSweep'
 import { componentVerticalMisalignmentSweep } from './componentVerticalMisalignmentSweep'
 import { renderCacheDriftSweep } from './renderCacheDriftSweep'
 import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
+import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -53,6 +58,8 @@ describe('diagnostics handler', () => {
         })
         jest.mocked(orphanedImprovisedObjectSweep).mockReset()
         jest.mocked(orphanedImprovisedObjectSweep).mockResolvedValue({ emittedCount: 0, objectIds: [] as EphemeraObjectId[] })
+        jest.mocked(ludicGraphStaleStructureSweep).mockReset()
+        jest.mocked(ludicGraphStaleStructureSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -236,6 +243,26 @@ describe('diagnostics handler', () => {
         })).resolves.toBeUndefined()
 
         expect(orphanedImprovisedObjectSweep).not.toHaveBeenCalled()
+    })
+
+    // Regression: the direct-invoke allow-list in app.ts named this type, but ingress.ts's
+    // normalizeApiDiagnosticsIngress switch had no matching case, so the sweep silently never ran.
+    it('invokes ludicGraphStaleStructureSweep for direct LudicGraphStaleStructureSweep type', async () => {
+        jest.mocked(ludicGraphStaleStructureSweep).mockResolvedValueOnce({
+            emittedCount: 1,
+            ephemeraIds: ['ROOM#Kitchen' as EphemeraMembershipHostId],
+        })
+        const result = await handler({
+            type: 'LudicGraphStaleStructureSweep',
+            diagnosticRunId: 'dr-lgss',
+            nowMs: 5555,
+        })
+
+        expect(ludicGraphStaleStructureSweep).toHaveBeenCalledWith({
+            diagnosticRunId: 'dr-lgss',
+            nowMs: 5555,
+        })
+        expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['ROOM#Kitchen'] })
     })
 
 })
