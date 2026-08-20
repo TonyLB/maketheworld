@@ -32,12 +32,14 @@ describe('classifyInteractionUnderTransfer', () => {
         expect(classifyInteractionUnderTransfer(relationKind, movedRole)).toBe(expected)
     })
 
-    // LP4c-i: containment kinds are unreachable today (LD-13 keeps them off the ingress path),
-    // and this classifier must refuse to decide them until LD-11 answers what they return --
-    // a default value here would silently answer the open decision.
-    it.each(['In', 'PartOf'] as const)('throws naming LD-11 for %s, rather than silently classifying it', (relationKind) => {
-        expect(() => classifyInteractionUnderTransfer(relationKind, 'subject')).toThrow(/LD-11/)
-        expect(() => classifyInteractionUnderTransfer(relationKind, 'target')).toThrow(/LD-11/)
+    // AB-54 (2026-08-19): containment kinds are *hosting* kinds -- the subordinate node lives
+    // in its host's own shard -- so they do not appear on the exterior graph this classifier
+    // runs over. The throw asserts that invariant rather than standing in for a pending answer.
+    // It is scoped to the current constructor discipline (AB-53, iteration 1), not forever:
+    // if multi-level graphs land, this test is the thing that should fail and be revisited.
+    it.each(['In', 'PartOf'] as const)('throws naming AB-54 for %s, rather than classifying a hosting kind', (relationKind) => {
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'subject')).toThrow(/AB-54/)
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'target')).toThrow(/AB-54/)
     })
 })
 

@@ -457,7 +457,11 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     // since a Set literal has no exhaustiveness requirement against the type union -- a stale
     // Set would silently drop every containment edge from the stored payload rather than fail
     // to compile. Accepting each kind here is the agreement check for that Set.
-    it.each(['In', 'PartOf'] as const)('accepts a %s containment edge, root to member', (kind) => {
+    // Direction corrected 2026-08-20 (LD-16): relation kinds are predicates on the SUBJECT --
+    // 'glass -On-> tray' reads "glass is on tray" -- so a containment edge runs member -> root:
+    // 'crystalBall -In-> kitchen'. AB-4's "root to part" was a claim about INCIDENCE (every
+    // containment edge touches the root, hence the star topology) written down as direction.
+    it.each(['In', 'PartOf'] as const)('accepts a %s containment edge, member to root', (kind) => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
             nodes: [
@@ -466,8 +470,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ],
             edges: [{
                 tag: 'Relational',
-                from: 'ROOM#Kitchen',
-                to: 'OBJECT#crystalBall',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
                 kind,
             }],
         })).toBe(true)
@@ -483,8 +487,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
             ],
             edges: [
-                { tag: 'Relational', from: 'ROOM#Kitchen', to: 'OBJECT#crystalBall', kind: 'In' },
-                { tag: 'Relational', from: 'ROOM#Kitchen', to: 'OBJECT#crystalBall', kind: 'PartOf' },
+                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'In' },
+                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'PartOf' },
             ],
         })).toBe(true)
     })

@@ -30,11 +30,21 @@ export function classifyInteractionUnderTransfer(
             return 'defer'
         case 'In':
         case 'PartOf':
-            // LP4c-i placeholder: unreachable today (LD-13 keeps containment off the ingress
-            // path), and must stay a throw, not a real classification -- LD-11 decides what
-            // these return. Replace before ludicCache authors containment nesting directly,
-            // which is this throw's actual expiry, not LP4c-ii landing.
-            throw new Error(`classifyInteractionUnderTransfer: containment kind '${relationKind}' not yet classified (LD-11)`)
+            // An invariant assertion, not a placeholder awaiting a classification, as of
+            // AB-53/AB-54 (2026-08-19). Hosting and containment are one mechanism: a hosting
+            // kind ('On', 'In', 'PartOf') puts the subordinate node in its host's own shard,
+            // so a containment edge is not present in the exterior graph this classifier runs
+            // over, and reaching here means a producer built a graph the constructor does not
+            // author. The earlier note here -- "replace before ludicCache nests" -- is withdrawn.
+            //
+            // What would legitimately retire this throw: AB-53 keeps containment root-to-part
+            // as an ITERATION-1 CONSTRUCTOR DISCIPLINE, not a structural lock. If multi-level
+            // graphs ever land, a containment edge can appear here and this becomes a real
+            // decision again (LD-11). Note that even then the answer is likely to be deleting
+            // the carry path rather than classifying it -- AB-5's mint/move/dissolve covers
+            // carry behaviour without traversal. Until then, LD-11 survives only for the
+            // 'Against' reconciliation, which is a peer kind and never lands in this branch.
+            throw new Error(`classifyInteractionUnderTransfer: containment kind '${relationKind}' is a hosting kind and must not appear on an exterior graph (AB-54)`)
     }
 }
 

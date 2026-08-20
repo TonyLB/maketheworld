@@ -380,14 +380,16 @@ describe('EphemeraLudicGraph', () => {
         // HOST_RELATIONAL_EDGE_KINDS Set literal (baseClasses.ts), separate from
         // ephemeraMeta.ts's. A stale Set here fails silently -- the edge is simply never
         // pushed -- so this must be checked directly, not inferred from the primary-path test.
+        // Direction corrected 2026-08-20 (LD-16): containment runs member -> root, matching the
+        // subject-predicate-object convention every other kind already follows.
         it.each(['In', 'PartOf'] as const)('extractRelationalEdgesFromStored survives a %s containment edge', (kind) => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: HOST_ID, to: OBJECT_A, kind },
+                    { tag: 'Relational', from: OBJECT_A, to: HOST_ID, kind },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: HOST_ID, to: OBJECT_A, kind }])
+            expect(edges).toEqual([{ from: OBJECT_A, to: HOST_ID, kind }])
         })
 
         it('edgesMatch distinguishes Custom relationLabel', () => {
