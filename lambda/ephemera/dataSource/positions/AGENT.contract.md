@@ -152,6 +152,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 - **Must** derive **`MembershipDiff.froms`** from observed prior containers removed (may be **`length > 1`** on drift repair).
 - **Must** maintain **`ludicGraph`** + adjacency in the same **`transactWrite`** bundle; **must not** write legacy **`activeCharacters`** / **`RoomId`** membership projections. Mental model: [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 - On conflict between graph and adjacency, **`ludicGraph` wins** (diagnostics repair from graph).
+- **Adjacency row existence is an existential invariant, not a lifecycle event:** a row `(EphemeraId: X, DataCategory: POSITION#<hostId>)` exists **iff** X is a node in `<hostId>`'s `ludicGraph`. It is not a refcount over edges --- edges of every kind (hosting, peer) are orthogonal to this index, which is why the kernel **must not** write adjacency rows for relational edges (see [Edge persist shape](#edge-persist-shape-bd-3) below). **Forward note:** when hosting-as-shard lands, dissolving a hosting edge (`On`/`In`/`PartOf`) becomes a membership change and **must** be routed as a `transferMembership` step, so adjacency keeps following node presence --- not by teaching adjacency to inspect edges.
 
 #### Host storage: one shared serde, one documented exception
 

@@ -312,8 +312,8 @@ export type EphemeraLudicGraphNode =
     }
 
 export type HostRelationalEdgeKind =
-    | 'On' | 'Under' | 'Against' | 'Custom'   // spatial, player-driven -- unchanged
-    | 'In' | 'PartOf'                          // containment, non-exclusive (premise 9)
+    | 'On' | 'Under' | 'Against' | 'Custom'   // On: hosting kind (AB-54); Under/Against/Custom: peer kinds
+    | 'In' | 'PartOf'                          // hosting kinds (AB-54), non-exclusive (premise 9)
 
 /**
  * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).

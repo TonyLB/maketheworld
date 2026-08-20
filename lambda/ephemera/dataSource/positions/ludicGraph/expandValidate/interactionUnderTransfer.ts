@@ -44,7 +44,7 @@ export function classifyInteractionUnderTransfer(
             // the carry path rather than classifying it -- AB-5's mint/move/dissolve covers
             // carry behaviour without traversal. Until then, LD-11 survives only for the
             // 'Against' reconciliation, which is a peer kind and never lands in this branch.
-            throw new Error(`classifyInteractionUnderTransfer: containment kind '${relationKind}' is a hosting kind and must not appear on an exterior graph (AB-54)`)
+            throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
     }
 }
 
