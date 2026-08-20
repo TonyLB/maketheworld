@@ -6,7 +6,9 @@ import {
     edgesMatch,
     EphemeraLudicGraph,
     RelationalEdgeStillReferencedError,
+    areaNode,
     characterNode,
+    featureNode,
     fromAreaMeta,
     fromCharacterMeta,
     fromFeatureMeta,
@@ -14,8 +16,10 @@ import {
     fromRoomMeta,
     graphFromMeta,
     hostDataCategory,
+    nodeFromId,
     nodeHasRelationalEdge,
     objectNode,
+    roomNode,
     seedFromActiveCharacters,
     toStoredRelationalEdge,
 } from './index'
@@ -50,20 +54,20 @@ describe('EphemeraLudicGraph', () => {
     })
 
     describe('seedFromActiveCharacters', () => {
-        it('maps roster to nodes', () => {
+        it("maps roster to nodes, with the host's own root node first (LP4i)", () => {
             const graph = seedFromActiveCharacters([
                 { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
             ], HOST_ID)
             expect(graph.toStored()).toEqual({
                 rootId: HOST_ID,
-                nodes: [characterNode(CHARACTER_A), characterNode(CHARACTER_B)],
+                nodes: [roomNode(HOST_ID), characterNode(CHARACTER_A), characterNode(CHARACTER_B)],
                 edges: [],
             })
         })
 
-        it('returns empty graph for empty roster', () => {
-            expect(seedFromActiveCharacters([], HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [], edges: [] })
+        it('returns a graph with only the root node for an empty roster (LP4i)', () => {
+            expect(seedFromActiveCharacters([], HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [roomNode(HOST_ID)], edges: [] })
         })
 
         it('rootId defaults to hostId', () => {
@@ -75,6 +79,7 @@ describe('EphemeraLudicGraph', () => {
         it('addCharacter appends new node', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
             expect(graph.addCharacter(CHARACTER_B).toStored().nodes).toEqual([
+                roomNode(HOST_ID),
                 characterNode(CHARACTER_A),
                 characterNode(CHARACTER_B),
             ])
@@ -96,6 +101,7 @@ describe('EphemeraLudicGraph', () => {
         it('addObject appends new node and preserves characters', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
             expect(graph.addObject(OBJECT_A).toStored().nodes).toEqual([
+                roomNode(HOST_ID),
                 characterNode(CHARACTER_A),
                 objectNode(OBJECT_A),
             ])
@@ -191,13 +197,13 @@ describe('EphemeraLudicGraph', () => {
                 { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
             ], HOST_ID)
-            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([characterNode(CHARACTER_B)])
+            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([roomNode(HOST_ID), characterNode(CHARACTER_B)])
         })
     })
 
     describe('construction and serialization', () => {
-        it('empty creates host-bound graph with no nodes, rooted at its own host', () => {
-            expect(EphemeraLudicGraph.empty(HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [] })
+        it("empty creates host-bound graph rooted at its own host, with the root's own node present (LP4i, concepts clause 3)", () => {
+            expect(EphemeraLudicGraph.empty(HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [roomNode(HOST_ID)] })
             expect(EphemeraLudicGraph.empty(HOST_ID).hostId).toBe(HOST_ID)
             expect(EphemeraLudicGraph.empty(HOST_ID).rootId).toBe(HOST_ID)
         })
@@ -249,7 +255,7 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.rootId).toBe(HOST_ID)
             expect(graph.toStored()).toEqual({
                 rootId: HOST_ID,
-                nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
+                nodes: [roomNode(HOST_ID), characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             })
         })
 
@@ -295,35 +301,35 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.toStored()).toEqual(payload)
         })
 
-        it('fromRoomMeta seeds from activeCharacters when ludicGraph absent', () => {
+        it('fromRoomMeta seeds from activeCharacters when ludicGraph absent, root node included (LP4i)', () => {
             const graph = fromRoomMeta({
                 activeCharacters: [{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }],
             }, HOST_ID)
-            expect(graph.toStored().nodes).toEqual([characterNode(CHARACTER_A)])
+            expect(graph.toStored().nodes).toEqual([roomNode(HOST_ID), characterNode(CHARACTER_A)])
             expect(graph.rootId).toBe(HOST_ID)
         })
 
-        it('fromCharacterMeta uses ludicGraph or empty graph, rooted at hostId', () => {
-            expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [], edges: [] })
-            const payload = { rootId: HOST_ID, nodes: [objectNode(OBJECT_A)], edges: [] as [] }
+        it('fromCharacterMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+            expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ rootId: HOST_ID, nodes: [nodeFromId(HOST_ID)], edges: [] })
+            const payload = { rootId: HOST_ID, nodes: [nodeFromId(HOST_ID), objectNode(OBJECT_A)], edges: [] as [] }
             expect(fromCharacterMeta({ ludicGraph: payload }, HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromObjectMeta uses ludicGraph or empty graph, rooted at hostId', () => {
-            expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ rootId: OBJECT_HOST_ID, nodes: [], edges: [] })
-            const payload = { rootId: OBJECT_HOST_ID, nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+        it('fromObjectMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+            expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ rootId: OBJECT_HOST_ID, nodes: [objectNode(OBJECT_HOST_ID)], edges: [] })
+            const payload = { rootId: OBJECT_HOST_ID, nodes: [objectNode(OBJECT_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromObjectMeta({ ludicGraph: payload }, OBJECT_HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromFeatureMeta uses ludicGraph or empty graph, rooted at hostId', () => {
-            expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ rootId: FEATURE_HOST_ID, nodes: [], edges: [] })
-            const payload = { rootId: FEATURE_HOST_ID, nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+        it('fromFeatureMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+            expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ rootId: FEATURE_HOST_ID, nodes: [featureNode(FEATURE_HOST_ID)], edges: [] })
+            const payload = { rootId: FEATURE_HOST_ID, nodes: [featureNode(FEATURE_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromFeatureMeta({ ludicGraph: payload }, FEATURE_HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromAreaMeta uses ludicGraph or empty graph, rooted at hostId', () => {
-            expect(fromAreaMeta({}, AREA_HOST_ID).toStored()).toEqual({ rootId: AREA_HOST_ID, nodes: [], edges: [] })
-            const payload = { rootId: AREA_HOST_ID, nodes: [characterNode(CHARACTER_A)], edges: [] as [] }
+        it('fromAreaMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+            expect(fromAreaMeta({}, AREA_HOST_ID).toStored()).toEqual({ rootId: AREA_HOST_ID, nodes: [areaNode(AREA_HOST_ID)], edges: [] })
+            const payload = { rootId: AREA_HOST_ID, nodes: [areaNode(AREA_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromAreaMeta({ ludicGraph: payload }, AREA_HOST_ID).toStored()).toEqual(payload)
         })
 
@@ -458,6 +464,15 @@ describe('EphemeraLudicGraph', () => {
             const edges = [{ from: OBJECT_A, to: 'ROOM#Nested' as EphemeraRoomId, kind: 'On' as const }]
             expect(nodeHasRelationalEdge('ROOM#Nested' as EphemeraRoomId, edges)).toBe(true)
             expect(nodeHasRelationalEdge('ROOM#Missing' as EphemeraRoomId, edges)).toBe(false)
+        })
+
+        // LP4i payoff test: a containment edge names the graph's own root as its endpoint
+        // (LD-16: member -> root, e.g. `crystalBall -In-> kitchen`). Before LP4i, no
+        // construction path put the root in `nodes`, so this failed `bothObjectsOnGraph` even
+        // though the edge is legal by every other rule -- the concrete bug this slice fixes.
+        it("bothObjectsOnGraph validates a containment edge naming the graph's own root, now that the root is present in nodes", () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)
+            expect(graph.bothObjectsOnGraph(OBJECT_A, HOST_ID)).toBe(true)
         })
 
         // LP3/PQ-10: `EphemeraLudicRelationalEdgeData.from`/`.to` are `EphemeraLudicTerminalPrimitive`-

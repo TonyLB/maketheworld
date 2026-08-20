@@ -9,7 +9,11 @@ const characterId = 'CHARACTER#one'
 
 const graphWithCharacter = {
     rootId: roomId,
-    nodes: [{ tag: 'Character' as const, universalKey: characterId }],
+    // LP4i: concepts clause 3 requires the root to be present in `nodes`.
+    nodes: [
+        { tag: 'Room' as const, universalKey: roomId },
+        { tag: 'Character' as const, universalKey: characterId },
+    ],
 }
 
 describe('listGraphCharacterIds', () => {

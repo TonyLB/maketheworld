@@ -155,7 +155,10 @@ describe('isEphemeraMetaObject', () => {
                 ...baseMeta,
                 ludicGraph: {
                     rootId: 'OBJECT#helmet',
-                    nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                    nodes: [
+                        { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                        { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    ],
                 },
             })
         ).toBe(true)
@@ -385,6 +388,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
             nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
             ],
@@ -419,6 +423,49 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],
         })).toBe(false)
+    })
+
+    // LP4i: concepts clause 3 requires the designated root to be present in the graph's own
+    // node list. This is the structural-staleness proving case --- every construction path
+    // shipped before LP4i produced a `rootId` with no backing node.
+    describe('root-in-nodes (LP4i, concepts clause 3)', () => {
+        it('rejects a payload whose root has no backing node', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom' }],
+            })).toBe(false)
+        })
+
+        it('accepts a payload whose root node is present alongside other members', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                    { tag: 'Object', universalKey: 'OBJECT#broom' },
+                ],
+            })).toBe(true)
+        })
+
+        it('accepts an empty host-bound graph whose only node is its own root', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'CHARACTER#Alpha',
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            })).toBe(true)
+        })
+
+        it('rejects an empty nodes list even though rootId is well-formed', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [],
+            })).toBe(false)
+        })
+
+        it('checks root-in-nodes by owner, not full terminal equality, for a port-qualified root', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: { owner: 'OBJECT#Box', port: 'ab6129d' },
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#Box' }],
+            })).toBe(true)
+        })
     })
 
     // LP4: from/to admit any legal host-kind component now, not only Objects --- matching
@@ -552,7 +599,10 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'ROOM#Test',
             rootId: 'ROOM#Test',
-            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Test' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+            ],
         })).toBe(true)
     })
 
@@ -560,7 +610,10 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'CHARACTER#Beta',
             rootId: 'CHARACTER#Beta',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            nodes: [
+                { tag: 'Character', universalKey: 'CHARACTER#Beta' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
         })).toBe(true)
     })
 
@@ -568,7 +621,10 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'OBJECT#Box',
             rootId: 'OBJECT#Box',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#Spring' }],
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#Box' },
+                { tag: 'Object', universalKey: 'OBJECT#Spring' },
+            ],
         })).toBe(true)
     })
 
@@ -576,7 +632,10 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
             rootId: 'FEATURE#Wall',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            nodes: [
+                { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
         })).toBe(true)
     })
 
@@ -595,7 +654,10 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
             rootId: 'AREA#Downtown',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            nodes: [
+                { tag: 'Area', universalKey: 'AREA#Downtown' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
         })).toBe(true)
     })
 
@@ -637,7 +699,10 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             DataCategory: 'Meta::Room',
             ludicGraph: {
                 rootId: 'ROOM#Test',
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Test' },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                ],
             },
         })).toBe(true)
     })
@@ -673,7 +738,10 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             DataCategory: 'Meta::Character',
             ludicGraph: {
                 rootId: 'CHARACTER#Alpha',
-                nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+                nodes: [
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                ],
             },
         })).toBe(true)
     })

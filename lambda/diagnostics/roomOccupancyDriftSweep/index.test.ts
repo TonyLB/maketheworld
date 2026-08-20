@@ -26,6 +26,12 @@ const graphNode = (universalKey: string) => ({
     universalKey,
 })
 
+// LP4i: concepts clause 3 requires the graph's own root to be present in `nodes`.
+const roomGraphNode = (universalKey: string) => ({
+    tag: 'Room' as const,
+    universalKey,
+})
+
 describe('roomOccupancyDriftSweep', () => {
     const ebSend = jest.spyOn(EventBridgeClient.prototype, 'send') as jest.Mock
     const connectionQueryMock = connectionDB.query as unknown as jest.Mock
@@ -49,7 +55,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterGhost)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [roomGraphNode(roomAlpha), graphNode(characterGhost)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {
@@ -80,7 +86,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterOne)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [roomGraphNode(roomAlpha), graphNode(characterOne)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {
@@ -111,7 +117,7 @@ describe('roomOccupancyDriftSweep', () => {
             .mockImplementationOnce(async () => ({
                 items: [{
                     EphemeraId: roomAlpha,
-                    ludicGraph: { rootId: roomAlpha, nodes: [graphNode(characterOne)] },
+                    ludicGraph: { rootId: roomAlpha, nodes: [roomGraphNode(roomAlpha), graphNode(characterOne)] },
                 }],
             }))
             .mockImplementation(async (props: any) => {

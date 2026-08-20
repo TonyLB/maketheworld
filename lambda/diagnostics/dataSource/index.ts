@@ -7,6 +7,7 @@ import { isSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/event
 import { isStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import messageBus from '../messageBus'
 import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
+import { ludicGraphStaleStructureSweep } from '../ludicGraphStaleStructureSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -23,6 +24,7 @@ import {
     isDiagnosticsApiPlayerMisalignmentSweepEnvelope,
     isDiagnosticsApiRenderCacheDriftSweepEnvelope,
     isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope,
+    isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -182,6 +184,18 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 const content = await event.getContent()
                 const result = await orphanedImprovisedObjectSweep({
                     ...(Array.isArray(content.objectIds) ? { objectIds: content.objectIds } : {}),
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.publish({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await ludicGraphStaleStructureSweep({
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

@@ -407,6 +407,14 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if (!graph.nodes.every((entry) => isEphemeraLudicGraphNode(entry))) {
         return false
     }
+    // Concepts clause 3: the designated root must be present in the graph's own node list
+    // (LP4i). Checked by owner, not full terminal equality --- `rootId` is always a bare
+    // terminal primitive for a host-bound graph, never a port address, but a stored payload
+    // is exactly the thing this guard exists not to assume.
+    const rootOwner = ephemeraLudicTerminalOwner(graph.rootId)
+    if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
+        return false
+    }
     if ('edges' in graph) {
         const edges = graph.edges
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
@@ -533,7 +541,11 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
         if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
             return false
         }
-        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character')
+        // A character never holds another character (never membership-moved) --- but LP4i
+        // requires the graph's own root to be present in `nodes`, and a character host's
+        // root node is necessarily Character-tagged (itself). Exclude the root's own node
+        // from this check rather than reading the two rules as in conflict.
+        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character' && node.universalKey !== value.EphemeraId)
         if (hasCharacterNode) {
             return false
         }

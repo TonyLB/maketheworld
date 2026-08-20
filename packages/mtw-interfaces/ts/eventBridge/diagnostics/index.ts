@@ -10,6 +10,8 @@ import {
     isEphemeraObjectId,
     isEphemeraRoomId,
 } from '../../baseClasses'
+import type { EphemeraMembershipHostId } from '../../ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '../../ephemeraPositionAdjacency'
 
 //
 // Internal types for diagnostics events
@@ -72,6 +74,19 @@ export type DiagnosticsOrphanedImprovisedObjectFindingEvent = {
     timestamp: string
 }
 
+/**
+ * LP4i: a `Meta::*.ludicGraph` row whose stored payload fails the shipped shape guard
+ * (`isEphemeraLudicGraphFieldPayload`) --- currently only reachable by the root-in-nodes gap
+ * (concepts clause 3), since the guard is the single source of truth for staleness and nothing
+ * else in the shape has drifted yet.
+ */
+export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
+    type: 'Ludic Graph Stale Structure Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId: string
+    timestamp: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEvent = {
     type: 'Player Misalignment Finding'
     player: string
@@ -106,6 +121,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsOrphanedImprovisedObjectFindingEvent
     | DiagnosticsPlayerMisalignmentFindingEvent
     | DiagnosticsComponentVerticalMisalignedFindingEvent
+    | DiagnosticsLudicGraphStaleStructureFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -164,6 +180,13 @@ export type DiagnosticsOrphanedImprovisedObjectFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsLudicGraphStaleStructureFindingEventExternal = {
+    type: 'Ludic Graph Stale Structure Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEventExternal = {
     type: 'Player Misalignment Finding'
     player: string
@@ -189,6 +212,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsOrphanedImprovisedObjectFindingEventExternal
     | DiagnosticsPlayerMisalignmentFindingEventExternal
     | DiagnosticsComponentVerticalMisalignedFindingEventExternal
+    | DiagnosticsLudicGraphStaleStructureFindingEventExternal
 
 //
 // Type guards
@@ -319,6 +343,18 @@ export const isPlayerMisalignmentFindingEvent = (event: any): event is Diagnosti
     )
 }
 
+export const isLudicGraphStaleStructureFindingEvent = (
+    event: any
+): event is DiagnosticsLudicGraphStaleStructureFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Ludic Graph Stale Structure Finding' &&
+        typeof event.ephemeraId === 'string' &&
+        isEphemeraMembershipHostId(event.ephemeraId)
+    )
+}
+
 export const isComponentVerticalMisalignedFindingEvent = (
     event: any
 ): event is DiagnosticsComponentVerticalMisalignedFindingEvent => {
@@ -337,7 +373,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
         isEphemeraRenderCacheFindingEvent(event) ||
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
-        isComponentVerticalMisalignedFindingEvent(event) ||
+        isComponentVerticalMisalignedFindingEvent(event) || isLudicGraphStaleStructureFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -435,6 +471,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 type: 'Component Vertical Misaligned Finding',
                 assetId: content.assetId,
                 status: content.status,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Ludic Graph Stale Structure Finding' && isLudicGraphStaleStructureFindingEvent(content)) {
+            return {
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: content.ephemeraId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -580,6 +624,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 type: 'Component Vertical Misaligned Finding',
                 assetId: content.assetId,
                 status: content.status as 'missing' | 'stale' | 'orphan',
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Ludic Graph Stale Structure Finding') {
+            if (typeof content.ephemeraId !== 'string' || !isEphemeraMembershipHostId(content.ephemeraId)) {
+                return null
+            }
+            return {
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

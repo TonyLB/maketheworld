@@ -463,6 +463,23 @@ Positions **must** subscribe to:
 
 Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/).
 
+### `mtw.diagnostics` --- `ludicGraph` structural staleness self-heal (LP4i)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Ludic Graph Stale Structure Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphStructure`](ludicGraph/healLudicGraphStructure.ts) |
+
+**Repair model, scoped tightly (premise 10: recorded, never derived):**
+
+- **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
+- **Not healable, and must not be attempted here:** `ports` (LD-17's --- a port has no interior witness, so repairing it needs the exterior) or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit.
+- **Idempotent:** at-least-once finding delivery **must** be safe --- a row already matching the shipped shape is a no-op read, no write issued.
+- **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here is LPM's reset undone.
+
+Sweep (read-only classification): [`../../../diagnostics/ludicGraphStaleStructureSweep/`](../../../diagnostics/ludicGraphStaleStructureSweep/).
+
 ---
 
 ## Read surface (forward graph vs reverse containers)

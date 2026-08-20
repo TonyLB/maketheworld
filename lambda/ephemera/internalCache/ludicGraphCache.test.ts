@@ -4,6 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import {
     characterNode,
     EphemeraLudicGraph,
+    nodeFromId,
     objectNode,
 } from '../dataSource/positions/ludicGraph'
 import { createEphemeraLudicGraphCacheData } from './ludicGraphCache'
@@ -46,7 +47,9 @@ describe('EphemeraLudicGraphCacheData', () => {
         })
         const original = EphemeraLudicGraph.fromFieldPayload(ROOM_ID, {
             rootId: ROOM_ID,
-            nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
+            // LP4i: fromPlayEnvelope (the read side of this round trip) now always includes
+            // the graph's own root node, so a fixture built by hand needs it too.
+            nodes: [nodeFromId(ROOM_ID), characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             edges: [],
         })
 
@@ -62,7 +65,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         })
         const original = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
             rootId: OBJECT_HOST_ID,
-            nodes: [characterNode(CHARACTER_A)],
+            nodes: [nodeFromId(OBJECT_HOST_ID), characterNode(CHARACTER_A)],
             edges: [],
         })
 
@@ -78,7 +81,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         })
         const original = EphemeraLudicGraph.fromFieldPayload(FEATURE_HOST_ID, {
             rootId: FEATURE_HOST_ID,
-            nodes: [characterNode(CHARACTER_A)],
+            nodes: [nodeFromId(FEATURE_HOST_ID), characterNode(CHARACTER_A)],
             edges: [],
         })
 
@@ -94,7 +97,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         })
         const original = EphemeraLudicGraph.fromFieldPayload(AREA_ID, {
             rootId: AREA_ID,
-            nodes: [characterNode(CHARACTER_A)],
+            nodes: [nodeFromId(AREA_ID), characterNode(CHARACTER_A)],
             edges: [],
         })
 

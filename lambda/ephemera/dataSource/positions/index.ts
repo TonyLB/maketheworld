@@ -7,7 +7,8 @@
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
  * (`Character Navigate`, `Character Home`, `Object Take Hold`, `Object Drop`,
- * `Object Establish Relation`, `Object Dissolve Relation`), `mtw.diagnostics` (`Room Occupancy Drift Finding`). Additional
+ * `Object Establish Relation`, `Object Dissolve Relation`), `mtw.diagnostics` (`Room Occupancy Drift Finding`,
+ * `Ludic Graph Stale Structure Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -33,6 +34,7 @@ import {
     isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
+    isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
@@ -46,6 +48,7 @@ import { orchestrateObjectMove } from './manipulation/membership/orchestrateObje
 import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
+import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
@@ -69,6 +72,14 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     messageBus,
                     streamEvent,
                 })
+                return
+            }
+            if (isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content?.ephemeraId) {
+                    return
+                }
+                await healLudicGraphStructure(content.ephemeraId, { dryRun: false })
                 return
             }
             if (isEphemeraPositionsActionsObjectDropEnvelope(envelope)) {
