@@ -145,6 +145,22 @@ describe('objectManipulationPresentationLegAdapters', () => {
             }])
         })
 
+        it('LP4g: yields no leg for an Object Relation Changed fact with a non-Object (Character) subject --- deliberately deferred', async () => {
+            const COMPANION = 'CHARACTER#Companion' as const
+            const legs = await toObjectManipulationPresentationLeg(
+                envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Relation Changed', {
+                    type: 'Object Relation Changed',
+                    subjectId: COMPANION,
+                    targetId: TRAY,
+                    hostId: ROOM,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    beatAnchorTime: ANCHOR_TIME,
+                }, GLASS)
+            )
+            expect(legs).toEqual([])
+        })
+
         it('yields no leg for a retired Object Moved fact', async () => {
             const legs = await toObjectManipulationPresentationLeg(
                 envelope(EPHEMERA_POSITIONS_DATA_SOURCE_KEY, 'Object Moved', {

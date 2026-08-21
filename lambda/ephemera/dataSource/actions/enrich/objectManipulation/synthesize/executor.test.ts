@@ -54,6 +54,34 @@ describe('runExecutor', () => {
         expect(env.settledGroups.size).toBe(1)
     })
 
+    it('LP4g: carries a connected object and dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
+        const COMPANION_ID = 'CHARACTER#Companion' as EphemeraCharacterId
+        const graph = EphemeraLudicGraph.empty(ROOM_ID)
+            .addObject(TRAY_ID)
+            .addCharacter(COMPANION_ID)
+            .addRelationalEdge({ from: TRAY_ID, to: COMPANION_ID, kind: 'On' })
+
+        const env = createExpansionEnvironment(
+            (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            (id) => ([TRAY_ID, COMPANION_ID].includes(id) ? ROOM_ID : undefined)
+        )
+
+        const seed: WorklistInstruction[] = [
+            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
+            { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
+        ]
+
+        const result = runExecutor(seed, env, emptyGroundingContext)
+
+        expect(result).toEqual({
+            verdict: 'legal',
+            steps: [
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, relationKind: 'On' },
+                { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+            ],
+        })
+    })
+
     it('seedTransferMembership always pairs a transferMembership Change with isolatedFromRelations, isolatedFromRelations first', () => {
         const change: TransferMembershipChange = {
             kind: 'change',

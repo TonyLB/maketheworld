@@ -13,6 +13,11 @@ import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
  * hierarchy that cannot loop back on itself; `Against` and `Custom` are
  * deliberately out of scope here, per the same "grow as concrete cases
  * demand" discipline this codebase already applies to Expansion/Assertion.
+ *
+ * `'On' | 'Under'` is its own grouping, not AB-54's hosting-kind/peer-kind
+ * partition (`On` hosts, `Under` is a peer) -- recorded, not resolved, on
+ * LD-12 in AGENT.ludicGraphPorts.planning.md, which owns whether/how this
+ * parameter should change.
  */
 type CycleWalkState = {
     /** Nodes on the current recursion path --- a hit here is a genuine cycle. */

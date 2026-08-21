@@ -1,18 +1,21 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferSet'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
+// LP4g: widened from EphemeraObjectId/graph.objectIds to the full terminal-kind set,
+// via the kind-indifferent nodeIds getter LP4 built for exactly this purpose.
 const findHostOf = (
-    id: EphemeraObjectId,
+    id: EphemeraLudicTerminalPrimitive,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId | undefined => {
     for (const [hostId, graph] of graphs) {
-        if (graph.objectIds.has(id)) {
+        if (graph.nodeIds.has(id)) {
             return hostId
         }
     }

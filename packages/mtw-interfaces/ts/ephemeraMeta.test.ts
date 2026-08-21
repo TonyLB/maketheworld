@@ -6,6 +6,7 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
+    isEphemeraLudicGraphPort,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
     ephemeraLudicTerminalOwner,
@@ -155,7 +156,11 @@ describe('isEphemeraMetaObject', () => {
                 ...baseMeta,
                 ludicGraph: {
                     rootId: 'OBJECT#helmet',
-                    nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                    ports: [],
+                    nodes: [
+                        { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                        { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    ],
                 },
             })
         ).toBe(true)
@@ -283,11 +288,53 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(true)
     })
 
-    it('rejects unrecognized tag', () => {
+    it('accepts feature node with universalKey', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Feature',
             universalKey: 'FEATURE#Test',
+        })).toBe(true)
+    })
+
+    it('rejects feature node with invalid universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Feature',
+            universalKey: 'ROOM#Test',
         })).toBe(false)
+    })
+
+    it('accepts area node with universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Area',
+            universalKey: 'AREA#Downtown',
+        })).toBe(true)
+    })
+
+    it('rejects area node with invalid universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Area',
+            universalKey: 'OBJECT#helmet',
+        })).toBe(false)
+    })
+
+    it('rejects unrecognized tag', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Bogus',
+            universalKey: 'FEATURE#Test',
+        })).toBe(false)
+    })
+
+    it('node tags cover exactly the terminal-primitive kinds (LP4b)', () => {
+        const cases: { tag: 'Character' | 'Object' | 'Room' | 'Feature' | 'Area'; universalKey: string }[] = [
+            { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+            { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            { tag: 'Room', universalKey: 'ROOM#Test' },
+            { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+            { tag: 'Area', universalKey: 'AREA#Downtown' },
+        ]
+        cases.forEach(({ universalKey, ...node }) => {
+            expect(isEphemeraLudicGraphNode({ ...node, universalKey })).toBe(true)
+            expect(isEphemeraLudicTerminalPrimitive(universalKey)).toBe(true)
+        })
     })
 
     it('rejects invalid universalKey', () => {
@@ -317,6 +364,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts character nodes with empty edges', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [],
         })).toBe(true)
@@ -325,6 +373,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts graph without edges field', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(true)
     })
@@ -332,6 +381,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts mixed character and object nodes', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
                 { tag: 'Object', universalKey: 'OBJECT#helmet' },
@@ -342,7 +392,9 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts relational edges on room host graph', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
+            ports: [],
             nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
             ],
@@ -358,6 +410,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('rejects Custom relational edge without relationLabel', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
+            ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#rope' },
                 { tag: 'Object', universalKey: 'OBJECT#crate' },
@@ -374,9 +427,58 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('rejects invalid edge envelope', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
             edges: [{ tag: 'Exit', uuid: 'exit-1' }],
         })).toBe(false)
+    })
+
+    // LP4i: concepts clause 3 requires the designated root to be present in the graph's own
+    // node list. This is the structural-staleness proving case --- every construction path
+    // shipped before LP4i produced a `rootId` with no backing node.
+    describe('root-in-nodes (LP4i, concepts clause 3)', () => {
+        it('rejects a payload whose root has no backing node', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                ports: [],
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom' }],
+            })).toBe(false)
+        })
+
+        it('accepts a payload whose root node is present alongside other members', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                ports: [],
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                    { tag: 'Object', universalKey: 'OBJECT#broom' },
+                ],
+            })).toBe(true)
+        })
+
+        it('accepts an empty host-bound graph whose only node is its own root', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'CHARACTER#Alpha',
+                ports: [],
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            })).toBe(true)
+        })
+
+        it('rejects an empty nodes list even though rootId is well-formed', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                ports: [],
+                nodes: [],
+            })).toBe(false)
+        })
+
+        it('checks root-in-nodes by owner, not full terminal equality, for a port-qualified root', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: { owner: 'OBJECT#Box', port: 'ab6129d' },
+                ports: [],
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#Box' }],
+            })).toBe(true)
+        })
     })
 
     // LP4: from/to admit any legal host-kind component now, not only Objects --- matching
@@ -384,6 +486,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts a relational edge with Room and Character terminals', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
+            ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
@@ -400,6 +503,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('rejects a relational edge terminal with an illegal tag', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'OBJECT#table',
+            ports: [],
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#table' }],
             edges: [{
                 tag: 'Relational',
@@ -408,6 +512,49 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 kind: 'On',
             }],
         })).toBe(false)
+    })
+
+    // LP4c-i: HostRelationalEdgeKind widened to admit containment ('In'/'PartOf'), and the
+    // guard's runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by hand in lockstep,
+    // since a Set literal has no exhaustiveness requirement against the type union -- a stale
+    // Set would silently drop every containment edge from the stored payload rather than fail
+    // to compile. Accepting each kind here is the agreement check for that Set.
+    // Direction corrected 2026-08-20 (LD-16): relation kinds are predicates on the SUBJECT --
+    // 'glass -On-> tray' reads "glass is on tray" -- so a containment edge runs member -> root:
+    // 'crystalBall -In-> kitchen'. AB-4's "root to part" was a claim about INCIDENCE (every
+    // containment edge touches the root, hence the star topology) written down as direction.
+    it.each(['In', 'PartOf'] as const)('accepts a %s containment edge, member to root', (kind) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind,
+            }],
+        })).toBe(true)
+    })
+
+    // LP4c-i: both kinds are non-exclusive -- a member can be simultaneously In and PartOf
+    // the same host, so this must not be modeled as a mutually-exclusive switch anywhere.
+    it('accepts both In and PartOf edges between the same pair, coexisting', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [
+                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'In' },
+                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'PartOf' },
+            ],
+        })).toBe(true)
     })
 
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-fix guard called
@@ -423,6 +570,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         }]
         expect(() => isEphemeraLudicGraphFieldPayload({
             rootId: 'OBJECT#broom',
+            ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -431,6 +579,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).not.toThrow()
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'OBJECT#broom',
+            ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
                 { tag: 'Object', universalKey: 'OBJECT#table' },
@@ -449,6 +598,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('rejects a malformed rootId (neither a terminal primitive nor a port address)', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ASSET#bogus',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
@@ -459,8 +609,70 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     it('accepts a port-address rootId', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: { owner: 'OBJECT#box', port: 'ab6129d' },
+            ports: [],
             nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
         })).toBe(true)
+    })
+
+    // LP4d: ports is required and possibly empty, not optional like edges --- see LPM's
+    // rootId precedent for why no `??= []` belongs at this boundary.
+    describe('ports (LP4d, premise 12)', () => {
+        it('rejects a payload missing ports entirely', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
+            })).toBe(false)
+        })
+
+        it('rejects a non-array ports value', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
+                ports: 'not-an-array',
+            })).toBe(false)
+        })
+
+        it('rejects a malformed port entry (bad fromHostId)', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus' }],
+            })).toBe(false)
+        })
+
+        it('rejects a malformed port entry (non-string portId)', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box' }],
+            })).toBe(false)
+        })
+
+        it('accepts a well-formed non-empty ports array', () => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'OBJECT#box',
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' }],
+            })).toBe(true)
+        })
+    })
+})
+
+describe('isEphemeraLudicGraphPort', () => {
+    it('accepts a well-formed port entry', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' })).toBe(true)
+    })
+
+    it('rejects a malformed fromHostId', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus' })).toBe(false)
+    })
+
+    it('rejects a non-string portId', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen' })).toBe(false)
+    })
+
+    it('rejects a non-object value', () => {
+        expect(isEphemeraLudicGraphPort('OBJECT#box#ab6129d')).toBe(false)
     })
 })
 
@@ -469,7 +681,11 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'ROOM#Test',
             rootId: 'ROOM#Test',
-            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Test' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+            ],
         })).toBe(true)
     })
 
@@ -477,7 +693,11 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'CHARACTER#Beta',
             rootId: 'CHARACTER#Beta',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            ports: [],
+            nodes: [
+                { tag: 'Character', universalKey: 'CHARACTER#Beta' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
         })).toBe(true)
     })
 
@@ -485,33 +705,63 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'OBJECT#Box',
             rootId: 'OBJECT#Box',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#Spring' }],
+            ports: [],
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#Box' },
+                { tag: 'Object', universalKey: 'OBJECT#Spring' },
+            ],
         })).toBe(true)
     })
 
     it('accepts host-bound graph with feature hostId (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
-        // The Feature *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
-        // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
             rootId: 'FEATURE#Wall',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            ports: [],
+            nodes: [
+                { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
+        })).toBe(true)
+    })
+
+    it('accepts feature host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'FEATURE#Wall',
+            rootId: 'FEATURE#Wall',
+            ports: [],
+            nodes: [
+                { tag: 'Feature', universalKey: 'FEATURE#Wall' },
+                { tag: 'Feature', universalKey: 'FEATURE#Niche' },
+            ],
         })).toBe(true)
     })
 
     it('accepts host-bound graph with area hostId (LP0 Area slice)', () => {
-        // The Area *node* tag (EphemeraLudicGraphNode) is out of scope for this slice --- LP4b.
-        // Only the host union widens here, so the node list still uses an already-shipped tag.
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
             rootId: 'AREA#Downtown',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            ports: [],
+            nodes: [
+                { tag: 'Area', universalKey: 'AREA#Downtown' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+            ],
+        })).toBe(true)
+    })
+
+    it('accepts area host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+        expect(isEphemeraLudicGraphData({
+            hostId: 'AREA#Downtown',
+            rootId: 'AREA#Downtown',
+            ports: [],
+            nodes: [{ tag: 'Area', universalKey: 'AREA#Downtown' }],
         })).toBe(true)
     })
 
     it('rejects missing hostId', () => {
         expect(isEphemeraLudicGraphData({
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
@@ -520,6 +770,7 @@ describe('isEphemeraLudicGraphData', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'KNOWLEDGE#helmet',
             rootId: 'CHARACTER#Alpha',
+            ports: [],
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
         })).toBe(false)
     })
@@ -539,7 +790,11 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             DataCategory: 'Meta::Room',
             ludicGraph: {
                 rootId: 'ROOM#Test',
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                ports: [],
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Test' },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                ],
             },
         })).toBe(true)
     })
@@ -550,7 +805,8 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             DataCategory: 'Meta::Room',
             ludicGraph: {
                 rootId: 'ROOM#Test',
-                nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Other' }],
+                ports: [],
+                nodes: [{ tag: 'Feature', universalKey: 'OBJECT#Other' }],
             },
         })).toBe(false)
     })
@@ -575,7 +831,11 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             DataCategory: 'Meta::Character',
             ludicGraph: {
                 rootId: 'CHARACTER#Alpha',
-                nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+                ports: [],
+                nodes: [
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                ],
             },
         })).toBe(true)
     })
@@ -593,6 +853,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             DataCategory: 'Meta::Character',
             ludicGraph: {
                 rootId: 'CHARACTER#Alpha',
+                ports: [],
                 nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta' }],
             },
         })).toBe(false)

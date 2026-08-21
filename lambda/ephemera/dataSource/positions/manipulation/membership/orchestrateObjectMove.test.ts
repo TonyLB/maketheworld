@@ -32,7 +32,7 @@ const WITNESS = 'CHARACTER#Bob' as EphemeraCharacterId
 // LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
 const fragment: EphemeraLudicGraph = EphemeraLudicGraph.fromJSON({
     hostId: TRAY,
-    rootId: TRAY,
+    rootId: TRAY, ports: [],
     nodes: [objectNode(TRAY)],
     edges: [],
 })

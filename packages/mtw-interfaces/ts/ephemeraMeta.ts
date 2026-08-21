@@ -278,7 +278,17 @@ export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: Ephem
 export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicTerminalPrimitive): boolean =>
     ephemeraLudicTerminalOwner(terminal) === id
 
-/** Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes (nodes only). */
+/**
+ * Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes
+ * (nodes only); LP4b widened to the full terminal-kind set (Feature, Area), closing the
+ * referential-integrity gap LP4 named: terminal kinds already admitted Feature/Area and this
+ * union did not, so a terminal could name no backing node.
+ *
+ * Widening this union is not a part-of-ladder claim: adding a tag here says a kind may appear
+ * in a graph's node list, not that it belongs above the room in the containment ladder --- see
+ * AGENT.concepts.md's premise-11 warning (the same guard already written on
+ * EphemeraPositionAdjacencyContainedId).
+ */
 export type EphemeraLudicGraphNode =
     | {
         tag: 'Character';
@@ -292,8 +302,18 @@ export type EphemeraLudicGraphNode =
         tag: 'Room';
         universalKey: EphemeraRoomId;
     }
+    | {
+        tag: 'Feature';
+        universalKey: EphemeraFeatureId;
+    }
+    | {
+        tag: 'Area';
+        universalKey: EphemeraAreaId;
+    }
 
-export type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+export type HostRelationalEdgeKind =
+    | 'On' | 'Under' | 'Against' | 'Custom'   // On: hosting kind (AB-54); Under/Against/Custom: peer kinds
+    | 'In' | 'PartOf'                          // hosting kinds (AB-54), non-exclusive (premise 9)
 
 /**
  * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
@@ -309,7 +329,7 @@ export type EphemeraLudicRelationalEdgeData = {
     relationLabel?: string;
 }
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -334,6 +354,16 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     return true
 }
 
+/**
+ * An egress-list entry (premise 12): the interior-authoritative half of a port record.
+ * `fromHostId` names the exterior host that refers to this port; it has no interior witness,
+ * so --- like `rootId` (premise 10) --- it is recorded, never derived. LP4d.
+ */
+export type EphemeraLudicGraphPort = {
+    portId: string;
+    fromHostId: EphemeraMembershipHostId;
+}
+
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
@@ -342,6 +372,8 @@ export type EphemeraLudicGraphData = {
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];
+    /** The egress list (premise 12); required and possibly empty --- see LPM's rootId precedent. LP4d. */
+    ports: EphemeraLudicGraphPort[];
 }
 
 /** Value of Meta::*.ludicGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
@@ -364,7 +396,21 @@ export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudic
     if (entry.tag === 'Room') {
         return isEphemeraRoomId(entry.universalKey)
     }
+    if (entry.tag === 'Feature') {
+        return isEphemeraFeatureId(entry.universalKey)
+    }
+    if (entry.tag === 'Area') {
+        return isEphemeraAreaId(entry.universalKey)
+    }
     return false
+}
+
+export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudicGraphPort => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const entry = value as EphemeraLudicGraphPort
+    return typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId)
 }
 
 export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is EphemeraLudicGraphFieldPayload => {
@@ -381,11 +427,24 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if (!graph.nodes.every((entry) => isEphemeraLudicGraphNode(entry))) {
         return false
     }
+    // Concepts clause 3: the designated root must be present in the graph's own node list
+    // (LP4i). Checked by owner, not full terminal equality --- `rootId` is always a bare
+    // terminal primitive for a host-bound graph, never a port address, but a stored payload
+    // is exactly the thing this guard exists not to assume.
+    const rootOwner = ephemeraLudicTerminalOwner(graph.rootId)
+    if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
+        return false
+    }
     if ('edges' in graph) {
         const edges = graph.edges
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
             return false
         }
+    }
+    // The egress list (premise 12) is required and possibly empty, not optional like `edges`
+    // --- see LPM's rootId precedent for why no `??= []` belongs at this boundary. LP4d.
+    if (!Array.isArray(graph.ports) || !graph.ports.every((entry) => isEphemeraLudicGraphPort(entry))) {
+        return false
     }
     return true
 }
@@ -507,7 +566,11 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
         if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
             return false
         }
-        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character')
+        // A character never holds another character (never membership-moved) --- but LP4i
+        // requires the graph's own root to be present in `nodes`, and a character host's
+        // root node is necessarily Character-tagged (itself). Exclude the root's own node
+        // from this check rather than reading the two rules as in conflict.
+        const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character' && node.universalKey !== value.EphemeraId)
         if (hasCharacterNode) {
             return false
         }

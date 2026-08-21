@@ -8,6 +8,7 @@ import {
     isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
     isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
 } from './subscribedEvents'
 
 describe('mtw.ephemera.positions subscribedEvents', () => {
@@ -256,5 +257,25 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts mtw.diagnostics Ludic Graph Stale Structure Finding envelope (LP4i)', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Ludic Graph Stale Structure Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Ludic Graph Stale Structure Finding' as const,
+                ephemeraId: 'ROOM#alpha' as const,
+                diagnosticRunId: 'diag-1',
+                timestamp: '2026-08-20T10:00:00.000Z',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(true)
     })
 })

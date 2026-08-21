@@ -11,7 +11,7 @@ const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 
 // LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
 const fragment = (members: EphemeraObjectId[]): EphemeraLudicGraph =>
-    EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, nodes: members.map(objectNode), edges: [] })
+    EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, ports: [], nodes: members.map(objectNode), edges: [] })
 
 describe('buildObjectMoveOp', () => {
     it('carries the closure as the moved set, with the fragment root as primary', () => {

@@ -31,6 +31,9 @@ export type DiagnosticsApiRenderCacheDriftSweepHeader =
 export type DiagnosticsApiOrphanedImprovisedObjectSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'OrphanedImprovisedObjectSweep' }
 
+export type DiagnosticsApiLudicGraphStaleStructureSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'LudicGraphStaleStructureSweep' }
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
@@ -85,6 +88,12 @@ const isDiagnosticsApiOrphanedImprovisedObjectSweepHeader: HeaderGuard<Diagnosti
     header.dataSourceKey === 'api.diagnostics' && header.type === 'OrphanedImprovisedObjectSweep'
 )
 
+const isDiagnosticsApiLudicGraphStaleStructureSweepHeader: HeaderGuard<DiagnosticsApiLudicGraphStaleStructureSweepHeader> = (
+    header
+): header is DiagnosticsApiLudicGraphStaleStructureSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'LudicGraphStaleStructureSweep'
+)
+
 export const isDiagnosticsSubscribedHeader: HeaderGuard<
     DiagnosticsConnectionsProblemHeader |
     DiagnosticsEphemeraObjectsProblemHeader |
@@ -101,7 +110,8 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiPlayerMisalignmentSweepHeader(header) ||
     isDiagnosticsApiComponentVerticalMisalignmentSweepHeader(header) ||
     isDiagnosticsApiRenderCacheDriftSweepHeader(header) ||
-    isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header)
+    isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
+    isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -148,6 +158,11 @@ export const isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope = makeStreami
     Extract<DiagnosticsAPIPayload, { type: 'OrphanedImprovisedObjectSweep' }>,
     DiagnosticsApiOrphanedImprovisedObjectSweepHeader
 >(isDiagnosticsApiOrphanedImprovisedObjectSweepHeader)
+
+export const isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'LudicGraphStaleStructureSweep' }>,
+    DiagnosticsApiLudicGraphStaleStructureSweepHeader
+>(isDiagnosticsApiLudicGraphStaleStructureSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,

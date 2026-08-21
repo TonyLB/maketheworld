@@ -235,6 +235,44 @@ describe('applyObjectRelationalChange', () => {
             }))
         })
 
+        it('LP4g: repairing the transfer severs a boundary relation to a non-Object (Character) endpoint, no throw', async () => {
+            const COMPANION_ID = 'CHARACTER#Companion' as EphemeraCharacterId
+            const heldGraph = testLudicGraph(CHARACTER_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Character', universalKey: COMPANION_ID },
+                ],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: COMPANION_ID, kind: 'Against' }],
+            })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === CHARACTER_ID ? heldGraph : roomGraph
+            )
+            const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: heldGraph, [ROOM_ID]: roomGraph })
+
+            const result = await applyObjectRelationalChange(
+                {
+                    subjectId: TRAY_ID,
+                    targetId: TABLE_ID,
+                    hostId: ROOM_ID,
+                    relationKind: 'On',
+                    operation: 'establish',
+                    transferFromHostId: CHARACTER_ID,
+                },
+                { messageBus: messageBus as any, streamEvent, transactWrite }
+            )
+
+            expect(result).toMatchObject({ ok: true, changed: true })
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                update: expect.objectContaining({
+                    type: 'Object Relation Changed',
+                    subjectId: TRAY_ID,
+                    targetId: COMPANION_ID,
+                    operation: 'dissolve',
+                }),
+            }))
+        })
+
         it('aborts the whole transact --- no partial move, no partial relation, no fact streams --- when the subject is no longer on the source host at commit time', async () => {
             const heldGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }] })

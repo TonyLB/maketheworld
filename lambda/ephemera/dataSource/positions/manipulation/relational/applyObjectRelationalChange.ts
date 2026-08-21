@@ -1,8 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -85,23 +84,17 @@ export const applyObjectRelationalChange = async (
             }
         }
 
-        // LP4 widened HostRelationalEdge.from/to; boundary-dissolve under transfer is still
-        // Object-only in practice (carry closure only ever moves Objects), so a non-Object
-        // endpoint here is a bug worth surfacing loudly rather than silently coercing.
+        // LP4g: HostRelationalEdge.from/to (already EphemeraLudicTerminalPrimitive-typed)
+        // flow straight into the widened dissolveRelation step terminals --- no narrow needed.
         const dissolveSteps: MutationKernelStep[] = outcomes
             .filter((entry) => entry.outcome === 'dissolve')
-            .map((entry) => {
-                if (!isEphemeraObjectId(entry.edge.from) || !isEphemeraObjectId(entry.edge.to)) {
-                    throw new Error(`Boundary dissolve edge ${entry.edge.from} -> ${entry.edge.to} has a non-Object endpoint`)
-                }
-                return {
-                    kind: 'dissolveRelation' as const,
-                    subjectId: entry.edge.from,
-                    targetId: entry.edge.to,
-                    relationKind: entry.edge.kind,
-                    ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
-                }
-            })
+            .map((entry) => ({
+                kind: 'dissolveRelation' as const,
+                subjectId: entry.edge.from,
+                targetId: entry.edge.to,
+                relationKind: entry.edge.kind,
+                ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+            }))
 
         const transferStep: TransferMembershipStep = {
             kind: 'transferMembership',
@@ -122,7 +115,7 @@ export const applyObjectRelationalChange = async (
     // boundary object a dissolve step names) is still on the transfer's source host, or on
     // `hostId` outright when there is no repair transfer at all.
     const transferFromHostId = args.transferFromHostId
-    const getCurrentHost = (id: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
+    const getCurrentHost = (id: EphemeraLudicTerminalPrimitive): EphemeraMembershipHostId | undefined =>
         transferFromHostId === undefined
             ? args.hostId
             : (id === args.targetId ? args.hostId : transferFromHostId)

@@ -165,6 +165,21 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 **Downstream handling:** **`mtw.ephemera.renderCache`** consumes **`Ephemera RenderCache Finding`** and performs lazy catalog invalidation only (**[`handleRenderCacheFinding.ts`](../ephemera/dataSource/renderCache/handleRenderCacheFinding.ts)**); hydrate runs on the next orchestration resolve, not on finding receipt.
 
+## Ludic Graph Stale Structure sweep (`ludicGraph` structural staleness diagnostics)
+
+**Purpose:** Read-only sweep over every `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` row that can carry a `ludicGraph` field (the five host kinds `EphemeraMembershipHostId` admits). Flags a row iff its stored `ludicGraph` fails the shipped shape guard (`isEphemeraLudicGraphFieldPayload`, `@tonylb/mtw-interfaces/ts/ephemeraMeta`) --- the sweep is a **caller** of that guard, not a second theory of staleness, so the two can never drift apart (LP4i). Currently reachable only via concepts clause 3's root-in-nodes gap: every graph's designated root must be present in its own node list, and the guard checks it. Emits findings only; diagnostics does not repair.
+
+**Entrypoints:**
+
+- Direct invoke: `{ type: 'LudicGraphStaleStructureSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics` ([`dataSource/index.ts`](dataSource/index.ts)).
+- No `mtw.diagnostics` EventBridge trigger and no scheduled/cron trigger in v1; a full-table scan across five `DataCategoryIndex` queries, operator-invoked.
+
+**Finding contract:** `mtw.diagnostics` / `Ludic Graph Stale Structure Finding` with payload `{ ephemeraId: EphemeraMembershipHostId }`, optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`. Implementation: [`ludicGraphStaleStructureSweep/`](ludicGraphStaleStructureSweep/).
+
+**Evaluation:** Scans all five host-kind `DataCategory`s, classifies each row's stored `ludicGraph` (absent is not stale --- "not yet written," not "written and wrong") via [`classification.ts`](ludicGraphStaleStructureSweep/classification.ts)'s `isLudicGraphStructurallyStale`, and emits one finding per stale row, sorted by `EphemeraId`.
+
+**Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries a `CloudWatchEvent` rule on `mtw.diagnostics` / `Ludic Graph Stale Structure Finding` (added 2026-08-20, fixing a gap where the sweep's own `ingress.ts` case was also missing until the same day --- neither the sweep's direct-invoke trigger nor its finding's delivery worked before then). Ephemera **`mtw.ephemera.positions`** consumes it via [`healLudicGraphStructure`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphStructure.ts) (idempotent repair, scoped to defaulting `rootId`/the root's own node, and `ports` --- LP4d, LD-17's interim posture (b) --- see that file's own doc comment for the exact healable set and what remains outside it). The consumer always commits (`dryRun: false`); dry-run mode exists for manual/operator invocation, not for the finding-triggered path.
+
 ## Related docs
 
 - Diagnostics **`internalCache`** slice (sweep read handlers): [`internalCache/AGENT.md`](internalCache/AGENT.md)
@@ -172,4 +187,5 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 - Positions S1 + orphan vs adjacency lag: [`../ephemera/dataSource/positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**
 - Assets heal authority and event flow: [`../assets/AGENT.event.md`](../assets/AGENT.event.md)
 - Cognito signup publish flow (`mtw.cognito` / `New Player`): [`../cognitoEvent/AGENT.md`](../cognitoEvent/AGENT.md)
+- `ludicGraph` structural staleness self-heal and its scope: [`../ephemera/dataSource/positions/ludicGraph/AGENT.md`](../ephemera/dataSource/positions/ludicGraph/AGENT.md)
 - Broader diagnostics schema notes: [`AGENT.schema.planning.md`](AGENT.schema.planning.md)

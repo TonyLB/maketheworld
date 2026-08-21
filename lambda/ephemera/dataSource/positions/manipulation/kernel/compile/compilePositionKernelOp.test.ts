@@ -145,7 +145,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
     // LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
     const fragment = (members: EphemeraObjectId[] = [TRAY]): EphemeraLudicGraph =>
-        EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, nodes: members.map(objectNode), edges: [] })
+        EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, ports: [], nodes: members.map(objectNode), edges: [] })
 
     const objectOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
         kind: 'move',
@@ -226,6 +226,19 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'dissolveRelation',
             subjectId: TRAY,
             targetId: 'OBJECT#Table',
+            relationKind: 'On',
+        })
+    })
+
+    it('LP4g: renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
+        const plan = compilePositionKernelOp(objectOp({
+            dissolvedEdges: [{ from: CHARACTER_ID, to: TRAY, kind: 'On' }],
+        }))
+
+        expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
+            kind: 'dissolveRelation',
+            subjectId: CHARACTER_ID,
+            targetId: TRAY,
             relationKind: 'On',
         })
     })

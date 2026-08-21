@@ -1,5 +1,5 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { MutationKernelStep } from './kernelStep'
 import type { StepSequenceFootprint } from './types'
@@ -24,7 +24,7 @@ import type { StepSequenceFootprint } from './types'
  */
 export const computeStepSequenceFootprint = (
     steps: readonly MutationKernelStep[],
-    getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
+    getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
 ): StepSequenceFootprint => {
     const hosts = new Set<EphemeraMembershipHostId>()
     for (const step of steps) {

@@ -182,6 +182,34 @@ describe('applyObjectClearMembership', () => {
         expect(finalRoomGraph.objectIds.has(OBJECT_ID)).toBe(false)
     })
 
+    it('LP4g: destroying an object with a relational edge to a non-Object (Character) endpoint dissolves it, no throw', async () => {
+        const roomGraph = testLudicGraph(FROM_ROOM, {
+            nodes: [
+                { tag: 'Object', universalKey: OBJECT_ID },
+                { tag: 'Character', universalKey: CHARACTER_ID },
+            ],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'On' }],
+        })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)
+        wireTransactWrite({ [FROM_ROOM]: roomGraph })
+
+        const result = await applyObjectClearMembership(
+            { objectId: OBJECT_ID },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result.ok).toBe(true)
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                type: 'Object Relation Changed',
+                subjectId: OBJECT_ID,
+                targetId: CHARACTER_ID,
+                operation: 'dissolve',
+            }),
+        }))
+    })
+
     it('BD-35: destroying an object present on multiple hosts sweeps each host and clears from all', async () => {
         const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })

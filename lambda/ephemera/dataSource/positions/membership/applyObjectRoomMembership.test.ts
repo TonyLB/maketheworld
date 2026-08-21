@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyObjectRoomMembership } from './applyObjectRoomMembership'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../ludicGraph'
@@ -36,6 +36,7 @@ const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
+const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 /**
  * Simulates `MultiKeyUpdate`'s fetch + reducer invocation, matching the pattern
@@ -158,6 +159,37 @@ describe('applyObjectRoomMembership', () => {
                 type: 'Object Relation Changed',
                 subjectId: OBJECT_ID,
                 targetId: TABLE_ID,
+                operation: 'dissolve',
+            }),
+        }))
+    })
+
+    it('LP4g: a departure-room relational edge to a non-Object (Character) endpoint dissolves, no throw', async () => {
+        const fromRoomGraph = testLudicGraph(FROM_ROOM, {
+            nodes: [
+                { tag: 'Object', universalKey: OBJECT_ID },
+                { tag: 'Character', universalKey: CHARACTER_ID },
+            ],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'On' }],
+        })
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
+        )
+        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
+
+        const result = await applyObjectRoomMembership(
+            { objectId: OBJECT_ID, targetRoomId: TO_ROOM },
+            { messageBus: messageBus as any, streamEvent }
+        )
+
+        expect(result.ok).toBe(true)
+        expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+            update: expect.objectContaining({
+                type: 'Object Relation Changed',
+                subjectId: OBJECT_ID,
+                targetId: CHARACTER_ID,
                 operation: 'dissolve',
             }),
         }))

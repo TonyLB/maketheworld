@@ -1,7 +1,8 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -22,7 +23,7 @@ import type { MutationKernelCaptures, MutationKernelCommitResult } from './types
 export type CommitStepSequenceDeps = {
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
-    getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
+    getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
     transactWrite?: typeof ephemeraDB.transactWrite
     /**
      * Object-lifecycle Migrate row: gates only the `Object Relation Changed` half of the

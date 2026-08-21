@@ -31,6 +31,16 @@ describe('classifyInteractionUnderTransfer', () => {
     ] as const)('%s / %s -> %s', (relationKind, movedRole, expected) => {
         expect(classifyInteractionUnderTransfer(relationKind, movedRole)).toBe(expected)
     })
+
+    // AB-54 (2026-08-19): containment kinds are *hosting* kinds -- the subordinate node lives
+    // in its host's own shard -- so they do not appear on the exterior graph this classifier
+    // runs over. The throw asserts that invariant rather than standing in for a pending answer.
+    // It is scoped to the current constructor discipline (AB-53, iteration 1), not forever:
+    // if multi-level graphs land, this test is the thing that should fail and be revisited.
+    it.each(['In', 'PartOf'] as const)('throws naming AB-54 for %s, rather than classifying a hosting kind', (relationKind) => {
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'subject')).toThrow(/AB-54/)
+        expect(() => classifyInteractionUnderTransfer(relationKind, 'target')).toThrow(/AB-54/)
+    })
 })
 
 describe('roleOfObjectInEdge', () => {

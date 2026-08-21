@@ -77,6 +77,13 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'LudicGraphStaleStructureSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'LudicGraphStaleStructureSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
 }
 

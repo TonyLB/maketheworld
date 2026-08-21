@@ -1,11 +1,12 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
 import { buildCharacterMovedFact } from '../../membership/buildCharacterMovedFact'
-import { buildObjectRelationalFact } from '../relational/buildObjectRelationalFact'
+import { buildRelationalFact } from '../relational/buildObjectRelationalFact'
 import type {
     CharacterMovedPublishedPayload,
     ObjectMovedPublishedPayload,
@@ -13,12 +14,14 @@ import type {
 } from '../../publishedEvents'
 import type { MutationKernelStep } from './kernelStep'
 
+// LP4g: widened from EphemeraObjectId/graph.objectIds to the full terminal-kind set,
+// via the kind-indifferent nodeIds getter LP4 built for exactly this purpose.
 const findHostOf = (
-    objectId: EphemeraObjectId,
+    id: EphemeraLudicTerminalPrimitive,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId | undefined => {
     for (const [hostId, graph] of graphs) {
-        if (graph.objectIds.has(objectId)) {
+        if (graph.nodeIds.has(id)) {
             return hostId
         }
     }
@@ -105,7 +108,7 @@ export const factsForStep = (
         throw new Error(`factsForStep: cannot re-derive host for ${step.subjectId} from the final or prior graph map`)
     }
     return [
-        buildObjectRelationalFact({
+        buildRelationalFact({
             subjectId: step.subjectId,
             targetId: step.targetId,
             hostId,

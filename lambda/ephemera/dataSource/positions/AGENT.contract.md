@@ -152,6 +152,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 - **Must** derive **`MembershipDiff.froms`** from observed prior containers removed (may be **`length > 1`** on drift repair).
 - **Must** maintain **`ludicGraph`** + adjacency in the same **`transactWrite`** bundle; **must not** write legacy **`activeCharacters`** / **`RoomId`** membership projections. Mental model: [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 - On conflict between graph and adjacency, **`ludicGraph` wins** (diagnostics repair from graph).
+- **Adjacency row existence is an existential invariant, not a lifecycle event:** a row `(EphemeraId: X, DataCategory: POSITION#<hostId>)` exists **iff** X is a node in `<hostId>`'s `ludicGraph`. It is not a refcount over edges --- edges of every kind (hosting, peer) are orthogonal to this index, which is why the kernel **must not** write adjacency rows for relational edges (see [Edge persist shape](#edge-persist-shape-bd-3) below). **Forward note:** when hosting-as-shard lands, dissolving a hosting edge (`On`/`In`/`PartOf`) becomes a membership change and **must** be routed as a `transferMembership` step, so adjacency keeps following node presence --- not by teaching adjacency to inspect edges.
 
 #### Host storage: one shared serde, one documented exception
 
@@ -462,6 +463,23 @@ Positions **must** subscribe to:
 - **Explicit gap:** stale adjacency without a graph node is out of scope for this room-forward scan.
 
 Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/).
+
+### `mtw.diagnostics` --- `ludicGraph` structural staleness self-heal (LP4i)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Ludic Graph Stale Structure Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphStructure`](ludicGraph/healLudicGraphStructure.ts) |
+
+**Repair model, scoped tightly (premise 10: recorded, never derived):**
+
+- **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
+- **Not healable, and must not be attempted here:** `ports` (LD-17's --- a port has no interior witness, so repairing it needs the exterior) or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit.
+- **Idempotent:** at-least-once finding delivery **must** be safe --- a row already matching the shipped shape is a no-op read, no write issued.
+- **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here is LPM's reset undone.
+
+Sweep (read-only classification): [`../../../diagnostics/ludicGraphStaleStructureSweep/`](../../../diagnostics/ludicGraphStaleStructureSweep/).
 
 ---
 

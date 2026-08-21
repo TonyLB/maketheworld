@@ -109,6 +109,29 @@ describe('factsForStep', () => {
         ])
     })
 
+    it('LP4g payoff: establishRelation with a non-Object (Character) subject emits its Object Relation Changed fact, host re-derived via nodeIds', () => {
+        const finalGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: characterId, to: tableId, kind: 'On' }],
+        })
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, relationKind: 'On' }
+        const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
+        expect(facts).toEqual([
+            {
+                type: 'Object Relation Changed',
+                subjectId: characterId,
+                targetId: tableId,
+                hostId: roomId,
+                relationKind: 'On',
+                operation: 'establish',
+                beatAnchorTime,
+            },
+        ])
+    })
+
     it('a multi-step array processed via flatMap preserves output order (dissolve-before-move)', () => {
         const finalSourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
         const finalDestGraph = testLudicGraph(characterId, {

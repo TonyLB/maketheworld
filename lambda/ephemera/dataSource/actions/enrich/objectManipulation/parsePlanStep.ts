@@ -1,6 +1,10 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+// Deliberately the ingress-lane HostRelationalEdgeKind (LD-13/BD-2), not ephemeraMeta.ts's
+// persistence-lane one --- this file's subjectId/targetId are EphemeraObjectId by the same
+// rule (LD-13, LP4g), and the two types coincided by accident until LP4c-i widened
+// ephemeraMeta.ts's to admit containment.
+import type { HostRelationalEdgeKind } from './relationKind'
 
 export type TransferMembershipStep = {
     kind: 'transferMembership'

@@ -1,7 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
@@ -48,17 +48,14 @@ export const applyObjectClearMembership = async (
         return { ok: true, ...diff }
     }
 
-    const hostByReferencedId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
+    // LP4g: keyed on EphemeraLudicTerminalPrimitive --- edge.from/to are already that type,
+    // and no longer narrowed to EphemeraObjectId before being used as a step terminal.
+    const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const hostId of diff.froms) {
         const graph = await internalCache.Positions.getLudicGraph(hostId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
-        // LP4 widened HostRelationalEdge.from/to; this sweep is still Object-only in practice
-        // (see applyObjectRelationalChange.ts's identical fix).
         for (const { edge } of outcomes) {
-            if (!isEphemeraObjectId(edge.from) || !isEphemeraObjectId(edge.to)) {
-                throw new Error(`Boundary dissolve edge ${edge.from} -> ${edge.to} has a non-Object endpoint`)
-            }
             hostByReferencedId.set(edge.from, hostId)
             hostByReferencedId.set(edge.to, hostId)
             dissolveSteps.push({

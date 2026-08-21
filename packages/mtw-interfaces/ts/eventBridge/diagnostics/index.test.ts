@@ -9,6 +9,7 @@ import {
     isOrphanedImprovisedObjectFindingEvent,
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
+    isLudicGraphStaleStructureFindingEvent,
     isWMLMaterializedViewFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
@@ -276,6 +277,27 @@ describe('DiagnosticsEventSerializer', () => {
                 assetId: 'ASSET#primitives',
                 status: 'missing',
                 diagnosticRunId: 'run-cv-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
+            })
+        })
+
+        it('should serialize Ludic Graph Stale Structure Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: 'ROOM#Kitchen',
+                diagnosticRunId: 'run-lgss-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: 'ROOM#Kitchen',
+                diagnosticRunId: 'run-lgss-ser',
                 timestamp: '2025-10-18T17:30:00.000Z'
             })
         })
@@ -797,6 +819,38 @@ describe('DiagnosticsEventSerializer', () => {
             })
             expect(internal).toBeNull()
         })
+
+        it('should deserialize Ludic Graph Stale Structure Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: 'CHARACTER#Alpha',
+                diagnosticRunId: 'run-lgss-des',
+                timestamp: '2025-10-18T17:36:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: 'CHARACTER#Alpha',
+                diagnosticRunId: 'run-lgss-des',
+                timestamp: '2025-10-18T17:36:00.000Z'
+            })
+        })
+
+        it('should return null for Ludic Graph Stale Structure Finding with invalid ephemeraId', async () => {
+            const internal = await serializer.deserialize({
+                content: {
+                    type: 'Ludic Graph Stale Structure Finding',
+                    ephemeraId: 'BOGUS#not-a-host',
+                },
+                header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
+            })
+            expect(internal).toBeNull()
+        })
     })
 
     describe('type guards', () => {
@@ -1022,6 +1076,25 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
+        describe('isLudicGraphStaleStructureFindingEvent', () => {
+            it('should return true for valid Ludic Graph Stale Structure Finding event', () => {
+                const event = {
+                    type: 'Ludic Graph Stale Structure Finding',
+                    ephemeraId: 'FEATURE#Wall',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isLudicGraphStaleStructureFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid ephemeraId or payloads', () => {
+                expect(isLudicGraphStaleStructureFindingEvent(null)).toBe(false)
+                expect(isLudicGraphStaleStructureFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: '' })).toBe(false)
+                expect(isLudicGraphStaleStructureFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
+                expect(isLudicGraphStaleStructureFindingEvent({ type: 'Ludic Graph Stale Structure Finding' })).toBe(false)
+            })
+        })
+
         describe('isComponentVerticalMisalignedFindingEvent', () => {
             it('should return true for valid Component Vertical Misaligned Finding event', () => {
                 const event = {
@@ -1201,6 +1274,26 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Orphaned Improvised Object Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Ludic Graph Stale Structure Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: 'AREA#Downtown',
+                diagnosticRunId: 'run-lgss-rt',
+                timestamp: '2025-10-18T18:24:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
             })
 
             expect(deserialized).toEqual(original)

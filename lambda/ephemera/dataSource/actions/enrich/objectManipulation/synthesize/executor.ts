@@ -1,4 +1,3 @@
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
@@ -265,24 +264,19 @@ const commandExpand = (
             }
 
             const dissolveOutcomes = outcomes.filter((entry) => entry.outcome === 'dissolve')
-            // LP4 widened HostRelationalEdge.from/to; boundary dissolve is still Object-only
-            // in practice here too (see applyObjectRelationalChange.ts's identical fix).
-            const children: WorklistInstruction[] = dissolveOutcomes.map((entry) => {
-                if (!isEphemeraObjectId(entry.edge.from) || !isEphemeraObjectId(entry.edge.to)) {
-                    throw new Error(`Boundary dissolve edge ${entry.edge.from} -> ${entry.edge.to} has a non-Object endpoint`)
-                }
-                return {
-                    id: mintInstructionId(),
-                    tag: 'grounded' as const,
-                    step: {
-                        kind: 'dissolveRelation' as const,
-                        subjectId: entry.edge.from,
-                        targetId: entry.edge.to,
-                        relationKind: entry.edge.kind,
-                        ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
-                    },
-                }
-            })
+            // LP4g: HostRelationalEdge.from/to (already EphemeraLudicTerminalPrimitive-typed)
+            // flow straight into the widened dissolveRelation step terminals --- no narrow needed.
+            const children: WorklistInstruction[] = dissolveOutcomes.map((entry) => ({
+                id: mintInstructionId(),
+                tag: 'grounded' as const,
+                step: {
+                    kind: 'dissolveRelation' as const,
+                    subjectId: entry.edge.from,
+                    targetId: entry.edge.to,
+                    relationKind: entry.edge.kind,
+                    ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+                },
+            }))
             return { kind: 'consumed', children }
         }
     }

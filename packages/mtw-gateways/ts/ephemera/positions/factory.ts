@@ -101,37 +101,37 @@ export class PositionsCacheHandler {
         if (isEphemeraRoomId(componentId)) {
             const stored = await getRoomLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
             )
         }
         if (isEphemeraCharacterId(componentId)) {
             const stored = await getCharacterLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
             )
         }
         if (isEphemeraObjectId(componentId)) {
             const stored = await getObjectLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
             )
         }
         if (isEphemeraFeatureId(componentId)) {
             const stored = await getFeatureLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
             )
         }
         if (isEphemeraAreaId(componentId)) {
             const stored = await getAreaLudicGraphFromDynamo(this.db, componentId)
             return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [] }
+                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
             )
         }
         // Unreachable in practice (componentId's declared type is exhausted above); no natural
         // root exists here, so falling back to the raw id preserves the pre-LP4a shape rather
         // than inventing a new default the caller never asked for.
-        return projectComponentGraphFromStoredLudicGraph({ rootId: componentId as unknown as EphemeraLudicTerminalId, nodes: [], edges: [] })
+        return projectComponentGraphFromStoredLudicGraph({ rootId: componentId as unknown as EphemeraLudicTerminalId, nodes: [], edges: [], ports: [] })
     }
 
     private async loadMembershipContainersFromDynamo(

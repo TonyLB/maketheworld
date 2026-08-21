@@ -28,6 +28,23 @@ export function classifyInteractionUnderTransfer(
             return 'dissolve'
         case 'Custom':
             return 'defer'
+        case 'In':
+        case 'PartOf':
+            // An invariant assertion, not a placeholder awaiting a classification, as of
+            // AB-53/AB-54 (2026-08-19). Hosting and containment are one mechanism: a hosting
+            // kind ('On', 'In', 'PartOf') puts the subordinate node in its host's own shard,
+            // so a containment edge is not present in the exterior graph this classifier runs
+            // over, and reaching here means a producer built a graph the constructor does not
+            // author. The earlier note here -- "replace before ludicCache nests" -- is withdrawn.
+            //
+            // What would legitimately retire this throw: AB-53 keeps containment root-to-part
+            // as an ITERATION-1 CONSTRUCTOR DISCIPLINE, not a structural lock. If multi-level
+            // graphs ever land, a containment edge can appear here and this becomes a real
+            // decision again (LD-11). Note that even then the answer is likely to be deleting
+            // the carry path rather than classifying it -- AB-5's mint/move/dissolve covers
+            // carry behaviour without traversal. Until then, LD-11 survives only for the
+            // 'Against' reconciliation, which is a peer kind and never lands in this branch.
+            throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
     }
 }
 
@@ -108,6 +125,7 @@ export function computeCarryClosure(
         rootId: startId,
         nodes: [...closureSet].map(objectNode),
         edges: internalEdges.map(toStoredRelationalEdge),
+        ports: [],
     })
 }
 

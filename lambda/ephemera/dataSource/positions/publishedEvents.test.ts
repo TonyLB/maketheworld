@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isCharacterMovedPublishedPayload, isObjectMovedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
+import { isCharacterMovedPublishedPayload, isObjectMovedPublishedPayload, isObjectRelationChangedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
 
 describe('isCharacterMovedPublishedPayload', () => {
     const minimal = {
@@ -110,6 +110,25 @@ describe('isObjectMovedPublishedPayload', () => {
             to: 'ROOM#b',
             beatAnchorTime: 1_700_000_000_000,
         })).toBe(false)
+    })
+})
+
+describe('isObjectRelationChangedPublishedPayload', () => {
+    // LP4c-i: this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) has its own copy of the
+    // persistence-lane widening -- a stale Set here fails silently rather than at compile time,
+    // so a kernel-emitted containment fact must be checked to actually validate on publish.
+    // Direction corrected 2026-08-20 (LD-16): the member is the subject ("the crystal ball is in
+    // the kitchen"), the host is the target. hostId is the graph's owner and is unaffected.
+    it.each(['In', 'PartOf'] as const)('accepts a %s containment relationKind', (relationKind) => {
+        expect(isObjectRelationChangedPublishedPayload({
+            type: 'Object Relation Changed',
+            subjectId: 'OBJECT#crystalBall',
+            targetId: 'ROOM#Kitchen',
+            hostId: 'ROOM#Kitchen',
+            relationKind,
+            operation: 'establish',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(true)
     })
 })
 
