@@ -1,0 +1,176 @@
+# Presence: the Phase 0 corpus
+
+**Companion to [`AGENT.presence.planning.md`](AGENT.presence.planning.md), created 2026-08-21** with its first case. This file holds **Phase 0's worked-example corpus** and nothing else: the evidence base that plan's rows argue from. Open rows, the cover formulation, and the progress table stay in the control surface.
+
+**Read this as part of the plan, not as an appendix.** A case here is the reason a PR row is worded the way it is.
+
+**Admission rules are inherited from the parent corpus** ([both rules](AGENT.abstractionLayers.corpus.planning.md#phase-0-corpus)): a case against today's model names the code site where it stops; a case against an unbuilt proposal names the clause it falsifies and states what each candidate reading produces. **This corpus will be mostly rule 2**, because presence is largely unbuilt --- so *name the clause* is the load-bearing half here.
+
+**This corpus is aimed differently than the plan originally said, and the re-aim is deliberate.** [PH0b](AGENT.presence.planning.md#recommended-order) called for **character-side** cases --- movement, connect, disconnect, eviction --- on the reasoning that they are the highest-frequency mutation in the system. **[PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only) made them uninteresting to this plan**: characters are single-ported, so presence is implicit for them and **the presence design never meaningfully touches a character**. A corpus aimed at them would have tested nothing. **The frequency argument was answering the wrong question --- it asked what the system does most, not what this design decides.** What this design decides is multi-host representation, so that is what the corpus probes.
+
+**Standing job for this corpus, stated because of how the plan got here.** PR-4, PR-9 and PR-10 were all answered on 2026-08-21 **before any case existed**. Every case in this file is therefore written to **falsify** an answer rather than to form one, and a case that merely illustrates an answer is not pulling its weight.
+
+This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+
+---
+
+## Phase 0 corpus
+
+### PH0a harvest --- the presence cases that already exist
+
+**Run 2026-08-21, out of order: [PR-C1](#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest) was written first, against [PH0a](AGENT.presence.planning.md#recommended-order)'s own instruction to harvest before writing.** The harvest is therefore doing two jobs --- citing what exists, and checking what PR-C1 and the rows answered on 2026-08-21 restated without knowing it.
+
+**Rule, from PH0a: cite, do not restate.** Each row below is a pointer plus what the case already settles *for presence*. **Nothing here re-tells a case in presence vocabulary** --- that would be the conflation this plan exists to avoid, and the parent's write-ups remain authoritative.
+
+| Case | What it already establishes for presence | Grades |
+| --- | --- | --- |
+| [C2 --- the rope in two rooms, refused at the gate](AGENT.abstractionLayers.corpus.planning.md#c2-the-rope-in-two-rooms-refused-at-the-gate) | **Multi-room presence is *storable* today and refused, ignored, scrubbed and duplicated by four different consumers.** The gate is [`complexityPreGates.ts:29`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/complexityPreGates.ts) and is **route-scoped, not global** --- three routes, three different constraints | [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)'s gate premise; [PR-6](AGENT.presence.planning.md#open-decisions-design--plan-only) (who writes); [PR-3](AGENT.presence.planning.md#open-decisions-design--plan-only) |
+| [C7 --- Ariadne's thread](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread) | **The one-node framing cannot represent a spanning thing** --- attachments have nowhere to record *where along*. **Presence must be established at *description* time, not reference time.** The real discriminator is **stored versus derived presence**. And **held-and-present are not mutually exclusive, and nothing can currently say both** | [PR-1](AGENT.presence.planning.md#open-decisions-design--plan-only) (both its named demands come from here); [PR-3](AGENT.presence.planning.md#open-decisions-design--plan-only); [PR-5](AGENT.presence.planning.md#open-decisions-design--plan-only) |
+| [C9 --- coiling the rope back in](AGENT.abstractionLayers.corpus.planning.md#c9-coiling-the-rope-back-in) | **The cover formulation's write model, worked in full a fortnight before the formulation was written.** Relocation *within* the spread is **one record**; crossing a boundary is **two**. **No edge changes at all** --- structure and position are independent. And **PQ-12**, the rule it needs and does not state: *relocation follows adjacency* --- **where *adjacency* is a relation between hosts, not between parts; see [H-4](#ph0a-harvest--the-presence-cases-that-already-exist) for what reading it the other way cost** | [PR-6](AGENT.presence.planning.md#open-decisions-design--plan-only); [PR-4](AGENT.presence.planning.md#open-decisions-design--plan-only); [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)'s arity obligation |
+| [C10 --- the moonbase computer system](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system) | **Presence is not derivable from the graph.** Rope and computer system have **identical port topology** and require different room-scale answers, so apprehension **must be declared**. Also: **some wholes correctly live nowhere** | [PR-7](AGENT.presence.planning.md#open-decisions-design--plan-only); [PR-1](AGENT.presence.planning.md#open-decisions-design--plan-only)'s zero-host question; [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only) |
+| [C11 --- the Rube Goldberg machine](AGENT.abstractionLayers.corpus.planning.md#c11-the-rube-goldberg-machine) | **Not in PH0a's list and it should have been.** `ROOM#A -> RGM -> String -> StringSpan` --- **the first case that *requires* PQ-5 chaining rather than merely permitting it.** Also **PQ-13**, and apprehension's **position-relativity** | [PR-C1](#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest); [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only); [PR-4](AGENT.presence.planning.md#open-decisions-design--plan-only) |
+
+**Five findings the harvest produced. Every one of them corrects something rather than adding something, and two correct the harvest itself** --- H-3 once, H-4 twice and then to withdrawal. **The corrections all run the same direction: a claim true of a narrower object than it was asserted about.** Recorded here because that is the pattern to watch, and because **no additional corpus case would have caught any of them.**
+
+**H-1 --- PR-C1 was not the first nested cover, and it must cite [C11](AGENT.abstractionLayers.corpus.planning.md#c11-the-rube-goldberg-machine).** C11's `ROOM#A -> RGM -> String -> StringSpan` is a three-level chain and C11 states outright that it is **the first case that requires chaining**. **PR-C1 restated that structure without knowing it, which is exactly what PH0a exists to prevent.** **What PR-C1 still contributes is not nesting but *alignment*** --- C11 establishes that nested covers must be representable; PR-C1 establishes that **representable is not the same as aligned**, and produces the port-qualified-terminal repair. **Keep both; PR-C1 is narrowed to the alignment finding and cites C11 for the shape.**
+
+**H-2 --- [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)'s original predicate was falsifiable by [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread) on 2026-08-07.** C7's nested framing is *"one multi-room `thread-span` whole"* nesting twenty appearances. **That whole is single-hosted --- its host is the thread --- and needs twenty buckets.** The counterexample to *implicit for single-hosted* has been sitting in the corpus for two weeks. **PR-C1 did not discover it; PR-C1 was the first to notice it**, and the amendment is confirmed by a second, independent case rather than resting on one.
+
+**H-3 --- [PQ-13](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused) read against the cover formulation, which reframes it. Rewritten 2026-08-21 from conversation; the first version of this finding was wrong and the error is recorded rather than removed.**
+
+**What [C11](AGENT.abstractionLayers.corpus.planning.md#c11-the-rube-goldberg-machine) says**, and it is priced there rather than merely raised: *"if a lantern is present by membership node and a rope is present by port, there are **two presence mechanisms**, and the level at which an object switches between them is exactly the whole/part distinction this case just dissolved. The invariance claim then fails at the bottom of the ladder rather than at the top."*
+
+**The error, first.** This finding originally read *PR-10 is a decision to have two presence mechanisms*, and booked PQ-13 as that row's principal open objection. **That conflated two different objects.** **PQ-13 is about the *port*** --- does a plain object's graph allocate one. **[PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only) is about the cover's *edges*** --- whether a one-bucket cover materializes `Present` edges inside the object's own graph. **PR-10 collapses an edge set; it never says an object stops having a port**, so it is not a decision to have two mechanisms and was not answered in defiance of C11.
+
+**The reframe, and it is the substantive half.** **Trace where a lantern's presence actually lives.** The lantern is a node in `ROOM#X`'s graph; under [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s totality every node of the room's graph falls in a bucket of **the room's** cover; a room is single-presence-ported, so that is one bucket, trivially. **The lantern's location is already covered --- by the room's cover, not by anything the lantern owns.** **So membership-node presence is not a second mechanism sitting outside the cover formulation. It is premise 12 again: one relation seen from two sides**, the room's side naming the object and the object's side holding the port. **The port carries information only when there is more than one bucket to distinguish** --- which is when the object spans, which is what PR-10 says.
+
+**This dissolves C11's objection in its own terms, which is the test worth applying.** C11's worry was that the **switch point** between mechanisms is the whole/part distinction --- **a role, not a kind**, and therefore undefinable. **Under one-relation-two-halves there is no switch.** There is a `ports` list that is empty or is not, and emptiness is a fact about **bucket count**, not about what kind of thing the object is. **A lantern carried into two rooms does not change mechanism; it gains a port.**
+
+**Two residuals, both smaller than PQ-13 as posed, and neither decided here.**
+
+| | Residual | Why it is not the original question |
+| --- | --- | --- |
+| **(i)** | **The type ships the no-port default.** [`EphemeraLudicGraphData`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) documents `ports` as *"required and possibly empty"*, so a lantern today genuinely has `ports: []` | Asks whether empty is a **legitimate steady state** or a transient of unspanned objects --- a question about defaults, not about how many mechanisms exist |
+| **(ii)** | **The ceremony cost is on the *room's* side**, not the object's: whether the room's node for the lantern stays a plain terminal or becomes port-qualified | This is where the 2026-08-06 objection actually bites, and **two things have since made it cheaper** --- [LP7](AGENT.ludicGraphPorts.planning.md#recommended-order) makes port-qualified terminals a scheduled shape rather than a proposal, and the port **kind field** settled 2026-08-21 makes a presence port self-describing |
+
+**PQ-13 belongs to the parent and is not answered here.** What this harvest contributes is that **it should be read beside the cover formulation**, which did not exist when it was posed, and that its *two mechanisms* framing does not survive that reading.
+
+**H-4 --- withdrawn. The finding was written twice, corrected once, and then retired with the row it served; the trail is kept because the failure mode is reusable.**
+
+**What it tried to establish.** That [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)'s revisit trigger fires on no existing case, and that a **structural predicate** says when it would --- so [PH0b](AGENT.presence.planning.md#recommended-order) could be briefed to write the case that fires it.
+
+**Three predicates were offered in one day and all three were the wrong shape.**
+
+| | Predicate | How it failed |
+| --- | --- | --- |
+| **(1)** | The parts are **continuous** | An informal notion, never defined against anything in the model |
+| **(2)** | **[PQ-12](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused), *relocation follows adjacency*** | A **vocabulary substitution**: *adjacency* here is a relation between **hosts** --- rooms and their exits --- not a claim that parts are next to each other. [AB-26](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) rule (i) says outright that adjacency **licenses an edge, it does not derive one**, and PQ-12 itself reversed 2026-08-10 to *no hard rule*, leaving spatial coherence **"real and unhomed"** |
+| **(3)** | The part-connection graph has **edges crossing the bucket boundary** | Coherent as a graph shape --- composition edges cannot cross, since the root is in every bucket, so it means **peer** edges. But it does not do the work: under [Finding 4](#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest)'s option 1 the alignment is **written down explicitly either way**. A crossing edge is **evidence for the author**, not a derivation the system performs --- and it is not even the only such evidence, since co-location supplies it for a scattered whole with no peer edges at all |
+
+**Why the whole finding was misconceived, settled in conversation 2026-08-21.** The trigger rested on *1 -> 2 needs information that exists nowhere in the graph.* **That is true and inert** --- it is an authoring act, and authoring acts take their information from the author. **The difficulty was never that the information is unavailable; it is that the planner has nowhere to put it.** [`MutationKernelTransferStep`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/kernelStep.ts) carries a single `toHostId` and the kernel's step vocabulary has **no port or bucket concept at all**. **That is a types-and-pipeline obligation, now booked in [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only), and no corpus case can grade it.**
+
+**Two corrections this leaves standing elsewhere.** The identification of PR-10's trigger with [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s edge half rested entirely on predicate (3) and **goes with it** --- PR-9's edge half is untouched and still has its two readings. And the PH0b brief this finding generated is **withdrawn**.
+
+**The reusable lesson, and it is why this is not simply deleted.** **The corpus was about to be asked to supply fiction for a predicate that could not be stated.** A case written under that brief would have illustrated the row it came from. **When a row wants a case, check that the row can say what the case would falsify** --- which is the [admission rule](#phase-0-corpus) already on this file, failing to fire because the request came from inside.
+
+**The error, recorded because it is a vocabulary substitution and those are hard to see.** This finding originally said the inner partition comes free from **PQ-12**, *relocation follows adjacency*. **That reads "adjacency" as *the parts are next to each other*. In this project it means host-graph adjacency --- rooms and the exits between them.** Two things follow, and each is fatal on its own. **[AB-26](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only) rule (i) forbids exactly the inference that was being drawn:** *"adjacency **licenses** an edge, it does not derive one, since two ropes in adjacent rooms are not connected."* **And [PQ-12](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused) has no leaning to borrow** --- it reversed 2026-08-10 to *no hard rule at the primitive layer*, leaving spatial coherence **"real and unhomed"**. It was cited as settled machinery and is a deliberately open row.
+
+**What the second version believed, kept as trail rather than as conclusion. None of the three claims below is a standing finding of this file** --- they are recorded because the shape of the mistake is instructive, and because they were cited elsewhere while they stood.
+
+**(i) It held that [AB-26](AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)'s *other* half supplied what adjacency could not** --- the graph of parts whose edges are labelled by the relation licensing them --- on the reasoning that the rope's spans are joined by such edges and **that** topology says which span sits at which end, where the moonbase terminals have no such edges. **The observation about the two topologies is true and survives. What does not survive is the use it was put to:** edge topology is evidence available to an author, not a derivation the system performs.
+
+**(ii) It restated the trigger's condition as a structural predicate:** *an inner partition is derivable exactly when the whole's part-connection graph has edges that cross the bucket boundary.* **That is predicate (3) in the table above, and it failed there** --- under [Finding 4](#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest)'s option 1 the alignment is written down explicitly whether or not an edge crosses.
+
+**(iii) It concluded that PR-10's trigger and [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s edge half were one question seen from two ends.** **That identification rested entirely on (ii) and goes with it.** Noted in the corrections above as well, and repeated here because this is the paragraph that made the claim. **PR-9's edge half is untouched and still has its two readings.**
+
+**The survey it produced is kept on its own terms**, because it is a factual statement about the corpus even though the predicate it was gathered for is gone. C7's spans, C9's segments, C11's sub-spans and PR-C1's cable **all have crossing edges**. **[C10](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system) has none** --- *spatially incoherent by design* --- **but is single-level**, so its buckets have nothing to align to. **No row now asks for the nested version of C10.** The brief that wanted it was withdrawn with this finding, and [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s edge half cannot be graded by a whole with **no** crossing edges, since its question is what an edge spanning buckets may do. **Write it if a later row can say what it would falsify; nothing owes it today.**
+
+**H-5 --- a claim of this plan's that the harvest does not support, corrected here.** [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only) says the collapsed-partition question *"is C9's question."* **C9 does not ask it.** C9 works the port set **shrinking** --- and notes the whole leaves `ROOM#C` when its last port goes --- but never asks what happens to a partition when a whole collapses to one host, nor what re-expanding would cost. **The recursive re-authoring question is this plan's extension of C9, not C9's own**, and PR-10 should point at C9 for the shrink mechanics while owning the question itself.
+
+**One case deliberately not harvested, and why it is not an oversight.** [C12](AGENT.abstractionLayers.corpus.planning.md#c12-the-moonbase-power-system-and-the-cut-cable) and [C15](AGENT.abstractionLayers.corpus.planning.md#c15-the-microphone-the-wire-and-the-speaker-two-rooms-away) are spanning cases and look like presence cases. **They are cut cases** --- they grade fission, identity and relational reach, and their spanning is the setting rather than the subject. **Read them if [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s edge half turns on what a severed span is present in**; otherwise they belong to the parent.
+
+---
+
+### PR-C1. The contraption in two rooms, and whether covers nest
+
+**Origin:** proposed 2026-08-21 from conversation, **explicitly as a disproof attempt** against the three rows answered that day. It succeeded against two of them, which is why it is the first case in the file.
+
+**Narrowed by the [PH0a harvest](#ph0a-harvest--the-presence-cases-that-already-exist) the same day (H-1), and the narrowing matters: this is not the first nested cover.** [C11](AGENT.abstractionLayers.corpus.planning.md#c11-the-rube-goldberg-machine)'s `ROOM#A -> RGM -> String -> StringSpan` got there on 2026-08-07 and is **the first case that *requires* PQ-5 chaining rather than merely permitting it**; [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread)'s nested `thread-span` is a second instance. **Cite them for the shape; this case does not re-establish it.** **What is this case's own is *alignment*** --- that a nested cover can be well-formed at both levels and still fail to say **which inner bucket goes with which outer one** --- and the repair in Finding 4. **Read Findings 2 and 4 as alignment findings; the nesting they sit on is C11's.**
+
+**The setup.** Two rooms, and a whole that spans them at two levels of composition.
+
+| | Whole | Its graph's parts | Present in |
+| --- | --- | --- | --- |
+| **Level 1** | `OBJECT#Contraption` | `OBJECT#GrapplingHookGun`, `OBJECT#WingSuit` | `ROOM#A` **and** `ROOM#B` |
+| **Level 2** | `OBJECT#GrapplingHookGun` | `Gun`, `CableSpan1`, `CableSpan2`, `Hook` | `ROOM#A` **and** `ROOM#B` |
+
+**Where the parts actually are.** `WingSuit` is in `ROOM#A` only. `Gun` and `CableSpan1` are in `ROOM#A`; `CableSpan2` and `Hook` are in `ROOM#B` --- the gun is braced in one room and its cable runs through to a hook set in the other.
+
+**What the design produces.** Under the [cover formulation](AGENT.presence.planning.md#presence-as-a-cover), with [PR-4](AGENT.presence.planning.md#open-decisions-design--plan-only)'s reading (d) and [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only)'s totality:
+
+| Whole | Ports | Buckets | Overlap |
+| --- | --- | --- | --- |
+| `Contraption` | `port_A` (`fromHostId: ROOM#A`), `port_B` (`fromHostId: ROOM#B`) | **A:** `{GrapplingHookGun, WingSuit}` **B:** `{GrapplingHookGun}` | `{GrapplingHookGun}` --- **non-uniform buckets** |
+| `GrapplingHookGun` | `port_1`, `port_2` --- **both** `fromHostId: OBJECT#Contraption` | **1:** `{Gun, CableSpan1}` **2:** `{CableSpan2, Hook}` | **empty --- the buckets are disjoint** |
+| `WingSuit` | one port, `fromHostId: OBJECT#Contraption` | one bucket | n/a |
+
+Each root is in every bucket of its own graph by definition, per PR-9's point (4).
+
+---
+
+**Finding 1 --- it falsifies [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)'s predicate, and PR-10 has been amended.** PR-10 was answered *presence may be left implicit for **single-hosted** graphs*. **`GrapplingHookGun` is single-hosted** --- its one host is `Contraption` --- **and it needs two buckets.** Applied as written, PR-10 would refuse to represent the `{Gun, CableSpan1}` / `{CableSpan2, Hook}` split at all.
+
+**The repair is a predicate change, not a reversal: the test is presence-port count, not host count.** *Presence may be left implicit where a whole has exactly one presence port.* **Read *presence* as load-bearing there** --- ports also carry relational pass-throughs, so a whole may hold several ports and one bucket, and **the stored record has no discriminator between the two kinds**. That gap is booked in [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only); this case does not turn on it, because both of `GrapplingHookGun`'s ports are presence ports. **The type already permits what the amended predicate needs** --- [`EphemeraLudicGraphPort`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) is `{ portId, fromHostId }`, `Object` is one of the five `EphemeraMembershipHostId` kinds, and **nothing requires `fromHostId` to be unique across the list.** Two ports from one host is legal today.
+
+**Where the second port comes from is the part worth stating outright, because it is what makes the amendment more than a word swap.** `GrapplingHookGun` did not acquire two ports by being hosted twice --- **it inherited them from `Contraption` being hosted twice.** Port arity **descends**: a whole that must appear in more than one of its parent's buckets needs one port per bucket it appears in, whatever its own host count. **So port count is not a local property.** Reading it off the thing itself is impossible; you read it off the thing's place in its parent's cover, and the parent's own count may be inherited in turn. **This is the honest complexity of the representation and it is booked as an obligation in [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only)** --- Obligation A for the write side (splitting a whole cascades a partition down every straddling part, to the depth of the composition) and Obligation B for the read side (resolve presence port-to-port, never port-to-host).
+
+**The consequence PR-10 was answered for survives**, and this is the check worth recording: a character is single-hosted **and** single-ported (single-valued, terminally gated), so characters still carry no presence record. **The old predicate got the right answer for characters by luck** --- host count and port count coincide there --- and this case is what separates them. **Given inheritance, the character exemption also now depends on a fact it did not before:** a character's host is a room, and **rooms are not parts of a spanning whole**, so nothing above a character can hand it a second port. That is true of today's tag graph rather than guaranteed by it, and it is what to re-check if a character ever becomes hostable inside a composed object.
+
+---
+
+**Finding 2 --- it confirms PR-9's totality, and tests it from a side the rope cannot.** Every case before this one has been the rope, whose buckets **overlap** along a chain. `GrapplingHookGun`'s buckets are **disjoint**, and `Contraption`'s are **non-uniform** (one bucket strictly contains the other). Union is total at both levels; aggregation reconstitutes both graphs. **A design that had quietly assumed overlap, or assumed uniform buckets, breaks here and the cover formulation does not.**
+
+**It also confirms the fractal.** `WingSuit` is a **single-bucket part inside a multi-bucket parent**, and at its own level it is single-ported, so its presence is implicit --- by the amended PR-10, with no special case for *my parent is partitioned*. The level a node is partitioned at is the level whose ports it has.
+
+---
+
+**Finding 3 --- it re-opens PR-9's edge half, which was closed one turn earlier and closed too broadly.** `CableSpan1` and `CableSpan2` are one cable: there is an edge between them, and **its endpoints are in different buckets of the same graph.**
+
+**PR-9 had dissolved this question, and the dissolution does not reach this case.** The argument was that a boundary-spanning edge is already two edges terminating at ports, from [CC1b](AGENT.abstractionLayers.planning.md#recommended-order)'s port-joining read in reverse. **That argument is about *graph* boundaries --- one host's shard and another's --- and this edge crosses no graph boundary.** Both spans are nodes in `GrapplingHookGun`'s own graph. **Bucket boundaries and graph boundaries are not the same thing, and PR-9 assumed they were.**
+
+**Two readings, neither taken here:**
+
+| | Reading | What it costs |
+| --- | --- | --- |
+| **(a)** | **Bucket boundaries must coincide with port-mediated boundaries.** If two parts are in different buckets, the edge between them crosses a port, so `GrapplingHookGun`'s graph carries an interior crossing pair and the cable is two edges after all | Preserves the dissolution and matches [locked-frame clause 2](AGENT.abstractionLayers.planning.md#locked-frame-parts-and-ports-2026-08-06) --- *crossings mediated by an explicit binding* --- but imposes a **constructor discipline**: authoring a partition may require minting ports the fiction did not ask for |
+| **(b)** | **The cover ranges over nodes only and an edge may span buckets.** The cable stays one edge, belonging to no bucket | Keeps authoring cheap, but hands the reducer back the exact question [PR-8](AGENT.presence.planning.md#open-decisions-design--plan-only) needs answered: **taking bucket 1, do you get the cable?** |
+
+**This is the [CC1b flag](AGENT.abstractionLayers.planning.md#recommended-order) --- node presence and edge composition being the same operation --- arriving from the presence side, exactly as PR-9 predicted before deciding it had gone away.**
+
+---
+
+**Finding 4 --- it exposes a gap in reading (d) that the rope never reaches: nested covers are representable but not *aligned*.** Under (d) presence edges run **port -> node**. So `Contraption`'s `port_A` and `port_B` both point at the single node `GrapplingHookGun`, and **nothing states which of that node's two interior ports pairs with which of its parent's.** `{Gun, CableSpan1}` is a well-formed bucket that is **not attached to `ROOM#A` rather than `ROOM#B`**.
+
+**The nesting is representable; the alignment of nested covers is not.**
+
+**The repair, settled 2026-08-21 from conversation: give the presence edge a *port-qualified terminal* as its target.** Contraption's graph carries `port_A -[Present]-> GHG#port_1`, where `GHG#port_1` is `{ owner: GHG, port: 'port_1' }`. The hop stops being one-to-many: it names the child's port directly, not merely the child's host. **This is the shape [LP7](AGENT.ludicGraphPorts.planning.md#recommended-order) is already scheduled to deliver** --- its own worked example is `PowerCord -[ThreadsInto]-> FLASHLIGHT:1`, deferred at [`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) with *"Port-address terminals are Stage 2/LP7, deliberately not admitted here yet."* **No new mechanism, and the same slice [PR-4](AGENT.presence.planning.md#open-decisions-design--plan-only) already depends on for edge endpoints.**
+
+**The whole chain then resolves through shipped patterns, every edge intra-graph:** the room's graph names `CONTRAPTION#port_A`; Contraption's graph carries `port_A -[Present]-> GHG#port_1`; GHG's interior walk starts at `port_1` and reaches `Gun` and `CableSpan1`. Each hop is single-valued and no stored edge crosses a shard.
+
+**Three objections a reader will reach for, and why none holds --- recorded because all three were raised and withdrawn in the conversation that produced this case.**
+
+| Objection | Why it fails |
+| --- | --- |
+| It is a **cross-shard reference** | `owner` is `GHG`, **already a node in Contraption's graph**. The terminal qualifies a local node; it does not reach into another shard |
+| It is [LD-3](AGENT.ludicGraphPorts.planning.md#open-decisions-implementation--plan-only)'s **bare port-to-port edge**, which [LP5](AGENT.ludicGraphPorts.planning.md#recommended-order) closed | **"Bare" was quantified over the *mediator*, not the endpoints.** [LC7](AGENT.abstractionLayers.ludicCache.corpus.planning.md#lc7-the-cable-that-passes-straight-through-the-box) restated the question as *is there ever a pass-through with **no nameable mediator**?* --- one host's port A joined to its own port B with nothing named between. Here the far end **is** named, as `owner` |
+| It **duplicates** the port record, so the two can disagree | They are premise 12's **interior half and exterior half** of one record --- GHG's `fromHostId: OBJECT#Contraption` and Contraption's edge to `GHG#port_1`. That is how every port already works |
+
+**Considered and rejected: widening the port record's `fromHostId` to name the parent *port*.** It inverts premise 12 by moving an exterior-owned fact into the interior record, and it makes a port address **stand free of an edge** --- tripping the serde deferral and pulling [LD-14](AGENT.ludicGraphPorts.planning.md#open-decisions-implementation--plan-only) forward for no gain.
+
+**CC1b anticipated this and it needs no amendment:** its `crossings` array is *one entry per consolidated boundary the edge passes through, **in order***, a multi-hop chain by construction. **The traversal design was already right; what was missing is only LP7 admitting the terminal.**
+
+---
+
+**What this case does not decide.** Whether reading (a) or (b) takes Finding 3 --- that is PR-9's re-opened half. **Finding 4 *is* decided** (port-qualified terminal, gated on LP7); what it leaves open is whether a presence edge may target a port-qualified terminal **whose owner is not a node in the same graph**, which nothing here needs and which would be a genuine cross-shard reference. **Forbid it until a case asks for it.** And nothing about apprehension: the contraption is fully apprehensible from both rooms and the case is silent on the axis deliberately.
+
+**Rows graded:** [PR-10](AGENT.presence.planning.md#open-decisions-design--plan-only) (**falsified as phrased, amended**), [PR-9](AGENT.presence.planning.md#open-decisions-design--plan-only) (**totality confirmed; edge half re-opened**), [PR-4](AGENT.presence.planning.md#open-decisions-design--plan-only) (**reading (d) survives; its port-pairing obligation is answered and reduces to LP7**), [PR-8](AGENT.presence.planning.md#open-decisions-design--plan-only) (**its sub-graph sentence is now conditional on Finding 3**).
