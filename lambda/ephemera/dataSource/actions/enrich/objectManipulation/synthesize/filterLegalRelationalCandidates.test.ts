@@ -19,19 +19,11 @@ const lookupFor = (graph: EphemeraLudicGraph) => ({
 })
 
 describe('filterLegalRelationalCandidates', () => {
-    it('drops a self-relation On candidate via the cycle check', () => {
-        const candidate: ParsePlanStep = {
-            kind: 'establishRelation',
-            subjectId: BROOM,
-            targetId: BROOM,
-            relationKind: 'On',
-            hostRoomId: HOST_ID,
-        }
-        expect(filterLegalRelationalCandidates([candidate], lookupFor(cleanGraph()))).toEqual({
-            ok: false,
-            reason: expect.any(String),
-        })
-    })
+    // The former "drops a self-relation On candidate via the cycle check" test is retired
+    // 2026-08-22 (Channel D, CD2, reduced scope): `On` dropped out of `ParsePlanStep.relationKind`
+    // entirely (it can no longer be constructed as an ingress-lane step), so `Under` below is now
+    // the only case exercising this cycle check -- `On`'s half of the `'On' | 'Under'` guard in
+    // `filterLegalRelationalCandidates.ts` is unreachable, not merely untested.
 
     it('drops a self-relation Under candidate via the cycle check', () => {
         const candidate: ParsePlanStep = {
@@ -66,14 +58,14 @@ describe('filterLegalRelationalCandidates', () => {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: BROOM,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         const legal: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         expect(
@@ -85,13 +77,13 @@ describe('filterLegalRelationalCandidates', () => {
         const graphWithExistingEdge = cleanGraph().addRelationalEdge({
             from: BROOM,
             to: TABLE,
-            kind: 'On',
+            kind: 'Under',
         })
         const conflicting: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'Under',
+            relationKind: 'Against',
             hostRoomId: HOST_ID,
         }
         expect(
@@ -104,7 +96,7 @@ describe('filterLegalRelationalCandidates', () => {
             kind: 'dissolveRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         expect(filterLegalRelationalCandidates([candidate], lookupFor(cleanGraph()))).toEqual({
@@ -117,20 +109,20 @@ describe('filterLegalRelationalCandidates', () => {
         const graphWithExistingEdge = cleanGraph().addRelationalEdge({
             from: BROOM,
             to: TABLE,
-            kind: 'On',
+            kind: 'Under',
         })
         const selfRelation: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BENCH,
             targetId: BENCH,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         const conflicting: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'Under',
+            relationKind: 'Against',
             hostRoomId: HOST_ID,
         }
         expect(
@@ -156,14 +148,14 @@ describe('filterLegalRelationalCandidates', () => {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: noGraphHost,
         }
         const legalCandidate: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         expect(
@@ -179,14 +171,14 @@ describe('filterLegalRelationalCandidates', () => {
             kind: 'establishRelation',
             subjectId: BROOM,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         const second: ParsePlanStep = {
             kind: 'establishRelation',
             subjectId: BENCH,
             targetId: TABLE,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: HOST_ID,
         }
         expect(

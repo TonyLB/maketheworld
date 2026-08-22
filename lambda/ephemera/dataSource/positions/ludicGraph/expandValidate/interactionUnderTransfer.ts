@@ -10,8 +10,12 @@ export type TransferEndpointRole = 'subject' | 'target'
 export type InteractionUnderTransferOutcome = 'dissolve' | 'carry' | 'defer'
 
 /**
- * SB-5 table (three outcomes). `carry` only exists where there is an actual
- * object to absorb (a load relation, `On`); `Under`'s subject-move ambiguity
+ * SB-5 table (three outcomes). `carry` was only ever produced by `On`
+ * (a load relation); `On` joined the hosting-kind throw below 2026-08-22
+ * (Channel D, CD2, reduced scope), so `carry` is now unreachable dead code
+ * rather than a live outcome -- retiring it from `InteractionUnderTransferOutcome`
+ * and collapsing `computeCarryClosure` to a shard read is CD3, deliberately
+ * deferred (not needed to unblock Presence). `Under`'s subject-move ambiguity
  * is spatial clearance, not "what happens to some other object," so it stays
  * `defer` rather than gaining a carry partner.
  */
@@ -20,14 +24,13 @@ export function classifyInteractionUnderTransfer(
     movedRole: TransferEndpointRole
 ): InteractionUnderTransferOutcome {
     switch (relationKind) {
-        case 'On':
-            return movedRole === 'subject' ? 'dissolve' : 'carry'
         case 'Under':
             return movedRole === 'subject' ? 'defer' : 'dissolve'
         case 'Against':
             return 'dissolve'
         case 'Custom':
             return 'defer'
+        case 'On':
         case 'In':
         case 'PartOf':
             // An invariant assertion, not a placeholder awaiting a classification, as of

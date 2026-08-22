@@ -171,7 +171,7 @@ describe('applyStepSequenceCore', () => {
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Against' }],
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.

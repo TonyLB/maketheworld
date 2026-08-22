@@ -334,8 +334,8 @@ export type ParseCommandEstablishRelationResult = {
     operationKind: RelationalOperationKind
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. This is an ingress-lane authoring restriction, not a claim about which kinds host --- `On` also hosts under AB-54 and still parses here. */
-    relationKind: 'On' | 'Under' | 'Against' | 'Custom'
+    /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+    relationKind: 'Under' | 'Against' | 'Custom'
     relationLabel?: string
     /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
     hostId: EphemeraMembershipHostId
@@ -674,8 +674,8 @@ export function isParseCommandObjectManipulationResult(
 }
 
 const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
-/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. This is an ingress-lane authoring restriction, not a claim about which kinds host --- `On` also hosts under AB-54 and still parses here. */
-const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['On', 'Under', 'Against', 'Custom'])
+/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['Under', 'Against', 'Custom'])
 
 export function isParseCommandEstablishRelationResult(
     result: ParseCommandResult

@@ -21,8 +21,10 @@ const DISSOLVE_VERBS = ['take', 'remove']
  */
 const AGAINST_PHRASES = ['leaning against', 'lean against', 'against']
 const UNDER_PHRASES = ['underneath', 'beneath', 'under']
-const ON_PHRASES = ['on top of', 'onto', 'on']
 const CONTAINMENT_PHRASES = ['in', 'inside', 'into']
+/** `On` joined containment's defer treatment 2026-08-22 (Channel D, CD2, reduced scope) --- see
+ * normalizeRelationSpan.ts's mirrored constant and the docblock on `makeNestingDeferTemplate` below. */
+const ON_PHRASES = ['on top of', 'onto', 'on']
 
 /**
  * Every relational template shares this constant: no verbClass/operationKind/
@@ -64,18 +66,21 @@ function makeCustomTemplate(verbOptions: string[]): DeterministicTemplate {
 
 /**
  * Containment language ("in"/"inside"/"into") is a recognized-but-unsupported
- * shape, not an ambiguous one: the current relation model (On/Under/Against/
+ * shape, not an ambiguous one: the current relation model (Under/Against/
  * Custom, a ludicGraph edge) has no representation for object-containment
  * at all. Any string that structurally matches this shape always defers --
  * normalizeRelationSpan.ts already treats this exact phrase set as
- * nestingDefer for the post-Parse path.
+ * nestingDefer for the post-Parse path. **`On` joined this treatment
+ * 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting
+ * kind, same as `In`/`PartOf`, so it shares the "recognized-but-unsupported"
+ * shape rather than resolving to an enum.
  */
-function makeContainmentTemplate(verbOptions: string[]): DeterministicTemplate {
+function makeNestingDeferTemplate(verbOptions: string[], prepOptions: string[]): DeterministicTemplate {
     return makeDeferPatternTemplate(
         [
             { type: 'templateText', options: verbOptions },
             { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: CONTAINMENT_PHRASES },
+            { type: 'templateText', options: prepOptions },
             { type: 'objectSpan', role: 'target' },
         ],
         'nesting'
@@ -84,13 +89,13 @@ function makeContainmentTemplate(verbOptions: string[]): DeterministicTemplate {
 
 export const establishAgainstTemplate = makeEnumTemplate(ESTABLISH_VERBS, AGAINST_PHRASES)
 export const establishUnderTemplate = makeEnumTemplate(ESTABLISH_VERBS, UNDER_PHRASES)
-export const establishOnTemplate = makeEnumTemplate(ESTABLISH_VERBS, ON_PHRASES)
 export const dissolveAgainstTemplate = makeEnumTemplate(DISSOLVE_VERBS, AGAINST_PHRASES)
 export const dissolveUnderTemplate = makeEnumTemplate(DISSOLVE_VERBS, UNDER_PHRASES)
-export const dissolveOnTemplate = makeEnumTemplate(DISSOLVE_VERBS, ON_PHRASES)
 
-export const establishContainmentTemplate = makeContainmentTemplate(ESTABLISH_VERBS)
-export const dissolveContainmentTemplate = makeContainmentTemplate(DISSOLVE_VERBS)
+export const establishContainmentTemplate = makeNestingDeferTemplate(ESTABLISH_VERBS, CONTAINMENT_PHRASES)
+export const dissolveContainmentTemplate = makeNestingDeferTemplate(DISSOLVE_VERBS, CONTAINMENT_PHRASES)
+export const establishOnTemplate = makeNestingDeferTemplate(ESTABLISH_VERBS, ON_PHRASES)
+export const dissolveOnTemplate = makeNestingDeferTemplate(DISSOLVE_VERBS, ON_PHRASES)
 
 export const establishCustomTemplate = makeCustomTemplate(ESTABLISH_VERBS)
 export const dissolveCustomTemplate = makeCustomTemplate(DISSOLVE_VERBS)

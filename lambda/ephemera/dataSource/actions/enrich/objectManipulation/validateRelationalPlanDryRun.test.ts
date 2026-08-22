@@ -26,7 +26,7 @@ const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
-    kind: 'On',
+    kind: 'Under',
 }
 
 describe('validateRelationalPlanDryRun', () => {
@@ -35,7 +35,7 @@ describe('validateRelationalPlanDryRun', () => {
             span(broomId, 'broom'),
             span(tableId, 'table'),
             'establishRelation',
-            { type: 'enum', kind: 'On' }
+            { type: 'enum', kind: 'Under' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
             ludicGraph: testLudicGraph(roomId, {
@@ -52,7 +52,7 @@ describe('validateRelationalPlanDryRun', () => {
             span(broomId, 'broom'),
             span(tableId, 'table'),
             'establishRelation',
-            { type: 'enum', kind: 'On' }
+            { type: 'enum', kind: 'Under' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
             ludicGraph: testLudicGraph(roomId, { nodes: [] }),
@@ -68,7 +68,7 @@ describe('validateRelationalPlanDryRun', () => {
             span(broomId, 'broom'),
             span(tableId, 'table'),
             'dissolveRelation',
-            { type: 'enum', kind: 'On' }
+            { type: 'enum', kind: 'Under' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
             ludicGraph: testLudicGraph(roomId, {
@@ -89,7 +89,7 @@ describe('validateRelationalPlanDryRun', () => {
             span(broomId, 'broom'),
             span(tableId, 'table'),
             'establishRelation',
-            { type: 'enum', kind: 'Under' }
+            { type: 'enum', kind: 'Against' }
         )
         expect(validateRelationalPlanDryRun(candidate, {
             ludicGraph: testLudicGraph(roomId, {

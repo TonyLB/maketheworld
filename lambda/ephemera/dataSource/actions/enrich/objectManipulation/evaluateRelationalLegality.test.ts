@@ -22,7 +22,7 @@ const onTableEdge: EphemeraLudicRelationalEdgeData = {
     tag: 'Relational',
     from: broomId,
     to: tableId,
-    kind: 'On',
+    kind: 'Under',
 }
 
 const graphFromEnvelope = (envelope: PlayLudicGraph) =>
@@ -34,7 +34,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'On' },
+            normalizedRelation: { type: 'enum', kind: 'Under' },
             graph: graphFromEnvelope(roomGraphWithObjects),
         })).toEqual({ type: 'allow' })
     })
@@ -44,7 +44,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'On' },
+            normalizedRelation: { type: 'enum', kind: 'Under' },
             graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({ type: 'allow' })
     })
@@ -54,7 +54,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'Under' },
+            normalizedRelation: { type: 'enum', kind: 'Against' },
             graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({
             type: 'error',
@@ -67,7 +67,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'On' },
+            normalizedRelation: { type: 'enum', kind: 'Under' },
             graph: graphFromEnvelope({
                 nodes: [{ tag: 'Object' as const, universalKey: tableId }],
                 edges: [],
@@ -83,7 +83,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'dissolveRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'On' },
+            normalizedRelation: { type: 'enum', kind: 'Under' },
             graph: graphFromEnvelope({ ...roomGraphWithObjects, edges: [onTableEdge] } as unknown as PlayLudicGraph),
         })).toEqual({ type: 'allow' })
     })
@@ -93,7 +93,7 @@ describe('evaluateRelationalLegality', () => {
             operationKind: 'dissolveRelation',
             subjectId: broomId,
             targetId: tableId,
-            normalizedRelation: { type: 'enum', kind: 'On' },
+            normalizedRelation: { type: 'enum', kind: 'Under' },
             graph: graphFromEnvelope(roomGraphWithObjects),
         })).toEqual({
             type: 'error',

@@ -148,7 +148,7 @@ describe('applyObjectClearMembership', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
         })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)
@@ -188,7 +188,7 @@ describe('applyObjectClearMembership', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Character', universalKey: CHARACTER_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'Against' }],
         })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(roomGraph)

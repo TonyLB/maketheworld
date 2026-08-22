@@ -219,9 +219,9 @@ describe('enrichObjectManipulation', () => {
         const result = await enrichObjectManipulation(
             {
                 enrichRoute: 'relational',
-                command: 'put the broom on the table',
+                command: 'put the broom under the table',
                 rawObjectSpans: ['broom'],
-                parseSkeleton: relationalSkeleton('put', 'broom', 'broomRef', 'on', 'table', 'tableRef'),
+                parseSkeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -238,7 +238,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostId: roomId,
             confidence: 0.9,
         })

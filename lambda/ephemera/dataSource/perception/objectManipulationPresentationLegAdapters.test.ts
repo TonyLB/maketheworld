@@ -48,7 +48,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 subjectId: GLASS,
                 targetId: TRAY,
                 hostId: ROOM,
-                relationKind: 'On',
+                relationKind: 'Under',
             })
             expect(isPerceptionActionsObjectEstablishRelationEnvelope(env)).toBe(true)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
@@ -108,7 +108,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     subjectId: GLASS,
                     targetId: TRAY,
                     hostId: ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                 })
             )
             expect(legs).toEqual([{
@@ -118,7 +118,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 subjectId: GLASS,
                 targetId: TRAY,
                 roomId: ROOM,
-                relationKind: 'On',
+                relationKind: 'Under',
             }])
         })
 
@@ -191,7 +191,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     subjectId: 'ROOM#bad',
                     targetId: TRAY,
                     hostId: ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                 } as never)
             )
             expect(legs).toEqual([])

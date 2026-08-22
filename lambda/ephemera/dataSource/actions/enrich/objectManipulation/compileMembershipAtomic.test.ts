@@ -10,8 +10,6 @@ const pouchId = 'OBJECT#Pouch' as EphemeraObjectId
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
 const satchelId = 'OBJECT#Satchel' as EphemeraObjectId
 const mopId = 'OBJECT#Mop' as EphemeraObjectId
-const trayId = 'OBJECT#Tray' as EphemeraObjectId
-const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const characterId = 'CHARACTER#Player' as EphemeraCharacterId
@@ -226,43 +224,11 @@ describe('compileMembershipAtomic', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
 
-    it('Slice 3 (Pipeline A -> B migration, MultiKeyUpdate redesign): a carry-related object (glass On tray) computes the real closure and resolves with the full transfer set', async () => {
-        const roomGraphWithCarry = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object' as const, universalKey: trayId },
-                { tag: 'Object' as const, universalKey: glassId },
-            ],
-            edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
-        })
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: roomGraphWithCarry })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-
-        const result = await compileMembershipAtomic(
-            {
-                command: 'get the tray',
-                rawObjectSpans: ['tray'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
-            },
-            0.9,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [trayId, glassId],
-            confidence: 0.9,
-        })
-        // Resolved directly by the selector --- never reaches the complexity LLM fallback.
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
+    // Slice 3's "carry-related object (glass On tray)" test is retired 2026-08-22 (Channel D,
+    // CD2, reduced scope): it tested `On`'s carry absorption end to end, which is now dead --
+    // `On` joined `In`/`PartOf`'s hosting-kind throw in `classifyInteractionUnderTransfer`, and
+    // `carry` is unreachable from any relation kind. Real shard-based hosting (CD2h) is what
+    // would eventually carry the glass along again.
 
     it('FT-2.2 illegal-if-wrong: drop bag selects held satchel over room bag', async () => {
         const getMembershipContainers = jest.fn().mockImplementation(async (objectId: EphemeraObjectId) => (

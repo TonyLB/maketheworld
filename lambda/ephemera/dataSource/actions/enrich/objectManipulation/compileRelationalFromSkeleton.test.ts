@@ -40,8 +40,8 @@ describe('compileRelationalFromSkeleton', () => {
 
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put broom on table',
-                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'on', 'table', 'tableRef'),
+                command: 'put broom under table',
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -58,13 +58,13 @@ describe('compileRelationalFromSkeleton', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostId: roomId,
             confidence: 0.9,
         })
     })
 
-    it('grounds "put bench on bench" to two distinct benches, not a self-relation (BD-23)', async () => {
+    it('grounds "put bench under bench" to two distinct benches, not a self-relation (BD-23)', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [
@@ -76,8 +76,8 @@ describe('compileRelationalFromSkeleton', () => {
 
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put bench on bench',
-                skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'on', 'bench', 'benchRef2'),
+                command: 'put bench under bench',
+                skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -140,8 +140,8 @@ describe('compileRelationalFromSkeleton', () => {
     it('returns noHostRoom Error when hostRoomId is absent', async () => {
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put broom on table',
-                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'on', 'table', 'tableRef'),
+                command: 'put broom under table',
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
                 characterId,
             },
             0.9
@@ -156,8 +156,8 @@ describe('compileRelationalFromSkeleton', () => {
     it('returns noHostRoom Error when characterId is absent', async () => {
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put broom on table',
-                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'on', 'table', 'tableRef'),
+                command: 'put broom under table',
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
                 hostRoomId: roomId,
             },
             0.9
@@ -178,8 +178,8 @@ describe('compileRelationalFromSkeleton', () => {
 
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put lamp on lamp',
-                skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'on', 'lamp', 'lampRef2'),
+                command: 'put lamp under lamp',
+                skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -201,8 +201,8 @@ describe('compileRelationalFromSkeleton', () => {
 
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put sword on table',
-                skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'on', 'table', 'tableRef'),
+                command: 'put sword under table',
+                skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
@@ -234,8 +234,8 @@ describe('compileRelationalFromSkeleton', () => {
 
         const result = await compileRelationalFromSkeleton(
             {
-                command: 'put tray on table',
-                skeleton: relationalSkeleton('put', 'tray', 'trayRef', 'on', 'table', 'tableRef'),
+                command: 'put tray under table',
+                skeleton: relationalSkeleton('put', 'tray', 'trayRef', 'under', 'table', 'tableRef'),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
@@ -250,7 +250,7 @@ describe('compileRelationalFromSkeleton', () => {
             operationKind: 'establishRelation',
             subjectId: trayId,
             targetId: tableId,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostId: roomId,
             confidence: 0.9,
             transferFromHostId: characterId,

@@ -26,10 +26,8 @@ describe('enum bucket', () => {
     }[] = [
         { name: 'establish/Against', template: establishAgainstTemplate, command: 'put lamp against wall', verb: 'put', prep: 'against' },
         { name: 'establish/Under', template: establishUnderTemplate, command: 'place lamp under table', verb: 'place', prep: 'under' },
-        { name: 'establish/On', template: establishOnTemplate, command: 'lean lamp on table', verb: 'lean', prep: 'on' },
         { name: 'dissolve/Against', template: dissolveAgainstTemplate, command: 'take lamp against wall', verb: 'take', prep: 'against' },
         { name: 'dissolve/Under', template: dissolveUnderTemplate, command: 'remove lamp under table', verb: 'remove', prep: 'under' },
-        { name: 'dissolve/On', template: dissolveOnTemplate, command: 'take lamp on table', verb: 'take', prep: 'on' },
     ]
 
     it.each(cases)('$name matches via matchString with correct intent + skeleton', ({ template, command, verb, prep }) => {
@@ -91,6 +89,8 @@ describe('containment/defer bucket', () => {
     it.each([
         ['establish', establishContainmentTemplate, 'put coin in box'],
         ['dissolve', dissolveContainmentTemplate, 'take coin in box'],
+        ['establish', establishOnTemplate, 'put lamp on table'],
+        ['dissolve', dissolveOnTemplate, 'take lamp on table'],
     ] as const)('%s verb-class defers with reason nesting via matchString', (_name, template, command) => {
         const result = template.matchString(command)
         expect(result).toEqual({ type: 'defer', reason: 'nesting' })
@@ -106,8 +106,8 @@ describe('containment/defer bucket', () => {
         expect(establishContainmentTemplate.matchTokens(skeleton)).toEqual({ type: 'defer', reason: 'nesting' })
     })
 
-    it('does not defer on a non-containment preposition', () => {
-        expect(establishContainmentTemplate.matchString('put coin on box').type).toBe('noMatch')
+    it('does not defer on a non-hosting, non-containment preposition', () => {
+        expect(establishContainmentTemplate.matchString('put coin under box').type).toBe('noMatch')
     })
 })
 
@@ -117,10 +117,14 @@ describe('registry ordering', () => {
     })
 
     it('routes an enum phrase to its specific relationKind, not the custom bucket', () => {
-        const result = matchDeterministicTemplate('put lamp on table')
+        const result = matchDeterministicTemplate('put lamp under table')
         if (result.type !== 'matched') throw new Error('expected matched')
         expect(result.intent).toEqual({ ...RELATE_INTENT, subject: 'lamp', target: 'table' })
-        expect(result.skeleton[2]).toEqual({ type: 'text', text: 'on' })
+        expect(result.skeleton[2]).toEqual({ type: 'text', text: 'under' })
+    })
+
+    it('routes an On phrase to defer, not the custom bucket (Channel D CD2: On joins In/PartOf)', () => {
+        expect(matchDeterministicTemplate('put lamp on table')).toEqual({ type: 'defer', reason: 'nesting' })
     })
 
     it('still falls through to the custom bucket for a genuinely arbitrary preposition', () => {

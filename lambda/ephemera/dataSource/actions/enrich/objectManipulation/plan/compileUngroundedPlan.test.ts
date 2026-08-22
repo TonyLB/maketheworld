@@ -63,7 +63,7 @@ describe('compileMembershipUngroundedPlan', () => {
 
 describe('compileRelationalUngroundedPlan', () => {
     it('compiles an establishRelation frame with an enum relation kind, prefixed with a sameHost assertion', () => {
-        const result = compileRelationalUngroundedPlan(relationalFrame({ operationKind: 'establishRelation', relationSpan: 'on' }))
+        const result = compileRelationalUngroundedPlan(relationalFrame({ operationKind: 'establishRelation', relationSpan: 'under' }))
         expect(result).toEqual({
             type: 'success',
             steps: [
@@ -79,10 +79,15 @@ describe('compileRelationalUngroundedPlan', () => {
                     primitive: 'establishRelation',
                     subject: objectSpanRef('broom'),
                     target: objectSpanRef('table'),
-                    relationKind: 'On',
+                    relationKind: 'Under',
                 },
             ],
         })
+    })
+
+    it('returns nestingDefer for "on" too, same as containment (Channel D CD2: On joins In/PartOf)', () => {
+        const result = compileRelationalUngroundedPlan(relationalFrame({ operationKind: 'establishRelation', relationSpan: 'on' }))
+        expect(result).toEqual({ type: 'nestingDefer' })
     })
 
     it('compiles a dissolveRelation frame, also prefixed with a sameHost assertion (BD-15 (1): unconditional)', () => {
@@ -145,7 +150,7 @@ describe('compileRelationalUngroundedPlan', () => {
         const result = compileRelationalUngroundedPlan(relationalFrame({
             subjectSpan: 'charm',
             targetSpan: 'necklace',
-            relationSpan: 'on',
+            relationSpan: 'against',
         }))
         if (result.type !== 'success') throw new Error('expected success')
         const [assertion, change] = result.steps

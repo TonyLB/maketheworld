@@ -65,11 +65,10 @@ export type ObjectDropPublishedPayload = {
 }
 
 
-/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. This is an ingress-lane authoring restriction, not a claim about which kinds host --- `On` also hosts under AB-54 and still parses here. */
-export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
+/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+export type HostRelationalEdgeKindPublished = 'Under' | 'Against' | 'Custom'
 
 const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([
-    'On',
     'Under',
     'Against',
     'Custom',
