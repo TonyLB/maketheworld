@@ -46,6 +46,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-08-22 | `other` | Asserted the CD2/CC1/P7/Presence chain wasn't circular without checking that `AGENT.presence.planning.md`'s own stated purpose (unblocking P7) closed the loop |
 | 2026-08-22 | `other` | Kept treating CD2's CC3/LD-15 gate as binding after establishing that `On` dormancy removes the gate's own stated precondition (live nesting traffic) |
 | 2026-08-22 | `other` | Wrote a comment saying `On` "no longer parses here" while leaving `'On'` in the same type's literal union four places; user caught the self-contradiction, `tsc` then found four more downstream breaks the narrowing produced |
+| 2026-08-22 | `other` | Cited P6 clause 3 (a `ludicCache` return-contract clause) as forbidding reachability computation in the unrelated presence-transfer mechanism; user asked whether it was load-bearing or drift, and it was drift --- PR-14 had been blocking PR-7's graduation on a constraint that was never real |
 
 ## Patterns
 
