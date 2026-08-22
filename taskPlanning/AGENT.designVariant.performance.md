@@ -48,6 +48,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-08-22 | `other` | Wrote a comment saying `On` "no longer parses here" while leaving `'On'` in the same type's literal union four places; user caught the self-contradiction, `tsc` then found four more downstream breaks the narrowing produced |
 | 2026-08-22 | `stale-premise` | LD-14 (ludic-graph ports) sat at "None yet, owed upstream to PQ-9" while PQ-9's own row records it graduated to a decision the same day LD-14 opened; user recalled the decision correctly, the row never noticed |
 | 2026-08-22 | `overbroad-inheritance` | Implemented LP7 (ludic-graph ports) without checking its own section header's "Stage 2 --- gated on P7" line; the gate's stated rationale (port record built blind to its only consumer) is LP6's, not LP7's (a mechanical edge-terminal type widening with no port-record dependency) --- caught while doing LP9 bookkeeping, not before starting the work |
+| 2026-08-22 | `other` | Claimed multi-level containment would collapse PR-4's composition/peer discriminator; classification is actually by a closed `kind` enum, not by edge position, so the claim was false and needed two rounds of user correction (a cross-shard-cost conflation, then the core mechanism error) before the plan's falsification bullet was rewritten |
 
 ## Patterns
 
