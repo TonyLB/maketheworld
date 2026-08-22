@@ -174,6 +174,8 @@ A design initiative produces two kinds of knowledge, and only one of them has a 
 
 **At disposal, method findings are harvested before the plan is deleted** --- see [When the initiative finishes](#when-the-initiative-finishes).
 
+**Instrumentation, added 2026-08-22.** Method findings are now captured live rather than reconstructed: one-line observations go to [`AGENT.designVariant.performance.md`](AGENT.designVariant.performance.md) at the moment of correction, consolidate into rate-carrying patterns there, and motivate proposals in [`AGENT.designVariant.tuning.md`](AGENT.designVariant.tuning.md). Both files are capped, evict on add, and delete on exit. **The [Candidate method findings](#candidate-method-findings) table below overlaps the tally's pattern section and the two have not yet been reconciled** --- deliberately, pending evidence that the tally fires at all.
+
 ### Candidate method findings
 
 Observed, not yet rules. Promoted when a second initiative confirms them.
