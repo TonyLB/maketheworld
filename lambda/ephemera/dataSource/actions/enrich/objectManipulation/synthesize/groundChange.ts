@@ -72,9 +72,11 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
             // (LD-13, parsePlanStep.ts). Unreachable today: isContainmentSpan routes containment
             // language to nestingDefer before a Change carrying one reaches here. **`On` joined
             // this guard 2026-08-22** (Channel D, CD2, reduced scope): it is a hosting kind too
-            // now, deferred at ingress the same way, and equally unreachable here.
-            if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On') {
-                return { ok: false, reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
+            // now, deferred at ingress the same way, and equally unreachable here. **`Present`
+            // joined 2026-08-22** (presence plan PR-4): an internal port/cover mechanism, never
+            // a WML establishRelation/dissolveRelation target, deferred at ingress the same way.
+            if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On' || change.relationKind === 'Present') {
+                return { ok: false, reason: 'Containment and presence relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
             }
 
             const candidates: ParsePlanStep[] = []

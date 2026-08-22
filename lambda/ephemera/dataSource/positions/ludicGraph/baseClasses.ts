@@ -28,7 +28,7 @@ export type HostRelationalEdge = {
     relationLabel?: string
 }
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge

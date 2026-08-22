@@ -315,8 +315,9 @@ export type EphemeraLudicGraphNode =
     }
 
 export type HostRelationalEdgeKind =
-    | 'On' | 'Under' | 'Against' | 'Custom'   // On: hosting kind (AB-54); Under/Against/Custom: peer kinds
-    | 'In' | 'PartOf'                          // hosting kinds (AB-54), non-exclusive (premise 9)
+    | 'On' | 'In' | 'PartOf'                    // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
+    | 'Under' | 'Against' | 'Custom'            // peer kinds (AB-54)
+    | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
 
 /**
  * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
@@ -331,7 +332,7 @@ export type EphemeraLudicRelationalEdgeData = {
     relationLabel?: string;
 }
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

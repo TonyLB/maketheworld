@@ -48,6 +48,13 @@ export function classifyInteractionUnderTransfer(
             // carry behaviour without traversal. Until then, LD-11 survives only for the
             // 'Against' reconciliation, which is a peer kind and never lands in this branch.
             throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
+        case 'Present':
+            // Not a hosting/containment kind (AB-53/AB-54 doesn't apply): a 'Present' edge is
+            // port -> node, the presence plan's own third "partitioning" class (PR-4, reading
+            // (d)). Nothing constructs one yet, and this classifier has never been asked to
+            // route a port-qualified endpoint --- reaching here means a producer built a graph
+            // this transfer classifier does not yet know how to handle.
+            throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' is not yet classifiable here (presence plan PR-4/reading (d)); reaching here means a producer built a graph the constructor does not author`)
     }
 }
 

@@ -583,6 +583,26 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
+    // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind -- neither
+    // hosting nor peer -- and its runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by
+    // hand in lockstep with the type, same agreement-check rationale as the In/PartOf test above.
+    it('accepts a Present relational edge', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'ROOM#Kitchen', port: 'ab6129d' },
+                to: 'OBJECT#crystalBall',
+                kind: 'Present',
+            }],
+        })).toBe(true)
+    })
+
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
     // function" instead of returning false -- hardened at the time to a typeof pre-check that

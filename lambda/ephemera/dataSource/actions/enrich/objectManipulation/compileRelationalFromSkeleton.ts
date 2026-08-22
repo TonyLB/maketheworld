@@ -244,8 +244,10 @@ export async function compileRelationalFromSkeleton(
         // Unreachable today: no ingress path can produce a containment relStep (isContainmentSpan
         // routes to nestingDefer before this point). **`On` joined this guard 2026-08-22**
         // (Channel D, CD2, reduced scope): it is a hosting kind too now, deferred at ingress the
-        // same way, and equally unreachable here.
-        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf' || relStep.relationKind === 'On') {
+        // same way, and equally unreachable here. **`Present` joined 2026-08-22** (presence plan
+        // PR-4): it's not a WML-authorable kind either --- an internal port/cover mechanism, never
+        // an establishRelation/dissolveRelation target --- so it's deferred at ingress the same way.
+        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf' || relStep.relationKind === 'On' || relStep.relationKind === 'Present') {
             continue
         }
 
