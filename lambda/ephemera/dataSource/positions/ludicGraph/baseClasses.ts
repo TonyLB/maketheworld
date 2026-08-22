@@ -3,6 +3,7 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicRelationalEdgeData,
+    EphemeraLudicTerminalId,
     EphemeraLudicTerminalPrimitive,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -10,16 +11,19 @@ import {
     ephemeraLudicTerminalRefersTo,
     ephemeraLudicTerminalsEqual,
     isEphemeraLudicRelationalEdgeData,
-    isEphemeraLudicTerminalPrimitive,
+    isEphemeraLudicTerminalId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
-/** `from`/`to` are `EphemeraLudicTerminalPrimitive` (LP4) --- any legal host-kind component. */
+/**
+ * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component, or a
+ * port-qualified reference on one.
+ */
 export type HostRelationalEdge = {
-    from: EphemeraLudicTerminalPrimitive
-    to: EphemeraLudicTerminalPrimitive
+    from: EphemeraLudicTerminalId
+    to: EphemeraLudicTerminalId
     kind: HostRelationalEdgeKind
     relationLabel?: string
 }
@@ -67,10 +71,8 @@ export function extractRelationalEdgesFromStored(
             ) {
                 const obj = rawEdge as Record<string, unknown>
                 if (
-                    typeof obj.from === 'string'
-                    && isEphemeraLudicTerminalPrimitive(obj.from)
-                    && typeof obj.to === 'string'
-                    && isEphemeraLudicTerminalPrimitive(obj.to)
+                    isEphemeraLudicTerminalId(obj.from)
+                    && isEphemeraLudicTerminalId(obj.to)
                     && typeof obj.kind === 'string'
                     && HOST_RELATIONAL_EDGE_KINDS.has(obj.kind as HostRelationalEdgeKind)
                 ) {

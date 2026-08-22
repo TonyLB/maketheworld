@@ -36,13 +36,16 @@ export function detectRelationalCycle(
     kind: 'On' | 'Under'
 ): boolean {
     /**
-     * `edge.from`/`.to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
-     * host-kind component --- but `'On'`/`'Under'` are spatial placement kinds that only
-     * ever connect Objects in practice; a non-Object endpoint here would not be a cycle
-     * this operator's semantics care about, so it's filtered out rather than asserted on.
+     * `edge.from`/`.to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * host-kind component or a port-qualified reference on one --- but `'On'`/`'Under'` are
+     * spatial placement kinds that only ever connect Objects in practice; a non-Object
+     * endpoint here would not be a cycle this operator's semantics care about, so it's
+     * filtered out rather than asserted on.
      */
     const adjacency = graph.relationalEdges
-        .filter((edge) => edge.kind === kind && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to))
+        .filter((edge) => edge.kind === kind
+            && typeof edge.from === 'string' && typeof edge.to === 'string'
+            && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to))
         .reduce((acc, edge) => {
             const from = edge.from as EphemeraObjectId
             const to = edge.to as EphemeraObjectId

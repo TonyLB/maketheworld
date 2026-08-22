@@ -1,5 +1,5 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { HostRelationalEdgeKind, EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** Membership host transfer semantics for bus facts and coordinator changed gates. */
 export type MembershipTransferProjection = {
@@ -14,13 +14,13 @@ export type MembershipTransferPlan = {
 }
 
 /**
- * `from`/`to` are `EphemeraLudicTerminalPrimitive` (LP4), mirroring `ludicGraph/baseClasses.ts`'s
+ * `from`/`to` are `EphemeraLudicTerminalId` (LP7), mirroring `ludicGraph/baseClasses.ts`'s
  * `HostRelationalEdge` --- a pre-existing duplication (not consolidated in this slice); see
  * `ludicGraph/AGENT.md`'s "Relational edge names" table.
  */
 export type HostRelationalEdge = {
-    from: EphemeraLudicTerminalPrimitive
-    to: EphemeraLudicTerminalPrimitive
+    from: EphemeraLudicTerminalId
+    to: EphemeraLudicTerminalId
     kind: HostRelationalEdgeKind
     relationLabel?: string
 }

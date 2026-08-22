@@ -112,7 +112,7 @@ export function computeCarryClosure(
              * parameter, not this module. This remains unowned; see `ludicGraph/AGENT.md`'s
              * "Character-relation widening, deferred (BD-36)" note.
              */
-            if (!isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
+            if (typeof otherId !== 'string' || !isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
                 continue
             }
             if (classifyInteractionUnderTransfer(edge.kind, movedRole) === 'carry') {
@@ -154,8 +154,8 @@ export function boundaryEdgeOutcomes(
         // LP4h widened its caller's transfer set to Object | Character but filters back down to
         // Object before calling in here (applyTransferSet.ts) --- this function's own scope is
         // unchanged, and remains unowned the same way computeCarryClosure's narrow does above.
-        const fromInSet = isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
-        const toInSet = isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
+        const fromInSet = typeof edge.from === 'string' && isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
+        const toInSet = typeof edge.to === 'string' && isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
         if (fromInSet === toInSet) {
             continue
         }

@@ -31,6 +31,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | `framing-inherited` | A step was quantified over the shape of the document that raised it, not the structure the system uses |
 | `fork-manufactured` | A question was opened as a choice when a convention or an answer already existed |
 | `bulk` | A row or section grew past readability; edits to it hid each other |
+| `overbroad-inheritance` | A restriction, blocker, or citation was carried at a coarser grain than its own stated justification supports |
 | `miss` | A live pattern predicted a failure that did not occur |
 | `win` | A live tuning proposal demonstrably prevented or caught something |
 | `other` | None of the above |
@@ -44,9 +45,9 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-08-22 | `other` | Claimed *Implemented* for a change with no clause in the document it claims to change; the variant's existing **Prototype** tier already covered the case exactly |
 | 2026-08-22 | `bulk` | LP6's retired original scope and its later-added PR-4 dependency, read together as one gated obligation, hid a real cross-plan design cycle rather than exposing it |
 | 2026-08-22 | `other` | Asserted the CD2/CC1/P7/Presence chain wasn't circular without checking that `AGENT.presence.planning.md`'s own stated purpose (unblocking P7) closed the loop |
-| 2026-08-22 | `other` | Kept treating CD2's CC3/LD-15 gate as binding after establishing that `On` dormancy removes the gate's own stated precondition (live nesting traffic) |
 | 2026-08-22 | `other` | Wrote a comment saying `On` "no longer parses here" while leaving `'On'` in the same type's literal union four places; user caught the self-contradiction, `tsc` then found four more downstream breaks the narrowing produced |
-| 2026-08-22 | `other` | Cited P6 clause 3 (a `ludicCache` return-contract clause) as forbidding reachability computation in the unrelated presence-transfer mechanism; user asked whether it was load-bearing or drift, and it was drift --- PR-14 had been blocking PR-7's graduation on a constraint that was never real |
+| 2026-08-22 | `stale-premise` | LD-14 (ludic-graph ports) sat at "None yet, owed upstream to PQ-9" while PQ-9's own row records it graduated to a decision the same day LD-14 opened; user recalled the decision correctly, the row never noticed |
+| 2026-08-22 | `overbroad-inheritance` | Implemented LP7 (ludic-graph ports) without checking its own section header's "Stage 2 --- gated on P7" line; the gate's stated rationale (port record built blind to its only consumer) is LP6's, not LP7's (a mechanical edge-terminal type widening with no port-record dependency) --- caught while doing LP9 bookkeeping, not before starting the work |
 
 ## Patterns
 
@@ -61,6 +62,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | **`stale-premise`** --- a row states a fact about shipped code and is relied on without re-checking it | 3+ (unnumbered; called *"this plan's most frequent"*) | 0 | 2026-08-20 | Archaeology, ludic-graph ports plan. **Not live-confirmed** |
 | **`vocab-drift`** --- a verdict is inherited into a later vocabulary and read as if written in it | 4 | 0 | 2026-08-20 | Archaeology, ludic-graph ports plan. **Not live-confirmed** |
 | **`framing-inherited`** --- a step inherits the shape of the document that raised it, and survives even where the underlying structure differs | 2 --- **below mint threshold**, carried as provisional | 0 | 2026-08-20 | Archaeology, ludic-graph ports plan. **Not live-confirmed** |
+| **`overbroad-inheritance`** --- a restriction, blocker, or citation is carried at a coarser grain than its own stated justification supports | 3 | 0 | 2026-08-22 | Live-confirmed, presence plan: CD2's CC3/LD-15 gate outlived its own removed precondition; P6 clause 3 (a cache return-contract clause) was cited to forbid reachability computation in an unrelated transfer mechanism; PR-4 inherited "blocked" from PR-7's whole provisional tier rather than the one already-discharged clause it depends on |
 
 **On those three seeded rows: `0` misses is the bias, not a clean record.** Nobody was looking for non-occurrence when they were counted, and the counts come from the artifact rather than from live capture. **Treat them as hypotheses to be knocked down, not as an established baseline** --- the first useful thing this file can do is produce a `miss` against one of them.
 

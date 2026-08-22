@@ -2,6 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -84,14 +85,18 @@ export const applyObjectRelationalChange = async (
             }
         }
 
-        // LP4g: HostRelationalEdge.from/to (already EphemeraLudicTerminalPrimitive-typed)
-        // flow straight into the widened dissolveRelation step terminals --- no narrow needed.
+        // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
+        // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
+        // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
         const dissolveSteps: MutationKernelStep[] = outcomes
-            .filter((entry) => entry.outcome === 'dissolve')
+            .filter((entry) => entry.outcome === 'dissolve'
+                && isEphemeraLudicTerminalPrimitive(entry.edge.from)
+                && isEphemeraLudicTerminalPrimitive(entry.edge.to))
             .map((entry) => ({
                 kind: 'dissolveRelation' as const,
-                subjectId: entry.edge.from,
-                targetId: entry.edge.to,
+                // Safe: filtered to primitive endpoints above.
+                subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
+                targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
                 relationKind: entry.edge.kind,
                 ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
             }))

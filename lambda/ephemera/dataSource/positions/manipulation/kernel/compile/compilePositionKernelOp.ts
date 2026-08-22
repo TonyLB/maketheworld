@@ -1,4 +1,6 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ExecutorDissolveRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
@@ -84,15 +86,19 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         toHostId: op.to,
     }
 
-    // LP4g: HostRelationalEdge.from/to (already EphemeraLudicTerminalPrimitive-typed)
-    // flow straight into the widened dissolveRelation step terminals --- no narrow needed.
-    const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? []).map((edge) => ({
-        kind: 'dissolveRelation' as const,
-        subjectId: edge.from,
-        targetId: edge.to,
-        relationKind: edge.kind,
-        ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
-    }))
+    // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
+    // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
+    // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
+    const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
+        .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
+        .map((edge) => ({
+            kind: 'dissolveRelation' as const,
+            // Safe: filtered to primitive endpoints above.
+            subjectId: edge.from as EphemeraLudicTerminalPrimitive,
+            targetId: edge.to as EphemeraLudicTerminalPrimitive,
+            relationKind: edge.kind,
+            ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
+        }))
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 

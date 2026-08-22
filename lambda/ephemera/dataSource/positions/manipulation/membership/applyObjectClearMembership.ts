@@ -2,6 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
@@ -48,14 +49,18 @@ export const applyObjectClearMembership = async (
         return { ok: true, ...diff }
     }
 
-    // LP4g: keyed on EphemeraLudicTerminalPrimitive --- edge.from/to are already that type,
-    // and no longer narrowed to EphemeraObjectId before being used as a step terminal.
+    // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
+    // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
+    // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
     const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
     for (const hostId of diff.froms) {
         const graph = await internalCache.Positions.getLudicGraph(hostId)
         const outcomes = boundaryEdgeOutcomes(new Set([args.objectId]), graph)
         for (const { edge } of outcomes) {
+            if (!isEphemeraLudicTerminalPrimitive(edge.from) || !isEphemeraLudicTerminalPrimitive(edge.to)) {
+                continue
+            }
             hostByReferencedId.set(edge.from, hostId)
             hostByReferencedId.set(edge.to, hostId)
             dissolveSteps.push({

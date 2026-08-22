@@ -1,3 +1,5 @@
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
@@ -263,16 +265,22 @@ const commandExpand = (
                 }
             }
 
-            const dissolveOutcomes = outcomes.filter((entry) => entry.outcome === 'dissolve')
-            // LP4g: HostRelationalEdge.from/to (already EphemeraLudicTerminalPrimitive-typed)
-            // flow straight into the widened dissolveRelation step terminals --- no narrow needed.
+            // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId, but no producer
+            // can build a port-qualified boundary edge yet (this is Object-only carry/boundary
+            // machinery, ludicGraph/AGENT.md's BD-36 paragraph) --- skip rather than assume.
+            const dissolveOutcomes = outcomes.filter(
+                (entry) => entry.outcome === 'dissolve'
+                    && isEphemeraLudicTerminalPrimitive(entry.edge.from)
+                    && isEphemeraLudicTerminalPrimitive(entry.edge.to)
+            )
             const children: WorklistInstruction[] = dissolveOutcomes.map((entry) => ({
                 id: mintInstructionId(),
                 tag: 'grounded' as const,
                 step: {
                     kind: 'dissolveRelation' as const,
-                    subjectId: entry.edge.from,
-                    targetId: entry.edge.to,
+                    // Safe: filtered to primitive endpoints above.
+                    subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
+                    targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
                     relationKind: entry.edge.kind,
                     ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
                 },

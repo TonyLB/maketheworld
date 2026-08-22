@@ -332,8 +332,8 @@ export class EphemeraLudicGraph {
             const left = aEdges[index]
             const right = bEdges[index]
             if (
-                left.from !== right.from
-                || left.to !== right.to
+                !ephemeraLudicTerminalsEqual(left.from, right.from)
+                || !ephemeraLudicTerminalsEqual(left.to, right.to)
                 || left.kind !== right.kind
                 || left.relationLabel !== right.relationLabel
             ) {
@@ -424,13 +424,14 @@ export class EphemeraLudicGraph {
     /**
      * Node presence is always keyed by the owning component, never by a port, so a
      * port-qualified terminal is resolved to its owner before the membership check
-     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
-     * host-kind component, not only Objects --- so presence is checked against every node's
-     * `universalKey` (`nodeIds`), not only `objectIds`. Despite the name (kept for callers;
-     * see `AGENT.md`'s "Relational edge names"), this has always been a node-presence check,
-     * not an object-only one, once a non-Object terminal can appear.
+     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * host-kind component, or a port-qualified reference on one, not only Objects --- so
+     * presence is checked against every node's `universalKey` (`nodeIds`), not only
+     * `objectIds`. Despite the name (kept for callers; see `AGENT.md`'s "Relational edge
+     * names"), this has always been a node-presence check, not an object-only one, once a
+     * non-Object terminal can appear.
      */
-    bothObjectsOnGraph(from: EphemeraLudicTerminalPrimitive, to: EphemeraLudicTerminalPrimitive): boolean {
+    bothObjectsOnGraph(from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId): boolean {
         const nodeIds = this.nodeIds
         return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }

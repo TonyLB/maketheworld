@@ -293,6 +293,31 @@ describe('EphemeraLudicGraph', () => {
             expect(a.equals(b)).toBe(false)
         })
 
+        // LP7 regression: equals() compared edge.from/.to with raw `!==` (the same "raw ==="
+        // shape LP3 swept everywhere else, missed here because from/to were always strings
+        // until this slice). A port address is an object, so two structurally-identical port
+        // terminals built as separate literals now compare unequal by reference unless equals()
+        // routes through ephemeraLudicTerminalsEqual, exactly like edgesMatch already does.
+        it('equals treats two structurally-identical port-qualified edge terminals as equal', () => {
+            const edge = {
+                tag: 'Relational' as const,
+                from: { owner: OBJECT_A, port: 'ab6129d' },
+                to: OBJECT_B,
+                kind: 'On' as const,
+            }
+            const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                rootId: HOST_ID, ports: [],
+                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
+                edges: [{ ...edge, from: { ...edge.from } }],
+            })
+            const b = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                rootId: HOST_ID, ports: [],
+                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
+                edges: [{ ...edge, from: { ...edge.from } }],
+            })
+            expect(a.equals(b)).toBe(true)
+        })
+
         // LP4d: ports (premise 12) round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
@@ -428,6 +453,36 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: HOST_ID, kind }])
         })
 
+        // LP7 regression, primary path: a well-formed port-qualified edge now satisfies
+        // isEphemeraLudicRelationalEdgeData directly, so extractRelationalEdgesFromStored's
+        // first branch (not the fallback) is what survives it here.
+        it('extractRelationalEdgesFromStored survives a port-qualified edge on the primary path', () => {
+            const edges = extractRelationalEdgesFromStored({
+                nodes: [],
+                edges: [
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' },
+                    { to: 'ROOM#Elsewhere', from: OBJECT_A, description: 'north' },
+                ] as unknown as [],
+            })
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
+        })
+
+        // LP7 regression, fallback path specifically: a Custom edge with an empty relationLabel
+        // fails isEphemeraLudicRelationalEdgeData's Custom-requires-non-empty-label check, so this
+        // is the one shape that actually reaches extractRelationalEdgesFromStored's manual fallback
+        // parse -- the hazard is a valid edge silently vanishing there, not an invalid one being
+        // rejected, so an accept-only test on the primary path would have missed the fallback's own
+        // typeof pre-check still rejecting the port address.
+        it('extractRelationalEdgesFromStored survives a port-qualified edge through the fallback branch', () => {
+            const edges = extractRelationalEdgesFromStored({
+                nodes: [],
+                edges: [
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' },
+                ] as unknown as [],
+            })
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' }])
+        })
+
         it('edgesMatch distinguishes Custom relationLabel', () => {
             expect(edgesMatch(
                 { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
@@ -505,20 +560,15 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.bothObjectsOnGraph(OBJECT_A, HOST_ID)).toBe(true)
         })
 
-        // LP3/PQ-10: `EphemeraLudicRelationalEdgeData.from`/`.to` are `EphemeraLudicTerminalPrimitive`-
-        // typed as of LP4 (still no port-address terminals -- that's LP7), and
-        // `isEphemeraLudicRelationalEdgeData` correctly rejects a non-string terminal today (fixed
-        // in the same change -- it used to throw instead of returning `false`, see the
-        // `edgeReferencesObjectId`/`extractRelationalEdgesFromStored` boundary test below). So a
-        // port-qualified terminal cannot reach a *stored-edge* read path (`removeObject`/
-        // `edgeReferencesObjectId` on parsed data) through any typed or validated production call
-        // yet -- that only becomes reachable once LP7 widens the schema and its guard together.
-        // What CAN be tested now is the comparison logic itself, at the two call shapes that don't
-        // go through that validator: `bothObjectsOnGraph` (takes typed params directly) and the
-        // `HostRelationalEdge`-level helpers (`nodeHasRelationalEdge`, `edgesMatch`), which is
-        // exactly the logic `assertNoRelationalEdgesReferencing`/`edgeReferencesObjectId`
-        // internally reuse -- so this is the real coverage for those two sites' fix as well.
-        describe('port-qualified terminals (LP3/PQ-10)', () => {
+        // LP3/PQ-10 originally: `EphemeraLudicRelationalEdgeData.from`/`.to` were
+        // `EphemeraLudicTerminalPrimitive`-typed as of LP4 (no port-address terminals yet), and
+        // `isEphemeraLudicRelationalEdgeData` correctly rejected a non-string terminal (fixed in
+        // the same change -- it used to throw instead of returning `false`). A port-qualified
+        // terminal could not reach a *stored-edge* read path (`removeObject`/`edgeReferencesObjectId`
+        // on parsed data) through any typed or validated production call at that point. **LP7
+        // (2026-08-22) widens the schema and both guards together**, so that boundary test below
+        // now asserts acceptance rather than rejection.
+        describe('port-qualified terminals (LP3/PQ-10/LP7)', () => {
             const portTerminal = (owner: EphemeraObjectId, port: string) => ({ owner, port })
 
             it('bothObjectsOnGraph resolves a port-qualified terminal to its owner', () => {
@@ -540,14 +590,14 @@ describe('EphemeraLudicGraph', () => {
                 expect(edgesMatch(portQualified, portQualified)).toBe(true)
             })
 
-            it('edgeReferencesObjectId correctly rejects a port-qualified raw edge today, rather than throwing', () => {
-                // Before this fix, isEphemeraLudicRelationalEdgeData called isEphemeraObjectId(edge.from)
-                // unconditionally, and a non-string .from crashed with "value.split is not a function"
-                // instead of returning false. A port address is not yet a legal stored terminal (that's
-                // LP4/LP7), so the correct behavior today is a clean `false`, not a throw.
+            it('edgeReferencesObjectId finds a port-qualified raw edge by its owner (LP7)', () => {
+                // Before LP7, isEphemeraLudicRelationalEdgeData rejected a port-address terminal
+                // outright (a non-string .from), so this returned false rather than throwing. LP7
+                // widens the schema to admit it, so the correct behavior is now to find the owner.
                 const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'On' }
                 expect(() => edgeReferencesObjectId(rawEdge, OBJECT_A)).not.toThrow()
-                expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(false)
+                expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(true)
+                expect(edgeReferencesObjectId(rawEdge, OBJECT_C)).toBe(false)
             })
         })
 

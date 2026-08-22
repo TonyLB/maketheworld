@@ -62,11 +62,14 @@ export function applyTransferSet(
         return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
     }
 
-    // LP4 widened HostRelationalEdge.from/to to the full terminal union; no production path yet
-    // produces a character-endpoint relational edge (LP4h doesn't change that --- see
-    // interactionUnderTransfer.ts), so isEphemeraObjectId(edge.from) still narrows correctly here.
+    // LP4/LP7 widened HostRelationalEdge.from/to to the full terminal union (now including
+    // port-qualified terminals); no production path yet produces a character- or port-endpoint
+    // relational edge (see interactionUnderTransfer.ts), so the typeof guard below narrows
+    // correctly before isEphemeraObjectId, which is string-only.
     const internalEdges = sourceGraph.relationalEdges.filter(
-        (edge) => isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to) && transferSet.has(edge.from) && transferSet.has(edge.to)
+        (edge) => typeof edge.from === 'string' && typeof edge.to === 'string'
+            && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to)
+            && transferSet.has(edge.from) && transferSet.has(edge.to)
     )
 
     // Internal edges are stripped from sourceGraph *before* the per-entity remove loop, since

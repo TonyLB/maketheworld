@@ -9,6 +9,7 @@ import {
     isEphemeraLudicGraphPort,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
+    isEphemeraLudicTerminalId,
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
@@ -221,6 +222,31 @@ describe('isEphemeraLudicPortAddress', () => {
 
     it('rejects an empty port segment', () => {
         expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+    })
+})
+
+// LP7: the union guard LP2 declared the type for but never shipped.
+describe('isEphemeraLudicTerminalId', () => {
+    it('accepts a bare terminal primitive', () => {
+        expect(isEphemeraLudicTerminalId('OBJECT#helmet')).toBe(true)
+    })
+
+    it('accepts a well-formed port address', () => {
+        expect(isEphemeraLudicTerminalId({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(true)
+    })
+
+    it('rejects a malformed port address', () => {
+        expect(isEphemeraLudicTerminalId({ owner: 'BOGUS#X', port: 'ab6129d' })).toBe(false)
+    })
+
+    it('rejects a bogus tagged id', () => {
+        expect(isEphemeraLudicTerminalId('BOGUS#X')).toBe(false)
+    })
+
+    it('rejects null/undefined/non-string-non-object values', () => {
+        expect(isEphemeraLudicTerminalId(null)).toBe(false)
+        expect(isEphemeraLudicTerminalId(undefined)).toBe(false)
+        expect(isEphemeraLudicTerminalId(42)).toBe(false)
     })
 })
 
@@ -557,11 +583,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-fix guard called
+    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
-    // function" instead of returning false. A port-qualified terminal is not yet a legal edge
-    // endpoint (that widening is LP7), so rejecting it cleanly is the correct behavior.
-    it('rejects a port-qualified relational edge terminal without throwing', () => {
+    // function" instead of returning false -- hardened at the time to a typeof pre-check that
+    // rejected the (then-illegal) port terminal cleanly instead. LP7 widens the field itself to
+    // admit a port-qualified terminal, so the correct behavior flips from reject-cleanly to
+    // accept -- this is the regression the LP7 guards exist to prove (a valid edge must not
+    // silently vanish from the stored payload).
+    it('accepts a port-qualified relational edge terminal (LP7)', () => {
         const edges = [{
             tag: 'Relational',
             from: { owner: 'OBJECT#broom', port: 'ab6129d' },
@@ -585,6 +614,37 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 { tag: 'Object', universalKey: 'OBJECT#table' },
             ],
             edges,
+        })).toBe(true)
+    })
+
+    it('accepts a relational edge with a port-qualified terminal on both ends', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
+            ports: [],
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#broom' },
+                { tag: 'Object', universalKey: 'OBJECT#table' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'OBJECT#broom', port: 'ab6129d' },
+                to: { owner: 'OBJECT#table', port: 'cf0192a' },
+                kind: 'On',
+            }],
+        })).toBe(true)
+    })
+
+    it('still rejects an edge terminal that is neither a valid primitive nor a valid port address', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
+            ports: [],
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom' }],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'BOGUS#X', port: 'ab6129d' },
+                to: 'OBJECT#broom',
+                kind: 'On',
+            }],
         })).toBe(false)
     })
 

@@ -262,6 +262,9 @@ export type EphemeraLudicTerminalId =
     | EphemeraLudicTerminalPrimitive
     | EphemeraLudicPortAddress
 
+export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
+    isEphemeraLudicTerminalPrimitive(value) || isEphemeraLudicPortAddress(value)
+
 /** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified. */
 export const ephemeraLudicTerminalOwner = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive =>
     typeof terminal === 'string' ? terminal : terminal.owner
@@ -317,14 +320,13 @@ export type HostRelationalEdgeKind =
 
 /**
  * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
- * `from`/`to` are `EphemeraLudicTerminalPrimitive` (LP4) --- any legal host-kind component,
- * not only Objects --- matching what LP0 already made a legal host. Port-address terminals
- * (`EphemeraLudicPortAddress`) are Stage 2/LP7, deliberately not admitted here yet.
+ * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component or a
+ * port-qualified reference on one, matching what LP0/LP2 already made legal terminals.
  */
 export type EphemeraLudicRelationalEdgeData = {
     tag: 'Relational';
-    from: EphemeraLudicTerminalPrimitive;
-    to: EphemeraLudicTerminalPrimitive;
+    from: EphemeraLudicTerminalId;
+    to: EphemeraLudicTerminalId;
     kind: HostRelationalEdgeKind;
     relationLabel?: string;
 }
@@ -339,7 +341,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (edge.tag !== 'Relational') {
         return false
     }
-    if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !isEphemeraLudicTerminalPrimitive(edge.from) || !isEphemeraLudicTerminalPrimitive(edge.to)) {
+    if (!isEphemeraLudicTerminalId(edge.from) || !isEphemeraLudicTerminalId(edge.to)) {
         return false
     }
     if (!HOST_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
@@ -418,7 +420,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         return false
     }
     const graph = value as EphemeraLudicGraphFieldPayload
-    if (!(typeof graph.rootId === 'string' ? isEphemeraLudicTerminalPrimitive(graph.rootId) : isEphemeraLudicPortAddress(graph.rootId))) {
+    if (!isEphemeraLudicTerminalId(graph.rootId)) {
         return false
     }
     if (!Array.isArray(graph.nodes)) {
