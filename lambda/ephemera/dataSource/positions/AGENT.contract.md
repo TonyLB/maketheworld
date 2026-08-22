@@ -137,6 +137,10 @@ Builders: [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp
 
 All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
+**A character's membership host is a `ROOM`, and only a `ROOM`.** Objects are unrestricted and may be hosted by rooms, characters, objects, features and areas as the host union already allows; characters **must not** be transferred into any non-Room host's `ludicGraph`. **This is a scoping decision, not a claim that characters are ontologically unlike objects, and must not be cited as one** --- it exists to keep the character path single-hosted while the general graph work matures, and it lifts when that work does.
+
+**It is currently unenforced, and the failure is silent.** An Object is a legal `EphemeraMembershipHostId` and [`MutationKernelTransferStep`](manipulation/kernel/kernelStep.ts) already admits a character as a transferable entity, so an object-hosted character would persist successfully, then read as having zero **Room** containers, fall through to the `RoomStack`, and present as **out of play**. What holds the restriction today is four independent read-side narrowings ([`resolveCharacterRoomId`](membership/resolveCharacterRoomId.ts) and [`syncMembershipAdjacency`](membership/syncMembershipAdjacency.ts) filtering containers with `isEphemeraRoomId`, plus the Room-only apply filters under [Read surface](#read-surface-forward-graph-vs-reverse-containers)) --- none of which refuse the write. Treat this bullet as the statement of intent that those filters implement; **do not** infer from the absence of a guard that the restriction is optional.
+
 ### Public apply shape
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist.
