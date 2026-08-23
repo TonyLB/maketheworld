@@ -87,6 +87,22 @@ export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
     timestamp: string
 }
 
+/**
+ * LP6a (LD-18): a `ludicGraph` port whose denormalized exterior values (`kind`,
+ * `exteriorRelationLabel`) disagree with the referring edge held by the host the port itself
+ * names. The subject is the individual port, not the row --- a mismatch is one crossing being
+ * wrong, and triage needs to know which. Scoped to a *named* referrer: a port whose named
+ * referrer holds no matching edge asks *who should refer here*, which only the reverse index
+ * answers, and is not a finding.
+ */
+export type DiagnosticsLudicGraphPortMismatchFindingEvent = {
+    type: 'Ludic Graph Port Mismatch Finding'
+    ephemeraId: EphemeraMembershipHostId
+    portId: string
+    diagnosticRunId: string
+    timestamp: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEvent = {
     type: 'Player Misalignment Finding'
     player: string
@@ -122,6 +138,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsPlayerMisalignmentFindingEvent
     | DiagnosticsComponentVerticalMisalignedFindingEvent
     | DiagnosticsLudicGraphStaleStructureFindingEvent
+    | DiagnosticsLudicGraphPortMismatchFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -187,6 +204,14 @@ export type DiagnosticsLudicGraphStaleStructureFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsLudicGraphPortMismatchFindingEventExternal = {
+    type: 'Ludic Graph Port Mismatch Finding'
+    ephemeraId: EphemeraMembershipHostId
+    portId: string
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsPlayerMisalignmentFindingEventExternal = {
     type: 'Player Misalignment Finding'
     player: string
@@ -213,6 +238,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsPlayerMisalignmentFindingEventExternal
     | DiagnosticsComponentVerticalMisalignedFindingEventExternal
     | DiagnosticsLudicGraphStaleStructureFindingEventExternal
+    | DiagnosticsLudicGraphPortMismatchFindingEventExternal
 
 //
 // Type guards
@@ -355,6 +381,20 @@ export const isLudicGraphStaleStructureFindingEvent = (
     )
 }
 
+export const isLudicGraphPortMismatchFindingEvent = (
+    event: any
+): event is DiagnosticsLudicGraphPortMismatchFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Ludic Graph Port Mismatch Finding' &&
+        typeof event.ephemeraId === 'string' &&
+        isEphemeraMembershipHostId(event.ephemeraId) &&
+        typeof event.portId === 'string' &&
+        event.portId.length > 0
+    )
+}
+
 export const isComponentVerticalMisalignedFindingEvent = (
     event: any
 ): event is DiagnosticsComponentVerticalMisalignedFindingEvent => {
@@ -374,6 +414,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) || isLudicGraphStaleStructureFindingEvent(event) ||
+        isLudicGraphPortMismatchFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -479,6 +520,15 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Ludic Graph Stale Structure Finding',
                 ephemeraId: content.ephemeraId,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Ludic Graph Port Mismatch Finding' && isLudicGraphPortMismatchFindingEvent(content)) {
+            return {
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: content.ephemeraId,
+                portId: content.portId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
             }
@@ -636,6 +686,22 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             return {
                 type: 'Ludic Graph Stale Structure Finding',
                 ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Ludic Graph Port Mismatch Finding') {
+            if (typeof content.ephemeraId !== 'string' || !isEphemeraMembershipHostId(content.ephemeraId)) {
+                return null
+            }
+            if (typeof content.portId !== 'string' || !content.portId.length) {
+                return null
+            }
+            return {
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
+                portId: content.portId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
             }

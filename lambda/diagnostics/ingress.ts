@@ -84,6 +84,13 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'LudicGraphPortMismatchSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'LudicGraphPortMismatchSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
     }
 }
 

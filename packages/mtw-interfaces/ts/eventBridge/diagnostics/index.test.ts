@@ -10,6 +10,7 @@ import {
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
     isLudicGraphStaleStructureFindingEvent,
+    isLudicGraphPortMismatchFindingEvent,
     isWMLMaterializedViewFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
@@ -298,6 +299,29 @@ describe('DiagnosticsEventSerializer', () => {
                 type: 'Ludic Graph Stale Structure Finding',
                 ephemeraId: 'ROOM#Kitchen',
                 diagnosticRunId: 'run-lgss-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
+            })
+        })
+
+        it('should serialize Ludic Graph Port Mismatch Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: 'OBJECT#Rope',
+                portId: 'abcd123',
+                diagnosticRunId: 'run-lgpm-ser',
+                timestamp: '2025-10-18T17:30:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Ludic Graph Port Mismatch Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: 'OBJECT#Rope',
+                portId: 'abcd123',
+                diagnosticRunId: 'run-lgpm-ser',
                 timestamp: '2025-10-18T17:30:00.000Z'
             })
         })
@@ -851,6 +875,40 @@ describe('DiagnosticsEventSerializer', () => {
             })
             expect(internal).toBeNull()
         })
+
+        it('should deserialize Ludic Graph Port Mismatch Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: 'OBJECT#Rope',
+                portId: 'abcd123',
+                diagnosticRunId: 'run-lgpm-des',
+                timestamp: '2025-10-18T17:36:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Ludic Graph Port Mismatch Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: 'OBJECT#Rope',
+                portId: 'abcd123',
+                diagnosticRunId: 'run-lgpm-des',
+                timestamp: '2025-10-18T17:36:00.000Z'
+            })
+        })
+
+        it('should return null for Ludic Graph Port Mismatch Finding missing a portId', async () => {
+            const internal = await serializer.deserialize({
+                content: {
+                    type: 'Ludic Graph Port Mismatch Finding',
+                    ephemeraId: 'OBJECT#Rope',
+                },
+                header: diagnosticsHeader('Ludic Graph Port Mismatch Finding')
+            })
+            expect(internal).toBeNull()
+        })
     })
 
     describe('type guards', () => {
@@ -1095,6 +1153,27 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
+        describe('isLudicGraphPortMismatchFindingEvent', () => {
+            it('should return true for valid Ludic Graph Port Mismatch Finding event', () => {
+                const event = {
+                    type: 'Ludic Graph Port Mismatch Finding',
+                    ephemeraId: 'FEATURE#Wall',
+                    portId: 'abcd123',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isLudicGraphPortMismatchFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid ephemeraId, missing or empty portId, or bad payloads', () => {
+                expect(isLudicGraphPortMismatchFindingEvent(null)).toBe(false)
+                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding' })).toBe(false)
+                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'BOGUS#x', portId: 'abcd123' })).toBe(false)
+                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'FEATURE#Wall' })).toBe(false)
+                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'FEATURE#Wall', portId: '' })).toBe(false)
+            })
+        })
+
         describe('isComponentVerticalMisalignedFindingEvent', () => {
             it('should return true for valid Component Vertical Misaligned Finding event', () => {
                 const event = {
@@ -1294,6 +1373,27 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Ludic Graph Stale Structure Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Ludic Graph Port Mismatch Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Ludic Graph Port Mismatch Finding',
+                ephemeraId: 'AREA#Downtown',
+                portId: 'abcd123',
+                diagnosticRunId: 'run-lgpm-rt',
+                timestamp: '2025-10-18T18:24:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Ludic Graph Port Mismatch Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Ludic Graph Port Mismatch Finding')
             })
 
             expect(deserialized).toEqual(original)

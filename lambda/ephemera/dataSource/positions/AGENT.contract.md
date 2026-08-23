@@ -479,11 +479,32 @@ Positions **must** subscribe to:
 **Repair model, scoped tightly (premise 10: recorded, never derived):**
 
 - **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
-- **Not healable, and must not be attempted here:** `ports` (LD-17's --- a port has no interior witness, so repairing it needs the exterior) or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit.
+- **Not healable, and must not be attempted here:** `ports` or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit. **Re-scoped 2026-08-23 (LP6a):** the `ports` line above was drawn against *repairing a port at all*, on the ground that a port has no interior witness so any repair must read the exterior --- which meant the reverse index, and therefore LD-17. **A port that disagrees with the referrer it itself names is not that case:** it names the one row to check, so the repair reads one named graph and no reverse index. That repair is real, and it is the **separate** heal below, still not this one --- this handler stays single-record. What remains permanently outside both is a port missing `fromHostId`, or one whose named referrer holds no matching edge: those ask *who **should** refer here*, which only the reverse index answers.
 - **Idempotent:** at-least-once finding delivery **must** be safe --- a row already matching the shipped shape is a no-op read, no write issued.
 - **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here is LPM's reset undone.
 
 Sweep (read-only classification): [`../../../diagnostics/ludicGraphStaleStructureSweep/`](../../../diagnostics/ludicGraphStaleStructureSweep/).
+
+### `mtw.diagnostics` --- `ludicGraph` port mismatch self-heal (LP6a, LD-18)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Ludic Graph Port Mismatch Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphPortMismatch`](ludicGraph/healLudicGraphPortMismatch.ts) |
+
+**Why a second heal rather than a wider first one:** shape staleness is judged from one row; a mismatch cannot be. This handler reads the interior row **and** the row of the host the port names, which is exactly what `healLudicGraphStructure` must never do.
+
+**Repair model (premise 12's amendment: compare where comparison is possible; where an exterior reference exists it governs):**
+
+- **Healable:** a port whose `kind` or `exteriorRelationLabel` disagrees with the edge(s) crossing into it in the **named** referrer's graph. The repair rewrites those two fields from the exterior edge and **must not** touch any other field, any other port, or the referrer.
+- **Not a mismatch at all, and no write:** the referrer holds no edge into this port, its graph is absent, or its graph fails the shape guard (that last is the *structure* finding, which orders the two heals rather than duplicating them).
+- **Reported unhealable:** the matching exterior edges disagree with **each other**. A port's single-use lifecycle means one crossing, so a split fan is broken exteriorly and picking one edge to believe would invent an answer.
+- **Idempotent, and by recheck rather than by assumption:** the handler re-reads both rows and re-classifies before writing, so at-least-once redelivery of a finding whose mismatch is already repaired is a no-op read.
+- **Never called from a read boundary,** for both of the reasons the structure heal already carries: a read-time default hides a stale row forever, and a read-time repair makes every read a write (LD-18's binding constraint).
+
+Comparison (shared with the sweep, one definition): [`@tonylb/mtw-gateways/ts/ephemera/positions`](../../../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts) `classifyLudicGraphPortMismatch`.
+Sweep (read-only classification): [`../../../diagnostics/ludicGraphPortMismatchSweep/`](../../../diagnostics/ludicGraphPortMismatchSweep/).
 
 ---
 

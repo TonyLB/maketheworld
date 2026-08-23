@@ -18,7 +18,7 @@ import type {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload, ObjectDissolveRelationPublishedPayload, ObjectDropPublishedPayload, ObjectEstablishRelationPublishedPayload, ObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
-import type { DiagnosticsLudicGraphStaleStructureFindingEvent, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import type { DiagnosticsLudicGraphPortMismatchFindingEvent, DiagnosticsLudicGraphStaleStructureFindingEvent, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 export type EphemeraPositionsConnectionsCharactersHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections.characters'; type: 'Character Connected' | 'Character Disconnected' }
@@ -47,6 +47,9 @@ export type EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader =
 export type EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ludic Graph Stale Structure Finding' }
 
+export type EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader =
+    StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Ludic Graph Port Mismatch Finding' }
+
 export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsConnectionsCharactersHeader
     | EphemeraPositionsActionsCharacterNavigateHeader
@@ -57,6 +60,7 @@ export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsActionsObjectDissolveRelationHeader
     | EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
     | EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader
+    | EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader
 
 export type EphemeraPositionsSubscribedContent =
     | ConnectionsCharactersEventUpdate
@@ -68,6 +72,7 @@ export type EphemeraPositionsSubscribedContent =
     | ObjectDissolveRelationPublishedPayload
     | DiagnosticsRoomOccupancyDriftFindingEvent
     | DiagnosticsLudicGraphStaleStructureFindingEvent
+    | DiagnosticsLudicGraphPortMismatchFindingEvent
 
 export type EphemeraPositionsConnectionsCharactersEnvelope =
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.connections.characters'; type: 'Character Connected' }; getContent: () => Promise<ConnectionsCharactersConnectedEvent> }
@@ -113,6 +118,11 @@ export type EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope 
     getContent: () => Promise<DiagnosticsLudicGraphStaleStructureFindingEvent>;
 }
 
+export type EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope = {
+    header: EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader;
+    getContent: () => Promise<DiagnosticsLudicGraphPortMismatchFindingEvent>;
+}
+
 const isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader: HeaderGuard<EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader> = (
     header
 ): header is EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader => (
@@ -123,6 +133,12 @@ const isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader: Heade
     header
 ): header is EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader => (
     header.dataSourceKey === 'mtw.diagnostics' && header.type === 'Ludic Graph Stale Structure Finding'
+)
+
+const isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader: HeaderGuard<EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader> = (
+    header
+): header is EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader => (
+    header.dataSourceKey === 'mtw.diagnostics' && header.type === 'Ludic Graph Port Mismatch Finding'
 )
 
 const isEphemeraPositionsActionsCharacterNavigateHeader: HeaderGuard<EphemeraPositionsActionsCharacterNavigateHeader> = (
@@ -182,6 +198,7 @@ export const isEphemeraPositionsSubscribedHeader: HeaderGuard<EphemeraPositionsS
     || isEphemeraPositionsActionsObjectDissolveRelationHeader(header)
     || isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader(header)
     || isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader(header)
+    || isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader(header)
 
 export const isEphemeraPositionsConnectionsCharactersEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsCharactersEventUpdate,
@@ -227,6 +244,11 @@ export const isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelo
     DiagnosticsLudicGraphStaleStructureFindingEvent,
     EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader
 >(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader)
+
+export const isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    DiagnosticsLudicGraphPortMismatchFindingEvent,
+    EphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader
+>(isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingHeader)
 
 export const isEphemeraPositionsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraPositionsSubscribedContent,

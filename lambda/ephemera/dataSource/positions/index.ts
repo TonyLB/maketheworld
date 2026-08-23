@@ -35,6 +35,7 @@ import {
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
+    isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
@@ -49,6 +50,7 @@ import { executeObjectEstablishRelation } from './manipulation/relational/execut
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
+import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
@@ -80,6 +82,14 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     return
                 }
                 await healLudicGraphStructure(content.ephemeraId, { dryRun: false })
+                return
+            }
+            if (isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content?.ephemeraId || !content?.portId) {
+                    return
+                }
+                await healLudicGraphPortMismatch(content.ephemeraId, content.portId, { dryRun: false })
                 return
             }
             if (isEphemeraPositionsActionsObjectDropEnvelope(envelope)) {

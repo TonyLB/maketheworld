@@ -9,6 +9,7 @@ import {
     isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
+    isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
 } from './subscribedEvents'
 
 describe('mtw.ephemera.positions subscribedEvents', () => {
@@ -277,5 +278,27 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope (LP6a)', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Ludic Graph Port Mismatch Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Ludic Graph Port Mismatch Finding' as const,
+                ephemeraId: 'OBJECT#Rope' as const,
+                portId: 'abcd123',
+                diagnosticRunId: 'diag-2',
+                timestamp: '2026-08-23T10:00:00.000Z',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(false)
     })
 })

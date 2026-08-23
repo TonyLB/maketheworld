@@ -29,6 +29,9 @@ jest.mock('./orphanedImprovisedObjectSweep', () => ({
 jest.mock('./ludicGraphStaleStructureSweep', () => ({
     ludicGraphStaleStructureSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
+jest.mock('./ludicGraphPortMismatchSweep', () => ({
+    ludicGraphPortMismatchSweep: jest.fn(async () => ({ emittedCount: 0, ports: [] as { ephemeraId: string; portId: string }[] }))
+}))
 
 import { staleSessionSweep } from './staleSessionSweep'
 import { roomOccupancyDriftSweep } from './roomOccupancyDriftSweep'
@@ -37,6 +40,7 @@ import { componentVerticalMisalignmentSweep } from './componentVerticalMisalignm
 import { renderCacheDriftSweep } from './renderCacheDriftSweep'
 import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
+import { ludicGraphPortMismatchSweep } from './ludicGraphPortMismatchSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -60,6 +64,8 @@ describe('diagnostics handler', () => {
         jest.mocked(orphanedImprovisedObjectSweep).mockResolvedValue({ emittedCount: 0, objectIds: [] as EphemeraObjectId[] })
         jest.mocked(ludicGraphStaleStructureSweep).mockReset()
         jest.mocked(ludicGraphStaleStructureSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
+        jest.mocked(ludicGraphPortMismatchSweep).mockReset()
+        jest.mocked(ludicGraphPortMismatchSweep).mockResolvedValue({ emittedCount: 0, ports: [] })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -263,6 +269,26 @@ describe('diagnostics handler', () => {
             nowMs: 5555,
         })
         expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['ROOM#Kitchen'] })
+    })
+
+    // Same regression shape as the case above: app.ts's allow-list and ingress.ts's switch have
+    // to be added together, or the direct invoke is accepted and then silently dropped.
+    it('invokes ludicGraphPortMismatchSweep for direct LudicGraphPortMismatchSweep type', async () => {
+        jest.mocked(ludicGraphPortMismatchSweep).mockResolvedValueOnce({
+            emittedCount: 1,
+            ports: [{ ephemeraId: 'OBJECT#Rope' as EphemeraMembershipHostId, portId: 'abcd123' }],
+        })
+        const result = await handler({
+            type: 'LudicGraphPortMismatchSweep',
+            diagnosticRunId: 'dr-lgpm',
+            nowMs: 5555,
+        })
+
+        expect(ludicGraphPortMismatchSweep).toHaveBeenCalledWith({
+            diagnosticRunId: 'dr-lgpm',
+            nowMs: 5555,
+        })
+        expect(result).toEqual({ emittedCount: 1, ports: [{ ephemeraId: 'OBJECT#Rope', portId: 'abcd123' }] })
     })
 
 })
