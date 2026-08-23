@@ -23,6 +23,14 @@ npm run test path/to/test.ts
 
 **Note**: This lambda uses `npm run test` (not `npm test`) because it's a Jest-based package context, unlike the client which uses Vitest with `npm test`.
 
+### Two ways a suite lies about being green
+
+Both were found the expensive way and are recorded here because neither is visible from a passing run. (Graduated 2026-08-23 out of `AGENT.ludicGraphPorts.planning.md` on its close.)
+
+**`npx tsc --noEmit` is not sufficient.** This package's `*.integration.test.ts` files sit **outside** `tsconfig`, so a rename or a signature change can typecheck clean and still break the suite. Run the real suite, not just the compiler.
+
+**After any change that makes a shared field required, run `npm run test -- --clearCache` once before believing a green suite.** `ts-jest` caches type-check results per unchanged file, so fixtures that omit the new field keep reporting PASS until the cache happens to evict. This was observed across three consecutive full-suite runs over two days (`344 passed`) while two suites were in fact broken, and they failed identically on a clean `HEAD` checkout --- **the files that break are exactly the ones you did not touch, which is exactly what the cache keys on.**
+
 For complete project-wide testing guidance, see **[Project-Level Testing Documentation](../../AGENT.md#testing-patterns)**.
 
 ## InternalCache Dependency Injection Pattern
