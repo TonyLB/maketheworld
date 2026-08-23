@@ -716,7 +716,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' }],
             })).toBe(false)
         })
 
@@ -724,7 +724,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 123, fromHostId: 'OBJECT#box' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'Present' }],
             })).toBe(false)
         })
 
@@ -732,7 +732,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'OBJECT#box',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' }],
             })).toBe(true)
         })
     })
@@ -740,19 +740,52 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
 describe('isEphemeraLudicGraphPort', () => {
     it('accepts a well-formed port entry', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' })).toBe(true)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(true)
     })
 
     it('rejects a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' })).toBe(false)
     })
 
     it('rejects a non-string portId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
     })
 
     it('rejects a non-object value', () => {
         expect(isEphemeraLudicGraphPort('OBJECT#box#ab6129d')).toBe(false)
+    })
+
+    // LP6: the discriminator (PR-11). Required --- a port without it leaves `ports.length`
+    // ambiguous between presence bindings and relational pass-throughs, which is the exact
+    // defect the field exists to remove.
+    it('rejects a port with no kind', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' })).toBe(false)
+    })
+
+    it('rejects a kind outside HostRelationalEdgeKind', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Beside' })).toBe(false)
+    })
+
+    // The union is taken unrestricted (PR-11) --- including the three values no corpus case can
+    // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
+    it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'])('accepts a %s port with no label', (kind) => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
+    })
+
+    it('accepts a Custom port carrying a non-empty exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom', exteriorRelationLabel: 'threads into' })).toBe(true)
+    })
+
+    it('rejects a Custom port with no exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom' })).toBe(false)
+    })
+
+    it('rejects a Custom port with an empty exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom', exteriorRelationLabel: '' })).toBe(false)
+    })
+
+    it('rejects a non-string exterior label on a non-Custom port', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 12 })).toBe(false)
     })
 })
 

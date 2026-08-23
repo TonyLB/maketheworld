@@ -48,6 +48,9 @@ class EphemeraLudicGraph {
   equals(other: EphemeraLudicGraph): boolean
 
   get ports(): EphemeraLudicGraphPort[] // egress list (premise 12, LP4d); required, possibly empty; inert until a producer exists
+                                        // entries carry `kind` (LP6/PR-11) --- a presence binding iff 'Present', so the
+                                        // binding count is a filter on `kind`, never ports.length --- plus the exterior
+                                        // `Custom` label, required non-empty when kind is 'Custom'
 }
 ```
 

@@ -321,7 +321,7 @@ describe('EphemeraLudicGraph', () => {
         // LP4d: ports (premise 12) round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId }]
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Present' as const }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],
@@ -331,8 +331,10 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.toStored().ports).toEqual(ports)
         })
 
+        // LP6: a `Custom` port carries its exterior label, so the round trip must show both
+        // new fields surviving --- not just the discriminator.
         it('ports round-trips through toJSON and fromJSON', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId }]
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Custom' as const, exteriorRelationLabel: 'threads into' }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],

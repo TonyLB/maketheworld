@@ -358,13 +358,27 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
 }
 
 /**
- * An egress-list entry (premise 12): the interior-authoritative half of a port record.
- * `fromHostId` names the exterior host that refers to this port; it has no interior witness,
- * so --- like `rootId` (premise 10) --- it is recorded, never derived. LP4d.
+ * An egress-list entry (premise 12): the interior half of a port record, mixing facts of both
+ * scopes rather than exterior ones only. `fromHostId` names the exterior host that refers to
+ * this port; it has no interior witness, so --- like `rootId` (premise 10) --- it is recorded,
+ * never derived. LP4d, widened by LP6.
  */
 export type EphemeraLudicGraphPort = {
     portId: string;
     fromHostId: EphemeraMembershipHostId;
+    /**
+     * Interior scope (premise 12): the kind of the edges passing through this port --- a
+     * presence binding iff `'Present'` (PR-11), so the binding count is a filter on this
+     * field and never `ports.length`. Authored at mint time, never derived from an edge.
+     */
+    kind: HostRelationalEdgeKind;
+    /**
+     * Exterior scope: the referring edge's `Custom` label, denormalized interior-side the same
+     * way `fromHostId` is, since it lives in the parent's shard. Required non-empty when
+     * `kind === 'Custom'` (PR-11). No interior counterpart is stored --- the interior edges
+     * are siblings of `ports` in one attribute, and a port's interior fan has no single label.
+     */
+    exteriorRelationLabel?: string;
 }
 
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
@@ -413,7 +427,21 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
         return false
     }
     const entry = value as EphemeraLudicGraphPort
-    return typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId)
+    if (!(typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId))) {
+        return false
+    }
+    if (!HOST_RELATIONAL_EDGE_KINDS.has(entry.kind)) {
+        return false
+    }
+    // Mirrors the edge guard's own conditional one-for-one (LP6): the scale change a port
+    // records needs the exterior end of it, and a port carrying neither end records nothing.
+    if (entry.kind === 'Custom') {
+        return typeof entry.exteriorRelationLabel === 'string' && entry.exteriorRelationLabel.length > 0
+    }
+    if (entry.exteriorRelationLabel !== undefined && typeof entry.exteriorRelationLabel !== 'string') {
+        return false
+    }
+    return true
 }
 
 export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is EphemeraLudicGraphFieldPayload => {
