@@ -108,13 +108,13 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
 
 export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
-    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived (premise 10) --- LP4a. */
+    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see this directory's `AGENT.md`. */
     readonly rootId: EphemeraLudicTerminalId
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
     private readonly _playOnlyEdges: PlayLudicGraph['edges'] | undefined
-    /** The egress list (premise 12), required and possibly empty --- LP4d. */
+    /** The egress list; required and possibly empty, deliberately with no read-boundary default. */
     private readonly _ports: EphemeraLudicGraphPort[]
 
     private constructor(
@@ -241,7 +241,7 @@ export class EphemeraLudicGraph {
         return extractRelationalEdgesFromStored(this.toStored())
     }
 
-    /** The egress list (premise 12) --- inert until a producer exists (AB-55/LD-17), same precedent as LP4b. */
+    /** The egress list --- inert until a producer exists (AB-55/AB-62, abstraction-layers plan). */
     get ports(): EphemeraLudicGraphPort[] {
         return [...this._ports]
     }

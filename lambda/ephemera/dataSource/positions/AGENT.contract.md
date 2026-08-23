@@ -476,7 +476,7 @@ Positions **must** subscribe to:
 | --- | --- |
 | `Ludic Graph Stale Structure Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphStructure`](ludicGraph/healLudicGraphStructure.ts) |
 
-**Repair model, scoped tightly (premise 10: recorded, never derived):**
+**Repair model, scoped tightly (`rootId` is recorded, never derived):**
 
 - **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
 - **Not healable, and must not be attempted here:** `ports` or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit. **Re-scoped 2026-08-23 (LP6a):** the `ports` line above was drawn against *repairing a port at all*, on the ground that a port has no interior witness so any repair must read the exterior --- which meant the reverse index, and therefore LD-17. **A port that disagrees with the referrer it itself names is not that case:** it names the one row to check, so the repair reads one named graph and no reverse index. That repair is real, and it is the **separate** heal below, still not this one --- this handler stays single-record. What remains permanently outside both is a port missing `fromHostId`, or one whose named referrer holds no matching edge: those ask *who **should** refer here*, which only the reverse index answers.
@@ -495,7 +495,7 @@ Positions **must** subscribe to:
 
 **Why a second heal rather than a wider first one:** shape staleness is judged from one row; a mismatch cannot be. This handler reads the interior row **and** the row of the host the port names, which is exactly what `healLudicGraphStructure` must never do.
 
-**Repair model (premise 12's amendment: compare where comparison is possible; where an exterior reference exists it governs):**
+**Repair model (the [port-record conflict rule](#port-records-field-scope-and-the-conflict-rule): compare where comparison is possible; where an exterior reference exists it governs):**
 
 - **Healable:** a port whose `kind` or `exteriorRelationLabel` disagrees with the edge(s) crossing into it in the **named** referrer's graph. The repair rewrites those two fields from the exterior edge and **must not** touch any other field, any other port, or the referrer.
 - **Not a mismatch at all, and no write:** the referrer holds no edge into this port, its graph is absent, or its graph fails the shape guard (that last is the *structure* finding, which orders the two heals rather than duplicating them).
@@ -505,6 +505,20 @@ Positions **must** subscribe to:
 
 Comparison (shared with the sweep, one definition): [`@tonylb/mtw-gateways/ts/ephemera/positions`](../../../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts) `classifyLudicGraphPortMismatch`.
 Sweep (read-only classification): [`../../../diagnostics/ludicGraphPortMismatchSweep/`](../../../diagnostics/ludicGraphPortMismatchSweep/).
+
+---
+
+## Port records: field scope and the conflict rule
+
+A `ludicGraph` port ([`EphemeraLudicGraphPort`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) is stored **interior-side only** --- on the graph of the whole that owns the port --- but it carries facts of **two scopes**, and which scope a field belongs to is what decides who wins a disagreement. Recorded here 2026-08-23, on the close of the ludicGraph-ports task plan; the two self-heal sections above are the shipped consequence and cite this rule rather than restating it.
+
+- **Interior scope --- the port's existence, its `portId`, its single-use lifecycle, and its `kind`.** The interior owns the binding, so these are authoritative without qualification.
+- **Exterior scope --- `fromHostId` and the exterior relation label (`exteriorRelationLabel`).** These are facts *about the exterior relationship*, held interior-side as **denormalized copies**. The authoritative instance is the referring edge in the named host's own graph.
+- **The conflict rule, and it is conditional --- this is the whole of it: compare where comparison is possible; where an exterior reference exists it governs; where none exists the stored value stands.**
+- **This is not a witness requirement.** An uncontested value needs no exterior instance to justify it. A port whose named referrer holds no matching edge is **not** thereby wrong, and **must not** be repaired toward absence.
+- **One rule, not one per field.** The same shape governs `kind` --- checked wherever an edge exists, vacuously true where none does --- so the port record has a single consistency rule.
+
+**Two things this rule replaced, stated because both were believed and both were too strong.** *The halves are complementary, not duplicated* is **false**: the port names its host and the referring edge names the port, so `fromHostId` is reconstructible from the exterior side and the two can contradict each other. And *the interior is authoritative* was an over-reading of the locked frame's clause about the interior **owning the binding** --- ownership of the binding is not authority over every field on it. The mental-model half of this correction is in [`AGENT.concepts.md`](AGENT.concepts.md#wholes-parts-and-ports).
 
 ---
 

@@ -108,7 +108,7 @@ describe('healLudicGraphStructure', () => {
         })
     })
 
-    it('defaults a missing/invalid rootId to hostId, per premise 10 (recorded, never derived --- but this is the sanctioned one-time repair, not a read-boundary default)', async () => {
+    it('defaults a missing/invalid rootId to hostId, recorded, never derived --- but this is the sanctioned one-time repair, not a read-boundary default', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
@@ -142,7 +142,7 @@ describe('healLudicGraphStructure', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
-    // LP4d: ports (premise 12) joins rootId/the root node as a third healable field, defaulted
+    // ports joins rootId/the root node as a third healable field, defaulted
     // to [] --- LD-17's interim posture (b): absent means "not yet written," not "always empty."
     it('defaults a missing ports field to [] while leaving an otherwise-current graph alone', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)

@@ -16,8 +16,9 @@ import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
  *
  * `'On' | 'Under'` is its own grouping, not AB-54's hosting-kind/peer-kind
  * partition (`On` hosts, `Under` is a peer) -- recorded, not resolved, on
- * LD-12 in AGENT.ludicGraphPorts.planning.md, which owns whether/how this
- * parameter should change.
+ * AB-63 in AGENT.abstractionLayers.planning.md, which owns whether/how this
+ * parameter should change. (That row was LD-12 in the ludicGraph-ports plan
+ * until 2026-08-23; it moved when that plan closed.)
  */
 type CycleWalkState = {
     /** Nodes on the current recursion path --- a hit here is a genuine cycle. */

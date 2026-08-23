@@ -68,7 +68,8 @@ export const edgesReferringToPort = (args: {
 
 /**
  * Compare one port's denormalized exterior values against the edge held by the host the port
- * itself names (LD-18, premise 12's amendment: compare where comparison is possible, and where
+ * itself names (the port-record conflict rule in `positions/AGENT.contract.md`: compare where
+ * comparison is possible, and where
  * an exterior reference exists it governs).
  *
  * **Scoped to a named referrer, and the gate is deliberate.** No matching edge --- because the

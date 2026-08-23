@@ -225,7 +225,7 @@ describe('isEphemeraLudicPortAddress', () => {
     })
 })
 
-// LP7: the union guard LP2 declared the type for but never shipped.
+// The union guard: the type was declared well before any guard for it shipped.
 describe('isEphemeraLudicTerminalId', () => {
     it('accepts a bare terminal primitive', () => {
         expect(isEphemeraLudicTerminalId('OBJECT#helmet')).toBe(true)
@@ -683,9 +683,9 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP7 has not wired port terminals into edges yet, but rootId's declared type is the full
-    // EphemeraLudicTerminalId union (AGENT.ludicGraphPorts.planning.md's target declarations),
-    // so the guard must already accept a well-formed port address.
+    // rootId's declared type is the full EphemeraLudicTerminalId union, so the guard must accept
+    // a well-formed port address. Written while edge terminals were still node-only and kept
+    // after they widened: the assertion is about the union, not about what currently produces one.
     it('accepts a port-address rootId', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: { owner: 'OBJECT#box', port: 'ab6129d' },
@@ -696,7 +696,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     // LP4d: ports is required and possibly empty, not optional like edges --- see LPM's
     // rootId precedent for why no `??= []` belongs at this boundary.
-    describe('ports (LP4d, premise 12)', () => {
+    describe('ports (the egress list)', () => {
         it('rejects a payload missing ports entirely', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',

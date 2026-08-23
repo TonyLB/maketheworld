@@ -318,7 +318,7 @@ describe('EphemeraLudicGraph', () => {
             expect(a.equals(b)).toBe(true)
         })
 
-        // LP4d: ports (premise 12) round-trips through fromFieldPayload/toStored/toJSON/fromJSON
+        // ports round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
             const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Present' as const }]

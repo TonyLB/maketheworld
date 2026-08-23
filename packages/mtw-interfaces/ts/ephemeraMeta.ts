@@ -229,7 +229,7 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 // Ludic graph edge/port terminals (LP2). A terminal is either a bare component id (the
 // EphemeraLudicTerminalPrimitive branch) or a structured port address on that component
 // (EphemeraLudicPortAddress). The parsed shape IS the stored shape --- no string form, no
-// separator parsing, in the domain layer (see AGENT.ludicGraphPorts.planning.md, PQ-9). The
+// separator parsing, in the domain layer (PQ-9, in the abstraction-layers proposals plan). The
 // serde/Dynamo string boundary is deferred to a later slice, gated on a port address needing
 // to stand free of an edge.
 //
@@ -244,7 +244,8 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
         isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value)
     )
 
-/** owner is the whole that ALLOCATED this port (premise 12 / LD-10 naming). */
+/** owner is the whole that ALLOCATED this port --- deliberately not named `host`, which already
+ * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). */
 export type EphemeraLudicPortAddress = {
     owner: EphemeraLudicTerminalPrimitive;
     port: string;
@@ -358,16 +359,18 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
 }
 
 /**
- * An egress-list entry (premise 12): the interior half of a port record, mixing facts of both
- * scopes rather than exterior ones only. `fromHostId` names the exterior host that refers to
- * this port; it has no interior witness, so --- like `rootId` (premise 10) --- it is recorded,
- * never derived. LP4d, widened by LP6.
+ * An egress-list entry: a port record, stored interior-side but mixing facts of two scopes.
+ * `fromHostId` names the exterior host that refers to this port; it has no interior witness,
+ * so --- like `rootId` --- it is recorded, never derived. Which scope owns which field, and
+ * what happens when the two disagree, is normative in
+ * `lambda/ephemera/dataSource/positions/AGENT.contract.md` ("Port records: field scope and the
+ * conflict rule"); the mental model is in that directory's `AGENT.concepts.md`.
  */
 export type EphemeraLudicGraphPort = {
     portId: string;
     fromHostId: EphemeraMembershipHostId;
     /**
-     * Interior scope (premise 12): the kind of the edges passing through this port --- a
+     * Interior scope: the kind of the edges passing through this port --- a
      * presence binding iff `'Present'` (PR-11), so the binding count is a filter on this
      * field and never `ports.length`. Authored at mint time, never derived from an edge.
      */
@@ -384,12 +387,12 @@ export type EphemeraLudicGraphPort = {
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
-    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived (premise 10) --- LP4a. */
+    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see `positions/ludicGraph/AGENT.md`. */
     rootId: EphemeraLudicTerminalId;
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];
-    /** The egress list (premise 12); required and possibly empty --- see LPM's rootId precedent. LP4d. */
+    /** The egress list; required and possibly empty, deliberately with no read-boundary default. */
     ports: EphemeraLudicGraphPort[];
 }
 
@@ -472,7 +475,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
             return false
         }
     }
-    // The egress list (premise 12) is required and possibly empty, not optional like `edges`
+    // The egress list is required and possibly empty, not optional like `edges`
     // --- see LPM's rootId precedent for why no `??= []` belongs at this boundary. LP4d.
     if (!Array.isArray(graph.ports) || !graph.ports.every((entry) => isEphemeraLudicGraphPort(entry))) {
         return false
