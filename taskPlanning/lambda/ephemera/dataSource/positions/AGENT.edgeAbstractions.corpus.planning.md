@@ -18,6 +18,7 @@
 | --- | --- | --- |
 | [EA-C1](#ea-c1-the-power-cord-and-the-flashlight) | [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-3](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-4](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) | **Written 2026-08-24.** Setup and limit recorded; findings not yet argued |
 | [EA-C2](#ea-c2-the-clamp-and-the-second-contact-point) | [EA-3](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-2](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-4](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-8](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) | **Written 2026-08-24.** Setup, contrast and limit recorded; findings not yet argued. **Note it does not grade [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) directly**, which was the brief it was reserved under --- see [what it does not grade](#what-ea-c2-does-not-grade) |
+| [EA-C3](#ea-c3-cutting-the-thread) | [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-5](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-2](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-7](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) | **Written 2026-08-24.** **The first case in this corpus with a history**, which is the brief EA-C1 and EA-C2 both failed. Setup and limits recorded; findings not yet argued. **It does *not* supply [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) clause (vii)'s owed overlap case** --- see [what it does not grade](#what-ea-c3-does-not-grade) |
 
 ---
 
@@ -126,3 +127,63 @@ Two edges are added to EA-C1's four. Both are expressible now; neither is the di
 ### Findings
 
 **None yet.** Targets are named; nothing has been argued. **The severed-cord contrast is setup, not a finding** --- a finding is what survives someone trying to make the crossing-only rule work anyway.
+
+---
+
+## EA-C3: cutting the thread
+
+**Booked 2026-08-24 from conversation, as a thought experiment the user worked out and offered.** The thread is [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread), which this case does **not** restate --- read it there. **This is the first case in this corpus whose world changes over time**, which is the brief [EA-C1](#ea-c1-the-power-cord-and-the-flashlight) target 3 named (*"what would discriminate is a **history**"*) and which [EA-C2](#ea-c2-the-clamp-and-the-second-contact-point) was reserved under and did not meet.
+
+**On rule 1 (cases are written against today's model), which this case has to answer for up front.** Everything in the setup below is expressible now: a multi-hosted node, one **presence port** per host, a **port-qualified terminal** on an edge (`EphemeraLudicTerminalId`, [`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), and node-parts joined by `PartOf`. **What is unshipped is only the *reading*** --- that the whole-scale node is an *Arrangement* in [EA-7](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only)(a)'s sense. **That is precisely what lets this case grade (a) rather than assume it:** (a)'s realization already has a shipped shape, so the case can be run and watched.
+
+### What the fiction wants
+
+`LengthOfThread` is a single node, multi-hosted across the rooms of the labyrinth --- one presence port per room --- with **no node-parts**. Two edges flank it: `Skein -[ConnectedTo]-> LengthOfThread` and `LengthOfThread -[ConnectedTo]-> TiedEnd`, each landing on the presence port for the room the relevant end is in. **Direction and ordering are carried port-to-port along the node**, which is what makes the coarse scale reasonable-with at all; the room-by-room chain is never foreclosed and, for this thread, will be built.
+
+Then a player **cuts the thread in one room**.
+
+Afterward the fiction wants: *the skein is still connected to a loose end back there, and the tied end is connected to nothing that reaches you.* **The two halves must be independently traceable, and the trace from one to the other must fail.**
+
+### The two operations, which look alike and are not
+
+**(1) Refining a room, which is optional and inert.** Mint a `ThreadSpan` node-part for any room you like. The flanking edges may be **left on the presence port** --- the port still says what of the thread is being connected to --- or **pulled down onto the `ThreadSpan`**. **Either is correct and nothing about the world differs**, because the edges keep one referent under both. This is the *expands into* pattern with the coarse scale surviving untouched.
+
+**(2) Cutting, which forces the refinement (1) merely permitted.** The cut requires:
+
+- minting **two** node-parts in the room, one per cut end;
+- **pulling the flanking edges down** onto them --- here **mandatory**, not a choice;
+- and then **not writing** a `ConnectedTo` between the two parts.
+
+**The absence of that edge is the entire content of the cut.** What remains is a chain of edges from the skein to one cut end, and a second, disjoint chain from the other cut end to the tied end several rooms away.
+
+### The limit it hits
+
+**A break cannot be expressed at a scale that has no interior, and this is the load-bearing statement of the case.** At coarse scale the presence port is atomic and both flanking edges land on it; connectivity there is not asserted, it is *structurally unavoidable*, so there is nowhere to put an absence. **A scale can only express a break at a granularity where the break has two sides.**
+
+**Which yields the discriminator for when descent is forced, and it generalizes past thread:** you must descend when the coarse locus would **conflate two things the fine scale must distinguish**. In (1) the edges keep one referent, so the pull-down is inert; in (2) they must acquire *different* referents, so the pull-down is the whole operation.
+
+**A second limit, on which sub-node locus does the work.** The thread's presence ports carry direction *across* rooms without any node-part being minted. **The cut is inside one room, so both cut ends share a single presence port, and the port is provably not fine enough.** Stated as the case leaves it: **ports buy independence across hosts; node-parts buy independence within a host.** No row currently owns that division, and this case does not propose one --- per rule 2, where it goes belongs in a row.
+
+**A third, on what happens to the coarse scale afterward.** The Arrangement may be **split into two** (*two lengths of thread*) or **relabelled** (*cut length of thread*), **and both are legitimate**, chosen by how the author expects to reason later. **One fine-scale state therefore admits more than one correct coarse rendering**, and the choice is not a derivation.
+
+### What this case would falsify
+
+**Stated at booking time, per rule 3.**
+
+1. **Against [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) (*one fact or two*), which is the target the history was owed for.** The pressure is the third limit. **A *view* has no choices** --- so if the coarse scale is one of two views of a single truth, split-versus-relabel should be settled by the fine-scale state, and it is not. **(b) part-scale is truth** and **(c) whole-scale is authored truth** both absorb it comfortably; (c) explains it best, since re-authoring is what an authored thing needs. **State the escape honestly, because it is real:** a defender of (a) can call split-versus-relabel mere labelling, with the underlying truth determined either way and only the presentation free. **That escape is answerable only by finding something the two renderings make the system *do* differently, which this case does not yet supply.**
+2. **Against [EA-5](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) (*propagation*).** The cut is a fine-scale write that the coarse scale cannot ignore. **This falsifies any rule that propagates fine-to-coarse automatically**, because the correct coarse result is under-determined by the fine write. If EA-5 lands on automatic propagation, it must say which of split and relabel it produces --- **and answering that with a default is a design decision, not a derivation.**
+3. **Against [EA-7](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only)(a) (*two edges and a node*), from a direction EA-C1 and EA-C2 did not reach.** (a) survives the cut only if the node can be **replaced or re-labelled without orphaning the flanking edges**, which after the pull-down no longer terminate on it. **If the flanking edges must be rewritten as part of a cut, (a)'s realization is not the cheap one it looks like**, and the cost lands on exactly the operation the fiction performs most often.
+4. **Against [EA-2](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) (*is manner real content*), as support rather than strain, which is why it is listed last.** Under EA-2's derivability disposal rule the Arrangement holds **no** continuity fact --- continuity is derivable by joining the parts, hence a [ludicCache](AGENT.abstractionLayers.ludicCache.corpus.planning.md) entry, not a fact of the relation. **So the cut creates no contradiction to repair**, which is *why* both re-renderings are legitimate. **Read that as the rule predicting the case, and discount it accordingly** --- the case was worked after the rule was written, by someone who knew it.
+
+### What EA-C3 does not grade
+
+- **Not [EA-1](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) clause (vii), and the case owed there is still owed.** Clause (vii) asks for the overlap where *"a minted part scale can falsify a coarse claim **only where the coarse edge actually holds one**."* **This case cannot find that overlap, and the reason is instructive:** EA-2's disposal rule keeps evacuating the coarse scale of precisely the claims a cut could contradict. **The owed case must therefore turn on a coarse fact that is *not* derivable by joining parts** --- **aperture** and **reversibility** are the two candidates on the table, which is a second reason to care where those live. **Do not let this case be filed against clause (vii); it is a near-miss that maps the target, not a hit.**
+- **Not [PR-11](AGENT.presence.planning.md), despite appearances, and the apparent collision is worth recording because it resolves.** PR-11 holds that a presence port with no materialised edge is *"trivially consistent, not underdetermined"*; this case reads an absent edge as **meaning the thread is cut**. Both hold, because the absences differ: PR-11's port **asserts a binding** whose edge merely is not written, whereas the cut's two node-parts were **minted**, and minting them is the act that writes the scale at which connection would be recorded. **Absence reads as negation only once someone has asserted the scale where the positive would live** --- which is clause (vii) applied, not breached, and identifies **minting the parts** as how a scale gets written.
+- **Not [EA-3](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only), [EA-4](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) or [EA-8](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only).** No boundary is crossed here --- every edge in the setup is between peers or within one host's graph --- so the correspondence questions those rows ask do not arise. **The cut is not a crossing case and should not be pressed into service as one.**
+- **Not narration, presence, or materialization**, on the same grounds EA-C1 records. **In particular the case takes multi-hosting and one-port-per-room as given** and grades neither.
+
+### Findings
+
+**None yet.** Targets are named; nothing has been argued. **The forced-refinement rule is setup, not a finding** --- a finding is what survives someone trying to express the cut at coarse scale anyway, and no one has tried.
+
+**One observation held back from the findings deliberately**, because it is about the modelling rather than about the world: **cutting is not a verb.** It is mint-two, pull-edges-down, do-not-connect --- the same three primitives every other operation uses, arranged so that they mean *cut*. **If that survives contact with a second destructive operation** (severing, untying, burning through) **it is a finding about the whole representation and belongs in the plan, not here.**
