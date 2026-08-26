@@ -67,7 +67,9 @@ A player entering the Room should be able to learn *there is a power cord here, 
 
 ### Findings
 
-**None yet.** The case is written and its targets are named; nothing has been argued against it. **Do not add a finding here that restates the setup** --- a finding is something the case forced that was not visible before it.
+**None yet** against this corpus's own targets --- the case is written and its targets are named, nothing has been argued against it. **Do not add a finding here that restates the setup** --- a finding is something the case forced that was not visible before it.
+
+**Re-grade pointer (rule 5), 2026-08-26.** This is one of two discriminating cases in the label-across-ports displacement sweep over clause (ii) (that plan since disposed) --- held **jointly with the clause's own origin example**, not counted as a second case. See [EA-10](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) for the argument; not restated here.
 
 ---
 
@@ -126,7 +128,9 @@ Two edges are added to EA-C1's four. Both are expressible now; neither is the di
 
 ### Findings
 
-**None yet.** Targets are named; nothing has been argued. **The severed-cord contrast is setup, not a finding** --- a finding is what survives someone trying to make the crossing-only rule work anyway.
+**None yet** against this corpus's own targets. Targets are named; nothing has been argued. **The severed-cord contrast is setup, not a finding** --- a finding is what survives someone trying to make the crossing-only rule work anyway.
+
+**Re-grade pointer (rule 5), 2026-08-26.** This is the strongest discriminating case in the label-across-ports displacement sweep over clause (ii) (that plan since disposed) --- the many-to-one, opposite-direction fusion (`SolderedTo` / `Secures`) that one label per port cannot cover, which is that sweep's requirement Y. See [EA-10](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only) for the argument; not restated here.
 
 ---
 
