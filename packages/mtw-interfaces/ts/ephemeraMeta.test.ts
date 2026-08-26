@@ -850,6 +850,10 @@ describe('isEphemeraLudicGraphPort', () => {
     it('rejects a non-string exterior label on a non-Custom port', () => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 12 })).toBe(false)
     })
+
+    it('rejects a Present port carrying any exterior label, even a valid string (PR-15: presence ports have no such field)', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 'threads into' })).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicGraphData', () => {
