@@ -1,5 +1,5 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
@@ -112,8 +112,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'establishRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
-                    relationKind: candidate.relationKind,
-                    ...(candidate.relationLabel !== undefined ? { relationLabel: candidate.relationLabel } : {}),
+                    ...relationKindAndLabelFrom(candidate),
                 },
             }
         }
@@ -124,8 +123,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'dissolveRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
-                    relationKind: candidate.relationKind,
-                    ...(candidate.relationLabel !== undefined ? { relationLabel: candidate.relationLabel } : {}),
+                    ...relationKindAndLabelFrom(candidate),
                 },
             }
         }
@@ -281,8 +279,7 @@ const commandExpand = (
                     // Safe: filtered to primitive endpoints above.
                     subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
                     targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
-                    relationKind: entry.edge.kind,
-                    ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+                    ...relationKindAndLabelOf(entry.edge),
                 },
             }))
             return { kind: 'consumed', children }

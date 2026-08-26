@@ -1,5 +1,6 @@
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { ObjectRelationChangedPublishedPayload } from '../../publishedEvents'
 import type { RelationalIngressOperation } from './types'
 
@@ -12,17 +13,14 @@ export const buildRelationalFact = (args: {
     subjectId: EphemeraLudicTerminalPrimitive
     targetId: EphemeraLudicTerminalPrimitive
     hostId: EphemeraMembershipHostId
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
     operation: RelationalIngressOperation
     beatAnchorTime: number
-}): ObjectRelationChangedPublishedPayload => ({
+} & RelationalKindAndLabel): ObjectRelationChangedPublishedPayload => ({
     type: 'Object Relation Changed',
     subjectId: args.subjectId,
     targetId: args.targetId,
     hostId: args.hostId,
-    relationKind: args.relationKind,
-    ...(args.relationLabel !== undefined ? { relationLabel: args.relationLabel } : {}),
+    ...relationKindAndLabelFrom(args),
     operation: args.operation,
     beatAnchorTime: args.beatAnchorTime,
 })

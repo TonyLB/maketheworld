@@ -1,3 +1,4 @@
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     EphemeraCharacterId,
     EphemeraFeatureId,
@@ -81,12 +82,10 @@ export type ObjectEstablishRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /** Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
-    relationKind: HostRelationalEdgeKindPublished;
-    relationLabel?: string;
     confidence?: number;
     /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
     transferFromHostId?: EphemeraMembershipHostId;
-}
+} & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 export type ObjectDissolveRelationPublishedPayload = {
     type: 'Object Dissolve Relation';
@@ -95,12 +94,10 @@ export type ObjectDissolveRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /** Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
-    relationKind: HostRelationalEdgeKindPublished;
-    relationLabel?: string;
     confidence?: number;
     /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
     transferFromHostId?: EphemeraMembershipHostId;
-}
+} & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {

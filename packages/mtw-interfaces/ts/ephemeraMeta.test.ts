@@ -603,6 +603,69 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
+    // `relationLabel` belongs structurally to `Custom`: it is the free-text name that kind
+    // exists to make a place for, and the other six carry none. The rule used to run one way
+    // only -- `Custom` required a label, but nothing rejected a label on any other kind -- so
+    // `{ kind: 'On', relationLabel: 'balanced across' }` was a legal stored edge. It is now
+    // unrepresentable in `EphemeraLudicRelationalEdgeData`, and a guard that accepted it would
+    // be lying about the value it narrows. These four cases pin both directions of the rule.
+    it.each(['On', 'In', 'PartOf', 'Under', 'Against', 'Present'] as const)(
+        'rejects a %s relational edge carrying a relationLabel',
+        (kind) => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                ports: [],
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                    { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                ],
+                edges: [{
+                    tag: 'Relational',
+                    from: 'OBJECT#crystalBall',
+                    to: 'ROOM#Kitchen',
+                    kind,
+                    relationLabel: 'balanced across',
+                }],
+            })).toBe(false)
+        }
+    )
+
+    it('accepts a Custom relational edge carrying a non-empty relationLabel', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'Custom',
+                relationLabel: 'balanced across',
+            }],
+        })).toBe(true)
+    })
+
+    it.each([undefined, ''])('rejects a Custom relational edge whose label is %p', (relationLabel) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'Custom',
+                ...(relationLabel === undefined ? {} : { relationLabel }),
+            }],
+        })).toBe(false)
+    })
+
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
     // function" instead of returning false -- hardened at the time to a typeof pre-check that

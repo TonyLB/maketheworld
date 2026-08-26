@@ -6,7 +6,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
@@ -42,11 +42,9 @@ export type ObjectRelationChangedPublishedPayload = {
     targetId: EphemeraLudicTerminalPrimitive;
     /** Room or Character host the relation changed on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
     hostId: EphemeraMembershipHostId;
-    relationKind: HostRelationalEdgeKind;
-    relationLabel?: string;
     operation: 'establish' | 'dissolve';
     beatAnchorTime: number;
-}
+} & RelationalKindAndLabel
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 

@@ -1,3 +1,4 @@
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -200,8 +201,7 @@ export async function compileRelationalFromSkeleton(
             kind: candidate.kind,
             subjectId: candidate.subjectId,
             targetId: candidate.targetId,
-            relationKind: candidate.relationKind,
-            ...(candidate.relationLabel !== undefined ? { relationLabel: candidate.relationLabel } : {}),
+            ...relationKindAndLabelFrom(candidate),
         } as EstablishRelationStep | DissolveRelationStep
         const seed: WorklistInstruction[] = [
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
@@ -260,8 +260,12 @@ export async function compileRelationalFromSkeleton(
             kind: relStep.kind,
             subjectId: relStep.subjectId,
             targetId: relStep.targetId,
-            relationKind: relStep.relationKind,
-            ...(relStep.relationLabel !== undefined ? { relationLabel: relStep.relationLabel } : {}),
+            // Inlined rather than routed through `relationKindAndLabelFrom`: the guard above
+            // narrowed `relStep` to the ingress-lane kinds, and the shared helper's wide return
+            // type would discard exactly that narrowing.
+            ...(relStep.relationKind === 'Custom'
+                ? { relationKind: 'Custom' as const, relationLabel: relStep.relationLabel }
+                : { relationKind: relStep.relationKind }),
             hostRoomId: hostId,
         }
 
@@ -316,8 +320,9 @@ export async function compileRelationalFromSkeleton(
         operationKind: chosen.step.kind,
         subjectId: chosen.step.subjectId,
         targetId: chosen.step.targetId,
-        relationKind: chosen.step.relationKind,
-        ...(chosen.step.relationLabel !== undefined ? { relationLabel: chosen.step.relationLabel } : {}),
+        ...(chosen.step.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: chosen.step.relationLabel }
+            : { relationKind: chosen.step.relationKind }),
         hostId: chosen.step.hostRoomId,
         confidence: intentConfidence,
         ...(chosen.transferFromHostId !== undefined ? { transferFromHostId: chosen.transferFromHostId } : {}),

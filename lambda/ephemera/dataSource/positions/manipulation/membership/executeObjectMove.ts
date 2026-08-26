@@ -1,3 +1,4 @@
+import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -145,8 +146,7 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
         .map((step) => ({
             from: step.subjectId,
             to: step.targetId,
-            kind: step.relationKind,
-            ...(step.relationLabel !== undefined ? { relationLabel: step.relationLabel } : {}),
+            ...edgeKindAndLabelFrom(step),
         }))
 
     const plan = compilePositionKernelOp(buildObjectMoveOp({

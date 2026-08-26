@@ -1,6 +1,6 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ExecutorDissolveRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
@@ -96,8 +96,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             // Safe: filtered to primitive endpoints above.
             subjectId: edge.from as EphemeraLudicTerminalPrimitive,
             targetId: edge.to as EphemeraLudicTerminalPrimitive,
-            relationKind: edge.kind,
-            ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
+            ...relationKindAndLabelOf(edge),
         }))
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []

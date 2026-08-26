@@ -335,8 +335,12 @@ export class EphemeraLudicGraph {
                 !ephemeraLudicTerminalsEqual(left.from, right.from)
                 || !ephemeraLudicTerminalsEqual(left.to, right.to)
                 || left.kind !== right.kind
-                || left.relationLabel !== right.relationLabel
             ) {
+                return false
+            }
+            // Both sides are narrowed even though the kind equality above implies the second:
+            // narrowing `left` does not narrow `right`, and only `Custom` carries a label at all.
+            if (left.kind === 'Custom' && right.kind === 'Custom' && left.relationLabel !== right.relationLabel) {
                 return false
             }
         }
@@ -444,19 +448,16 @@ export class EphemeraLudicGraph {
         if (patch.hostId !== this.hostId) {
             throw new Error(`HostRelationalPatch hostId ${patch.hostId} does not match graph hostId ${this.hostId}`)
         }
-        if (patch.edge.kind === 'Custom' && typeof patch.edge.relationLabel !== 'string') {
-            throw new Error('Custom relational edge requires relationLabel')
-        }
+        // The `Custom relational edge requires relationLabel` throw that used to stand here is
+        // gone: `HostRelationalEdge` now carries the label on its `Custom` arm, so a patch that
+        // omits it does not typecheck and the runtime check had become unreachable.
         if (!this.bothObjectsOnGraph(patch.edge.from, patch.edge.to)) {
             throw new Error(`Nodes ${patch.edge.from} and/or ${patch.edge.to} not on host ${patch.hostId}`)
         }
 
-        const observedEdge: HostRelationalEdge = {
-            from: patch.edge.from,
-            to: patch.edge.to,
-            kind: patch.edge.kind,
-            ...(patch.edge.relationLabel !== undefined ? { relationLabel: patch.edge.relationLabel } : {}),
-        }
+        // `manipulation/types.ts`'s mirror and this module's are structurally identical, so the
+        // field-by-field rebuild this used to do was a copy in all but name.
+        const observedEdge: HostRelationalEdge = patch.edge
         const matchingEdge = this.relationalEdges.find((edge) => edgesMatch(edge, observedEdge))
 
         if (patch.op === 'add') {

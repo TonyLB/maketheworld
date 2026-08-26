@@ -23,15 +23,20 @@ export type RelationalLegalityOutcome =
     | { type: 'error'; errorMessage: string }
 
 function proposedEdgeFromInput(input: RelationalLegalityInput): HostRelationalEdge {
-    const relationLabel = input.normalizedRelation.type === 'custom'
-        ? input.normalizedRelation.relationLabel
-        : undefined
-    return {
-        from: input.subjectId,
-        to: input.targetId,
-        kind: input.normalizedRelation.kind,
-        ...(relationLabel !== undefined ? { relationLabel } : {}),
-    }
+    // `NormalizedRelation` was already a discriminated union, so this is now a straight
+    // branch-to-branch mapping rather than a label variable plus a conditional spread.
+    return input.normalizedRelation.type === 'custom'
+        ? {
+            from: input.subjectId,
+            to: input.targetId,
+            kind: 'Custom',
+            relationLabel: input.normalizedRelation.relationLabel,
+        }
+        : {
+            from: input.subjectId,
+            to: input.targetId,
+            kind: input.normalizedRelation.kind,
+        }
 }
 
 function findMatchingEdge(

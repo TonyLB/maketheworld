@@ -11,7 +11,7 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     AcmeCatalogRejectionReason,
     AcmeOrderEnrichModelLine,
@@ -335,14 +335,12 @@ export type ParseCommandEstablishRelationResult = {
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
-    relationKind: 'Under' | 'Against' | 'Custom'
-    relationLabel?: string
     /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
     hostId: EphemeraMembershipHostId
     confidence: ParseCommandConfidence
     /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
     transferFromHostId?: EphemeraMembershipHostId
-}
+} & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
 
 /**
  * Outcome of intent discrimination only (iteration 7, Sub-iteration 1): classify's remit is

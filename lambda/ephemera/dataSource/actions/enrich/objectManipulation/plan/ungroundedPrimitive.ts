@@ -1,4 +1,4 @@
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /**
  * stableRefKey is optional here: the only current constructor call sites
@@ -24,18 +24,14 @@ export type EstablishRelationChange = {
     primitive: 'establishRelation'
     subject: Referent
     target: Referent
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
-}
+} & RelationalKindAndLabel
 
 export type DissolveRelationChange = {
     kind: 'change'
     primitive: 'dissolveRelation'
     subject: Referent
     target: Referent
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
-}
+} & RelationalKindAndLabel
 
 export type Change = TransferMembershipChange | EstablishRelationChange | DissolveRelationChange
 

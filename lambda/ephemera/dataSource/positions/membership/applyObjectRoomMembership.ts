@@ -2,7 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
@@ -88,8 +88,7 @@ export const applyObjectRoomMembership = async (
                 kind: 'dissolveRelation',
                 subjectId: edge.from,
                 targetId: edge.to,
-                relationKind: edge.kind,
-                ...(edge.relationLabel !== undefined ? { relationLabel: edge.relationLabel } : {}),
+                ...relationKindAndLabelOf(edge),
             })
         }
     }

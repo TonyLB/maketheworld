@@ -1,3 +1,4 @@
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -112,8 +113,7 @@ export const factsForStep = (
             subjectId: step.subjectId,
             targetId: step.targetId,
             hostId,
-            relationKind: step.relationKind,
-            relationLabel: step.relationLabel,
+            ...relationKindAndLabelFrom(step),
             operation: step.kind === 'establishRelation' ? 'establish' : 'dissolve',
             beatAnchorTime,
         }),

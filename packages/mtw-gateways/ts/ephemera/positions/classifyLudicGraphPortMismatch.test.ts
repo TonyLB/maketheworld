@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphPort, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphPort, HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyLudicGraphPortMismatch } from './classifyLudicGraphPortMismatch'
 
 const HOST_ID = 'OBJECT#Rope' as EphemeraObjectId
@@ -15,25 +15,29 @@ const port = (overrides: Partial<EphemeraLudicGraphPort> = {}): EphemeraLudicGra
 })
 
 // A well-formed referrer graph holding the given crossing edges into `OBJECT#Rope`'s port.
-const referrerGraph = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; portId?: string }[]) => ({
+// The edge spec takes `RelationalEdgeKindAndLabel` rather than a loose `kind` + optional label,
+// so a case cannot describe an edge the stored type no longer admits --- notably a non-`Custom`
+// kind carrying a `relationLabel`, which used to be constructible here and is now a type error.
+const referrerGraph = (edges: (RelationalEdgeKindAndLabel & { portId?: string })[]) => ({
     rootId: REFERRER_ID,
     nodes: [
         { tag: 'Room', universalKey: REFERRER_ID },
         { tag: 'Object', universalKey: HOST_ID },
     ],
-    edges: edges.map(({ kind, relationLabel, portId }) => ({
+    edges: edges.map((edge) => ({
         tag: 'Relational' as const,
         from: REFERRER_ID,
-        to: { owner: HOST_ID, port: portId ?? PORT_ID },
-        kind,
-        ...(relationLabel === undefined ? {} : { relationLabel }),
+        to: { owner: HOST_ID, port: edge.portId ?? PORT_ID },
+        ...(edge.kind === 'Custom'
+            ? { kind: 'Custom' as const, relationLabel: edge.relationLabel }
+            : { kind: edge.kind }),
     })),
     ports: [],
 })
 
 describe('classifyLudicGraphPortMismatch', () => {
     describe('agreement', () => {
-        it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'] as HostRelationalEdgeKind[])(
+        it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'] as const)(
             'reports no mismatch when a label-free port agrees with the referring edge (%s)',
             (kind) => {
                 expect(classifyLudicGraphPortMismatch({
@@ -94,12 +98,18 @@ describe('classifyLudicGraphPortMismatch', () => {
             })).toEqual({ mismatch: true, correction: { kind: 'On' } })
         })
 
+        // Rewritten with the type rather than made to pass: this case used to describe an `On`
+        // edge carrying a `relationLabel`, which is no longer a representable stored edge (a label
+        // belongs to `Custom`). A referrer graph holding one now fails the shape guard outright,
+        // which is the structure sweep's finding and not this comparison's --- see the gated case
+        // below. The behaviour under test survives intact on the kind that *can* carry a label:
+        // the port records no label, the exterior edge has one, and the correction picks it up.
         it('reports a mismatch when the exterior edge carries a label the port does not', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On', relationLabel: 'balanced across' }]),
-            })).toEqual({ mismatch: true, correction: { kind: 'On', exteriorRelationLabel: 'balanced across' } })
+                referrerLudicGraph: referrerGraph([{ kind: 'Custom', relationLabel: 'balanced across' }]),
+            })).toEqual({ mismatch: true, correction: { kind: 'Custom', exteriorRelationLabel: 'balanced across' } })
         })
 
         it('matches a crossing edge whichever terminal holds the port address', () => {

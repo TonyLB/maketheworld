@@ -234,7 +234,7 @@ LP6 | LP6a | LP6b          "need not carry the same"
 
 | # | Consequence under removal |
 | --- | --- |
-| **D1** | **Untouched.** `relationLabel` and the `Custom` requiredness guard are needed either way --- D1 was never the clause |
+| **D1** | **Untouched.** `relationLabel` and the `Custom` requiredness rule are needed either way --- D1 was never the clause. **Re-worded 2026-08-26: "the `Custom` requiredness guard" is now the *type's own shape*** --- `relationLabel` moved onto a discriminated union (`RelationalEdgeKindAndLabel` / `RelationalKindAndLabel` in [`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), so the rule is structural rather than a runtime check repeated per layer, and it now runs **both** ways (no non-`Custom` kind may carry a label). **This does not disturb the grade** --- the field and the rule still exist either way, which is all D1 asserted |
 | **D2** | **Rename, not deletion.** `exteriorRelationLabel` becomes the port's `relationLabel`; **the comment *"a port's interior fan has no single label"* stays true** and becomes the field's justification rather than a caveat on it (C3) |
 | **D3** | **Contract text edits.** The exterior/interior scope split survives for `fromHostId`; the label's membership in the exterior scope becomes moot |
 | **D4** | **Widened, not weakened.** `exteriorValuesEqual` compares against every edge through the port instead of the exterior one --- the same shape as CD6's inversion (B4). **Gated on PR-15**, which changes *which* edges count as through it |

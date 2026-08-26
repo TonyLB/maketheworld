@@ -90,8 +90,11 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
                             kind: change.primitive,
                             subjectId: subjectCandidate,
                             targetId: targetCandidate,
-                            relationKind: change.relationKind,
-                            ...(change.relationLabel !== undefined ? { relationLabel: change.relationLabel } : {}),
+                            // Inlined: the containment/presence guard above narrowed
+                            // `change` to the ingress-lane kinds that `ParsePlanStep` accepts.
+                            ...(change.relationKind === 'Custom'
+                                ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
+                                : { relationKind: change.relationKind }),
                             hostRoomId: hostCandidate,
                         })
                     }

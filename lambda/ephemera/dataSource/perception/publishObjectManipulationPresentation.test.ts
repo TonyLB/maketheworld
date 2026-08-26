@@ -4,7 +4,8 @@ import {
     buildEstablishRelationWorldMessage,
     publishObjectRelationalPresentation,
 } from './publishObjectManipulationPresentation'
-import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentationFanIn'
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { ObjectRelationalEmissionPlan, ObjectRelationalEmissionPlanCore } from './objectManipulationPresentationFanIn'
 
 const CHARACTER_ID = 'CHARACTER#Alice' as EphemeraCharacterId
 const SUBJECT_ID = 'OBJECT#Glass' as EphemeraObjectId
@@ -12,18 +13,24 @@ const TARGET_ID = 'OBJECT#Tray' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const ANCHOR = 1_700_000_000_000
 
-const basePlan = (overrides: Partial<ObjectRelationalEmissionPlan> = {}): ObjectRelationalEmissionPlan => ({
+// The kind/label pair arrives as its own argument rather than through `overrides`: `Partial`
+// distributes over `RelationalKindAndLabel`, so a single spread cannot prove which arm it built.
+const basePlan = (
+    overrides: Partial<Omit<ObjectRelationalEmissionPlanCore, 'relationKind' | 'relationLabel'>
+        & { characterName: string; subjectShortName: string; targetShortName: string }> = {},
+    kindAndLabel: RelationalKindAndLabel = { relationKind: 'On' }
+): ObjectRelationalEmissionPlan => ({
     operation: 'establishRelation',
     characterId: CHARACTER_ID,
     subjectId: SUBJECT_ID,
     targetId: TARGET_ID,
     roomId: ROOM_ID,
-    relationKind: 'On',
     beatAnchorTime: ANCHOR,
     characterName: 'Alice',
     subjectShortName: 'glass',
     targetShortName: 'tray',
     ...overrides,
+    ...kindAndLabel,
 })
 
 /**
@@ -35,11 +42,11 @@ const basePlan = (overrides: Partial<ObjectRelationalEmissionPlan> = {}): Object
 describe('publishObjectRelationalPresentation', () => {
     it('builds establish-relation copy per relation kind', () => {
         expect(buildEstablishRelationWorldMessage(basePlan())).toBe('Alice puts glass on tray')
-        expect(buildEstablishRelationWorldMessage(basePlan({ relationKind: 'Under' })))
+        expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Under' })))
             .toBe('Alice puts glass under tray')
-        expect(buildEstablishRelationWorldMessage(basePlan({ relationKind: 'Against' })))
+        expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Against' })))
             .toBe('Alice leans glass against tray')
-        expect(buildEstablishRelationWorldMessage(basePlan({ relationKind: 'Custom', relationLabel: 'balances' })))
+        expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Custom', relationLabel: 'balances' })))
             .toBe('Alice balances glass tray')
     })
 

@@ -33,10 +33,17 @@ export type LudicGraphPortMismatchVerdict =
     | { mismatch: false }
     | { mismatch: true; correction?: LudicGraphPortExteriorValues }
 
-const exteriorValuesOfEdge = (edge: EphemeraLudicRelationalEdgeData): LudicGraphPortExteriorValues => ({
-    kind: edge.kind,
-    ...(edge.relationLabel === undefined ? {} : { exteriorRelationLabel: edge.relationLabel }),
-})
+/**
+ * The edge side narrows; the port side does not. `LudicGraphPortExteriorValues` stays flat
+ * (`kind` plus an optional label) because `EphemeraLudicGraphPort` does --- whether the port
+ * record's label should move onto a branch is PR-15's and EA-10's, both open. All that changed
+ * here is that a non-`Custom` edge no longer *has* a label to read.
+ */
+const exteriorValuesOfEdge = (edge: EphemeraLudicRelationalEdgeData): LudicGraphPortExteriorValues => (
+    edge.kind === 'Custom'
+        ? { kind: 'Custom', exteriorRelationLabel: edge.relationLabel }
+        : { kind: edge.kind }
+)
 
 const exteriorValuesEqual = (a: LudicGraphPortExteriorValues, b: LudicGraphPortExteriorValues): boolean => (
     a.kind === b.kind && a.exteriorRelationLabel === b.exteriorRelationLabel

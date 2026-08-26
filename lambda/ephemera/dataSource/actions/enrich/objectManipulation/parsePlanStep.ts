@@ -1,3 +1,4 @@
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 // Deliberately the ingress-lane PeerRelationalEdgeKind (LD-13/BD-2), not ephemeraMeta.ts's
@@ -17,23 +18,19 @@ export type EstablishRelationStep = {
     kind: 'establishRelation'
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    relationKind: PeerRelationalEdgeKind
-    relationLabel?: string
     // Widened from EphemeraRoomId (BD-16, 2026-07-21): sameHost repair can ground
     // a relation onto a Character-inventory host, not just a Room.
     hostRoomId: EphemeraMembershipHostId
-}
+} & RelationalKindAndLabel<PeerRelationalEdgeKind>
 
 export type DissolveRelationStep = {
     kind: 'dissolveRelation'
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    relationKind: PeerRelationalEdgeKind
-    relationLabel?: string
     // Widened from EphemeraRoomId (BD-16, 2026-07-21): sameHost repair can ground
     // a relation onto a Character-inventory host, not just a Room.
     hostRoomId: EphemeraMembershipHostId
-}
+} & RelationalKindAndLabel<PeerRelationalEdgeKind>
 
 export type ParsePlanStep = TransferMembershipStep | EstablishRelationStep | DissolveRelationStep
 

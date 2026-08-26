@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ludicGraphPortMismatchSweep } from './index'
 
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
@@ -17,7 +17,7 @@ const objectRow = (ports: { portId: string; fromHostId: string; kind: HostRelati
     },
 })
 
-const roomRow = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; portId?: string }[]) => ({
+const roomRow = (edges: (RelationalEdgeKindAndLabel & { portId?: string })[]) => ({
     EphemeraId: ROOM_ID,
     DataCategory: 'Meta::Room',
     ludicGraph: {
@@ -26,12 +26,13 @@ const roomRow = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; 
             { tag: 'Room', universalKey: ROOM_ID },
             { tag: 'Object', universalKey: OBJECT_ID },
         ],
-        edges: edges.map(({ kind, relationLabel, portId }) => ({
+        edges: edges.map((edge) => ({
             tag: 'Relational' as const,
             from: ROOM_ID,
-            to: { owner: OBJECT_ID, port: portId ?? PORT_ID },
-            kind,
-            ...(relationLabel === undefined ? {} : { relationLabel }),
+            to: { owner: OBJECT_ID, port: edge.portId ?? PORT_ID },
+            ...(edge.kind === 'Custom'
+                ? { kind: 'Custom' as const, relationLabel: edge.relationLabel }
+                : { kind: edge.kind }),
         })),
         ports: [],
     },

@@ -6,7 +6,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { Assertion, Change } from '../plan/ungroundedPrimitive'
@@ -32,17 +32,13 @@ export type ExecutorEstablishRelationStep = {
     kind: 'establishRelation'
     subjectId: EphemeraLudicTerminalPrimitive
     targetId: EphemeraLudicTerminalPrimitive
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
-}
+} & RelationalKindAndLabel
 
 export type ExecutorDissolveRelationStep = {
     kind: 'dissolveRelation'
     subjectId: EphemeraLudicTerminalPrimitive
     targetId: EphemeraLudicTerminalPrimitive
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
-}
+} & RelationalKindAndLabel
 
 /**
  * Referent-kind tag for a `describe` step --- parameterizes over referent kind the same way

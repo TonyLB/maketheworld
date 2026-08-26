@@ -321,17 +321,86 @@ export type HostRelationalEdgeKind =
     | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
 
 /**
- * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
+ * The kind/label pairing, as a discriminated union rather than a flat optional field:
+ * **`relationLabel` is what `Custom` exists to make a place for**, and the other six kinds
+ * carry no free-text label at all. Stated in the type because it was previously stated only
+ * at runtime, in five separate places across four layers, and enforced one-way --- `Custom`
+ * required a label, but nothing stopped an `On` edge carrying one.
+ *
+ * Generic over the kind union so the lanes that already narrowed theirs can reuse it:
+ * `PeerRelationalEdgeKind` (ingress) and `HostRelationalEdgeKindPublished` (wire) both
+ * instantiate it rather than re-deriving the pairing.
+ *
+ * Use this form (`kind`) for edge records; use `RelationalKindAndLabel` (`relationKind`) for
+ * the DTO lane, which names the same field differently.
+ */
+export type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { kind: Exclude<K, 'Custom'> }
+    | { kind: 'Custom'; relationLabel: string }
+
+/** `RelationalEdgeKindAndLabel` for the lane that spells the field `relationKind`. */
+export type RelationalKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { relationKind: Exclude<K, 'Custom'> }
+    | { relationKind: 'Custom'; relationLabel: string }
+
+/**
+ * Project an edge's kind/label pair onto the DTO lane's `relationKind` spelling, for the several
+ * call sites that build a relational step or fact out of a stored edge. Takes the fragment rather
+ * than any one edge type, so it serves both `HostRelationalEdge` mirrors structurally.
+ */
+export const relationKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalKindAndLabel => (
+    edge.kind === 'Custom'
+        ? { relationKind: 'Custom', relationLabel: edge.relationLabel }
+        : { relationKind: edge.kind }
+)
+
+/**
+ * Re-narrow the kind/label pair when copying it from one DTO onto another. The pair travels
+ * together through parse -> plan -> execute -> publish, and spreading it as a unit is what keeps
+ * each hop from having to restate the `Custom` branch. Replaces the
+ * `relationKind: x.relationKind, ...(x.relationLabel !== undefined ? { relationLabel: ... } : {})`
+ * shape that the flat field required at every one of those hops.
+ */
+export const relationKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalKindAndLabel => (
+    source.relationKind === 'Custom'
+        ? { relationKind: 'Custom', relationLabel: source.relationLabel }
+        : { relationKind: source.relationKind }
+)
+
+/** The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. */
+export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => (
+    source.relationKind === 'Custom'
+        ? { kind: 'Custom', relationLabel: source.relationLabel }
+        : { kind: source.relationKind }
+)
+
+/** Re-narrow an edge's own kind/label pair, for copying one edge shape onto another. */
+export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalEdgeKindAndLabel => (
+    edge.kind === 'Custom'
+        ? { kind: 'Custom', relationLabel: edge.relationLabel }
+        : { kind: edge.kind }
+)
+
+/**
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component or a
  * port-qualified reference on one, matching what LP0/LP2 already made legal terminals.
  */
-export type EphemeraLudicRelationalEdgeData = {
+type EphemeraLudicRelationalEdgeBase = {
     tag: 'Relational';
     from: EphemeraLudicTerminalId;
     to: EphemeraLudicTerminalId;
-    kind: HostRelationalEdgeKind;
-    relationLabel?: string;
 }
+
+/**
+ * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
+ *
+ * **The union sits at the top level and the base is intersected into each arm, deliberately.**
+ * `Base & (A | B)` does narrow in current TypeScript, but the arms-as-union form is what the
+ * guard, the storage adapters and the comparison helpers were all verified against; keep it.
+ */
+export type EphemeraLudicRelationalEdgeData =
+    | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 
@@ -339,23 +408,27 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
     }
-    const edge = value as EphemeraLudicRelationalEdgeData
+    // Read through a `Record` view rather than a cast to the target type: the type is now a
+    // discriminated union, so `relationLabel` is not a property of the non-`Custom` arm and a
+    // cast-then-read would not compile for the very field this guard exists to check.
+    const edge = value as Record<string, unknown>
     if (edge.tag !== 'Relational') {
         return false
     }
     if (!isEphemeraLudicTerminalId(edge.from) || !isEphemeraLudicTerminalId(edge.to)) {
         return false
     }
-    if (!HOST_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
+    if (typeof edge.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(edge.kind as HostRelationalEdgeKind)) {
         return false
     }
     if (edge.kind === 'Custom') {
         return typeof edge.relationLabel === 'string' && edge.relationLabel.length > 0
     }
-    if (edge.relationLabel !== undefined && typeof edge.relationLabel !== 'string') {
-        return false
-    }
-    return true
+    // A non-`Custom` edge carrying a label is now *unrepresentable*, so accepting one would make
+    // this predicate lie about the value it narrows. Previously such a value passed. Stored rows
+    // in that shape are recovered --- with the stray label stripped --- by
+    // `extractRelationalEdgesFromStored`'s fallback, so rejecting here loses no data.
+    return edge.relationLabel === undefined
 }
 
 /**

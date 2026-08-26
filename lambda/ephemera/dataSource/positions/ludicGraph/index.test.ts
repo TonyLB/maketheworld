@@ -483,20 +483,35 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
         })
 
-        // LP7 regression, fallback path specifically: a Custom edge with an empty relationLabel
-        // fails isEphemeraLudicRelationalEdgeData's Custom-requires-non-empty-label check, so this
-        // is the one shape that actually reaches extractRelationalEdgesFromStored's manual fallback
-        // parse -- the hazard is a valid edge silently vanishing there, not an invalid one being
-        // rejected, so an accept-only test on the primary path would have missed the fallback's own
-        // typeof pre-check still rejecting the port address.
-        it('extractRelationalEdgesFromStored survives a port-qualified edge through the fallback branch', () => {
+        // LP7 regression, fallback path specifically. **The shape that reaches the fallback changed
+        // when `relationLabel` became structural to `Custom`.** It used to be a Custom edge with an
+        // empty label; that is now dropped outright (see the case below). What reaches the manual
+        // parse instead is a NON-Custom edge carrying a stray label -- guard-rejected because a
+        // label belongs to `Custom` alone, and recovered here with the label stripped, since the
+        // label was never meaningful for that kind and the edge itself is a real relation.
+        // **The hazard under test is unchanged**: a valid edge silently vanishing, which is what
+        // would happen if the fallback's own typeof pre-check still rejected the port address.
+        it('extractRelationalEdgesFromStored survives a port-qualified edge through the fallback branch, stripping a stray label', () => {
+            const edges = extractRelationalEdgesFromStored({
+                nodes: [],
+                edges: [
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On', relationLabel: 'balanced across' },
+                ] as unknown as [],
+            })
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
+        })
+
+        // The shape that used to reach the fallback, now dropped rather than recovered: there is
+        // nothing to invent a label from, and admitting it would produce an edge the stored guard
+        // itself refuses. Previously the fallback accepted it, which is the asymmetry this fixes.
+        it('extractRelationalEdgesFromStored drops a Custom edge whose relationLabel is empty', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
                     { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' }])
+            expect(edges).toEqual([])
         })
 
         it('edgesMatch distinguishes Custom relationLabel', () => {

@@ -310,15 +310,19 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 **`HostRelationalPatch`** (kernel input; one add or remove on one host):
 
 ```typescript
-type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+type HostRelationalEdgeKind =
+    | 'On' | 'In' | 'PartOf' | 'Under' | 'Against' | 'Custom' | 'Present'
 
-type HostRelationalEdge = {
-    from: EphemeraLudicTerminalPrimitive   // subject node on host graph (LP4: any legal host kind)
-    to: EphemeraLudicTerminalPrimitive     // target node on host graph (LP4: any legal host kind)
-    kind: HostRelationalEdgeKind
-    /** Required when kind === 'Custom'; persisted on the stored edge (BD-3). */
-    relationLabel?: string
-}
+/** The kind/label pairing, shared by every type that carries one. */
+type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { kind: Exclude<K, 'Custom'> }
+    | { kind: 'Custom'; relationLabel: string }
+
+type HostRelationalEdge =
+    | ({ from: EphemeraLudicTerminalPrimitive; to: EphemeraLudicTerminalPrimitive }
+        & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | ({ from: EphemeraLudicTerminalPrimitive; to: EphemeraLudicTerminalPrimitive }
+        & { kind: 'Custom'; relationLabel: string })
 
 type HostRelationalPatch = {
     hostId: EphemeraMembershipHostId
@@ -329,8 +333,9 @@ type HostRelationalPatch = {
 
 **BD-3 rules:**
 
+- **`relationLabel` belongs structurally to `Custom`**, and the rule runs **both** ways: a `Custom` edge **must** carry a non-empty label, and **no other kind may carry one at all**. This is expressed in the type (`RelationalEdgeKindAndLabel`, and `RelationalKindAndLabel` for the DTO lane's `relationKind` spelling), not by runtime checks at each layer --- an illegal pairing does not compile.
 - **`Custom`** edges **must** persist **`relationLabel`** on the stored forward-graph edge --- **not** presentation-only copy in perception.
-- Enum kinds (**`On`**, **`Under`**, **`Against`**) **must not** require **`relationLabel`** at persist; transcript may still paraphrase per unknowns.
+- **`isEphemeraLudicRelationalEdgeData` must reject a non-`Custom` edge carrying a label**, since such a value is unrepresentable and a guard accepting it would lie about what it narrows. A stored row in that shape is recovered by [`extractRelationalEdgesFromStored`](ludicGraph/baseClasses.ts)'s fallback **with the stray label stripped** --- sound and lossless. A `Custom` row with no usable label is **not** recoverable there and is dropped.
 - **`establishRelation`** ingress **must** map to **`op: 'add'`**; **`dissolveRelation`** **must** map to **`op: 'remove'`** matching **`from`**, **`to`**, **`kind`**, and **`relationLabel`** (when **`Custom`**) (**BD-7**).
 
 ### Kernel and compound apply (BD-9)

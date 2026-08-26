@@ -21,26 +21,30 @@ import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exit
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component, or a
  * port-qualified reference on one.
  */
-export type HostRelationalEdge = {
+type HostRelationalEdgeBase = {
     from: EphemeraLudicTerminalId
     to: EphemeraLudicTerminalId
-    kind: HostRelationalEdgeKind
-    relationLabel?: string
 }
+
+/**
+ * Carries `RelationalEdgeKindAndLabel`, so a label is representable only on `Custom` --- the
+ * same partition the stored type draws. This mirrors `EphemeraLudicRelationalEdgeData` minus
+ * its `tag`; the duplication with `manipulation/types.ts` is pre-existing and deliberately not
+ * consolidated here (see `ludicGraph/AGENT.md`'s "Relational edge names" table).
+ */
+export type HostRelationalEdge =
+    | (HostRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (HostRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge
-): EphemeraLudicRelationalEdgeData => ({
-    tag: 'Relational',
-    from: edge.from,
-    to: edge.to,
-    kind: edge.kind,
-    ...(edge.kind === 'Custom' && edge.relationLabel !== undefined
-        ? { relationLabel: edge.relationLabel }
-        : {}),
-})
+): EphemeraLudicRelationalEdgeData => (
+    edge.kind === 'Custom'
+        ? { tag: 'Relational', from: edge.from, to: edge.to, kind: 'Custom', relationLabel: edge.relationLabel }
+        : { tag: 'Relational', from: edge.from, to: edge.to, kind: edge.kind }
+)
 
 export function extractRelationalEdgesFromStored(
     graph: EphemeraLudicGraphFieldPayload | PlayLudicGraph
@@ -50,12 +54,11 @@ export function extractRelationalEdgesFromStored(
 
     for (const rawEdge of edges) {
         if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
-            relationalEdges.push({
-                from: rawEdge.from,
-                to: rawEdge.to,
-                kind: rawEdge.kind,
-                ...(rawEdge.relationLabel !== undefined ? { relationLabel: rawEdge.relationLabel } : {}),
-            })
+            relationalEdges.push(
+                rawEdge.kind === 'Custom'
+                    ? { from: rawEdge.from, to: rawEdge.to, kind: 'Custom', relationLabel: rawEdge.relationLabel }
+                    : { from: rawEdge.from, to: rawEdge.to, kind: rawEdge.kind }
+            )
             continue
         }
 
@@ -76,12 +79,31 @@ export function extractRelationalEdgesFromStored(
                     && typeof obj.kind === 'string'
                     && HOST_RELATIONAL_EDGE_KINDS.has(obj.kind as HostRelationalEdgeKind)
                 ) {
-                    relationalEdges.push({
-                        from: obj.from,
-                        to: obj.to,
-                        kind: obj.kind as HostRelationalEdgeKind,
-                        ...(typeof obj.relationLabel === 'string' ? { relationLabel: obj.relationLabel } : {}),
-                    })
+                    // The recovery path for edges the guard rejected, and the two arms differ in
+                    // what they salvage. A **non-`Custom`** row carrying a stray `relationLabel`
+                    // is now guard-rejected (a label belongs to `Custom`); it is recovered with
+                    // the label **stripped**, since the label was never meaningful for that kind
+                    // and dropping the whole edge would lose a real relation. A **`Custom`** row
+                    // with no usable label is *not* recoverable --- there is nothing to invent a
+                    // label from, and this path previously admitted exactly that, producing an
+                    // edge the stored guard would itself have refused.
+                    if (obj.kind === 'Custom') {
+                        if (typeof obj.relationLabel === 'string' && obj.relationLabel.length > 0) {
+                            relationalEdges.push({
+                                from: obj.from,
+                                to: obj.to,
+                                kind: 'Custom',
+                                relationLabel: obj.relationLabel,
+                            })
+                        }
+                    }
+                    else {
+                        relationalEdges.push({
+                            from: obj.from,
+                            to: obj.to,
+                            kind: obj.kind as Exclude<HostRelationalEdgeKind, 'Custom'>,
+                        })
+                    }
                 }
             }
         }
@@ -97,7 +119,9 @@ export function edgesMatch(
     if (!ephemeraLudicTerminalsEqual(a.from, b.from) || !ephemeraLudicTerminalsEqual(a.to, b.to) || a.kind !== b.kind) {
         return false
     }
-    if (a.kind === 'Custom') {
+    // Both sides are tested even though the kind equality above already implies the second:
+    // narrowing `a` does not narrow `b`, and the compiler needs the pair to reach either label.
+    if (a.kind === 'Custom' && b.kind === 'Custom') {
         return a.relationLabel === b.relationLabel
     }
     return true
