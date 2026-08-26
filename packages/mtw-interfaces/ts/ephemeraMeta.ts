@@ -379,7 +379,10 @@ export type EphemeraLudicGraphPort = {
      * Exterior scope: the referring edge's `Custom` label, denormalized interior-side the same
      * way `fromHostId` is, since it lives in the parent's shard. Required non-empty when
      * `kind === 'Custom'` (PR-11). No interior counterpart is stored --- the interior edges
-     * are siblings of `ports` in one attribute, and a port's interior fan has no single label.
+     * are siblings of `ports` in one attribute, and a **presence** port's interior fan has no
+     * single label to store one from. A **crossing** port's fan does agree, with the single
+     * exterior edge crossing into it, which is exactly what `kind`/`exteriorRelationLabel`
+     * denormalize.
      */
     exteriorRelationLabel?: string;
 }

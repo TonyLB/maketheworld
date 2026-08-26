@@ -134,7 +134,7 @@ Adopted 2026-08-05 after "H1 is untested against a serious attempt" turned out t
 
 **And the plan is currently sitting in position 3 without having chosen it.** [Part-mediated reference](#part-mediated-reference-how-h1-answers-its-own-replacement-trigger) was introduced as the answer for spanning wholes while local lookup remained the unexamined norm for everything else --- **two paths, never reconciled.** So the epicycle this argument predicts is not a future risk; it is already in the design as written, and was introduced the moment the spanning case got its own answer.
 
-**Position 1 was re-priced 2026-08-06 by [P3](#provisional-p3-ports-as-host-boundary-bindings), and the table above is now understated in its favour.** The charge against it was C7's: one node cannot record *where along*, so segments are still required and room B holds two overlapping nodes with an ambiguous binding. **Ports answer that without single-hosting** --- room B holds the thread node plus a **port reference**, the port names exactly which segment, and the where-along record lives in the rope's interior graph. Multi-hosting under ports is also cheaper than priced: the rope is *listed* in two rooms but there is exactly **one rope graph**, so nothing interior is duplicated --- closer to a presence index than to real multi-hosting. **H1 clause 1b therefore takes a new hit: not a falsification, but its competitor got materially cheaper.** The narrowed dichotomy below is unaffected; the choice *within* it shifts.
+**Position 1 was re-priced 2026-08-06 by [P3](#provisional-p3-ports-as-host-boundary-bindings), and the table above is now understated in its favour.** The charge against it was C7's: one node cannot record *where along*, so segments are still required and room B holds two overlapping nodes with an ambiguous binding. **Presence ports answer that without single-hosting** --- room B holds the thread node plus a **presence-port reference**, the presence port names exactly which segment, and the where-along record lives in the rope's interior graph. Multi-hosting under presence ports is also cheaper than priced: the rope is *listed* in two rooms but there is exactly **one rope graph**, so nothing interior is duplicated --- closer to a presence index than to real multi-hosting. **H1 clause 1b therefore takes a new hit: not a falsification, but its competitor got materially cheaper.** The narrowed dichotomy below is unaffected; the choice *within* it shifts.
 
 **Position 2 acquired a structural realisation the same day: [P2](#proposal-p2-separate-the-storage-shard-from-the-containment-relation).** `positionGraph` stopping at host boundaries is the clean traversal model; `positionCache` is the expanded denormalization that makes it fast. **That is what position 2 was describing without having a mechanism for**, and it is the first thing in this design to *pass* the [clean/dirty](AGENT.abstractionLayers.planning.md#clean-fractal-dirty-implementation) test rather than be excused by it.
 
@@ -407,7 +407,7 @@ Both directions are the same problem, and no hosting decision removes either.
 
 ### The scheme
 
-Numbered **ports** act as ingress/egress borders, turning a cross-`positionGraph` connection into something traversal can parse. Worked example, taking multi-host presence for the moment (see [the consequence for H1](#consequence-ports-re-price-the-three-positions-table) --- that assumption is not neutral):
+Numbered **presence ports** act as ingress/egress borders, turning a cross-`positionGraph` connection into something traversal can parse. Worked example, taking multi-host presence for the moment (see [the consequence for H1](#consequence-ports-re-price-the-three-positions-table) --- that assumption is not neutral):
 
 - A rope is present in `ROOM#A` and `ROOM#B`.
 - `ROOM#A`'s graph holds a **`tied to`** edge between a rock and **`OBJECT#ROPE:1`** --- port 1.
@@ -422,7 +422,7 @@ Numbered **ports** act as ingress/egress borders, turning a cross-`positionGraph
 
 **Re-opened 2026-08-10 as PQ-14, from [C22](AGENT.abstractionLayers.corpus.planning.md#c22-the-ships-wheel-and-the-lighthouse)'s multiplicative port fan-out --- read this section as the standing argument *for* single-use, no longer as a settled property.** The pressure is scalability under ordinary fiction, not a representability failure, and **the two payoffs argued below may survive a narrower relaxation** than the prohibition states: both rest on a port having one *egress*, not one *interior edge*. See PQ-14 for what must be worked and in what order. **And read the two payoffs below as *consequences of* the clarification, not *grounds for* it** --- this section was written to correct a misreading of what ports are, and the reverse-index and plan-time-footprint benefits were noticed afterward. They are real; they were never weighed against a fan-out alternative, because no such alternative was ever on the table to weigh.
 
-**A port records *one* ingress/egress between two position graphs --- it is not a general-purpose named interface with fan-out.** If `ROOM#A` connects to both `RopeEnd1` and `RopeSpan1`, that is **two ports**, not one port carrying two interior edges. An earlier reading of this section treated ports as reusable boundary interfaces; that reading is wrong and several assessments made under it needed correcting.
+**A crossing port records *one* ingress/egress between two position graphs --- it is not a general-purpose named interface with fan-out.** If `ROOM#A` connects to both `RopeEnd1` and `RopeSpan1`, that is **two crossing ports**, not one crossing port carrying two interior edges. An earlier reading of this section treated ports as reusable boundary interfaces; that reading is wrong and several assessments made under it needed correcting.
 
 **The consequence that changes the most: on the egress side, a port can tell you which position graph it exits to.** So a whole's own graph **enumerates its referrers** --- the port list *is* the reverse index, stored exactly where it is needed. That is why **PQ-6, the blocking item, largely dissolves**, and with it PQ-7's surviving residue.
 
@@ -480,8 +480,8 @@ Numbered **ports** act as ingress/egress borders, turning a cross-`positionGraph
 A port number is a **boundary slot on the host object**, allocated by that host, meaningful only as one end of one crossing. It is **not**:
 
 - **A name for the interior node behind it.** `OBJECT#ROPE:1` does not identify a part. The part is an ordinary nominal id --- `OBJECT#RopeEnd1` --- and the port merely has an edge to it. The two worked examples in this section are already symmetric on this point: `port 1 -[TiedTo]-> OBJECT#RopeEnd1` and `port 1 -[SolderedTo]-> OBJECT#BatteryCase`.
-- **A reusable public interface.** One port records **one** crossing; two connections to the same host are two ports. See [Ports are single-use](#ports-are-single-use-and-that-is-not-a-detail-clarified-2026-08-06).
-- **A fan-out point.** A port has exactly one interior edge and one exterior referrer.
+- **A reusable public interface.** One crossing port records **one** crossing; two connections to the same host are two crossing ports. See [Ports are single-use](#ports-are-single-use-and-that-is-not-a-detail-clarified-2026-08-06).
+- **A fan-out point.** A crossing port has exactly one interior edge and one exterior referrer.
 - **Evidence about the interior at all.** Numbering is a property of the *boundary*; whether the interior identifies its parts positionally or nominally is a separate question (**PQ-9**), which the port answers neither way.
 
 **The error this last bullet prevents actually happened.** The retired **AB-16** briefly held that extent parts are identified by *where* and containment parts by *what*, citing `ROPE:1` --- reading the boundary slot as the part's name. It was the last surviving argument for that row, and it was an artifact of this section.
@@ -565,7 +565,7 @@ The scheme needs `OBJECT#ROPE` to be a node in its own graph, because `part` edg
 
 ##### The fan-out cost, stated precisely because it is the scheme's real risk
 
-**Ports are [single-use](#ports-are-single-use-and-that-is-not-a-detail-clarified-2026-08-06): one port records one crossing, no fan-in and no fan-out.** That property is what makes the port list a reverse index and what makes footprints computable at plan time --- and it is also what makes this scheme's cost multiply.
+**Crossing ports are [single-use](#ports-are-single-use-and-that-is-not-a-detail-clarified-2026-08-06): one crossing port records one crossing, no fan-in and no fan-out.** That property is what makes the port list a reverse index and what makes footprints computable at plan time --- and it is also what makes this scheme's cost multiply.
 
 | Scope | Ports required |
 | --- | --- |

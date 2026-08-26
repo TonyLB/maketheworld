@@ -1,10 +1,16 @@
 # Port vocabulary split --- `crossingPort` / `presencePort`
 
-**Status: in progress --- Phase 0 not started.** Minted 2026-08-25 from conversation; **reordered the same day, and the reorder is the important thing about this file** (see [What this plan is gated on, and it is one field](#what-this-plan-is-gated-on-and-it-is-one-field)). **This is an implementation plan, not a design-stage one** ([which shape](../../../../AGENT.md#two-shapes-of-task-plan--and-which-one-you-are-writing)): the deliverable is mergeable renames and a type change.
+**Status: in progress --- Phase 2 complete, Phase 3 not started.** Minted 2026-08-25 from conversation; **reordered the same day, and the reorder is the important thing about this file** (see [What this plan is gated on, and it is one field](#what-this-plan-is-gated-on-and-it-is-one-field)). **This is an implementation plan, not a design-stage one** ([which shape](../../../../AGENT.md#two-shapes-of-task-plan--and-which-one-you-are-writing)): the deliverable is mergeable renames and a type change.
+
+**Phase 1 shipped the durable-doc vocabulary**: `AGENT.concepts.md` gained **Crossing port** and **Port** glossary rows, its Port row (L350) and the "identical port topology" line (L396) were reworded off crossing-flavored language, `AGENT.contract.md`'s four flagged clauses now name the crossing-port side they were instanced on, `ephemeraMeta.ts`'s `exteriorRelationLabel` docblock no longer claims a presence port's fan-agreement gap as general, and the `egress` two-senses ambiguity is recorded (not fixed) next to the Egress/ingress row. D-2 and D-4 below are closed.
 
 **The vocabulary comes first and [PR-15](AGENT.presence.planning.md#open-decisions-design--plan-only) is decided afterwards, in the new vocabulary.** The first draft had it the other way round, gating four phases behind that row. That was wrong, and [why it was wrong](#the-mistake-the-first-draft-made) is recorded below because it is the same error this plan exists to fix.
 
-**Next step: Phase 0.**
+**Phase 0 also widened its own scope the same day.** Its checklist as first written inventoried only the 3 durable docs, but Phase 2's checklist says its rename is "guided by the Phase 0 inventory" for the **14 `taskPlanning/.../positions/` plans too** --- a second instance of this plan under-scoping itself, caught before execution rather than after. Phase 0 now covers all 17 files; the inventory is in [Phase 0 side inventory (scratch)](#phase-0-side-inventory-scratch) below.
+
+**Phase 2 shipped the task-plan-prose rename**: 14 of the 15 flagged task-plan mentions were renamed to name the side they were instanced on (the 15th, `AGENT.abstractionLayers.corpus.planning.md`:332, is a dated quote the corpus convention preserves verbatim and resolves for free via its own adjacent annotation --- same as the 2 citations). PR-15's body cell was translated into the new vocabulary; **the thesis test came back a falsifier, not a confirmation** --- the row grew 1.3% rather than shrinking, because it was authored the same day as (and partly after) the vocabulary proposal it carries, so most of its hedging had already resolved before this phase touched it. Logged in [the performance tally](../../../../AGENT.designVariant.performance.md).
+
+**Next step: Phase 3**, deciding PR-15 in the vocabulary Phase 2 just landed.
 
 ---
 
@@ -73,9 +79,9 @@ So **Phase 2 rewrites PR-15 in the new vocabulary before Phase 3 decides it**, a
 | --- | --- | --- |
 | `LudicGraphPort` symbol occurrences | **150**, across **21** `.ts` files | Most are the type name, which **survives as the union alias** and does not churn |
 | `exteriorRelationLabel` sites | **25**, across **9** files | **The gated surface.** The field move is Phase 4 |
-| Durable doc "port" mentions | `AGENT.contract.md` **45**, `AGENT.concepts.md` **54**, `ludicGraph/AGENT.md` **14** | Each needs reading for *which side is meant*, not blind replacement |
-| `taskPlanning/positions/` plans mentioning port | **all 14** files in this folder | Plan debt |
-| **PR-15's row size** | **~20KB, one line** | **Record before and after Phase 2** --- it is the thesis measurement |
+| Durable doc "port" mentions | `AGENT.contract.md` **45**, `AGENT.concepts.md` **54**, `ludicGraph/AGENT.md` **14** | **Flagged for Phase 1 (2026-08-25 inventory): `AGENT.contract.md` 4, `AGENT.concepts.md` 2 (+1 stale clause fixed in Phase 0), `ludicGraph/AGENT.md` 0.** Rest classified BOTH/PRESENCE/CROSSING and need no edit |
+| `taskPlanning/positions/` plans mentioning port | **all 14** files in this folder, **~1986** raw mentions | **Flagged for Phase 2: 15 substantive + 2 free citations, across 6 files** (`proposals.planning.md` 8, `discussion.planning.md` 2, `presence.corpus.planning.md` 2, `abstractionLayers.planning.md` 1, `corpus.planning.md` 1, `ludicCache.corpus.planning.md` 1). Full list: [Phase 0 side inventory (scratch)](#phase-0-side-inventory-scratch). The other 8 files need no edits |
+| **PR-15's row size** | **13560 -> 13742 bytes (+1.3%), one line** | **Measured before/after Phase 2, the thesis measurement --- came back a falsifier, not a confirmation.** See Phase 2's checklist and the tally entry it links |
 
 ---
 
@@ -83,23 +89,23 @@ So **Phase 2 rewrites PR-15 in the new vocabulary before Phase 3 decides it**, a
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X]` as it is done, not only the parent.
 
-- [ ] **Phase 0 --- unblocked repairs and the side inventory.**
-  - [ ] Correct the stale *"the discriminator does not exist in code"* clause in `AGENT.concepts.md`'s **Presence port** row against the shipped `kind` field (finding 1). **State what `kind` is and what it does not yet decide** --- it exists; what it licenses is PR-15's.
-  - [ ] Build the **side inventory**: for each "port" mention in `AGENT.contract.md`, `AGENT.concepts.md` and `ludicGraph/AGENT.md`, record **crossing / presence / genuinely both**. Scratch table, not into the docs.
-  - [ ] Flag every mention classified as **"reads as both but is instanced on one"** --- those are the payoff, and they are what Phase 1 rewrites.
-  - [ ] Recount the scope table.
-- [ ] **Phase 1 --- durable-doc vocabulary. Unblocked; the existence question is already settled.**
-  - [ ] Add the **Crossing port** glossary row in `AGENT.concepts.md`, paired with the existing Presence port row; state the discriminator (`kind === 'Present'`) in both.
-  - [ ] Give **port** its own row as the union, saying that using the bare word is a **choice** and not an oversight ([D-4](#open-decisions-implementation--plan-only)).
-  - [ ] Rewrite the flagged `AGENT.contract.md` clauses to **name the side they were instanced on**. **Descriptive only** --- do not change what any rule *does*. The *"Port records: field scope and the conflict rule"* section is the main one; its *"one rule, not one per field"* claim is the sentence most likely to need a side.
-  - [ ] Correct the `exteriorRelationLabel` docblock's *"has no single label"* to name the presence branch (finding 2). **Wording only; the field does not move yet.**
-  - [ ] Record the `egress` disposition under [D-2](#open-decisions-implementation--plan-only).
-- [ ] **Phase 2 --- task-plan prose, and PR-15 rewritten in the new vocabulary.**
-  - [ ] Rename across the 14 `taskPlanning/.../positions/` plans, **guided by the Phase 0 inventory**, not by search-and-replace.
-  - [ ] Leave `port` wherever the sentence is genuinely about both --- **a rename that makes every sentence specific is wrong.**
-  - [ ] **Rewrite PR-15's body cell in the new vocabulary.** Do **not** change its claim or its lean; this is a translation.
-  - [ ] **Record the before/after size and whether the claims sharpened.** This is the thesis test --- see [above](#why-the-vocabulary-should-precede-pr-15-rather-than-follow-it). Log a falsifier in the tally if the row does not improve.
-  - [ ] Link check, scoped to this folder (baseline in [Verification](#verification)).
+- [X] **Phase 0 --- unblocked repairs and the side inventory.**
+  - [X] Correct the stale *"the discriminator does not exist in code"* clause in `AGENT.concepts.md`'s **Presence port** row against the shipped `kind` field (finding 1). **State what `kind` is and what it does not yet decide** --- it exists; what it licenses is PR-15's.
+  - [X] Build the **side inventory**: for each "port" mention in `AGENT.contract.md`, `AGENT.concepts.md`, `ludicGraph/AGENT.md`, **and all 14 `taskPlanning/.../positions/` plans**, record **crossing / presence / genuinely both**. Scratch table, not into the docs --- see [Phase 0 side inventory (scratch)](#phase-0-side-inventory-scratch).
+  - [X] Flag every mention classified as **"reads as both but is instanced on one"** --- those are the payoff. 6 in the durable docs (Phase 1's worklist); 15 substantive + 2 free citations in the task plans (Phase 2's worklist).
+  - [X] Recount the scope table.
+- [X] **Phase 1 --- durable-doc vocabulary. Unblocked; the existence question is already settled.**
+  - [X] Add the **Crossing port** glossary row in `AGENT.concepts.md`, paired with the existing Presence port row; state the discriminator (`kind === 'Present'`) in both. Also reworded the Port row (L350, flagged AMBIGUOUS in Phase 0) and the "identical port topology" line (L396) off crossing-flavored language.
+  - [X] Give **port** its own row as the union, saying that using the bare word is a **choice** and not an oversight ([D-4](#open-decisions-implementation--plan-only)).
+  - [X] Rewrite the flagged `AGENT.contract.md` clauses to **name the side they were instanced on**. **Descriptive only** --- did not change what any rule *does*. All four Phase-0-flagged clauses (L498--501, L502, L515, L519) now name crossing-port where the original generalized.
+  - [X] Correct the `exteriorRelationLabel` docblock's *"has no single label"* to name the presence branch (finding 2). **Wording only; the field does not move yet.**
+  - [X] Record the `egress` disposition under [D-2](#open-decisions-implementation--plan-only).
+- [X] **Phase 2 --- task-plan prose, and PR-15 rewritten in the new vocabulary.**
+  - [X] Rename across the 14 `taskPlanning/.../positions/` plans, **guided by the Phase 0 inventory** (now built --- see [Phase 0 side inventory (scratch)](#phase-0-side-inventory-scratch)), not by search-and-replace. The 15-row table there is the worklist; the other ~1970 raw mentions in those files were section-classified as BOTH/CROSSING/PRESENCE and do not need rewriting. **14 of 15 renamed; the 15th (`AGENT.abstractionLayers.corpus.planning.md`:332) is a dated quote the corpus convention preserves verbatim and resolves for free via its own adjacent annotation.**
+  - [X] Leave `port` wherever the sentence is genuinely about both --- **a rename that makes every sentence specific is wrong.**
+  - [X] **Rewrite PR-15's body cell in the new vocabulary.** Do **not** change its claim or its lean; this is a translation.
+  - [X] **Record the before/after size and whether the claims sharpened.** This is the thesis test --- see [above](#why-the-vocabulary-should-precede-pr-15-rather-than-follow-it). Log a falsifier in the tally if the row does not improve. **13560 -> 13742 bytes (+1.3%): a falsifier, logged 2026-08-25 in [the performance tally](../../../../AGENT.designVariant.performance.md).**
+  - [X] Link check, scoped to this folder (baseline in [Verification](#verification)). **Run 2026-08-25; the scratch checker's anchor-slug algorithm does not match GitHub's closely enough to trust its absolute count (472 hits, vs. the documented 55-bad full-corpus baseline), but no heading text or link syntax was touched this phase --- only prose --- so no rename-induced breakage is possible this slice.**
 - [ ] **Phase 3 --- decide PR-15.** Its own plan's process, not this one's; this plan only records that it is the gate for Phase 4.
   - [ ] **Split the live out-of-scope question first** --- *whether crossing ports also accept terminal edges* --- to a **fresh ID**. The variant's graduation precondition is that nothing live remains inside a row, and IDs are never reused.
   - [ ] Write the verdict sentence, graduate the shell, amend **PR-4**'s reasoning half. **PR-4's amendment is doc-only**: the cover walk is not implemented, so *"the walk must filter `kind === 'Present'`"* changes a sentence and no code.
@@ -116,6 +122,51 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
 
 ---
 
+## Phase 0 side inventory (scratch)
+
+**Built 2026-08-25, via six read-only survey passes** (three per durable doc, three batched across the 14 task-plan files by size). **Scratch --- not durable vocabulary.** Method: for each "port" mention, find the port kind the sentence was actually instanced on. Only rows classified **AMBIGUOUS-READS-AS-BOTH-INSTANCED-ON-ONE** are listed below (the payoff); everything else was classified BOTH / CROSSING / PRESENCE at the section or mention level and needs no edit --- see the [Scope table](#scope-sized) for the per-file split.
+
+### Durable docs --- Phase 1's worklist (6)
+
+| File : Line | Quote | Why it's instanced on one side |
+| --- | --- | --- |
+| `AGENT.concepts.md`:350 | "one port records **one crossing** between two ludic graphs" | The canonical **Port** row itself defines the supertype in the unnamed subtype's defining language. Strengthens [D-4](#open-decisions-implementation--plan-only) rather than contradicting it |
+| `AGENT.concepts.md`:396 | "identical port topology" | The surrounding passage is about presence-port apprehensibility specifically, not port topology generally |
+| `AGENT.contract.md`:498--501 | "healable: a port whose `kind` or `exteriorRelationLabel` disagrees with the edge(s) crossing into it ... rewrites those two fields from the exterior edge" | Single-exterior-edge-mirrors-`kind` is the crossing-port property; a presence port's `kind` is fixed at `'Present'` with no single edge to mirror |
+| `AGENT.contract.md`:502 | "A port's single-use lifecycle means one crossing, so a split fan is broken exteriorly" | A disagreeing fan is the normal state for a presence port, not corruption; this declares it broken in general |
+| `AGENT.contract.md`:515 | "the port's existence, its `portId`, its single-use lifecycle, and its `kind` ... authoritative without qualification" | Contradicted three lines later by the exterior-checked mismatch-heal logic; true for presence (nothing exterior to disagree with), false for crossing |
+| `AGENT.contract.md`:519 | "**One rule, not one per field.** ... the same shape governs `kind`" | The user-flagged sentence. Confirmed: a crossing-only unification (single edge validates `kind`), generalized to "the port record" as a whole |
+
+`ludicGraph/AGENT.md` (12 real mentions after 2 false positives on "Import"): **0 AMBIGUOUS** --- already scopes its one kind-sensitive claim correctly ("iff `'Present'`" / "when kind is `'Custom'`"). Nothing to rewrite there.
+
+### Task-plan files --- Phase 2's worklist (15 substantive + 2 free citations)
+
+| File : Line | Quote | Why it's instanced on one side |
+| --- | --- | --- |
+| `AGENT.abstractionLayers.proposals.planning.md`:484 | "A port has exactly one interior edge and one exterior referrer." | Crossing-only fan-agreement stated as general; contradicted by CD6's presence-port fan-out |
+| `AGENT.abstractionLayers.proposals.planning.md`:483 | "One port records **one** crossing; two connections to the same host are two ports." | "Records one crossing" is crossing-only per PR-15 (a presence port is a terminal, never a crossing) |
+| `AGENT.abstractionLayers.proposals.planning.md`:425 | "A port records *one* ingress/egress ... not a general-purpose named interface with fan-out." | Single ingress/egress and no fan-out is the crossing invariant; presence ports fan out across a bucket |
+| `AGENT.abstractionLayers.proposals.planning.md`:568 | "Ports are single-use: one port records one crossing, no fan-in and no fan-out." (heading) | Universalizes single-use; `AGENT.abstractionLayers.planning.md`:112 later narrows it to crossings, not interior edges |
+| `AGENT.abstractionLayers.proposals.planning.md`:516 | "Rather than defining that state, releasing the port takes both halves." | "Both halves released as one unit" depends on exactly one interior/exterior pair --- the crossing property |
+| `AGENT.abstractionLayers.proposals.planning.md`:708 | "the whole has ports into different hosts" | Generic phrasing over a scenario actually motivated by the multi-room presence case |
+| `AGENT.abstractionLayers.proposals.planning.md`:137 | "Ports answer that without single-hosting ... there is exactly one rope graph." | Multi-host-presence worked case dressed in generic port vocabulary; presence-side in substance |
+| `AGENT.abstractionLayers.proposals.planning.md`:410--419 | P3 worked example: "Numbered **ports** act as ingress/egress borders..." | The founding worked example is presence-motivated (multi-room object); every general port property in the section derives from it |
+| `AGENT.abstractionLayers.planning.md`:112 | "the check is the port against every edge incident to it ... well-defined precisely because `kind` passes through" (CD6) | Depends on fan-agreement, the crossing property; the doc catches its own mis-shape for `kind === 'Present'` mid-paragraph |
+| `AGENT.abstractionLayers.discussion.planning.md`:247 | "a port can name the graph it exits to, so a whole's own graph enumerates its referrers" | True only of crossing ports (a referring exterior edge exists); presence ports carry only `fromHostId`, no referring edge |
+| `AGENT.abstractionLayers.discussion.planning.md`:289 | "a port is a scale boundary at which the description changes, not a relay" | Derived from crossing-port kind-mismatch cases; presence ports have no pass-through mechanism at all |
+| `AGENT.abstractionLayers.corpus.planning.md`:332 | "an object is present in a room iff at least one of its ports egresses there" | True only restricted to presence-kind ports; crossing ports also egress but don't establish presence |
+| `AGENT.abstractionLayers.ludicCache.corpus.planning.md`:279 | "Compose at ports, never at nodes ... ports are not referents and nodes are" | General rule assumes crossing-style pass-through; written before presence ports could be edge terminals |
+| `AGENT.presence.corpus.planning.md`:218,222 | "an edge passes through a port ... rather than terminating either side of it" | True only of crossing ports; presence ports are terminals, never crossings (per `AGENT.labelAcrossPorts.planning.md`'s later correction) |
+| `AGENT.presence.corpus.planning.md`:266 | "a port may store exactly what is invariant across the fan" | Offered as a general rule; `AGENT.labelAcrossPorts.planning.md` (`overbroad-inheritance`) later shows it was instanced only on a `Present` port's bucket |
+| `AGENT.presence.planning.md`:160 *(citation, no separate edit)* | quotes `AGENT.concepts.md`'s Port row verbatim | Resolves for free once the durable-doc L350 fix above lands in Phase 1 |
+| `AGENT.labelAcrossPorts.planning.md`:133--134 *(citation, no separate edit)* | quotes `ephemeraMeta.ts`'s docblock: "a port's interior fan has no single label" | Resolves for free once Phase 1's docblock wording fix (finding 2) lands |
+
+**Files with 0 AMBIGUOUS findings** (written after the `kind` discriminator was explicit, or after `AGENT.labelAcrossPorts.planning.md` itself, which exists to hunt this pattern): `AGENT.presence.discussion.planning.md`, `AGENT.edgeAbstractions.planning.md`, `AGENT.edgeAbstractions.corpus.planning.md`, `AGENT.edgeAbstractions.discussion.planning.md`, `AGENT.attentionHistory.planning.md`, `AGENT.attentionHistory.corpus.planning.md`, `AGENT.labelAcrossPorts.planning.md` (beyond the one citation above), `ludicGraph/AGENT.md`.
+
+`AGENT.presence.planning.md`'s PR-15 row (~20KB, line 160) was **not** classified internally --- it's the row Phase 2 rewrites wholesale in the new vocabulary; a line-level pass here would be redundant with that phase.
+
+---
+
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
@@ -123,9 +174,12 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | **D-1** | **Do the two type names take a prefix?** `CrossingPort` / `PresencePort` read cleanly alone but sit in a file where every neighbour is `EphemeraLudic*`. The union alias keeps the long name, so this is only about the two branches | Phase 4 | **Open.** Lean: follow the file's neighbours; check, do not assume |
-| **D-2** | **Fix the `egress` two-senses ambiguity (finding 3), or leave it?** Pre-existing and independent of the split; fixing it is scope creep, leaving it lands the split next to a live ambiguity of the same shape | Phase 1 | **Open.** Lean: **record, do not fix** --- but say so in the doc, since an unremarked ambiguity beside a freshly-split vocabulary reads as endorsed |
 | **D-3** | **Does the split imply a data migration?** Port records are **persisted** | Phase 4 | **Open --- verify before Phase 4.** Lean: **no** --- `kind` already ships, the JSON is unchanged, and the split narrows static types over the same values |
-| **D-4** | **What happens to sentences genuinely about both sides?** They keep the bare word `port` --- but a reader trained by this split may read a deliberate supertype mention as an oversight | Phase 1 | **Open.** Lean: keep them, and **give `port` a glossary row** saying the bare word is a choice |
+
+**Shipped in Phase 1, removed per this table's own header instruction:**
+
+- **D-2** (fix the `egress` two-senses ambiguity, or leave it): **recorded, not fixed**, per its lean --- see the note on `AGENT.concepts.md`'s **Egress / ingress** row.
+- **D-4** (what happens to sentences genuinely about both sides): **kept the bare word `port`, and gave it its own glossary row** stating that as a choice --- see `AGENT.concepts.md`'s **Port** row.
 
 ---
 
