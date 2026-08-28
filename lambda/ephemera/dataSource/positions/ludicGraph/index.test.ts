@@ -651,6 +651,100 @@ describe('EphemeraLudicGraph', () => {
             const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
             expect(graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' }).toStored().edges).toEqual([])
         })
+
+        // EA-8: identity is minted optionally, per edge, and most edges will not carry one. These
+        // tests pin what that does and does not buy, because it is easy to over-read: an id is a
+        // label an edge may carry, and it settles nothing about sameness yet.
+        describe('optional edge identity (EA-8)', () => {
+            const graphWithThreeObjects = () =>
+                EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                    rootId: HOST_ID, ports: [],
+                    nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
+                    edges: [],
+                })
+
+            // The pinning test. edgesMatch is deliberately blind to edgeId, and that blindness is
+            // what makes a mixed population safe to introduce ahead of any constructor: nothing's
+            // behavior changes. When a constructor does start minting ids this test fails on
+            // purpose --- it is the forcing function for deciding whether id or structure is the
+            // authority on edge sameness, which nothing has decided.
+            it('edgesMatch ignores edgeId entirely', () => {
+                expect(edgesMatch(
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-2' }
+                )).toBe(true)
+                expect(edgesMatch(
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' }
+                )).toBe(true)
+                // And an agreeing id does not rescue disagreeing structure.
+                expect(edgesMatch(
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_C, kind: 'On', edgeId: 'edge-1' }
+                )).toBe(false)
+            })
+
+            // The above stated as behavior rather than as a helper result: the dedupe guard still
+            // keys on structure, so minting an id does not make a second structurally identical
+            // edge representable. Telling two otherwise-alike connections apart needs the guard
+            // lifted, which is a separate change and not this one.
+            it('addRelationalEdge still dedupes structurally, however the ids differ', () => {
+                const graph = graphWithThreeObjects()
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })
+                expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-2' })).toBe(graph)
+            })
+
+            // The round trip that catches a half-done carry. removeRelationalEdge re-serialises
+            // every *survivor* through extractRelationalEdgesFromStored -> toStoredRelationalEdge,
+            // so the two carrier sites are composed rather than independent: carry the field in one
+            // and not the other and every remove silently strips the ids off the edges it kept.
+            // That failure type-checks cleanly, so only a behavioral test finds it.
+            it('removeRelationalEdge preserves surviving edges edgeIds', () => {
+                const graph = graphWithThreeObjects()
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning', edgeId: 'edge-2' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Under' })
+
+                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
+
+                expect(next.toStored().edges).toStrictEqual([
+                    { tag: 'Relational', edgeId: 'edge-2', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
+                    { tag: 'Relational', from: OBJECT_B, to: OBJECT_C, kind: 'Under' },
+                ])
+            })
+
+            it('toStoredRelationalEdge carries edgeId on both arms and omits the key when absent', () => {
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })).toStrictEqual({
+                    tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                })
+                expect(toStoredRelationalEdge({
+                    from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning', edgeId: 'edge-1',
+                })).toStrictEqual({
+                    tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning',
+                })
+                // Absent stays absent rather than becoming an explicit `undefined` key, which is
+                // why toStrictEqual is used here: toEqual would not see the difference.
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })).toStrictEqual({
+                    tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                })
+            })
+
+            it('extractRelationalEdgesFromStored carries a valid edgeId and strips an unusable one', () => {
+                expect(extractRelationalEdgesFromStored({
+                    nodes: [],
+                    edges: [{ tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
+                })).toStrictEqual([{ edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+
+                // An empty id fails the stored guard, so this row reaches the recovery branch ---
+                // which keeps the relation and drops the id, on the same reasoning that strips a
+                // stray relationLabel: there is nothing to invent an id from, and losing a real
+                // relation over an unusable id is the worse outcome.
+                expect(extractRelationalEdgesFromStored({
+                    nodes: [],
+                    edges: [{ tag: 'Relational', edgeId: '', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
+                })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+            })
+        })
     })
 
     describe('applyRelationalPatch', () => {

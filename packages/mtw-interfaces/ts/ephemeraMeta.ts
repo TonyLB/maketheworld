@@ -384,11 +384,19 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
 /**
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component or a
  * port-qualified reference on one, matching what LP0/LP2 already made legal terminals.
+ *
+ * `edgeId` is **an optional label an edge may carry, and nothing more** (EA-8). No constructor
+ * mints one, and no comparison consults one --- `edgesMatch` is still purely structural, so a
+ * mixed population of id-bearing and id-less edges behaves today exactly as an all-id-less one
+ * does. It is a bare `string` following `EphemeraPresencePort.portId`, deliberately *not* a new
+ * arm of `EphemeraId`: whether an edge may stand where a *terminal* stands is a separate
+ * question (EA-10), and a port-style record layered over this id is how it would be answered.
  */
 type EphemeraLudicRelationalEdgeBase = {
     tag: 'Relational';
     from: EphemeraLudicTerminalId;
     to: EphemeraLudicTerminalId;
+    edgeId?: string;
 }
 
 /**
@@ -419,6 +427,12 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
         return false
     }
     if (typeof edge.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(edge.kind as HostRelationalEdgeKind)) {
+        return false
+    }
+    // Absent is the common case and stays legal --- identity is optional per edge (EA-8). A
+    // *present* id must be a usable one, on the same reasoning as `relationLabel` below: a guard
+    // that admitted an empty string would narrow to a type whose field cannot be read.
+    if (edge.edgeId !== undefined && (typeof edge.edgeId !== 'string' || edge.edgeId.length === 0)) {
         return false
     }
     if (edge.kind === 'Custom') {

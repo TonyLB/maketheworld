@@ -20,10 +20,14 @@ import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exit
 /**
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component, or a
  * port-qualified reference on one.
+ *
+ * `edgeId` mirrors the stored type's optional identity (EA-8); the reasoning for the shape, and
+ * for what it deliberately is not, lives on `EphemeraLudicRelationalEdgeBase`.
  */
 type HostRelationalEdgeBase = {
     from: EphemeraLudicTerminalId
     to: EphemeraLudicTerminalId
+    edgeId?: string
 }
 
 /**
@@ -40,11 +44,15 @@ const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge
-): EphemeraLudicRelationalEdgeData => (
-    edge.kind === 'Custom'
-        ? { tag: 'Relational', from: edge.from, to: edge.to, kind: 'Custom', relationLabel: edge.relationLabel }
-        : { tag: 'Relational', from: edge.from, to: edge.to, kind: edge.kind }
-)
+): EphemeraLudicRelationalEdgeData => {
+    // Spread-when-present rather than `edgeId: edge.edgeId`, matching `toStored()`/`toJSON()` in
+    // `index.ts`: an absent id must stay *absent*, not become an explicit `undefined` key that a
+    // round trip through storage would then have to strip again.
+    const identity: { edgeId?: string } = edge.edgeId !== undefined ? { edgeId: edge.edgeId } : {}
+    return edge.kind === 'Custom'
+        ? { tag: 'Relational', ...identity, from: edge.from, to: edge.to, kind: 'Custom', relationLabel: edge.relationLabel }
+        : { tag: 'Relational', ...identity, from: edge.from, to: edge.to, kind: edge.kind }
+}
 
 export function extractRelationalEdgesFromStored(
     graph: EphemeraLudicGraphFieldPayload | PlayLudicGraph
@@ -54,10 +62,11 @@ export function extractRelationalEdgesFromStored(
 
     for (const rawEdge of edges) {
         if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
+            const identity: { edgeId?: string } = rawEdge.edgeId !== undefined ? { edgeId: rawEdge.edgeId } : {}
             relationalEdges.push(
                 rawEdge.kind === 'Custom'
-                    ? { from: rawEdge.from, to: rawEdge.to, kind: 'Custom', relationLabel: rawEdge.relationLabel }
-                    : { from: rawEdge.from, to: rawEdge.to, kind: rawEdge.kind }
+                    ? { ...identity, from: rawEdge.from, to: rawEdge.to, kind: 'Custom', relationLabel: rawEdge.relationLabel }
+                    : { ...identity, from: rawEdge.from, to: rawEdge.to, kind: rawEdge.kind }
             )
             continue
         }
@@ -87,9 +96,18 @@ export function extractRelationalEdgesFromStored(
                     // with no usable label is *not* recoverable --- there is nothing to invent a
                     // label from, and this path previously admitted exactly that, producing an
                     // edge the stored guard would itself have refused.
+                    //
+                    // A malformed `edgeId` is salvaged on the *label* pattern, not the `Custom`
+                    // one: an id is a label an edge may carry and nothing more (EA-8), so a bad
+                    // one is dropped and the relation kept. There is nothing to invent an id
+                    // from, and losing a real relation over an unusable id is the worse outcome.
+                    const identity: { edgeId?: string } = typeof obj.edgeId === 'string' && obj.edgeId.length > 0
+                        ? { edgeId: obj.edgeId }
+                        : {}
                     if (obj.kind === 'Custom') {
                         if (typeof obj.relationLabel === 'string' && obj.relationLabel.length > 0) {
                             relationalEdges.push({
+                                ...identity,
                                 from: obj.from,
                                 to: obj.to,
                                 kind: 'Custom',
@@ -99,6 +117,7 @@ export function extractRelationalEdgesFromStored(
                     }
                     else {
                         relationalEdges.push({
+                            ...identity,
                             from: obj.from,
                             to: obj.to,
                             kind: obj.kind as Exclude<HostRelationalEdgeKind, 'Custom'>,
@@ -112,6 +131,18 @@ export function extractRelationalEdgesFromStored(
     return relationalEdges
 }
 
+/**
+ * **`edgeId` is deliberately not consulted here** (EA-8). Structure remains the sole authority
+ * for edge sameness, so two edges alike in `(from, to, kind, relationLabel)` match whether or
+ * not they carry ids, and whether or not those ids differ. That is what makes a mixed
+ * population safe to introduce ahead of any constructor: nothing's behaviour changes.
+ *
+ * **The first constructor that mints ids must revisit this**, together with the other sites that
+ * use structure *as* identity --- `addRelationalEdge`, `removeRelationalEdge` and
+ * `applyRelationalPatch` here, and `findMatchingEdge` in `evaluateRelationalLegality.ts`. They
+ * change together or not at all: id-aware matching in one and structural matching in another is
+ * how a remove deletes an edge it was not aimed at.
+ */
 export function edgesMatch(
     a: HostRelationalEdge,
     b: HostRelationalEdge

@@ -666,6 +666,48 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
+    // EA-8: `edgeId` is optional per edge, so *absent* is the common case and stays legal. What
+    // the guard adds is that a **present** id must be a usable one --- an empty string or a
+    // non-string is rejected on the same reasoning as an empty `relationLabel` above, since a
+    // predicate that admitted it would narrow to a type whose field cannot be read. A stored row
+    // in that shape is not lost: `extractRelationalEdgesFromStored`'s recovery branch keeps the
+    // relation and drops the id, exactly as it strips a stray label.
+    it('accepts a relational edge carrying a non-empty edgeId, and one carrying none', () => {
+        const payload = (edge: Record<string, unknown>) => ({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [edge],
+        })
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', edgeId: 'edge-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+    })
+
+    it.each(['', 7, null, {}])('rejects a relational edge whose edgeId is %p', (edgeId) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                edgeId,
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'On',
+            }],
+        })).toBe(false)
+    })
+
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
     // function" instead of returning false -- hardened at the time to a typeof pre-check that
