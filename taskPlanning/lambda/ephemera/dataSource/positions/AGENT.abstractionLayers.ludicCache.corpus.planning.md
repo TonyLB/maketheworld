@@ -237,7 +237,7 @@ After the first two merges the cache holds `stringEnd2` (reached from the room) 
 
 ### LC9: The place setting laid across two tables
 
-**Contingent, and the contingency is the first thing to check.** Stated 2026-08-24 from the Arrangement conversation. It presumes [EA-6](AGENT.edgeAbstractions.planning.md#open-decisions-design--plan-only)'s **Arrangement** --- a node whose member edges remain its **siblings**, referenced rather than contained --- which is answered-in-place and **has not graduated**. **If that answer changes, this case dissolves rather than needing rework**, and it should be checked against EA-6 before anyone works it.
+**Contingent, and the contingency is the first thing to check.** Stated 2026-08-24 from the Arrangement conversation. It presumes [EA-6](AGENT.edgeAbstractions.planning.md#ea-6)'s **Arrangement** --- a node whose member edges remain its **siblings**, referenced rather than contained --- which is answered-in-place and **has not graduated**. **If that answer changes, this case dissolves rather than needing rework**, and it should be checked against EA-6 before anyone works it.
 
 **Setup, and deliberately *not* the standing topology.** A place setting whose member edges terminate on objects hosted in **two different rooms** --- one half of the arrangement on a table here, the other through a serving hatch there. The Arrangement is consolidated from each room in turn, and read after the first consolidation, while the fold covers only some of its members.
 
