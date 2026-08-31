@@ -2,7 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -55,8 +55,7 @@ export const applyObjectRelationalChange = async (
         kind: args.operation === 'establish' ? 'establishRelation' : 'dissolveRelation',
         subjectId: args.subjectId,
         targetId: args.targetId,
-        relationKind: args.relationKind,
-        ...(args.relationLabel !== undefined ? { relationLabel: args.relationLabel } : {}),
+        ...relationKindAndLabelFrom(args),
     }
 
     let steps: MutationKernelStep[]
@@ -97,8 +96,7 @@ export const applyObjectRelationalChange = async (
                 // Safe: filtered to primitive endpoints above.
                 subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
                 targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
-                relationKind: entry.edge.kind,
-                ...(entry.edge.relationLabel !== undefined ? { relationLabel: entry.edge.relationLabel } : {}),
+                ...relationKindAndLabelOf(entry.edge),
             }))
 
         const transferStep: TransferMembershipStep = {

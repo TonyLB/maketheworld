@@ -60,6 +60,12 @@ const defaultWriteHealedLudicGraph = async (
  * fan disagrees with *itself* there is a mismatch but no correction to write, so it reports
  * `healable: false`: the break is exterior, and picking one edge to believe would invent an
  * answer rather than repair one.
+ *
+ * **Crossing-port-only, and it inherits that rather than restating it.** A presence port has no
+ * exterior edge to mirror, so the classifier reports no mismatch for one and this heal never
+ * reaches its rewrite --- which is the point, since that rewrite would overwrite `kind` with
+ * `'Present'` gone and destroy the binding. The branch lives in `classifyLudicGraphPortMismatch`
+ * so the sweep and this recheck cannot drift apart on what a presence port means.
  */
 export const healLudicGraphPortMismatch = async (
     ephemeraId: EphemeraMembershipHostId,

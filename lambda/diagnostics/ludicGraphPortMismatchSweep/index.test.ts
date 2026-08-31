@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ludicGraphPortMismatchSweep } from './index'
 
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
@@ -17,7 +17,7 @@ const objectRow = (ports: { portId: string; fromHostId: string; kind: HostRelati
     },
 })
 
-const roomRow = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; portId?: string }[]) => ({
+const roomRow = (edges: (RelationalEdgeKindAndLabel & { portId?: string })[]) => ({
     EphemeraId: ROOM_ID,
     DataCategory: 'Meta::Room',
     ludicGraph: {
@@ -26,12 +26,13 @@ const roomRow = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; 
             { tag: 'Room', universalKey: ROOM_ID },
             { tag: 'Object', universalKey: OBJECT_ID },
         ],
-        edges: edges.map(({ kind, relationLabel, portId }) => ({
+        edges: edges.map((edge) => ({
             tag: 'Relational' as const,
             from: ROOM_ID,
-            to: { owner: OBJECT_ID, port: portId ?? PORT_ID },
-            kind,
-            ...(relationLabel === undefined ? {} : { relationLabel }),
+            to: { owner: OBJECT_ID, port: edge.portId ?? PORT_ID },
+            ...(edge.kind === 'Custom'
+                ? { kind: 'Custom' as const, relationLabel: edge.relationLabel }
+                : { kind: edge.kind }),
         })),
         ports: [],
     },
@@ -63,7 +64,7 @@ describe('ludicGraphPortMismatchSweep', () => {
             { diagnosticRunId: 'run-lgpm', nowMs: 1_700_000_000_000 },
             {
                 listCandidateRows: async () => [
-                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
                     roomRow([{ kind: 'On' }]),
                 ],
                 emitFinding,
@@ -78,6 +79,25 @@ describe('ludicGraphPortMismatchSweep', () => {
             nowMs: 1_700_000_000_000,
             eventBusName: 'test-bus',
         })
+    })
+
+    // PR-15, settled 2026-08-26: a presence port is a terminal, so an edge landing on it is not a
+    // disagreement and there is nothing to report. This sweep is where it mattered --- it runs
+    // over stored rows, and every finding it emits triggers a self-heal that rewrites `kind`.
+    it('emits nothing for a presence port a foreign-kind edge terminates at', async () => {
+        const result = await ludicGraphPortMismatchSweep(
+            {},
+            {
+                listCandidateRows: async () => [
+                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                    roomRow([{ kind: 'Custom', relationLabel: 'is connected to' }]),
+                ],
+                emitFinding,
+            }
+        )
+
+        expect(result).toEqual({ emittedCount: 0, ports: [] })
+        expect(emitFinding).not.toHaveBeenCalled()
     })
 
     it('emits nothing when the port and the referring edge agree', async () => {
@@ -100,7 +120,7 @@ describe('ludicGraphPortMismatchSweep', () => {
         const result = await ludicGraphPortMismatchSweep(
             {},
             {
-                listCandidateRows: async () => [objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }])],
+                listCandidateRows: async () => [objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }])],
                 emitFinding,
             }
         )
@@ -130,7 +150,7 @@ describe('ludicGraphPortMismatchSweep', () => {
             {},
             {
                 listCandidateRows: async () => [
-                    { ...objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]), EphemeraId: 'BOGUS#not-a-host' },
+                    { ...objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]), EphemeraId: 'BOGUS#not-a-host' },
                     roomRow([{ kind: 'On' }]),
                 ],
                 emitFinding,
@@ -147,8 +167,8 @@ describe('ludicGraphPortMismatchSweep', () => {
             {
                 listCandidateRows: async () => [
                     objectRow([
-                        { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Present' },
-                        { portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' },
+                        { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Against' },
+                        { portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' },
                     ]),
                     roomRow([{ kind: 'On' }, { kind: 'Under', portId: 'zzz999' }]),
                 ],

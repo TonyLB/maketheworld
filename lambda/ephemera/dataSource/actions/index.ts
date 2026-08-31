@@ -6,6 +6,7 @@
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
@@ -572,10 +573,7 @@ const publishStreamEventsForIntent = async (
                     subjectId: parseResult.subjectId,
                     targetId: parseResult.targetId,
                     hostId,
-                    relationKind: parseResult.relationKind,
-                    ...(parseResult.relationLabel !== undefined
-                        ? { relationLabel: parseResult.relationLabel }
-                        : {}),
+                    ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
                     ...(parseResult.transferFromHostId !== undefined
                         ? { transferFromHostId: parseResult.transferFromHostId }
@@ -593,10 +591,7 @@ const publishStreamEventsForIntent = async (
                     subjectId: parseResult.subjectId,
                     targetId: parseResult.targetId,
                     hostId,
-                    relationKind: parseResult.relationKind,
-                    ...(parseResult.relationLabel !== undefined
-                        ? { relationLabel: parseResult.relationLabel }
-                        : {}),
+                    ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
                     ...(parseResult.transferFromHostId !== undefined
                         ? { transferFromHostId: parseResult.transferFromHostId }

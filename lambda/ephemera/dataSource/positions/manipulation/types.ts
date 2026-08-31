@@ -18,12 +18,14 @@ export type MembershipTransferPlan = {
  * `HostRelationalEdge` --- a pre-existing duplication (not consolidated in this slice); see
  * `ludicGraph/AGENT.md`'s "Relational edge names" table.
  */
-export type HostRelationalEdge = {
+type HostRelationalEdgeBase = {
     from: EphemeraLudicTerminalId
     to: EphemeraLudicTerminalId
-    kind: HostRelationalEdgeKind
-    relationLabel?: string
 }
+
+export type HostRelationalEdge =
+    | (HostRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (HostRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
 /**
  * One add/remove of an in-host relational edge on a fixed host graph (Room or

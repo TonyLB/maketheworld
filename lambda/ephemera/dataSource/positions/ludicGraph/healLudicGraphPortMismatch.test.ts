@@ -1,5 +1,5 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { healLudicGraphPortMismatch } from './healLudicGraphPortMismatch'
 
 const OBJECT_ID = 'OBJECT#Rope' as EphemeraObjectId
@@ -12,18 +12,19 @@ const objectGraph = (ports: { portId: string; fromHostId: string; kind: HostRela
     ports,
 })
 
-const roomGraph = (edges: { kind: HostRelationalEdgeKind; relationLabel?: string; portId?: string }[]) => ({
+const roomGraph = (edges: (RelationalEdgeKindAndLabel & { portId?: string })[]) => ({
     rootId: ROOM_ID,
     nodes: [
         { tag: 'Room', universalKey: ROOM_ID },
         { tag: 'Object', universalKey: OBJECT_ID },
     ],
-    edges: edges.map(({ kind, relationLabel, portId }) => ({
+    edges: edges.map((edge) => ({
         tag: 'Relational' as const,
         from: ROOM_ID,
-        to: { owner: OBJECT_ID, port: portId ?? PORT_ID },
-        kind,
-        ...(relationLabel === undefined ? {} : { relationLabel }),
+        to: { owner: OBJECT_ID, port: edge.portId ?? PORT_ID },
+        ...(edge.kind === 'Custom'
+            ? { kind: 'Custom' as const, relationLabel: edge.relationLabel }
+            : { kind: edge.kind }),
     })),
     ports: [],
 })
@@ -48,7 +49,7 @@ describe('healLudicGraphPortMismatch', () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: true }, {
             getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
                 [ROOM_ID]: roomGraph([{ kind: 'On' }]),
             }),
             writeHealedLudicGraph,
@@ -95,10 +96,10 @@ describe('healLudicGraphPortMismatch', () => {
 
     it('repairs only the named port, leaving its siblings untouched', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const sibling = { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Present' as const }
+        const sibling = { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Against' as const }
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
             getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }, sibling]),
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }, sibling]),
                 // The sibling disagrees with its own referring edge too, and is still not touched:
                 // this heal repairs the port the finding named, not everything it happens to see.
                 [ROOM_ID]: roomGraph([{ kind: 'On' }, { kind: 'Under', portId: 'zzz999' }]),
@@ -115,7 +116,7 @@ describe('healLudicGraphPortMismatch', () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
             getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
                 [ROOM_ID]: roomGraph([{ kind: 'On' }, { kind: 'Under' }]),
             }),
             writeHealedLudicGraph,
@@ -128,7 +129,7 @@ describe('healLudicGraphPortMismatch', () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
             getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
                 [ROOM_ID]: roomGraph([]),
             }),
             writeHealedLudicGraph,
@@ -141,7 +142,7 @@ describe('healLudicGraphPortMismatch', () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
             getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
             }),
             writeHealedLudicGraph,
         })
@@ -175,10 +176,27 @@ describe('healLudicGraphPortMismatch', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
+    // PR-15, settled 2026-08-26. The repair rewrites `kind` from the exterior edge, so running it
+    // on a presence port would replace `'Present'` with the landing edge's kind and destroy the
+    // binding --- the thing the port exists to record. The classifier's presence branch is what
+    // stops it; this asserts the outcome at the heal boundary, where the damage would be written.
+    it('writes nothing when a foreign-kind edge terminates at a presence port', async () => {
+        const writeHealedLudicGraph = jest.fn(async () => undefined)
+        const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
+            getStoredLudicGraph: readerFor({
+                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+                [ROOM_ID]: roomGraph([{ kind: 'Custom', relationLabel: 'is connected to' }]),
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toEqual({ stale: false })
+        expect(writeHealedLudicGraph).not.toHaveBeenCalled()
+    })
+
     it('is a no-op on redelivery once the repair has landed (at-least-once safety)', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const graphs: Record<string, unknown> = {
-            [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
+            [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
             [ROOM_ID]: roomGraph([{ kind: 'On' }]),
         }
         const deps = {

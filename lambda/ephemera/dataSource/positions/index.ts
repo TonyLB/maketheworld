@@ -17,6 +17,7 @@
  * folder layout, guard registry in `subscribedEvents.ts`) is intentionally
  * named generally so that growth is additive.
  */
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
 import messageBus from '../../messageBus'
 import {
@@ -116,8 +117,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     subjectId: content.subjectId,
                     targetId: content.targetId,
                     hostId: content.hostId,
-                    relationKind: content.relationKind,
-                    relationLabel: content.relationLabel,
+                    ...relationKindAndLabelFrom(content),
                     transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,
@@ -134,8 +134,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     subjectId: content.subjectId,
                     targetId: content.targetId,
                     hostId: content.hostId,
-                    relationKind: content.relationKind,
-                    relationLabel: content.relationLabel,
+                    ...relationKindAndLabelFrom(content),
                     transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,

@@ -321,17 +321,106 @@ export type HostRelationalEdgeKind =
     | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
 
 /**
- * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
+ * The kind/label pairing, as a discriminated union rather than a flat optional field:
+ * **`relationLabel` is what `Custom` exists to make a place for**, and the other six kinds
+ * carry no free-text label at all. Stated in the type because it was previously stated only
+ * at runtime, in five separate places across four layers, and enforced one-way --- `Custom`
+ * required a label, but nothing stopped an `On` edge carrying one.
+ *
+ * Generic over the kind union so the lanes that already narrowed theirs can reuse it:
+ * `PeerRelationalEdgeKind` (ingress) and `HostRelationalEdgeKindPublished` (wire) both
+ * instantiate it rather than re-deriving the pairing.
+ *
+ * Use this form (`kind`) for edge records; use `RelationalKindAndLabel` (`relationKind`) for
+ * the DTO lane, which names the same field differently.
+ */
+export type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { kind: Exclude<K, 'Custom'> }
+    | { kind: 'Custom'; relationLabel: string }
+
+/** `RelationalEdgeKindAndLabel` for the lane that spells the field `relationKind`. */
+export type RelationalKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { relationKind: Exclude<K, 'Custom'> }
+    | { relationKind: 'Custom'; relationLabel: string }
+
+/**
+ * Project an edge's kind/label pair onto the DTO lane's `relationKind` spelling, for the several
+ * call sites that build a relational step or fact out of a stored edge. Takes the fragment rather
+ * than any one edge type, so it serves both `HostRelationalEdge` mirrors structurally.
+ */
+export const relationKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalKindAndLabel => (
+    edge.kind === 'Custom'
+        ? { relationKind: 'Custom', relationLabel: edge.relationLabel }
+        : { relationKind: edge.kind }
+)
+
+/**
+ * Re-narrow the kind/label pair when copying it from one DTO onto another. The pair travels
+ * together through parse -> plan -> execute -> publish, and spreading it as a unit is what keeps
+ * each hop from having to restate the `Custom` branch. Replaces the
+ * `relationKind: x.relationKind, ...(x.relationLabel !== undefined ? { relationLabel: ... } : {})`
+ * shape that the flat field required at every one of those hops.
+ */
+export const relationKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalKindAndLabel => (
+    source.relationKind === 'Custom'
+        ? { relationKind: 'Custom', relationLabel: source.relationLabel }
+        : { relationKind: source.relationKind }
+)
+
+/** The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. */
+export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => (
+    source.relationKind === 'Custom'
+        ? { kind: 'Custom', relationLabel: source.relationLabel }
+        : { kind: source.relationKind }
+)
+
+/** Re-narrow an edge's own kind/label pair, for copying one edge shape onto another. */
+export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalEdgeKindAndLabel => (
+    edge.kind === 'Custom'
+        ? { kind: 'Custom', relationLabel: edge.relationLabel }
+        : { kind: edge.kind }
+)
+
+/**
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component or a
  * port-qualified reference on one, matching what LP0/LP2 already made legal terminals.
+ *
+ * `edgeId` is **an optional label an edge may carry, and nothing more** (EA-8). No constructor
+ * mints one, and no comparison consults one --- `edgesMatch` is still purely structural, so a
+ * mixed population of id-bearing and id-less edges behaves today exactly as an all-id-less one
+ * does. It is a bare `string` following `EphemeraPresencePort.portId`, deliberately *not* a new
+ * arm of `EphemeraId`: whether an edge may stand where a *terminal* stands is a separate
+ * question (EA-10), and a port-style record layered over this id is how it would be answered.
+ *
+ * `chainId` is **the leg's statement of which chain it belongs to**, and unlike `edgeId` it is
+ * consulted: `edgesMatch` compares it ahead of structure (P8 iteration 1, a **Prototype** ---
+ * see that proposal's Status for the classification, the `P8-i1-dependent` tag and the rollback
+ * trigger). Identity and reference adhere to the *chain*; hosting, adjacency and the mutation
+ * site adhere to the *leg*, which is why the field naming the chain sits on every leg of it.
+ * Two legs of one chain therefore share a `chainId` legitimately --- they have different
+ * endpoints, so structure still tells them apart, and that is what a chain crossing a boundary
+ * looks like from inside. Deliberately **not** built here: an Edge record, a reverse index, and
+ * presence for edges. Nothing mints or strips a `chainId` yet; the operations that will are
+ * specified but gated on that storage.
  */
-export type EphemeraLudicRelationalEdgeData = {
+type EphemeraLudicRelationalEdgeBase = {
     tag: 'Relational';
     from: EphemeraLudicTerminalId;
     to: EphemeraLudicTerminalId;
-    kind: HostRelationalEdgeKind;
-    relationLabel?: string;
+    edgeId?: string;
+    chainId?: string;
 }
+
+/**
+ * In-host relational edge on room ludicGraph (Phase B establishRelation / dissolveRelation).
+ *
+ * **The union sits at the top level and the base is intersected into each arm, deliberately.**
+ * `Base & (A | B)` does narrow in current TypeScript, but the arms-as-union form is what the
+ * guard, the storage adapters and the comparison helpers were all verified against; keep it.
+ */
+export type EphemeraLudicRelationalEdgeData =
+    | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
 
@@ -339,23 +428,38 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
     }
-    const edge = value as EphemeraLudicRelationalEdgeData
+    // Read through a `Record` view rather than a cast to the target type: the type is now a
+    // discriminated union, so `relationLabel` is not a property of the non-`Custom` arm and a
+    // cast-then-read would not compile for the very field this guard exists to check.
+    const edge = value as Record<string, unknown>
     if (edge.tag !== 'Relational') {
         return false
     }
     if (!isEphemeraLudicTerminalId(edge.from) || !isEphemeraLudicTerminalId(edge.to)) {
         return false
     }
-    if (!HOST_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
+    if (typeof edge.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(edge.kind as HostRelationalEdgeKind)) {
+        return false
+    }
+    // Absent is the common case and stays legal --- identity is optional per edge (EA-8). A
+    // *present* id must be a usable one, on the same reasoning as `relationLabel` below: a guard
+    // that admitted an empty string would narrow to a type whose field cannot be read.
+    if (edge.edgeId !== undefined && (typeof edge.edgeId !== 'string' || edge.edgeId.length === 0)) {
+        return false
+    }
+    // Same shape of check for `chainId`, and the stakes are higher: this one *is* consulted by
+    // comparison, so an unusable value admitted here would decide leg sameness.
+    if (edge.chainId !== undefined && (typeof edge.chainId !== 'string' || edge.chainId.length === 0)) {
         return false
     }
     if (edge.kind === 'Custom') {
         return typeof edge.relationLabel === 'string' && edge.relationLabel.length > 0
     }
-    if (edge.relationLabel !== undefined && typeof edge.relationLabel !== 'string') {
-        return false
-    }
-    return true
+    // A non-`Custom` edge carrying a label is now *unrepresentable*, so accepting one would make
+    // this predicate lie about the value it narrows. Previously such a value passed. Stored rows
+    // in that shape are recovered --- with the stray label stripped --- by
+    // `extractRelationalEdgesFromStored`'s fallback, so rejecting here loses no data.
+    return edge.relationLabel === undefined
 }
 
 /**
@@ -366,23 +470,39 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
  * `lambda/ephemera/dataSource/positions/AGENT.contract.md` ("Port records: field scope and the
  * conflict rule"); the mental model is in that directory's `AGENT.concepts.md`.
  */
-export type EphemeraLudicGraphPort = {
+/** A presence port is a terminal, never a crossing (PR-15): no exterior edge refers to it in
+ * the crossing sense, so it carries no `exteriorRelationLabel` --- type-enforced, not just
+ * documented (Phase 4 of the port vocabulary split). */
+export type EphemeraPresencePort = {
+    portId: string;
+    fromHostId: EphemeraMembershipHostId;
+    /** Interior scope: fixed at `'Present'` for this branch (PR-11). Authored at mint time. */
+    kind: 'Present';
+}
+
+export type EphemeraCrossingPort = {
     portId: string;
     fromHostId: EphemeraMembershipHostId;
     /**
-     * Interior scope: the kind of the edges passing through this port --- a
-     * presence binding iff `'Present'` (PR-11), so the binding count is a filter on this
-     * field and never `ports.length`. Authored at mint time, never derived from an edge.
+     * Interior scope: the kind of the edge(s) passing through this port. Authored at mint
+     * time, never derived from an edge.
      */
-    kind: HostRelationalEdgeKind;
+    kind: Exclude<HostRelationalEdgeKind, 'Present'>;
     /**
      * Exterior scope: the referring edge's `Custom` label, denormalized interior-side the same
      * way `fromHostId` is, since it lives in the parent's shard. Required non-empty when
      * `kind === 'Custom'` (PR-11). No interior counterpart is stored --- the interior edges
-     * are siblings of `ports` in one attribute, and a port's interior fan has no single label.
+     * are siblings of `ports` in one attribute. A crossing port's fan agrees, with the single
+     * exterior edge crossing into it, which is exactly what `kind`/`exteriorRelationLabel`
+     * denormalize --- unlike a presence port's fan, which has no single label to store one
+     * from and so has no such field at all (`EphemeraPresencePort`).
      */
     exteriorRelationLabel?: string;
 }
+
+/** The union of the two port branches (PR-15 / Phase 4 of the port vocabulary split). Kept as
+ * the pre-split name: it is what every call site not yet narrowed on `kind` still imports. */
+export type EphemeraLudicGraphPort = EphemeraCrossingPort | EphemeraPresencePort
 
 /** Host-bound play manipulation JSON (includes hostId). Assemble at Dynamo read boundary. */
 export type EphemeraLudicGraphData = {
@@ -429,17 +549,28 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     if (!value || typeof value !== 'object') {
         return false
     }
-    const entry = value as EphemeraLudicGraphPort
-    if (!(typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId))) {
+    // Read through a `Record` view rather than a cast to the target type, same as the edge
+    // guard above: the type is a discriminated union, so `exteriorRelationLabel` is not a
+    // property of the presence arm and a cast-then-read would not compile for the very field
+    // this guard exists to check.
+    const entry = value as Record<string, unknown>
+    if (!(typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId as EphemeraMembershipHostId))) {
         return false
     }
-    if (!HOST_RELATIONAL_EDGE_KINDS.has(entry.kind)) {
+    if (typeof entry.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind)) {
         return false
     }
     // Mirrors the edge guard's own conditional one-for-one (LP6): the scale change a port
     // records needs the exterior end of it, and a port carrying neither end records nothing.
     if (entry.kind === 'Custom') {
         return typeof entry.exteriorRelationLabel === 'string' && entry.exteriorRelationLabel.length > 0
+    }
+    // A presence port has no `exteriorRelationLabel` field at all (`EphemeraPresencePort`);
+    // carrying one is the category error PR-15 named, not a value to tolerate. Unlike the
+    // `Custom` check above (which turns on the string's contents), this turns on the field's
+    // presence at all --- any value, string or not, is now unrepresentable on this branch.
+    if (entry.kind === 'Present') {
+        return entry.exteriorRelationLabel === undefined
     }
     if (entry.exteriorRelationLabel !== undefined && typeof entry.exteriorRelationLabel !== 'string') {
         return false

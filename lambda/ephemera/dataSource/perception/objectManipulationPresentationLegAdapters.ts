@@ -9,6 +9,7 @@
  * an intent leg to a fact leg for. `Object Moved` facts are still streamed by `commitStepSequence`;
  * perception simply no longer subscribes to them.
  */
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     StreamingEventEnvelope,
     StreamingEventHeader,
@@ -105,8 +106,7 @@ export const toObjectManipulationPresentationLeg = async (
             subjectId: content.subjectId,
             targetId: content.targetId,
             roomId: content.hostId,
-            relationKind: content.relationKind,
-            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+            ...relationKindAndLabelFrom(content),
         }]
     }
 
@@ -123,8 +123,7 @@ export const toObjectManipulationPresentationLeg = async (
             subjectId: content.subjectId,
             targetId: content.targetId,
             roomId: content.hostId,
-            relationKind: content.relationKind,
-            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+            ...relationKindAndLabelFrom(content),
         }]
     }
 
@@ -149,8 +148,7 @@ export const toObjectManipulationPresentationLeg = async (
             subjectId: content.subjectId,
             targetId: content.targetId,
             hostRoomId: content.hostId,
-            relationKind: content.relationKind,
-            ...(content.relationLabel !== undefined ? { relationLabel: content.relationLabel } : {}),
+            ...relationKindAndLabelFrom(content),
             operation: content.operation,
             beatAnchorTime: content.beatAnchorTime,
         }]

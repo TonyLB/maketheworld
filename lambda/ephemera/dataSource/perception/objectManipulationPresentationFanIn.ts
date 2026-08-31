@@ -1,9 +1,10 @@
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     EphemeraCharacterId,
     EphemeraObjectId,
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraCharacterId as isCharacterId, isEphemeraRoomId as isRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { FanInCluster, FanInHandlerOptions } from '@tonylb/mtw-lambda-patterns/ts/dataSource/fanInCluster'
@@ -16,27 +17,33 @@ export type RelationalManipulationOperation = 'establishRelation' | 'dissolveRel
 
 export type RelationalFactOperation = 'establish' | 'dissolve'
 
-export type ObjectRelationalIntentLeg = {
+/**
+ * Each leg's non-relational half, named so callers (and fixtures) can talk about it apart from
+ * the kind/label pair. `Partial`/`Omit` over the full leg would distribute across
+ * `RelationalKindAndLabel` and lose the `Custom` arm, so the split has to be declared rather
+ * than derived --- the same reason `ObjectRelationalEmissionPlanCore` exists below.
+ */
+export type ObjectRelationalIntentLegCore = {
     kind: 'relationalIntent'
     operation: RelationalManipulationOperation
     characterId: EphemeraCharacterId
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     roomId: EphemeraRoomId
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
 }
 
-export type ObjectRelationalFactLeg = {
+export type ObjectRelationalIntentLeg = ObjectRelationalIntentLegCore & RelationalKindAndLabel
+
+export type ObjectRelationalFactLegCore = {
     kind: 'relationalFact'
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     hostRoomId: EphemeraRoomId
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
     operation: RelationalFactOperation
     beatAnchorTime: number
 }
+
+export type ObjectRelationalFactLeg = ObjectRelationalFactLegCore & RelationalKindAndLabel
 
 /**
  * Narrowed to the two relational members in Phase 4, when object take/drop stopped narrating through
@@ -50,15 +57,22 @@ export type ObjectManipulationPresentationLeg =
     | ObjectRelationalIntentLeg
     | ObjectRelationalFactLeg
 
-export type ObjectRelationalEmissionPlan = {
+/**
+ * The plan's structural half --- everything derivable from the legs, before display names are
+ * resolved. Split into its own type rather than written as an `Omit` of the full plan, because
+ * `Omit` over a union keys off the *common* properties and would flatten
+ * `RelationalKindAndLabel` back into a shape with no reachable `Custom` label.
+ */
+export type ObjectRelationalEmissionPlanCore = {
     operation: RelationalManipulationOperation
     characterId: EphemeraCharacterId
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     roomId: EphemeraRoomId
-    relationKind: HostRelationalEdgeKind
-    relationLabel?: string
     beatAnchorTime: number
+} & RelationalKindAndLabel
+
+export type ObjectRelationalEmissionPlan = ObjectRelationalEmissionPlanCore & {
     characterName: string
     subjectShortName: string
     targetShortName: string
@@ -74,17 +88,18 @@ const relationalIntentOperationFromFact = (
     operation === 'establish' ? 'establishRelation' : 'dissolveRelation'
 )
 
-const relationFieldsCompatible = (
-    relationKind: HostRelationalEdgeKind,
-    relationLabel: string | undefined,
-    otherKind: HostRelationalEdgeKind,
-    otherLabel: string | undefined
-): boolean => {
-    if (relationKind !== otherKind) {
+/**
+ * Takes each side's kind/label pair as a unit rather than as four positional arguments: the two
+ * fields only mean anything together, and a label is reachable only after narrowing the kind it
+ * belongs to. Both sides are narrowed even though the equality above implies the second --- as
+ * elsewhere, narrowing one operand does not narrow the other.
+ */
+const relationFieldsCompatible = (a: RelationalKindAndLabel, b: RelationalKindAndLabel): boolean => {
+    if (a.relationKind !== b.relationKind) {
         return false
     }
-    if (relationKind === 'Custom') {
-        return relationLabel === otherLabel
+    if (a.relationKind === 'Custom' && b.relationKind === 'Custom') {
+        return a.relationLabel === b.relationLabel
     }
     return true
 }
@@ -99,12 +114,7 @@ const relationalIntentEndpointsCompatibleWithFact = (
     if (intent.roomId !== fact.hostRoomId) {
         return false
     }
-    if (!relationFieldsCompatible(
-        intent.relationKind,
-        intent.relationLabel,
-        fact.relationKind,
-        fact.relationLabel
-    )) {
+    if (!relationFieldsCompatible(intent, fact)) {
         return false
     }
     return relationalIntentOperationFromFact(fact.operation) === intent.operation
@@ -119,7 +129,7 @@ export const objectRelationalClusterIdentity = (
 
 export const buildObjectRelationalEmissionPlan = (
     legs: ObjectManipulationPresentationLeg[]
-): Omit<ObjectRelationalEmissionPlan, 'characterName' | 'subjectShortName' | 'targetShortName'> | null => {
+): ObjectRelationalEmissionPlanCore | null => {
     const factLeg = legs.find((leg): leg is ObjectRelationalFactLeg => leg.kind === 'relationalFact')
     if (!factLeg) {
         return null
@@ -136,8 +146,7 @@ export const buildObjectRelationalEmissionPlan = (
         subjectId: factLeg.subjectId,
         targetId: factLeg.targetId,
         roomId: intentLeg.roomId,
-        relationKind: factLeg.relationKind,
-        ...(factLeg.relationLabel !== undefined ? { relationLabel: factLeg.relationLabel } : {}),
+        ...relationKindAndLabelFrom(factLeg),
         beatAnchorTime: factLeg.beatAnchorTime,
     }
 }
@@ -209,12 +218,7 @@ export class ObjectRelationalPresentationFanInCluster extends FanInCluster<
             return myFact.beatAnchorTime === otherFact.beatAnchorTime
                 && myFact.operation === otherFact.operation
                 && myFact.hostRoomId === otherFact.hostRoomId
-                && relationFieldsCompatible(
-                    myFact.relationKind,
-                    myFact.relationLabel,
-                    otherFact.relationKind,
-                    otherFact.relationLabel
-                )
+                && relationFieldsCompatible(myFact, otherFact)
         }
 
         const myIntent = this.intentLeg()

@@ -33,19 +33,33 @@ export type LudicGraphPortMismatchVerdict =
     | { mismatch: false }
     | { mismatch: true; correction?: LudicGraphPortExteriorValues }
 
-const exteriorValuesOfEdge = (edge: EphemeraLudicRelationalEdgeData): LudicGraphPortExteriorValues => ({
-    kind: edge.kind,
-    ...(edge.relationLabel === undefined ? {} : { exteriorRelationLabel: edge.relationLabel }),
-})
+/**
+ * The edge side narrows; the port side does not. `LudicGraphPortExteriorValues` stays flat
+ * (`kind` plus an optional label) because `EphemeraLudicGraphPort` does --- moving the port
+ * record's label onto a crossing-only branch is scheduled work, not an open question (PR-15
+ * settled 2026-08-26; EA-10 is still open on its own axis). All that changed here is that a
+ * non-`Custom` edge no longer *has* a label to read.
+ */
+const exteriorValuesOfEdge = (edge: EphemeraLudicRelationalEdgeData): LudicGraphPortExteriorValues => (
+    edge.kind === 'Custom'
+        ? { kind: 'Custom', exteriorRelationLabel: edge.relationLabel }
+        : { kind: edge.kind }
+)
 
 const exteriorValuesEqual = (a: LudicGraphPortExteriorValues, b: LudicGraphPortExteriorValues): boolean => (
     a.kind === b.kind && a.exteriorRelationLabel === b.exteriorRelationLabel
 )
 
 /**
- * The edges in the referrer's graph that cross into this port --- either terminal may be the
+ * The edges in the referrer's graph **incident to** this port --- either terminal may be the
  * port address (`{ owner: hostId, port: portId }`), since which end of an edge is the host is a
  * kind-by-kind question (AB-54/LD-16) and not this comparison's business.
+ *
+ * **Incidence, not crossing, and the distinction is load-bearing.** An edge that *crosses* a port
+ * and an edge that *terminates at* one are both incident to it, and nothing in the stored edge
+ * distinguishes them --- the difference is whether a partner edge exists interior-side, which is
+ * not on this row. So this stays a pure incidence query and the caller decides what incidence
+ * means for the port kind in hand.
  */
 export const edgesReferringToPort = (args: {
     hostId: EphemeraMembershipHostId
@@ -77,12 +91,30 @@ export const edgesReferringToPort = (args: {
  * into a *different* port on the same owner --- is **not** a mismatch. That case asks *who
  * should refer here*, which only the reverse index answers (LD-17/AB-55), and answering it by
  * flagging every unreferenced port would report the whole corpus as broken.
+ *
+ * **Two branches on `kind`, and only one of them compares anything (PR-15, settled 2026-08-26).**
+ * A **presence port** is an edge *terminal*, never a crossing: it is the port with no exterior
+ * endpoint, so no exterior fact mirrors it and there is nothing for `kind` to disagree with. An
+ * edge landing there lands *at* it and imposes no kind on it, so kind-agreement is a category
+ * error rather than a check to soften. Every **other** kind has exactly one exterior edge and is
+ * checked as written. Whether a crossing port may *also* carry a terminal edge is PR-16 --- open,
+ * and deliberately not answered here.
  */
 export const classifyLudicGraphPortMismatch = (args: {
     hostId: EphemeraMembershipHostId
     port: EphemeraLudicGraphPort
     referrerLudicGraph: unknown
 }): LudicGraphPortMismatchVerdict => {
+    // The presence branch is a test in code rather than an invariant held by construction,
+    // because incidence cannot tell *terminates at* from *crosses*: without it, a `Custom` edge
+    // between two `Present` ports read as a mismatch at both ends and the self-heal rewrote both
+    // ports' `kind` from that edge, destroying the presence binding it was landing on. A stray
+    // `exteriorRelationLabel` on a presence port is judged from the one row and so belongs to the
+    // structure sweep, not to this comparison.
+    if (args.port.kind === 'Present') {
+        return { mismatch: false }
+    }
+
     const matchingEdges = edgesReferringToPort({
         hostId: args.hostId,
         portId: args.port.portId,

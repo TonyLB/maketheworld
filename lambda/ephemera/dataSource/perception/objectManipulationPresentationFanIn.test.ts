@@ -1,11 +1,14 @@
 import type { MessageBus } from '../../messageBus/baseClasses'
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     buildObjectRelationalEmissionPlan,
     createObjectManipulationFanInHandlerContext,
     createObjectManipulationPresentationFanInStore,
     objectRelationalClusterIdentity,
     type ObjectRelationalFactLeg,
+    type ObjectRelationalFactLegCore,
     type ObjectRelationalIntentLeg,
+    type ObjectRelationalIntentLegCore,
 } from './objectManipulationPresentationFanIn'
 
 jest.mock('./resolveRelationalPresentationLabels', () => ({
@@ -24,48 +27,60 @@ const ROOM = 'ROOM#Cafe' as const
 const ANCHOR_TIME = 1_700_000_000_000
 const TARGET = 'OBJECT#Table' as const
 
-const establishIntent = (overrides: Partial<ObjectRelationalIntentLeg> = {}): ObjectRelationalIntentLeg => ({
+const establishIntent = (
+    overrides: Partial<ObjectRelationalIntentLegCore> = {},
+    kindAndLabel: RelationalKindAndLabel = { relationKind: 'On' }
+): ObjectRelationalIntentLeg => ({
     kind: 'relationalIntent',
     operation: 'establishRelation',
     characterId: CHARACTER,
     subjectId: OBJECT,
     targetId: TARGET,
     roomId: ROOM,
-    relationKind: 'On',
     ...overrides,
+    ...kindAndLabel,
 })
 
-const establishFact = (overrides: Partial<ObjectRelationalFactLeg> = {}): ObjectRelationalFactLeg => ({
+const establishFact = (
+    overrides: Partial<ObjectRelationalFactLegCore> = {},
+    kindAndLabel: RelationalKindAndLabel = { relationKind: 'On' }
+): ObjectRelationalFactLeg => ({
     kind: 'relationalFact',
     subjectId: OBJECT,
     targetId: TARGET,
     hostRoomId: ROOM,
-    relationKind: 'On',
     operation: 'establish',
     beatAnchorTime: ANCHOR_TIME,
     ...overrides,
+    ...kindAndLabel,
 })
 
-const dissolveIntent = (overrides: Partial<ObjectRelationalIntentLeg> = {}): ObjectRelationalIntentLeg => ({
+const dissolveIntent = (
+    overrides: Partial<ObjectRelationalIntentLegCore> = {},
+    kindAndLabel: RelationalKindAndLabel = { relationKind: 'On' }
+): ObjectRelationalIntentLeg => ({
     kind: 'relationalIntent',
     operation: 'dissolveRelation',
     characterId: CHARACTER,
     subjectId: OBJECT,
     targetId: TARGET,
     roomId: ROOM,
-    relationKind: 'On',
     ...overrides,
+    ...kindAndLabel,
 })
 
-const dissolveFact = (overrides: Partial<ObjectRelationalFactLeg> = {}): ObjectRelationalFactLeg => ({
+const dissolveFact = (
+    overrides: Partial<ObjectRelationalFactLegCore> = {},
+    kindAndLabel: RelationalKindAndLabel = { relationKind: 'On' }
+): ObjectRelationalFactLeg => ({
     kind: 'relationalFact',
     subjectId: OBJECT,
     targetId: TARGET,
     hostRoomId: ROOM,
-    relationKind: 'On',
     operation: 'dissolve',
     beatAnchorTime: ANCHOR_TIME,
     ...overrides,
+    ...kindAndLabel,
 })
 
 describe('objectManipulationPresentationFanIn', () => {
@@ -104,8 +119,8 @@ describe('objectManipulationPresentationFanIn', () => {
 
         it('includes Custom relationLabel from fact', () => {
             const plan = buildObjectRelationalEmissionPlan([
-                establishIntent({ relationKind: 'Custom', relationLabel: 'tied around' }),
-                establishFact({ relationKind: 'Custom', relationLabel: 'tied around' }),
+                establishIntent({}, { relationKind: 'Custom', relationLabel: 'tied around' }),
+                establishFact({}, { relationKind: 'Custom', relationLabel: 'tied around' }),
             ])
 
             expect(plan).toEqual({

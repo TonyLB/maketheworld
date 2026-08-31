@@ -88,8 +88,9 @@ export function compileRelationalUngroundedPlan(
         primitive: frame.operationKind,
         subject,
         target,
-        relationKind: relation.kind,
-        ...(relation.type === 'custom' ? { relationLabel: relation.relationLabel } : {}),
+        ...(relation.type === 'custom'
+            ? { relationKind: 'Custom' as const, relationLabel: relation.relationLabel }
+            : { relationKind: relation.kind }),
     }
 
     return { type: 'success', steps: [sameHostAssertion, change] }

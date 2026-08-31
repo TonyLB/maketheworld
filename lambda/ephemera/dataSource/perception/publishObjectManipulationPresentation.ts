@@ -8,17 +8,20 @@ import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentat
  * narrating from a positionally-captured audience instead of this fan-in.
  */
 export const buildEstablishRelationWorldMessage = (plan: ObjectRelationalEmissionPlan): string => {
-    const { characterName, subjectShortName, targetShortName, relationKind, relationLabel } = plan
-    if (relationKind === 'On') {
+    const { characterName, subjectShortName, targetShortName } = plan
+    if (plan.relationKind === 'On') {
         return `${characterName} puts ${subjectShortName} on ${targetShortName}`
     }
-    if (relationKind === 'Under') {
+    if (plan.relationKind === 'Under') {
         return `${characterName} puts ${subjectShortName} under ${targetShortName}`
     }
-    if (relationKind === 'Against') {
+    if (plan.relationKind === 'Against') {
         return `${characterName} leans ${subjectShortName} against ${targetShortName}`
     }
-    return `${characterName} ${relationLabel ?? 'positions'} ${subjectShortName} ${targetShortName}`
+    // Only `Custom` carries a label, so the fallback verb is reached explicitly rather than via
+    // `relationLabel ?? 'positions'` --- which used to imply the other kinds might supply one.
+    const verb = plan.relationKind === 'Custom' ? plan.relationLabel : 'positions'
+    return `${characterName} ${verb} ${subjectShortName} ${targetShortName}`
 }
 
 export const buildDissolveRelationWorldMessage = (plan: ObjectRelationalEmissionPlan): string => (
