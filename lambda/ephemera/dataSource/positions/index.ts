@@ -176,9 +176,22 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectTakeHoldPublishedPayload(content)) {
                     return
                 }
+                const [primaryObjectId] = content.objectIds
+                if (primaryObjectId === undefined) {
+                    return
+                }
+                // PV1-2 follow-up: `fromHostId` is read fresh here rather than trusted as
+                // `content.roomId` --- a take-hold's object no longer has to sit directly in the
+                // room now that objects can nest inside other objects (a cup left on a table).
+                // Zero or multiple current containers is a drift/race condition this slice does
+                // not attempt to repair --- no-op rather than guess, same as `Object Rehost`.
+                const fromHostIds = await internalCache.Positions.getMembershipContainers(primaryObjectId)
+                if (fromHostIds.length !== 1) {
+                    return
+                }
                 await orchestrateObjectMove({
                     objectIds: content.objectIds,
-                    fromHostId: content.roomId,
+                    fromHostId: fromHostIds[0],
                     toHostId: content.characterId,
                     roomId: content.roomId,
                     characterId: content.characterId,

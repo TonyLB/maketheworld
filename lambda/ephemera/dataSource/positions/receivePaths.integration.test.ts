@@ -281,6 +281,52 @@ describe('positions receive paths (integration)', () => {
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
+
+        it('resolves fromHostId fresh (not content.roomId) so a nested object can be taken (put cup on table, then get cup)', async () => {
+            // Reproduces a production bug: `content.roomId` is the character's room, not
+            // necessarily the object's current host once objects can nest inside other objects
+            // (PV1-2). A cup left `On` a table is a node of the table's own graph, not the
+            // room's --- trusting `content.roomId` as `fromHostId` sent a stale source host into
+            // `commitStepSequence`, which threw `staleTransferCandidate` at commit time.
+            getMembershipContainersMock.mockResolvedValue(['OBJECT#Table' as any])
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
+                type: 'Object Take Hold',
+                characterId: CHARACTER_ID,
+                objectIds: ['OBJECT#Cup'],
+                roomId: ROOM_A,
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(getMembershipContainersMock).toHaveBeenCalledWith('OBJECT#Cup')
+            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    objectIds: ['OBJECT#Cup'],
+                    fromHostId: 'OBJECT#Table',
+                    toHostId: CHARACTER_ID,
+                    roomId: ROOM_A,
+                    characterId: CHARACTER_ID,
+                })
+            )
+        })
+
+        it('does not call orchestrateObjectMove when the object has no single current host (drift)', async () => {
+            getMembershipContainersMock.mockResolvedValue([])
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
+                type: 'Object Take Hold',
+                characterId: CHARACTER_ID,
+                objectIds: ['OBJECT#Cup'],
+                roomId: ROOM_A,
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
+        })
     })
 
     describe('Object Drop', () => {
