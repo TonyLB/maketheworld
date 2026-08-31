@@ -21,13 +21,15 @@ import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exit
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component, or a
  * port-qualified reference on one.
  *
- * `edgeId` mirrors the stored type's optional identity (EA-8); the reasoning for the shape, and
- * for what it deliberately is not, lives on `EphemeraLudicRelationalEdgeBase`.
+ * `edgeId` mirrors the stored type's optional identity (EA-8); `chainId` mirrors the leg's
+ * chain membership, which `edgesMatch` below *does* consult. The reasoning for both shapes, and
+ * for what they deliberately are not, lives on `EphemeraLudicRelationalEdgeBase`.
  */
 type HostRelationalEdgeBase = {
     from: EphemeraLudicTerminalId
     to: EphemeraLudicTerminalId
     edgeId?: string
+    chainId?: string
 }
 
 /**
@@ -47,8 +49,13 @@ export const toStoredRelationalEdge = (
 ): EphemeraLudicRelationalEdgeData => {
     // Spread-when-present rather than `edgeId: edge.edgeId`, matching `toStored()`/`toJSON()` in
     // `index.ts`: an absent id must stay *absent*, not become an explicit `undefined` key that a
-    // round trip through storage would then have to strip again.
-    const identity: { edgeId?: string } = edge.edgeId !== undefined ? { edgeId: edge.edgeId } : {}
+    // round trip through storage would then have to strip again. `chainId` is carried the same
+    // way and independently --- the two are unrelated facts about a leg, and either may be
+    // present without the other.
+    const identity: { edgeId?: string; chainId?: string } = {
+        ...(edge.edgeId !== undefined ? { edgeId: edge.edgeId } : {}),
+        ...(edge.chainId !== undefined ? { chainId: edge.chainId } : {}),
+    }
     return edge.kind === 'Custom'
         ? { tag: 'Relational', ...identity, from: edge.from, to: edge.to, kind: 'Custom', relationLabel: edge.relationLabel }
         : { tag: 'Relational', ...identity, from: edge.from, to: edge.to, kind: edge.kind }
@@ -62,7 +69,10 @@ export function extractRelationalEdgesFromStored(
 
     for (const rawEdge of edges) {
         if (isEphemeraLudicRelationalEdgeData(rawEdge)) {
-            const identity: { edgeId?: string } = rawEdge.edgeId !== undefined ? { edgeId: rawEdge.edgeId } : {}
+            const identity: { edgeId?: string; chainId?: string } = {
+                ...(rawEdge.edgeId !== undefined ? { edgeId: rawEdge.edgeId } : {}),
+                ...(rawEdge.chainId !== undefined ? { chainId: rawEdge.chainId } : {}),
+            }
             relationalEdges.push(
                 rawEdge.kind === 'Custom'
                     ? { ...identity, from: rawEdge.from, to: rawEdge.to, kind: 'Custom', relationLabel: rawEdge.relationLabel }
@@ -101,9 +111,18 @@ export function extractRelationalEdgesFromStored(
                     // one: an id is a label an edge may carry and nothing more (EA-8), so a bad
                     // one is dropped and the relation kept. There is nothing to invent an id
                     // from, and losing a real relation over an unusable id is the worse outcome.
-                    const identity: { edgeId?: string } = typeof obj.edgeId === 'string' && obj.edgeId.length > 0
-                        ? { edgeId: obj.edgeId }
-                        : {}
+                    //
+                    // A malformed `chainId` is salvaged the same way, and the cost is *not* the
+                    // same, so it is stated rather than assumed: dropping it does not merely
+                    // un-label the leg, it makes the leg anonymous to a comparison that now
+                    // consults the field --- so the recovered leg reads as a *different* leg
+                    // from its own chain's siblings, on the mixed-pair rule. That is still the
+                    // better outcome than discarding a real relation, and this path is only ever
+                    // reached by a row the stored guard already refused.
+                    const identity: { edgeId?: string; chainId?: string } = {
+                        ...(typeof obj.edgeId === 'string' && obj.edgeId.length > 0 ? { edgeId: obj.edgeId } : {}),
+                        ...(typeof obj.chainId === 'string' && obj.chainId.length > 0 ? { chainId: obj.chainId } : {}),
+                    }
                     if (obj.kind === 'Custom') {
                         if (typeof obj.relationLabel === 'string' && obj.relationLabel.length > 0) {
                             relationalEdges.push({
@@ -132,21 +151,40 @@ export function extractRelationalEdgesFromStored(
 }
 
 /**
- * **`edgeId` is deliberately not consulted here** (EA-8). Structure remains the sole authority
- * for edge sameness, so two edges alike in `(from, to, kind, relationLabel)` match whether or
- * not they carry ids, and whether or not those ids differ. That is what makes a mixed
- * population safe to introduce ahead of any constructor: nothing's behaviour changes.
+ * **`edgeId` is still deliberately not consulted here** (EA-8): it remains a label an edge may
+ * carry, and nothing more.
  *
- * **The first constructor that mints ids must revisit this**, together with the other sites that
- * use structure *as* identity --- `addRelationalEdge`, `removeRelationalEdge` and
- * `applyRelationalPatch` here, and `findMatchingEdge` in `evaluateRelationalLegality.ts`. They
- * change together or not at all: id-aware matching in one and structural matching in another is
- * how a remove deletes an edge it was not aimed at.
+ * **`chainId` is consulted, and it is a veto rather than an authority** (P8 iteration 1, a
+ * Prototype). Agreement on chain does not make two legs the same --- two legs of one chain share
+ * a `chainId` and are different legs, told apart by their endpoints exactly as before. What
+ * chain membership can do is *deny* a structural match. The four cases, given structure that
+ * already agrees:
+ *
+ * - **Both absent** --- structure decides, which is the whole of today's behaviour, preserved.
+ * - **Present and equal** --- the same leg.
+ * - **Present and differing** --- different legs, though structurally identical. This is the
+ *   case the rule exists for: without it, `addRelationalEdge` silently collapses two chains'
+ *   legs into one and destroys a chain's leg.
+ * - **One present, one absent** --- different legs (decided 2026-08-29, against a recorded lean
+ *   towards absorption). No anonymous leg is absorbed by naming it. Chain membership is an
+ *   explicit authoring act, so an `assign`/`strip` operation --- specified, not yet built, and
+ *   gated on Edge-record storage --- is what names an existing leg.
+ *
+ * All four fall out of one inequality test, because `undefined === undefined`.
+ *
+ * **The sites that use structure as identity change together or not at all** ---
+ * `addRelationalEdge`, `removeRelationalEdge` and `applyRelationalPatch` in `index.ts`, and
+ * `findMatchingEdge` in `evaluateRelationalLegality.ts`. All four compose this helper, so
+ * wiring the rule here is what keeps them in step; chain-aware matching in one and structural
+ * matching in another is how a remove deletes a leg it was not aimed at.
  */
 export function edgesMatch(
     a: HostRelationalEdge,
     b: HostRelationalEdge
 ): boolean {
+    if (a.chainId !== b.chainId) {
+        return false
+    }
     if (!ephemeraLudicTerminalsEqual(a.from, b.from) || !ephemeraLudicTerminalsEqual(a.to, b.to) || a.kind !== b.kind) {
         return false
     }

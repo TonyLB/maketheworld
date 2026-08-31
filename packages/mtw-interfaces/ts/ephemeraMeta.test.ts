@@ -708,6 +708,49 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
+    // P8 iteration 1: `chainId` takes the same shape of check, and it matters more --- this field
+    // *is* consulted by comparison, so an unusable value admitted here would go on to decide leg
+    // sameness rather than sit inert the way a bad `edgeId` would.
+    it('accepts a relational edge carrying a non-empty chainId, and one carrying none', () => {
+        const payload = (edge: Record<string, unknown>) => ({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [edge],
+        })
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        // Both identity fields at once, since they are independent facts about a leg.
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+    })
+
+    it.each(['', 7, null, {}])('rejects a relational edge whose chainId is %p', (chainId) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                chainId,
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'On',
+            }],
+        })).toBe(false)
+    })
+
     // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
     // function" instead of returning false -- hardened at the time to a typeof pre-check that

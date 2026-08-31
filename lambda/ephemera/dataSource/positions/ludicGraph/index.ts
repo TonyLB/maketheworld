@@ -301,6 +301,20 @@ export class EphemeraLudicGraph {
         return extractRelationalEdgesFromStored({ rootId: this.rootId, nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}), ports: this._ports })
     }
 
+    /**
+     * **This comparison is still purely structural, and after P8 iteration 1 that makes it the
+     * odd one out --- recorded rather than quietly left.** EA-10's survey names five sites that
+     * use structure *as* identity; four of them compose `edgesMatch`, which now consults
+     * `chainId`, and this is the fifth. It does its own field-by-field walk, so it did not
+     * inherit the rule. **The consequence: two graphs alike but for their legs' chain
+     * membership compare equal here and would not match leg-for-leg anywhere else.**
+     *
+     * **Not fixed in that slice deliberately, on two grounds.** P8 iteration 1's build surface
+     * is deliberately minimal and widening it is what the Prototype's own discipline warns
+     * against; and this method has **no non-test caller**, so the divergence is latent rather
+     * than live. **The first non-test caller must close it** --- adding a `chainId` inequality
+     * test to the edge loop below is the whole of the change.
+     */
     equals(other: EphemeraLudicGraph): boolean {
         if (!(other instanceof EphemeraLudicGraph)) {
             return false

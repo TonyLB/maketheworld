@@ -391,12 +391,24 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
  * does. It is a bare `string` following `EphemeraPresencePort.portId`, deliberately *not* a new
  * arm of `EphemeraId`: whether an edge may stand where a *terminal* stands is a separate
  * question (EA-10), and a port-style record layered over this id is how it would be answered.
+ *
+ * `chainId` is **the leg's statement of which chain it belongs to**, and unlike `edgeId` it is
+ * consulted: `edgesMatch` compares it ahead of structure (P8 iteration 1, a **Prototype** ---
+ * see that proposal's Status for the classification, the `P8-i1-dependent` tag and the rollback
+ * trigger). Identity and reference adhere to the *chain*; hosting, adjacency and the mutation
+ * site adhere to the *leg*, which is why the field naming the chain sits on every leg of it.
+ * Two legs of one chain therefore share a `chainId` legitimately --- they have different
+ * endpoints, so structure still tells them apart, and that is what a chain crossing a boundary
+ * looks like from inside. Deliberately **not** built here: an Edge record, a reverse index, and
+ * presence for edges. Nothing mints or strips a `chainId` yet; the operations that will are
+ * specified but gated on that storage.
  */
 type EphemeraLudicRelationalEdgeBase = {
     tag: 'Relational';
     from: EphemeraLudicTerminalId;
     to: EphemeraLudicTerminalId;
     edgeId?: string;
+    chainId?: string;
 }
 
 /**
@@ -433,6 +445,11 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     // *present* id must be a usable one, on the same reasoning as `relationLabel` below: a guard
     // that admitted an empty string would narrow to a type whose field cannot be read.
     if (edge.edgeId !== undefined && (typeof edge.edgeId !== 'string' || edge.edgeId.length === 0)) {
+        return false
+    }
+    // Same shape of check for `chainId`, and the stakes are higher: this one *is* consulted by
+    // comparison, so an unusable value admitted here would decide leg sameness.
+    if (edge.chainId !== undefined && (typeof edge.chainId !== 'string' || edge.chainId.length === 0)) {
         return false
     }
     if (edge.kind === 'Custom') {

@@ -43,6 +43,10 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | Date | Tag | Observation |
 | --- | --- | --- |
 | 2026-08-22 | `other` | Claimed *Implemented* for a change with no clause in the document it claims to change; the variant's existing **Prototype** tier already covered the case exactly |
+| 2026-08-30 | `other` | A graduation checklist published under an explicit not-going-to-grow claim grew from eight items to ten after publication, and the growth was absorbed as a repair to the argument rather than read as the claim failing |
+| 2026-08-30 | `other` | Asked for a checklist to graduate a proposal, produced one scoped to part of it --- narrowing introduced in the same commit as the list, never surfaced as a decision --- and reported it as the checklist requested |
+| 2026-08-30 | `other` | Diagnosed the above as a naming choice made later, when the artifact shows the narrowing shipped with the list; the user's account was right and the reconstruction moved the error somewhere cheaper |
+| 2026-08-30 | `other` | Answered *are we ready to graduate* by leading with what was still unlicensed, when graduation had already happened two turns earlier and the code had shipped on it |
 | 2026-08-22 | `bulk` | LP6's retired original scope and its later-added PR-4 dependency, read together as one gated obligation, hid a real cross-plan design cycle rather than exposing it |
 | 2026-08-22 | `other` | Wrote a comment saying `On` "no longer parses here" while leaving `'On'` in the same type's literal union four places; user caught the self-contradiction, `tsc` then found four more downstream breaks the narrowing produced |
 | 2026-08-22 | `stale-premise` | LD-14 (ludic-graph ports) sat at "None yet, owed upstream to PQ-9" while PQ-9's own row records it graduated to a decision the same day LD-14 opened; user recalled the decision correctly, the row never noticed |
