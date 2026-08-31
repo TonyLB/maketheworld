@@ -14,6 +14,8 @@ export type BuildObjectMoveOpArgs = {
     bundleId: string
     /** Omitted for the pre-commit mutation-only compile; supplied post-commit to narrate. */
     narration?: Omit<ObjectMoveNarrationInput, 'kind' | 'carriedCount'>
+    /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
+    containment?: 'On' | 'In' | 'PartOf'
 }
 
 /**
@@ -49,6 +51,7 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
     bundleId: args.bundleId,
     headerSlot: null,
     dissolvedEdges: args.dissolvedEdges,
+    ...(args.containment ? { containment: args.containment } : {}),
     ...(args.narration
         ? {
             narration: {

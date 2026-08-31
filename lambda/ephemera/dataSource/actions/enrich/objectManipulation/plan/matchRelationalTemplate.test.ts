@@ -30,7 +30,13 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'nestingDefer' })
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'nestingDefer',
+            kind: 'On',
+            operationKind: 'establishRelation',
+            subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        })
     })
 
     it('matches a dissolveRelation template, falling to Custom for a non-enum, non-containment prep ("take rope off crate")', () => {
@@ -76,7 +82,13 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'nestingDefer' })
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'nestingDefer',
+            kind: 'In',
+            operationKind: 'establishRelation',
+            subject: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            target: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
+        })
     })
 
     it('returns noMatch for an unrecognized verb', () => {

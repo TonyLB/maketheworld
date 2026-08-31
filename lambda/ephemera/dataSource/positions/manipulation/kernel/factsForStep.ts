@@ -73,6 +73,12 @@ export const factsForStep = (
         return []
     }
 
+    // PV1-2: not a world event any narration channel reads today --- the object-move narrate
+    // steps already cover "arrives," and a presence port's own visibility is future work.
+    if (step.kind === 'setPresencePort') {
+        return []
+    }
+
     if (step.kind === 'transferMembership') {
         const froms = [...step.fromHostIds]
         const diff = { froms, to: step.toHostId, changed: true }

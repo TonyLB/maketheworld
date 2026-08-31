@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -59,11 +60,26 @@ export type MutationKernelCaptureStep = {
  * filter (Phase 3) excludes it before a step sequence is ever built, so this alias --- not the widened
  * `KernelStep` --- is what those files' signatures should keep using.
  */
+/**
+ * PV1-2: the moved object's own presence port, on its own graph (`hostId` is the moved object's
+ * own id --- a legal `EphemeraMembershipHostId`, LP0). Presence is at-most-one (PR-10), so this
+ * step is a *set*, not an add: it replaces any existing `kind: 'Present'` port on that graph with
+ * `port`, or clears it entirely when `port` is omitted (an object leaving with no new host). No
+ * `Present` edge is written --- PR-10 makes the cover implicit, derived from the binding list, not
+ * a record this step maintains.
+ */
+export type MutationKernelSetPresencePortStep = {
+    kind: 'setPresencePort'
+    hostId: EphemeraMembershipHostId
+    port?: EphemeraPresencePort
+}
+
 export type MutationKernelStep =
     | MutationKernelTransferStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
+    | MutationKernelSetPresencePortStep
 
 /**
  * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
@@ -276,7 +292,8 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'transferMembership' ||
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
-    step.kind === 'capture'
+    step.kind === 'capture' ||
+    step.kind === 'setPresencePort'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):

@@ -1,4 +1,4 @@
-import { edgeKindAndLabelFrom, isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { edgeKindAndLabelFrom, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -22,6 +22,9 @@ import type { MutationKernelCaptures } from '../kernel/types'
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
+/** AB-54: the three hosting kinds, each running member -> root (LD-16). */
+const HOSTING_RELATION_KINDS = new Set(['On', 'In', 'PartOf'])
+
 export type ExecuteObjectMoveArgs = {
     objectIds: EphemeraObjectId[];
     fromHostId: EphemeraMembershipHostId;
@@ -35,6 +38,13 @@ export type ExecuteObjectMoveArgs = {
      * nobody reads.
      */
     narration?: { characterName: string; objectShortName: string };
+    /**
+     * Hosting kinds only (AB-54) --- peer kinds host nothing. Optional because take-hold's
+     * containment kind is unnamed, not because take-hold lacks one: any rehost mints a presence
+     * port regardless (PV1-2), and only a hosting-kind rehost also establishes a root-anchored
+     * containment edge at the destination.
+     */
+    containment?: 'On' | 'In' | 'PartOf';
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
 }
@@ -114,8 +124,21 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
 
     const fromGraph = await internalCache.Positions.getLudicGraph(args.fromHostId)
     const toGraph = await internalCache.Positions.getLudicGraph(args.toHostId)
+
+    // The moved object's own containment edge into fromHostId's shard (if it was hosted there,
+    // On/In/PartOf) is stripped here rather than left for the boundary sweep. It never reaches
+    // `classifyInteractionUnderTransfer` --- that throw stays a correct invariant for every
+    // other shape reaching it (PV1-2). Left in place, the executor's own operand-expansion
+    // would hit the same throw internally, uncatchable from out here.
+    const ownRootContainmentEdge = fromGraph.relationalEdges.find((edge) =>
+        ephemeraLudicTerminalsEqual(edge.from, primaryObjectId)
+        && ephemeraLudicTerminalsEqual(edge.to, fromGraph.rootId)
+        && HOSTING_RELATION_KINDS.has(edge.kind)
+    )
+    const strippedFromGraph = ownRootContainmentEdge ? fromGraph.removeRelationalEdge(ownRootContainmentEdge) : fromGraph
+
     const graphsByHost = new Map<string, EphemeraLudicGraph>([
-        [args.fromHostId, fromGraph],
+        [args.fromHostId, strippedFromGraph],
         [args.toHostId, toGraph],
     ])
     const env = createExpansionEnvironment(
@@ -146,13 +169,16 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
         return { ok: false }
     }
 
-    const dissolvedEdges: HostRelationalEdge[] = outcome.steps
-        .filter((step): step is ExecutorDissolveRelationStep => step.kind === 'dissolveRelation')
-        .map((step) => ({
-            from: step.subjectId,
-            to: step.targetId,
-            ...edgeKindAndLabelFrom(step),
-        }))
+    const dissolvedEdges: HostRelationalEdge[] = [
+        ...(ownRootContainmentEdge ? [ownRootContainmentEdge] : []),
+        ...outcome.steps
+            .filter((step): step is ExecutorDissolveRelationStep => step.kind === 'dissolveRelation')
+            .map((step) => ({
+                from: step.subjectId,
+                to: step.targetId,
+                ...edgeKindAndLabelFrom(step),
+            })),
+    ]
 
     const plan = compilePositionKernelOp(buildObjectMoveOp({
         fragment,
@@ -161,6 +187,7 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
         toHostId: args.toHostId,
         bundleId: args.bundleId,
         ...(args.narration ? { narration: args.narration } : {}),
+        ...(args.containment ? { containment: args.containment } : {}),
     }))
 
     const result = await commitStepSequence(

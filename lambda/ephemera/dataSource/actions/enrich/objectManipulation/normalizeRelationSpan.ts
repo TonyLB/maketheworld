@@ -8,7 +8,6 @@ const CONTAINMENT_PHRASES = ['in', 'inside', 'into'] as const
  * representation for hosting/containment at all --- so it defers rather than resolving to an
  * enum, exactly as `In`/`PartOf` already do. */
 const ON_DEFER_PHRASES = ['on top of', 'onto', 'on'] as const
-const NESTING_DEFER_PHRASES = [...CONTAINMENT_PHRASES, ...ON_DEFER_PHRASES] as const
 
 const ENUM_PHRASE_MAP: readonly { phrase: string; kind: Exclude<PeerRelationalEdgeKind, 'Custom'> }[] = [
     { phrase: 'leaning against', kind: 'Against' },
@@ -19,14 +18,19 @@ const ENUM_PHRASE_MAP: readonly { phrase: string; kind: Exclude<PeerRelationalEd
     { phrase: 'under', kind: 'Under' },
 ]
 
-function isNestingDeferSpan(normalizedSpan: string): boolean {
-    if (NESTING_DEFER_PHRASES.includes(normalizedSpan as typeof NESTING_DEFER_PHRASES[number])) {
-        return true
+const matchesPhrase = (normalizedSpan: string, phrase: string): boolean => (
+    normalizedSpan === phrase || new RegExp(`\\b${phrase}\\b`).test(normalizedSpan)
+)
+
+/** PV1-2: which containment kind a nesting-defer span names, if any --- `On` for the on-phrases, `In` for the containment phrases. */
+function nestingDeferKind(normalizedSpan: string): 'On' | 'In' | undefined {
+    if (ON_DEFER_PHRASES.some((phrase) => matchesPhrase(normalizedSpan, phrase))) {
+        return 'On'
     }
-    return NESTING_DEFER_PHRASES.some((phrase) => (
-        normalizedSpan === phrase
-        || new RegExp(`\\b${phrase}\\b`).test(normalizedSpan)
-    ))
+    if (CONTAINMENT_PHRASES.some((phrase) => matchesPhrase(normalizedSpan, phrase))) {
+        return 'In'
+    }
+    return undefined
 }
 
 function matchEnumKind(normalizedSpan: string): Exclude<PeerRelationalEdgeKind, 'Custom'> | undefined {
@@ -53,8 +57,9 @@ export function normalizeRelationSpan(relationSpan: string): NormalizeRelationOu
         }
     }
 
-    if (isNestingDeferSpan(normalizedSpan)) {
-        return { type: 'nestingDefer' }
+    const deferKind = nestingDeferKind(normalizedSpan)
+    if (deferKind) {
+        return { type: 'nestingDefer', kind: deferKind }
     }
 
     const enumKind = matchEnumKind(normalizedSpan)

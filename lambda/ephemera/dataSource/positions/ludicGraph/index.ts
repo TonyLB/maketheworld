@@ -297,6 +297,10 @@ export class EphemeraLudicGraph {
         return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, this._edges, edges, this._ports)
     }
 
+    private withPorts(ports: EphemeraLudicGraphPort[]): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, this._edges, this._playOnlyEdges, ports)
+    }
+
     private storedRelationalEdges(): HostRelationalEdge[] {
         return extractRelationalEdgesFromStored({ rootId: this.rootId, nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}), ports: this._ports })
     }
@@ -437,6 +441,17 @@ export class EphemeraLudicGraph {
                 .filter((existing) => !edgesMatch(existing, edge))
                 .map(toStoredRelationalEdge)
         )
+    }
+
+    addPort(port: EphemeraLudicGraphPort): EphemeraLudicGraph {
+        if (this._ports.some((existing) => existing.portId === port.portId)) {
+            return this
+        }
+        return this.withPorts([...this._ports, port])
+    }
+
+    removePort(portId: string): EphemeraLudicGraph {
+        return this.withPorts(this._ports.filter((port) => port.portId !== portId))
     }
 
     /**

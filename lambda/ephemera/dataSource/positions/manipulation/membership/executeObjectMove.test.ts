@@ -32,6 +32,7 @@ import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
+const TRAY2_ID = 'OBJECT#Tray2' as EphemeraObjectId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const CHANDELIER_ID = 'OBJECT#Chandelier' as EphemeraObjectId
@@ -76,7 +77,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -101,8 +102,9 @@ describe('executeObjectMove', () => {
         // CD2, reduced scope): its whole point was `On`'s carry absorption (glass -On-> tray
         // pulling glass into the moved set), which is now dead -- `On` joined `In`/`PartOf`'s
         // hosting-kind throw, and `carry` is unreachable from any relation kind. Real
-        // shard-based hosting (CD2h) is what would eventually carry the glass along again, by
-        // construction (it lives in the tray's own shard) rather than via this closure walk.
+        // shard-based hosting (CD2h) is what carries the glass along again as of PV1-2, by
+        // construction (it lives in the tray's own shard) rather than via this closure walk ---
+        // see the `PV1-2: On rehost` describe block below for that case.
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
@@ -120,7 +122,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -158,6 +160,130 @@ describe('executeObjectMove', () => {
         })
     })
 
+    /**
+     * PV1-2: `On` nests end to end, as a rehost carrying a containment argument. Asserts the
+     * checklist's own "Done when" bar directly --- member of the destination's graph (not the
+     * room's), a root-anchored containment edge inside it, a presence port naming the
+     * destination, and both gone when the object leaves.
+     */
+    describe('PV1-2: On rehost', () => {
+        const committedGraph = (hostId: string): EphemeraLudicGraph => {
+            const call = (internalCache.Positions.set as jest.Mock).mock.calls
+                .map(([graph]: [EphemeraLudicGraph]) => graph)
+                .find((graph: EphemeraLudicGraph) => graph.hostId === hostId)
+            if (!call) { throw new Error(`No committed graph found for ${hostId}`) }
+            return call
+        }
+
+        it('put on an empty tray: member of the tray graph, root-anchored edge, presence port naming the tray', async () => {
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }], edges: [] })
+            // LP4i: a real host-bound graph's own root node is present in `nodes`; `testLudicGraph`
+            // does not add it automatically the way the production factories do, so fixtures that
+            // need `findHostOf` to resolve the host's own id (the containment edge's target) must
+            // include it explicitly.
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const cupOwnGraph = testLudicGraph(CUP_ID, { nodes: [], edges: [] })
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === CHARACTER_ID ? characterGraph : trayGraph
+            )
+            wireTransactWrite({ [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph, [CUP_ID]: cupOwnGraph })
+
+            const result = await executeObjectMove({
+                objectIds: [CUP_ID],
+                bundleId: 'BUNDLE#test',
+                fromHostId: CHARACTER_ID,
+                toHostId: TRAY_ID,
+                containment: 'On',
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            expect(result.ok).toBe(true)
+
+            const committedTrayGraph = committedGraph(TRAY_ID)
+            expect(committedTrayGraph.objectIds.has(CUP_ID)).toBe(true)
+            expect(committedTrayGraph.relationalEdges).toEqual([{ from: CUP_ID, to: TRAY_ID, kind: 'On' }])
+
+            const committedCupGraph = committedGraph(CUP_ID)
+            expect(committedCupGraph.ports).toEqual([
+                expect.objectContaining({ fromHostId: TRAY_ID, kind: 'Present' }),
+            ])
+        })
+
+        it('moved tray-to-tray: old containment edge dissolves with no executor throw, port moves to the new tray', async () => {
+            const tray1Graph = testLudicGraph(TRAY_ID, {
+                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
+                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
+            })
+            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }], edges: [] })
+            const cupOwnGraph = testLudicGraph(CUP_ID, { nodes: [], edges: [], ports: [{ portId: 'old-port', fromHostId: TRAY_ID, kind: 'Present' }] })
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === TRAY_ID ? tray1Graph : tray2Graph
+            )
+            wireTransactWrite({ [TRAY_ID]: tray1Graph, [TRAY2_ID]: tray2Graph, [CUP_ID]: cupOwnGraph })
+
+            const result = await executeObjectMove({
+                objectIds: [CUP_ID],
+                bundleId: 'BUNDLE#test',
+                fromHostId: TRAY_ID,
+                toHostId: TRAY2_ID,
+                containment: 'On',
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            expect(result.ok).toBe(true)
+
+            const committedTray1Graph = committedGraph(TRAY_ID)
+            expect(committedTray1Graph.objectIds.has(CUP_ID)).toBe(false)
+            expect(committedTray1Graph.relationalEdges).toEqual([])
+
+            const committedTray2Graph = committedGraph(TRAY2_ID)
+            expect(committedTray2Graph.objectIds.has(CUP_ID)).toBe(true)
+            expect(committedTray2Graph.relationalEdges).toEqual([{ from: CUP_ID, to: TRAY2_ID, kind: 'On' }])
+
+            const committedCupGraph = committedGraph(CUP_ID)
+            expect(committedCupGraph.ports).toEqual([
+                expect.objectContaining({ fromHostId: TRAY2_ID, kind: 'Present' }),
+            ])
+        })
+
+        it('taken off with no containment: edge dissolves, presence port still moves to the new host', async () => {
+            const trayGraph = testLudicGraph(TRAY_ID, {
+                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
+                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
+            })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const cupOwnGraph = testLudicGraph(CUP_ID, { nodes: [], edges: [], ports: [{ portId: 'old-port', fromHostId: TRAY_ID, kind: 'Present' }] })
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+                hostId === TRAY_ID ? trayGraph : characterGraph
+            )
+            wireTransactWrite({ [TRAY_ID]: trayGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupOwnGraph })
+
+            const result = await executeObjectMove({
+                objectIds: [CUP_ID],
+                bundleId: 'BUNDLE#test',
+                fromHostId: TRAY_ID,
+                toHostId: CHARACTER_ID,
+                messageBus: messageBus as any,
+                streamEvent,
+            })
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) { throw new Error('expected a successful commit') }
+            expect(result.plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
+
+            const committedTrayGraph = committedGraph(TRAY_ID)
+            expect(committedTrayGraph.objectIds.has(CUP_ID)).toBe(false)
+            expect(committedTrayGraph.relationalEdges).toEqual([])
+
+            const committedCupGraph = committedGraph(CUP_ID)
+            expect(committedCupGraph.ports).toEqual([
+                expect.objectContaining({ fromHostId: CHARACTER_ID, kind: 'Present' }),
+            ])
+        })
+    })
+
     describe('character -> room (drop)', () => {
         it('re-derives the carry closure fresh and commits via the general kernel', async () => {
             const emptyRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
@@ -165,7 +291,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : characterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph })
+            wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -204,7 +330,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? emptyRoomGraph : characterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph })
+            wireTransactWrite({ [ROOM_ID]: emptyRoomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -249,7 +375,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             const result = await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -264,7 +390,7 @@ describe('executeObjectMove', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a successful commit') }
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'capture', 'narrate', 'narrate',
+                'capture', 'transferMembership', 'setPresencePort', 'capture', 'narrate', 'narrate',
             ])
             expect(result.captures.get('capture:from:' + ROOM_ID)).toBeDefined()
         })
@@ -275,7 +401,7 @@ describe('executeObjectMove', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
                 hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
             )
-            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
+            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph, [TRAY_ID]: testLudicGraph(TRAY_ID) })
 
             const result = await executeObjectMove({
                 objectIds: [TRAY_ID],
@@ -290,7 +416,7 @@ describe('executeObjectMove', () => {
             if (!result.ok) { throw new Error('expected a successful commit') }
             // Captures exist only to serve narration; a silent move should not lock hosts to
             // snapshot rosters nobody will read.
-            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership'])
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership', 'setPresencePort'])
         })
 
         it('returns ok: false without committing when the executor verdict is not legal', async () => {

@@ -40,12 +40,12 @@ describe('normalizeRelationSpan', () => {
         })
     })
 
-    it.each(['in', 'inside', 'into'] as const)('defers containment span %s', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer' })
+    it.each(['in', 'inside', 'into'] as const)('defers containment span %s as kind In', (relationSpan) => {
+        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'In' })
     })
 
-    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s (Channel D CD2: On joins In/PartOf)', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer' })
+    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s as kind On (PV1-2)', (relationSpan) => {
+        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'On' })
     })
 
     it('preserves trimmed player phrase for Custom labels', () => {

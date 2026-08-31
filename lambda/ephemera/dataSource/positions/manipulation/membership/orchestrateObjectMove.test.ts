@@ -86,6 +86,7 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
@@ -124,6 +125,7 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: CHARACTER,
             toHostId: ROOM,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
@@ -140,6 +142,7 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
@@ -159,6 +162,7 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
@@ -167,11 +171,15 @@ describe('orchestrateObjectMove', () => {
         expect(slotReports()).toHaveLength(0)
     })
 
-    it('is a no-op without a character host, a room host, or an object', async () => {
+    it('is a no-op without a character host or an object', async () => {
+        // PV1-2: a containment move's toHostId is an object (a tray), not a room --- neither
+        // side is a character here, which is the only thing that still no-ops this route now
+        // that `roomId` is taken explicitly rather than derived from the two hosts.
         await orchestrateObjectMove({
             objectIds: [TRAY],
             fromHostId: ROOM,
-            toHostId: 'ROOM#Other' as EphemeraRoomId,
+            toHostId: 'OBJECT#Tray2' as EphemeraObjectId,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
@@ -179,11 +187,33 @@ describe('orchestrateObjectMove', () => {
             objectIds: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
             messageBus,
             streamEvent,
         })
 
         expect(executeObjectMoveMock).not.toHaveBeenCalled()
         expect(resolveLabelsMock).not.toHaveBeenCalled()
+    })
+
+    it('threads containment through to executeObjectMove when set (put on a tray)', async () => {
+        executeObjectMoveMock.mockResolvedValue({ ok: false })
+
+        const TRAY2 = 'OBJECT#Tray2' as EphemeraObjectId
+        await orchestrateObjectMove({
+            objectIds: [TRAY],
+            fromHostId: CHARACTER,
+            toHostId: TRAY2,
+            roomId: ROOM,
+            containment: 'On',
+            messageBus,
+            streamEvent,
+        })
+
+        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
+            fromHostId: CHARACTER,
+            toHostId: TRAY2,
+            containment: 'On',
+        }))
     })
 })

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
@@ -19,6 +19,16 @@ export type OrchestrateObjectMoveArgs = {
     objectIds: EphemeraObjectId[];
     fromHostId: EphemeraMembershipHostId;
     toHostId: EphemeraMembershipHostId;
+    /**
+     * PV1-2: taken explicitly rather than derived by scanning `[fromHostId, toHostId]` for a
+     * room --- a containment move's `toHostId` is the destination object (a tray), not a room,
+     * so neither host is a room and the derived-`roomId` form silently no-ops for every such
+     * move. `resolveObjectMovePresentationLabels` only needs *a* room for perspective/shortName
+     * resolution, indifferent to whether it's one of this move's two hosts.
+     */
+    roomId: EphemeraRoomId;
+    /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
+    containment?: 'On' | 'In' | 'PartOf';
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
 }
@@ -49,16 +59,15 @@ export type OrchestrateObjectMoveArgs = {
 export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Promise<void> => {
     const hosts: EphemeraMembershipHostId[] = [args.fromHostId, args.toHostId]
     const characterId = hosts.find((hostId): hostId is EphemeraCharacterId => isEphemeraCharacterId(hostId))
-    const roomId = hosts.find((hostId): hostId is EphemeraRoomId => isEphemeraRoomId(hostId))
     const [primaryObjectId] = args.objectIds
-    if (characterId === undefined || roomId === undefined || primaryObjectId === undefined) {
+    if (characterId === undefined || primaryObjectId === undefined) {
         return
     }
 
     const { characterName, objectShortName } = await resolveObjectMovePresentationLabels({
         characterId,
         objectId: primaryObjectId,
-        roomId,
+        roomId: args.roomId,
     })
 
     const bundleId = uuidv4()
@@ -68,6 +77,7 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
         toHostId: args.toHostId,
         bundleId,
         narration: { characterName, objectShortName },
+        ...(args.containment ? { containment: args.containment } : {}),
         messageBus: args.messageBus,
         streamEvent: args.streamEvent,
     })

@@ -179,6 +179,18 @@ export const applyStepSequenceCore = (
             continue
         }
 
+        if (step.kind === 'setPresencePort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            const withoutPresence = graph.ports
+                .filter((port) => port.kind === 'Present')
+                .reduce((current, port) => current.removePort(port.portId), graph)
+            graphs.set(step.hostId, step.port ? withoutPresence.addPort(step.port) : withoutPresence)
+            continue
+        }
+
         // establishRelation / dissolveRelation: derive shared host from live graph state,
         // throw on mismatch (BD-33 assert-and-throw), else apply the patch there.
         const subjectHost = findHostOf(step.subjectId, graphs)

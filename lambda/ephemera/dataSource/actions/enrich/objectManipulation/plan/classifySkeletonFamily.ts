@@ -6,7 +6,9 @@ import { matchRelationalTemplate } from './matchRelationalTemplate'
 export type SkeletonFamilyMatch =
     | { type: 'membership'; verbClass: ManipulationVerbClass }
     | { type: 'relational' }
-    | { type: 'relationalDefer' }
+    /** PV1-2: `kind` carries `matchRelationalTemplate`'s defer forward, so a caller can route
+     * `On` differently from the still-hard-error `In`/`PartOf` case. */
+    | { type: 'relationalDefer'; kind: 'On' | 'In' | 'PartOf' }
     | { type: 'look' }
     | { type: 'none' }
 
@@ -30,7 +32,7 @@ export function classifySkeletonFamily(skeleton: ParseSkeleton): SkeletonFamilyM
         return { type: 'relational' }
     }
     if (relational.type === 'nestingDefer') {
-        return { type: 'relationalDefer' }
+        return { type: 'relationalDefer', kind: relational.kind }
     }
 
     const look = matchLookTemplate(skeleton)

@@ -41,6 +41,10 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
+        if (step.kind === 'setPresencePort') {
+            hosts.add(step.hostId)
+            continue
+        }
         const subjectHost = getCurrentHost(step.subjectId)
         const targetHost = getCurrentHost(step.targetId)
         if (subjectHost === undefined || targetHost === undefined) {
