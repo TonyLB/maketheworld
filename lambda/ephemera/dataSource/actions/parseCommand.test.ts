@@ -1483,6 +1483,79 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns ObjectRehost for "on" relational route via the native skeleton pipeline (PV1-2)', async () => {
+        const cupId = 'OBJECT#Cup'
+        const trayId = 'OBJECT#Tray'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Command","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"tray"}]}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'put the cup on the tray',
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                roomObjectLabels: ['cup', 'tray'],
+                roomObjectCatalog: [
+                    { objectId: cupId, normalizedShortName: 'cup' },
+                    { objectId: trayId, normalizedShortName: 'tray' },
+                ],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationParseImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectRehost',
+            subjectId: cupId,
+            targetId: trayId,
+            hostId: 'ROOM#Bridge',
+            containment: 'On',
+            confidence: 0.9,
+        })
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns noHostRoom Error for "on" relational route when the acting character has no room', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Command","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"tray"}]}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'put the cup on the tray',
+                roomObjectLabels: ['cup', 'tray'],
+                roomObjectCatalog: [
+                    { objectId: 'OBJECT#Cup', normalizedShortName: 'cup' },
+                    { objectId: 'OBJECT#Tray', normalizedShortName: 'tray' },
+                ],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationParseImpl,
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.noHostRoom,
+        })
+    })
+
     describe('deterministic manipulation fast paths (PA-5)', () => {
         it('returns takeHold from take broom without Bedrock classify', async () => {
             const broomId = 'OBJECT#Broom'

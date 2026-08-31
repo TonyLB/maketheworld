@@ -51,6 +51,7 @@ import {
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
     isParseCommandEstablishRelationResult,
+    isParseCommandObjectRehostResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -599,6 +600,21 @@ const publishStreamEventsForIntent = async (
                 },
             })
         }
+    }
+    else if (isParseCommandObjectRehostResult(parseResult)) {
+        await streamEvent({
+            streamKey: characterId,
+            header: { type: 'Object Rehost' },
+            update: {
+                type: 'Object Rehost',
+                characterId,
+                subjectId: parseResult.subjectId,
+                targetId: parseResult.targetId,
+                roomId: parseResult.hostId,
+                containment: parseResult.containment,
+                confidence: parseResult.confidence,
+            },
+        })
     }
 }
 

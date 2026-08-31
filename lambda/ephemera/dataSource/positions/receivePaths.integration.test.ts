@@ -22,6 +22,7 @@ jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { get: jest.fn() },
+        Positions: { getMembershipContainers: jest.fn() },
     },
 }))
 
@@ -68,6 +69,9 @@ const orchestrateCharacterDisconnectMock = orchestrateCharacterDisconnect as jes
 >
 const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
     typeof internalCache.CharacterMeta.get
+>
+const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
+    typeof internalCache.Positions.getMembershipContainers
 >
 const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
     typeof executeCharacterNavigate
@@ -138,6 +142,7 @@ describe('positions receive paths (integration)', () => {
             beatAnchorTime: 1_700_000_000_000,
         })
         orchestrateObjectMoveMock.mockResolvedValue(undefined)
+        getMembershipContainersMock.mockResolvedValue([ROOM_A])
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
         orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
         characterMetaGetMock.mockResolvedValue({
@@ -303,6 +308,58 @@ describe('positions receive paths (integration)', () => {
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Object Rehost', () => {
+        it('routes mtw.ephemera.actions Object Rehost through orchestrateObjectMove with a freshly-resolved fromHostId (PV1-2)', async () => {
+            getMembershipContainersMock.mockResolvedValue([ROOM_A])
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
+                type: 'Object Rehost',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#Cup',
+                targetId: 'OBJECT#Tray',
+                roomId: ROOM_A,
+                containment: 'On',
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(getMembershipContainersMock).toHaveBeenCalledWith('OBJECT#Cup')
+            // fromHostId comes from the fresh getMembershipContainers lookup, not the
+            // published event --- the event carries no fromHostId field at all.
+            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    objectIds: ['OBJECT#Cup'],
+                    fromHostId: ROOM_A,
+                    toHostId: 'OBJECT#Tray',
+                    roomId: ROOM_A,
+                    containment: 'On',
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
+            expect(executeObjectEstablishRelationMock).not.toHaveBeenCalled()
+        })
+
+        it('does not call orchestrateObjectMove when the subject has no single current host (drift)', async () => {
+            getMembershipContainersMock.mockResolvedValue([])
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
+                type: 'Object Rehost',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#Cup',
+                targetId: 'OBJECT#Tray',
+                roomId: ROOM_A,
+                containment: 'On',
+                confidence: 0.9,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
         })
     })
 

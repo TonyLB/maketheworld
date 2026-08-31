@@ -5,6 +5,7 @@ import {
     isLookCommandRequestedPublishedPayload,
     isObjectDissolveRelationPublishedPayload,
     isObjectEstablishRelationPublishedPayload,
+    isObjectRehostPublishedPayload,
     isObjectTakeHoldPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
@@ -356,6 +357,44 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'KNOWLEDGE#x' })).toBe(false)
+    })
+})
+
+describe('isObjectRehostPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Rehost' as const,
+        characterId: 'CHARACTER#test',
+        subjectId: 'OBJECT#Cup',
+        targetId: 'OBJECT#Tray',
+        roomId: 'ROOM#Bridge',
+        containment: 'On' as const,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isObjectRehostPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts optional confidence', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isObjectRehostPublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects invalid ids or containment', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, containment: 'Under' })).toBe(false)
+    })
+
+    it('rejects non-finite confidence', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
     })
 })
 

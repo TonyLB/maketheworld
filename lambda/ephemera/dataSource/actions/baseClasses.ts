@@ -343,6 +343,27 @@ export type ParseCommandEstablishRelationResult = {
 } & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
 
 /**
+ * Grounded rehost after enrich + resolve (PV1-2): `On` is a rehost carrying a containment
+ * argument, not a relation with a side effect --- `subjectId` moves into `targetId`'s own
+ * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
+ * `On` out on 2026-08-22: there is no `Change`/edge here for that type's
+ * `RelationalKindAndLabel` to describe. `hostId` is the acting character's room (narration
+ * context only, matching `orchestrateObjectMove`'s `roomId`) --- not `subjectId`'s current
+ * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
+ * rather than trusting a value baked in at parse time. `containment` is typed as the full
+ * AB-54 hosting-kind union for forward compatibility, but only `'On'` is ever constructed
+ * today --- `In`/`PartOf` still hard-error before reaching this type.
+ */
+export type ParseCommandObjectRehostResult = {
+    type: 'ObjectRehost'
+    subjectId: EphemeraObjectId
+    targetId: EphemeraObjectId
+    hostId: EphemeraRoomId
+    containment: 'On' | 'In' | 'PartOf'
+    confidence: ParseCommandConfidence
+}
+
+/**
  * Outcome of intent discrimination only (iteration 7, Sub-iteration 1): classify's remit is
  * narrowed to exactly five outcomes --- realness/shape (`MultipleCommands`,
  * `PromptInjectionAttempt`, `Unknown`) and, for legitimate single in-world engagements,
@@ -374,6 +395,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
+    | ParseCommandObjectRehostResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
@@ -688,6 +710,20 @@ export function isParseCommandEstablishRelationResult(
         return false
     }
     if (result.relationKind === 'Custom' && typeof result.relationLabel !== 'string') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+const HOSTING_KINDS = new Set<string>(['On', 'In', 'PartOf'])
+
+export function isParseCommandObjectRehostResult(
+    result: ParseCommandResult
+): result is ParseCommandObjectRehostResult {
+    if (result.type !== 'ObjectRehost') {
+        return false
+    }
+    if (!HOSTING_KINDS.has(result.containment)) {
         return false
     }
     return isParseConfidence(result.confidence)

@@ -9,13 +9,12 @@ const DISSOLVE_VERBS = new Set(['take', 'remove'])
 export type RelationalTemplateMatchResult =
     | { type: 'matched'; change: Change }
     /**
-     * Relation phrase was containment language ("in"/"into"/"on"/"onto"/"on top of") -- a named
-     * outcome, not folded into noMatch, since it's a known case, not "didn't understand this
-     * command at all." `kind`/`operationKind`/`subject`/`target` carry through what this
-     * function already resolved before hitting the defer, rather than discarding it: PV1-2
-     * routes an `On`-kind establish defer to the move lane (`put cup on tray`), and everything
-     * but `kind` for `In`/`PartOf` still routes to the existing hard error
-     * (`objectManipulationErrorMessages.nestingRelational`).
+     * Third outcome alongside `matched`/`noMatch`: the skeleton fit the 4-token template and the
+     * preposition names a hosting kind (`On`/`In`/`PartOf`), which AB-54 models as shard
+     * placement, not a relational edge -- so there's no `Change` to build. `operationKind`/
+     * `subject`/`target` are already resolved by this point and carry forward for whichever
+     * lane the caller routes `kind` to (`On` to the move lane, `In`/`PartOf` to
+     * `objectManipulationErrorMessages.nestingRelational` until they're built).
      */
     | { type: 'nestingDefer'; kind: 'On' | 'In' | 'PartOf'; operationKind: 'establishRelation' | 'dissolveRelation'; subject: Referent; target: Referent }
     | { type: 'noMatch' }

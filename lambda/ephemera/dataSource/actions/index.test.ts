@@ -2229,6 +2229,49 @@ describe('ephemeraActionsDataSource', () => {
             })
             expect(streamEvent).not.toHaveBeenCalled()
         })
+
+        it('emits Object Rehost streamEvent when an On rehost is grounded (PV1-2)', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectRehost',
+                subjectId: 'OBJECT#Cup',
+                targetId: 'OBJECT#Tray',
+                hostId: hostRoom,
+                containment: 'On',
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'put the cup on the tray',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Rehost' },
+                update: {
+                    type: 'Object Rehost',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#Cup',
+                    targetId: 'OBJECT#Tray',
+                    roomId: hostRoom,
+                    containment: 'On',
+                    confidence: 0.9,
+                },
+            })
+        })
     })
 
     describe('ParseCommandUnimplementedResult', () => {

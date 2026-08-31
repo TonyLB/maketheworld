@@ -19,6 +19,7 @@
  */
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
+import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import {
     ConnectionsCharactersConnectedEvent,
@@ -26,13 +27,14 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload, isObjectDissolveRelationPublishedPayload, isObjectDropPublishedPayload, isObjectEstablishRelationPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isObjectDissolveRelationPublishedPayload, isObjectDropPublishedPayload, isObjectEstablishRelationPublishedPayload, isObjectRehostPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsActionsObjectDropEnvelope,
     isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
+    isEphemeraPositionsActionsObjectRehostEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
@@ -137,6 +139,31 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     hostId: content.hostId,
                     ...relationKindAndLabelFrom(content),
                     transferFromHostId: content.transferFromHostId,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectRehostEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectRehostPublishedPayload(content)) {
+                    return
+                }
+                // PV1-2: `fromHostId` is read fresh here, not published at parse time --- the
+                // subject's current host can have changed between parse and this handler
+                // running, and `orchestrateObjectMove` needs the real one to strip the right
+                // containment edge. Zero or multiple current containers is a drift/race
+                // condition this slice does not attempt to repair --- no-op rather than guess.
+                const fromHostIds = await internalCache.Positions.getMembershipContainers(content.subjectId)
+                if (fromHostIds.length !== 1) {
+                    return
+                }
+                await orchestrateObjectMove({
+                    objectIds: [content.subjectId],
+                    fromHostId: fromHostIds[0],
+                    toHostId: content.targetId,
+                    roomId: content.roomId,
+                    containment: content.containment,
                     messageBus,
                     streamEvent,
                 })

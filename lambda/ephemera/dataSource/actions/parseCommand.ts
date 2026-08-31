@@ -4,6 +4,7 @@ import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { compileDescribeFromSkeleton } from './enrich/objectManipulation/compileDescribeFromSkeleton'
+import { compileObjectRehostFromSkeleton } from './enrich/objectManipulation/compileObjectRehostFromSkeleton'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
 import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
@@ -90,6 +91,22 @@ async function parseCommandCore(
         const family = classifySkeletonFamily(parseResult.tokens)
 
         if (family.type === 'relationalDefer') {
+            if (family.kind === 'On') {
+                const result = await compileObjectRehostFromSkeleton(
+                    {
+                        command: input.command,
+                        skeleton: parseResult.tokens,
+                        subject: family.subject,
+                        target: family.target,
+                        hostRoomId: input.hostRoomId,
+                        roomObjectCatalog: input.roomObjectCatalog,
+                        heldInventoryCatalog: input.heldInventoryCatalog,
+                    },
+                    intentResult.confidence,
+                    { embedSpan: deps.embedSpan }
+                )
+                return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+            }
             return {
                 result: { type: 'Error', errorMessage: relationalErrorMessages.nestingRelational },
                 enrichReasoningMarkdown: '',

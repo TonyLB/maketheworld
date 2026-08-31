@@ -3,10 +3,9 @@ import { normalizeExitName } from '../../roomExitTargetsForCharacter'
 import type { PeerRelationalEdgeKind, NormalizeRelationOutcome, NormalizedRelation } from './relationKind'
 
 const CONTAINMENT_PHRASES = ['in', 'inside', 'into'] as const
-/** `On` joined containment's defer treatment 2026-08-22 (Channel D, CD2, reduced scope): AB-54
- * makes `On` a hosting kind, same as `In`/`PartOf`, and the current relation model has no
- * representation for hosting/containment at all --- so it defers rather than resolving to an
- * enum, exactly as `In`/`PartOf` already do. */
+/** AB-54 makes `On` a hosting kind, same as `In`/`PartOf`: the relation model has no
+ * representation for hosting/containment, so these phrases defer rather than resolving to an
+ * enum (joined `CONTAINMENT_PHRASES` in that treatment 2026-08-22, Channel D CD2). */
 const ON_DEFER_PHRASES = ['on top of', 'onto', 'on'] as const
 
 const ENUM_PHRASE_MAP: readonly { phrase: string; kind: Exclude<PeerRelationalEdgeKind, 'Custom'> }[] = [

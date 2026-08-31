@@ -7,6 +7,7 @@ import {
     isEphemeraPositionsActionsObjectDropEnvelope,
     isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
     isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
+    isEphemeraPositionsActionsObjectRehostEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
@@ -183,6 +184,28 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsActionsObjectEstablishRelationEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts mtw.ephemera.actions Object Rehost envelope (PV1-2)', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.actions',
+                streamKey: 'CHARACTER#alpha',
+                timestamp: Date.now(),
+                type: 'Object Rehost' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Object Rehost' as const,
+                characterId: 'CHARACTER#alpha' as const,
+                subjectId: 'OBJECT#Cup' as const,
+                targetId: 'OBJECT#Tray' as const,
+                roomId: 'ROOM#from' as const,
+                containment: 'On' as const,
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsObjectRehostEnvelope(envelope as any)).toBe(true)
     })
 
     it('accepts mtw.ephemera.actions Object Dissolve Relation envelope', () => {

@@ -161,6 +161,61 @@ export const isObjectDissolveRelationPublishedPayload = (
     return isHostRelationalIngressFieldsValid(v)
 }
 
+/** AB-54 hosting kinds; only `'On'` is ever emitted today (PV-1 builds one hosting kind). */
+export type ContainmentKindPublished = 'On' | 'In' | 'PartOf'
+
+const CONTAINMENT_KINDS_PUBLISHED = new Set<ContainmentKindPublished>(['On', 'In', 'PartOf'])
+
+/**
+ * PV1-2: `On` is a rehost carrying a containment argument, not a relation --- deliberately
+ * separate from `ObjectEstablishRelationPublishedPayload`, which narrowed `On` out on
+ * 2026-08-22. `roomId` is narration context (the acting character's room), not `subjectId`'s
+ * current host --- the `mtw.ephemera.positions` consumer resolves that fresh via
+ * `getMembershipContainers` rather than trusting a value published at parse time.
+ */
+export type ObjectRehostPublishedPayload = {
+    type: 'Object Rehost';
+    characterId: EphemeraCharacterId;
+    subjectId: EphemeraObjectId;
+    targetId: EphemeraObjectId;
+    roomId: EphemeraRoomId;
+    containment: ContainmentKindPublished;
+    confidence?: number;
+}
+
+export const isObjectRehostPublishedPayload = (
+    value: unknown
+): value is ObjectRehostPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Object Rehost') {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (typeof v.subjectId !== 'string' || !isEphemeraObjectId(v.subjectId)) {
+        return false
+    }
+    if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
+        return false
+    }
+    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
+        return false
+    }
+    if (typeof v.containment !== 'string' || !CONTAINMENT_KINDS_PUBLISHED.has(v.containment as ContainmentKindPublished)) {
+        return false
+    }
+    if (v.confidence !== undefined) {
+        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+            return false
+        }
+    }
+    return true
+}
+
 export type AwaitRoadRunnerPublishedPayload = {
     type: 'Await RoadRunner';
     characterId: EphemeraCharacterId;
@@ -480,6 +535,7 @@ export type ActionsPublishedPayload =
     | ObjectDropPublishedPayload
     | ObjectEstablishRelationPublishedPayload
     | ObjectDissolveRelationPublishedPayload
+    | ObjectRehostPublishedPayload
     | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload
