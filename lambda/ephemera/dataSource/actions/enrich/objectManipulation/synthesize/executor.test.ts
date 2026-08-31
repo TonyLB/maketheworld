@@ -23,43 +23,18 @@ const emptyGroundingContext: GroundingContext = {
 }
 
 describe('runExecutor', () => {
-    it('BD-13: carries a connected object and dissolves a boundary edge, transferMembership retiring after its paired isolatedFromRelations', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(TRAY_ID)
-            .addObject(CUP_ID)
-            .addObject(TABLE_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'On' })
-            .addRelationalEdge({ from: CUP_ID, to: TRAY_ID, kind: 'On' })
+    // The former "BD-13: carries a connected object..." test is retired 2026-08-22 (Channel D,
+    // CD2, reduced scope): its whole point was `On`'s carry absorption (cup On tray pulling cup
+    // into the transfer set), which is now dead -- `On` joined `In`/`PartOf`'s hosting-kind
+    // throw, and `carry` is unreachable from any relation kind. Real shard-based hosting (CD2h)
+    // is what would eventually carry the cup along again, by construction.
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => ([TRAY_ID, CUP_ID, TABLE_ID].includes(id) ? ROOM_ID : undefined)
-        )
-
-        const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
-            { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({
-            verdict: 'legal',
-            steps: [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
-                { kind: 'transferMembership', objectIds: new Set([TRAY_ID, CUP_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
-            ],
-        })
-        // Fix 2: one shared closure computation for the paired instructions, not two.
-        expect(env.settledGroups.size).toBe(1)
-    })
-
-    it('LP4g: carries a connected object and dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
+    it('LP4g: dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
         const COMPANION_ID = 'CHARACTER#Companion' as EphemeraCharacterId
         const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addCharacter(COMPANION_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: COMPANION_ID, kind: 'On' })
+            .addRelationalEdge({ from: TRAY_ID, to: COMPANION_ID, kind: 'Against' })
 
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? graph : undefined),
@@ -76,7 +51,7 @@ describe('runExecutor', () => {
         expect(result).toEqual({
             verdict: 'legal',
             steps: [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, relationKind: 'Against' },
                 { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
             ],
         })
@@ -173,7 +148,7 @@ describe('runExecutor', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)
             .addObject(TABLE_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'On' })
+            .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Against' })
 
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? graph : undefined),
@@ -188,32 +163,15 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' }],
+            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'Against' }],
         })
     })
 
-    it('errors if a carry-classified edge survives to command-expansion time (internal-consistency guard)', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(TRAY_ID)
-            .addObject(CUP_ID)
-            .addRelationalEdge({ from: CUP_ID, to: TRAY_ID, kind: 'On' })
-
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => ([TRAY_ID, CUP_ID].includes(id) ? ROOM_ID : undefined)
-        )
-
-        // Seeded already `operandExpanded` with an incomplete set (cup should have
-        // been absorbed) --- simulates the "should be unreachable" case directly,
-        // since normal operand-expansion always closes the set first.
-        const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'operandExpanded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result.verdict).toBe('error')
-    })
+    // The former "errors if a carry-classified edge survives to command-expansion time" test is
+    // retired 2026-08-22 (Channel D, CD2, reduced scope): the guard it exercised only fires for
+    // a 'carry' outcome surviving unexpectedly, and `carry` is now unreachable from any relation
+    // kind -- `On` (its only producer) joined `In`/`PartOf`'s hosting-kind throw. Reaching this
+    // scenario today throws AB-54's invariant error instead, at `boundaryEdgeOutcomes` itself.
 
     it('defers the whole run on a Custom-kind boundary edge, not a partial result', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID)

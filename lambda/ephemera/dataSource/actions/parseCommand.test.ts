@@ -1336,12 +1336,12 @@ describe('parseCommand LLM path', () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}',
+            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
         })
 
         const result = await parseCommand(
             {
-                command: 'put the broom on the table',
+                command: 'put the broom under the table',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
                 roomObjectLabels: ['broom'],
@@ -1363,7 +1363,7 @@ describe('parseCommand LLM path', () => {
             operationKind: 'establishRelation',
             subjectId: broomId,
             targetId: tableId,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostId: 'ROOM#Bridge',
             confidence: 0.9,
         })

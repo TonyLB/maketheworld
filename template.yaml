@@ -628,6 +628,7 @@ Resources:
                 - mtw.diagnostics
               detail-type:
                 - Ludic Graph Stale Structure Finding
+                - Ludic Graph Port Mismatch Finding
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

@@ -29,7 +29,7 @@ describe('isLudicGraphStructurallyStale', () => {
         expect(isLudicGraphStructurallyStale(null)).toBe(true)
     })
 
-    // LP4d proving case: the guard picks up a missing `ports` (premise 12, required and possibly
+    // Proving case: the guard picks up a missing `ports` (the egress list, required and possibly
     // empty) as staleness with no change needed in this file --- it's a pure pass-through to
     // isEphemeraLudicGraphFieldPayload.
     it('returns true for an otherwise-current payload missing ports (LP4d proving case)', () => {

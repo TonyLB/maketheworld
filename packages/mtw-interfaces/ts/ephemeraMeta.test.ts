@@ -9,6 +9,7 @@ import {
     isEphemeraLudicGraphPort,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
+    isEphemeraLudicTerminalId,
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
@@ -221,6 +222,31 @@ describe('isEphemeraLudicPortAddress', () => {
 
     it('rejects an empty port segment', () => {
         expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+    })
+})
+
+// The union guard: the type was declared well before any guard for it shipped.
+describe('isEphemeraLudicTerminalId', () => {
+    it('accepts a bare terminal primitive', () => {
+        expect(isEphemeraLudicTerminalId('OBJECT#helmet')).toBe(true)
+    })
+
+    it('accepts a well-formed port address', () => {
+        expect(isEphemeraLudicTerminalId({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(true)
+    })
+
+    it('rejects a malformed port address', () => {
+        expect(isEphemeraLudicTerminalId({ owner: 'BOGUS#X', port: 'ab6129d' })).toBe(false)
+    })
+
+    it('rejects a bogus tagged id', () => {
+        expect(isEphemeraLudicTerminalId('BOGUS#X')).toBe(false)
+    })
+
+    it('rejects null/undefined/non-string-non-object values', () => {
+        expect(isEphemeraLudicTerminalId(null)).toBe(false)
+        expect(isEphemeraLudicTerminalId(undefined)).toBe(false)
+        expect(isEphemeraLudicTerminalId(42)).toBe(false)
     })
 })
 
@@ -557,11 +583,182 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-fix guard called
+    // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind -- neither
+    // hosting nor peer -- and its runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by
+    // hand in lockstep with the type, same agreement-check rationale as the In/PartOf test above.
+    it('accepts a Present relational edge', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'ROOM#Kitchen', port: 'ab6129d' },
+                to: 'OBJECT#crystalBall',
+                kind: 'Present',
+            }],
+        })).toBe(true)
+    })
+
+    // `relationLabel` belongs structurally to `Custom`: it is the free-text name that kind
+    // exists to make a place for, and the other six carry none. The rule used to run one way
+    // only -- `Custom` required a label, but nothing rejected a label on any other kind -- so
+    // `{ kind: 'On', relationLabel: 'balanced across' }` was a legal stored edge. It is now
+    // unrepresentable in `EphemeraLudicRelationalEdgeData`, and a guard that accepted it would
+    // be lying about the value it narrows. These four cases pin both directions of the rule.
+    it.each(['On', 'In', 'PartOf', 'Under', 'Against', 'Present'] as const)(
+        'rejects a %s relational edge carrying a relationLabel',
+        (kind) => {
+            expect(isEphemeraLudicGraphFieldPayload({
+                rootId: 'ROOM#Kitchen',
+                ports: [],
+                nodes: [
+                    { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                    { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                ],
+                edges: [{
+                    tag: 'Relational',
+                    from: 'OBJECT#crystalBall',
+                    to: 'ROOM#Kitchen',
+                    kind,
+                    relationLabel: 'balanced across',
+                }],
+            })).toBe(false)
+        }
+    )
+
+    it('accepts a Custom relational edge carrying a non-empty relationLabel', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'Custom',
+                relationLabel: 'balanced across',
+            }],
+        })).toBe(true)
+    })
+
+    it.each([undefined, ''])('rejects a Custom relational edge whose label is %p', (relationLabel) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'Custom',
+                ...(relationLabel === undefined ? {} : { relationLabel }),
+            }],
+        })).toBe(false)
+    })
+
+    // EA-8: `edgeId` is optional per edge, so *absent* is the common case and stays legal. What
+    // the guard adds is that a **present** id must be a usable one --- an empty string or a
+    // non-string is rejected on the same reasoning as an empty `relationLabel` above, since a
+    // predicate that admitted it would narrow to a type whose field cannot be read. A stored row
+    // in that shape is not lost: `extractRelationalEdgesFromStored`'s recovery branch keeps the
+    // relation and drops the id, exactly as it strips a stray label.
+    it('accepts a relational edge carrying a non-empty edgeId, and one carrying none', () => {
+        const payload = (edge: Record<string, unknown>) => ({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [edge],
+        })
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', edgeId: 'edge-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+    })
+
+    it.each(['', 7, null, {}])('rejects a relational edge whose edgeId is %p', (edgeId) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                edgeId,
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'On',
+            }],
+        })).toBe(false)
+    })
+
+    // P8 iteration 1: `chainId` takes the same shape of check, and it matters more --- this field
+    // *is* consulted by comparison, so an unusable value admitted here would go on to decide leg
+    // sameness rather than sit inert the way a bad `edgeId` would.
+    it('accepts a relational edge carrying a non-empty chainId, and one carrying none', () => {
+        const payload = (edge: Record<string, unknown>) => ({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [edge],
+        })
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        // Both identity fields at once, since they are independent facts about a leg.
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload(payload({
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+        }))).toBe(true)
+    })
+
+    it.each(['', 7, null, {}])('rejects a relational edge whose chainId is %p', (chainId) => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                chainId,
+                from: 'OBJECT#crystalBall',
+                to: 'ROOM#Kitchen',
+                kind: 'On',
+            }],
+        })).toBe(false)
+    })
+
+    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
     // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
-    // function" instead of returning false. A port-qualified terminal is not yet a legal edge
-    // endpoint (that widening is LP7), so rejecting it cleanly is the correct behavior.
-    it('rejects a port-qualified relational edge terminal without throwing', () => {
+    // function" instead of returning false -- hardened at the time to a typeof pre-check that
+    // rejected the (then-illegal) port terminal cleanly instead. LP7 widens the field itself to
+    // admit a port-qualified terminal, so the correct behavior flips from reject-cleanly to
+    // accept -- this is the regression the LP7 guards exist to prove (a valid edge must not
+    // silently vanish from the stored payload).
+    it('accepts a port-qualified relational edge terminal (LP7)', () => {
         const edges = [{
             tag: 'Relational',
             from: { owner: 'OBJECT#broom', port: 'ab6129d' },
@@ -585,6 +782,37 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 { tag: 'Object', universalKey: 'OBJECT#table' },
             ],
             edges,
+        })).toBe(true)
+    })
+
+    it('accepts a relational edge with a port-qualified terminal on both ends', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
+            ports: [],
+            nodes: [
+                { tag: 'Object', universalKey: 'OBJECT#broom' },
+                { tag: 'Object', universalKey: 'OBJECT#table' },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'OBJECT#broom', port: 'ab6129d' },
+                to: { owner: 'OBJECT#table', port: 'cf0192a' },
+                kind: 'On',
+            }],
+        })).toBe(true)
+    })
+
+    it('still rejects an edge terminal that is neither a valid primitive nor a valid port address', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'OBJECT#broom',
+            ports: [],
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom' }],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: 'BOGUS#X', port: 'ab6129d' },
+                to: 'OBJECT#broom',
+                kind: 'On',
+            }],
         })).toBe(false)
     })
 
@@ -603,9 +831,9 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP7 has not wired port terminals into edges yet, but rootId's declared type is the full
-    // EphemeraLudicTerminalId union (AGENT.ludicGraphPorts.planning.md's target declarations),
-    // so the guard must already accept a well-formed port address.
+    // rootId's declared type is the full EphemeraLudicTerminalId union, so the guard must accept
+    // a well-formed port address. Written while edge terminals were still node-only and kept
+    // after they widened: the assertion is about the union, not about what currently produces one.
     it('accepts a port-address rootId', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: { owner: 'OBJECT#box', port: 'ab6129d' },
@@ -616,7 +844,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
     // LP4d: ports is required and possibly empty, not optional like edges --- see LPM's
     // rootId precedent for why no `??= []` belongs at this boundary.
-    describe('ports (LP4d, premise 12)', () => {
+    describe('ports (the egress list)', () => {
         it('rejects a payload missing ports entirely', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
@@ -636,7 +864,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' }],
             })).toBe(false)
         })
 
@@ -644,7 +872,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 123, fromHostId: 'OBJECT#box' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'Present' }],
             })).toBe(false)
         })
 
@@ -652,7 +880,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'OBJECT#box',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' }],
             })).toBe(true)
         })
     })
@@ -660,19 +888,56 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
 describe('isEphemeraLudicGraphPort', () => {
     it('accepts a well-formed port entry', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' })).toBe(true)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(true)
     })
 
     it('rejects a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' })).toBe(false)
     })
 
     it('rejects a non-string portId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
     })
 
     it('rejects a non-object value', () => {
         expect(isEphemeraLudicGraphPort('OBJECT#box#ab6129d')).toBe(false)
+    })
+
+    // LP6: the discriminator (PR-11). Required --- a port without it leaves `ports.length`
+    // ambiguous between presence bindings and relational pass-throughs, which is the exact
+    // defect the field exists to remove.
+    it('rejects a port with no kind', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' })).toBe(false)
+    })
+
+    it('rejects a kind outside HostRelationalEdgeKind', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Beside' })).toBe(false)
+    })
+
+    // The union is taken unrestricted (PR-11) --- including the three values no corpus case can
+    // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
+    it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'])('accepts a %s port with no label', (kind) => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
+    })
+
+    it('accepts a Custom port carrying a non-empty exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom', exteriorRelationLabel: 'threads into' })).toBe(true)
+    })
+
+    it('rejects a Custom port with no exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom' })).toBe(false)
+    })
+
+    it('rejects a Custom port with an empty exterior label', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Custom', exteriorRelationLabel: '' })).toBe(false)
+    })
+
+    it('rejects a non-string exterior label on a non-Custom port', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 12 })).toBe(false)
+    })
+
+    it('rejects a Present port carrying any exterior label, even a valid string (PR-15: presence ports have no such field)', () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 'threads into' })).toBe(false)
     })
 })
 

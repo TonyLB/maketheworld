@@ -1,3 +1,4 @@
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
     EphemeraCharacterId,
     EphemeraFeatureId,
@@ -65,11 +66,10 @@ export type ObjectDropPublishedPayload = {
 }
 
 
-/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. This is an ingress-lane authoring restriction, not a claim about which kinds host --- `On` also hosts under AB-54 and still parses here. */
-export type HostRelationalEdgeKindPublished = 'On' | 'Under' | 'Against' | 'Custom'
+/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+export type HostRelationalEdgeKindPublished = 'Under' | 'Against' | 'Custom'
 
 const HOST_RELATIONAL_EDGE_KINDS_PUBLISHED = new Set<HostRelationalEdgeKindPublished>([
-    'On',
     'Under',
     'Against',
     'Custom',
@@ -82,12 +82,10 @@ export type ObjectEstablishRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /** Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
-    relationKind: HostRelationalEdgeKindPublished;
-    relationLabel?: string;
     confidence?: number;
     /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
     transferFromHostId?: EphemeraMembershipHostId;
-}
+} & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 export type ObjectDissolveRelationPublishedPayload = {
     type: 'Object Dissolve Relation';
@@ -96,12 +94,10 @@ export type ObjectDissolveRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /** Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
-    relationKind: HostRelationalEdgeKindPublished;
-    relationLabel?: string;
     confidence?: number;
     /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
     transferFromHostId?: EphemeraMembershipHostId;
-}
+} & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {

@@ -32,7 +32,6 @@ import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
-const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const CHANDELIER_ID = 'OBJECT#Chandelier' as EphemeraObjectId
@@ -98,45 +97,12 @@ describe('executeObjectMove', () => {
             })
         })
 
-        it('BD-28: carrying the tray severs tray-table and streams an Object Relation Changed fact for it, previously silent', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, {
-                nodes: [
-                    { tag: 'Object', universalKey: TRAY_ID },
-                    { tag: 'Object', universalKey: GLASS_ID },
-                    { tag: 'Object', universalKey: TABLE_ID },
-                ],
-                edges: [
-                    { tag: 'Relational', from: GLASS_ID, to: TRAY_ID, kind: 'On' },
-                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
-                ],
-            })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
-                hostId === ROOM_ID ? roomGraph : emptyCharacterGraph
-            )
-            wireTransactWrite({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: emptyCharacterGraph })
-
-            await executeObjectMove({
-                objectIds: [TRAY_ID, GLASS_ID],
-                bundleId: 'BUNDLE#test',
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-                messageBus: messageBus as any,
-                streamEvent,
-            })
-
-            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
-            // Dissolve fact streams before the moved facts (output-ordered per BD-28/BD-30).
-            expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved', 'Object Moved'])
-            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
-                update: expect.objectContaining({
-                    type: 'Object Relation Changed',
-                    subjectId: TRAY_ID,
-                    targetId: TABLE_ID,
-                }),
-            }))
-        })
-
+        // The former "carrying the tray severs tray-table" test is retired 2026-08-22 (Channel D,
+        // CD2, reduced scope): its whole point was `On`'s carry absorption (glass -On-> tray
+        // pulling glass into the moved set), which is now dead -- `On` joined `In`/`PartOf`'s
+        // hosting-kind throw, and `carry` is unreachable from any relation kind. Real
+        // shard-based hosting (CD2h) is what would eventually carry the glass along again, by
+        // construction (it lives in the tray's own shard) rather than via this closure walk.
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
@@ -146,7 +112,7 @@ describe('executeObjectMove', () => {
                     { tag: 'Object', universalKey: CHANDELIER_ID },
                 ],
                 edges: [
-                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
+                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Against' },
                     { tag: 'Relational', from: CUP_ID, to: CHANDELIER_ID, kind: 'Under' },
                 ],
             })
@@ -228,9 +194,11 @@ describe('executeObjectMove', () => {
                     { tag: 'Object', universalKey: TABLE_ID },
                 ],
                 edges: [
-                    // tray On table: tray is the subject (`from`) role --- dropping the tray alone
-                    // dissolves this boundary edge rather than carrying the table along.
-                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
+                    // tray Against table: tray is the subject (`from`) role --- dropping the tray
+                    // alone dissolves this boundary edge. (Was `On` before Channel D CD2, 2026-08-22
+                    // joined it to `In`/`PartOf`'s hosting-kind throw; `Against` exercises the same
+                    // subject-role dissolve outcome and remains live.)
+                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Against' },
                 ],
             })
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>

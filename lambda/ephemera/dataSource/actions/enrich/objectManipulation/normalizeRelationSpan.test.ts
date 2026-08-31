@@ -2,18 +2,6 @@ import { normalizeRelationSpan } from './normalizeRelationSpan'
 
 describe('normalizeRelationSpan', () => {
     it.each([
-        ['on', 'On'],
-        ['onto', 'On'],
-        ['ON', 'On'],
-        ['on top of', 'On'],
-    ] as const)('maps %s to enum %s', (relationSpan, kind) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({
-            type: 'success',
-            relation: { type: 'enum', kind },
-        })
-    })
-
-    it.each([
         ['under', 'Under'],
         ['beneath', 'Under'],
         ['underneath', 'Under'],
@@ -53,6 +41,10 @@ describe('normalizeRelationSpan', () => {
     })
 
     it.each(['in', 'inside', 'into'] as const)('defers containment span %s', (relationSpan) => {
+        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer' })
+    })
+
+    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s (Channel D CD2: On joins In/PartOf)', (relationSpan) => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer' })
     })
 

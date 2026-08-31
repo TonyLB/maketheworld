@@ -66,13 +66,13 @@ describe('ParsePlanStep variants + type guards', () => {
             kind: 'establishRelation',
             subjectId: glassId,
             targetId: tableId,
-            relationKind: 'On',
+            relationKind: 'Under',
             hostRoomId: roomId,
         }
         expect(isEstablishRelationStep(step)).toBe(true)
         if (isEstablishRelationStep(step)) {
             const narrowed: EstablishRelationStep = step
-            expect(narrowed.relationKind).toBe('On')
+            expect(narrowed.relationKind).toBe('Under')
         }
     })
 

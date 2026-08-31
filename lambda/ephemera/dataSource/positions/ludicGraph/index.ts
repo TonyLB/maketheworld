@@ -108,13 +108,13 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
 
 export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
-    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived (premise 10) --- LP4a. */
+    /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see this directory's `AGENT.md`. */
     readonly rootId: EphemeraLudicTerminalId
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
     private readonly _playOnlyEdges: PlayLudicGraph['edges'] | undefined
-    /** The egress list (premise 12), required and possibly empty --- LP4d. */
+    /** The egress list; required and possibly empty, deliberately with no read-boundary default. */
     private readonly _ports: EphemeraLudicGraphPort[]
 
     private constructor(
@@ -241,7 +241,7 @@ export class EphemeraLudicGraph {
         return extractRelationalEdgesFromStored(this.toStored())
     }
 
-    /** The egress list (premise 12) --- inert until a producer exists (AB-55/LD-17), same precedent as LP4b. */
+    /** The egress list --- inert until a producer exists (AB-55/AB-62, abstraction-layers plan). */
     get ports(): EphemeraLudicGraphPort[] {
         return [...this._ports]
     }
@@ -301,6 +301,20 @@ export class EphemeraLudicGraph {
         return extractRelationalEdgesFromStored({ rootId: this.rootId, nodes: this._nodes, ...(this._edges !== undefined ? { edges: this._edges } : {}), ports: this._ports })
     }
 
+    /**
+     * **This comparison is still purely structural, and after P8 iteration 1 that makes it the
+     * odd one out --- recorded rather than quietly left.** EA-10's survey names five sites that
+     * use structure *as* identity; four of them compose `edgesMatch`, which now consults
+     * `chainId`, and this is the fifth. It does its own field-by-field walk, so it did not
+     * inherit the rule. **The consequence: two graphs alike but for their legs' chain
+     * membership compare equal here and would not match leg-for-leg anywhere else.**
+     *
+     * **Not fixed in that slice deliberately, on two grounds.** P8 iteration 1's build surface
+     * is deliberately minimal and widening it is what the Prototype's own discipline warns
+     * against; and this method has **no non-test caller**, so the divergence is latent rather
+     * than live. **The first non-test caller must close it** --- adding a `chainId` inequality
+     * test to the edge loop below is the whole of the change.
+     */
     equals(other: EphemeraLudicGraph): boolean {
         if (!(other instanceof EphemeraLudicGraph)) {
             return false
@@ -332,11 +346,15 @@ export class EphemeraLudicGraph {
             const left = aEdges[index]
             const right = bEdges[index]
             if (
-                left.from !== right.from
-                || left.to !== right.to
+                !ephemeraLudicTerminalsEqual(left.from, right.from)
+                || !ephemeraLudicTerminalsEqual(left.to, right.to)
                 || left.kind !== right.kind
-                || left.relationLabel !== right.relationLabel
             ) {
+                return false
+            }
+            // Both sides are narrowed even though the kind equality above implies the second:
+            // narrowing `left` does not narrow `right`, and only `Custom` carries a label at all.
+            if (left.kind === 'Custom' && right.kind === 'Custom' && left.relationLabel !== right.relationLabel) {
                 return false
             }
         }
@@ -424,13 +442,14 @@ export class EphemeraLudicGraph {
     /**
      * Node presence is always keyed by the owning component, never by a port, so a
      * port-qualified terminal is resolved to its owner before the membership check
-     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
-     * host-kind component, not only Objects --- so presence is checked against every node's
-     * `universalKey` (`nodeIds`), not only `objectIds`. Despite the name (kept for callers;
-     * see `AGENT.md`'s "Relational edge names"), this has always been a node-presence check,
-     * not an object-only one, once a non-Object terminal can appear.
+     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * host-kind component, or a port-qualified reference on one, not only Objects --- so
+     * presence is checked against every node's `universalKey` (`nodeIds`), not only
+     * `objectIds`. Despite the name (kept for callers; see `AGENT.md`'s "Relational edge
+     * names"), this has always been a node-presence check, not an object-only one, once a
+     * non-Object terminal can appear.
      */
-    bothObjectsOnGraph(from: EphemeraLudicTerminalPrimitive, to: EphemeraLudicTerminalPrimitive): boolean {
+    bothObjectsOnGraph(from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId): boolean {
         const nodeIds = this.nodeIds
         return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }
@@ -443,19 +462,16 @@ export class EphemeraLudicGraph {
         if (patch.hostId !== this.hostId) {
             throw new Error(`HostRelationalPatch hostId ${patch.hostId} does not match graph hostId ${this.hostId}`)
         }
-        if (patch.edge.kind === 'Custom' && typeof patch.edge.relationLabel !== 'string') {
-            throw new Error('Custom relational edge requires relationLabel')
-        }
+        // The `Custom relational edge requires relationLabel` throw that used to stand here is
+        // gone: `HostRelationalEdge` now carries the label on its `Custom` arm, so a patch that
+        // omits it does not typecheck and the runtime check had become unreachable.
         if (!this.bothObjectsOnGraph(patch.edge.from, patch.edge.to)) {
             throw new Error(`Nodes ${patch.edge.from} and/or ${patch.edge.to} not on host ${patch.hostId}`)
         }
 
-        const observedEdge: HostRelationalEdge = {
-            from: patch.edge.from,
-            to: patch.edge.to,
-            kind: patch.edge.kind,
-            ...(patch.edge.relationLabel !== undefined ? { relationLabel: patch.edge.relationLabel } : {}),
-        }
+        // `manipulation/types.ts`'s mirror and this module's are structurally identical, so the
+        // field-by-field rebuild this used to do was a copy in all but name.
+        const observedEdge: HostRelationalEdge = patch.edge
         const matchingEdge = this.relationalEdges.find((edge) => edgesMatch(edge, observedEdge))
 
         if (patch.op === 'add') {

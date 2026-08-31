@@ -130,6 +130,21 @@ describe('isObjectRelationChangedPublishedPayload', () => {
             beatAnchorTime: 1_700_000_000_000,
         })).toBe(true)
     })
+
+    // Presence plan PR-4 (reading (d)): this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file)
+    // needed the same by-hand widening as the In/PartOf case above -- checked directly since a
+    // stale Set fails silently rather than at compile time.
+    it('accepts a Present relationKind', () => {
+        expect(isObjectRelationChangedPublishedPayload({
+            type: 'Object Relation Changed',
+            subjectId: 'OBJECT#crystalBall',
+            targetId: 'ROOM#Kitchen',
+            hostId: 'ROOM#Kitchen',
+            relationKind: 'Present',
+            operation: 'establish',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(true)
+    })
 })
 
 describe('streamEventFromMessageBus', () => {

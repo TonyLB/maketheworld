@@ -40,3 +40,12 @@ export {
     PositionsCacheHandler,
     createPositionsCacheHandler,
 } from './factory'
+
+export {
+    classifyLudicGraphPortMismatch,
+    edgesReferringToPort,
+} from './classifyLudicGraphPortMismatch'
+export type {
+    LudicGraphPortExteriorValues,
+    LudicGraphPortMismatchVerdict,
+} from './classifyLudicGraphPortMismatch'

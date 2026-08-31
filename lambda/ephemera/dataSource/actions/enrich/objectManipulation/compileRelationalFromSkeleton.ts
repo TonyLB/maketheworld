@@ -1,3 +1,4 @@
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -200,8 +201,7 @@ export async function compileRelationalFromSkeleton(
             kind: candidate.kind,
             subjectId: candidate.subjectId,
             targetId: candidate.targetId,
-            relationKind: candidate.relationKind,
-            ...(candidate.relationLabel !== undefined ? { relationLabel: candidate.relationLabel } : {}),
+            ...relationKindAndLabelFrom(candidate),
         } as EstablishRelationStep | DissolveRelationStep
         const seed: WorklistInstruction[] = [
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
@@ -239,11 +239,15 @@ export async function compileRelationalFromSkeleton(
             continue
         }
         // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment ('In'/
-        // 'PartOf'), but this ingress-facing route's relationKind stays the narrow four-kind set
+        // 'PartOf'), but this ingress-facing route's relationKind stays the narrow set
         // (LD-13, parsePlanStep.ts) --- same drop-the-candidate idiom as the endpoint guard above.
         // Unreachable today: no ingress path can produce a containment relStep (isContainmentSpan
-        // routes to nestingDefer before this point).
-        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf') {
+        // routes to nestingDefer before this point). **`On` joined this guard 2026-08-22**
+        // (Channel D, CD2, reduced scope): it is a hosting kind too now, deferred at ingress the
+        // same way, and equally unreachable here. **`Present` joined 2026-08-22** (presence plan
+        // PR-4): it's not a WML-authorable kind either --- an internal port/cover mechanism, never
+        // an establishRelation/dissolveRelation target --- so it's deferred at ingress the same way.
+        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf' || relStep.relationKind === 'On' || relStep.relationKind === 'Present') {
             continue
         }
 
@@ -256,8 +260,12 @@ export async function compileRelationalFromSkeleton(
             kind: relStep.kind,
             subjectId: relStep.subjectId,
             targetId: relStep.targetId,
-            relationKind: relStep.relationKind,
-            ...(relStep.relationLabel !== undefined ? { relationLabel: relStep.relationLabel } : {}),
+            // Inlined rather than routed through `relationKindAndLabelFrom`: the guard above
+            // narrowed `relStep` to the ingress-lane kinds, and the shared helper's wide return
+            // type would discard exactly that narrowing.
+            ...(relStep.relationKind === 'Custom'
+                ? { relationKind: 'Custom' as const, relationLabel: relStep.relationLabel }
+                : { relationKind: relStep.relationKind }),
             hostRoomId: hostId,
         }
 
@@ -312,8 +320,9 @@ export async function compileRelationalFromSkeleton(
         operationKind: chosen.step.kind,
         subjectId: chosen.step.subjectId,
         targetId: chosen.step.targetId,
-        relationKind: chosen.step.relationKind,
-        ...(chosen.step.relationLabel !== undefined ? { relationLabel: chosen.step.relationLabel } : {}),
+        ...(chosen.step.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: chosen.step.relationLabel }
+            : { relationKind: chosen.step.relationKind }),
         hostId: chosen.step.hostRoomId,
         confidence: intentConfidence,
         ...(chosen.transferFromHostId !== undefined ? { transferFromHostId: chosen.transferFromHostId } : {}),

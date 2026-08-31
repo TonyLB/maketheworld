@@ -6,7 +6,7 @@ describe('classifySkeletonFamily', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-            { type: 'text', text: 'on' },
+            { type: 'text', text: 'under' },
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 

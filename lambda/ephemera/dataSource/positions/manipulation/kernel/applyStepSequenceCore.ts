@@ -1,3 +1,4 @@
+import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -195,8 +196,7 @@ export const applyStepSequenceCore = (
             edge: {
                 from: step.subjectId,
                 to: step.targetId,
-                kind: step.relationKind,
-                ...(step.relationLabel !== undefined ? { relationLabel: step.relationLabel } : {}),
+                ...edgeKindAndLabelFrom(step),
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })

@@ -25,7 +25,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
-            relationKind: 'On',
+            relationKind: 'Under',
         }
         const context = contextWith([
             ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
@@ -38,7 +38,7 @@ describe('groundChange', () => {
                 kind: 'establishRelation',
                 subjectId: TRAY_ID,
                 targetId: TABLE_ID,
-                relationKind: 'On',
+                relationKind: 'Under',
                 hostRoomId: ROOM_ID,
             }],
         })
@@ -77,7 +77,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('bench', 'benchRef1'),
             target: objectSpanRef('bench', 'benchRef2'),
-            relationKind: 'On',
+            relationKind: 'Under',
         }
         const context = contextWith([
             ['benchRef1', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],
@@ -106,7 +106,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
-            relationKind: 'On',
+            relationKind: 'Under',
         }
         const context: GroundingContext = {
             actingCharacterId: CHARACTER_ID,
@@ -127,7 +127,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
-            relationKind: 'On',
+            relationKind: 'Under',
         }
         const context = contextWith([['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }]])
 

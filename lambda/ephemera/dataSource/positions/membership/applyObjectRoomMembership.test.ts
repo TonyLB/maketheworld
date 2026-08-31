@@ -137,7 +137,7 @@ describe('applyObjectRoomMembership', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
         })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
@@ -170,7 +170,7 @@ describe('applyObjectRoomMembership', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Character', universalKey: CHARACTER_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: CHARACTER_ID, kind: 'Against' }],
         })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
@@ -201,7 +201,7 @@ describe('applyObjectRoomMembership', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
         })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])

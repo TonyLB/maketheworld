@@ -68,11 +68,15 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
             }
 
             // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment
-            // ('In'/'PartOf'), but ParsePlanStep's relationKind stays the narrow four-kind set
+            // ('In'/'PartOf'), but ParsePlanStep's relationKind stays the narrow set
             // (LD-13, parsePlanStep.ts). Unreachable today: isContainmentSpan routes containment
-            // language to nestingDefer before a Change carrying one reaches here.
-            if (change.relationKind === 'In' || change.relationKind === 'PartOf') {
-                return { ok: false, reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
+            // language to nestingDefer before a Change carrying one reaches here. **`On` joined
+            // this guard 2026-08-22** (Channel D, CD2, reduced scope): it is a hosting kind too
+            // now, deferred at ingress the same way, and equally unreachable here. **`Present`
+            // joined 2026-08-22** (presence plan PR-4): an internal port/cover mechanism, never
+            // a WML establishRelation/dissolveRelation target, deferred at ingress the same way.
+            if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On' || change.relationKind === 'Present') {
+                return { ok: false, reason: 'Containment and presence relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
             }
 
             const candidates: ParsePlanStep[] = []
@@ -86,8 +90,11 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
                             kind: change.primitive,
                             subjectId: subjectCandidate,
                             targetId: targetCandidate,
-                            relationKind: change.relationKind,
-                            ...(change.relationLabel !== undefined ? { relationLabel: change.relationLabel } : {}),
+                            // Inlined: the containment/presence guard above narrowed
+                            // `change` to the ingress-lane kinds that `ParsePlanStep` accepts.
+                            ...(change.relationKind === 'Custom'
+                                ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
+                                : { relationKind: change.relationKind }),
                             hostRoomId: hostCandidate,
                         })
                     }

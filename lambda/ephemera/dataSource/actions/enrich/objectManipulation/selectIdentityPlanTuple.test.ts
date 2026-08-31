@@ -203,64 +203,11 @@ describe('selectIdentityPlanTuple', () => {
         expect(result.verdict).toBe('defer')
     })
 
-    it('Slice 3: a carry-related object (glass On tray) computes the real closure via Expansion and resolves with the full transfer set', () => {
-        const roomGraphWithCarry = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object' as const, universalKey: trayId },
-                { tag: 'Object' as const, universalKey: glassId },
-            ],
-            edges: [{ tag: 'Relational', from: glassId, to: trayId, kind: 'On' }],
-        })
-        const stateWithCarry = buildSandboxState([roomGraphWithCarry, characterGraph])
-
-        const result = selectIdentityPlanTuple({
-            candidates: [
-                identityPlanCandidateFromSpan(
-                    candidate(trayId, 'tray', 1, { kind: 'room' }),
-                    'takeHold'
-                ),
-            ],
-            sandboxState: stateWithCarry,
-            roomId,
-            actorCharacterId: characterId,
-        })
-
-        expect(result.verdict).toBe('resolved')
-        if (result.verdict !== 'resolved') return
-        expect(result.dryRun.objectIds).toEqual([trayId, glassId])
-    })
-
-    it('Slice 3: BD-13\'s own "get tray" shape (glass On tray, tray On table) also computes the full closure + dissolve, and resolves', () => {
-        const tableId = 'OBJECT#Table' as EphemeraObjectId
-        const roomGraphWithCarryAndDissolve = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object' as const, universalKey: trayId },
-                { tag: 'Object' as const, universalKey: glassId },
-                { tag: 'Object' as const, universalKey: tableId },
-            ],
-            edges: [
-                { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
-                { tag: 'Relational', from: trayId, to: tableId, kind: 'On' },
-            ],
-        })
-        const stateWithBoth = buildSandboxState([roomGraphWithCarryAndDissolve, characterGraph])
-
-        const result = selectIdentityPlanTuple({
-            candidates: [
-                identityPlanCandidateFromSpan(
-                    candidate(trayId, 'tray', 1, { kind: 'room' }),
-                    'takeHold'
-                ),
-            ],
-            sandboxState: stateWithBoth,
-            roomId,
-            actorCharacterId: characterId,
-        })
-
-        expect(result.verdict).toBe('resolved')
-        if (result.verdict !== 'resolved') return
-        expect(result.dryRun.objectIds).toEqual([trayId, glassId])
-    })
+    // Slice 3's two "carry-related object (glass On tray)" tests are retired 2026-08-22
+    // (Channel D, CD2, reduced scope): they tested `On`'s carry absorption end to end through
+    // Expansion, which is now dead -- `On` joined `In`/`PartOf`'s hosting-kind throw in
+    // `classifyInteractionUnderTransfer`, and `carry` is unreachable from any relation kind.
+    // Real shard-based hosting (CD2h) is what would eventually carry the glass along again.
 
     it('Slice 2: an object with no boundary relational edges stays legal, unchanged (no regression)', () => {
         const result = withSandbox({

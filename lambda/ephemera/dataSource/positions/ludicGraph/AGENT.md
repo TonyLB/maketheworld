@@ -25,6 +25,7 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 | `index.ts` | **`EphemeraLudicGraph` class** (immutable instance methods) + module-level factories (`fromRoomMeta`, `fromCharacterMeta`, `seedFromActiveCharacters`) + node builders, including `nodeFromId` (LP4i: dispatches an arbitrary `EphemeraLudicTerminalPrimitive` to its correctly-tagged node) |
 | `baseClasses.ts` | **`HostRelationalEdge`** parsed in-memory view; relational parse/match/serialize helpers |
 | `healLudicGraphStructure.ts` | LP4i's self-heal: idempotent, dry-run-capable repair for `ludicGraph` structural staleness, scoped to `rootId`/root-node and `ports` (LP4d: defaults a missing/malformed `ports` to `[]`, LD-17's interim posture (b)) defaulting only. Never called from a read boundary --- only from the `Ludic Graph Stale Structure Finding` consumer (`positions/index.ts`) or an explicit manual invocation |
+| `healLudicGraphPortMismatch.ts` | LP6a's self-heal (LD-18): idempotent, dry-run-capable repair for a port whose denormalized exterior values (`kind`, `exteriorRelationLabel`) disagree with the edge held by the host the port **names**. **The division of labour with `healLudicGraphStructure.ts` is the record count, not the field list:** shape staleness is judged from one row, a mismatch needs two, so this one reads the referrer's row as well and that one never may. Repairs a disagreement with a named referrer only --- an absent referrer edge is reverse-index work (LD-17). Never called from a read boundary; only from the `Ludic Graph Port Mismatch Finding` consumer or an explicit manual invocation |
 | `index.test.ts` | Unit tests |
 
 ## Public API
@@ -47,7 +48,10 @@ class EphemeraLudicGraph {
   clone(): EphemeraLudicGraph
   equals(other: EphemeraLudicGraph): boolean
 
-  get ports(): EphemeraLudicGraphPort[] // egress list (premise 12, LP4d); required, possibly empty; inert until a producer exists
+  get ports(): EphemeraLudicGraphPort[] // egress list; required, possibly empty; inert until a producer exists
+                                        // entries carry `kind` (LP6/PR-11) --- a presence binding iff 'Present', so the
+                                        // binding count is a filter on `kind`, never ports.length --- plus the exterior
+                                        // `Custom` label, required non-empty when kind is 'Custom'
 }
 ```
 
@@ -113,6 +117,12 @@ One constraint travels with the shape and did not change: **`rootId` is recorded
 **Feature (and Area) landed as node tags in LP4b, type-level only and deliberately inert --- no factory or production path constructs one yet, matching LP4/LP2's own "nothing downstream wired up" precedent.** `EphemeraLudicGraphNode`'s `tag` union is now the full terminal-kind set (`Character | Object | Room | Feature | Area`), closing the referential-integrity gap LP4 named: terminal kinds (`EphemeraLudicTerminalPrimitive`) already admitted Feature/Area, so an edge or a future port `owner` could already name one with no node in `nodes` to back it.
 
 **Feature remains deliberately more static than Object, and this is a participation-subset limitation, not a not-a-node-at-all one (confirmed through conversation 2026-07-24, re-scoped 2026-08-19 for containment):** a Feature node is never **membership-moved**, and is never the **subject** of the four *non-containment* relation kinds (`On`/`Under`/`Against`/`Custom`) --- deliberately static, more like the *walls* of a room than its contents (look-at-able, and possibly a relation *target*, but not `transferMembership`-able). **That "never a subject" reading does not extend to containment.** `FEATURE#Niche -PartOf-> FEATURE#Wall` (LD-8, decided 2026-08-15) puts a Feature in the `from`/subject position legitimately --- **direction corrected 2026-08-20 (LD-16): containment runs member -> root**, so the *niche* is the subject asserting it is part of the wall, not the wall asserting it is part of the niche. The case and the exception it forces are unchanged; only which Feature sits at `from` moved --- the original rule was argued in 2026-07-24's vocabulary, before containment kinds existed (`In`/`PartOf` decided 2026-08-09), and reads as a contradiction only if inherited unchanged into the later one. So: no non-containment subject, no membership move, but containment subject is fine. Do not assume a Feature node otherwise inherits Object-node capabilities; it is a narrower participant by design. (This is also why `EphemeraThingId`'s inclusion of `Feature` at the catalog/Identify layer does **not** imply a graph-level `thingIds` --- the two universes differ regardless, see the Node model paragraph above.)
+
+## Reading `LP*` / `LD-*` in the comments here
+
+Comments across this module carry provenance markers like *LP4g widened...* or *direction corrected 2026-08-20 (LD-16)*. They are steps and decision rows of `AGENT.ludicGraphPorts.planning.md`, the plan that built ports into `ludicGraph` between 2026-08-15 and 2026-08-23. **That plan is closed and deleted; the markers are kept as history, not as pointers.** Every verdict of that plan's that still governs anything is restated where it governs --- in this file, in [`../AGENT.contract.md`](../AGENT.contract.md), in [`../AGENT.concepts.md`](../AGENT.concepts.md), or in a live row of [`AGENT.abstractionLayers.planning.md`](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md), whose Neighbourhood table holds the forwarding addresses. **Do not chase a marker to find a rule; the rule is here or it is nowhere.**
+
+**One verification lesson from that plan belongs with this code.** Two of its hazards failed by **discarding valid data and returning `false`** rather than by throwing or failing to compile --- a stale `HOST_RELATIONAL_EDGE_KINDS` set (a `Set` literal has no exhaustiveness requirement) and `typeof === 'string'` terminal pre-checks, both inside `isEphemeraLudicRelationalEdgeData`, **whose whole contract is to return `false`.** A passing suite is not evidence against this class. When widening a kind union or a terminal shape, add the case that *should* be accepted and watch it fail first.
 
 ## Documentation
 

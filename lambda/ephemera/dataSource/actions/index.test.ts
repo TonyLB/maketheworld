@@ -2057,7 +2057,7 @@ describe('ephemeraActionsDataSource', () => {
                 operationKind: 'establishRelation',
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
-                relationKind: 'On',
+                relationKind: 'Under',
                 hostId: hostRoom,
                 confidence: 0.9,
             })
@@ -2089,7 +2089,7 @@ describe('ephemeraActionsDataSource', () => {
                     subjectId: 'OBJECT#Broom',
                     targetId: 'OBJECT#Table',
                     hostId: hostRoom,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                     confidence: 0.9,
                 },
             })
@@ -2198,7 +2198,7 @@ describe('ephemeraActionsDataSource', () => {
                 operationKind: 'establishRelation',
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
-                relationKind: 'On',
+                relationKind: 'Under',
                 hostId: null as unknown as EphemeraRoomId,
                 confidence: 0.9,
             })

@@ -8,7 +8,6 @@ import { RelationalEdgeStillReferencedError } from '../index'
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
-const bookId = 'OBJECT#Book' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const otherRoomId = 'ROOM#Lobby' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -61,7 +60,7 @@ describe('applyTransferSet', () => {
             ],
             edges: [
                 { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
-                { tag: 'Relational', from: trayId, to: tableId, kind: 'On' },
+                { tag: 'Relational', from: trayId, to: tableId, kind: 'Against' },
             ],
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
@@ -73,24 +72,11 @@ describe('applyTransferSet', () => {
         expect(outcome).toEqual({ verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' })
     })
 
-    it('illegal: an incomplete transfer set (unaccounted carry boundary edge) is rejected, not auto-grown', () => {
-        const sourceGraph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: trayId },
-                { tag: 'Object', universalKey: glassId },
-                { tag: 'Object', universalKey: bookId },
-            ],
-            edges: [
-                { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
-                { tag: 'Relational', from: bookId, to: trayId, kind: 'On' },
-            ],
-        })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-
-        const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
-
-        expect(outcome).toEqual({ verdict: 'illegal', reasonCode: 'incompleteTransferSet' })
-    })
+    // The former "illegal: an incomplete transfer set (unaccounted carry boundary edge)" test is
+    // retired 2026-08-22 (Channel D, CD2, reduced scope): `incompleteTransferSet` is only returned
+    // when `boundaryEdgeOutcomes` finds a `carry` outcome (applyTransferSet.ts:44-47), and `carry`
+    // is now unreachable from any relation kind -- `On` (its only producer) joined `In`/`PartOf`'s
+    // hosting-kind throw. This branch is dead code pending CD3 (which would retire it formally).
 
     it('defer: an Under boundary edge on the subject moving requires interaction assessment', () => {
         const sourceGraph = testLudicGraph(roomId, {

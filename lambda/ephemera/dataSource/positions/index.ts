@@ -17,6 +17,7 @@
  * folder layout, guard registry in `subscribedEvents.ts`) is intentionally
  * named generally so that growth is additive.
  */
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
 import messageBus from '../../messageBus'
 import {
@@ -35,6 +36,7 @@ import {
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
+    isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsSubscribedEnvelope,
     type EphemeraPositionsSubscribedContent
@@ -49,6 +51,7 @@ import { executeObjectEstablishRelation } from './manipulation/relational/execut
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
+import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
@@ -82,6 +85,14 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await healLudicGraphStructure(content.ephemeraId, { dryRun: false })
                 return
             }
+            if (isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content?.ephemeraId || !content?.portId) {
+                    return
+                }
+                await healLudicGraphPortMismatch(content.ephemeraId, content.portId, { dryRun: false })
+                return
+            }
             if (isEphemeraPositionsActionsObjectDropEnvelope(envelope)) {
                 const content = await envelope.getContent()
                 if (!content || !isObjectDropPublishedPayload(content)) {
@@ -106,8 +117,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     subjectId: content.subjectId,
                     targetId: content.targetId,
                     hostId: content.hostId,
-                    relationKind: content.relationKind,
-                    relationLabel: content.relationLabel,
+                    ...relationKindAndLabelFrom(content),
                     transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,
@@ -124,8 +134,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     subjectId: content.subjectId,
                     targetId: content.targetId,
                     hostId: content.hostId,
-                    relationKind: content.relationKind,
-                    relationLabel: content.relationLabel,
+                    ...relationKindAndLabelFrom(content),
                     transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,

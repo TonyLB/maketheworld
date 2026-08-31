@@ -137,6 +137,10 @@ Builders: [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp
 
 All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts).
 
+**A character's membership host is a `ROOM`, and only a `ROOM`.** Objects are unrestricted and may be hosted by rooms, characters, objects, features and areas as the host union already allows; characters **must not** be transferred into any non-Room host's `ludicGraph`. **This is a scoping decision, not a claim that characters are ontologically unlike objects, and must not be cited as one** --- it exists to keep the character path single-hosted while the general graph work matures, and it lifts when that work does.
+
+**It is currently unenforced, and the failure is silent.** An Object is a legal `EphemeraMembershipHostId` and [`MutationKernelTransferStep`](manipulation/kernel/kernelStep.ts) already admits a character as a transferable entity, so an object-hosted character would persist successfully, then read as having zero **Room** containers, fall through to the `RoomStack`, and present as **out of play**. What holds the restriction today is four independent read-side narrowings ([`resolveCharacterRoomId`](membership/resolveCharacterRoomId.ts) and [`syncMembershipAdjacency`](membership/syncMembershipAdjacency.ts) filtering containers with `isEphemeraRoomId`, plus the Room-only apply filters under [Read surface](#read-surface-forward-graph-vs-reverse-containers)) --- none of which refuse the write. Treat this bullet as the statement of intent that those filters implement; **do not** infer from the absence of a guard that the restriction is optional.
+
 ### Public apply shape
 
 - **Args:** `{ characterId, targetRoomId: EphemeraRoomId | null }` --- `null` = out of play (disconnect). **Must not** consume stream / intent `fromRoomId` for persist.
@@ -306,15 +310,19 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 **`HostRelationalPatch`** (kernel input; one add or remove on one host):
 
 ```typescript
-type HostRelationalEdgeKind = 'On' | 'Under' | 'Against' | 'Custom'
+type HostRelationalEdgeKind =
+    | 'On' | 'In' | 'PartOf' | 'Under' | 'Against' | 'Custom' | 'Present'
 
-type HostRelationalEdge = {
-    from: EphemeraLudicTerminalPrimitive   // subject node on host graph (LP4: any legal host kind)
-    to: EphemeraLudicTerminalPrimitive     // target node on host graph (LP4: any legal host kind)
-    kind: HostRelationalEdgeKind
-    /** Required when kind === 'Custom'; persisted on the stored edge (BD-3). */
-    relationLabel?: string
-}
+/** The kind/label pairing, shared by every type that carries one. */
+type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
+    | { kind: Exclude<K, 'Custom'> }
+    | { kind: 'Custom'; relationLabel: string }
+
+type HostRelationalEdge =
+    | ({ from: EphemeraLudicTerminalPrimitive; to: EphemeraLudicTerminalPrimitive }
+        & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | ({ from: EphemeraLudicTerminalPrimitive; to: EphemeraLudicTerminalPrimitive }
+        & { kind: 'Custom'; relationLabel: string })
 
 type HostRelationalPatch = {
     hostId: EphemeraMembershipHostId
@@ -325,8 +333,9 @@ type HostRelationalPatch = {
 
 **BD-3 rules:**
 
+- **`relationLabel` belongs structurally to `Custom`**, and the rule runs **both** ways: a `Custom` edge **must** carry a non-empty label, and **no other kind may carry one at all**. This is expressed in the type (`RelationalEdgeKindAndLabel`, and `RelationalKindAndLabel` for the DTO lane's `relationKind` spelling), not by runtime checks at each layer --- an illegal pairing does not compile.
 - **`Custom`** edges **must** persist **`relationLabel`** on the stored forward-graph edge --- **not** presentation-only copy in perception.
-- Enum kinds (**`On`**, **`Under`**, **`Against`**) **must not** require **`relationLabel`** at persist; transcript may still paraphrase per unknowns.
+- **`isEphemeraLudicRelationalEdgeData` must reject a non-`Custom` edge carrying a label**, since such a value is unrepresentable and a guard accepting it would lie about what it narrows. A stored row in that shape is recovered by [`extractRelationalEdgesFromStored`](ludicGraph/baseClasses.ts)'s fallback **with the stray label stripped** --- sound and lossless. A `Custom` row with no usable label is **not** recoverable there and is dropped.
 - **`establishRelation`** ingress **must** map to **`op: 'add'`**; **`dissolveRelation`** **must** map to **`op: 'remove'`** matching **`from`**, **`to`**, **`kind`**, and **`relationLabel`** (when **`Custom`**) (**BD-7**).
 
 ### Kernel and compound apply (BD-9)
@@ -472,14 +481,51 @@ Positions **must** subscribe to:
 | --- | --- |
 | `Ludic Graph Stale Structure Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphStructure`](ludicGraph/healLudicGraphStructure.ts) |
 
-**Repair model, scoped tightly (premise 10: recorded, never derived):**
+**Repair model, scoped tightly (`rootId` is recorded, never derived):**
 
 - **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
-- **Not healable, and must not be attempted here:** `ports` (LD-17's --- a port has no interior witness, so repairing it needs the exterior) or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit.
+- **Not healable, and must not be attempted here:** `ports` or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit. **Re-scoped 2026-08-23 (LP6a):** the `ports` line above was drawn against *repairing a port at all*, on the ground that a port has no interior witness so any repair must read the exterior --- which meant the reverse index, and therefore LD-17. **A port that disagrees with the referrer it itself names is not that case:** it names the one row to check, so the repair reads one named graph and no reverse index. That repair is real, and it is the **separate** heal below, still not this one --- this handler stays single-record. What remains permanently outside both is a port missing `fromHostId`, or one whose named referrer holds no matching edge: those ask *who **should** refer here*, which only the reverse index answers.
 - **Idempotent:** at-least-once finding delivery **must** be safe --- a row already matching the shipped shape is a no-op read, no write issued.
 - **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here is LPM's reset undone.
 
 Sweep (read-only classification): [`../../../diagnostics/ludicGraphStaleStructureSweep/`](../../../diagnostics/ludicGraphStaleStructureSweep/).
+
+### `mtw.diagnostics` --- `ludicGraph` port mismatch self-heal (LP6a, LD-18)
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Ludic Graph Port Mismatch Finding` | [`index.ts`](index.ts) `receiveEvents` -> [`healLudicGraphPortMismatch`](ludicGraph/healLudicGraphPortMismatch.ts) |
+
+**Why a second heal rather than a wider first one:** shape staleness is judged from one row; a mismatch cannot be. This handler reads the interior row **and** the row of the host the port names, which is exactly what `healLudicGraphStructure` must never do.
+
+**Repair model (the [port-record conflict rule](#port-records-field-scope-and-the-conflict-rule): compare where comparison is possible; where an exterior reference exists it governs):**
+
+- **Healable:** a **crossing port** whose `kind` or `exteriorRelationLabel` disagrees with the edge(s) crossing into it in the **named** referrer's graph. The repair rewrites those two fields from the exterior edge and **must not** touch any other field, any other port, or the referrer. This heal path is **crossing-port-only, and the classifier tests for it explicitly** (PR-15, 2026-08-26): a presence port's `kind` is fixed at `'Present'` and has no exterior edge to mirror, so there is nothing here for it to disagree with. **Not an invariant that holds by itself.** Edge *incidence* cannot distinguish an edge that crosses a port from one that terminates at it, so without the test a port-to-port edge between two presence ports read as a mismatch at both ends and this heal rewrote both ports' `kind` from it --- destroying the binding rather than repairing it.
+- **Not a mismatch at all, and no write:** the referrer holds no edge into this port, its graph is absent, or its graph fails the shape guard (that last is the *structure* finding, which orders the two heals rather than duplicating them).
+- **Reported unhealable:** the matching exterior edges into a **crossing port** disagree with **each other**. A crossing port's single-use lifecycle means one crossing, so a split fan is broken exteriorly and picking one edge to believe would invent an answer --- a presence port's fan disagreeing is its normal state, not corruption, and is not this case.
+- **Idempotent, and by recheck rather than by assumption:** the handler re-reads both rows and re-classifies before writing, so at-least-once redelivery of a finding whose mismatch is already repaired is a no-op read.
+- **Never called from a read boundary,** for both of the reasons the structure heal already carries: a read-time default hides a stale row forever, and a read-time repair makes every read a write (LD-18's binding constraint).
+
+Comparison (shared with the sweep, one definition): [`@tonylb/mtw-gateways/ts/ephemera/positions`](../../../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts) `classifyLudicGraphPortMismatch`.
+Sweep (read-only classification): [`../../../diagnostics/ludicGraphPortMismatchSweep/`](../../../diagnostics/ludicGraphPortMismatchSweep/).
+
+---
+
+## Port records: field scope and the conflict rule
+
+A `ludicGraph` port ([`EphemeraLudicGraphPort`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) is stored **interior-side only** --- on the graph of the whole that owns the port --- but it carries facts of **two scopes**, and which scope a field belongs to is what decides who wins a disagreement. Recorded here 2026-08-23, on the close of the ludicGraph-ports task plan; the two self-heal sections above are the shipped consequence and cite this rule rather than restating it.
+
+**Shipped 2026-08-26 as a discriminated union on `kind` (the port vocabulary split):** `EphemeraCrossingPort` (`kind !== 'Present'`, optional `exteriorRelationLabel`) and `EphemeraPresencePort` (`kind: 'Present'`, no `exteriorRelationLabel` field at all --- carrying one is a compile-time-unrepresentable shape on this branch, not just a rejected runtime value). `EphemeraLudicGraphPort` is kept as the union alias, for call sites not yet narrowed on `kind`.
+
+- **Interior scope --- the port's existence, its `portId`, its single-use lifecycle, and its `kind`.** The interior owns the binding, so these are authoritative without qualification: no exterior fact can overrule them. **For a crossing port** that authority is exercised **against** an exterior witness --- a disagreeing exterior edge triggers the heal above, which rewrites `kind` from that edge rather than defending the stored value. **For a presence port** there is no such witness to check against, so the same authority is simply never contested.
+- **Exterior scope --- `fromHostId` and the exterior relation label (`exteriorRelationLabel`).** These are facts *about the exterior relationship*, held interior-side as **denormalized copies**. The authoritative instance is the referring edge in the named host's own graph.
+- **The conflict rule, and it is conditional --- this is the whole of it: compare where comparison is possible; where an exterior reference exists it governs; where none exists the stored value stands.**
+- **This is not a witness requirement.** An uncontested value needs no exterior instance to justify it. A port whose named referrer holds no matching edge is **not** thereby wrong, and **must not** be repaired toward absence.
+- **One rule, not one per field --- for a crossing port.** The same shape governs `kind` --- checked wherever an exterior edge exists, vacuously true where none does --- so a crossing port's record has a single consistency rule. **A presence port has no exterior edge to check `kind` against at all**, so this row states what the rule looks like when it has something to compare, not a claim that spans both port kinds.
+
+**Two things this rule replaced, stated because both were believed and both were too strong.** *The halves are complementary, not duplicated* is **false**: the port names its host and the referring edge names the port, so `fromHostId` is reconstructible from the exterior side and the two can contradict each other. And *the interior is authoritative* was an over-reading of the locked frame's clause about the interior **owning the binding** --- ownership of the binding is not authority over every field on it. The mental-model half of this correction is in [`AGENT.concepts.md`](AGENT.concepts.md#wholes-parts-and-ports).
 
 ---
 

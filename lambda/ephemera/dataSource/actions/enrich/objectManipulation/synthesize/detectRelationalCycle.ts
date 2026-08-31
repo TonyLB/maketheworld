@@ -16,8 +16,9 @@ import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
  *
  * `'On' | 'Under'` is its own grouping, not AB-54's hosting-kind/peer-kind
  * partition (`On` hosts, `Under` is a peer) -- recorded, not resolved, on
- * LD-12 in AGENT.ludicGraphPorts.planning.md, which owns whether/how this
- * parameter should change.
+ * AB-63 in AGENT.abstractionLayers.planning.md, which owns whether/how this
+ * parameter should change. (That row was LD-12 in the ludicGraph-ports plan
+ * until 2026-08-23; it moved when that plan closed.)
  */
 type CycleWalkState = {
     /** Nodes on the current recursion path --- a hit here is a genuine cycle. */
@@ -36,13 +37,16 @@ export function detectRelationalCycle(
     kind: 'On' | 'Under'
 ): boolean {
     /**
-     * `edge.from`/`.to` are `EphemeraLudicTerminalPrimitive`-typed (LP4) --- any legal
-     * host-kind component --- but `'On'`/`'Under'` are spatial placement kinds that only
-     * ever connect Objects in practice; a non-Object endpoint here would not be a cycle
-     * this operator's semantics care about, so it's filtered out rather than asserted on.
+     * `edge.from`/`.to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * host-kind component or a port-qualified reference on one --- but `'On'`/`'Under'` are
+     * spatial placement kinds that only ever connect Objects in practice; a non-Object
+     * endpoint here would not be a cycle this operator's semantics care about, so it's
+     * filtered out rather than asserted on.
      */
     const adjacency = graph.relationalEdges
-        .filter((edge) => edge.kind === kind && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to))
+        .filter((edge) => edge.kind === kind
+            && typeof edge.from === 'string' && typeof edge.to === 'string'
+            && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to))
         .reduce((acc, edge) => {
             const from = edge.from as EphemeraObjectId
             const to = edge.to as EphemeraObjectId

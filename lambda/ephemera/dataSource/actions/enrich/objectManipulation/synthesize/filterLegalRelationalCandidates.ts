@@ -46,7 +46,11 @@ const isLegalRelationalCandidate = (
         return false
     }
 
-    if (step.relationKind !== 'On' && step.relationKind !== 'Under') {
+    // `On` dropped out of this ingress-lane step's `relationKind` 2026-08-22 (Channel D, CD2,
+    // reduced scope) -- ingress can no longer produce it, so only `Under` needs the cycle check
+    // here. `detectRelationalCycle` itself keeps its own `'On' | 'Under'` signature unchanged;
+    // narrowing it (or not) for other callers is CD4's question, not this call site's.
+    if (step.relationKind !== 'Under') {
         return true
     }
 

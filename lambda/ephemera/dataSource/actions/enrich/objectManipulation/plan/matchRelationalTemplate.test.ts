@@ -2,11 +2,11 @@ import type { ParseSkeleton } from '../parse/parseToken'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
 
 describe('matchRelationalTemplate', () => {
-    it('matches an establishRelation template with an enum relation ("put broom on table")', () => {
+    it('matches an establishRelation template with an enum relation ("put broom under table")', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-            { type: 'text', text: 'on' },
+            { type: 'text', text: 'under' },
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
@@ -17,9 +17,20 @@ describe('matchRelationalTemplate', () => {
                 primitive: 'establishRelation',
                 subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
                 target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
-                relationKind: 'On',
+                relationKind: 'Under',
             },
         })
+    })
+
+    it('returns nestingDefer for "on" too, same as containment (Channel D CD2: On joins In/PartOf) ("put broom on table")', () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'put' },
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        ]
+
+        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'nestingDefer' })
     })
 
     it('matches a dissolveRelation template, falling to Custom for a non-enum, non-containment prep ("take rope off crate")', () => {
@@ -101,11 +112,11 @@ describe('matchRelationalTemplate', () => {
         expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'noMatch' })
     })
 
-    it('builds two distinct Referents by stableRefKey even when span text is identical ("put bench on bench")', () => {
+    it('builds two distinct Referents by stableRefKey even when span text is identical ("put bench under bench")', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'bench', stableRefKey: 'benchRef1' },
-            { type: 'text', text: 'on' },
+            { type: 'text', text: 'under' },
             { type: 'objectSpan', span: 'bench', stableRefKey: 'benchRef2' },
         ]
 

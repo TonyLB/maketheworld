@@ -50,8 +50,8 @@ const defaultWriteHealedLudicGraph = async (
 /**
  * Scoped, canonical repair for three fields: `rootId` on a host-bound graph (canonically
  * `hostId`) and the root's own node (canonically derivable from `rootId` alone via
- * `nodeFromId`), per premise 10 (`ludicGraph/AGENT.md`) --- LP4i; and `ports`, the egress list
- * (premise 12), defaulted to `[]` --- LP4d. The `ports` default is LD-17's interim posture (b)
+ * `nodeFromId`), recorded-never-derived per `ludicGraph/AGENT.md`; and `ports`, the egress list,
+ * defaulted to `[]`. The `ports` default is the interim posture of AB-62 (abstraction-layers plan)
  * (a graph that exists but carries no recorded `ports` is treated as *not yet written*, not as
  * *lazily always empty*): it is a one-time write-carrying repair, not a `??=` read-boundary
  * default (`fromFieldPayload`/the guard stay strict), and it does not resolve LD-17's

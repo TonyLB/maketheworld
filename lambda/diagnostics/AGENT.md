@@ -180,6 +180,23 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 **Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries a `CloudWatchEvent` rule on `mtw.diagnostics` / `Ludic Graph Stale Structure Finding` (added 2026-08-20, fixing a gap where the sweep's own `ingress.ts` case was also missing until the same day --- neither the sweep's direct-invoke trigger nor its finding's delivery worked before then). Ephemera **`mtw.ephemera.positions`** consumes it via [`healLudicGraphStructure`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphStructure.ts) (idempotent repair, scoped to defaulting `rootId`/the root's own node, and `ports` --- LP4d, LD-17's interim posture (b) --- see that file's own doc comment for the exact healable set and what remains outside it). The consumer always commits (`dryRun: false`); dry-run mode exists for manual/operator invocation, not for the finding-triggered path.
 
+## Ludic Graph Port Mismatch sweep (`ludicGraph` port-vs-edge disagreement diagnostics)
+
+**Purpose:** Read-only sweep for LP6a/LD-18. A `ludicGraph` port denormalizes two **exterior** facts interior-side --- the referring edge's `kind` and its `Custom` label --- and nothing keeps those copies honest across a shard boundary. Compares each stored port against the edge held by the host the port itself **names**, and reports one finding per disagreeing port.
+
+**Separate from the stale-structure sweep on purpose:** that one is honest because it is a single-row **caller** of the shipped shape guard; a mismatch cannot be judged from one row, so folding it in would give it the second theory of staleness its design refuses. This sweep follows `roomOccupancyDriftSweep`'s cross-record shape instead.
+
+**Entrypoints:**
+
+- Direct invoke: `{ type: 'LudicGraphPortMismatchSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics` ([`dataSource/index.ts`](dataSource/index.ts)).
+- No `mtw.diagnostics` EventBridge trigger and no scheduled/cron trigger; operator-invoked, like its sibling.
+
+**Finding contract:** `mtw.diagnostics` / `Ludic Graph Port Mismatch Finding` with payload `{ ephemeraId: EphemeraMembershipHostId, portId: string }` --- the **port** is the subject, not the row, since a mismatch is one crossing being wrong. Optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer` and an inline `EventBridgeClient`. Implementation: [`ludicGraphPortMismatchSweep/`](ludicGraphPortMismatchSweep/).
+
+**Evaluation:** Scans the same five host-kind `DataCategory`s and indexes the rows by `EphemeraId`, so **one scan supplies both sides of every comparison** --- a port names its referrer, and the referrer is already in hand. No per-port fetch and no reverse index. The comparison itself lives in the shared package ([`classifyLudicGraphPortMismatch`](../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts)) because the ephemera-side self-heal rechecks with the same function. A mismatch requires the matching exterior edges to be **unanimous** and to disagree with the port; a fan disagreeing with itself is reported but carries no correction. **Not findings, deliberately:** no matching edge, an absent or shape-stale referrer graph, or an edge naming the same owner but a different port.
+
+**Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries the detail-type on its `mtw.diagnostics` rule; ephemera `mtw.ephemera.positions` repairs via [`healLudicGraphPortMismatch.ts`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphPortMismatch.ts), which re-reads both rows and re-classifies before writing.
+
 ## Related docs
 
 - Diagnostics **`internalCache`** slice (sweep read handlers): [`internalCache/AGENT.md`](internalCache/AGENT.md)

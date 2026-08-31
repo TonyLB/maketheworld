@@ -317,7 +317,7 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         subjectId: 'OBJECT#Broom',
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
-        relationKind: 'On' as const,
+        relationKind: 'Under' as const,
     }
 
     it('accepts a valid payload', () => {
@@ -366,7 +366,7 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
         subjectId: 'OBJECT#Broom',
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
-        relationKind: 'On' as const,
+        relationKind: 'Under' as const,
     }
 
     it('accepts a valid payload', () => {

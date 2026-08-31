@@ -1067,7 +1067,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                 },
                 TAKE_HOLD_CHARACTER
             )
@@ -1079,7 +1079,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                     operation: 'establish',
                     beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
                 },
@@ -1095,7 +1095,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             expect(worldPublishes[0][0]).toMatchObject({
                 targets: [TAKE_HOLD_ROOM],
                 displayProtocol: 'WorldMessage',
-                message: ['Alice puts broom on table'],
+                message: ['Alice puts broom under table'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
             })
             publishSpy.mockRestore()
@@ -1113,7 +1113,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                 },
                 TAKE_HOLD_CHARACTER
             )
@@ -1125,7 +1125,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'On',
+                    relationKind: 'Under',
                     operation: 'dissolve',
                     beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
                 },

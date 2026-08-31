@@ -34,6 +34,9 @@ export type DiagnosticsApiOrphanedImprovisedObjectSweepHeader =
 export type DiagnosticsApiLudicGraphStaleStructureSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'LudicGraphStaleStructureSweep' }
 
+export type DiagnosticsApiLudicGraphPortMismatchSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'LudicGraphPortMismatchSweep' }
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
@@ -94,6 +97,12 @@ const isDiagnosticsApiLudicGraphStaleStructureSweepHeader: HeaderGuard<Diagnosti
     header.dataSourceKey === 'api.diagnostics' && header.type === 'LudicGraphStaleStructureSweep'
 )
 
+const isDiagnosticsApiLudicGraphPortMismatchSweepHeader: HeaderGuard<DiagnosticsApiLudicGraphPortMismatchSweepHeader> = (
+    header
+): header is DiagnosticsApiLudicGraphPortMismatchSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'LudicGraphPortMismatchSweep'
+)
+
 export const isDiagnosticsSubscribedHeader: HeaderGuard<
     DiagnosticsConnectionsProblemHeader |
     DiagnosticsEphemeraObjectsProblemHeader |
@@ -111,7 +120,8 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiComponentVerticalMisalignmentSweepHeader(header) ||
     isDiagnosticsApiRenderCacheDriftSweepHeader(header) ||
     isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
-    isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header)
+    isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header) ||
+    isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -163,6 +173,11 @@ export const isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope = makeStreami
     Extract<DiagnosticsAPIPayload, { type: 'LudicGraphStaleStructureSweep' }>,
     DiagnosticsApiLudicGraphStaleStructureSweepHeader
 >(isDiagnosticsApiLudicGraphStaleStructureSweepHeader)
+
+export const isDiagnosticsApiLudicGraphPortMismatchSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'LudicGraphPortMismatchSweep' }>,
+    DiagnosticsApiLudicGraphPortMismatchSweepHeader
+>(isDiagnosticsApiLudicGraphPortMismatchSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,
