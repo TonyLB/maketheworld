@@ -1,6 +1,6 @@
 # Edge-chain prototype vertical (PV-1)
 
-**Status:** In progress. **Next step: PV1-1**, referent search survives nesting.
+**Status:** In progress. **Next step: PV1-1b**, consolidate object-lifecycle membership onto the pipeline.
 
 **This is an implementation plan.** It follows [`taskPlanning/AGENT.md`](../../AGENT.md) and **not** [`AGENT.designVariant.md`](../../AGENT.designVariant.md): code here is licensed by shipping, not by a tier; resolved decision rows are removed, not graduated; Progress is a running log, not a phase-grain view.
 
@@ -75,17 +75,18 @@ Specified before the code (PV1-0), since PV-1's value is that it can produce an 
 | 2026-08-31 | PV1-0 done: table/cup/string manual run, four records specified. Found while checking it: the cup's own row and the adjacency row both carry clause 3; Acme delivery does not go through `executeObjectMove`, so the spawn path's missing ports are an uncovered path, not clause-3 evidence. Nothing built. |
 | 2026-08-31 | PV1-1b added: room-only entry points are not required by any live rule (`AGENT.implementation.md`'s citation of `D14` is undefined in the repo, and the atomicity gap it traces to was closed by the `MultiKeyUpdate` migration). Presence-port mint location pinned at PV1-2. Nothing built. |
 | 2026-08-31 | PV1-1b re-scoped: room-level membership joins the same pipeline as play-level, and the scale-specific mutators are deleted (not generalized in place). The op layer and kernel are already host-general and nullable-destination; all three narrowings sit in the ring between them. PV1-2's singular-`fromHostId` bullet corrected to match. Nothing built. |
+| 2026-08-31 | PV1-1 done: `roomObjectCatalogForCharacter.ts` walks into hosted objects' own `ludicGraph`s (`collectNestedObjectIds`, BFS, depth cap 5, visited set for cycles), each object fetched via `internalCache.Positions.getLudicGraph`. Tested against hand-built fixtures (nested-cup regression test, depth-cap boundary, cyclic-fixture termination). Scope is the room catalog only — `heldInventoryCatalogForCharacter.ts` is left flat, deliberately, since neither this slice's done-when nor the readout's test step needs held-object nesting; CC3's fuller discharge (both catalogs) is future work. `roomObjectLabelsForCharacter.test.ts`'s shared deps fixture needed the same `getObjectLudicGraph` no-op default the new recursion introduced. Full ephemera suite and `tsc --noEmit` (ephemera, mtw-interfaces) green. |
 
 ## Recommended order
 
 Pending work is `- [ ]` and completed work is `- [X]`; mark nested lines `[X]` as each is done, so partial progress on a slice is visible. Updating these checkboxes is part of *done* for the slice, after tests pass.
 
 - [X] **PV1-0. Write the readout, before any code.** Done 2026-08-31 — see [The readout](#the-readout).
-- [ ] **PV1-1. Referent search survives nesting.**
-  - [ ] Extend the catalog to walk into hosted objects' graphs by Dynamo read recursion. No `ludicCache` — a correct recursive read discharges CC3's prerequisite and a cache can substitute later behind a stable interface.
-  - [ ] Depth cap of five (testing bound, not a claim about real nesting depth) plus a visited set (terminates cyclic graphs).
-  - [ ] Build against hand-built nested fixtures — the graph already round-trips hosting shape (CD1: `In`/`PartOf` persistence-tested but inert).
-  - [ ] **Done when:** a cup nested in a tray fixture can be named and acted on from the room, with a test that fails against the pre-nesting enumeration.
+- [X] **PV1-1. Referent search survives nesting.**
+  - [X] Extend the catalog to walk into hosted objects' graphs by Dynamo read recursion. No `ludicCache` — a correct recursive read discharges CC3's prerequisite and a cache can substitute later behind a stable interface.
+  - [X] Depth cap of five (testing bound, not a claim about real nesting depth) plus a visited set (terminates cyclic graphs).
+  - [X] Build against hand-built nested fixtures — the graph already round-trips hosting shape (CD1: `In`/`PartOf` persistence-tested but inert).
+  - [X] **Done when:** a cup nested in a tray fixture can be named and acted on from the room, with a test that fails against the pre-nesting enumeration.
 - [ ] **PV1-1b. Consolidate object-lifecycle membership onto the instruction / planner / compiler / kernel pipeline; retire the scale-specific mutators.**
   - [ ] Widen [`parsePlanStep.ts:10-15`](../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/parsePlanStep.ts)'s `TransferMembershipStep`: `fromHostId` to a set, `toHostId` to nullable (matches the op layer's `froms`/`to` and the kernel step's `fromHostIds`/`toHostId`, both already general).
   - [ ] Widen [`buildObjectMoveOp.ts:47-48`](../../../lambda/ephemera/dataSource/positions/membership/buildObjectMoveOp.ts): stop narrowing `froms: [args.fromHostId]` and `to` non-null.

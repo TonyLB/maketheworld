@@ -19,6 +19,7 @@ const catalogPerspectiveDeps = {
     getCharacterAssets: async () => ['ASSET#Test'],
     resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
     getComponentAggregate: async () => [],
+    getObjectLudicGraph: async (objectId: EphemeraObjectId) => testLudicGraph(objectId),
 }
 
 describe('getRoomObjectLabelsForCharacter', () => {
