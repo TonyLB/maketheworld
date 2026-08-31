@@ -142,7 +142,19 @@ No subclass hierarchy is required if the factory + shared class suffice; **`Stan
 
 v1 [`StandardLudicGraph`](../../components/ludicGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
 
-Play-time **Relational** edges (`On`, `Under`, `Against`, `Custom`) are prototyped on ephemera room host graphs ([`EphemeraLudicRelationalEdgeData`](../../../../mtw-interfaces/ts/ephemeraMeta.ts)); heterogeneous WML **`EdgeList`** for room/container graphs is TBD.
+Play-time **Relational** edges ([`EphemeraLudicRelationalEdgeData`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) are a separate layer with its own kind vocabulary and its own identity scheme. Heterogeneous WML **`EdgeList`** for room/container graphs is TBD, and the three notes below are what it would have to reconcile.
+
+**Kinds partition in three classes, not one flat list** (`HostRelationalEdgeKind`; spec: [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports), AB-54):
+
+| Class | Kinds | Meaning |
+| --- | --- | --- |
+| **Hosting** | `On`, `In`, `PartOf` | Puts the subordinate node in the superior's own graph --- a cup `On` a tray is a node in the **tray's** `ludicGraph`, and the tray is a node in the room's |
+| **Peer** | `Under`, `Against`, `Custom` | Leaves both endpoints in one graph and hosts nothing |
+| **Partitioning** | `Present` | Neither hosting nor peer |
+
+**`On` is not an authorable relation, and host graphs are not only rooms.** Because `On` is a hosting kind, it is reached as a **containment argument on a rehost operation** rather than by establishing an edge --- there is no operation that "establishes `On`". Hosting also makes **objects** hosts with their own `ludicGraph`, so any future member covering these kinds must not assume a room-scoped graph or an author-declared `On` edge.
+
+**Two identity schemes, deliberately unrelated.** This doc's **Edge uuid identity** invariant is authoring-time and scoped to one Area. Relational edges instead carry optional `edgeId` (the relationship: its endpoints) and `chainId` (**one route** realizing it --- the legs of a relation crossing a port boundary share a `chainId`, and a second route over the same relationship mints a new `chainId` on the existing `edgeId`). The fields round-trip through storage today but no write path mints them yet. **A heterogeneous `EdgeList` must decide which scheme it stores rather than assuming `uuid` covers both.**
 
 ## Related docs
 
