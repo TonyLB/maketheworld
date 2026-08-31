@@ -9,18 +9,48 @@ import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferS
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
-// LP4g: widened from EphemeraObjectId/graph.objectIds to the full terminal-kind set,
-// via the kind-indifferent nodeIds getter LP4 built for exactly this purpose.
-const findHostOf = (
+/**
+ * The hosts (plural) an id currently appears on as a node --- LP4g's `findHostOf`, widened from a
+ * single-match short-circuit. A node can legitimately be a member of more than one locked graph at
+ * once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
+ * whatever *it* sits in (its own container) and the self-referencing root of its own shard --- both
+ * of those graphs can be in the same footprint (e.g. a `put cup on table` transfer locks the room
+ * *and* the table's own shard). Returning every match, not just the first one met while walking the
+ * map, is what lets the caller below tell "genuinely on two different hosts" apart from "this
+ * particular id happens to be a node of two graphs, only one of which is shared with the other
+ * endpoint."
+ */
+const hostsOf = (
     id: EphemeraLudicTerminalPrimitive,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraMembershipHostId | undefined => {
+): EphemeraMembershipHostId[] => {
+    const hosts: EphemeraMembershipHostId[] = []
     for (const [hostId, graph] of graphs) {
         if (graph.nodeIds.has(id)) {
-            return hostId
+            hosts.push(hostId)
         }
     }
-    return undefined
+    return hosts
+}
+
+/**
+ * Resolves the one host both endpoints of a relational step actually share, from each endpoint's
+ * full candidate list (see `hostsOf`) rather than comparing each endpoint's independently-first-met
+ * match. Two ids that are each members of more than one locked graph, but share only one of them, is
+ * exactly the AB-54 hosting-kind shape --- a plain first-match-per-side comparison mis-resolves it
+ * whenever the two candidate lists happen to be enumerated in an order that meets a *different*
+ * (non-shared) graph first for one side, which is precisely what produced a spurious "do not share a
+ * host" throw for `On`-hosted moves whose target root also sat, ordinarily, inside another locked
+ * container.
+ */
+const findSharedHost = (
+    subjectId: EphemeraLudicTerminalPrimitive,
+    targetId: EphemeraLudicTerminalPrimitive,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): { subjectHosts: EphemeraMembershipHostId[]; targetHosts: EphemeraMembershipHostId[]; sharedHost: EphemeraMembershipHostId | undefined } => {
+    const subjectHosts = hostsOf(subjectId, graphs)
+    const targetHosts = hostsOf(targetId, graphs)
+    return { subjectHosts, targetHosts, sharedHost: subjectHosts.find((hostId) => targetHosts.includes(hostId)) }
 }
 
 /**
@@ -192,19 +222,23 @@ export const applyStepSequenceCore = (
         }
 
         // establishRelation / dissolveRelation: derive shared host from live graph state,
-        // throw on mismatch (BD-33 assert-and-throw), else apply the patch there.
-        const subjectHost = findHostOf(step.subjectId, graphs)
-        const targetHost = findHostOf(step.targetId, graphs)
-        if (subjectHost === undefined || targetHost === undefined) {
+        // throw on mismatch (BD-33 assert-and-throw), else apply the patch there. See
+        // `findSharedHost`'s doc comment for why this takes each endpoint's full candidate list
+        // rather than an independent first-match per side --- an AB-54 hosting-kind target is
+        // structurally a member of two locked graphs at once (its own shard's root, and wherever
+        // it itself sits), and only the intersection tells "on two different hosts" apart from
+        // "one endpoint has two homes, only one of them shared."
+        const { subjectHosts, targetHosts, sharedHost } = findSharedHost(step.subjectId, step.targetId, graphs)
+        if (subjectHosts.length === 0 || targetHosts.length === 0) {
             return { verdict: 'illegal', reasonCode: 'staleRelationalCandidate' }
         }
-        if (subjectHost !== targetHost) {
+        if (sharedHost === undefined) {
             throw new Error(
                 `${step.subjectId}/${step.targetId} do not share a host --- structural invariant violated (sameHost should have repaired this)`
             )
         }
-        const patched = graphs.get(subjectHost)!.applyRelationalPatch({
-            hostId: subjectHost,
+        const patched = graphs.get(sharedHost)!.applyRelationalPatch({
+            hostId: sharedHost,
             edge: {
                 from: step.subjectId,
                 to: step.targetId,
@@ -212,7 +246,7 @@ export const applyStepSequenceCore = (
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })
-        graphs.set(subjectHost, patched)
+        graphs.set(sharedHost, patched)
     }
 
     return { verdict: 'legal', graphs, captures }

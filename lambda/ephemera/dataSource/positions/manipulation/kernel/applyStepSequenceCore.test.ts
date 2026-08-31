@@ -114,6 +114,38 @@ describe('applyStepSequenceCore', () => {
         expect(nextGraph.relationalEdges).toEqual([{ from: characterId, to: tableId, kind: 'On' }])
     })
 
+    it('AB-54 hosting kinds: establishRelation resolves the shared host by intersection, not first-match-per-side (put cup on table)', () => {
+        // Reproduces the production bug: `tableId` is simultaneously an ordinary member of the
+        // room's graph (it sits there) *and* the self-referencing root of its own shard graph (a
+        // hosting kind puts the moved object there, AB-54) --- both graphs are locked in the same
+        // footprint. A same-graph scan that takes each endpoint's *first* match independently can
+        // pick the room for `tableId` while `trayId` (just transferred) only resolves in the
+        // table's own shard, spuriously throwing "do not share a host" for a perfectly legal move.
+        // `findSharedHost` fixes this by intersecting each endpoint's full candidate list instead.
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+        })
+        const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const steps: MutationKernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: tableId },
+            { kind: 'establishRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+        ]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        const nextRoom = outcome.graphs.get(roomId)!
+        const nextTableShard = outcome.graphs.get(tableId)!
+        expect(nextRoom.objectIds.has(trayId)).toBe(false)
+        expect(nextRoom.objectIds.has(tableId)).toBe(true)
+        expect(nextTableShard.objectIds.has(trayId)).toBe(true)
+        expect(nextTableShard.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
+    })
+
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: MutationKernelStep[] = [
