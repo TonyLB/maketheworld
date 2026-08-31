@@ -74,10 +74,12 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         )
 
         expect(result).toEqual({ ok: true, persisted: true, destroyedIds: [OBJECT_ROOM] })
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
-            { objectId: OBJECT_ROOM },
-            { messageBus, streamEvent: positionsStreamEvent }
-        )
+        expect(applyClearMembershipImpl).toHaveBeenCalledWith({
+            entityId: OBJECT_ROOM,
+            target: null,
+            messageBus,
+            streamEvent: positionsStreamEvent,
+        })
         expect(deleteObjectImpl).toHaveBeenCalledWith({
             objectId: OBJECT_ROOM,
             affectedRoomIds: [ROOM_A],
@@ -113,8 +115,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
 
         expect(result).toEqual({ ok: true, persisted: true, destroyedIds: [OBJECT_HELD] })
         expect(applyClearMembershipImpl).toHaveBeenCalledWith(
-            { objectId: OBJECT_HELD },
-            expect.any(Object)
+            expect.objectContaining({ entityId: OBJECT_HELD, target: null })
         )
     })
 

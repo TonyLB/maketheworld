@@ -192,7 +192,9 @@ An unresolvable `captureId` **throws**. Capture ids are minted only by the compi
 
 ---
 
-## Section B --- Shared membership adapter (`adapters/`)
+## Section B --- Shared membership adapter (`adapters/`) [SUPERSEDED, PV1-1b]
+
+**This section describes a retired module.** `adapters/` (`planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts`) is deleted; every route below now calls `executeMembershipTransfer` ([`membership/executeObjectMove.ts`](membership/executeObjectMove.ts)) directly, which inlines the end-state diff (no separate planner module) and fetches its own `priorContainers`. The **bounded** apply mode described below had no caller among the migrated routes and was not carried forward. Left in place, not rewritten, for [`taskPlanning/lambda/ephemera/AGENT.edgeChainPrototypeVertical.planning.md`](../../../../../taskPlanning/lambda/ephemera/AGENT.edgeChainPrototypeVertical.planning.md)'s PV1-5 full corpus sweep --- read it as history, not as current behavior.
 
 The adapter plans *room-host* membership transfers for the routes that do not go through the Synthesize executor. Its whole public surface is `computeMembershipDiff`, `planMembershipTransfer`, and `planObjectClearFromAllHosts`. There is deliberately **no barrel** --- call sites import the concrete module they need.
 
@@ -308,12 +310,14 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 | Ingress | Coordinator | Planning | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Object room place / remove / drift repair | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Improvisational object spawn | [`applyObjectRoomMembership`](../membership/applyObjectRoomMembership.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | `planMembershipTransfer` (end-state) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Object destroy / edit | [`applyObjectClearMembership`](membership/applyObjectClearMembership.ts) | `planObjectClearFromAllHosts` + explicit boundary sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) (thin wrapper) | `executeMembershipTransfer` (end-state, inline diff) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + explicit boundary sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Synthesize executor, re-run at execute time from a **grounded** seed | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Live carry-closure / boundary sweep on repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+
+(PV1-1b: `executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the `adapters/` planner. See [Section B's superseded note](#section-b--shared-membership-adapter-adapters-superseded-pv1-1b) above.)
 
 **Documented exception (not a parallel persist path):**
 
@@ -339,7 +343,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Facts stream in step order, before the `RoomUpdate` publish loop | [`factsForStep.ts`](kernel/factsForStep.ts) |
 | Relational edges are forward-graph only --- no adjacency dual-write | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | On graph/adjacency conflict, `ludicGraph` wins | [`../ludicGraph/`](../ludicGraph/) |
-| Transfer planning lives in the shared adapter (`adapters/`) or the Synthesize executor, never in the kernel | [`adapters/`](adapters/) |
+| Transfer planning lives in `executeMembershipTransfer` (inline diff) or the Synthesize executor, never in the kernel | [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) |
 | A capture step carries no write payload and cannot reach the write set | [`kernelStep.ts`](kernel/kernelStep.ts) (shape), [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Captures are recorded by assignment, never append, so a reducer retry cannot duplicate them | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Narrate and capture *steps* are constructed only inside `kernel/compile/` | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
@@ -376,22 +380,15 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | [`kernel/presentStepSequence.ts`](kernel/presentStepSequence.ts) | The presentation kernel: read-only publish over `describe` (terminal) and `narrate` (positional, capture-resolved) steps |
 | [`kernel/compile/`](kernel/compile/) | Abstract-op compile layer --- see [Compile layer](#compile-layer-kernelcompile) above |
 
-### `adapters/`
-
-| Path | Role |
-| --- | --- |
-| [`adapters/planMembershipTransfer.ts`](adapters/planMembershipTransfer.ts) | End-state / bounded room-host transfer planner |
-| [`adapters/computeEndStateRoomDiff.ts`](adapters/computeEndStateRoomDiff.ts) | End-state room `MembershipDiff` |
-| [`adapters/planObjectClearFromAllHosts.ts`](adapters/planObjectClearFromAllHosts.ts) | Destroy/edit clear projection |
-
 ### `membership/`
+
+(PV1-1b retired `adapters/` entirely --- its planner is now inlined in `executeMembershipTransfer` below.)
 
 | Path | Role |
 | --- | --- |
 | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) | Narration owner for both object-move directions: derives actor + room from the host pair, resolves labels, wraps `executeObjectMove`, declares the bundle and presents on `ok: true` |
-| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Execution for either direction. Seeds the executor **grounded** from concrete host ids --- no `GroundingContext`, no referent round trip --- compiles once, commits the plan's mutation steps |
-| [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts) | Destroy/edit clear: explicit boundary sweep + `dissolveRelation` + widened `transferMembership` |
-| [`membership/types.ts`](membership/types.ts) | `ObjectMembershipDiff` (shared with `buildObjectMovedFact`) + clear-membership apply result |
+| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Two entry points. `executeObjectMove`: execution for either take/drop direction --- seeds the executor **grounded** from concrete host ids, no `GroundingContext`, no referent round trip, compiles once, commits the plan's mutation steps. `executeMembershipTransfer`: single entity (object or character), diffed against its own fetched `priorContainers`, no carry closure, no executor --- object entities get an explicit per-host boundary sweep, character entities never do |
+| [`membership/types.ts`](membership/types.ts) | `ObjectMembershipDiff` (shared with `buildObjectMovedFact`) |
 
 ### `relational/`
 

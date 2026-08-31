@@ -1,14 +1,13 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import internalCache from '../../../internalCache'
 import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { planMembershipTransfer } from '../manipulation/adapters/planMembershipTransfer'
-import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
+import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
 import type { CommitStepSequenceDeps } from '../manipulation/kernel/commitStepSequence'
-import type { MutationKernelStep } from '../manipulation/kernel/kernelStep'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
@@ -49,18 +48,21 @@ const membershipDiffFromProjection = (projection: {
 })
 
 /**
- * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel,
- * matching `applyObjectRoomMembership`/`applyObjectClearMembership`'s sibling migrations. Unlike the
- * object routes, this route builds no `dissolveRelation` steps at all --- `HostRelationalEdge` is
- * object-only (BD-36's character-relation widening is explicitly deferred), so a character can never
- * be a relational-edge endpoint; there is nothing for `boundaryEdgeOutcomes` to sweep here, not just
- * nothing found in practice. The bare `transferMembership` step is the whole sequence, unless the
- * caller supplies `compileMutationSteps` (Phase 2, navigate) --- see that argument's doc comment.
+ * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel.
+ * A thin wrapper (roster snapshots, `CharacterMeta` invalidation, `EphemeraUpdate` publish) around
+ * `executeMembershipTransfer` (PV1-1b), which also absorbed the object routes'
+ * `applyObjectRoomMembership`/`applyObjectClearMembership`. This route's `entityId` is always a
+ * character, so `executeMembershipTransfer` never runs its boundary sweep for it --- `HostRelationalEdge`
+ * is object-only (BD-36's character-relation widening is explicitly deferred), so a character can
+ * never be a relational-edge endpoint. The bare `transferMembership` step is the whole sequence,
+ * unless the caller supplies `compileMutationSteps` (Phase 2, navigate) --- see that argument's doc
+ * comment.
  *
  * `Character Moved` fact emission is folded into the kernel's own `commitStepSequence`/`factsForStep`
- * (via the `characterNames` dep) rather than layered on top after the kernel call returns --- that's
- * what keeps it streaming before `commitStepSequence`'s own `RoomUpdate` publish loop, mirroring
- * `Object Moved`'s existing ordering guarantee (see `factsForStep.ts`'s doc comment).
+ * (via the `characterNames` dep, threaded through `executeMembershipTransfer`) rather than layered on
+ * top after the kernel call returns --- that's what keeps it streaming before `commitStepSequence`'s
+ * own `RoomUpdate` publish loop, mirroring `Object Moved`'s existing ordering guarantee (see
+ * `factsForStep.ts`'s doc comment).
  */
 export const applyCharacterRoomMembership = async (
     args: MembershipApplyArgs,
@@ -69,43 +71,42 @@ export const applyCharacterRoomMembership = async (
     const getMembershipContainers = deps.getMembershipContainers ?? defaultGetMembershipContainers
     const getCharacterMeta = deps.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
 
+    // Cheap pre-check before any side-effecting fetch (character-meta lookup, kernel commit): a no-op
+    // move should cost nothing beyond the containers read every route already pays for.
     const priorContainers = await getMembershipContainers(args.characterId)
-    const plan = planMembershipTransfer({
-        applyMode: 'end-state',
-        target: args.targetRoomId,
-        priorContainers,
-    })
-
-    const diff = membershipDiffFromProjection({
-        froms: plan.projection.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
-        to: plan.projection.to !== null && isEphemeraRoomId(plan.projection.to) ? plan.projection.to : null,
-        changed: plan.projection.changed,
-    })
-
-    if (!diff.changed) {
-        return { ok: true, ...diff }
+    const willChange = priorContainers.some((hostId) => hostId !== args.targetRoomId)
+        || (args.targetRoomId !== null && !priorContainers.includes(args.targetRoomId))
+    if (!willChange) {
+        return {
+            ok: true,
+            froms: priorContainers.filter((hostId) => hostId !== args.targetRoomId),
+            to: args.targetRoomId,
+            changed: false,
+        }
     }
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [{
-        kind: 'transferMembership',
-        entityIds: new Set([args.characterId]),
-        fromHostIds: new Set(diff.froms),
-        toHostId: diff.to,
-    }]
-
-    const result = await commitStepSequence(
-        { steps },
-        {
-            messageBus: deps.messageBus,
-            streamEvent: deps.streamEvent,
-            getCurrentHost: () => undefined,
-            transactWrite: deps.transactWrite,
-            characterNames: new Map([[args.characterId, characterMeta.Name]]),
-            ...(args.narrationHandledInline ? { narratedInline: true } : {}),
-        }
-    )
+    const result = await executeMembershipTransfer({
+        entityId: args.characterId,
+        target: args.targetRoomId,
+        messageBus: deps.messageBus,
+        streamEvent: deps.streamEvent,
+        getMembershipContainers: async () => priorContainers,
+        transactWrite: deps.transactWrite,
+        characterNames: new Map([[args.characterId, characterMeta.Name]]),
+        ...(args.compileMutationSteps
+            ? {
+                compileMutationSteps: (generalDiff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) =>
+                    args.compileMutationSteps!({
+                        froms: generalDiff.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+                        to: generalDiff.to !== null && isEphemeraRoomId(generalDiff.to) ? generalDiff.to : null,
+                        changed: generalDiff.changed,
+                    }),
+            }
+            : {}),
+        ...(args.narrationHandledInline ? { narratedInline: true } : {}),
+    })
 
     if (!result.ok) {
         console.error(`[mtw.ephemera.positions] applyCharacterRoomMembership failed: ${result.errorMessage}`)
@@ -114,6 +115,16 @@ export const applyCharacterRoomMembership = async (
             errorCode: result.errorCode,
             errorMessage: result.errorMessage,
         }
+    }
+
+    const diff = membershipDiffFromProjection({
+        froms: result.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
+        to: result.to !== null && isEphemeraRoomId(result.to) ? result.to : null,
+        changed: result.changed,
+    })
+
+    if (!diff.changed) {
+        return { ok: true, ...diff }
     }
 
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)

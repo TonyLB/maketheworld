@@ -7,7 +7,7 @@ import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
-import { applyObjectClearMembership } from '../positions/manipulation/membership/applyObjectClearMembership'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import type { ObjectsChangedPayload } from './events'
@@ -30,7 +30,7 @@ export type ClearCoyoteGameImprovisationObjectsDependencies = {
     messageBus?: typeof messageBus;
     positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
     objectsStreamEvent?: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
-    applyClearMembershipImpl?: typeof applyObjectClearMembership;
+    applyClearMembershipImpl?: typeof executeMembershipTransfer;
     deleteObjectImpl?: typeof persistDeleteImprovisationObject;
 }
 
@@ -53,7 +53,7 @@ export const clearCoyoteGameImprovisationObjects = async (
 
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
-    const applyClearMembership = deps.applyClearMembershipImpl ?? applyObjectClearMembership
+    const applyClearMembership = deps.applyClearMembershipImpl ?? executeMembershipTransfer
     const deleteObject = deps.deleteObjectImpl ?? persistDeleteImprovisationObject
 
     const gameRooms = await getGameRooms()
@@ -81,12 +81,14 @@ export const clearCoyoteGameImprovisationObjects = async (
     }
 
     for (const objectId of objectIds) {
-        const membershipResult = await applyClearMembership(
-            { objectId },
-            { messageBus: bus, streamEvent: positionsStreamEvent }
-        )
+        const membershipResult = await applyClearMembership({
+            entityId: objectId,
+            target: null,
+            messageBus: bus,
+            streamEvent: positionsStreamEvent,
+        })
         if (!membershipResult.ok) {
-            return { ok: false, errorMessage: membershipResult.errorMessage ?? `applyObjectClearMembership failed for ${objectId}` }
+            return { ok: false, errorMessage: membershipResult.errorMessage ?? `executeMembershipTransfer failed for ${objectId}` }
         }
 
         const deleteAffectedRoomIds = [

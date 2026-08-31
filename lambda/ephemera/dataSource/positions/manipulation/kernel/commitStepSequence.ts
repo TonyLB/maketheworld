@@ -72,11 +72,11 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * behavior, until BD-18's backtrack channel lands.
  *
  * Now wired to every live route: `executeObjectMove` (take/drop),
- * `applyObjectRelationalChange` (establish/dissolve), the object-lifecycle Migrate row
- * (`applyObjectClearMembership`/`applyObjectRoomMembership`, destroy/edit/spawn/place/drift-repair),
- * and --- character-route Migrate row --- `applyCharacterRoomMembership` (navigate/connect/
- * disconnect). `applyHostEffects` and its transact-item builders have no remaining callers and are
- * retired.
+ * `applyObjectRelationalChange` (establish/dissolve), `executeMembershipTransfer` (object-lifecycle
+ * Migrate row: destroy/edit/spawn/place/drift-repair; PV1-1b absorbed `applyObjectClearMembership`/
+ * `applyObjectRoomMembership` into it), and --- character-route Migrate row --- `applyCharacterRoomMembership`
+ * (navigate/connect/disconnect, itself now a thin wrapper over `executeMembershipTransfer`).
+ * `applyHostEffects` and its transact-item builders have no remaining callers and are retired.
  */
 export const commitStepSequence = async (
     args: { steps: readonly MutationKernelStep[] },

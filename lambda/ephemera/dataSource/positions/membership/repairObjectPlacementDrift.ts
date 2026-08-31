@@ -4,7 +4,7 @@ import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { applyObjectRoomMembership } from './applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
 import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
 
 export type RepairObjectPlacementDriftArgs = {
@@ -16,7 +16,7 @@ export type RepairObjectPlacementDriftArgs = {
 export type RepairObjectPlacementDriftDependencies = {
     getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
-    applyMembership?: typeof applyObjectRoomMembership;
+    applyMembership?: typeof executeMembershipTransfer;
     syncAdjacency?: typeof syncObjectMembershipAdjacencyToRoom;
 }
 
@@ -45,7 +45,7 @@ export const repairObjectPlacementDrift = async (
             const containers = await internalCache.Positions.getMembershipContainers(objectId)
             return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
         })
-    const applyMembership = deps?.applyMembership ?? applyObjectRoomMembership
+    const applyMembership = deps?.applyMembership ?? executeMembershipTransfer
     const syncAdjacency = deps?.syncAdjacency ?? syncObjectMembershipAdjacencyToRoom
 
     const objectIds = await listGraphObjectIds(args.roomId, deps?.getLudicGraph)
@@ -59,10 +59,13 @@ export const repairObjectPlacementDrift = async (
             // BD-35: any relational edge severed by this scrub is a silent internal consistency fix,
             // not a player-visible event --- suppress the newly-explicit dissolve fact (Object Moved
             // still streams unaffected).
-            const result = await applyMembership(
-                { objectId, targetRoomId: args.roomId },
-                { messageBus: args.messageBus, streamEvent: args.streamEvent, suppressRelationalFacts: true }
-            )
+            const result = await applyMembership({
+                entityId: objectId,
+                target: args.roomId,
+                messageBus: args.messageBus,
+                streamEvent: args.streamEvent,
+                suppressRelationalFacts: true,
+            })
             if (result.ok && result.changed) {
                 multiRoomScrubbed += 1
             }

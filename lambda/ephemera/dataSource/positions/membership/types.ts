@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
 
@@ -19,8 +19,8 @@ export type MembershipApplyArgs = {
      * `MembershipDiff` once planning determines it (before commit) to build the committed step
      * sequence --- the compiler's `[capture, transfer, capture]` shape --- instead of a hand-built
      * bare `transferMembership` step. A callback, not a pre-built array, because the diff (`froms`/
-     * `to`) is only known after this coordinator's own `planMembershipTransfer` call, which the
-     * contract keeps here rather than duplicating in the caller. Navigate's route only, today; unset
+     * `to`) is only known after `executeMembershipTransfer`'s own diff computation, which the
+     * contract keeps there rather than duplicating in the caller. Navigate's route only, today; unset
      * for connect/disconnect/home, whose behavior is unchanged.
      */
     compileMutationSteps?: (diff: MembershipDiff) => readonly import('../manipulation/kernel/kernelStep').MutationKernelStep[];
@@ -30,13 +30,6 @@ export type MembershipApplyArgs = {
      * (see `CharacterMovedPublishedPayload.narratedInline`) so it doesn't also publish. Default `false`.
      */
     narrationHandledInline?: boolean;
-}
-
-/** Object room placement apply (Phase 4). */
-export type ObjectMembershipApplyArgs = {
-    objectId: EphemeraObjectId;
-    /** Target room host; null is not used here --- use applyObjectClearMembership for destruction. */
-    targetRoomId: EphemeraRoomId | null;
 }
 
 export type MembershipDiff = {

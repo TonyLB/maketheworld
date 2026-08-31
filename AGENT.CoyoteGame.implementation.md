@@ -125,7 +125,7 @@ This is expected for the current stage and aligns with "partial bespoke scaffold
 
 Acme object delivery uses first-class improvisational **`OBJECT#`** entities:
 
-- **Spawn + place:** [`handleAcmeOrderAddObjects`](lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) -> [`spawnImprovisationObjectsBatch`](lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) (existence via `persistSpawnImprovisationObject`, placement via `applyObjectRoomMembership`)
+- **Spawn + place:** [`handleAcmeOrderAddObjects`](lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) -> [`spawnImprovisationObjectsBatch`](lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) (existence via `persistSpawnImprovisationObject`, placement via `executeMembershipTransfer`)
 - **Hypothesis trigger:** **`predict`** command -> **`mtw.ephemera.actions`** **`Predict Hypothesis`** -> [`coyoteGame/AGENT.md`](lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Predict Hypothesis** path ([`handlePredictHypothesis`](lambda/ephemera/dataSource/coyoteGame/handlers/handlePredictHypothesis.ts))
 - **Staged-object reads:** [`coyoteRoomObjectSnapshot.ts`](lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) (`ludicGraph` + **`Meta::Object`** + improvisation pair **`shortName`**)
 - **Lane authority:** [`lambda/ephemera/dataSource/objects/AGENT.md`](lambda/ephemera/dataSource/objects/AGENT.md)

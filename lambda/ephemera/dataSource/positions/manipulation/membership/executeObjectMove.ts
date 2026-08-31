@@ -1,6 +1,8 @@
-import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { edgeKindAndLabelFrom, isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -8,8 +10,11 @@ import internalCache from '../../../../internalCache'
 import { createExpansionEnvironment } from '../../../actions/enrich/objectManipulation/synthesize/expansionEnvironment'
 import { runExecutor, seedGroundedTransferMembership } from '../../../actions/enrich/objectManipulation/synthesize/executor'
 import type { ExecutorDissolveRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
+import { boundaryEdgeOutcomes } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 import { isKernelMutationStep } from '../kernel/kernelStep'
+import type { MutationKernelStep } from '../kernel/kernelStep'
 import { commitStepSequence } from '../kernel/commitStepSequence'
+import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
 import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
@@ -176,4 +181,116 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
     }
 
     return { ok: true, plan, captures: result.captures }
+}
+
+export type ExecuteMembershipTransferArgs = {
+    entityId: EphemeraObjectId | EphemeraCharacterId
+    /** null clears the entity from every current host (destroy/edit/disconnect) --- no arrival side. */
+    target: EphemeraMembershipHostId | null
+    messageBus: MessageBus
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>
+    getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>
+    /** See `CommitStepSequenceDeps.suppressRelationalFacts`'s doc comment --- same gate, same default. */
+    suppressRelationalFacts?: boolean
+    /**
+     * When supplied, called with the resolved diff to build the committed step sequence (the
+     * compiler's `[capture, transfer, capture]` shape for navigate) instead of a bare
+     * `transferMembership` step. Mirrors `MembershipApplyArgs.compileMutationSteps`.
+     */
+    compileMutationSteps?: (diff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) => readonly MutationKernelStep[]
+    characterNames?: CommitStepSequenceDeps['characterNames']
+    narratedInline?: boolean
+    transactWrite?: CommitStepSequenceDeps['transactWrite']
+}
+
+export type ExecuteMembershipTransferResult =
+    | {
+        ok: true
+        froms: EphemeraMembershipHostId[]
+        to: EphemeraMembershipHostId | null
+        changed: boolean
+        beatAnchorTime?: number
+        captures?: MutationKernelCaptures
+    }
+    | { ok: false; errorCode: string; errorMessage: string }
+
+const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacterId): Promise<EphemeraMembershipHostId[]> =>
+    internalCache.Positions.getMembershipContainers(id)
+
+/**
+ * The no-carry-closure sibling of `executeObjectMove`: single entity (object or character),
+ * diffed against its own already-known `priorContainers` rather than a caller-supplied
+ * `fromHostId`/`toHostId` pair --- there is no "everything riding along" partner for a
+ * place/spawn/remove/scrub/navigate, so every departure host's boundary edges collapse to
+ * "sever it" (object endpoints only; a character can never be a relational-edge endpoint).
+ * Never touches the Synthesize executor or `buildObjectMoveOp` --- those exist to compute a
+ * carry closure this function's callers never have.
+ *
+ * Absorbed from `applyObjectRoomMembership`/`applyObjectClearMembership`/
+ * `applyCharacterRoomMembership`'s membership half (object-lifecycle Migrate row, PV1-1b) ---
+ * one function instead of three near-identical bodies differing only in host-kind filtering
+ * and entity kind.
+ */
+export const executeMembershipTransfer = async (
+    args: ExecuteMembershipTransferArgs
+): Promise<ExecuteMembershipTransferResult> => {
+    const getMembershipContainers = args.getMembershipContainers ?? defaultGetMembershipContainers
+
+    const priorContainers = await getMembershipContainers(args.entityId)
+    const froms = priorContainers.filter((hostId) => hostId !== args.target)
+    const changed = froms.length > 0 || (args.target !== null && !priorContainers.includes(args.target))
+    const diff = { froms, to: args.target, changed }
+
+    if (!changed) {
+        return { ok: true, ...diff }
+    }
+
+    const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
+    const dissolveSteps: MutationKernelStep[] = []
+    if (isEphemeraObjectId(args.entityId)) {
+        for (const hostId of froms) {
+            const graph = await internalCache.Positions.getLudicGraph(hostId)
+            const outcomes = boundaryEdgeOutcomes(new Set([args.entityId]), graph)
+            for (const { edge } of outcomes) {
+                if (!isEphemeraLudicTerminalPrimitive(edge.from) || !isEphemeraLudicTerminalPrimitive(edge.to)) {
+                    continue
+                }
+                hostByReferencedId.set(edge.from, hostId)
+                hostByReferencedId.set(edge.to, hostId)
+                dissolveSteps.push({
+                    kind: 'dissolveRelation',
+                    subjectId: edge.from,
+                    targetId: edge.to,
+                    ...relationKindAndLabelOf(edge),
+                })
+            }
+        }
+    }
+
+    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [{
+        kind: 'transferMembership',
+        entityIds: new Set([args.entityId]),
+        fromHostIds: new Set(froms),
+        toHostId: args.target,
+    }]
+
+    const result = await commitStepSequence(
+        { steps: [...dissolveSteps, ...steps] },
+        {
+            messageBus: args.messageBus,
+            streamEvent: args.streamEvent,
+            getCurrentHost: (id) => hostByReferencedId.get(id),
+            ...(args.suppressRelationalFacts !== undefined ? { suppressRelationalFacts: args.suppressRelationalFacts } : {}),
+            ...(args.characterNames ? { characterNames: args.characterNames } : {}),
+            ...(args.narratedInline ? { narratedInline: true } : {}),
+            ...(args.transactWrite ? { transactWrite: args.transactWrite } : {}),
+        }
+    )
+
+    if (!result.ok) {
+        console.error(`[mtw.ephemera.positions] executeMembershipTransfer failed: ${result.errorMessage}`)
+        return { ok: false, errorCode: result.errorCode, errorMessage: result.errorMessage }
+    }
+
+    return { ok: true, ...diff, beatAnchorTime: result.beatAnchorTime, captures: result.captures }
 }
