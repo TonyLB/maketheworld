@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
@@ -27,6 +26,16 @@ export type OrchestrateObjectMoveArgs = {
      * resolution, indifferent to whether it's one of this move's two hosts.
      */
     roomId: EphemeraRoomId;
+    /**
+     * PV1-2 follow-up: also taken explicitly, for the same reason `roomId` was --- a
+     * containment move's `toHostId` can be an object (a tray), so a rehost between two objects
+     * (`fromHostId` and `toHostId` both objects, e.g. moving a cup that is already sitting in a
+     * room onto a table) has no character among its two hosts at all. Deriving `characterId` by
+     * scanning `[fromHostId, toHostId]` silently no-op'd that case (caught before any live
+     * caller could reach it, in `orchestrateObjectMove.test.ts`); the caller already knows who
+     * issued the command, so it is threaded through rather than guessed.
+     */
+    characterId: EphemeraCharacterId;
     /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf';
     messageBus: MessageBus;
@@ -57,10 +66,9 @@ export type OrchestrateObjectMoveArgs = {
  * bundle declared ahead of a failed commit would settle harmlessly rather than hang.
  */
 export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Promise<void> => {
-    const hosts: EphemeraMembershipHostId[] = [args.fromHostId, args.toHostId]
-    const characterId = hosts.find((hostId): hostId is EphemeraCharacterId => isEphemeraCharacterId(hostId))
+    const { characterId } = args
     const [primaryObjectId] = args.objectIds
-    if (characterId === undefined || primaryObjectId === undefined) {
+    if (primaryObjectId === undefined) {
         return
     }
 

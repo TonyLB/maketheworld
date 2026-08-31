@@ -105,6 +105,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     fromHostId: content.characterId,
                     toHostId: content.roomId,
                     roomId: content.roomId,
+                    characterId: content.characterId,
                     messageBus,
                     streamEvent,
                 })
@@ -163,6 +164,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     fromHostId: fromHostIds[0],
                     toHostId: content.targetId,
                     roomId: content.roomId,
+                    characterId: content.characterId,
                     containment: content.containment,
                     messageBus,
                     streamEvent,
@@ -179,6 +181,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     fromHostId: content.roomId,
                     toHostId: content.characterId,
                     roomId: content.roomId,
+                    characterId: content.characterId,
                     messageBus,
                     streamEvent,
                 })

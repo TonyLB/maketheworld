@@ -87,6 +87,7 @@ describe('orchestrateObjectMove', () => {
             fromHostId: ROOM,
             toHostId: CHARACTER,
             roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -126,6 +127,7 @@ describe('orchestrateObjectMove', () => {
             fromHostId: CHARACTER,
             toHostId: ROOM,
             roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -143,6 +145,7 @@ describe('orchestrateObjectMove', () => {
             fromHostId: ROOM,
             toHostId: CHARACTER,
             roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -163,6 +166,7 @@ describe('orchestrateObjectMove', () => {
             fromHostId: ROOM,
             toHostId: CHARACTER,
             roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -171,29 +175,47 @@ describe('orchestrateObjectMove', () => {
         expect(slotReports()).toHaveLength(0)
     })
 
-    it('is a no-op without a character host or an object', async () => {
-        // PV1-2: a containment move's toHostId is an object (a tray), not a room --- neither
-        // side is a character here, which is the only thing that still no-ops this route now
-        // that `roomId` is taken explicitly rather than derived from the two hosts.
-        await orchestrateObjectMove({
-            objectIds: [TRAY],
-            fromHostId: ROOM,
-            toHostId: 'OBJECT#Tray2' as EphemeraObjectId,
-            roomId: ROOM,
-            messageBus,
-            streamEvent,
-        })
+    it('is a no-op without an object', async () => {
         await orchestrateObjectMove({
             objectIds: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
             roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
 
         expect(executeObjectMoveMock).not.toHaveBeenCalled()
         expect(resolveLabelsMock).not.toHaveBeenCalled()
+    })
+
+    it('proceeds on a rehost between two objects, with no character among the two hosts (PV1-2 follow-up)', async () => {
+        // A containment move's toHostId can be an object (a tray), and the subject's current
+        // host (fromHostId) can be an object too (moving a cup from one tray to another) or a
+        // room (a cup sitting on the floor, never held) --- neither host need be a character.
+        // `characterId` is now taken explicitly rather than derived from the two hosts, so this
+        // no longer silently no-ops. `ok: false` keeps this test focused on the dispatch itself
+        // (labels resolved, executeObjectMove reached) rather than the narration/commit path,
+        // which other cases in this file already cover.
+        executeObjectMoveMock.mockResolvedValue({ ok: false })
+
+        await orchestrateObjectMove({
+            objectIds: [TRAY],
+            fromHostId: ROOM,
+            toHostId: 'OBJECT#Tray2' as EphemeraObjectId,
+            roomId: ROOM,
+            characterId: CHARACTER,
+            messageBus,
+            streamEvent,
+        })
+
+        expect(resolveLabelsMock).toHaveBeenCalledWith({ characterId: CHARACTER, objectId: TRAY, roomId: ROOM })
+        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
+            objectIds: [TRAY],
+            fromHostId: ROOM,
+            toHostId: 'OBJECT#Tray2',
+        }))
     })
 
     it('threads containment through to executeObjectMove when set (put on a tray)', async () => {
@@ -205,6 +227,7 @@ describe('orchestrateObjectMove', () => {
             fromHostId: CHARACTER,
             toHostId: TRAY2,
             roomId: ROOM,
+            characterId: CHARACTER,
             containment: 'On',
             messageBus,
             streamEvent,

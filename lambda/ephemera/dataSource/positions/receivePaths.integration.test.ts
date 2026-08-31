@@ -272,6 +272,7 @@ describe('positions receive paths (integration)', () => {
                     objectIds: ['OBJECT#Broom'],
                     fromHostId: ROOM_A,
                     toHostId: CHARACTER_ID,
+                    characterId: CHARACTER_ID,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -301,6 +302,7 @@ describe('positions receive paths (integration)', () => {
                     objectIds: ['OBJECT#Broom'],
                     fromHostId: CHARACTER_ID,
                     toHostId: ROOM_A,
+                    characterId: CHARACTER_ID,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -336,6 +338,10 @@ describe('positions receive paths (integration)', () => {
                     fromHostId: ROOM_A,
                     toHostId: 'OBJECT#Tray',
                     roomId: ROOM_A,
+                    // The bug this proves fixed: neither fromHostId (a room) nor toHostId (an
+                    // object) is a character, so orchestrateObjectMove can no longer derive one
+                    // from the hosts --- it must be threaded through explicitly instead.
+                    characterId: CHARACTER_ID,
                     containment: 'On',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
