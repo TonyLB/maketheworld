@@ -49,7 +49,7 @@ describe('applyStepSequenceCore', () => {
         expect(nextDest.relationalEdges).toEqual([{ from: glassId, to: trayId, kind: 'On' }])
     })
 
-    it('BD-16 repaired: transferMembership before establishRelation lands the relation on the shared destination host', () => {
+    it('transferMembership before establishRelation lands the relation on the shared destination host', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
         const steps: MutationKernelStep[] = [

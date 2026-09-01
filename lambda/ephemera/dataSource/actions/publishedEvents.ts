@@ -83,8 +83,6 @@ export type ObjectEstablishRelationPublishedPayload = {
     /** Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
-    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
-    transferFromHostId?: EphemeraMembershipHostId;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 export type ObjectDissolveRelationPublishedPayload = {
@@ -95,8 +93,6 @@ export type ObjectDissolveRelationPublishedPayload = {
     /** Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only `roomId`). */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
-    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
-    transferFromHostId?: EphemeraMembershipHostId;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
@@ -124,11 +120,6 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
     }
     if (v.confidence !== undefined) {
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
-            return false
-        }
-    }
-    if (v.transferFromHostId !== undefined) {
-        if (typeof v.transferFromHostId !== 'string' || !isEphemeraMembershipHostId(v.transferFromHostId)) {
             return false
         }
     }

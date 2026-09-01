@@ -576,9 +576,6 @@ const publishStreamEventsForIntent = async (
                     hostId,
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
-                    ...(parseResult.transferFromHostId !== undefined
-                        ? { transferFromHostId: parseResult.transferFromHostId }
-                        : {}),
                 },
             })
         }
@@ -594,9 +591,6 @@ const publishStreamEventsForIntent = async (
                     hostId,
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
-                    ...(parseResult.transferFromHostId !== undefined
-                        ? { transferFromHostId: parseResult.transferFromHostId }
-                        : {}),
                 },
             })
         }

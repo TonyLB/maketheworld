@@ -278,7 +278,7 @@ export const applyStepSequenceCore = (
         }
         if (sharedHost === undefined) {
             throw new Error(
-                `${step.subjectId}/${step.targetId} do not share a host --- structural invariant violated (sameHost should have repaired this)`
+                `${step.subjectId}/${step.targetId} do not share a host --- structural invariant violated (a relational step reaching here should already have been placed on a shared host, or expressed as crossing legs)`
             )
         }
         const patched = graphs.get(sharedHost)!.applyRelationalPatch({

@@ -72,9 +72,9 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
  * seed order) and runs it, exactly the same executor `executeObjectEstablishRelation`/
  * `executeObjectDissolveRelation`'s commit path re-runs later --- `satisfied`
  * retires the assertion with no children (host is wherever subject/object
- * already share one); `repaired` mints a real `transferMembership` (+ any
- * boundary `dissolveRelation`s, BD-28) ahead of the relational step in the
- * executor's output-ordered list. `defer` (Custom-relation violations) has no
+ * already share one). A violated assertion once minted a `transferMembership`
+ * repair here; PV1-3b-9 (2026-09-01) retired that, so a violation now either
+ * becomes crossing legs or declines. `defer` (peer-relation violations) has no
  * Consult/LLM-fallback path on this route yet (unlike membership) and is
  * dropped, same as any other decline. `expandSameHost.ts` itself is not
  * called directly here anymore --- the executor's own `sameHost`
@@ -153,11 +153,12 @@ export async function compileRelationalFromSkeleton(
         }
     }
 
-    // BD-16 sameHost repair (2026-07-21): groundChange still derives every candidate's
-    // host as currentHost(actingCharacter) (BD-6's default, unchanged) --- expandSameHost
-    // is the Expansion pass that corrects this per-candidate against the subject/object's
-    // real current hosts, either confirming that default (satisfied) or inserting a
-    // transferMembership repair (repaired) when they don't already share a host.
+    // BD-16 sameHost (2026-07-21): groundChange still derives every candidate's host as
+    // currentHost(actingCharacter) (BD-6's default, unchanged) --- expandSameHost is the
+    // Expansion pass that corrects this per-candidate against the subject/object's real
+    // current hosts. It once repaired a mismatch by inserting a transferMembership;
+    // PV1-3b-9 (2026-09-01) retired that, so it now either confirms the default
+    // (satisfied), expresses the mismatch as crossing legs, or declines.
     const distinctObjectIds = new Set<EphemeraObjectId>()
     for (const candidate of relationalCandidates) {
         distinctObjectIds.add(candidate.subjectId)
@@ -184,7 +185,6 @@ export async function compileRelationalFromSkeleton(
 
     type PreparedCandidate = {
         step: EstablishRelationStep | DissolveRelationStep
-        transferFromHostId?: EphemeraMembershipHostId
     }
 
     const preparedCandidates: PreparedCandidate[] = []
@@ -215,8 +215,9 @@ export async function compileRelationalFromSkeleton(
         // intermediate hosts too; (2) even with deeper pre-fetching, this seed's sibling
         // `relationalStepNoHost` item would still retire unmodified alongside the crossing legs,
         // producing an extra (invalid, endpoints-don't-share-a-host) direct edge --- the
-        // satisfied/repaired outcomes rely on that sibling retiring as-is, but a crossing replaces
-        // it entirely and needs the seed built accordingly. Wiring this live route is future work;
+        // satisfied outcome relies on that sibling retiring as-is, but a crossing replaces
+        // it entirely and needs the seed built accordingly (PV1-3b-4's seed collapse, still open).
+        // Wiring this live route is future work;
         // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly instead
         // (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
         const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion)
@@ -230,9 +231,6 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        const transferStep = outcome.steps.find(
-            (step): step is Extract<typeof step, { kind: 'transferMembership' }> => step.kind === 'transferMembership'
-        )
         const relStep = outcome.steps.find(
             (step): step is Extract<typeof step, { kind: 'establishRelation' | 'dissolveRelation' }> =>
                 step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
@@ -269,7 +267,7 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        const hostId = transferStep !== undefined ? transferStep.toHostId : getCurrentHostForExpansion(candidate.subjectId)
+        const hostId = getCurrentHostForExpansion(candidate.subjectId)
         if (hostId === undefined) {
             continue
         }
@@ -288,17 +286,11 @@ export async function compileRelationalFromSkeleton(
         }
 
         // Validate legality (bothObjectsOnGraph + On/Under cycle detection, BD-23 step 5)
-        // against the state the command would actually produce: the real current graph
-        // when satisfied, or a simulated post-transfer graph when repaired (the subject
-        // isn't actually on the destination host yet at compile time --- the real
-        // transfer only happens inside the general kernel's own commit-time
-        // re-verification). This narrow simulation is orthogonal to what the executor
-        // computes (Grounding/Expansion/host-derivation) --- cycle detection needs a
-        // real graph object to simulate the patch against, which the executor's pure
-        // step list does not carry.
-        const validationGraph = transferStep !== undefined
-            ? getGraph(hostId)?.addObject(candidate.subjectId)
-            : getGraph(hostId)
+        // against the real current graph. This route once also validated against a *simulated*
+        // post-transfer graph, for the repair outcome that moved the subject onto the target's
+        // host; PV1-3b-9 (2026-09-01) retired that outcome, so there is no longer a candidate
+        // whose legality depends on a move that has not happened yet.
+        const validationGraph = getGraph(hostId)
 
         const legalResult = filterLegalRelationalCandidates([correctedStep], {
             getGraph: (lookupHostId) => (lookupHostId === hostId ? validationGraph : undefined),
@@ -307,10 +299,7 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        preparedCandidates.push({
-            step: correctedStep,
-            ...(transferStep !== undefined ? { transferFromHostId: transferStep.fromHostId } : {}),
-        })
+        preparedCandidates.push({ step: correctedStep })
     }
 
     if (preparedCandidates.length === 0) {
@@ -343,6 +332,5 @@ export async function compileRelationalFromSkeleton(
             : { relationKind: chosen.step.relationKind }),
         hostId: chosen.step.hostRoomId,
         confidence: intentConfidence,
-        ...(chosen.transferFromHostId !== undefined ? { transferFromHostId: chosen.transferFromHostId } : {}),
     }
 }

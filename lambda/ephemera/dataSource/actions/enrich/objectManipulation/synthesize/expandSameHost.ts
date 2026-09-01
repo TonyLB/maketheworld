@@ -4,7 +4,6 @@ import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraM
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
-import type { TransferMembershipStep } from '../parsePlanStep'
 import { findShardBoundary } from './findShardBoundary'
 import { buildCrossingLegs } from './buildCrossingLegs'
 
@@ -17,18 +16,27 @@ import { buildCrossingLegs } from './buildCrossingLegs'
  */
 export type ExpandSameHostResult =
     | { verdict: 'satisfied'; hostId: EphemeraMembershipHostId }
-    | { verdict: 'repaired'; hostId: EphemeraMembershipHostId; transferStep: TransferMembershipStep }
     | { verdict: 'crossed'; steps: MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
 
 /**
- * BD-16's second Expansion instance --- the mirror image of
- * `expandTransferMembership.ts` (BD-13): that one asks "a transfer is
- * happening, what happens to existing relations touching the moved object?";
- * this one asks "a relation is intended, what transfer satisfies a violated
- * `sameHost` precondition?" Same enum-deterministic / `Custom`-deferred
- * shape, opposite direction of inference.
+ * BD-16's second Expansion instance: "a relation is intended --- where does it
+ * go?" Originally the mirror image of `expandTransferMembership.ts` (BD-13),
+ * answering it with a *transfer*: move the subject onto the object's host and
+ * call the precondition repaired. **PV1-3b-9 (2026-09-01) retired that answer.**
+ * A violated `sameHost` on a peer relation is not a sign that something is in
+ * the wrong place --- it is the ordinary case of two things in different shards
+ * that a relation must span, which is what crossing ports exist for. So the
+ * question this now answers is "which shard boundary does this relation cross,
+ * and what legs express it?", and a peer relation that cannot be expressed
+ * declines rather than relocating either endpoint.
+ *
+ * Hosting kinds (`On`/`In`/`PartOf`) reach no branch here but an error, and
+ * deliberately: "put the cup on the table" is a membership move, not a
+ * relational placement. Conflating the two is exactly what made the old repair
+ * outcome look load-bearing. If CD2h ever routes hosting kinds through this
+ * function they need their own branch built for them.
  *
  * Satisfaction is determined by fetching the subject's current host graph
  * and calling **its own** `bothObjectsOnGraph` (`ludicGraph/index.ts`)
@@ -82,12 +90,18 @@ export const expandSameHost = (
         return { verdict: 'satisfied', hostId: subjectHost }
     }
 
-    if (relationKind === 'Custom' && !negate && relationLabel !== undefined) {
-        // PV1-3: a violated Custom relation is not automatically an LLM-validation case anymore
-        // --- it may legitimately cross a shard boundary via a port pair (BD-16's third outcome,
-        // this union's own doc comment). Try that first; only fall back to defer when the
-        // boundary predicate or leg producer can't yet handle this shape (not found, ambiguous,
-        // or deeper than the leg producer's current one-extra-hop-per-side scope).
+    // Peer kinds only (AB-54). A hosting kind puts the subordinate node *inside* the superior's
+    // own shard, so there is no boundary between them to cross and a minted crossing port would
+    // be a false record of one --- they fall to the error below instead. `Present` is the port
+    // mechanism's own kind and is never an assertion's subject.
+    const isPeerKind = relationKind === 'Under' || relationKind === 'Against' || relationKind === 'Custom'
+
+    if (isPeerKind && !negate && (relationKind !== 'Custom' || relationLabel !== undefined)) {
+        // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
+        // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
+        // union's own doc comment). PV1-3b-9 widened this from `Custom`-only: `buildCrossingLegs`
+        // was already general over kinds (it mints a bare-`kind` port for the enum relations),
+        // and the gate was the only thing holding `Under`/`Against` back.
         const boundary = findShardBoundary({ subjectId, targetId: objectId }, getMembershipContainers)
         if (boundary.verdict === 'crossed') {
             const legs = buildCrossingLegs({
@@ -96,8 +110,11 @@ export const expandSameHost = (
                 commonAncestor: boundary.commonAncestor,
                 subjectPath: boundary.subjectPath,
                 targetPath: boundary.targetPath,
-                relationKind: 'Custom',
-                relationLabel,
+                // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated union
+                // spread cleanly --- `relationLabel` is checked non-undefined by the gate above.
+                ...(relationKind === 'Custom'
+                    ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
+                    : { relationKind }),
             })
             if (legs.verdict === 'built') {
                 return { verdict: 'crossed', steps: legs.steps }
@@ -116,18 +133,25 @@ export const expandSameHost = (
     if (negate) {
         return {
             verdict: 'error',
-            reason: 'No repair rule defined for a negated sameHost assertion --- BD-15/16 only model "subject moves to object\'s host" for the affirmative case',
+            reason: 'No rule defined for a negated sameHost assertion --- BD-15/16 only model the affirmative case',
+        }
+    }
+
+    if (isPeerKind) {
+        // Distinct from the Custom defer above, deliberately: nothing here is semantically
+        // uncertain. The relation is well understood and the endpoints are in different shards;
+        // what is missing is a crossing this slice's leg producer can express (no common
+        // ancestor, an ambiguous one, or a shape past its one-extra-hop-per-side scope). An LLM
+        // has nothing to add to that, so borrowing BD-10's wording would misroute the follow-up.
+        return {
+            verdict: 'defer',
+            decidable: false,
+            reason: `No crossing could be built for the ${relationKind} relation between ${subjectId} and ${objectId} --- they share no host, and their shard boundary is unreachable or has a shape buildCrossingLegs does not yet support`,
         }
     }
 
     return {
-        verdict: 'repaired',
-        hostId: objectHost,
-        transferStep: {
-            kind: 'transferMembership',
-            objectIds: new Set([subjectId]),
-            fromHostId: subjectHost,
-            toHostId: objectHost,
-        },
+        verdict: 'error',
+        reason: `sameHost violation for hosting kind ${relationKind} --- a hosting relation is a membership move, not a relational placement, and has no branch on this route (CD2h)`,
     }
 }

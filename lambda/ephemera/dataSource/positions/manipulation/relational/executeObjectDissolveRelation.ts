@@ -12,7 +12,6 @@ export type ExecuteObjectDissolveRelationArgs = {
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     hostId: EphemeraMembershipHostId
-    transferFromHostId?: EphemeraMembershipHostId
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
 } & RelationalKindAndLabel
@@ -27,7 +26,6 @@ export const executeObjectDissolveRelation = async (
             targetId: args.targetId,
             hostId: args.hostId,
             ...relationKindAndLabelFrom(args),
-            transferFromHostId: args.transferFromHostId,
             operation: 'dissolve',
         },
         {

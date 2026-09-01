@@ -60,13 +60,12 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
  * `removeObject`'s assert-and-throw (BD-33) spuriously fires on a legitimate,
  * unaddressed edge.
  *
- * Two callers, and repair is only one of them: `expandSameHost`'s `repaired`
- * outcome (wrapped at the call site in `commandExpand` below, leaving
- * `expandSameHost.ts` itself unchanged), and `executeObjectMove`, which seeds
- * the whole worklist this way because at execute time the hosts are already
- * concrete --- there is nothing left for Grounding to resolve. Named for the
- * tag rather than for either caller, so the pairing invariant reads as the
- * general rule it is.
+ * One caller today: `executeObjectMove`, which seeds the whole worklist this
+ * way because at execute time the hosts are already concrete --- there is
+ * nothing left for Grounding to resolve. It had a second until PV1-3b-9
+ * (2026-09-01) retired `expandSameHost`'s repair-by-relocation outcome; the
+ * name still describes the tag rather than the caller, so the pairing
+ * invariant reads as the general rule it is rather than as one route's habit.
  */
 export const seedGroundedTransferMembership = (transferStep: TransferMembershipStep): WorklistInstruction[] => {
     const [startId] = transferStep.objectIds
@@ -230,9 +229,6 @@ const commandExpand = (
             )
             if (result.verdict === 'satisfied') {
                 return { kind: 'consumed', children: [] }
-            }
-            if (result.verdict === 'repaired') {
-                return { kind: 'consumed', children: seedGroundedTransferMembership(result.transferStep) }
             }
             if (result.verdict === 'crossed') {
                 // Leg steps (establishRelation, already executor-shaped) retire through the

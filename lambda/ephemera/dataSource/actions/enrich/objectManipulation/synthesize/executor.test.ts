@@ -74,48 +74,7 @@ describe('runExecutor', () => {
         expect(seeded[1]!.step).toBe(change)
     })
 
-    it("BD-16: repairs a sameHost violation, the repair transfer (and its own isolatedFromRelations) retiring before the paired relational Change", () => {
-        const characterGraph = EphemeraLudicGraph.empty(CHARACTER_ID).addObject(SAUCER_ID)
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(CUP_ID)
-
-        const env = createExpansionEnvironment(
-            (hostId) => {
-                if (hostId === CHARACTER_ID) return characterGraph
-                if (hostId === ROOM_ID) return roomGraph
-                return undefined
-            },
-            (id) => {
-                if (id === SAUCER_ID) return CHARACTER_ID
-                if (id === CUP_ID) return ROOM_ID
-                return undefined
-            }
-        )
-
-        const seed: WorklistInstruction[] = [
-            {
-                id: 'sameHost',
-                tag: 'grounded',
-                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, negate: false, relationKind: 'On' },
-            },
-            {
-                id: 'establish',
-                tag: 'grounded',
-                step: { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
-            },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({
-            verdict: 'legal',
-            steps: [
-                { kind: 'transferMembership', objectIds: new Set([SAUCER_ID]), fromHostId: CHARACTER_ID, toHostId: ROOM_ID },
-                { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
-            ],
-        })
-    })
-
-    it('BD-16: a satisfied sameHost mints no repair, the relational Change retires alone', () => {
+    it('BD-16: a satisfied sameHost adds nothing, the relational Change retires alone', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env = createExpansionEnvironment(
@@ -160,7 +119,7 @@ describe('runExecutor', () => {
         )
 
         // Only the sameHost assertion is seeded --- no sibling establishRelation(ROPE_ID, CUP_ID)
-        // instruction, unlike the satisfied/repaired cases above. A direct rope->cup edge is never
+        // instruction, unlike the satisfied case above. A direct rope->cup edge is never
         // valid once the relation crosses a boundary (they never come to share a host), so the
         // crossing legs below fully replace what a sibling relational step would otherwise have
         // retired --- a caller wiring this route for real must seed accordingly (see

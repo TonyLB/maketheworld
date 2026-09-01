@@ -122,7 +122,6 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     targetId: content.targetId,
                     hostId: content.hostId,
                     ...relationKindAndLabelFrom(content),
-                    transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,
                 })
@@ -139,7 +138,6 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     targetId: content.targetId,
                     hostId: content.hostId,
                     ...relationKindAndLabelFrom(content),
-                    transferFromHostId: content.transferFromHostId,
                     messageBus,
                     streamEvent,
                 })
