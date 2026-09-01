@@ -31,6 +31,12 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * port (self-owned, when this leg is itself the interior side of a crossing) or from the real
  * endpoint (subject/target) directly, when there is no further hop to cross first.
  *
+ * **A path length of 0 and of 1 mean the same thing here** -- "use the raw endpoint, mint no
+ * port". Length 1 is "this endpoint sits directly in the common ancestor's graph"; length 0 is
+ * "this endpoint *is* the common ancestor, and is its own graph's root node" (PV1-3b-8's
+ * zero-hop ancestry, `findShardBoundary.ts`). Only length 2 mints a port, which is why both
+ * blocks below test `=== 2` rather than branching on emptiness.
+ *
  * **Scope cut, deliberate:** supports at most one extra hop per side (`subjectPath`/`targetPath`
  * length <= 2), and never both sides having an extra hop at once --- that combination needs a
  * *middle* leg between two port addresses with no primitive endpoint at all, which
@@ -56,9 +62,6 @@ export const buildCrossingLegs = (
         ? { relationKind: 'Custom', relationLabel: input.relationLabel }
         : { relationKind: input.relationKind }
 
-    if (subjectPath.length === 0 || targetPath.length === 0) {
-        return { verdict: 'notYetImplemented', reason: 'buildCrossingLegs: a zero-hop ancestry (endpoint is itself the common ancestor) is not yet supported' }
-    }
     if (subjectPath.length > 2 || targetPath.length > 2) {
         return { verdict: 'notYetImplemented', reason: 'buildCrossingLegs: chains deeper than one extra hop per side are not yet supported' }
     }

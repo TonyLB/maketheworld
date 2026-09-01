@@ -105,6 +105,87 @@ describe('buildCrossingLegs', () => {
         })
     })
 
+    it('zero-length target path (the target IS the common ancestor): a single leg in that host, no port minted', () => {
+        const result = buildCrossingLegs({
+            subjectId: CUP_ID,
+            targetId: TABLE_ID,
+            commonAncestor: TABLE_ID,
+            subjectPath: [TABLE_ID],
+            targetPath: [],
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+
+        expect(result).toEqual({
+            verdict: 'built',
+            steps: [
+                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
+            ],
+        })
+    })
+
+    it('zero-length subject path: the same single leg with the hosting endpoint as subject', () => {
+        const result = buildCrossingLegs({
+            subjectId: TABLE_ID,
+            targetId: CUP_ID,
+            commonAncestor: TABLE_ID,
+            subjectPath: [],
+            targetPath: [TABLE_ID],
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+
+        expect(result).toEqual({
+            verdict: 'built',
+            steps: [
+                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+            ],
+        })
+    })
+
+    it('zero-length subject path against a one-extra-hop target: one port on the interior side, two legs', () => {
+        const result = buildCrossingLegs({
+            subjectId: TABLE_ID,
+            targetId: CUP_ID,
+            commonAncestor: TABLE_ID,
+            subjectPath: [],
+            targetPath: [BOX_ID, TABLE_ID],
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+
+        expect(result.verdict).toBe('built')
+        if (result.verdict !== 'built') return
+        expect(result.steps).toHaveLength(3)
+
+        const [addPortStep, boxLegStep, tableLegStep] = result.steps
+        expect(addPortStep).toMatchObject({
+            kind: 'addCrossingPort',
+            hostId: BOX_ID,
+            port: { fromHostId: TABLE_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
+        })
+        if (addPortStep.kind !== 'addCrossingPort') return
+        const portId = addPortStep.port.portId
+
+        expect(boxLegStep).toEqual({
+            kind: 'establishRelation',
+            subjectId: { owner: BOX_ID, port: portId },
+            targetId: CUP_ID,
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+        // The final leg lives in the common ancestor's own graph, running from its root node (the
+        // table itself) to the port --- the zero-length side contributes the raw endpoint, not a
+        // port address, which is what keeps this out of the unsupported port-to-port middle-leg case.
+        expect(tableLegStep).toEqual({
+            kind: 'establishRelation',
+            subjectId: TABLE_ID,
+            targetId: { owner: BOX_ID, port: portId },
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+    })
+
     it('a non-Custom relation kind carries no relationLabel on the port or the legs', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,

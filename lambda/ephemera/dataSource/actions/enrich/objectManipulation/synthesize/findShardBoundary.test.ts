@@ -53,6 +53,43 @@ describe('findShardBoundary', () => {
         })
     })
 
+    it('resolves to the endpoint itself when one endpoint hosts the other (tie the cup to the table it sits on)', () => {
+        const getMembershipContainers = containersFrom({
+            [CUP_ID]: [TABLE_ID],
+            [TABLE_ID]: [ROOM_ID],
+        })
+
+        const result = findShardBoundary({ subjectId: CUP_ID, targetId: TABLE_ID }, getMembershipContainers)
+
+        // The room is a common node too (cup at depth 2, table at depth 1) --- the table wins
+        // because it is the cup's container AND its own zero-hop ancestor, so it dominates the
+        // room on both coordinates. Asserting the ancestor pins the Pareto comparison, not just
+        // the walk: routing through the room would mint a port between two things already on the
+        // table's own graph.
+        expect(result).toEqual({
+            verdict: 'crossed',
+            commonAncestor: TABLE_ID,
+            subjectPath: [TABLE_ID],
+            targetPath: [],
+        })
+    })
+
+    it('is symmetric when the hosting endpoint is the subject rather than the target', () => {
+        const getMembershipContainers = containersFrom({
+            [CUP_ID]: [TABLE_ID],
+            [TABLE_ID]: [ROOM_ID],
+        })
+
+        const result = findShardBoundary({ subjectId: TABLE_ID, targetId: CUP_ID }, getMembershipContainers)
+
+        expect(result).toEqual({
+            verdict: 'crossed',
+            commonAncestor: TABLE_ID,
+            subjectPath: [],
+            targetPath: [TABLE_ID],
+        })
+    })
+
     it('returns notFound when the two endpoints reach no common ancestor', () => {
         const getMembershipContainers = containersFrom({
             [ROPE_ID]: [ROOM_A_ID],

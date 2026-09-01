@@ -14,6 +14,14 @@ import {
  * ancestry reaches that the other's also reaches?" -- the third `expandSameHost` outcome
  * (crossing a boundary with a port pair) needs this answer before it can build legs.
  *
+ * **An endpoint is its own zero-hop ancestor** (PV1-3b-8), so an endpoint can itself be the
+ * common ancestor: `tie the cup to the table it is sitting on` resolves to the table, not the
+ * room above it. Every object host carries a default graph rooted at itself (`fromPlainHostMeta`,
+ * `ludicGraph/index.ts`), so a container endpoint is a real node of the graph its own contained
+ * endpoint already lives in -- there is nothing to cross. Recording only containers made that
+ * shape invisible, and routed both endpoints up to the room to mint a port that connects two
+ * things already on one graph.
+ *
  * A closest common ancestor is not the pair with the smallest *combined* depth -- it is a node
  * on the Pareto-minimal frontier of the two per-endpoint depth functions. Concretely: a common
  * node C is excluded if some other common node C' is reachable at depth <= C's depth from BOTH
@@ -28,9 +36,13 @@ export type FindShardBoundaryResult =
     | {
         verdict: 'crossed'
         commonAncestor: EphemeraMembershipHostId
-        /** Hosts crossed from `subjectId` up to and including the common ancestor -- excludes `subjectId` itself. */
+        /**
+         * Hosts crossed from `subjectId` up to and including the common ancestor -- excludes
+         * `subjectId` itself, so **empty means `subjectId` IS the common ancestor** (its own
+         * zero-hop ancestor, see above): nothing is crossed on this side.
+         */
         subjectPath: EphemeraMembershipHostId[]
-        /** Hosts crossed from `targetId` up to and including the common ancestor -- excludes `targetId` itself. */
+        /** As `subjectPath`, from `targetId` -- empty means `targetId` is itself the common ancestor. */
         targetPath: EphemeraMembershipHostId[]
     }
     | { verdict: 'ambiguous'; commonAncestors: EphemeraMembershipHostId[] }
@@ -58,6 +70,13 @@ type Ancestry = {
  * Shortest-hop `depth` is what the Pareto-domination check below compares on; ties (two routes
  * to the same host at the same depth) keep whichever was discovered first, which is immaterial
  * since only the depth number is compared, not the specific route.
+ *
+ * `startId` is seeded at depth 0 -- it is its own ancestor, reached by crossing nothing (PV1-3b-8).
+ * It is seeded into `visited` for the same reason, not as an optimization: a containment cycle
+ * (`A` contains `B`, `B` contains `A`) otherwise re-discovers the start id further up and
+ * overwrites its depth 0 with a nonzero one, which would silently un-do the zero-hop rule for
+ * exactly the nested shapes it exists to get right. No `reachedVia` entry is recorded for it --
+ * `pathToAncestor` short-circuits on the start id and never consults one.
  */
 const walkAncestry = (
     startId: EphemeraPositionAdjacencyContainedId,
@@ -66,6 +85,8 @@ const walkAncestry = (
     const depth = new Map<EphemeraMembershipHostId, number>()
     const reachedVia = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId>()
     const visited = new Set<EphemeraMembershipHostId>()
+    depth.set(startId, 0)
+    visited.add(startId)
     let frontier: EphemeraMembershipHostId[] = [startId]
     let currentDepth = 0
 
