@@ -132,7 +132,7 @@ describe('expandSameHost', () => {
             () => []
         )
         const customResult = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
             getCurrentHost,
             getGraph,
             () => []
@@ -159,7 +159,7 @@ describe('expandSameHost', () => {
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
             getCurrentHost,
             getGraph
         )
@@ -238,7 +238,7 @@ describe('expandSameHost', () => {
         ])
     })
 
-    it('PV1-3: falls back to defer when no crossing boundary is found (no relationLabel supplied, or genuinely no shared ancestor)', () => {
+    it('PV1-3: falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
         const subjectGraph = testLudicGraph(CHARACTER_ID, {
             nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
             edges: [],
@@ -247,12 +247,61 @@ describe('expandSameHost', () => {
         const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
             getCurrentHost,
             getGraph,
             () => []
         )
 
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
+    })
+
+    it('PV1-3b-6: a Custom relation with no relationLabel is malformed input --- errors, and not in the LLM-defer\'s words', () => {
+        // The label used to be missing from every live seed, and this shape fell through to the
+        // BD-10 defer as though an LLM could resolve it. It cannot: a Custom relation *is* its
+        // label, so with none there is no relation to reason about. The two must stay
+        // distinguishable in wording, for the same reason PV1-3b-9's pair of defers must be ---
+        // the reason string is what routes the follow-up.
+        const subjectGraph = testLudicGraph(CHARACTER_ID, {
+            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
+            edges: [],
+        })
+        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
+        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
+
+        const unlabelled = expandSameHost(
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
+            getCurrentHost,
+            getGraph,
+            () => []
+        )
+        const labelled = expandSameHost(
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
+            getCurrentHost,
+            getGraph,
+            () => []
+        )
+
+        expect(unlabelled.verdict).toBe('error')
+        if (unlabelled.verdict !== 'error') return
+        expect(labelled.verdict).toBe('defer')
+        if (labelled.verdict !== 'defer') return
+        expect(unlabelled.reason).toEqual(expect.stringContaining('relationLabel'))
+        expect(unlabelled.reason).not.toEqual(labelled.reason)
+    })
+
+    it('PV1-3b-6: the malformed-input check precedes every state lookup --- it asks nothing about the world', () => {
+        // Asserted rather than left to branch order: with no host and no graph available, a
+        // label-less Custom still reports the label problem, not "No current host found". The
+        // guard has to survive PV1-3b-4's deletion of the host/graph lookups below it.
+        const result = expandSameHost(
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
+            () => undefined,
+            () => undefined
+        )
+
+        expect(result.verdict).toBe('error')
+        if (result.verdict !== 'error') return
+        expect(result.reason).toEqual(expect.stringContaining('relationLabel'))
     })
 })

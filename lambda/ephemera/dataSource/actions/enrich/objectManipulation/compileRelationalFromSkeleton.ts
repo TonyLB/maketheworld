@@ -194,7 +194,11 @@ export async function compileRelationalFromSkeleton(
             predicate: 'sameHost',
             subjectId: candidate.subjectId,
             objectId: candidate.targetId,
-            relationKind: candidate.relationKind,
+            // PV1-3b-6: carry the label, not just the kind --- `expandSameHost`'s crossing gate
+            // requires it for `Custom`, and this seed used to drop it, so no live `Custom`
+            // relation could reach the crossing path at all. Spread as a unit (the same helper
+            // the sibling literal below uses) so the `Custom`/enum branch is stated once.
+            ...relationKindAndLabelFrom(candidate),
         }
         const relationalStepNoHost = {
             kind: candidate.kind,
@@ -208,10 +212,14 @@ export async function compileRelationalFromSkeleton(
         ]
         // PV1-3: `expandSameHost` can now resolve a violated Custom relation into a genuine
         // shard-boundary crossing (BD-16's third outcome) instead of always deferring --- but two
-        // gaps keep that path unreachable from here today, deliberately, rather than half-wired:
+        // gaps keep that path unreachable from here today, deliberately, rather than half-wired.
+        // (A third --- this seed dropping `relationLabel`, which the crossing gate requires for
+        // `Custom` --- was closed by PV1-3b-6, 2026-09-01; the label is threaded above now.)
         // (1) `getMembershipContainers`/`getCurrentHostForExpansion` above only pre-fetch one hop
         // per distinct object id, while `findShardBoundary`'s walk needs to keep going past
-        // intermediate hosts too; (2) even with deeper pre-fetching, this seed's sibling
+        // intermediate hosts too --- and `createExpansionEnvironment` below is not even handed a
+        // container lookup yet, so the walk finds nothing at all from here (PV1-3b-5);
+        // (2) even with deeper pre-fetching, this seed's sibling
         // `relationalStepNoHost` item would still retire unmodified alongside the crossing legs,
         // producing an extra (invalid, endpoints-don't-share-a-host) direct edge --- the
         // satisfied outcome relies on that sibling retiring as-is, but a crossing replaces

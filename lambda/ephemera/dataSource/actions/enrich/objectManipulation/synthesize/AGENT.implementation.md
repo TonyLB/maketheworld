@@ -24,7 +24,7 @@ Two invariants worth knowing before touching this, both enforced by `runExecutor
 | [`groundReferent.ts`](groundReferent.ts) | Grounding for a single `Referent`: ranked candidate pools per `stableRefKey` into a settled id (or the joint candidate space `groundChange` fans out over) |
 | [`groundChange.ts`](groundChange.ts) | Grounding for a `Change`: Cartesian product across its `Referent`s, same-object combinations kept (BD-23) |
 | [`groundAssertion.ts`](groundAssertion.ts) | Grounding for an `Assertion` (`sameHost`/`containedBy`/`isolatedFromRelations`) |
-| [`expandSameHost.ts`](expandSameHost.ts) | BD-16's `sameHost` command-expansion: confirms or repairs (inserts a `transferMembership`) when a relational `Change`'s subject/object don't already share a host |
+| [`expandSameHost.ts`](expandSameHost.ts) | BD-16's `sameHost` command-expansion: resolves where a relational `Change` goes --- confirms an already-shared host, expresses a shard boundary as crossing legs plus a port, or declines. (It once *repaired* a mismatch by inserting a `transferMembership`; PV1-3b-9 retired that, 2026-09-01.) |
 | [`filterLegalRelationalCandidates.ts`](filterLegalRelationalCandidates.ts) | Validation for the relational route: `evaluateRelationalLegality.ts`'s checks plus cycle detection over `groundChange`'s joint candidate space |
 | [`detectRelationalCycle.ts`](detectRelationalCycle.ts) | Directed-cycle check one relation kind's edges, simulated post-candidate --- catches a self-relation as a one-node cycle rather than a bespoke `subjectId === targetId` rule |
 

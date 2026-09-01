@@ -67,6 +67,22 @@ export const expandSameHost = (
 ): ExpandSameHostResult => {
     const { subjectId, objectId, relationKind, relationLabel } = input
 
+    // PV1-3b-6: input validation, deliberately above every state lookup --- this asks nothing
+    // about the world. `relationKind`/`relationLabel` arrive as two flat fields here (via
+    // `GroundedBinaryAssertion`, which unions predicates and so cannot use
+    // `RelationalKindAndLabel`'s discriminated pairing), which makes a label-less `Custom`
+    // expressible at this boundary even though no producer of one exists: the live seed builds
+    // the pair from an `EstablishRelationStep`/`DissolveRelationStep`, where the union
+    // guarantees a label. Erroring rather than falling through to the `Custom` defer below,
+    // which would route a malformed assertion to an LLM validator that has nothing to say
+    // about a `Custom` relation with no text.
+    if (relationKind === 'Custom' && relationLabel === undefined) {
+        return {
+            verdict: 'error',
+            reason: `Custom sameHost assertion for ${subjectId}/${objectId} carries no relationLabel --- a Custom relation is its label, so this is malformed input rather than a semantic question (BD-10 does not apply)`,
+        }
+    }
+
     const subjectHost = getCurrentHost(subjectId)
     if (!subjectHost) {
         return { verdict: 'error', reason: `No current host found for ${subjectId}` }
@@ -94,7 +110,7 @@ export const expandSameHost = (
     // mechanism's own kind and is never an assertion's subject.
     const isPeerKind = relationKind === 'Under' || relationKind === 'Against' || relationKind === 'Custom'
 
-    if (isPeerKind && (relationKind !== 'Custom' || relationLabel !== undefined)) {
+    if (isPeerKind) {
         // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
         // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
         // union's own doc comment). PV1-3b-9 widened this from `Custom`-only: `buildCrossingLegs`
@@ -109,7 +125,8 @@ export const expandSameHost = (
                 subjectPath: boundary.subjectPath,
                 targetPath: boundary.targetPath,
                 // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated union
-                // spread cleanly --- `relationLabel` is checked non-undefined by the gate above.
+                // spread cleanly --- `relationLabel` is checked non-undefined by the malformed-
+                // input guard at the top of the function (PV1-3b-6), which is why the cast is safe.
                 ...(relationKind === 'Custom'
                     ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
                     : { relationKind }),
