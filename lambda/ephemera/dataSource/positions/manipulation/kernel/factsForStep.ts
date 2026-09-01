@@ -3,6 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
@@ -79,6 +80,11 @@ export const factsForStep = (
         return []
     }
 
+    // PV1-3: same deferral as setPresencePort --- a crossing port's own visibility is future work.
+    if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
+        return []
+    }
+
     if (step.kind === 'transferMembership') {
         const froms = [...step.fromHostIds]
         const diff = { froms, to: step.toHostId, changed: true }
@@ -108,6 +114,12 @@ export const factsForStep = (
             )
             .filter((fact): fact is CharacterMovedPublishedPayload => fact !== undefined)
         return [...objectFacts, ...characterFacts]
+    }
+
+    // PV1-3: a crossing leg's port-address endpoint has no established fact shape yet --- same
+    // "not a narration channel yet" deferral `setPresencePort` already uses above.
+    if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {
+        return []
     }
 
     const hostId = findHostOf(step.subjectId, finalGraphs) ?? findHostOf(step.subjectId, priorGraphs)

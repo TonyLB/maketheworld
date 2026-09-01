@@ -2,7 +2,7 @@ import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferSet'
@@ -21,9 +21,17 @@ import type { MutationKernelApplyOutcome } from './types'
  * endpoint."
  */
 const hostsOf = (
-    id: EphemeraLudicTerminalPrimitive,
+    id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId[] => {
+    if (typeof id !== 'string') {
+        // A port address names its own host directly (owner) --- graph-local addressing, not
+        // membership search (PV1-3). This is a *candidate*, not a veto: the exterior side of a
+        // crossing has no port record of its own, so its port-address endpoint's owner will not
+        // match the edge's real host --- findSharedHost falls back to the primitive endpoint's own
+        // candidates when the intersection with this comes up empty.
+        return [id.owner]
+    }
     const hosts: EphemeraMembershipHostId[] = []
     for (const [hostId, graph] of graphs) {
         if (graph.nodeIds.has(id)) {
@@ -42,15 +50,32 @@ const hostsOf = (
  * (non-shared) graph first for one side, which is precisely what produced a spurious "do not share a
  * host" throw for `On`-hosted moves whose target root also sat, ordinarily, inside another locked
  * container.
+ *
+ * PV1-3: when one endpoint is a port address, its owner-derived candidate can legitimately fail to
+ * intersect with the other (primitive) endpoint's candidates even though the leg is perfectly legal
+ * --- a crossing leg's exterior side lives in the *primitive* endpoint's own host, referencing a port
+ * whose record lives elsewhere. When the intersection comes up empty and exactly one endpoint is a
+ * port address, fall back to the primitive endpoint's own (unfiltered) candidate host, provided it is
+ * unambiguous (exactly one candidate) --- the port address does not veto it.
  */
 const findSharedHost = (
-    subjectId: EphemeraLudicTerminalPrimitive,
-    targetId: EphemeraLudicTerminalPrimitive,
+    subjectId: EphemeraLudicTerminalId,
+    targetId: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): { subjectHosts: EphemeraMembershipHostId[]; targetHosts: EphemeraMembershipHostId[]; sharedHost: EphemeraMembershipHostId | undefined } => {
     const subjectHosts = hostsOf(subjectId, graphs)
     const targetHosts = hostsOf(targetId, graphs)
-    return { subjectHosts, targetHosts, sharedHost: subjectHosts.find((hostId) => targetHosts.includes(hostId)) }
+    const intersected = subjectHosts.find((hostId) => targetHosts.includes(hostId))
+    if (intersected !== undefined) {
+        return { subjectHosts, targetHosts, sharedHost: intersected }
+    }
+    if (typeof subjectId === 'string' && typeof targetId !== 'string') {
+        return { subjectHosts, targetHosts, sharedHost: subjectHosts.length === 1 ? subjectHosts[0] : undefined }
+    }
+    if (typeof targetId === 'string' && typeof subjectId !== 'string') {
+        return { subjectHosts, targetHosts, sharedHost: targetHosts.length === 1 ? targetHosts[0] : undefined }
+    }
+    return { subjectHosts, targetHosts, sharedHost: undefined }
 }
 
 /**
@@ -218,6 +243,25 @@ export const applyStepSequenceCore = (
                 .filter((port) => port.kind === 'Present')
                 .reduce((current, port) => current.removePort(port.portId), graph)
             graphs.set(step.hostId, step.port ? withoutPresence.addPort(step.port) : withoutPresence)
+            continue
+        }
+
+        // PV1-3: a crossing port's own add/remove, by portId (not at-most-one --- see
+        // `MutationKernelAddCrossingPortStep`'s doc comment).
+        if (step.kind === 'addCrossingPort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.addPort(step.port))
+            continue
+        }
+        if (step.kind === 'removeCrossingPort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.removePort(step.portId))
             continue
         }
 

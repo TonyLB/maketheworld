@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import { expandSameHost } from './expandSameHost'
@@ -150,6 +150,65 @@ describe('expandSameHost', () => {
         )
 
         expect(result).toEqual({ verdict: 'satisfied', hostId: CHARACTER_ID })
+    })
+
+    it('PV1-3: a violated Custom relation crosses the shard boundary instead of deferring, when one is found', () => {
+        const roomGraph = testLudicGraph(ROOM_ID, {
+            nodes: [{ tag: 'Object', universalKey: NECKLACE_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+        })
+        const getCurrentHost = (id: EphemeraObjectId) => (id === NECKLACE_ID ? ROOM_ID : TABLE_ID)
+        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? roomGraph : undefined)
+        const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
+            if (id === NECKLACE_ID) return [ROOM_ID]
+            if (id === CHARM_ID) return [TABLE_ID]
+            if (id === TABLE_ID) return [ROOM_ID]
+            return []
+        }
+
+        const result = expandSameHost(
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', negate: false, relationLabel: 'to' },
+            getCurrentHost,
+            getGraph,
+            getMembershipContainers
+        )
+
+        expect(result.verdict).toBe('crossed')
+        if (result.verdict !== 'crossed') return
+        expect(result.steps).toEqual([
+            { kind: 'addCrossingPort', hostId: TABLE_ID, port: expect.objectContaining({ fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }) },
+            {
+                kind: 'establishRelation',
+                subjectId: expect.objectContaining({ owner: TABLE_ID }),
+                targetId: CHARM_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+            {
+                kind: 'establishRelation',
+                subjectId: NECKLACE_ID,
+                targetId: expect.objectContaining({ owner: TABLE_ID }),
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        ])
+    })
+
+    it('PV1-3: falls back to defer when no crossing boundary is found (no relationLabel supplied, or genuinely no shared ancestor)', () => {
+        const subjectGraph = testLudicGraph(CHARACTER_ID, {
+            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
+            edges: [],
+        })
+        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
+        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
+
+        const result = expandSameHost(
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', negate: false },
+            getCurrentHost,
+            getGraph,
+            () => []
+        )
+
+        expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
     it('errors on a violated negated assertion (no repair rule for "keep these apart")', () => {

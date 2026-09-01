@@ -5,8 +5,8 @@ import type {
     EphemeraObjectId,
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { Assertion, Change } from '../plan/ungroundedPrimitive'
@@ -27,17 +27,25 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * neighboring `buildObjectRelationalFact` was annotation, not behaviour. This is
  * also the prerequisite for LP4c: a `PartOf` edge legitimately puts a Feature in
  * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8).
+ *
+ * Widened again to `EphemeraLudicTerminalId` (PV1-3): a crossing leg's far-side
+ * endpoint is a port address, not a bare component id --- `HostRelationalEdge`
+ * (`manipulation/types.ts`) and `EphemeraLudicRelationalEdgeBase` (interfaces layer,
+ * LP7) already carry the wider type; this step type was the one place still
+ * narrower than the edge it produces. A leg is an ordinary `establishRelation`/
+ * `dissolveRelation` step living entirely within one host's own graph --- no new
+ * "leg" step kind, per PV1-3's plan review.
  */
 export type ExecutorEstablishRelationStep = {
     kind: 'establishRelation'
-    subjectId: EphemeraLudicTerminalPrimitive
-    targetId: EphemeraLudicTerminalPrimitive
+    subjectId: EphemeraLudicTerminalId
+    targetId: EphemeraLudicTerminalId
 } & RelationalKindAndLabel
 
 export type ExecutorDissolveRelationStep = {
     kind: 'dissolveRelation'
-    subjectId: EphemeraLudicTerminalPrimitive
-    targetId: EphemeraLudicTerminalPrimitive
+    subjectId: EphemeraLudicTerminalId
+    targetId: EphemeraLudicTerminalId
 } & RelationalKindAndLabel
 
 /**
@@ -88,6 +96,8 @@ export type GroundedBinaryAssertion = {
     negate: boolean
     /** `sameHost` only --- see `SameHostAssertion`'s doc comment in `ungroundedPrimitive.ts`. */
     relationKind?: HostRelationalEdgeKind
+    /** `sameHost` with `relationKind: 'Custom'` only (PV1-3) --- the crossing-port producer's `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag. */
+    relationLabel?: string
 }
 
 /**
@@ -130,6 +140,14 @@ export type ExpansionEnvironment = {
     groupIdByObject: Map<EphemeraObjectId, GroupId>
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
+    /**
+     * PV1-3: a plain injected callback, same convention as `getCurrentHost`/`getGraph` --- not a
+     * live DB call. `findShardBoundary`'s recursive walk calls this at every node it reaches, not
+     * only at `subjectId`/`targetId` themselves, so a caller whose worklist never seeds a
+     * `sameHost` assertion (every route but the relational/tie pipeline) can safely pass a stub
+     * that returns `[]` --- it is never invoked.
+     */
+    getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[]
 }
 
 export const isExecutorParsePlanStep = (

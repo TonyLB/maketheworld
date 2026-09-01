@@ -3,7 +3,7 @@ import { normalizeRelationSpan } from '../normalizeRelationSpan'
 import type { Change, Referent } from './ungroundedPrimitive'
 import { objectSpanRef } from './ungroundedPrimitive'
 
-const ESTABLISH_VERBS = new Set(['put', 'place', 'lean'])
+const ESTABLISH_VERBS = new Set(['put', 'place', 'lean', 'tie'])
 const DISSOLVE_VERBS = new Set(['take', 'remove'])
 
 export type RelationalTemplateMatchResult =

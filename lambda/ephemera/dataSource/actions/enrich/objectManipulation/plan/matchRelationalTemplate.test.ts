@@ -91,6 +91,27 @@ describe('matchRelationalTemplate', () => {
         })
     })
 
+    it('matches an establishRelation Custom template ("tie rope to cup") -- PV1-3', () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'tie' },
+            { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
+            { type: 'text', text: 'to' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+        ]
+
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'matched',
+            change: {
+                kind: 'change',
+                primitive: 'establishRelation',
+                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
+                target: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        })
+    })
+
     it('returns noMatch for an unrecognized verb', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'throw' },

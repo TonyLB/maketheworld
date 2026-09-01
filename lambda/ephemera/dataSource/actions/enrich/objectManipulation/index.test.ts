@@ -329,7 +329,7 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('abstains on tie cord around crate, since "tie ... around ..." is not a closed-template verb (BD-24 out of scope)', async () => {
+    it('grounds establish fixture tie cord around crate via the native skeleton pipeline (PV1-3: "tie" joined ESTABLISH_VERBS)', async () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 
@@ -339,6 +339,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'tie cord around crate',
                 rawObjectSpans: ['cord'],
                 parseSkeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cordId, normalizedShortName: 'cord' },
@@ -360,9 +361,14 @@ describe('enrichObjectManipulation', () => {
         )
 
         expect(result).toEqual({
-            type: 'Abstain',
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: cordId,
+            targetId: crateId,
+            relationKind: 'Custom',
+            relationLabel: 'around',
+            hostId: roomId,
             confidence: 0.87,
-            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
     })
 

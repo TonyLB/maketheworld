@@ -144,6 +144,68 @@ describe('runExecutor', () => {
         })
     })
 
+    it("PV1-3: a sameHost violation that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
+        const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
+
+        const env = createExpansionEnvironment(
+            (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
+            (id) => (id === ROPE_ID ? ROOM_ID : TABLE_ID),
+            (id) => {
+                if (id === ROPE_ID) return [ROOM_ID]
+                if (id === CUP_ID) return [TABLE_ID]
+                if (id === TABLE_ID) return [ROOM_ID]
+                return []
+            }
+        )
+
+        // Only the sameHost assertion is seeded --- no sibling establishRelation(ROPE_ID, CUP_ID)
+        // instruction, unlike the satisfied/repaired cases above. A direct rope->cup edge is never
+        // valid once the relation crosses a boundary (they never come to share a host), so the
+        // crossing legs below fully replace what a sibling relational step would otherwise have
+        // retired --- a caller wiring this route for real must seed accordingly (see
+        // `compileRelationalFromSkeleton.ts`'s own seed-construction comment).
+        const seed: WorklistInstruction[] = [
+            {
+                id: 'sameHost',
+                tag: 'grounded',
+                step: {
+                    kind: 'assertion',
+                    predicate: 'sameHost',
+                    subjectId: ROPE_ID,
+                    objectId: CUP_ID,
+                    negate: false,
+                    relationKind: 'Custom',
+                    relationLabel: 'to',
+                },
+            },
+        ]
+
+        const result = runExecutor(seed, env, emptyGroundingContext)
+
+        expect(result.verdict).toBe('legal')
+        if (result.verdict !== 'legal') return
+        expect(result.steps).toEqual([
+            {
+                kind: 'establishRelation',
+                subjectId: expect.objectContaining({ owner: TABLE_ID }),
+                targetId: CUP_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+            {
+                kind: 'establishRelation',
+                subjectId: ROPE_ID,
+                targetId: expect.objectContaining({ owner: TABLE_ID }),
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        ])
+        expect(result.extraKernelSteps).toEqual([
+            { kind: 'addCrossingPort', hostId: TABLE_ID, port: expect.objectContaining({ fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }) },
+        ])
+    })
+
     it('BD-28: a lone isolatedFromRelations (no paired transfer) mints its DissolveRelationSteps directly', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)

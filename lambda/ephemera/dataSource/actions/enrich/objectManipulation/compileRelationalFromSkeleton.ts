@@ -207,6 +207,18 @@ export async function compileRelationalFromSkeleton(
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
             { id: `${candidate.subjectId}/relationalChange`, tag: 'grounded', step: relationalStepNoHost },
         ]
+        // PV1-3: `expandSameHost` can now resolve a violated Custom relation into a genuine
+        // shard-boundary crossing (BD-16's third outcome) instead of always deferring --- but two
+        // gaps keep that path unreachable from here today, deliberately, rather than half-wired:
+        // (1) `getMembershipContainers`/`getCurrentHostForExpansion` above only pre-fetch one hop
+        // per distinct object id, while `findShardBoundary`'s walk needs to keep going past
+        // intermediate hosts too; (2) even with deeper pre-fetching, this seed's sibling
+        // `relationalStepNoHost` item would still retire unmodified alongside the crossing legs,
+        // producing an extra (invalid, endpoints-don't-share-a-host) direct edge --- the
+        // satisfied/repaired outcomes rely on that sibling retiring as-is, but a crossing replaces
+        // it entirely and needs the seed built accordingly. Wiring this live route is future work;
+        // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly instead
+        // (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
         const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion)
         const outcome = runExecutor(seed, env, context)
 
@@ -235,7 +247,13 @@ export async function compileRelationalFromSkeleton(
         // relational language is a persistence-layer concern, not an ingress one). No candidate this
         // route grounds is anything but an Object today, so this is a narrow, not a design change ---
         // same drop-the-candidate idiom the `verdict !== 'legal'` branch above already uses.
-        if (!isEphemeraObjectId(relStep.subjectId) || !isEphemeraObjectId(relStep.targetId)) {
+        // PV1-3 widened the step terminals again to EphemeraLudicTerminalId (port addresses, for
+        // crossing legs) --- this route never produces one, so the `typeof === 'string'` check
+        // drops a port-address endpoint the same way it already drops a non-Object primitive.
+        if (
+            typeof relStep.subjectId !== 'string' || typeof relStep.targetId !== 'string'
+            || !isEphemeraObjectId(relStep.subjectId) || !isEphemeraObjectId(relStep.targetId)
+        ) {
             continue
         }
         // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment ('In'/

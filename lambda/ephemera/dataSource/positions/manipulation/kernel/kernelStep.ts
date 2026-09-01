@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -74,12 +74,36 @@ export type MutationKernelSetPresencePortStep = {
     port?: EphemeraPresencePort
 }
 
+/**
+ * PV1-3: a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
+ * `establishRelation`/`dissolveRelation` step whose endpoint happens to be a port address --- see
+ * `executorTypes.ts`'s widening note). Unlike `setPresencePort`'s replace-all (presence is
+ * at-most-one, PR-10), crossing ports are add/remove-by-`portId` --- a host can carry more than one
+ * crossing port at once (one per relation that crosses it), so a fresh `tie` must not clobber an
+ * existing crossing left by an earlier one. Split into two step kinds, mirroring
+ * `establishRelation`/`dissolveRelation`'s own pairing, rather than one step with an `op` flag ---
+ * consistent with how this kernel already prefers a step kind per effect over a flag field.
+ */
+export type MutationKernelAddCrossingPortStep = {
+    kind: 'addCrossingPort'
+    hostId: EphemeraMembershipHostId
+    port: EphemeraCrossingPort
+}
+
+export type MutationKernelRemoveCrossingPortStep = {
+    kind: 'removeCrossingPort'
+    hostId: EphemeraMembershipHostId
+    portId: string
+}
+
 export type MutationKernelStep =
     | MutationKernelTransferStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
     | MutationKernelSetPresencePortStep
+    | MutationKernelAddCrossingPortStep
+    | MutationKernelRemoveCrossingPortStep
 
 /**
  * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
@@ -293,7 +317,9 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
-    step.kind === 'setPresencePort'
+    step.kind === 'setPresencePort' ||
+    step.kind === 'addCrossingPort' ||
+    step.kind === 'removeCrossingPort'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):

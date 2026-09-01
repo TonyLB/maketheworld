@@ -1,9 +1,12 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
+import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
+import { findShardBoundary } from './findShardBoundary'
+import { buildCrossingLegs } from './buildCrossingLegs'
 
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
@@ -15,6 +18,7 @@ import type { TransferMembershipStep } from '../parsePlanStep'
 export type ExpandSameHostResult =
     | { verdict: 'satisfied'; hostId: EphemeraMembershipHostId }
     | { verdict: 'repaired'; hostId: EphemeraMembershipHostId; transferStep: TransferMembershipStep }
+    | { verdict: 'crossed'; steps: MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
 
@@ -47,11 +51,14 @@ export const expandSameHost = (
         objectId: EphemeraObjectId
         relationKind: HostRelationalEdgeKind
         negate: boolean
+        /** `relationKind: 'Custom'` only --- see `GroundedBinaryAssertion`'s doc comment. */
+        relationLabel?: string
     },
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined,
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
+    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined,
+    getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[] = () => []
 ): ExpandSameHostResult => {
-    const { subjectId, objectId, relationKind, negate } = input
+    const { subjectId, objectId, relationKind, negate, relationLabel } = input
 
     const subjectHost = getCurrentHost(subjectId)
     if (!subjectHost) {
@@ -73,6 +80,29 @@ export const expandSameHost = (
 
     if (!violated) {
         return { verdict: 'satisfied', hostId: subjectHost }
+    }
+
+    if (relationKind === 'Custom' && !negate && relationLabel !== undefined) {
+        // PV1-3: a violated Custom relation is not automatically an LLM-validation case anymore
+        // --- it may legitimately cross a shard boundary via a port pair (BD-16's third outcome,
+        // this union's own doc comment). Try that first; only fall back to defer when the
+        // boundary predicate or leg producer can't yet handle this shape (not found, ambiguous,
+        // or deeper than the leg producer's current one-extra-hop-per-side scope).
+        const boundary = findShardBoundary({ subjectId, targetId: objectId }, getMembershipContainers)
+        if (boundary.verdict === 'crossed') {
+            const legs = buildCrossingLegs({
+                subjectId,
+                targetId: objectId,
+                commonAncestor: boundary.commonAncestor,
+                subjectPath: boundary.subjectPath,
+                targetPath: boundary.targetPath,
+                relationKind: 'Custom',
+                relationLabel,
+            })
+            if (legs.verdict === 'built') {
+                return { verdict: 'crossed', steps: legs.steps }
+            }
+        }
     }
 
     if (relationKind === 'Custom') {
