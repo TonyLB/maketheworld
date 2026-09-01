@@ -64,13 +64,18 @@ export type ContainedByAssertion = {
  * time. Optional so the existing orphaned `compileUngroundedPlan.ts` scaffold
  * (which predates this finding) stays valid unchanged; the live executor
  * requires it and errors if absent.
+ *
+ * No `negate` (dropped PV1-3b-10, 2026-09-01). `IsolatedFromRelationsAssertion`
+ * below reaches the same place from the other direction --- there, Plan would
+ * never emit a negated form; here, the question itself has no inverse. This
+ * predicate is becoming a placement-resolver rather than a check ("where does
+ * this relation go?", PV1-3b-4), and a placement has no negation to express.
  */
 export type SameHostAssertion = {
     kind: 'assertion'
     predicate: 'sameHost'
     subject: Referent
     object: Referent
-    negate: boolean
     relationKind?: HostRelationalEdgeKind
 }
 

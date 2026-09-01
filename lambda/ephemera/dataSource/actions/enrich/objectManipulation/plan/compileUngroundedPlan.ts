@@ -80,7 +80,6 @@ export function compileRelationalUngroundedPlan(
         predicate: 'sameHost' as const,
         subject,
         object: target,
-        negate: false,
     }
 
     const change = {

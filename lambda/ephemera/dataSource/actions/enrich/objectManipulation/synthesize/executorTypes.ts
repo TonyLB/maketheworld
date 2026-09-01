@@ -93,7 +93,13 @@ export type GroundedBinaryAssertion = {
     predicate: 'containedBy' | 'sameHost'
     subjectId: EphemeraObjectId
     objectId: EphemeraObjectId
-    negate: boolean
+    /**
+     * `containedBy` only --- `sameHost` dropped it in PV1-3b-10 (it is a placement-resolver,
+     * not an assertion, so it has no inverse to express). Optional only because this type is
+     * still shared: PV1-3b-4 removes `sameHost` from the union, at which point this and the two
+     * qualified fields below all stop needing a qualification and `negate` becomes required again.
+     */
+    negate?: boolean
     /** `sameHost` only --- see `SameHostAssertion`'s doc comment in `ungroundedPrimitive.ts`. */
     relationKind?: HostRelationalEdgeKind
     /** `sameHost` with `relationKind: 'Custom'` only (PV1-3) --- the crossing-port producer's `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag. */

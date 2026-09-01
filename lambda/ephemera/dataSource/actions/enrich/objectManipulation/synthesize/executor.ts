@@ -222,7 +222,7 @@ const commandExpand = (
                 return { kind: 'error', reason: 'sameHost assertion missing relationKind --- required to command-expand' }
             }
             const result = expandSameHost(
-                { subjectId: step.subjectId, objectId: step.objectId, relationKind: step.relationKind, negate: step.negate, relationLabel: step.relationLabel },
+                { subjectId: step.subjectId, objectId: step.objectId, relationKind: step.relationKind, relationLabel: step.relationLabel },
                 env.getCurrentHost,
                 env.getGraph,
                 env.getMembershipContainers

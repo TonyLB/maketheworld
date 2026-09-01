@@ -45,7 +45,7 @@ export const groundAssertion = (
                     predicate: assertion.predicate,
                     subjectId: subjectId.id,
                     objectId: objectId.id,
-                    negate: assertion.negate,
+                    ...(assertion.predicate === 'containedBy' ? { negate: assertion.negate } : {}),
                     ...(assertion.predicate === 'sameHost' && assertion.relationKind !== undefined
                         ? { relationKind: assertion.relationKind }
                         : {}),

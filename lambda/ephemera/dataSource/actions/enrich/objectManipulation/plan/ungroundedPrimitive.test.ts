@@ -92,7 +92,6 @@ describe('Assertion literal shape', () => {
             predicate: 'sameHost',
             subject: objectSpanRef('tray'),
             object: objectSpanRef('table'),
-            negate: false,
         }
         expect(assertion.predicate).toBe('sameHost')
     })

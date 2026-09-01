@@ -58,7 +58,6 @@ export const expandSameHost = (
         subjectId: EphemeraObjectId
         objectId: EphemeraObjectId
         relationKind: HostRelationalEdgeKind
-        negate: boolean
         /** `relationKind: 'Custom'` only --- see `GroundedBinaryAssertion`'s doc comment. */
         relationLabel?: string
     },
@@ -66,7 +65,7 @@ export const expandSameHost = (
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined,
     getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[] = () => []
 ): ExpandSameHostResult => {
-    const { subjectId, objectId, relationKind, negate, relationLabel } = input
+    const { subjectId, objectId, relationKind, relationLabel } = input
 
     const subjectHost = getCurrentHost(subjectId)
     if (!subjectHost) {
@@ -83,8 +82,7 @@ export const expandSameHost = (
         return { verdict: 'error', reason: `No graph found for host ${subjectHost}` }
     }
 
-    const bothOnGraph = subjectGraph.bothObjectsOnGraph(subjectId, objectId)
-    const violated = negate ? bothOnGraph : !bothOnGraph
+    const violated = !subjectGraph.bothObjectsOnGraph(subjectId, objectId)
 
     if (!violated) {
         return { verdict: 'satisfied', hostId: subjectHost }
@@ -96,7 +94,7 @@ export const expandSameHost = (
     // mechanism's own kind and is never an assertion's subject.
     const isPeerKind = relationKind === 'Under' || relationKind === 'Against' || relationKind === 'Custom'
 
-    if (isPeerKind && !negate && (relationKind !== 'Custom' || relationLabel !== undefined)) {
+    if (isPeerKind && (relationKind !== 'Custom' || relationLabel !== undefined)) {
         // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
         // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
         // union's own doc comment). PV1-3b-9 widened this from `Custom`-only: `buildCrossingLegs`
@@ -127,13 +125,6 @@ export const expandSameHost = (
             verdict: 'defer',
             decidable: false,
             reason: 'Custom relation sameHost violation requires LLM validation (BD-10)',
-        }
-    }
-
-    if (negate) {
-        return {
-            verdict: 'error',
-            reason: 'No rule defined for a negated sameHost assertion --- BD-15/16 only model the affirmative case',
         }
     }
 

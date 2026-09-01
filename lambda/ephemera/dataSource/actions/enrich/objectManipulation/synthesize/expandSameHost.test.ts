@@ -24,7 +24,7 @@ describe('expandSameHost', () => {
         const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? graph : undefined)
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
             getCurrentHost,
             getGraph
         )
@@ -48,7 +48,7 @@ describe('expandSameHost', () => {
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
             getCurrentHost,
             getGraph
         )
@@ -72,7 +72,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under', negate: false },
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under' },
             getCurrentHost,
             getGraph,
             getMembershipContainers
@@ -106,7 +106,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against', negate: false },
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against' },
             getCurrentHost,
             getGraph,
             getMembershipContainers
@@ -126,13 +126,13 @@ describe('expandSameHost', () => {
         const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
 
         const underResult = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under' },
             getCurrentHost,
             getGraph,
             () => []
         )
         const customResult = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
             getCurrentHost,
             getGraph,
             () => []
@@ -159,7 +159,7 @@ describe('expandSameHost', () => {
             hostId === CHARACTER_ID ? subjectGraph : undefined
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
             getCurrentHost,
             getGraph
         )
@@ -169,7 +169,7 @@ describe('expandSameHost', () => {
 
     it('errors when getCurrentHost has no entry for the subject', () => {
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
             () => undefined,
             () => undefined
         )
@@ -179,7 +179,7 @@ describe('expandSameHost', () => {
 
     it('errors when getCurrentHost has no entry for the object', () => {
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
             (id: EphemeraObjectId) => (id === TRAY_ID ? ROOM_ID : undefined),
             () => undefined
         )
@@ -189,30 +189,12 @@ describe('expandSameHost', () => {
 
     it('errors when the subject\'s host graph is missing', () => {
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
             () => ROOM_ID,
             () => undefined
         )
 
         expect(result.verdict).toBe('error')
-    })
-
-    it('treats a negated assertion as satisfied when subject and object do not already share a host (ternary-safe)', () => {
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) =>
-            hostId === CHARACTER_ID ? subjectGraph : undefined
-
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: true },
-            getCurrentHost,
-            getGraph
-        )
-
-        expect(result).toEqual({ verdict: 'satisfied', hostId: CHARACTER_ID })
     })
 
     it('PV1-3: a violated Custom relation crosses the shard boundary instead of deferring, when one is found', () => {
@@ -229,7 +211,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', negate: false, relationLabel: 'to' },
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to' },
             getCurrentHost,
             getGraph,
             getMembershipContainers
@@ -265,32 +247,12 @@ describe('expandSameHost', () => {
         const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', negate: false },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
             getCurrentHost,
             getGraph,
             () => []
         )
 
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
-    })
-
-    it('errors on a violated negated assertion (no rule for "keep these apart")', () => {
-        const graph = testLudicGraph(ROOM_ID, {
-            nodes: [
-                { tag: 'Object', universalKey: TRAY_ID },
-                { tag: 'Object', universalKey: TABLE_ID },
-            ],
-            edges: [],
-        })
-        const getCurrentHost = () => ROOM_ID
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? graph : undefined)
-
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', negate: true },
-            getCurrentHost,
-            getGraph
-        )
-
-        expect(result.verdict).toBe('error')
     })
 })

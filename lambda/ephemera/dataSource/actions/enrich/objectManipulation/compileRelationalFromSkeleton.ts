@@ -194,7 +194,6 @@ export async function compileRelationalFromSkeleton(
             predicate: 'sameHost',
             subjectId: candidate.subjectId,
             objectId: candidate.targetId,
-            negate: false,
             relationKind: candidate.relationKind,
         }
         const relationalStepNoHost = {

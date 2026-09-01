@@ -86,7 +86,7 @@ describe('runExecutor', () => {
             {
                 id: 'sameHost',
                 tag: 'grounded',
-                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, negate: false, relationKind: 'On' },
+                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, relationKind: 'On' },
             },
             {
                 id: 'establish',
@@ -133,7 +133,6 @@ describe('runExecutor', () => {
                     predicate: 'sameHost',
                     subjectId: ROPE_ID,
                     objectId: CUP_ID,
-                    negate: false,
                     relationKind: 'Custom',
                     relationLabel: 'to',
                 },

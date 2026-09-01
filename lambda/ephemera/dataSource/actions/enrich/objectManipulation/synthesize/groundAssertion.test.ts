@@ -25,7 +25,6 @@ describe('groundAssertion', () => {
             predicate: 'sameHost',
             subject: objectSpanRef('tray', 'trayRef'),
             object: objectSpanRef('table', 'tableRef'),
-            negate: false,
         }
         const context = contextWith([
             ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
@@ -39,7 +38,6 @@ describe('groundAssertion', () => {
                 predicate: 'sameHost',
                 subjectId: TRAY_ID,
                 objectId: TABLE_ID,
-                negate: false,
             },
         })
     })
@@ -95,7 +93,6 @@ describe('groundAssertion', () => {
             predicate: 'sameHost',
             subject: objectSpanRef('bench', 'benchRef'),
             object: objectSpanRef('table', 'tableRef'),
-            negate: false,
         }
         const context = contextWith([
             ['benchRef', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],

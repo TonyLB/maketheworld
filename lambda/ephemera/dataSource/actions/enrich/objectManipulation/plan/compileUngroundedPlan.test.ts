@@ -72,7 +72,6 @@ describe('compileRelationalUngroundedPlan', () => {
                     predicate: 'sameHost',
                     subject: objectSpanRef('broom'),
                     object: objectSpanRef('table'),
-                    negate: false,
                 },
                 {
                     kind: 'change',
@@ -105,7 +104,6 @@ describe('compileRelationalUngroundedPlan', () => {
                     predicate: 'sameHost',
                     subject: objectSpanRef('rope'),
                     object: objectSpanRef('crate'),
-                    negate: false,
                 },
                 {
                     kind: 'change',
@@ -132,7 +130,6 @@ describe('compileRelationalUngroundedPlan', () => {
                     predicate: 'sameHost',
                     subject: objectSpanRef('cord'),
                     object: objectSpanRef('crate'),
-                    negate: false,
                 },
                 {
                     kind: 'change',
