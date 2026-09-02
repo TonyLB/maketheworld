@@ -2,11 +2,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraLudicTerminalId, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** A crossing leg's kind/label pairing, narrowed off `'Present'` (that kind is presence ports' own --- see `EphemeraCrossingPort`). */
 type CrossingKindAndLabel = RelationalKindAndLabel<Exclude<HostRelationalEdgeKind, 'Present'>>
 
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
+import type { RelationalChainStep } from './findRelationalChain'
 
 export type BuildCrossingLegsResult =
     | { verdict: 'built'; steps: MutationKernelStep[] }
@@ -116,3 +118,39 @@ export const buildCrossingLegs = (
 
     return { verdict: 'built', steps }
 }
+
+/**
+ * PV1-3b-13's remove-leg/remove-port step emitter, consuming `findRelationalChain`'s `'found'`
+ * result --- the mirror of `buildCrossingLegs` above, but for dissolve: that function *mints*
+ * fresh port ids and must place the port step before the leg that references it; this one only
+ * removes ids that are already stored, so its two step kinds have no data dependency on each
+ * other and the chain's own discovery order (outward from subject to target) is preserved as-is.
+ *
+ * Unlike `buildCrossingLegs`, this has no hop cap and no `notYetImplemented` case: the cap on the
+ * establish side comes from `applyStepSequenceCore`'s host-resolution limits on a *freshly minted*
+ * middle leg with no primitive endpoint, which doesn't apply here --- every id this function reads
+ * off `steps` was already committed by some earlier `establishRelation` chain, however deep. It
+ * inherits `findRelationalChain`'s own no-depth-cap decision (PV1-3b-11) for free.
+ *
+ * **Not wired into `expandSameHost.ts` by this row.** `expandSameHost`'s `dissolveRelation`
+ * branch still calls `findShardBoundary` unconditionally regardless of `operationKind` --- rewiring
+ * it onto `findRelationalChain`/this function is PV1-3b-14; building the commit path that would
+ * actually execute the steps this emits is PV1-3b-3/16. This row is the standalone mapping and
+ * its tests only.
+ */
+export const buildCrossingDissolveLegs = (steps: readonly RelationalChainStep[]): MutationKernelStep[] =>
+    steps.map((step): MutationKernelStep =>
+        step.type === 'edge'
+            ? {
+                kind: 'dissolveRelation',
+                subjectId: step.edge.from,
+                targetId: step.edge.to,
+                hostId: step.hostId,
+                ...relationKindAndLabelOf(step.edge),
+            }
+            : {
+                kind: 'removeCrossingPort',
+                hostId: step.hostId,
+                portId: step.port.portId,
+            }
+    )

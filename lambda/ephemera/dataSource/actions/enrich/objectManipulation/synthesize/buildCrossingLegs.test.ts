@@ -1,12 +1,15 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { buildCrossingLegs } from './buildCrossingLegs'
+import { buildCrossingLegs, buildCrossingDissolveLegs } from './buildCrossingLegs'
+import type { RelationalChainStep } from './findRelationalChain'
 
 const ROOM_ID = 'ROOM#Vortex' as EphemeraRoomId
 const STRING_ID = 'OBJECT#String' as EphemeraObjectId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
+const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 
 describe('buildCrossingLegs', () => {
     it("PV1-0's own readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
@@ -280,5 +283,81 @@ describe('buildCrossingLegs', () => {
         })
 
         expect(result.verdict).toBe('notYetImplemented')
+    })
+})
+
+describe('buildCrossingDissolveLegs', () => {
+    it("PV1-0's own readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
+        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const steps: RelationalChainStep[] = [
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'port', hostId: TABLE_ID, port },
+            { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+        ]
+
+        expect(buildCrossingDissolveLegs(steps)).toEqual([
+            {
+                kind: 'dissolveRelation',
+                subjectId: STRING_ID,
+                targetId: { owner: TABLE_ID, port: 'port-1' },
+                hostId: ROOM_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+            { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
+            {
+                kind: 'dissolveRelation',
+                subjectId: { owner: TABLE_ID, port: 'port-1' },
+                targetId: CUP_ID,
+                hostId: TABLE_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        ])
+    })
+
+    it('a portless same-host chain becomes a single dissolveRelation step, nothing else', () => {
+        const steps: RelationalChainStep[] = [
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+        ]
+
+        expect(buildCrossingDissolveLegs(steps)).toEqual([
+            { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
+        ])
+    })
+
+    it('a non-Custom relation kind carries no relationLabel on the emitted step', () => {
+        const steps: RelationalChainStep[] = [
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Under' } },
+        ]
+
+        const [dissolveStep] = buildCrossingDissolveLegs(steps)
+        expect(dissolveStep).toEqual({ kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Under' })
+        expect(dissolveStep).not.toHaveProperty('relationLabel')
+    })
+
+    it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap and no notYetImplemented case', () => {
+        const portA: EphemeraCrossingPort = { portId: 'port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const portB: EphemeraCrossingPort = { portId: 'port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const steps: RelationalChainStep[] = [
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: BOX_ID, port: 'port-a' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'port', hostId: BOX_ID, port: portA },
+            { type: 'edge', hostId: BOX_ID, edge: { from: { owner: BOX_ID, port: 'port-a' }, to: { owner: TRAY_ID, port: 'port-b' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'port', hostId: TRAY_ID, port: portB },
+            { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+        ]
+
+        const result = buildCrossingDissolveLegs(steps)
+
+        expect(result).toHaveLength(5)
+        expect(result.map((step) => step.kind)).toEqual([
+            'dissolveRelation',
+            'removeCrossingPort',
+            'dissolveRelation',
+            'removeCrossingPort',
+            'dissolveRelation',
+        ])
+        expect(result[1]).toEqual({ kind: 'removeCrossingPort', hostId: BOX_ID, portId: 'port-a' })
+        expect(result[3]).toEqual({ kind: 'removeCrossingPort', hostId: TRAY_ID, portId: 'port-b' })
     })
 })
