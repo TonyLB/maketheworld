@@ -1,7 +1,7 @@
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../../internalCache'
 import type {
@@ -27,7 +27,7 @@ import { groundChange } from './synthesize/groundChange'
 import type { GroundingContext } from './synthesize/groundReferent'
 import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
 import { runExecutor } from './synthesize/executor'
-import type { GroundedBinaryAssertion, WorklistInstruction } from './synthesize/executorTypes'
+import type { GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
 
 export type CompileRelationalFromSkeletonInput = {
     command: string
@@ -67,18 +67,21 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
  * Grounding (groundChange.ts) still derives every candidate's host as
  * currentHost(actingCharacter) (BD-6's default) --- that default is discarded,
  * not read, once Expansion runs (Migrate slice, 2026-07-23): per candidate,
- * this seeds the general Synthesize executor with a grounded `[sameHost,
- * relationalChange]` pair (mirroring `[sameHostAssertion, change]`'s standard
- * seed order) and runs it, exactly the same executor `executeObjectEstablishRelation`/
- * `executeObjectDissolveRelation`'s commit path re-runs later --- `satisfied`
- * retires the assertion with no children (host is wherever subject/object
- * already share one). A violated assertion once minted a `transferMembership`
- * repair here; PV1-3b-9 (2026-09-01) retired that, so a violation now either
- * becomes crossing legs or declines. `defer` (peer-relation violations) has no
- * Consult/LLM-fallback path on this route yet (unlike membership) and is
- * dropped, same as any other decline. `expandSameHost.ts` itself is not
- * called directly here anymore --- the executor's own `sameHost`
- * command-expansion calls it internally.
+ * this seeds the general Synthesize executor with a single grounded `sameHost`
+ * instruction (PV1-3b-4 collapsed the seed --- it used to carry a sibling
+ * `relationalChange` instruction too, retired unmodified whenever the
+ * assertion was satisfied; that contract no longer holds once every case,
+ * including same-host, resolves through `findShardBoundary`/
+ * `buildCrossingLegs`) and runs it, producing the establish/dissolve step(s)
+ * directly as the assertion's own children. A same-host pair resolves to a
+ * zero-hop common ancestor and a single portless leg (PV1-3b-8); a genuinely
+ * violated peer relation either becomes crossing legs across a real boundary
+ * or declines (`defer`) --- PV1-3b-9 (2026-09-01) retired the old
+ * `transferMembership` repair outcome entirely, so there is no longer a
+ * relocate-then-relate path. `defer` has no Consult/LLM-fallback path on this
+ * route yet (unlike membership) and is dropped, same as any other decline.
+ * `expandSameHost.ts` itself is not called directly here anymore --- the
+ * executor's own `sameHost` command-expansion calls it internally.
  */
 export async function compileRelationalFromSkeleton(
     input: CompileRelationalFromSkeletonInput,
@@ -157,8 +160,9 @@ export async function compileRelationalFromSkeleton(
     // currentHost(actingCharacter) (BD-6's default, unchanged) --- expandSameHost is the
     // Expansion pass that corrects this per-candidate against the subject/object's real
     // current hosts. It once repaired a mismatch by inserting a transferMembership;
-    // PV1-3b-9 (2026-09-01) retired that, so it now either confirms the default
-    // (satisfied), expresses the mismatch as crossing legs, or declines.
+    // PV1-3b-9 (2026-09-01) retired that, so it now either walks-then-builds a crossing
+    // (findShardBoundary/buildCrossingLegs, PV1-3b-4 --- same-host included, since an
+    // endpoint is its own zero-hop ancestor) or declines.
     const distinctObjectIds = new Set<EphemeraObjectId>()
     for (const candidate of relationalCandidates) {
         distinctObjectIds.add(candidate.subjectId)
@@ -166,14 +170,28 @@ export async function compileRelationalFromSkeleton(
     }
 
     const hostByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
+    // PV1-3b-4: kept alongside `hostByObjectId` (same awaited fetch, no extra I/O) so
+    // `findShardBoundary`'s walk can see the one hop of container data this route already
+    // has --- without it, `satisfied`'s deletion would regress every already-shares-a-host
+    // case, since `createExpansionEnvironment` below previously got no container lookup at
+    // all. Still only one hop per distinct object id: walking *past* an intermediate host
+    // (a genuine cross-shard crossing) stays PV1-3b-5's open gap, not fixed here.
+    const containersByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId[]>()
     for (const objectId of distinctObjectIds) {
         const containers = await positionsReadDeps.getMembershipContainers(objectId)
+        containersByObjectId.set(objectId, containers)
         if (containers.length === 1) {
             hostByObjectId.set(objectId, containers[0])
         }
     }
     const getCurrentHostForExpansion = (objectId: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
         hostByObjectId.get(objectId)
+    // Widened to `EphemeraPositionAdjacencyContainedId` to match `createExpansionEnvironment`'s
+    // parameter type --- `containersByObjectId` only ever has `EphemeraObjectId` keys (this
+    // route's `distinctObjectIds` are all Object candidates), so a Character/Feature id here
+    // simply misses and falls back to `[]`, same as an unfetched Object id would.
+    const getMembershipContainersForExpansion = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] =>
+        (isEphemeraObjectId(id) ? containersByObjectId.get(id) : undefined) ?? []
 
     const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
     for (const hostId of hostByObjectId.values()) {
@@ -189,45 +207,33 @@ export async function compileRelationalFromSkeleton(
 
     const preparedCandidates: PreparedCandidate[] = []
     for (const candidate of relationalCandidates) {
-        const sameHostAssertion: GroundedBinaryAssertion = {
+        const sameHostAssertion: GroundedSameHostAssertion = {
             kind: 'assertion',
             predicate: 'sameHost',
             subjectId: candidate.subjectId,
             objectId: candidate.targetId,
+            operationKind: candidate.kind,
             // PV1-3b-6: carry the label, not just the kind --- `expandSameHost`'s crossing gate
             // requires it for `Custom`, and this seed used to drop it, so no live `Custom`
             // relation could reach the crossing path at all. Spread as a unit (the same helper
             // the sibling literal below uses) so the `Custom`/enum branch is stated once.
             ...relationKindAndLabelFrom(candidate),
         }
-        const relationalStepNoHost = {
-            kind: candidate.kind,
-            subjectId: candidate.subjectId,
-            targetId: candidate.targetId,
-            ...relationKindAndLabelFrom(candidate),
-        } as EstablishRelationStep | DissolveRelationStep
         const seed: WorklistInstruction[] = [
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
-            { id: `${candidate.subjectId}/relationalChange`, tag: 'grounded', step: relationalStepNoHost },
         ]
-        // PV1-3: `expandSameHost` can now resolve a violated Custom relation into a genuine
-        // shard-boundary crossing (BD-16's third outcome) instead of always deferring --- but two
-        // gaps keep that path unreachable from here today, deliberately, rather than half-wired.
-        // (A third --- this seed dropping `relationLabel`, which the crossing gate requires for
-        // `Custom` --- was closed by PV1-3b-6, 2026-09-01; the label is threaded above now.)
-        // (1) `getMembershipContainers`/`getCurrentHostForExpansion` above only pre-fetch one hop
-        // per distinct object id, while `findShardBoundary`'s walk needs to keep going past
-        // intermediate hosts too --- and `createExpansionEnvironment` below is not even handed a
-        // container lookup yet, so the walk finds nothing at all from here (PV1-3b-5);
-        // (2) even with deeper pre-fetching, this seed's sibling
-        // `relationalStepNoHost` item would still retire unmodified alongside the crossing legs,
-        // producing an extra (invalid, endpoints-don't-share-a-host) direct edge --- the
-        // satisfied outcome relies on that sibling retiring as-is, but a crossing replaces
-        // it entirely and needs the seed built accordingly (PV1-3b-4's seed collapse, still open).
-        // Wiring this live route is future work;
-        // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly instead
-        // (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
-        const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion)
+        // PV1-3: `expandSameHost` can resolve every peer-kind candidate into a genuine
+        // shard-boundary crossing (BD-16's third outcome, PV1-3b-4 generalized it to same-host
+        // too) instead of ever needing a second seeded instruction --- the assertion's own
+        // children carry the establish/dissolve leg(s) now. One gap keeps a genuine cross-shard
+        // crossing (as opposed to same-host) unreachable from here today: `getMembershipContainers`/
+        // `getCurrentHostForExpansion` above only pre-fetch one hop per distinct object id, while
+        // `findShardBoundary`'s walk needs to keep going past intermediate hosts too (PV1-3b-5,
+        // still open). A same-host candidate resolves live end to end already, since it needs no
+        // walk past that one hop (PV1-3b-4's `getMembershipContainersForExpansion` wiring above).
+        // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly for the
+        // deeper cases (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
+        const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion, getMembershipContainersForExpansion)
         const outcome = runExecutor(seed, env, context)
 
         // `defer`/`error`: this route has no Consult/LLM-fallback path today (unlike

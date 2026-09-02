@@ -2,7 +2,6 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { findShardBoundary } from './findShardBoundary'
 import { buildCrossingLegs } from './buildCrossingLegs'
@@ -11,11 +10,10 @@ import { buildCrossingLegs } from './buildCrossingLegs'
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
  * validator (BD-10) --- same caveat as `GroundReferentResult`/
  * `ExpandTransferMembershipResult` (BD-18, `AGENT.backtrackChannel.planning.md`):
- * keep this union open to a third outcome rather than letting the Pipeline
- * A -> B migration harden call sites around just these two.
+ * keep this union open to further outcomes rather than letting the Pipeline
+ * A -> B migration harden call sites around just these.
  */
 export type ExpandSameHostResult =
-    | { verdict: 'satisfied'; hostId: EphemeraMembershipHostId }
     | { verdict: 'crossed'; steps: MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
@@ -32,26 +30,28 @@ export type ExpandSameHostResult =
  * and what legs express it?", and a peer relation that cannot be expressed
  * declines rather than relocating either endpoint.
  *
+ * **PV1-3b-4 (2026-09-01) retired the `satisfied` fast path too.** It used to
+ * decide "do these already share a host?" by fetching the subject's current
+ * host graph and calling `bothObjectsOnGraph` directly, entirely bypassing
+ * `findShardBoundary`/`buildCrossingLegs` below --- a second implementation of
+ * exactly the degenerate case those two already handle correctly since
+ * PV1-3b-8 (an endpoint is its own zero-hop ancestor, so an already-shared
+ * host resolves to a single portless leg, not a boundary crossing). Every
+ * peer-kind candidate, same-host included, now walks (`findShardBoundary`)
+ * then builds (`buildCrossingLegs`) unconditionally; there is no longer a
+ * `getCurrentHost`/`getGraph` short-circuit ahead of that.
+ *
  * Hosting kinds (`On`/`In`/`PartOf`) reach no branch here but an error, and
  * deliberately: "put the cup on the table" is a membership move, not a
  * relational placement. Conflating the two is exactly what made the old repair
  * outcome look load-bearing. If CD2h ever routes hosting kinds through this
  * function they need their own branch built for them.
  *
- * Satisfaction is determined by fetching the subject's current host graph
- * and calling **its own** `bothObjectsOnGraph` (`ludicGraph/index.ts`)
- * --- the exact pure method `applyRelationalPatch` already uses --- rather
- * than comparing `subjectHost`/`objectHost` for equality. That keeps this
- * Expansion step and any future commit-time re-verification (BD-15 slice 3,
- * generalizing `applyRelationalPatch` to re-check atomically, mirroring how
- * `applyTransferSet` re-verifies transfer-set completeness) provably calling
- * the same predicate, not two independently-drifting copies.
- *
- * `getCurrentHost`/`getGraph` are plain injected callbacks, not live DB
- * calls --- matches `GroundingContext`/`expandTransferMembership.ts`'s
- * convention. Standalone and unwired: does not decide how Grounding and
- * Expansion interleave (`AGENT.concepts.md`, "Synthesize's three
- * sub-roles") --- this function only operates on already-grounded ids.
+ * `getMembershipContainers` is a plain injected callback, not a live DB call
+ * --- matches `GroundingContext`/`expandTransferMembership.ts`'s convention.
+ * Standalone and unwired: does not decide how Grounding and Expansion
+ * interleave (`AGENT.concepts.md`, "Synthesize's three sub-roles") --- this
+ * function only operates on already-grounded ids.
  */
 export const expandSameHost = (
     input: {
@@ -60,12 +60,16 @@ export const expandSameHost = (
         relationKind: HostRelationalEdgeKind
         /** `relationKind: 'Custom'` only --- see `GroundedBinaryAssertion`'s doc comment. */
         relationLabel?: string
+        /**
+         * PV1-3b-4: the collapsed ingress seed carries no sibling relational step any more, so
+         * this is now the only place that knows whether the relation being expressed is an
+         * establish or a dissolve --- `buildCrossingLegs` needs it for the final step's own kind.
+         */
+        operationKind: 'establishRelation' | 'dissolveRelation'
     },
-    getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined,
-    getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined,
     getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[] = () => []
 ): ExpandSameHostResult => {
-    const { subjectId, objectId, relationKind, relationLabel } = input
+    const { subjectId, objectId, relationKind, relationLabel, operationKind } = input
 
     // PV1-3b-6: input validation, deliberately above every state lookup --- this asks nothing
     // about the world. `relationKind`/`relationLabel` arrive as two flat fields here (via
@@ -81,27 +85,6 @@ export const expandSameHost = (
             verdict: 'error',
             reason: `Custom sameHost assertion for ${subjectId}/${objectId} carries no relationLabel --- a Custom relation is its label, so this is malformed input rather than a semantic question (BD-10 does not apply)`,
         }
-    }
-
-    const subjectHost = getCurrentHost(subjectId)
-    if (!subjectHost) {
-        return { verdict: 'error', reason: `No current host found for ${subjectId}` }
-    }
-
-    const objectHost = getCurrentHost(objectId)
-    if (!objectHost) {
-        return { verdict: 'error', reason: `No current host found for ${objectId}` }
-    }
-
-    const subjectGraph = getGraph(subjectHost)
-    if (!subjectGraph) {
-        return { verdict: 'error', reason: `No graph found for host ${subjectHost}` }
-    }
-
-    const violated = !subjectGraph.bothObjectsOnGraph(subjectId, objectId)
-
-    if (!violated) {
-        return { verdict: 'satisfied', hostId: subjectHost }
     }
 
     // Peer kinds only (AB-54). A hosting kind puts the subordinate node *inside* the superior's
@@ -124,6 +107,7 @@ export const expandSameHost = (
                 commonAncestor: boundary.commonAncestor,
                 subjectPath: boundary.subjectPath,
                 targetPath: boundary.targetPath,
+                operationKind,
                 // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated union
                 // spread cleanly --- `relationLabel` is checked non-undefined by the malformed-
                 // input guard at the top of the function (PV1-3b-6), which is why the cast is safe.

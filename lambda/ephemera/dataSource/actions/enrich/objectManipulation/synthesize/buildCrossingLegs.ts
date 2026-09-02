@@ -44,9 +44,15 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * without carrying an explicit host on the step, a bigger change this slice does not make. Reports
  * `notYetImplemented` for that case, the same shape `findShardBoundary` already uses for its own
  * unsupported (`ambiguous`) case, rather than emitting steps that would later throw at apply time.
- * Establish-only: PV1-3's readout only exercises `tie` (an establish), not the dissolve/untie
- * direction --- building dissolve legs (which would also need to *remove* the crossing ports) is
- * left for whichever slice needs it.
+ *
+ * `operationKind` picks `establishRelation`/`dissolveRelation` for the final step (PV1-3b-4 ---
+ * the collapsed ingress seed no longer carries a sibling relational step of its own, so this
+ * function is now the only source of that step for every same-host candidate, dissolves
+ * included, not just the crossing ones). **Dissolving an actual crossing stays unbuilt and
+ * reports `notYetImplemented`**: a real crossing (either path length `=== 2`) would also need to
+ * *remove* the crossing port(s) it once minted, which this function only ever adds --- left for
+ * whichever slice needs it. Only the no-port (portless leg) degenerate case supports dissolve
+ * today.
  */
 export const buildCrossingLegs = (
     input: {
@@ -55,9 +61,10 @@ export const buildCrossingLegs = (
         commonAncestor: EphemeraMembershipHostId
         subjectPath: EphemeraMembershipHostId[]
         targetPath: EphemeraMembershipHostId[]
+        operationKind: 'establishRelation' | 'dissolveRelation'
     } & CrossingKindAndLabel
 ): BuildCrossingLegsResult => {
-    const { subjectId, targetId, commonAncestor, subjectPath, targetPath } = input
+    const { subjectId, targetId, commonAncestor, subjectPath, targetPath, operationKind } = input
     const kindAndLabel: CrossingKindAndLabel = input.relationKind === 'Custom'
         ? { relationKind: 'Custom', relationLabel: input.relationLabel }
         : { relationKind: input.relationKind }
@@ -69,6 +76,12 @@ export const buildCrossingLegs = (
         return {
             verdict: 'notYetImplemented',
             reason: 'buildCrossingLegs: a middle leg with two port-address endpoints (both sides one extra hop deep) is not yet supported',
+        }
+    }
+    if (operationKind === 'dissolveRelation' && (subjectPath.length === 2 || targetPath.length === 2)) {
+        return {
+            verdict: 'notYetImplemented',
+            reason: 'buildCrossingLegs: dissolving a relation that crosses a real shard boundary is not yet supported --- it would also need to remove the crossing port(s) this function only ever adds',
         }
     }
 
@@ -94,7 +107,7 @@ export const buildCrossingLegs = (
         steps.push({ kind: 'establishRelation', subjectId: targetEntry, targetId, ...kindAndLabel })
     }
 
-    steps.push({ kind: 'establishRelation', subjectId: subjectEntry, targetId: targetEntry, ...kindAndLabel })
+    steps.push({ kind: operationKind, subjectId: subjectEntry, targetId: targetEntry, ...kindAndLabel })
 
     return { verdict: 'built', steps }
 }

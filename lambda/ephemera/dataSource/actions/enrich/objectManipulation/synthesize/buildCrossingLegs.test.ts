@@ -16,6 +16,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -57,6 +58,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [BOX_ID, ROOM_ID],
             targetPath: [ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -93,6 +95,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -105,6 +108,41 @@ describe('buildCrossingLegs', () => {
         })
     })
 
+    it('PV1-3b-4: a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
+        const result = buildCrossingLegs({
+            subjectId: STRING_ID,
+            targetId: CUP_ID,
+            commonAncestor: ROOM_ID,
+            subjectPath: [ROOM_ID],
+            targetPath: [ROOM_ID],
+            relationKind: 'Custom',
+            relationLabel: 'to',
+            operationKind: 'dissolveRelation',
+        })
+
+        expect(result).toEqual({
+            verdict: 'built',
+            steps: [
+                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+            ],
+        })
+    })
+
+    it('PV1-3b-4: reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
+        const result = buildCrossingLegs({
+            subjectId: STRING_ID,
+            targetId: CUP_ID,
+            commonAncestor: ROOM_ID,
+            subjectPath: [ROOM_ID],
+            targetPath: [TABLE_ID, ROOM_ID],
+            relationKind: 'Custom',
+            relationLabel: 'to',
+            operationKind: 'dissolveRelation',
+        })
+
+        expect(result.verdict).toBe('notYetImplemented')
+    })
+
     it('zero-length target path (the target IS the common ancestor): a single leg in that host, no port minted', () => {
         const result = buildCrossingLegs({
             subjectId: CUP_ID,
@@ -112,6 +150,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: TABLE_ID,
             subjectPath: [TABLE_ID],
             targetPath: [],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -131,6 +170,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: TABLE_ID,
             subjectPath: [],
             targetPath: [TABLE_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -150,6 +190,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: TABLE_ID,
             subjectPath: [],
             targetPath: [BOX_ID, TABLE_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -193,6 +234,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Under',
         })
 
@@ -211,6 +253,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [BOX_ID, ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -225,6 +268,7 @@ describe('buildCrossingLegs', () => {
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [BOX_ID, TABLE_ID, ROOM_ID],
+            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })

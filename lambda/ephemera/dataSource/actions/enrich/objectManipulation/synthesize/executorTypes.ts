@@ -90,20 +90,34 @@ export type InstructionId = string
 
 export type GroundedBinaryAssertion = {
     kind: 'assertion'
-    predicate: 'containedBy' | 'sameHost'
+    predicate: 'containedBy'
     subjectId: EphemeraObjectId
     objectId: EphemeraObjectId
-    /**
-     * `containedBy` only --- `sameHost` dropped it in PV1-3b-10 (it is a placement-resolver,
-     * not an assertion, so it has no inverse to express). Optional only because this type is
-     * still shared: PV1-3b-4 removes `sameHost` from the union, at which point this and the two
-     * qualified fields below all stop needing a qualification and `negate` becomes required again.
-     */
-    negate?: boolean
-    /** `sameHost` only --- see `SameHostAssertion`'s doc comment in `ungroundedPrimitive.ts`. */
+    negate: boolean
+}
+
+/**
+ * PV1-3b-4 split this out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
+ * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
+ * `negate` was already dropped, PV1-3b-10), so once `containedBy`'s `negate` went back to being
+ * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
+ * doc comment in `ungroundedPrimitive.ts` for `relationKind`'s own carried-copy rationale;
+ * `relationLabel` is `relationKind: 'Custom'` only (PV1-3) --- the crossing-port producer's
+ * `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag.
+ */
+export type GroundedSameHostAssertion = {
+    kind: 'assertion'
+    predicate: 'sameHost'
+    subjectId: EphemeraObjectId
+    objectId: EphemeraObjectId
     relationKind?: HostRelationalEdgeKind
-    /** `sameHost` with `relationKind: 'Custom'` only (PV1-3) --- the crossing-port producer's `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag. */
     relationLabel?: string
+    /**
+     * PV1-3b-4: the collapsed ingress seed no longer carries a sibling relational step, so this
+     * assertion is the only place `establishRelation`/`dissolveRelation` survives to Expansion ---
+     * `expandSameHost`/`buildCrossingLegs` need it to pick the retiring step's own kind.
+     */
+    operationKind: 'establishRelation' | 'dissolveRelation'
 }
 
 /**
@@ -118,7 +132,7 @@ export type GroundedIsolatedFromRelationsAssertion = {
     objectIds: ReadonlySet<EphemeraObjectId>
 }
 
-export type GroundedAssertion = GroundedBinaryAssertion | GroundedIsolatedFromRelationsAssertion
+export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssertion | GroundedIsolatedFromRelationsAssertion
 
 /**
  * BD-30's progress-tagged instruction. `'retired'` is deliberately not a tag

@@ -74,24 +74,33 @@ describe('runExecutor', () => {
         expect(seeded[1]!.step).toBe(change)
     })
 
-    it('BD-16: a satisfied sameHost adds nothing, the relational Change retires alone', () => {
+    it('PV1-3b-4: a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
+        // `satisfied` (deleted 2026-09-01) used to retire a matching sameHost assertion with no
+        // children, relying on a sibling establishRelation instruction (seeded alongside it) to
+        // retire unmodified as the actual edge. That sibling is gone --- an endpoint is its own
+        // zero-hop ancestor (PV1-3b-8), so `findShardBoundary`/`buildCrossingLegs` resolve an
+        // already-shared host to a single portless leg, which is now the *only* source of the
+        // establishRelation step.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
-            (id) => ([SAUCER_ID, CUP_ID].includes(id) ? ROOM_ID : undefined)
+            (id) => ((id === SAUCER_ID || id === CUP_ID) ? ROOM_ID : undefined),
+            (id) => ((id === SAUCER_ID || id === CUP_ID) ? [ROOM_ID] : [])
         )
 
         const seed: WorklistInstruction[] = [
             {
                 id: 'sameHost',
                 tag: 'grounded',
-                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, relationKind: 'On' },
-            },
-            {
-                id: 'establish',
-                tag: 'grounded',
-                step: { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
+                step: {
+                    kind: 'assertion',
+                    predicate: 'sameHost',
+                    subjectId: SAUCER_ID,
+                    objectId: CUP_ID,
+                    relationKind: 'Under',
+                    operationKind: 'establishRelation',
+                },
             },
         ]
 
@@ -99,7 +108,7 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' }],
+            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'Under' }],
         })
     })
 
@@ -118,11 +127,11 @@ describe('runExecutor', () => {
             }
         )
 
-        // Only the sameHost assertion is seeded --- no sibling establishRelation(ROPE_ID, CUP_ID)
-        // instruction, unlike the satisfied case above. A direct rope->cup edge is never
-        // valid once the relation crosses a boundary (they never come to share a host), so the
-        // crossing legs below fully replace what a sibling relational step would otherwise have
-        // retired --- a caller wiring this route for real must seed accordingly (see
+        // Only the sameHost assertion is seeded --- there is no sibling establishRelation
+        // instruction at all any more (PV1-3b-4 collapsed the seed). A direct rope->cup edge is
+        // never valid once the relation crosses a boundary (they never come to share a host), so
+        // the crossing legs below are the assertion's own children, same as the portless-leg
+        // same-host case above --- a caller wiring this route for real must seed accordingly (see
         // `compileRelationalFromSkeleton.ts`'s own seed-construction comment).
         const seed: WorklistInstruction[] = [
             {
@@ -135,6 +144,7 @@ describe('runExecutor', () => {
                     objectId: CUP_ID,
                     relationKind: 'Custom',
                     relationLabel: 'to',
+                    operationKind: 'establishRelation',
                 },
             },
         ]

@@ -222,14 +222,15 @@ const commandExpand = (
                 return { kind: 'error', reason: 'sameHost assertion missing relationKind --- required to command-expand' }
             }
             const result = expandSameHost(
-                { subjectId: step.subjectId, objectId: step.objectId, relationKind: step.relationKind, relationLabel: step.relationLabel },
-                env.getCurrentHost,
-                env.getGraph,
+                {
+                    subjectId: step.subjectId,
+                    objectId: step.objectId,
+                    relationKind: step.relationKind,
+                    relationLabel: step.relationLabel,
+                    operationKind: step.operationKind,
+                },
                 env.getMembershipContainers
             )
-            if (result.verdict === 'satisfied') {
-                return { kind: 'consumed', children: [] }
-            }
             if (result.verdict === 'crossed') {
                 // Leg steps (establishRelation, already executor-shaped) retire through the
                 // ordinary worklist; the port-record steps (addCrossingPort) cannot --- they are

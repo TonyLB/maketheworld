@@ -1,7 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import { expandSameHost } from './expandSameHost'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -12,46 +11,36 @@ const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('expandSameHost', () => {
-    it('is satisfied when subject and object already share a host', () => {
-        const graph = testLudicGraph(ROOM_ID, {
-            nodes: [
-                { tag: 'Object', universalKey: TRAY_ID },
-                { tag: 'Object', universalKey: TABLE_ID },
-            ],
-            edges: [],
-        })
-        const getCurrentHost = () => ROOM_ID
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? graph : undefined)
+    it('PV1-3b-4: a peer relation between two objects that already share a host resolves as a crossing with one portless leg', () => {
+        // Deletion of the old `satisfied` fast path means this shape now goes through
+        // `findShardBoundary`/`buildCrossingLegs` like every other peer-kind candidate --- an
+        // endpoint is its own zero-hop ancestor (PV1-3b-8), so a shared host resolves to a
+        // single leg with no port minted, not a boundary crossing.
+        const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
+            if (id === TRAY_ID || id === TABLE_ID) return [ROOM_ID]
+            return []
+        }
 
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
-            getCurrentHost,
-            getGraph
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
+            getMembershipContainers
         )
 
-        expect(result).toEqual({ verdict: 'satisfied', hostId: ROOM_ID })
+        expect(result).toEqual({
+            verdict: 'crossed',
+            steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'Under' }],
+        })
     })
 
-    it('errors rather than relocating anything on a violated hosting kind ("put tray on table", tray held)', () => {
+    it('errors rather than crossing on a hosting kind ("put tray on table") --- no branch on this route at all', () => {
         // PV1-3b-9: this shape used to be the motivating case for `repaired` --- move the tray
         // onto the table's host and call the precondition fixed. A hosting relation is a
         // membership move, not a relational placement, so it gets no branch on this route at
-        // all now. Unreachable live (the ingress lane defers `on` per CD2); asserted so that
-        // making it reachable is a deliberate act with a branch built for it, not a silent
-        // fall-through into peer-relation machinery.
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) =>
-            hostId === CHARACTER_ID ? subjectGraph : undefined
-
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
-            getCurrentHost,
-            getGraph
-        )
+        // all now --- not even a state lookup, since hosting kinds fail the peer-kind gate before
+        // `findShardBoundary` is ever called. Unreachable live (the ingress lane defers `on` per
+        // CD2); asserted so that making it reachable is a deliberate act with a branch built for
+        // it, not a silent fall-through into peer-relation machinery.
+        const result = expandSameHost({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
@@ -59,11 +48,6 @@ describe('expandSameHost', () => {
     })
 
     it('PV1-3b-9: an Under relation crosses the shard boundary, minting a port with no relationLabel', () => {
-        const roomGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Object', universalKey: NECKLACE_ID }, { tag: 'Object', universalKey: TABLE_ID }],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === NECKLACE_ID ? ROOM_ID : TABLE_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? roomGraph : undefined)
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -72,9 +56,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             getMembershipContainers
         )
 
@@ -93,11 +75,6 @@ describe('expandSameHost', () => {
     })
 
     it('PV1-3b-9: an Against relation crosses the same way --- the gate is on peer-ness, not on one kind', () => {
-        const roomGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Object', universalKey: NECKLACE_ID }, { tag: 'Object', universalKey: TABLE_ID }],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === NECKLACE_ID ? ROOM_ID : TABLE_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? roomGraph : undefined)
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -106,9 +83,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against', operationKind: 'establishRelation' },
             getMembershipContainers
         )
 
@@ -118,23 +93,12 @@ describe('expandSameHost', () => {
     })
 
     it('PV1-3b-9: an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
-
         const underResult = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             () => []
         )
         const customResult = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             () => []
         )
 
@@ -149,60 +113,16 @@ describe('expandSameHost', () => {
         expect(underResult.reason).toEqual(expect.stringContaining('Under'))
     })
 
-    it('defers on a Custom relation kind when hosts differ', () => {
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) =>
-            hostId === CHARACTER_ID ? subjectGraph : undefined
-
+    it('defers on a Custom relation kind when no shared boundary is reachable', () => {
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
-            getCurrentHost,
-            getGraph
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
+            () => []
         )
 
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
-    it('errors when getCurrentHost has no entry for the subject', () => {
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
-            () => undefined,
-            () => undefined
-        )
-
-        expect(result.verdict).toBe('error')
-    })
-
-    it('errors when getCurrentHost has no entry for the object', () => {
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
-            (id: EphemeraObjectId) => (id === TRAY_ID ? ROOM_ID : undefined),
-            () => undefined
-        )
-
-        expect(result.verdict).toBe('error')
-    })
-
-    it('errors when the subject\'s host graph is missing', () => {
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On' },
-            () => ROOM_ID,
-            () => undefined
-        )
-
-        expect(result.verdict).toBe('error')
-    })
-
     it('PV1-3: a violated Custom relation crosses the shard boundary instead of deferring, when one is found', () => {
-        const roomGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Object', universalKey: NECKLACE_ID }, { tag: 'Object', universalKey: TABLE_ID }],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === NECKLACE_ID ? ROOM_ID : TABLE_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === ROOM_ID ? roomGraph : undefined)
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -211,9 +131,7 @@ describe('expandSameHost', () => {
         }
 
         const result = expandSameHost(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             getMembershipContainers
         )
 
@@ -239,17 +157,8 @@ describe('expandSameHost', () => {
     })
 
     it('PV1-3: falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
-
         const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             () => []
         )
 
@@ -262,23 +171,12 @@ describe('expandSameHost', () => {
         // label, so with none there is no relation to reason about. The two must stay
         // distinguishable in wording, for the same reason PV1-3b-9's pair of defers must be ---
         // the reason string is what routes the follow-up.
-        const subjectGraph = testLudicGraph(CHARACTER_ID, {
-            nodes: [{ tag: 'Object', universalKey: TRAY_ID }],
-            edges: [],
-        })
-        const getCurrentHost = (id: EphemeraObjectId) => (id === TRAY_ID ? CHARACTER_ID : ROOM_ID)
-        const getGraph = (hostId: EphemeraMembershipHostId) => (hostId === CHARACTER_ID ? subjectGraph : undefined)
-
         const unlabelled = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' },
             () => []
         )
         const labelled = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
-            getCurrentHost,
-            getGraph,
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             () => []
         )
 
@@ -291,14 +189,11 @@ describe('expandSameHost', () => {
     })
 
     it('PV1-3b-6: the malformed-input check precedes every state lookup --- it asks nothing about the world', () => {
-        // Asserted rather than left to branch order: with no host and no graph available, a
-        // label-less Custom still reports the label problem, not "No current host found". The
-        // guard has to survive PV1-3b-4's deletion of the host/graph lookups below it.
-        const result = expandSameHost(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom' },
-            () => undefined,
-            () => undefined
-        )
+        // Asserted rather than left to branch order: with no membership-container data available
+        // at all, a label-less Custom still reports the label problem, not a boundary-lookup
+        // failure. The guard has to survive PV1-3b-4's deletion of the host/graph lookups that
+        // used to sit below it.
+        const result = expandSameHost({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return

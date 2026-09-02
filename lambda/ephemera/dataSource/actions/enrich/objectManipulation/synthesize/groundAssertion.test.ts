@@ -19,29 +19,6 @@ const contextWith = (resolvedSpans: [string, ResolvedSpan][]): GroundingContext 
 })
 
 describe('groundAssertion', () => {
-    it('grounds a sameHost Assertion into a GroundedBinaryAssertion', () => {
-        const assertion: Assertion = {
-            kind: 'assertion',
-            predicate: 'sameHost',
-            subject: objectSpanRef('tray', 'trayRef'),
-            object: objectSpanRef('table', 'tableRef'),
-        }
-        const context = contextWith([
-            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
-        ])
-
-        expect(groundAssertion(assertion, context)).toEqual({
-            ok: true,
-            assertion: {
-                kind: 'assertion',
-                predicate: 'sameHost',
-                subjectId: TRAY_ID,
-                objectId: TABLE_ID,
-            },
-        })
-    })
-
     it('grounds a containedBy Assertion with negate: true preserved', () => {
         const assertion: Assertion = {
             kind: 'assertion',
@@ -90,9 +67,10 @@ describe('groundAssertion', () => {
     it('errors (BD-32) when a referent grounds to more than one candidate', () => {
         const assertion: Assertion = {
             kind: 'assertion',
-            predicate: 'sameHost',
+            predicate: 'containedBy',
             subject: objectSpanRef('bench', 'benchRef'),
             object: objectSpanRef('table', 'tableRef'),
+            negate: false,
         }
         const context = contextWith([
             ['benchRef', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],

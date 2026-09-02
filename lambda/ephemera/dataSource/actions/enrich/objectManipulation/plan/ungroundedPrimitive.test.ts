@@ -85,14 +85,4 @@ describe('Assertion literal shape', () => {
         }
         expect(assertion.negate).toBe(true)
     })
-
-    it('accepts a sameHost assertion (BD-15/16)', () => {
-        const assertion: Assertion = {
-            kind: 'assertion',
-            predicate: 'sameHost',
-            subject: objectSpanRef('tray'),
-            object: objectSpanRef('table'),
-        }
-        expect(assertion.predicate).toBe('sameHost')
-    })
 })
