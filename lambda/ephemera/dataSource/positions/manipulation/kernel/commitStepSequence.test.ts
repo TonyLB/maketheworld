@@ -81,7 +81,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
+            { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([TRAY_ID, GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
@@ -133,7 +133,7 @@ describe('commitStepSequence', () => {
             'ROOM#Kitchen': otherRoomGraph,
         })
 
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }]
 
         const result = await commitStepSequence(
             {
@@ -249,7 +249,7 @@ describe('commitStepSequence', () => {
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
@@ -285,7 +285,7 @@ describe('commitStepSequence', () => {
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 

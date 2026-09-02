@@ -40,8 +40,9 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * **Scope cut, deliberate:** supports at most one extra hop per side (`subjectPath`/`targetPath`
  * length <= 2), and never both sides having an extra hop at once --- that combination needs a
  * *middle* leg between two port addresses with no primitive endpoint at all, which
- * `applyStepSequenceCore`'s host-resolution (derive-from-endpoint-ids, BD-33) cannot resolve
- * without carrying an explicit host on the step, a bigger change this slice does not make. Reports
+ * `applyStepSequenceCore`'s host-resolution (PV1-3b-7 onward: an assertion against a carried
+ * `hostId`, not a derive-from-endpoint-ids resolver) still cannot resolve a *middle* leg with no
+ * primitive endpoint on either side --- there is no single host to carry there either. Reports
  * `notYetImplemented` for that case, the same shape `findShardBoundary` already uses for its own
  * unsupported (`ambiguous`) case, rather than emitting steps that would later throw at apply time.
  *
@@ -53,6 +54,10 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * *remove* the crossing port(s) it once minted, which this function only ever adds --- left for
  * whichever slice needs it. Only the no-port (portless leg) degenerate case supports dissolve
  * today.
+ *
+ * **`hostId` (PV1-3b-7):** each hop leg carries `nearHost` (the same host its own freshly-minted
+ * port is added to); the final chain step carries `commonAncestor` (both its entries, primitive or
+ * port address, are referenced from that host's own graph once any crossing is placed).
  */
 export const buildCrossingLegs = (
     input: {
@@ -94,7 +99,7 @@ export const buildCrossingLegs = (
         const port: EphemeraCrossingPort = { portId, fromHostId: commonAncestor, ...portFieldsFrom(kindAndLabel) }
         steps.push({ kind: 'addCrossingPort', hostId: nearHost, port })
         subjectEntry = { owner: nearHost, port: portId }
-        steps.push({ kind: 'establishRelation', subjectId, targetId: subjectEntry, ...kindAndLabel })
+        steps.push({ kind: 'establishRelation', subjectId, targetId: subjectEntry, hostId: nearHost, ...kindAndLabel })
     }
 
     let targetEntry: EphemeraLudicTerminalId = targetId
@@ -104,10 +109,10 @@ export const buildCrossingLegs = (
         const port: EphemeraCrossingPort = { portId, fromHostId: commonAncestor, ...portFieldsFrom(kindAndLabel) }
         steps.push({ kind: 'addCrossingPort', hostId: nearHost, port })
         targetEntry = { owner: nearHost, port: portId }
-        steps.push({ kind: 'establishRelation', subjectId: targetEntry, targetId, ...kindAndLabel })
+        steps.push({ kind: 'establishRelation', subjectId: targetEntry, targetId, hostId: nearHost, ...kindAndLabel })
     }
 
-    steps.push({ kind: operationKind, subjectId: subjectEntry, targetId: targetEntry, ...kindAndLabel })
+    steps.push({ kind: operationKind, subjectId: subjectEntry, targetId: targetEntry, hostId: commonAncestor, ...kindAndLabel })
 
     return { verdict: 'built', steps }
 }

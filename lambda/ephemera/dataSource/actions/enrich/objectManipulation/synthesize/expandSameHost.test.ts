@@ -28,7 +28,7 @@ describe('expandSameHost', () => {
 
         expect(result).toEqual({
             verdict: 'crossed',
-            steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'Under' }],
+            steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Under' }],
         })
     })
 
@@ -143,6 +143,7 @@ describe('expandSameHost', () => {
                 kind: 'establishRelation',
                 subjectId: expect.objectContaining({ owner: TABLE_ID }),
                 targetId: CHARM_ID,
+                hostId: TABLE_ID,
                 relationKind: 'Custom',
                 relationLabel: 'to',
             },
@@ -150,6 +151,7 @@ describe('expandSameHost', () => {
                 kind: 'establishRelation',
                 subjectId: NECKLACE_ID,
                 targetId: expect.objectContaining({ owner: TABLE_ID }),
+                hostId: ROOM_ID,
                 relationKind: 'Custom',
                 relationLabel: 'to',
             },

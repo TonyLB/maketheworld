@@ -87,10 +87,13 @@ type GroundResult =
     | { ok: false; reason: string }
 
 /**
- * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion`
- * unchanged; strips `hostRoomId` off a grounded relational `Change` (BD-33 ---
- * the executor's own `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`
- * have no host field to carry it in) rather than ever reading it.
+ * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion` unchanged.
+ * A grounded relational `Change`'s `hostRoomId` (BD-6's `currentHost(actingCharacter)` default)
+ * carries straight through as `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`'s own
+ * `hostId` (PV1-3b-7) --- this path is confirmed dead on every live route today (every ingress
+ * seed goes through `expandSameHost`'s `sameHost` assertion instead, since PV1-3b-4), but it is
+ * still real code the type system must satisfy, and `hostRoomId` was already computed for exactly
+ * this purpose before this function discarded it.
  */
 const groundInstruction = (step: Change | Assertion, context: GroundingContext): GroundResult => {
     if (step.kind === 'change') {
@@ -112,6 +115,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'establishRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
+                    hostId: candidate.hostRoomId,
                     ...relationKindAndLabelFrom(candidate),
                 },
             }
@@ -123,6 +127,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'dissolveRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
+                    hostId: candidate.hostRoomId,
                     ...relationKindAndLabelFrom(candidate),
                 },
             }
@@ -301,6 +306,9 @@ const commandExpand = (
                     // Safe: filtered to primitive endpoints above.
                     subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
                     targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
+                    // A boundary edge under transfer lives in the departing entity's own host graph
+                    // (the same `hostId` this branch already resolved `startId`'s current host to).
+                    hostId,
                     ...relationKindAndLabelOf(entry.edge),
                 },
             }))

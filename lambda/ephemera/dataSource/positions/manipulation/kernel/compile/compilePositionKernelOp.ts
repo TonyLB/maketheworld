@@ -90,6 +90,11 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
+    // PV1-3b-7: `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
+    // `executeObjectMove.ts`'s single-origin carry-closure path (`buildObjectMoveOp` is its only
+    // producer, always `froms: [args.fromHostId]`), so every severed boundary edge belongs to that
+    // one departure host. Not derived per-edge because `HostRelationalEdge` (the graph's own
+    // internal edge representation, used far more broadly) doesn't carry a host of its own.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
         .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
         .map((edge) => ({
@@ -97,6 +102,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             // Safe: filtered to primitive endpoints above.
             subjectId: edge.from as EphemeraLudicTerminalPrimitive,
             targetId: edge.to as EphemeraLudicTerminalPrimitive,
+            hostId: op.froms[0]!,
             ...relationKindAndLabelOf(edge),
         }))
 
@@ -119,6 +125,8 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             kind: 'establishRelation',
             subjectId: primaryMovedId,
             targetId: op.to as EphemeraLudicTerminalPrimitive,
+            // Safe: the `op.containment && op.to === null` guard above already threw.
+            hostId: op.to as EphemeraMembershipHostId,
             relationKind: op.containment,
         }]
         : []

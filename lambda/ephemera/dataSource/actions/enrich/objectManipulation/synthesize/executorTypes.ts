@@ -35,17 +35,27 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * narrower than the edge it produces. A leg is an ordinary `establishRelation`/
  * `dissolveRelation` step living entirely within one host's own graph --- no new
  * "leg" step kind, per PV1-3's plan review.
+ *
+ * **`hostId` added (PV1-3b-7):** mandatory, computed once at Expansion
+ * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) rather than
+ * re-derived at apply time. Closes two cases `applyStepSequenceCore`'s old intersection-based
+ * `findSharedHost` couldn't disambiguate: an endpoint multi-hosted in >=2 shared graphs at once,
+ * and a port-to-port edge on one object where interior/exterior scope isn't recoverable from the
+ * two port addresses alone. Matches the field `MutationKernelAddCrossingPortStep`/
+ * `RemoveCrossingPortStep` (`kernelStep.ts`) already carry.
  */
 export type ExecutorEstablishRelationStep = {
     kind: 'establishRelation'
     subjectId: EphemeraLudicTerminalId
     targetId: EphemeraLudicTerminalId
+    hostId: EphemeraMembershipHostId
 } & RelationalKindAndLabel
 
 export type ExecutorDissolveRelationStep = {
     kind: 'dissolveRelation'
     subjectId: EphemeraLudicTerminalId
     targetId: EphemeraLudicTerminalId
+    hostId: EphemeraMembershipHostId
 } & RelationalKindAndLabel
 
 /**

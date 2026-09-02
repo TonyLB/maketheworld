@@ -226,6 +226,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'dissolveRelation',
             subjectId: TRAY,
             targetId: 'OBJECT#Table',
+            hostId: FROM_ROOM,
             relationKind: 'On',
         })
     })
@@ -239,6 +240,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'dissolveRelation',
             subjectId: CHARACTER_ID,
             targetId: TRAY,
+            hostId: FROM_ROOM,
             relationKind: 'On',
         })
     })
@@ -263,6 +265,7 @@ describe('compilePositionKernelOp --- object moves', () => {
                 kind: 'establishRelation',
                 subjectId: TRAY,
                 targetId: CHARACTER_ID,
+                hostId: CHARACTER_ID,
                 relationKind: 'On',
             })
         })

@@ -33,14 +33,14 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('a relational step derives both endpoints host via getCurrentHost', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
+            { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         const getCurrentHost = () => roomId
@@ -48,13 +48,13 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('LP4g: a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, hostId: roomId, relationKind: 'On' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === characterId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
     it('throws when getCurrentHost cannot resolve a relational step endpoint', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
         expect(() => computeStepSequenceFootprint([step], () => undefined)).toThrow()
     })
 
@@ -71,6 +71,7 @@ describe('computeStepSequenceFootprint', () => {
             kind: 'establishRelation',
             subjectId: trayId,
             targetId: { owner: glassId, port: 'crossing-1' },
+            hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
         }
@@ -83,6 +84,7 @@ describe('computeStepSequenceFootprint', () => {
             kind: 'establishRelation',
             subjectId: { owner: trayId, port: 'crossing-1' },
             targetId: { owner: glassId, port: 'crossing-2' },
+            hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
         }

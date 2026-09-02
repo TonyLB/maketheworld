@@ -42,6 +42,7 @@ export const applyObjectRelationalChange = async (
         kind: args.operation === 'establish' ? 'establishRelation' : 'dissolveRelation',
         subjectId: args.subjectId,
         targetId: args.targetId,
+        hostId: args.hostId,
         ...relationKindAndLabelFrom(args),
     }
 

@@ -72,7 +72,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: glassId, kind: 'On' }],
         })
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -94,7 +94,7 @@ describe('factsForStep', () => {
                 { tag: 'Object', universalKey: tableId },
             ],
         })
-        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -117,7 +117,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: characterId, to: tableId, kind: 'On' }],
         })
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -141,7 +141,7 @@ describe('factsForStep', () => {
             ],
         })
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         const finalGraphs = graphsMap([roomId, finalSourceGraph], [characterId, finalDestGraph])
@@ -171,7 +171,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
         })
-        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime, graphsMap([roomId, priorGraph]))
         expect(facts).toEqual([
             {
@@ -220,6 +220,7 @@ describe('factsForStep', () => {
             kind: 'establishRelation',
             subjectId: trayId,
             targetId: { owner: tableId, port: 'p1' },
+            hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
         }

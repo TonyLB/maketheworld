@@ -39,6 +39,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: { owner: TABLE_ID, port: portId },
             targetId: CUP_ID,
+            hostId: TABLE_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -46,6 +47,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: STRING_ID,
             targetId: { owner: TABLE_ID, port: portId },
+            hostId: ROOM_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -76,6 +78,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: STRING_ID,
             targetId: { owner: BOX_ID, port: portId },
+            hostId: BOX_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -83,6 +86,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: { owner: BOX_ID, port: portId },
             targetId: CUP_ID,
+            hostId: ROOM_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -103,7 +107,7 @@ describe('buildCrossingLegs', () => {
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
             ],
         })
     })
@@ -123,7 +127,7 @@ describe('buildCrossingLegs', () => {
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
             ],
         })
     })
@@ -158,7 +162,7 @@ describe('buildCrossingLegs', () => {
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
             ],
         })
     })
@@ -178,7 +182,7 @@ describe('buildCrossingLegs', () => {
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
             ],
         })
     })
@@ -212,6 +216,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: { owner: BOX_ID, port: portId },
             targetId: CUP_ID,
+            hostId: BOX_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -222,6 +227,7 @@ describe('buildCrossingLegs', () => {
             kind: 'establishRelation',
             subjectId: TABLE_ID,
             targetId: { owner: BOX_ID, port: portId },
+            hostId: TABLE_ID,
             relationKind: 'Custom',
             relationLabel: 'to',
         })

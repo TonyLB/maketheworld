@@ -288,6 +288,7 @@ export const executeMembershipTransfer = async (
                     kind: 'dissolveRelation',
                     subjectId: edge.from,
                     targetId: edge.to,
+                    hostId,
                     ...relationKindAndLabelOf(edge),
                 })
             }

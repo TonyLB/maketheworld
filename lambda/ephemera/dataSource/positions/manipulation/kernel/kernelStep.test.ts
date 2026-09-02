@@ -30,6 +30,7 @@ describe('fromExecutorStep', () => {
             kind: 'establishRelation',
             subjectId: trayId,
             targetId: glassId,
+            hostId: roomId,
             relationKind: 'On',
         }
         expect(fromExecutorStep(step)).toEqual(step)
@@ -40,6 +41,7 @@ describe('fromExecutorStep', () => {
             kind: 'dissolveRelation',
             subjectId: trayId,
             targetId: glassId,
+            hostId: roomId,
             relationKind: 'On',
         }
         expect(fromExecutorStep(step)).toEqual(step)

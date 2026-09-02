@@ -51,7 +51,7 @@ describe('runExecutor', () => {
         expect(result).toEqual({
             verdict: 'legal',
             steps: [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, relationKind: 'Against' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, hostId: ROOM_ID, relationKind: 'Against' },
                 { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
             ],
         })
@@ -108,7 +108,7 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'Under' }],
+            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Under' }],
         })
     })
 
@@ -158,6 +158,7 @@ describe('runExecutor', () => {
                 kind: 'establishRelation',
                 subjectId: expect.objectContaining({ owner: TABLE_ID }),
                 targetId: CUP_ID,
+                hostId: TABLE_ID,
                 relationKind: 'Custom',
                 relationLabel: 'to',
             },
@@ -165,6 +166,7 @@ describe('runExecutor', () => {
                 kind: 'establishRelation',
                 subjectId: ROPE_ID,
                 targetId: expect.objectContaining({ owner: TABLE_ID }),
+                hostId: ROOM_ID,
                 relationKind: 'Custom',
                 relationLabel: 'to',
             },
@@ -193,7 +195,7 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'Against' }],
+            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Against' }],
         })
     })
 
