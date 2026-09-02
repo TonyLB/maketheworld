@@ -230,6 +230,13 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
                 targetId: 'OBJECT#Table' as const,
                 roomId: 'ROOM#from' as const,
                 relationKind: 'On' as const,
+                steps: [{
+                    kind: 'dissolveRelation' as const,
+                    subjectId: 'OBJECT#Broom' as const,
+                    targetId: 'OBJECT#Table' as const,
+                    relationKind: 'Under' as const,
+                    hostId: 'ROOM#from' as const,
+                }],
             }),
         }
 

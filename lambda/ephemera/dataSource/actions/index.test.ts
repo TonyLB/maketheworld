@@ -2298,6 +2298,14 @@ describe('ephemeraActionsDataSource', () => {
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.9,
+                    steps: [{
+                        kind: 'dissolveRelation',
+                        subjectId: 'OBJECT#Rope',
+                        targetId: 'OBJECT#Crate',
+                        relationKind: 'Custom',
+                        relationLabel: 'tied around',
+                        hostId: hostRoom,
+                    }],
                 },
             })
         })

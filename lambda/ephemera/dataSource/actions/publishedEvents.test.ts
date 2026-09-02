@@ -458,6 +458,13 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
         relationKind: 'Under' as const,
+        steps: [{
+            kind: 'dissolveRelation' as const,
+            subjectId: 'OBJECT#Broom',
+            targetId: 'OBJECT#Table',
+            hostId: 'ROOM#from',
+            relationKind: 'Under' as const,
+        }],
     }
 
     it('accepts a valid payload', () => {
@@ -466,6 +473,51 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
 
     it('rejects wrong type', () => {
         expect(isObjectDissolveRelationPublishedPayload({ ...minimal, type: 'Object Establish Relation' })).toBe(false)
+    })
+
+    it('rejects a missing or empty steps array', () => {
+        const { steps, ...withoutSteps } = minimal
+        void steps
+        expect(isObjectDissolveRelationPublishedPayload(withoutSteps)).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: [] })).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: 'not-an-array' })).toBe(false)
+    })
+
+    it('rejects a malformed step', () => {
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: [{ kind: 'transferMembership' }] })).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({
+            ...minimal,
+            steps: [{ kind: 'dissolveRelation', subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', relationKind: 'Under' }],
+        })).toBe(false)
+    })
+
+    it('accepts a genuine crossing dissolve (removeCrossingPort step plus two legs)', () => {
+        expect(isObjectDissolveRelationPublishedPayload({
+            ...minimal,
+            steps: [
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    hostId: 'ROOM#from',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Table',
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'removeCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    portId: 'p1',
+                },
+            ],
+        })).toBe(true)
     })
 })
 

@@ -589,6 +589,7 @@ const publishStreamEventsForIntent = async (
                     hostId,
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
+                    steps: stepsWithHostId,
                 },
             })
         }

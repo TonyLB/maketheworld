@@ -504,6 +504,13 @@ describe('positions receive paths (integration)', () => {
                 targetId: 'OBJECT#Table',
                 hostId: ROOM_A,
                 relationKind: 'Under',
+                steps: [{
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    relationKind: 'Under',
+                    hostId: ROOM_A,
+                }],
             })
 
             await messageBus.flushAndSettle()

@@ -108,9 +108,23 @@ export type ObjectDissolveRelationPublishedPayload = {
     characterId: EphemeraCharacterId;
     subjectId: EphemeraObjectId;
     targetId: EphemeraObjectId;
-    /** Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only `roomId`). */
+    /**
+     * Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only
+     * `roomId`) --- narration/perception use only (PV1-3b-15, mirroring PV1-3b-2):
+     * `objectManipulationPresentationLegAdapters.ts` gates narration on this being a Room.
+     * See `steps`, where a genuine crossing dissolve carries more than one host.
+     */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
+    /**
+     * PV1-3b-15, mirroring PV1-3b-2: the Expansion-derived mutation-kernel step chain
+     * (`ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
+     * boundary unchanged) for a dissolve candidate. A portless/same-host candidate carries
+     * exactly one `dissolveRelation` entry; a genuine crossing dissolve carries a
+     * `dissolveRelation`/`removeCrossingPort` pair per hop. Not yet consumed by the positions
+     * handler (PV1-3b-16) --- carried here so it is available once that row wires it in.
+     */
+    steps: readonly MutationKernelStep[];
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 /** Shared by the payload-level and step-level relational kind/label checks below --- both spell the same `RelationalKindAndLabel<HostRelationalEdgeKindPublished>` fragment. */
@@ -211,7 +225,10 @@ export const isObjectDissolveRelationPublishedPayload = (
     if (v.type !== 'Object Dissolve Relation') {
         return false
     }
-    return isHostRelationalIngressFieldsValid(v)
+    if (!isHostRelationalIngressFieldsValid(v)) {
+        return false
+    }
+    return Array.isArray(v.steps) && v.steps.length > 0 && v.steps.every(isPublishedMutationKernelStep)
 }
 
 /** AB-54 hosting kinds; only `'On'` is ever emitted today (PV-1 builds one hosting kind). */
