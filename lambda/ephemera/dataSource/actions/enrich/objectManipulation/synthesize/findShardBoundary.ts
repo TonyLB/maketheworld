@@ -52,7 +52,7 @@ export type FindShardBoundaryResult =
  * `getMembershipContainers` accepts -- Room and Area are containment leaves with no membership
  * row of their own, so a walk terminates the instant it reaches one, without a further call.
  */
-const isPositionAdjacencyContainedId = (
+export const isPositionAdjacencyContainedId = (
     id: EphemeraMembershipHostId
 ): id is EphemeraPositionAdjacencyContainedId =>
     isEphemeraCharacterId(id) || isEphemeraObjectId(id) || isEphemeraFeatureId(id)
@@ -107,6 +107,51 @@ const walkAncestry = (
     }
 
     return { depth, reachedVia }
+}
+
+/**
+ * PV1-3b-5: async counterpart to `walkAncestry`, used to eagerly pre-fetch each endpoint's full
+ * containment ancestry (not just one hop) before the executor's own synchronous
+ * `ExpansionEnvironment` is built (`compileRelationalFromSkeleton.ts`). Same frontier-expansion /
+ * visited-set shape as `walkAncestry` above -- kept as a near-duplicate on purpose so the two stay
+ * easy to compare -- but calls the real async `getMembershipContainers` gateway and returns a flat
+ * `containerId -> its own direct containers` map instead of `{depth, reachedVia}`: the caller only
+ * needs to answer "what are X's containers" for any node this walk reached, and `findShardBoundary`
+ * re-derives depth/paths itself, synchronously, once that map is in hand.
+ *
+ * `depthCap` (default 5, PV1-1's existing testing bound) stops a branch after that many hops
+ * rather than walking indefinitely. `startId` is not recorded as its own entry -- unlike
+ * `walkAncestry`'s depth-0 seed, there is nothing to answer for `startId` itself here except its
+ * own containers, which the first frontier step already fetches and records.
+ */
+export const walkAncestryContainers = async (
+    startId: EphemeraPositionAdjacencyContainedId,
+    getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => Promise<EphemeraMembershipHostId[]>,
+    depthCap: number = 5
+): Promise<Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>> => {
+    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
+    const visited = new Set<EphemeraMembershipHostId>([startId])
+    let frontier: EphemeraPositionAdjacencyContainedId[] = [startId]
+    let currentDepth = 0
+
+    while (frontier.length > 0 && currentDepth < depthCap) {
+        const next: EphemeraPositionAdjacencyContainedId[] = []
+        await Promise.all(frontier.map(async (nodeId) => {
+            const containers = await getMembershipContainers(nodeId)
+            containersByHostId.set(nodeId, containers)
+            for (const containerId of containers) {
+                if (visited.has(containerId)) continue
+                visited.add(containerId)
+                if (isPositionAdjacencyContainedId(containerId)) {
+                    next.push(containerId)
+                }
+            }
+        }))
+        frontier = next
+        currentDepth += 1
+    }
+
+    return containersByHostId
 }
 
 /** Reconstructs the host chain from `startId` (exclusive) up to `ancestorId` (inclusive). */

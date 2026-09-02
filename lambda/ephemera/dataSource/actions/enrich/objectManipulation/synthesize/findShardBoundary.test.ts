@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { findShardBoundary } from './findShardBoundary'
+import { findShardBoundary, walkAncestryContainers } from './findShardBoundary'
 
 const ROOM_ID = 'ROOM#Vortex' as EphemeraRoomId
 const ROOM_A_ID = 'ROOM#Alpha' as EphemeraRoomId
@@ -133,5 +133,70 @@ describe('findShardBoundary', () => {
         expect(result.verdict).toBe('ambiguous')
         if (result.verdict !== 'ambiguous') return
         expect(new Set(result.commonAncestors)).toEqual(new Set([HOST_P_ID, HOST_Q_ID]))
+    })
+})
+
+describe('walkAncestryContainers', () => {
+    const asyncContainersFrom = (table: Record<string, EphemeraMembershipHostId[]>) =>
+        jest.fn(async (id: EphemeraPositionAdjacencyContainedId): Promise<EphemeraMembershipHostId[]> => table[id] ?? [])
+
+    it('resolves the full multi-hop chain, not just the first hop (PV1-3b-5)', async () => {
+        const getMembershipContainers = asyncContainersFrom({
+            [CUP_ID]: [TABLE_ID],
+            [TABLE_ID]: [ROOM_ID],
+        })
+
+        const result = await walkAncestryContainers(CUP_ID, getMembershipContainers)
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([
+            [CUP_ID, [TABLE_ID]],
+            [TABLE_ID, [ROOM_ID]],
+        ]))
+        expect(getMembershipContainers).toHaveBeenCalledWith(CUP_ID)
+        expect(getMembershipContainers).toHaveBeenCalledWith(TABLE_ID)
+    })
+
+    it('stops a branch at the depth cap rather than walking indefinitely', async () => {
+        const CHAIN_IDS = Array.from({ length: 8 }, (_, i) => `OBJECT#Chain${i}` as EphemeraObjectId)
+        const table: Record<string, EphemeraMembershipHostId[]> = {}
+        CHAIN_IDS.forEach((id, i) => {
+            table[id] = i + 1 < CHAIN_IDS.length ? [CHAIN_IDS[i + 1]] : [ROOM_ID]
+        })
+        const getMembershipContainers = asyncContainersFrom(table)
+
+        const result = await walkAncestryContainers(CHAIN_IDS[0], getMembershipContainers, 3)
+
+        // Depth cap 3 means at most 3 frontier expansions past the start id: Chain0 -> Chain1 ->
+        // Chain2 -> Chain3, so Chain3's own containers (Chain4) are never fetched.
+        expect(result.has(CHAIN_IDS[3])).toBe(false)
+        expect(result.get(CHAIN_IDS[2])).toEqual([CHAIN_IDS[3]])
+    })
+
+    it('terminates on a containment cycle instead of looping', async () => {
+        const getMembershipContainers = asyncContainersFrom({
+            [CUP_ID]: [TABLE_ID],
+            [TABLE_ID]: [CUP_ID],
+        })
+
+        const result = await walkAncestryContainers(CUP_ID, getMembershipContainers)
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([
+            [CUP_ID, [TABLE_ID]],
+            [TABLE_ID, [CUP_ID]],
+        ]))
+        expect(getMembershipContainers).toHaveBeenCalledTimes(2)
+    })
+
+    it('ends a branch at a Room/Area id without an extra call', async () => {
+        const getMembershipContainers = asyncContainersFrom({
+            [CUP_ID]: [ROOM_ID],
+        })
+
+        const result = await walkAncestryContainers(CUP_ID, getMembershipContainers)
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([
+            [CUP_ID, [ROOM_ID]],
+        ]))
+        expect(getMembershipContainers).toHaveBeenCalledTimes(1)
     })
 })

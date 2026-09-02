@@ -248,4 +248,49 @@ describe('compileRelationalFromSkeleton', () => {
 
         expect(result.type).toBe('Abstain')
     })
+
+    it('pre-fetches ancestry past the first hop (PV1-3b-5): tying to a cup nested two hosts deep still walks to the table', async () => {
+        // rope/string sits directly in the room; cup sits on the table, which sits in the room.
+        // Before PV1-3b-5 the route only pre-fetched cup's one direct container (the table) and
+        // never asked the table's own container, so `findShardBoundary` dead-ended at `notFound`
+        // without ever discovering the room as a common ancestor. This asserts the deeper walk
+        // now reaches the table's container too. The candidate still ends up dropped afterward ---
+        // a real crossing's near-side leg has a port-address endpoint, and this route only takes
+        // the first establishRelation/dissolveRelation step off the outcome and only accepts a
+        // plain `EphemeraObjectId` there --- that narrowing is PV1-3b-1/2/3/7's job, not this row's.
+        const stringId = 'OBJECT#String' as EphemeraObjectId
+        const cupId = 'OBJECT#Cup' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: stringId }],
+        })
+        const tableGraph = testLudicGraph(tableId, {
+            nodes: [{ tag: 'Object' as const, universalKey: cupId }],
+        })
+        const getLudicGraph = jest.fn().mockImplementation(async (hostId: string) => (
+            hostId === tableId ? tableGraph : roomGraph
+        ))
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => {
+            if (objectId === cupId) return [tableId]
+            if (objectId === tableId) return [roomId]
+            return [roomId]
+        })
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'tie string to cup',
+                skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: stringId, normalizedShortName: 'string' },
+                    { objectId: cupId, normalizedShortName: 'cup' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getLudicGraph } }
+        )
+
+        expect(getMembershipContainers).toHaveBeenCalledWith(tableId)
+        expect(result.type).toBe('Abstain')
+    })
 })

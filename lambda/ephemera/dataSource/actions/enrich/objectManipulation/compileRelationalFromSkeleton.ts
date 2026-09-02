@@ -23,6 +23,7 @@ import { matchRelationalTemplate } from './plan/matchRelationalTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { resolvedSpansFromPools } from './resolvedSpansFromPools'
 import { filterLegalRelationalCandidates } from './synthesize/filterLegalRelationalCandidates'
+import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { groundChange } from './synthesize/groundChange'
 import type { GroundingContext } from './synthesize/groundReferent'
 import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
@@ -169,29 +170,44 @@ export async function compileRelationalFromSkeleton(
         distinctObjectIds.add(candidate.targetId)
     }
 
+    // PV1-3b-5: eager, depth-capped (5) async pre-fetch of each distinct candidate's full
+    // containment ancestry, not just its one direct container --- `findShardBoundary`'s walk
+    // (called synchronously, inside `runExecutor` below) needs to reach *past* intermediate
+    // hosts to find a common ancestor further up, and a shallow one-hop fetch dead-ends it at
+    // `notFound` even when a real crossing exists. `walkAncestryContainers` mirrors
+    // `findShardBoundary.ts`'s own `walkAncestry` traversal shape, async-ified against the real
+    // gateway; running one walk per distinct id concurrently is safe with no extra memoization
+    // on top --- `PositionsCacheHandler` (`packages/mtw-gateways`) already dedupes concurrent/
+    // repeat calls for the same id within this one invocation.
+    const getMembershipContainersForWalk = (
+        id: EphemeraPositionAdjacencyContainedId
+    ): Promise<EphemeraMembershipHostId[]> =>
+        // This route's candidates, and everything their ancestry walk can reach, are Objects
+        // until a Room/Area terminates the branch (`isPositionAdjacencyContainedId` already
+        // gates those out of the walk before this is called) --- `getMembershipContainers`
+        // is Object-typed to match, same narrowing `getMembershipContainersForExpansion` below
+        // already relied on before this slice.
+        positionsReadDeps.getMembershipContainers(id as EphemeraObjectId)
+
+    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
+    const ancestryMaps = await Promise.all(
+        [...distinctObjectIds].map((objectId) => walkAncestryContainers(objectId, getMembershipContainersForWalk))
+    )
+    ancestryMaps.forEach((ancestryMap) => ancestryMap.forEach((containers, hostId) => {
+        containersByHostId.set(hostId, containers)
+    }))
+
     const hostByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
-    // PV1-3b-4: kept alongside `hostByObjectId` (same awaited fetch, no extra I/O) so
-    // `findShardBoundary`'s walk can see the one hop of container data this route already
-    // has --- without it, `satisfied`'s deletion would regress every already-shares-a-host
-    // case, since `createExpansionEnvironment` below previously got no container lookup at
-    // all. Still only one hop per distinct object id: walking *past* an intermediate host
-    // (a genuine cross-shard crossing) stays PV1-3b-5's open gap, not fixed here.
-    const containersByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId[]>()
     for (const objectId of distinctObjectIds) {
-        const containers = await positionsReadDeps.getMembershipContainers(objectId)
-        containersByObjectId.set(objectId, containers)
-        if (containers.length === 1) {
+        const containers = containersByHostId.get(objectId)
+        if (containers?.length === 1) {
             hostByObjectId.set(objectId, containers[0])
         }
     }
     const getCurrentHostForExpansion = (objectId: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
         hostByObjectId.get(objectId)
-    // Widened to `EphemeraPositionAdjacencyContainedId` to match `createExpansionEnvironment`'s
-    // parameter type --- `containersByObjectId` only ever has `EphemeraObjectId` keys (this
-    // route's `distinctObjectIds` are all Object candidates), so a Character/Feature id here
-    // simply misses and falls back to `[]`, same as an unfetched Object id would.
     const getMembershipContainersForExpansion = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] =>
-        (isEphemeraObjectId(id) ? containersByObjectId.get(id) : undefined) ?? []
+        containersByHostId.get(id) ?? []
 
     const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
     for (const hostId of hostByObjectId.values()) {
@@ -225,12 +241,16 @@ export async function compileRelationalFromSkeleton(
         // PV1-3: `expandSameHost` can resolve every peer-kind candidate into a genuine
         // shard-boundary crossing (BD-16's third outcome, PV1-3b-4 generalized it to same-host
         // too) instead of ever needing a second seeded instruction --- the assertion's own
-        // children carry the establish/dissolve leg(s) now. One gap keeps a genuine cross-shard
-        // crossing (as opposed to same-host) unreachable from here today: `getMembershipContainers`/
-        // `getCurrentHostForExpansion` above only pre-fetch one hop per distinct object id, while
-        // `findShardBoundary`'s walk needs to keep going past intermediate hosts too (PV1-3b-5,
-        // still open). A same-host candidate resolves live end to end already, since it needs no
-        // walk past that one hop (PV1-3b-4's `getMembershipContainersForExpansion` wiring above).
+        // children carry the establish/dissolve leg(s) now. PV1-3b-5 deepened the pre-fetch
+        // above to a full ancestry walk, so `findShardBoundary` can now reach a common ancestor
+        // past an intermediate host and return `crossed` for a genuine cross-shard pair, not just
+        // `notFound`. What still keeps a genuine crossing from landing live on this route: below,
+        // `outcome.steps.find(...)` takes only the *first* establish/dissolve step, and a real
+        // crossing's near-side leg has a port-address endpoint (not an `EphemeraObjectId`), which
+        // the `isEphemeraObjectId` guard further down drops --- carrying and committing every leg
+        // of a crossing needs PV1-3b-1/2/3/7 (widen the result, build `executeEstablishEdgeChain`),
+        // not this route's pre-fetch. A same-host candidate still resolves live end to end, as
+        // before (PV1-3b-4's zero/one-hop path is unaffected by the deeper walk).
         // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly for the
         // deeper cases (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
         const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion, getMembershipContainersForExpansion)
