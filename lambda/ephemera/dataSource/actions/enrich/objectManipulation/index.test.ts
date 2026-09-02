@@ -239,8 +239,14 @@ describe('enrichObjectManipulation', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'Under',
-            hostId: roomId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: broomId,
+                targetId: tableId,
+                relationKind: 'Under',
+                hostId: roomId,
+            }],
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
@@ -282,8 +288,15 @@ describe('enrichObjectManipulation', () => {
             targetId: topId,
             relationKind: 'Custom',
             relationLabel: 'around',
-            hostId: characterId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: stringId,
+                targetId: topId,
+                relationKind: 'Custom',
+                relationLabel: 'around',
+                hostId: characterId,
+            }],
         })
     })
 
@@ -324,8 +337,14 @@ describe('enrichObjectManipulation', () => {
             subjectId: 'OBJECT#Rope',
             targetId: 'OBJECT#Anvil',
             relationKind: 'Against',
-            hostId: roomId,
             confidence: 0.88,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: 'OBJECT#Rope',
+                targetId: 'OBJECT#Anvil',
+                relationKind: 'Against',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -367,8 +386,15 @@ describe('enrichObjectManipulation', () => {
             targetId: crateId,
             relationKind: 'Custom',
             relationLabel: 'around',
-            hostId: roomId,
             confidence: 0.87,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: cordId,
+                targetId: crateId,
+                relationKind: 'Custom',
+                relationLabel: 'around',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -417,8 +443,15 @@ describe('enrichObjectManipulation', () => {
             targetId: crateId,
             relationKind: 'Custom',
             relationLabel: 'off',
-            hostId: roomId,
             confidence: 0.86,
+            steps: [{
+                kind: 'dissolveRelation',
+                subjectId: ropeId,
+                targetId: crateId,
+                relationKind: 'Custom',
+                relationLabel: 'off',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -652,8 +685,14 @@ describe('enrichObjectManipulation', () => {
             subjectId: ladderId,
             targetId: wallId,
             relationKind: 'Against',
-            hostId: roomId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: ladderId,
+                targetId: wallId,
+                relationKind: 'Against',
+                hostId: roomId,
+            }],
         })
     })
 

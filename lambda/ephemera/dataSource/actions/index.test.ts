@@ -2058,8 +2058,17 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
-                hostId: hostRoom,
                 confidence: 0.9,
+                // PV1-3b-1: no flat `hostId` any more --- the consumer reads the final step's
+                // own carried `hostId` (PV1-3b-7) instead. A portless candidate carries exactly
+                // one step.
+                steps: [{
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    relationKind: 'Under',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2108,8 +2117,15 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostId: hostRoom,
                 confidence: 0.85,
+                steps: [{
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2154,8 +2170,15 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostId: hostRoom,
                 confidence: 0.9,
+                steps: [{
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2199,8 +2222,10 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
-                hostId: null as unknown as EphemeraRoomId,
                 confidence: 0.9,
+                // No steps at all --- PV1-3b-1: no host to be in a room with, same as the old
+                // `hostId: null` sentinel this replaces.
+                steps: [],
             })
 
             const streamEvent = jest.fn(async () => {})

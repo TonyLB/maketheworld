@@ -28,7 +28,8 @@ import { groundChange } from './synthesize/groundChange'
 import type { GroundingContext } from './synthesize/groundReferent'
 import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
 import { runExecutor } from './synthesize/executor'
-import type { GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
+import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
 
 export type CompileRelationalFromSkeletonInput = {
     command: string
@@ -218,7 +219,11 @@ export async function compileRelationalFromSkeleton(
     const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
 
     type PreparedCandidate = {
-        step: EstablishRelationStep | DissolveRelationStep
+        // The original grounded candidate --- always a plain Object-to-Object pair,
+        // unlike a crossing's own leg endpoints. Source for the widened result's flat
+        // subjectId/targetId/operationKind/relationKind fields (PV1-3b-1).
+        candidate: EstablishRelationStep | DissolveRelationStep
+        steps: MutationKernelStep[]
     }
 
     const preparedCandidates: PreparedCandidate[] = []
@@ -244,13 +249,9 @@ export async function compileRelationalFromSkeleton(
         // children carry the establish/dissolve leg(s) now. PV1-3b-5 deepened the pre-fetch
         // above to a full ancestry walk, so `findShardBoundary` can now reach a common ancestor
         // past an intermediate host and return `crossed` for a genuine cross-shard pair, not just
-        // `notFound`. What still keeps a genuine crossing from landing live on this route: below,
-        // `outcome.steps.find(...)` takes only the *first* establish/dissolve step, and a real
-        // crossing's near-side leg has a port-address endpoint (not an `EphemeraObjectId`), which
-        // the `isEphemeraObjectId` guard further down drops --- carrying and committing every leg
-        // of a crossing needs PV1-3b-1/2/3/7 (widen the result, build `executeEstablishEdgeChain`),
-        // not this route's pre-fetch. A same-host candidate still resolves live end to end, as
-        // before (PV1-3b-4's zero/one-hop path is unaffected by the deeper walk).
+        // `notFound`. PV1-3b-1 wired the rest: this route now carries every step of a genuine
+        // crossing (not just the first) into the widened `ParseCommandEstablishRelationResult`,
+        // rather than dropping the candidate --- see below.
         // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly for the
         // deeper cases (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
         const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion, getMembershipContainersForExpansion)
@@ -264,75 +265,118 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        const relStep = outcome.steps.find(
-            (step): step is Extract<typeof step, { kind: 'establishRelation' | 'dissolveRelation' }> =>
+        // PV1-3b-1: carry every relational step of the outcome, not just the first --- a
+        // genuine crossing needs its hop leg(s) *and* the final chain step, plus the
+        // `addCrossingPort` step(s) that live on `extraKernelSteps` (a split that exists only
+        // inside `runExecutor`'s own worklist-vs-side-channel plumbing). `outcome.steps` is
+        // `ExecutorParsePlanStep`-typed --- wider than `MutationKernelStep` (it also admits
+        // `TransferMembershipStep`/`ExecutorDescribeStep`, neither reachable from this route's
+        // `sameHost`-only seed, per the existing `verdict !== 'legal'`-style drop-the-candidate
+        // idiom) --- so it's filtered to establish/dissolve first, same as `executor.ts`'s own
+        // `commandExpand` already does when it splits `buildCrossingLegs`'s combined output.
+        // Order is not arbitrary: `buildCrossingLegs.ts` mints each hop's `addCrossingPort`
+        // step immediately before the leg that references it, then appends the final chain
+        // step last (`[port, leg, ..., final]`); `commandExpand` splits that by kind into
+        // `outcome.steps` (legs/final) and `outcome.extraKernelSteps` (ports), discarding the
+        // per-hop interleaving. Within today's <=1-hop-per-side scope there is at most one
+        // port and it always precedes the one leg that needs it, so prepending every port step
+        // ahead of every relational step reconstructs the true order exactly. **Not general**:
+        // this reconstruction relies on the <=1-hop-per-side scope cut (`buildCrossingLegs`'s
+        // own guard) and would need revisiting if PV1-6 generalizes to chains on both sides at
+        // once, where a port and a leg could need to interleave more than once.
+        const relSteps = outcome.steps.filter(
+            (step): step is ExecutorEstablishRelationStep | ExecutorDissolveRelationStep =>
                 step.kind === 'establishRelation' || step.kind === 'dissolveRelation'
         )
-        if (!relStep) {
+        if (relSteps.length === 0) {
             continue
         }
+        const mergedSteps: MutationKernelStep[] = [...(outcome.extraKernelSteps ?? []), ...relSteps]
 
-        // LP4g widened the executor's relational step terminals to EphemeraLudicTerminalPrimitive,
-        // but this ingress-facing route's own step shape (EstablishRelationStep/DissolveRelationStep,
-        // parsePlanStep.ts) stays EphemeraObjectId-typed by design (LD-13: containment/non-Object
-        // relational language is a persistence-layer concern, not an ingress one). No candidate this
-        // route grounds is anything but an Object today, so this is a narrow, not a design change ---
-        // same drop-the-candidate idiom the `verdict !== 'legal'` branch above already uses.
-        // PV1-3 widened the step terminals again to EphemeraLudicTerminalId (port addresses, for
-        // crossing legs) --- this route never produces one, so the `typeof === 'string'` check
-        // drops a port-address endpoint the same way it already drops a non-Object primitive.
-        if (
-            typeof relStep.subjectId !== 'string' || typeof relStep.targetId !== 'string'
-            || !isEphemeraObjectId(relStep.subjectId) || !isEphemeraObjectId(relStep.targetId)
-        ) {
-            continue
-        }
         // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment ('In'/
         // 'PartOf'), but this ingress-facing route's relationKind stays the narrow set
-        // (LD-13, parsePlanStep.ts) --- same drop-the-candidate idiom as the endpoint guard above.
-        // Unreachable today: no ingress path can produce a containment relStep (isContainmentSpan
-        // routes to nestingDefer before this point). **`On` joined this guard 2026-08-22**
-        // (Channel D, CD2, reduced scope): it is a hosting kind too now, deferred at ingress the
-        // same way, and equally unreachable here. **`Present` joined 2026-08-22** (presence plan
-        // PR-4): it's not a WML-authorable kind either --- an internal port/cover mechanism, never
-        // an establishRelation/dissolveRelation target --- so it's deferred at ingress the same way.
-        if (relStep.relationKind === 'In' || relStep.relationKind === 'PartOf' || relStep.relationKind === 'On' || relStep.relationKind === 'Present') {
+        // (LD-13/BD-2's kind-narrowing clause, parsePlanStep.ts) --- same drop-the-candidate
+        // idiom as the `verdict !== 'legal'` branch above. Applied to the first relational
+        // step's relationKind, not `candidate`'s: `candidate` is already narrowly typed
+        // (`PeerRelationalEdgeKind`, parsePlanStep.ts) and cannot literally hold a hosting
+        // kind, but the executor's own step type (`ExecutorEstablishRelationStep`) carries
+        // the wide `HostRelationalEdgeKind` default, and `buildCrossingLegs` mints every step
+        // of a chain from the same `kindAndLabel`, so checking the first suffices. Runs before
+        // branching on crossing-vs-portless below. Unreachable today: no ingress path can
+        // produce a containment candidate (isContainmentSpan routes to nestingDefer before
+        // this point). **`On` joined this guard 2026-08-22** (Channel D, CD2, reduced scope):
+        // it is a hosting kind too now, deferred at ingress the same way, and equally
+        // unreachable here. **`Present` joined 2026-08-22** (presence plan PR-4): it's not a
+        // WML-authorable kind either --- an internal port/cover mechanism, never an
+        // establishRelation/dissolveRelation target --- so it's deferred at ingress the same way.
+        const [firstRelStep] = relSteps
+        if (firstRelStep.relationKind === 'In' || firstRelStep.relationKind === 'PartOf' || firstRelStep.relationKind === 'On' || firstRelStep.relationKind === 'Present') {
             continue
         }
 
-        const hostId = getCurrentHostForExpansion(candidate.subjectId)
-        if (hostId === undefined) {
-            continue
+        // A genuine crossing always mints exactly one port; the portless/same-host path never
+        // does --- cheap, exact discriminator between the two validation paths below.
+        const isCrossing = mergedSteps.some((step) => step.kind === 'addCrossingPort')
+
+        if (!isCrossing) {
+            // Portless: unchanged legality checking (BD-23: bothObjectsOnGraph + Under cycle
+            // detection), against the real current graph. This route once also validated
+            // against a *simulated* post-transfer graph, for the repair outcome that moved the
+            // subject onto the target's host; PV1-3b-9 (2026-09-01) retired that outcome, so
+            // there is no longer a candidate whose legality depends on a move that has not
+            // happened yet. Reuses `firstRelStep` (not a fresh destructure) so TS keeps the
+            // hosting-kind narrowing the guard above already established on it.
+            // LP4g widened the executor's relational step terminals to
+            // EphemeraLudicTerminalPrimitive/EphemeraLudicTerminalId (port addresses, for
+            // crossing legs); the portless path never produces one, so this guard is
+            // defensive, not load-bearing --- `isCrossing` above already routed a
+            // port-address candidate to the other branch.
+            if (
+                typeof firstRelStep.subjectId !== 'string' || typeof firstRelStep.targetId !== 'string'
+                || !isEphemeraObjectId(firstRelStep.subjectId) || !isEphemeraObjectId(firstRelStep.targetId)
+            ) {
+                continue
+            }
+
+            const correctedStep: EstablishRelationStep | DissolveRelationStep = {
+                kind: firstRelStep.kind,
+                subjectId: firstRelStep.subjectId,
+                targetId: firstRelStep.targetId,
+                // Inlined rather than routed through `relationKindAndLabelFrom`: the guard
+                // above narrowed `firstRelStep` to the ingress-lane kinds, and the shared
+                // helper's wide return type would discard exactly that narrowing.
+                ...(firstRelStep.relationKind === 'Custom'
+                    ? { relationKind: 'Custom' as const, relationLabel: firstRelStep.relationLabel }
+                    : { relationKind: firstRelStep.relationKind }),
+                // PV1-3b-1: sourced from the step's own carried `hostId` (PV1-3b-7) rather than
+                // a separate `getCurrentHostForExpansion` re-derivation --- that re-derivation
+                // predates PV1-3b-7 and is exactly the "re-derive downstream" pattern PV1-3b-7
+                // moved away from; it was also stricter than necessary (dropped a same-host
+                // candidate outright whenever the subject had more than one direct container,
+                // even when `findShardBoundary` had already resolved a common ancestor fine).
+                hostRoomId: firstRelStep.hostId,
+            }
+
+            const validationGraph = getGraph(firstRelStep.hostId)
+            const legalResult = filterLegalRelationalCandidates([correctedStep], {
+                getGraph: (lookupHostId) => (lookupHostId === firstRelStep.hostId ? validationGraph : undefined),
+            })
+            if (!legalResult.ok || legalResult.candidates.length === 0) {
+                continue
+            }
         }
+        // Crossing: `filterLegalRelationalCandidates` is typed for the narrow ingress shape
+        // (EphemeraObjectId endpoints, a single hostRoomId) and cannot accept a port-address
+        // endpoint, so it is skipped entirely here --- matching PV1-3b-3's already-decided
+        // call that leg-time validation is sufficient on its own. The structural safety net
+        // still exists at commit time: `applyRelationalPatch` (`ludicGraph/index.ts`) already
+        // throws on `!bothObjectsOnGraph` before any write. **Named gap, not fixed this
+        // slice:** `detectRelationalCycle` is not re-run anywhere for a crossing `Under`
+        // candidate --- neither `findShardBoundary`/`buildCrossingLegs` nor the commit path
+        // call it --- so a cyclic `Under` crossing is not rejected pre-commit today. Not a
+        // blocker for `tie` (`Custom`); flagged for a later slice.
 
-        const correctedStep: EstablishRelationStep | DissolveRelationStep = {
-            kind: relStep.kind,
-            subjectId: relStep.subjectId,
-            targetId: relStep.targetId,
-            // Inlined rather than routed through `relationKindAndLabelFrom`: the guard above
-            // narrowed `relStep` to the ingress-lane kinds, and the shared helper's wide return
-            // type would discard exactly that narrowing.
-            ...(relStep.relationKind === 'Custom'
-                ? { relationKind: 'Custom' as const, relationLabel: relStep.relationLabel }
-                : { relationKind: relStep.relationKind }),
-            hostRoomId: hostId,
-        }
-
-        // Validate legality (bothObjectsOnGraph + On/Under cycle detection, BD-23 step 5)
-        // against the real current graph. This route once also validated against a *simulated*
-        // post-transfer graph, for the repair outcome that moved the subject onto the target's
-        // host; PV1-3b-9 (2026-09-01) retired that outcome, so there is no longer a candidate
-        // whose legality depends on a move that has not happened yet.
-        const validationGraph = getGraph(hostId)
-
-        const legalResult = filterLegalRelationalCandidates([correctedStep], {
-            getGraph: (lookupHostId) => (lookupHostId === hostId ? validationGraph : undefined),
-        })
-        if (!legalResult.ok || legalResult.candidates.length === 0) {
-            continue
-        }
-
-        preparedCandidates.push({ step: correctedStep })
+        preparedCandidates.push({ candidate, steps: mergedSteps })
     }
 
     if (preparedCandidates.length === 0) {
@@ -355,15 +399,20 @@ export async function compileRelationalFromSkeleton(
     // than just taking the first legal candidate.
     const chosen = preparedCandidates[0]
 
+    // PV1-3b-1: sourced from the original grounded `candidate`, not a step --- always plain
+    // Object-to-Object, unlike a crossing's own leg endpoints. Inlined rather than routed
+    // through `relationKindAndLabelFrom`: that helper's return type defaults to the wide
+    // `HostRelationalEdgeKind`, which would discard `candidate.relationKind`'s own narrow
+    // `PeerRelationalEdgeKind` typing --- same reason the portless branch above inlines it.
     return {
         type: 'EstablishRelation',
-        operationKind: chosen.step.kind,
-        subjectId: chosen.step.subjectId,
-        targetId: chosen.step.targetId,
-        ...(chosen.step.relationKind === 'Custom'
-            ? { relationKind: 'Custom' as const, relationLabel: chosen.step.relationLabel }
-            : { relationKind: chosen.step.relationKind }),
-        hostId: chosen.step.hostRoomId,
+        operationKind: chosen.candidate.kind,
+        subjectId: chosen.candidate.subjectId,
+        targetId: chosen.candidate.targetId,
+        ...(chosen.candidate.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: chosen.candidate.relationLabel }
+            : { relationKind: chosen.candidate.relationKind }),
         confidence: intentConfidence,
+        steps: chosen.steps,
     }
 }

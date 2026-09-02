@@ -555,7 +555,22 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        const { hostId } = parseResult
+        // PV1-3b-1: `ParseCommandEstablishRelationResult` no longer carries a flat `hostId` ---
+        // once `steps` can span more than one host (a genuine crossing), there is no single
+        // canonical host to assert (PV1-3b-7: each leg carries its own). This consumer and the
+        // published payload below still only understand one edge on one host until PV1-3b-2/3
+        // land, so it reads the *final* step's host (the common-ancestor chain step, or the
+        // sole step for a portless candidate) as a mechanical stand-in --- a genuine crossing
+        // will still reach here today (the ingress-route guard that used to drop it was lifted
+        // this slice) and fail downstream at commit time instead (`applyRelationalPatch`'s
+        // `bothObjectsOnGraph` throw), which is the accepted interim behaviour until those land.
+        // `transferMembership` is the one `MutationKernelStep` kind without a `hostId` field ---
+        // this route's `steps` never contains one (only establish/dissolve/port steps), but the
+        // filter keeps that narrowing explicit rather than asserted.
+        const stepsWithHostId = parseResult.steps.filter(
+            (step): step is Exclude<typeof step, { kind: 'transferMembership' }> => step.kind !== 'transferMembership'
+        )
+        const hostId = stepsWithHostId[stepsWithHostId.length - 1]?.hostId
         if (!hostId) {
             messageBus.publish({
                 type: 'PublishMessage',

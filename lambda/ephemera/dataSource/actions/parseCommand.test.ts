@@ -1229,8 +1229,15 @@ describe('parseCommand LLM path', () => {
                 targetId: crateId,
                 relationKind: 'Custom',
                 relationLabel: 'off',
-                hostId: 'ROOM#Bridge',
                 confidence: 0.86,
+                steps: [{
+                    kind: 'dissolveRelation',
+                    subjectId: ropeId,
+                    targetId: crateId,
+                    relationKind: 'Custom',
+                    relationLabel: 'off',
+                    hostId: 'ROOM#Bridge',
+                }],
             })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1364,8 +1371,14 @@ describe('parseCommand LLM path', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'Under',
-            hostId: 'ROOM#Bridge',
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: broomId,
+                targetId: tableId,
+                relationKind: 'Under',
+                hostId: 'ROOM#Bridge',
+            }],
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1443,8 +1456,14 @@ describe('parseCommand LLM path', () => {
             subjectId: broomId,
             targetId: benchId,
             relationKind: 'Under',
-            hostId: 'ROOM#Bridge',
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: broomId,
+                targetId: benchId,
+                relationKind: 'Under',
+                hostId: 'ROOM#Bridge',
+            }],
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
