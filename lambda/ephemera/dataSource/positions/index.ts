@@ -17,7 +17,6 @@
  * folder layout, guard registry in `subscribedEvents.ts`) is intentionally
  * named generally so that growth is additive.
  */
-import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
@@ -50,7 +49,6 @@ import {
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
-import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
@@ -116,12 +114,13 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectDissolveRelationPublishedPayload(content)) {
                     return
                 }
-                await executeObjectDissolveRelation({
-                    characterId: content.characterId,
-                    subjectId: content.subjectId,
-                    targetId: content.targetId,
-                    hostId: content.hostId,
-                    ...relationKindAndLabelFrom(content),
+                // PV1-3b-16: `executeEstablishEdgeChain` is operationKind-agnostic (it filters
+                // `transferMembership` and treats every `establishRelation`/`dissolveRelation`/
+                // `addCrossingPort`/`removeCrossingPort` step symmetrically), so it is the one
+                // commit path for `Object Dissolve Relation` too, mirroring the establish branch
+                // above --- the old single-host `executeObjectDissolveRelation` is retired.
+                await executeEstablishEdgeChain({
+                    steps: content.steps,
                     messageBus,
                     streamEvent,
                 })

@@ -111,6 +111,44 @@ describe('executeEstablishEdgeChain', () => {
         consoleErrorSpy.mockRestore()
     })
 
+    it("commits a dissolve-shaped chain (PV1-0's own readout reversed: two dissolveRelation legs, one removeCrossingPort) --- PV1-3b-16, proving executeEstablishEdgeChain is operationKind-agnostic", async () => {
+        commitStepSequenceMock.mockResolvedValue({
+            ok: true,
+            beatAnchorTime: 54321,
+            steps: [],
+            captures: new Map(),
+        })
+
+        const steps: MutationKernelStep[] = [
+            {
+                kind: 'dissolveRelation',
+                subjectId: 'OBJECT#String',
+                targetId: { owner: 'OBJECT#Table', port: 'PORT#1' },
+                hostId: 'ROOM#Vortex',
+                relationKind: 'Custom',
+                relationLabel: 'tie',
+            },
+            {
+                kind: 'dissolveRelation',
+                subjectId: { owner: 'OBJECT#Table', port: 'PORT#1' },
+                targetId: 'OBJECT#Cup',
+                hostId: 'OBJECT#Table',
+                relationKind: 'Custom',
+                relationLabel: 'tie',
+            },
+            { kind: 'removeCrossingPort', hostId: 'OBJECT#Table', portId: 'PORT#1' },
+        ]
+
+        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+
+        expect(result).toEqual({ ok: true, beatAnchorTime: 54321, captures: new Map() })
+        expect(commitStepSequenceMock).toHaveBeenCalledTimes(1)
+        const [passedArgs, deps] = commitStepSequenceMock.mock.calls[0]
+        expect(passedArgs.steps).toEqual(steps)
+        expect(deps.getCurrentHost('OBJECT#String' as any)).toEqual('ROOM#Vortex')
+        expect(deps.getCurrentHost('OBJECT#Cup' as any)).toEqual('OBJECT#Table')
+    })
+
     it('filters out a stray transferMembership step rather than throwing', async () => {
         commitStepSequenceMock.mockResolvedValue({
             ok: true,

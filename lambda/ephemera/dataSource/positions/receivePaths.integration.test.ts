@@ -38,10 +38,6 @@ jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
     executeEstablishEdgeChain: jest.fn(),
 }))
 
-jest.mock('./manipulation/relational/executeObjectDissolveRelation', () => ({
-    executeObjectDissolveRelation: jest.fn(),
-}))
-
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
@@ -51,7 +47,6 @@ import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacte
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
-import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 
 import './index'
 
@@ -81,9 +76,6 @@ const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
 >
 const executeEstablishEdgeChainMock = executeEstablishEdgeChain as jest.MockedFunction<
     typeof executeEstablishEdgeChain
->
-const executeObjectDissolveRelationMock = executeObjectDissolveRelation as jest.MockedFunction<
-    typeof executeObjectDissolveRelation
 >
 
 const CHARACTER_ID = 'CHARACTER#alpha' as const
@@ -444,7 +436,6 @@ describe('positions receive paths (integration)', () => {
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(executeObjectDissolveRelationMock).not.toHaveBeenCalled()
         })
 
         it('routes a genuine crossing (PV1-0\'s tie string to cup shape) through executeEstablishEdgeChain with every step intact', async () => {
@@ -496,7 +487,14 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Dissolve Relation', () => {
-        it('routes mtw.ephemera.actions Object Dissolve Relation through executeObjectDissolveRelation', async () => {
+        it('routes mtw.ephemera.actions Object Dissolve Relation through executeEstablishEdgeChain (PV1-3b-16)', async () => {
+            const steps = [{
+                kind: 'dissolveRelation',
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                relationKind: 'Under',
+                hostId: ROOM_A,
+            }]
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Dissolve Relation', {
                 type: 'Object Dissolve Relation',
                 characterId: CHARACTER_ID,
@@ -504,29 +502,64 @@ describe('positions receive paths (integration)', () => {
                 targetId: 'OBJECT#Table',
                 hostId: ROOM_A,
                 relationKind: 'Under',
-                steps: [{
-                    kind: 'dissolveRelation',
-                    subjectId: 'OBJECT#Broom',
-                    targetId: 'OBJECT#Table',
-                    relationKind: 'Under',
-                    hostId: ROOM_A,
-                }],
+                steps,
             })
 
             await messageBus.flushAndSettle()
 
-            expect(executeObjectDissolveRelationMock).toHaveBeenCalledWith(
+            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    characterId: CHARACTER_ID,
-                    subjectId: 'OBJECT#Broom',
-                    targetId: 'OBJECT#Table',
-                    hostId: ROOM_A,
-                    relationKind: 'Under',
+                    steps,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(executeEstablishEdgeChainMock).not.toHaveBeenCalled()
+        })
+
+        it("routes a genuine crossing dissolve (PV1-0's tie string to cup shape, reversed) through executeEstablishEdgeChain with every step intact --- PV1-3b-16", async () => {
+            const steps = [
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#String',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    hostId: ROOM_A,
+                },
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Cup',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    hostId: 'OBJECT#Table',
+                },
+                {
+                    kind: 'removeCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    portId: 'p1',
+                },
+            ]
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Dissolve Relation', {
+                type: 'Object Dissolve Relation',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#String',
+                targetId: 'OBJECT#Cup',
+                hostId: 'OBJECT#Table',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
+                steps,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    steps,
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
         })
     })
 
