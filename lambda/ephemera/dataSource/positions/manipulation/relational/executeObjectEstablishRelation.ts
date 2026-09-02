@@ -1,43 +1,13 @@
-import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
-import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 import type { MutationKernelCaptures } from '../kernel/types'
-
-export type ExecuteObjectEstablishRelationArgs = {
-    characterId: EphemeraCharacterId
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
-    hostId: EphemeraMembershipHostId
-    messageBus: MessageBus
-    streamEvent: StreamEventFunction<PositionsPublishedPayload>
-} & RelationalKindAndLabel
-
-export const executeObjectEstablishRelation = async (
-    args: ExecuteObjectEstablishRelationArgs
-): Promise<void> => {
-    void args.characterId
-    await applyObjectRelationalChange(
-        {
-            subjectId: args.subjectId,
-            targetId: args.targetId,
-            hostId: args.hostId,
-            ...relationKindAndLabelFrom(args),
-            operation: 'establish',
-        },
-        {
-            messageBus: args.messageBus,
-            streamEvent: args.streamEvent,
-        }
-    )
-}
 
 export type ExecuteEstablishEdgeChainArgs = {
     steps: readonly MutationKernelStep[]
@@ -54,13 +24,15 @@ export type ExecuteEstablishEdgeChainResult =
     | { ok: false; errorCode: string; errorMessage: string }
 
 /**
- * PV1-3b-3: the multi-host sibling of `executeObjectEstablishRelation`, matching
- * `executeMembershipTransfer`'s relationship to `executeObjectMove` --- a new function, not a
- * branch inside the single-host one. `steps` arrives already merged and ordered (port steps
- * before the legs that reference them, per `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`),
- * so this is a pure pass-through: no separate whole-crossing verification layer, since
- * `applyStepSequenceCore`'s per-step `confirmCarriedHost` assert (PV1-3b-7) already re-checks every
- * leg against live state at commit time.
+ * PV1-3b-3, wired live at PV1-3b-2: the single commit path for `Object Establish Relation`,
+ * having absorbed the single-host case that a now-deleted sibling (`executeObjectEstablishRelation`)
+ * used to handle separately --- `steps` is a one-entry array for a portless/same-host candidate,
+ * so there was nothing left for that function to do once this one's live call site landed.
+ * `steps` arrives already merged and ordered (port steps before the legs that reference them, per
+ * `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`), so this is a pure pass-through: no
+ * separate whole-crossing verification layer, since `applyStepSequenceCore`'s per-step
+ * `confirmCarriedHost` assert (PV1-3b-7) already re-checks every leg against live state at commit
+ * time.
  *
  * `getCurrentHost` is built from each `establishRelation`/`dissolveRelation` step's own carried
  * `hostId` (PV1-3b-7), keyed by that step's primitive endpoint(s) --- `computeStepSequenceFootprint`

@@ -1068,6 +1068,13 @@ describe('mtw.ephemera.perception DataSource', () => {
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
                     relationKind: 'Under',
+                    steps: [{
+                        kind: 'establishRelation',
+                        subjectId: TAKE_HOLD_OBJECT,
+                        targetId: 'OBJECT#Table',
+                        relationKind: 'Under',
+                        hostId: TAKE_HOLD_ROOM,
+                    }],
                 },
                 TAKE_HOLD_CHARACTER
             )

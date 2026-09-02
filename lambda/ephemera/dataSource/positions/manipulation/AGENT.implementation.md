@@ -284,20 +284,35 @@ Public coordinator APIs remain membership-shaped at ingress --- **not** raw step
 
 Relational operations add/remove **edges** on a fixed host `ludicGraph` without changing membership host. They do **not** route through the shared membership adapter; they compose with membership transfer by appearing in the same step sequence.
 
+**PV1-3b-2 split establish's ingress off this coordinator.** `Object Dissolve Relation` (still single-host only, PV1-3b-15 not yet built) still routes through `applyObjectRelationalChange`, unchanged:
+
 ```text
-Per-operator ingress (relational)     Object Establish Relation | Object Dissolve Relation
+Object Dissolve Relation
         |
         v
-applyObjectRelationalChange           builds [establishRelation] or, on a repair,
+applyObjectRelationalChange           builds [dissolveRelation] or, on a repair,
         |                             [dissolveRelation*, transferMembership, establishRelation]
+        v
+commitStepSequence                    one transactWrite; re-validates live on locked graphs
+```
+
+`Object Establish Relation` no longer goes through `applyObjectRelationalChange` at all --- the Expansion-derived `steps` chain (PV1-3b-1) already *is* the step sequence `applyObjectRelationalChange` used to build for the single-host case, so ingress calls `commitStepSequence` directly:
+
+```text
+Object Establish Relation             carries `steps` (Expansion-derived, PV1-3b-1)
+        |
+        v
+executeEstablishEdgeChain             pass-through: builds getCurrentHost from each
+        |                             step's own carried hostId (PV1-3b-7), no verification layer
         v
 commitStepSequence                    one transactWrite; re-validates live on locked graphs
 ```
 
 | Item | Value |
 | --- | --- |
-| **Coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
-| **Ingress** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts), [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) |
+| **Coordinator (dissolve only)** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) |
+| **Ingress (establish)** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, direct to `commitStepSequence`) |
+| **Ingress (dissolve)** | [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) (via `applyObjectRelationalChange`) |
 | **Edge helpers** | [`../ludicGraph/`](../ludicGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
@@ -397,7 +412,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Relational coordinator; builds the step sequence for satisfied and repaired cases |
-| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | Two entry points, sharing a file (PV1-3b-3, mirroring `executeObjectMove.ts`'s `executeObjectMove`/`executeMembershipTransfer` split). `executeObjectEstablishRelation`: `Object Establish Relation` ingress, single relational step on one host, via `applyObjectRelationalChange`. `executeEstablishEdgeChain`: the multi-host sibling --- takes an already-merged, already-ordered `steps: MutationKernelStep[]` (port steps before the legs that reference them, per `buildCrossingLegs.ts`), builds `getCurrentHost` from each step's own carried `hostId` (PV1-3b-7) rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer. Not yet wired to any live ingress route --- PV1-3b-2 (widen the published payload to carry the full `steps` chain) is what would give it one. |
+| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole `Object Establish Relation` ingress (PV1-3b-2 wired it live and deleted the sibling single-host `executeObjectEstablishRelation`, which had gone to zero live callers). Takes the already-merged, already-ordered `steps: MutationKernelStep[]` off the published payload (port steps before the legs that reference them, per `buildCrossingLegs.ts`), builds `getCurrentHost` from each step's own carried `hostId` (PV1-3b-7) rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing uniformly, matching `executeObjectMove.ts`'s `executeObjectMove`/`executeMembershipTransfer` precedent of one function per shape rather than a branch, just resolved down to one function here since the single-host shape stopped needing its own. |
 | [`relational/executeObjectDissolveRelation.ts`](relational/executeObjectDissolveRelation.ts) | `Object Dissolve Relation` ingress |
 | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) | `Object Relation Changed` payload builder |
 | [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) | Fact stream wrapper |

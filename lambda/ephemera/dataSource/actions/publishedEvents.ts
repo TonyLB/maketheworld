@@ -15,8 +15,10 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraLudicGraphPort, isEphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AcmeOrderEnrichDefaultSituationProse, CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { areCoyoteObjectTropeFieldsValid, isAcmeOrderEnrichDefaultSituationProse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
 
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
@@ -80,9 +82,25 @@ export type ObjectEstablishRelationPublishedPayload = {
     characterId: EphemeraCharacterId;
     subjectId: EphemeraObjectId;
     targetId: EphemeraObjectId;
-    /** Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only `roomId`). */
+    /**
+     * Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only
+     * `roomId`) --- narration/perception use only (PV1-3b-2): `objectManipulationPresentationLegAdapters.ts`
+     * gates narration on this being a Room. The commit mechanism no longer trusts it as "the"
+     * host --- see `steps`, where a genuine crossing carries more than one.
+     */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
+    /**
+     * PV1-3b-2: the Expansion-derived mutation-kernel step chain (PV1-3b-1's
+     * `ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
+     * boundary unchanged) --- what `executeEstablishEdgeChain` actually commits. A portless/
+     * same-host candidate carries exactly one `establishRelation` entry; a genuine crossing
+     * carries one `addCrossingPort` plus a hop leg per side, in production order (port steps
+     * precede the legs that reference them). Each step carries its own `hostId` (PV1-3b-7) ---
+     * there is no single host for a crossing as a whole, which is why the flat `hostId` above
+     * stays narration-only rather than being derived from this array at read time.
+     */
+    steps: readonly MutationKernelStep[];
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 export type ObjectDissolveRelationPublishedPayload = {
@@ -94,6 +112,21 @@ export type ObjectDissolveRelationPublishedPayload = {
     hostId: EphemeraMembershipHostId;
     confidence?: number;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
+
+/** Shared by the payload-level and step-level relational kind/label checks below --- both spell the same `RelationalKindAndLabel<HostRelationalEdgeKindPublished>` fragment. */
+const isValidPublishedRelationKindAndLabel = (v: Record<string, unknown>): boolean => {
+    if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS_PUBLISHED.has(v.relationKind as HostRelationalEdgeKindPublished)) {
+        return false
+    }
+    if (v.relationKind === 'Custom') {
+        if (!(typeof v.relationLabel === 'string' && v.relationLabel.length > 0)) {
+            return false
+        }
+    } else if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
+        return false
+    }
+    return true
+}
 
 const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean => {
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
@@ -108,14 +141,7 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
     if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
         return false
     }
-    if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS_PUBLISHED.has(v.relationKind as HostRelationalEdgeKindPublished)) {
-        return false
-    }
-    if (v.relationKind === 'Custom') {
-        if (!(typeof v.relationLabel === 'string' && v.relationLabel.length > 0)) {
-            return false
-        }
-    } else if (v.relationLabel !== undefined && typeof v.relationLabel !== 'string') {
+    if (!isValidPublishedRelationKindAndLabel(v)) {
         return false
     }
     if (v.confidence !== undefined) {
@@ -124,6 +150,39 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
         }
     }
     return true
+}
+
+/**
+ * PV1-3b-2: the only `MutationKernelStep` kinds `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`
+ * can ever put in `ParseCommandEstablishRelationResult.steps` on this route --- `transferMembership`,
+ * `capture`, and `setPresencePort` never appear here, so this guard does not attempt to validate them.
+ */
+const PUBLISHED_MUTATION_KERNEL_STEP_KINDS = new Set([
+    'establishRelation',
+    'dissolveRelation',
+    'addCrossingPort',
+    'removeCrossingPort',
+])
+
+const isPublishedMutationKernelStep = (value: unknown): value is MutationKernelStep => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.kind !== 'string' || !PUBLISHED_MUTATION_KERNEL_STEP_KINDS.has(v.kind)) {
+        return false
+    }
+    if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
+        return false
+    }
+    if (v.kind === 'establishRelation' || v.kind === 'dissolveRelation') {
+        return isEphemeraLudicTerminalId(v.subjectId) && isEphemeraLudicTerminalId(v.targetId) && isValidPublishedRelationKindAndLabel(v)
+    }
+    if (v.kind === 'addCrossingPort') {
+        return isEphemeraLudicGraphPort(v.port)
+    }
+    // removeCrossingPort
+    return typeof v.portId === 'string' && v.portId.length > 0
 }
 
 export const isObjectEstablishRelationPublishedPayload = (
@@ -136,7 +195,10 @@ export const isObjectEstablishRelationPublishedPayload = (
     if (v.type !== 'Object Establish Relation') {
         return false
     }
-    return isHostRelationalIngressFieldsValid(v)
+    if (!isHostRelationalIngressFieldsValid(v)) {
+        return false
+    }
+    return Array.isArray(v.steps) && v.steps.length > 0 && v.steps.every(isPublishedMutationKernelStep)
 }
 
 export const isObjectDissolveRelationPublishedPayload = (

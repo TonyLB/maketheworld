@@ -319,6 +319,13 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
         relationKind: 'Under' as const,
+        steps: [{
+            kind: 'establishRelation' as const,
+            subjectId: 'OBJECT#Broom',
+            targetId: 'OBJECT#Table',
+            hostId: 'ROOM#from',
+            relationKind: 'Under' as const,
+        }],
     }
 
     it('accepts a valid payload', () => {
@@ -357,6 +364,51 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'KNOWLEDGE#x' })).toBe(false)
+    })
+
+    it('rejects a missing or empty steps array', () => {
+        const { steps, ...withoutSteps } = minimal
+        void steps
+        expect(isObjectEstablishRelationPublishedPayload(withoutSteps)).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: [] })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: 'not-an-array' })).toBe(false)
+    })
+
+    it('rejects a malformed step', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: [{ kind: 'transferMembership' }] })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            steps: [{ kind: 'establishRelation', subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', relationKind: 'Under' }],
+        })).toBe(false)
+    })
+
+    it('accepts a genuine crossing (port step plus two legs)', () => {
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            steps: [
+                {
+                    kind: 'addCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    port: { portId: 'p1', fromHostId: 'ROOM#from', kind: 'Custom', exteriorRelationLabel: 'tied to' },
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    hostId: 'ROOM#from',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Table',
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+            ],
+        })).toBe(true)
     })
 })
 

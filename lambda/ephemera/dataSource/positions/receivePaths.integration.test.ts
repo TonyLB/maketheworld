@@ -35,7 +35,7 @@ jest.mock('./manipulation/membership/orchestrateObjectMove', () => ({
 }))
 
 jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
-    executeObjectEstablishRelation: jest.fn(),
+    executeEstablishEdgeChain: jest.fn(),
 }))
 
 jest.mock('./manipulation/relational/executeObjectDissolveRelation', () => ({
@@ -50,7 +50,7 @@ import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
-import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
+import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
 import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
 
 import './index'
@@ -79,8 +79,8 @@ const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunc
 const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
     typeof orchestrateObjectMove
 >
-const executeObjectEstablishRelationMock = executeObjectEstablishRelation as jest.MockedFunction<
-    typeof executeObjectEstablishRelation
+const executeEstablishEdgeChainMock = executeEstablishEdgeChain as jest.MockedFunction<
+    typeof executeEstablishEdgeChain
 >
 const executeObjectDissolveRelationMock = executeObjectDissolveRelation as jest.MockedFunction<
     typeof executeObjectDissolveRelation
@@ -393,7 +393,7 @@ describe('positions receive paths (integration)', () => {
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(executeObjectEstablishRelationMock).not.toHaveBeenCalled()
+            expect(executeEstablishEdgeChainMock).not.toHaveBeenCalled()
         })
 
         it('does not call orchestrateObjectMove when the subject has no single current host (drift)', async () => {
@@ -416,7 +416,14 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Establish Relation', () => {
-        it('routes mtw.ephemera.actions Object Establish Relation through executeObjectEstablishRelation', async () => {
+        it('routes mtw.ephemera.actions Object Establish Relation through executeEstablishEdgeChain (PV1-3b-2)', async () => {
+            const steps = [{
+                kind: 'establishRelation',
+                subjectId: 'OBJECT#Broom',
+                targetId: 'OBJECT#Table',
+                relationKind: 'Under',
+                hostId: ROOM_A,
+            }]
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Establish Relation', {
                 type: 'Object Establish Relation',
                 characterId: CHARACTER_ID,
@@ -425,22 +432,66 @@ describe('positions receive paths (integration)', () => {
                 hostId: ROOM_A,
                 relationKind: 'Under',
                 confidence: 0.9,
+                steps,
             })
 
             await messageBus.flushAndSettle()
 
-            expect(executeObjectEstablishRelationMock).toHaveBeenCalledWith(
+            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    characterId: CHARACTER_ID,
-                    subjectId: 'OBJECT#Broom',
-                    targetId: 'OBJECT#Table',
-                    hostId: ROOM_A,
-                    relationKind: 'Under',
+                    steps,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
             )
             expect(executeObjectDissolveRelationMock).not.toHaveBeenCalled()
+        })
+
+        it('routes a genuine crossing (PV1-0\'s tie string to cup shape) through executeEstablishEdgeChain with every step intact', async () => {
+            const steps = [
+                {
+                    kind: 'addCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    port: { portId: 'p1', fromHostId: ROOM_A, kind: 'Custom', exteriorRelationLabel: 'tied to' },
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#String',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    hostId: ROOM_A,
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Cup',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    hostId: 'OBJECT#Table',
+                },
+            ]
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Establish Relation', {
+                type: 'Object Establish Relation',
+                characterId: CHARACTER_ID,
+                subjectId: 'OBJECT#String',
+                targetId: 'OBJECT#Cup',
+                hostId: 'OBJECT#Table',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
+                confidence: 0.9,
+                steps,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    steps,
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
+            )
         })
     })
 
@@ -468,7 +519,7 @@ describe('positions receive paths (integration)', () => {
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(executeObjectEstablishRelationMock).not.toHaveBeenCalled()
+            expect(executeEstablishEdgeChainMock).not.toHaveBeenCalled()
         })
     })
 

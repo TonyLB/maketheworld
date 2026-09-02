@@ -2100,6 +2100,13 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: hostRoom,
                     relationKind: 'Under',
                     confidence: 0.9,
+                    steps: [{
+                        kind: 'establishRelation',
+                        subjectId: 'OBJECT#Broom',
+                        targetId: 'OBJECT#Table',
+                        relationKind: 'Under',
+                        hostId: hostRoom,
+                    }],
                 },
             })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
@@ -2158,6 +2165,86 @@ describe('ephemeraActionsDataSource', () => {
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.85,
+                    steps: [{
+                        kind: 'establishRelation',
+                        subjectId: 'OBJECT#Rope',
+                        targetId: 'OBJECT#Crate',
+                        relationKind: 'Custom',
+                        relationLabel: 'tied around',
+                        hostId: hostRoom,
+                    }],
+                },
+            })
+        })
+
+        it('emits Object Establish Relation carrying every step of a genuine crossing (PV1-3b-2)', async () => {
+            const tableId = 'OBJECT#Table' as EphemeraObjectId
+            const portStep = {
+                kind: 'addCrossingPort' as const,
+                hostId: tableId,
+                port: { portId: 'p1', fromHostId: hostRoom, kind: 'Custom' as const, exteriorRelationLabel: 'tied to' },
+            }
+            const legSteps = [
+                {
+                    kind: 'establishRelation' as const,
+                    subjectId: 'OBJECT#String' as EphemeraObjectId,
+                    targetId: { owner: tableId, port: 'p1' },
+                    relationKind: 'Custom' as const,
+                    relationLabel: 'tied to',
+                    hostId: hostRoom,
+                },
+                {
+                    kind: 'establishRelation' as const,
+                    subjectId: { owner: tableId, port: 'p1' },
+                    targetId: 'OBJECT#Cup' as EphemeraObjectId,
+                    relationKind: 'Custom' as const,
+                    relationLabel: 'tied to',
+                    hostId: tableId,
+                },
+            ]
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'establishRelation',
+                subjectId: 'OBJECT#String',
+                targetId: 'OBJECT#Cup',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
+                confidence: 0.9,
+                steps: [portStep, ...legSteps],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'tie string to cup',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#String',
+                    targetId: 'OBJECT#Cup',
+                    // The last step's hostId --- narration-only, per PV1-3b-2.
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    confidence: 0.9,
+                    steps: [portStep, ...legSteps],
                 },
             })
         })
