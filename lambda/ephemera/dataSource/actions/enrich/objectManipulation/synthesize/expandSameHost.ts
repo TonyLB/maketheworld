@@ -1,10 +1,11 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { findShardBoundary } from './findShardBoundary'
-import { buildCrossingLegs } from './buildCrossingLegs'
+import { buildCrossingLegs, buildCrossingDissolveLegs } from './buildCrossingLegs'
+import { findRelationalChain } from './findRelationalChain'
+import type { ExpansionEnvironment } from './executorTypes'
 
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
@@ -47,11 +48,22 @@ export type ExpandSameHostResult =
  * outcome look load-bearing. If CD2h ever routes hosting kinds through this
  * function they need their own branch built for them.
  *
- * `getMembershipContainers` is a plain injected callback, not a live DB call
- * --- matches `GroundingContext`/`expandTransferMembership.ts`'s convention.
- * Standalone and unwired: does not decide how Grounding and Expansion
- * interleave (`AGENT.concepts.md`, "Synthesize's three sub-roles") --- this
- * function only operates on already-grounded ids.
+ * `env` carries plain injected callbacks, not live DB calls --- matches
+ * `GroundingContext`/`expandTransferMembership.ts`'s convention. Standalone and unwired: does
+ * not decide how Grounding and Expansion interleave (`AGENT.concepts.md`, "Synthesize's three
+ * sub-roles") --- this function only operates on already-grounded ids.
+ *
+ * **PV1-3b-14: `establishRelation` and `dissolveRelation` ask genuinely different questions of
+ * genuinely different state**, and now call genuinely different primitives --- `findShardBoundary`
+ * (containment ancestry: "where do I mint a fresh chain?") for establish,
+ * `findRelationalChain` (existing relational edges/ports: "what chain already connects them?")
+ * for dissolve. Before this, both operation kinds walked containment ancestry unconditionally;
+ * that was silently correct for dissolve only in the portless/same-host case, where "where
+ * ancestries meet" and "where the existing edge already is" coincide by construction --- it was
+ * never exercised for a genuine crossing dissolve, which `buildCrossingLegs` refused
+ * (`notYetImplemented`) before the coincidence could break. `findRelationalChain` needs
+ * `getGraph`/`getCurrentHost`, which the old bare `getMembershipContainers` callback didn't
+ * carry, hence the widened `env` parameter.
  */
 export const expandSameHost = (
     input: {
@@ -63,13 +75,21 @@ export const expandSameHost = (
         /**
          * PV1-3b-4: the collapsed ingress seed carries no sibling relational step any more, so
          * this is now the only place that knows whether the relation being expressed is an
-         * establish or a dissolve --- `buildCrossingLegs` needs it for the final step's own kind.
+         * establish or a dissolve --- `buildCrossingLegs`/`buildCrossingDissolveLegs` need it.
          */
         operationKind: 'establishRelation' | 'dissolveRelation'
     },
-    getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[] = () => []
+    envArg: Partial<Pick<ExpansionEnvironment, 'getMembershipContainers' | 'getGraph' | 'getCurrentHost'>> = {}
 ): ExpandSameHostResult => {
     const { subjectId, objectId, relationKind, relationLabel, operationKind } = input
+    // Every caller (establish-side tests included) that never seeds a `sameHost` assertion of
+    // the operation kind these stubs back can safely omit them --- same convention as
+    // `ExpansionEnvironment.getMembershipContainers`'s own doc comment.
+    const env = {
+        getMembershipContainers: envArg.getMembershipContainers ?? (() => []),
+        getGraph: envArg.getGraph ?? (() => undefined),
+        getCurrentHost: envArg.getCurrentHost ?? (() => undefined),
+    }
 
     // PV1-3b-6: input validation, deliberately above every state lookup --- this asks nothing
     // about the world. `relationKind`/`relationLabel` arrive as two flat fields here (via
@@ -94,29 +114,49 @@ export const expandSameHost = (
     const isPeerKind = relationKind === 'Under' || relationKind === 'Against' || relationKind === 'Custom'
 
     if (isPeerKind) {
-        // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
-        // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
-        // union's own doc comment). PV1-3b-9 widened this from `Custom`-only: `buildCrossingLegs`
-        // was already general over kinds (it mints a bare-`kind` port for the enum relations),
-        // and the gate was the only thing holding `Under`/`Against` back.
-        const boundary = findShardBoundary({ subjectId, targetId: objectId }, getMembershipContainers)
-        if (boundary.verdict === 'crossed') {
-            const legs = buildCrossingLegs({
-                subjectId,
-                targetId: objectId,
-                commonAncestor: boundary.commonAncestor,
-                subjectPath: boundary.subjectPath,
-                targetPath: boundary.targetPath,
-                operationKind,
-                // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated union
-                // spread cleanly --- `relationLabel` is checked non-undefined by the malformed-
-                // input guard at the top of the function (PV1-3b-6), which is why the cast is safe.
-                ...(relationKind === 'Custom'
-                    ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
-                    : { relationKind }),
-            })
-            if (legs.verdict === 'built') {
-                return { verdict: 'crossed', steps: legs.steps }
+        if (operationKind === 'establishRelation') {
+            // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
+            // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
+            // union's own doc comment). PV1-3b-9 widened this from `Custom`-only:
+            // `buildCrossingLegs` was already general over kinds (it mints a bare-`kind` port for
+            // the enum relations), and the gate was the only thing holding `Under`/`Against` back.
+            const boundary = findShardBoundary({ subjectId, targetId: objectId }, env.getMembershipContainers)
+            if (boundary.verdict === 'crossed') {
+                const legs = buildCrossingLegs({
+                    subjectId,
+                    targetId: objectId,
+                    commonAncestor: boundary.commonAncestor,
+                    subjectPath: boundary.subjectPath,
+                    targetPath: boundary.targetPath,
+                    operationKind,
+                    // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated
+                    // union spread cleanly --- `relationLabel` is checked non-undefined by the
+                    // malformed-input guard at the top of the function (PV1-3b-6), which is why
+                    // the cast is safe.
+                    ...(relationKind === 'Custom'
+                        ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
+                        : { relationKind }),
+                })
+                if (legs.verdict === 'built') {
+                    return { verdict: 'crossed', steps: legs.steps }
+                }
+            }
+        } else {
+            // PV1-3b-14: dissolve asks a different question than establish --- not "where do I
+            // mint a fresh chain?" (containment ancestry) but "what chain already connects them,
+            // so a dissolve can remove it?" (existing relational edges/ports). This also
+            // subsumes the old portless/same-host case: `findRelationalChain` finds the single
+            // matching edge already sitting in the shared host's graph, the same step
+            // `findShardBoundary`'s ancestry coincidence used to produce, without depending on
+            // that coincidence. `findRelationalChain` takes the flat `relationKind`/
+            // `relationLabel` pairing directly (unlike `buildCrossingLegs`, it has no
+            // discriminated-union parameter to narrow into).
+            const chain = findRelationalChain(
+                { subjectId, targetId: objectId, relationKind, relationLabel },
+                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
+            )
+            if (chain.verdict === 'found') {
+                return { verdict: 'crossed', steps: buildCrossingDissolveLegs(chain.steps) }
             }
         }
     }
@@ -131,14 +171,19 @@ export const expandSameHost = (
 
     if (isPeerKind) {
         // Distinct from the Custom defer above, deliberately: nothing here is semantically
-        // uncertain. The relation is well understood and the endpoints are in different shards;
-        // what is missing is a crossing this slice's leg producer can express (no common
-        // ancestor, an ambiguous one, or a shape past its one-extra-hop-per-side scope). An LLM
-        // has nothing to add to that, so borrowing BD-10's wording would misroute the follow-up.
+        // uncertain. For establish, the relation is well understood and the endpoints are in
+        // different shards; what is missing is a crossing this slice's leg producer can express
+        // (no common ancestor, an ambiguous one, or a shape past its one-extra-hop-per-side
+        // scope). For dissolve, either no matching chain exists or `findRelationalChain` found
+        // more than one and declined to pick (PV1-3b-11). An LLM has nothing to add to either, so
+        // borrowing BD-10's wording would misroute the follow-up.
+        const reason = operationKind === 'establishRelation'
+            ? `No crossing could be built for the ${relationKind} relation between ${subjectId} and ${objectId} --- they share no host, and their shard boundary is unreachable or has a shape buildCrossingLegs does not yet support`
+            : `No existing ${relationKind} relation chain found to dissolve between ${subjectId} and ${objectId} --- either none exists, or more than one qualifying chain was found and findRelationalChain declined to pick`
         return {
             verdict: 'defer',
             decidable: false,
-            reason: `No crossing could be built for the ${relationKind} relation between ${subjectId} and ${objectId} --- they share no host, and their shard boundary is unreachable or has a shape buildCrossingLegs does not yet support`,
+            reason,
         }
     }
 

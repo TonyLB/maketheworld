@@ -234,7 +234,7 @@ const commandExpand = (
                     relationLabel: step.relationLabel,
                     operationKind: step.operationKind,
                 },
-                env.getMembershipContainers
+                env
             )
             if (result.verdict === 'crossed') {
                 // Leg steps (establishRelation, already executor-shaped) retire through the

@@ -1,6 +1,8 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { expandSameHost } from './expandSameHost'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -23,7 +25,7 @@ describe('expandSameHost', () => {
 
         const result = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-            getMembershipContainers
+            { getMembershipContainers }
         )
 
         expect(result).toEqual({
@@ -57,7 +59,7 @@ describe('expandSameHost', () => {
 
         const result = expandSameHost(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-            getMembershipContainers
+            { getMembershipContainers }
         )
 
         expect(result.verdict).toBe('crossed')
@@ -84,7 +86,7 @@ describe('expandSameHost', () => {
 
         const result = expandSameHost(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against', operationKind: 'establishRelation' },
-            getMembershipContainers
+            { getMembershipContainers }
         )
 
         expect(result.verdict).toBe('crossed')
@@ -95,11 +97,11 @@ describe('expandSameHost', () => {
     it('PV1-3b-9: an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
         const underResult = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
         const customResult = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
 
         expect(underResult.verdict).toBe('defer')
@@ -116,7 +118,7 @@ describe('expandSameHost', () => {
     it('defers on a Custom relation kind when no shared boundary is reachable', () => {
         const result = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
 
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
@@ -132,7 +134,7 @@ describe('expandSameHost', () => {
 
         const result = expandSameHost(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            getMembershipContainers
+            { getMembershipContainers }
         )
 
         expect(result.verdict).toBe('crossed')
@@ -161,7 +163,7 @@ describe('expandSameHost', () => {
     it('PV1-3: falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
         const result = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
 
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
@@ -175,11 +177,11 @@ describe('expandSameHost', () => {
         // the reason string is what routes the follow-up.
         const unlabelled = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
         const labelled = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            () => []
+            { getMembershipContainers: () => [] }
         )
 
         expect(unlabelled.verdict).toBe('error')
@@ -200,5 +202,115 @@ describe('expandSameHost', () => {
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
         expect(result.reason).toEqual(expect.stringContaining('relationLabel'))
+    })
+
+    describe('dissolveRelation (PV1-3b-14)', () => {
+        it('a portless dissolve (both endpoints already share a host) resolves to the same single dissolveRelation step as before --- no regression from routing away from findShardBoundary', () => {
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+                .addObject(TRAY_ID)
+                .addObject(TABLE_ID)
+                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
+
+            const result = expandSameHost(
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
+            )
+
+            expect(result).toEqual({
+                verdict: 'crossed',
+                steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Under' }],
+            })
+        })
+
+        it("a genuine crossing dissolve (PV1-0's own readout chain, reversed) resolves via findRelationalChain/buildCrossingDissolveLegs, where buildCrossingLegs would have reported notYetImplemented", () => {
+            const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+                .addObject(NECKLACE_ID)
+                .addObject(TABLE_ID)
+                .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
+            const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
+                .addObject(CHARM_ID)
+                .addPort(port)
+                .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
+
+            const result = expandSameHost(
+                { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'dissolveRelation' },
+                {
+                    getMembershipContainers: () => [],
+                    getGraph: (hostId) => ({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph } as Record<string, EphemeraLudicGraph>)[hostId],
+                    getCurrentHost: (id) => (id === NECKLACE_ID ? ROOM_ID : undefined),
+                }
+            )
+
+            expect(result).toEqual({
+                verdict: 'crossed',
+                steps: [
+                    {
+                        kind: 'dissolveRelation',
+                        subjectId: NECKLACE_ID,
+                        targetId: { owner: TABLE_ID, port: 'port-1' },
+                        hostId: ROOM_ID,
+                        relationKind: 'Custom',
+                        relationLabel: 'to',
+                    },
+                    { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
+                    {
+                        kind: 'dissolveRelation',
+                        subjectId: { owner: TABLE_ID, port: 'port-1' },
+                        targetId: CHARM_ID,
+                        hostId: TABLE_ID,
+                        relationKind: 'Custom',
+                        relationLabel: 'to',
+                    },
+                ],
+            })
+        })
+
+        it('defers, with dissolve-specific wording, when no matching chain is found', () => {
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID).addObject(TABLE_ID)
+
+            const result = expandSameHost(
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
+            )
+
+            expect(result.verdict).toBe('defer')
+            if (result.verdict !== 'defer') return
+            expect(result.reason).toEqual(expect.stringContaining('Under'))
+            expect(result.reason).toEqual(expect.stringContaining('dissolve'))
+        })
+
+        it('defers rather than picking, when findRelationalChain finds more than one qualifying chain (PV1-3b-11)', () => {
+            // Two structurally distinct edges both reach targetId from subjectId --- mirrors
+            // `findRelationalChain.test.ts`'s own ambiguous fixture (PV1-3b-12).
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+                .addObject(TRAY_ID)
+                .addObject(TABLE_ID)
+                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
+                .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Under' })
+
+            const result = expandSameHost(
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
+            )
+
+            expect(result.verdict).toBe('defer')
+        })
+
+        it('establish and dissolve produce different defer wording for the same unreachable case', () => {
+            const establishResult = expandSameHost(
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
+                { getMembershipContainers: () => [] }
+            )
+            const dissolveResult = expandSameHost(
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { getMembershipContainers: () => [], getGraph: () => undefined, getCurrentHost: () => undefined }
+            )
+
+            expect(establishResult.verdict).toBe('defer')
+            expect(dissolveResult.verdict).toBe('defer')
+            if (establishResult.verdict !== 'defer' || dissolveResult.verdict !== 'defer') return
+            expect(establishResult.reason).not.toEqual(dissolveResult.reason)
+        })
     })
 })
