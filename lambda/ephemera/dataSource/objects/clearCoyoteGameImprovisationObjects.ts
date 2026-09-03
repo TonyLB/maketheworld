@@ -10,6 +10,7 @@ import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
+import { collectNestedObjectIds } from '../actions/roomObjectCatalogForCharacter'
 import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import { commitStepSequence } from '../positions/manipulation/kernel/commitStepSequence'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
@@ -32,6 +33,8 @@ export type ClearCoyoteGameImprovisationObjectsArgs = {
     /** PV1-3c: test seams for the phase-1 chain-reachability dissolve pass. */
     getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>;
     getGraph?: (hostId: EphemeraMembershipHostId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    /** Descent into object-hosted shards when collecting the removal set (nested contents). */
+    getObjectLudicGraph?: (objectId: EphemeraObjectId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
 }
 
 export type ClearCoyoteGameImprovisationObjectsResult =
@@ -63,6 +66,8 @@ export const clearCoyoteGameImprovisationObjects = async (
     const getActiveCharacters = args.getActiveCharactersInCoyoteRooms ?? collectActiveCharactersInCoyoteRooms
     const getCharacterLudicGraph = args.getCharacterLudicGraph
         ?? ((characterId: EphemeraCharacterId) => internalCache.Positions.getLudicGraph(characterId))
+    const getObjectLudicGraph = args.getObjectLudicGraph
+        ?? ((objectId: EphemeraObjectId) => internalCache.Positions.getLudicGraph(objectId))
 
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
@@ -86,6 +91,20 @@ export const clearCoyoteGameImprovisationObjects = async (
         for (const objectId of graph.objectIds) {
             objectIdSet.add(objectId)
         }
+    }
+
+    // Room and character graphs only name their *direct* members: an object hosted On/In/PartOf
+    // another object lives in that host's own shard, not the room's graph (CC3/PV1-1). Scanning
+    // the two graphs above therefore misses a cup on a table entirely --- it survived the clear,
+    // and then lost its host's row underneath it (2026-09-03). `collectNestedObjectIds` is the
+    // existing walker for exactly this descent, already used by the room object catalog.
+    //
+    // This is enumeration, not a containment-cascade policy: a *total* clear of the Coyote space
+    // has no "where does the cup go" question to answer, so it does not settle what a single
+    // object's removal should do with its contents (still deferred).
+    const nestedObjectIds = await collectNestedObjectIds(objectIdSet, getObjectLudicGraph)
+    for (const objectId of nestedObjectIds) {
+        objectIdSet.add(objectId)
     }
 
     const objectIds = [...objectIdSet]

@@ -31,6 +31,7 @@ const OBJECT_HELD = 'OBJECT#HeldProp' as EphemeraObjectId
 const noRelationsArgs = {
     getMembershipContainers: async () => [],
     getGraph: async (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph.empty(hostId),
+    getObjectLudicGraph: async (objectId: EphemeraObjectId) => EphemeraLudicGraph.empty(objectId),
 }
 
 describe('clearCoyoteGameImprovisationObjects', () => {
@@ -206,6 +207,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 getActiveCharactersInCoyoteRooms: async () => [],
                 getMembershipContainers: async (id) => (id === STRING_ID || id === TABLE_ID ? [ROOM_A] : []),
                 getGraph: async (hostId) => (hostId === ROOM_A ? roomGraph : hostId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(hostId)),
+                getObjectLudicGraph: async (objectId) => (objectId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(objectId)),
             },
             { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
         )
@@ -220,9 +222,16 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             { kind: 'dissolveRelation', subjectId: interiorEdge.from, targetId: interiorEdge.to, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
         ]))
         expect(steps).toHaveLength(3)
-        // Phase 2: membership-clear still runs per object, as before --- table and string both
-        // discovered from the room graph (cup is never independently discovered, only reached
-        // via table's own owned graph in phase 1).
-        expect(applyClearMembershipImpl).toHaveBeenCalledTimes(2)
+        // Phase 2: membership-clear runs per object --- string and table from the room graph, and
+        // cup by descending into table's own shard. Cup is not a member of any room or character
+        // graph, so the two flat scans miss it entirely; before that descent shipped it survived
+        // the clear and was then stranded when table's row was deleted underneath it (2026-09-03).
+        expect(applyClearMembershipImpl).toHaveBeenCalledTimes(3)
+        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
+            expect.objectContaining({ entityId: CUP_ID, target: null })
+        )
+        expect(deleteObjectImpl).toHaveBeenCalledWith(
+            expect.objectContaining({ objectId: CUP_ID })
+        )
     })
 })
