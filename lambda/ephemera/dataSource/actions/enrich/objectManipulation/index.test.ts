@@ -239,13 +239,19 @@ describe('enrichObjectManipulation', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'Under',
-            hostId: roomId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: broomId,
+                targetId: tableId,
+                relationKind: 'Under',
+                hostId: roomId,
+            }],
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, satisfied --- both items already share that host)', async () => {
+    it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, both items already share that host --- PV1-3b-4: resolves as a portless crossing leg)', async () => {
         const stringId = 'OBJECT#String' as EphemeraObjectId
         const topId = 'OBJECT#Top' as EphemeraObjectId
         const heldGraph = testLudicGraph(characterId, {
@@ -282,8 +288,15 @@ describe('enrichObjectManipulation', () => {
             targetId: topId,
             relationKind: 'Custom',
             relationLabel: 'around',
-            hostId: characterId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: stringId,
+                targetId: topId,
+                relationKind: 'Custom',
+                relationLabel: 'around',
+                hostId: characterId,
+            }],
         })
     })
 
@@ -324,12 +337,18 @@ describe('enrichObjectManipulation', () => {
             subjectId: 'OBJECT#Rope',
             targetId: 'OBJECT#Anvil',
             relationKind: 'Against',
-            hostId: roomId,
             confidence: 0.88,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: 'OBJECT#Rope',
+                targetId: 'OBJECT#Anvil',
+                relationKind: 'Against',
+                hostId: roomId,
+            }],
         })
     })
 
-    it('abstains on tie cord around crate, since "tie ... around ..." is not a closed-template verb (BD-24 out of scope)', async () => {
+    it('grounds establish fixture tie cord around crate via the native skeleton pipeline (PV1-3: "tie" joined ESTABLISH_VERBS)', async () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 
@@ -339,6 +358,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'tie cord around crate',
                 rawObjectSpans: ['cord'],
                 parseSkeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
+                characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cordId, normalizedShortName: 'cord' },
@@ -360,9 +380,21 @@ describe('enrichObjectManipulation', () => {
         )
 
         expect(result).toEqual({
-            type: 'Abstain',
+            type: 'EstablishRelation',
+            operationKind: 'establishRelation',
+            subjectId: cordId,
+            targetId: crateId,
+            relationKind: 'Custom',
+            relationLabel: 'around',
             confidence: 0.87,
-            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: cordId,
+                targetId: crateId,
+                relationKind: 'Custom',
+                relationLabel: 'around',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -411,8 +443,15 @@ describe('enrichObjectManipulation', () => {
             targetId: crateId,
             relationKind: 'Custom',
             relationLabel: 'off',
-            hostId: roomId,
             confidence: 0.86,
+            steps: [{
+                kind: 'dissolveRelation',
+                subjectId: ropeId,
+                targetId: crateId,
+                relationKind: 'Custom',
+                relationLabel: 'off',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -646,8 +685,14 @@ describe('enrichObjectManipulation', () => {
             subjectId: ladderId,
             targetId: wallId,
             relationKind: 'Against',
-            hostId: roomId,
             confidence: 0.9,
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: ladderId,
+                targetId: wallId,
+                relationKind: 'Against',
+                hostId: roomId,
+            }],
         })
     })
 

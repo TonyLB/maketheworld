@@ -5,6 +5,7 @@ import {
     isLookCommandRequestedPublishedPayload,
     isObjectDissolveRelationPublishedPayload,
     isObjectEstablishRelationPublishedPayload,
+    isObjectRehostPublishedPayload,
     isObjectTakeHoldPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
@@ -318,6 +319,13 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
         relationKind: 'Under' as const,
+        steps: [{
+            kind: 'establishRelation' as const,
+            subjectId: 'OBJECT#Broom',
+            targetId: 'OBJECT#Table',
+            hostId: 'ROOM#from',
+            relationKind: 'Under' as const,
+        }],
     }
 
     it('accepts a valid payload', () => {
@@ -357,6 +365,89 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'KNOWLEDGE#x' })).toBe(false)
     })
+
+    it('rejects a missing or empty steps array', () => {
+        const { steps, ...withoutSteps } = minimal
+        void steps
+        expect(isObjectEstablishRelationPublishedPayload(withoutSteps)).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: [] })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: 'not-an-array' })).toBe(false)
+    })
+
+    it('rejects a malformed step', () => {
+        expect(isObjectEstablishRelationPublishedPayload({ ...minimal, steps: [{ kind: 'transferMembership' }] })).toBe(false)
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            steps: [{ kind: 'establishRelation', subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', relationKind: 'Under' }],
+        })).toBe(false)
+    })
+
+    it('accepts a genuine crossing (port step plus two legs)', () => {
+        expect(isObjectEstablishRelationPublishedPayload({
+            ...minimal,
+            steps: [
+                {
+                    kind: 'addCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    port: { portId: 'p1', fromHostId: 'ROOM#from', kind: 'Custom', exteriorRelationLabel: 'tied to' },
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    hostId: 'ROOM#from',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'establishRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Table',
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+            ],
+        })).toBe(true)
+    })
+})
+
+describe('isObjectRehostPublishedPayload', () => {
+    const minimal = {
+        type: 'Object Rehost' as const,
+        characterId: 'CHARACTER#test',
+        subjectId: 'OBJECT#Cup',
+        targetId: 'OBJECT#Tray',
+        roomId: 'ROOM#Bridge',
+        containment: 'On' as const,
+    }
+
+    it('accepts a valid payload', () => {
+        expect(isObjectRehostPublishedPayload(minimal)).toBe(true)
+    })
+
+    it('accepts optional confidence', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
+    })
+
+    it('rejects wrong or missing type', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
+        const { type: _t, ...rest } = minimal
+        expect(isObjectRehostPublishedPayload(rest)).toBe(false)
+    })
+
+    it('rejects invalid ids or containment', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, containment: 'Under' })).toBe(false)
+    })
+
+    it('rejects non-finite confidence', () => {
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
+    })
 })
 
 describe('isObjectDissolveRelationPublishedPayload', () => {
@@ -367,6 +458,13 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
         targetId: 'OBJECT#Table',
         hostId: 'ROOM#from',
         relationKind: 'Under' as const,
+        steps: [{
+            kind: 'dissolveRelation' as const,
+            subjectId: 'OBJECT#Broom',
+            targetId: 'OBJECT#Table',
+            hostId: 'ROOM#from',
+            relationKind: 'Under' as const,
+        }],
     }
 
     it('accepts a valid payload', () => {
@@ -375,6 +473,51 @@ describe('isObjectDissolveRelationPublishedPayload', () => {
 
     it('rejects wrong type', () => {
         expect(isObjectDissolveRelationPublishedPayload({ ...minimal, type: 'Object Establish Relation' })).toBe(false)
+    })
+
+    it('rejects a missing or empty steps array', () => {
+        const { steps, ...withoutSteps } = minimal
+        void steps
+        expect(isObjectDissolveRelationPublishedPayload(withoutSteps)).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: [] })).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: 'not-an-array' })).toBe(false)
+    })
+
+    it('rejects a malformed step', () => {
+        expect(isObjectDissolveRelationPublishedPayload({ ...minimal, steps: [{ kind: 'transferMembership' }] })).toBe(false)
+        expect(isObjectDissolveRelationPublishedPayload({
+            ...minimal,
+            steps: [{ kind: 'dissolveRelation', subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', relationKind: 'Under' }],
+        })).toBe(false)
+    })
+
+    it('accepts a genuine crossing dissolve (removeCrossingPort step plus two legs)', () => {
+        expect(isObjectDissolveRelationPublishedPayload({
+            ...minimal,
+            steps: [
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
+                    hostId: 'ROOM#from',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'dissolveRelation',
+                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
+                    targetId: 'OBJECT#Table',
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                },
+                {
+                    kind: 'removeCrossingPort',
+                    hostId: 'OBJECT#Table',
+                    portId: 'p1',
+                },
+            ],
+        })).toBe(true)
     })
 })
 

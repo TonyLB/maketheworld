@@ -30,6 +30,7 @@ describe('fromExecutorStep', () => {
             kind: 'establishRelation',
             subjectId: trayId,
             targetId: glassId,
+            hostId: roomId,
             relationKind: 'On',
         }
         expect(fromExecutorStep(step)).toEqual(step)
@@ -40,6 +41,7 @@ describe('fromExecutorStep', () => {
             kind: 'dissolveRelation',
             subjectId: trayId,
             targetId: glassId,
+            hostId: roomId,
             relationKind: 'On',
         }
         expect(fromExecutorStep(step)).toEqual(step)
@@ -55,5 +57,16 @@ describe('isKernelMutationStep', () => {
     it('rejects a describe step', () => {
         const step: KernelStep = { kind: 'describe', referentId: roomId, referentKind: 'room' }
         expect(isKernelMutationStep(step)).toBe(false)
+    })
+
+    it('accepts addCrossingPort and removeCrossingPort steps (PV1-3)', () => {
+        const addStep: KernelStep = {
+            kind: 'addCrossingPort',
+            hostId: roomId,
+            port: { portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+        }
+        const removeStep: KernelStep = { kind: 'removeCrossingPort', hostId: roomId, portId: 'p1' }
+        expect(isKernelMutationStep(addStep)).toBe(true)
+        expect(isKernelMutationStep(removeStep)).toBe(true)
     })
 })

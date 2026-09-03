@@ -62,18 +62,11 @@ describe('compileMembershipUngroundedPlan', () => {
 })
 
 describe('compileRelationalUngroundedPlan', () => {
-    it('compiles an establishRelation frame with an enum relation kind, prefixed with a sameHost assertion', () => {
+    it('compiles an establishRelation frame with an enum relation kind', () => {
         const result = compileRelationalUngroundedPlan(relationalFrame({ operationKind: 'establishRelation', relationSpan: 'under' }))
         expect(result).toEqual({
             type: 'success',
             steps: [
-                {
-                    kind: 'assertion',
-                    predicate: 'sameHost',
-                    subject: objectSpanRef('broom'),
-                    object: objectSpanRef('table'),
-                    negate: false,
-                },
                 {
                     kind: 'change',
                     primitive: 'establishRelation',
@@ -90,7 +83,7 @@ describe('compileRelationalUngroundedPlan', () => {
         expect(result).toEqual({ type: 'nestingDefer' })
     })
 
-    it('compiles a dissolveRelation frame, also prefixed with a sameHost assertion (BD-15 (1): unconditional)', () => {
+    it('compiles a dissolveRelation frame', () => {
         const result = compileRelationalUngroundedPlan(relationalFrame({
             operationKind: 'dissolveRelation',
             subjectSpan: 'rope',
@@ -100,13 +93,6 @@ describe('compileRelationalUngroundedPlan', () => {
         expect(result).toEqual({
             type: 'success',
             steps: [
-                {
-                    kind: 'assertion',
-                    predicate: 'sameHost',
-                    subject: objectSpanRef('rope'),
-                    object: objectSpanRef('crate'),
-                    negate: false,
-                },
                 {
                     kind: 'change',
                     primitive: 'dissolveRelation',
@@ -128,13 +114,6 @@ describe('compileRelationalUngroundedPlan', () => {
             type: 'success',
             steps: [
                 {
-                    kind: 'assertion',
-                    predicate: 'sameHost',
-                    subject: objectSpanRef('cord'),
-                    object: objectSpanRef('crate'),
-                    negate: false,
-                },
-                {
                     kind: 'change',
                     primitive: 'establishRelation',
                     subject: objectSpanRef('cord'),
@@ -144,22 +123,6 @@ describe('compileRelationalUngroundedPlan', () => {
                 },
             ],
         })
-    })
-
-    it("the sameHost assertion's subject/object always align with the change's subject/target", () => {
-        const result = compileRelationalUngroundedPlan(relationalFrame({
-            subjectSpan: 'charm',
-            targetSpan: 'necklace',
-            relationSpan: 'against',
-        }))
-        if (result.type !== 'success') throw new Error('expected success')
-        const [assertion, change] = result.steps
-        if (assertion.kind !== 'assertion' || assertion.predicate !== 'sameHost' || change.kind !== 'change' || change.primitive === 'transferMembership') {
-            throw new Error('expected [assertion, relational change]')
-        }
-        expect(assertion.predicate).toBe('sameHost')
-        expect(assertion.subject).toEqual(change.subject)
-        expect(assertion.object).toEqual(change.target)
     })
 
     it('returns nestingDefer for containment language', () => {

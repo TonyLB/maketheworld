@@ -1,5 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { MutationKernelStep } from './kernelStep'
 import type { StepSequenceFootprint } from './types'
@@ -41,15 +42,38 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
-        const subjectHost = getCurrentHost(step.subjectId)
-        const targetHost = getCurrentHost(step.targetId)
-        if (subjectHost === undefined || targetHost === undefined) {
-            throw new Error(
-                `computeStepSequenceFootprint: cannot resolve current host for ${step.subjectId} or ${step.targetId}`
-            )
+        if (step.kind === 'setPresencePort') {
+            hosts.add(step.hostId)
+            continue
         }
-        hosts.add(subjectHost)
-        hosts.add(targetHost)
+        if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
+            hosts.add(step.hostId)
+            continue
+        }
+        // PV1-3: a crossing leg's port-address endpoint (EphemeraLudicPortAddress) names no host
+        // of its own to resolve or lock here --- whatever host stores that port record is locked
+        // by the step that writes it (addCrossingPort/removeCrossingPort), not by this leg. Only
+        // the primitive endpoint(s) need resolving; at least one must resolve, or there is nothing
+        // for this step to lock at all.
+        const subjectIsPrimitive = isEphemeraLudicTerminalPrimitive(step.subjectId)
+        const targetIsPrimitive = isEphemeraLudicTerminalPrimitive(step.targetId)
+        const subjectHost = subjectIsPrimitive ? getCurrentHost(step.subjectId as EphemeraLudicTerminalPrimitive) : undefined
+        const targetHost = targetIsPrimitive ? getCurrentHost(step.targetId as EphemeraLudicTerminalPrimitive) : undefined
+        if (subjectIsPrimitive && subjectHost === undefined) {
+            throw new Error(`computeStepSequenceFootprint: cannot resolve current host for ${step.subjectId}`)
+        }
+        if (targetIsPrimitive && targetHost === undefined) {
+            throw new Error(`computeStepSequenceFootprint: cannot resolve current host for ${step.targetId}`)
+        }
+        if (subjectHost === undefined && targetHost === undefined) {
+            throw new Error('computeStepSequenceFootprint: relational step has no primitive endpoint to resolve a host from')
+        }
+        if (subjectHost !== undefined) {
+            hosts.add(subjectHost)
+        }
+        if (targetHost !== undefined) {
+            hosts.add(targetHost)
+        }
     }
     return hosts
 }

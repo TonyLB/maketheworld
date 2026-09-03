@@ -3,8 +3,8 @@ jest.mock('./persistImprovisationObject', () => ({
     persistDeleteImprovisationObject: jest.fn(),
 }))
 
-jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
-    applyObjectRoomMembership: jest.fn(),
+jest.mock('../positions/manipulation/membership/executeObjectMove', () => ({
+    executeMembershipTransfer: jest.fn(),
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -13,7 +13,7 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
 import {
     persistDeleteImprovisationObject,
@@ -48,7 +48,7 @@ const embedFailure = (): BuildShortNameSemanticEmbeddingResult => ({
 
 describe('spawnOneImprovisationObject', () => {
     const spawnImpl = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const applyMembershipImpl = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const applyMembershipImpl = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
     const deleteImpl = persistDeleteImprovisationObject as jest.MockedFunction<typeof persistDeleteImprovisationObject>
     const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
     const messageBus = { publish: jest.fn() }
@@ -86,10 +86,12 @@ describe('spawnOneImprovisationObject', () => {
             shortName: 'Skates',
             stableKey: 'skates',
         })
-        expect(applyMembershipImpl).toHaveBeenCalledWith(
-            { objectId: OBJECT_ID, targetRoomId: ROOM_ID },
-            { messageBus, streamEvent }
-        )
+        expect(applyMembershipImpl).toHaveBeenCalledWith({
+            entityId: OBJECT_ID,
+            target: ROOM_ID,
+            messageBus,
+            streamEvent,
+        })
         expect(deleteImpl).not.toHaveBeenCalled()
     })
 
@@ -306,7 +308,7 @@ describe('spawnImprovisationObjectsBatch', () => {
 
     it('collects createdIds when embed fails on one row but spawn succeeds (S3)', async () => {
         const spawnImpl = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-        const applyMembershipImpl = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+        const applyMembershipImpl = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
         const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
         buildEmbedImpl.mockImplementation(async (shortName) => {
             if (shortName === 'B') {

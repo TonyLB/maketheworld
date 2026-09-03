@@ -1,9 +1,6 @@
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import {
-    extractCharacterIdsFromPlayLudicGraph,
-    projectComponentGraphFromStoredLudicGraph,
-} from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { extractCharacterIdsFromLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 const asTrimmedString = (value: unknown): string | undefined => {
     if (typeof value !== 'string') {
@@ -25,9 +22,7 @@ export const listGraphCharacterIds = (ludicGraph: unknown): string[] => {
     if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
         return []
     }
-    return extractCharacterIdsFromPlayLudicGraph(
-        projectComponentGraphFromStoredLudicGraph(ludicGraph)
-    )
+    return extractCharacterIdsFromLudicGraph(ludicGraph)
 }
 
 /**

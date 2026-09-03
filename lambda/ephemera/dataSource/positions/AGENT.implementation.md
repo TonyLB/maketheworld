@@ -20,11 +20,10 @@ Normative layering: [`AGENT.contract.md` --- Manipulation persist layering](AGEN
 
 | Path | Role |
 | --- | --- |
-| [`manipulation/types.ts`](manipulation/types.ts) | `MembershipTransferProjection`, `MembershipTransferPlan`, `HostRelationalEdge`, `HostRelationalPatch` |
-| [`manipulation/adapters/`](manipulation/adapters/) | Shared room-host transfer planner: `planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts` |
+| [`manipulation/types.ts`](manipulation/types.ts) | `HostRelationalEdge`, `HostRelationalPatch` |
 | [`manipulation/kernel/`](manipulation/kernel/) | Both kernels --- mutation (`commitStepSequence`, `applyStepSequenceCore`, `computeStepSequenceFootprint`, `factsForStep`) and presentation (`presentStepSequence`, describe + narrate branches), over the shared step vocabulary in `kernelStep` |
 | [`manipulation/kernel/compile/`](manipulation/kernel/compile/) | Abstract-op compile layer: `positionKernelOp` (the op), `compilePositionKernelOp` (op -> `{ steps, slots }`), `moveBundleSlotIds` (host-typed leave/arrive slot ids) |
-| [`manipulation/membership/`](manipulation/membership/) | Cross-host object move (both directions) + destroy/edit clear |
+| [`manipulation/membership/`](manipulation/membership/) | Cross-host object move (both directions) + single-entity, no-carry-closure transfer (place/spawn/remove/drift-repair/navigate/connect/disconnect) |
 
 #### Relational patch
 
@@ -40,15 +39,14 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 | File | Role |
 | --- | --- |
 | [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) | Narration owner for **both** `Object Take Hold` and `Object Drop`. Derives the acting character and room from the host pair, resolves labels, then wraps `executeObjectMove`; declares the bundle and presents narration on `ok: true` |
-| [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) | Execution for either direction: seeds the Synthesize executor **grounded** from concrete hosts, compiles the move once, commits the plan's mutation steps. Returns `{ ok: false } \| { ok: true, plan, captures }` |
-| [`manipulation/membership/applyObjectClearMembership.ts`](manipulation/membership/applyObjectClearMembership.ts) | Destroy/edit clear: explicit boundary sweep + `dissolveRelation` + end-state-to-null transfer |
-| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | `ObjectMembershipDiff` + clear-membership apply result |
+| [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) | Two entry points, sharing one file. `executeObjectMove`: single-origin, non-null-destination carry-closure move (take-hold/drop/give) --- seeds the Synthesize executor **grounded** from concrete hosts, compiles the move once, commits the plan's mutation steps. Returns `{ ok: false } \| { ok: true, plan, captures }`. `executeMembershipTransfer` (PV1-1b): single entity (object or character), diffed against its own `priorContainers`, no carry closure, never touches the Synthesize executor --- absorbed `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`'s membership-half body. Object entities get an explicit chain-aware sweep (PV1-3c: `findRelationalChainsTouching` + `buildCrossingDissolveLegs`, following crossing ports across hosts --- replaced the old primitive-only `boundaryEdgeOutcomes` loop, which silently skipped any relational edge with a port-address endpoint); character entities never do (`HostRelationalEdge` is object-only). Returns a `MembershipApplyResult`-shaped `{froms, to, changed, ...}` |
+| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | `ObjectMembershipDiff` (host-general diff shape, consumed by `factsForStep`/`buildObjectMovedFact`) |
 
 #### Adding a cross-host manipulation apply coordinator
 
 Use when an atomic operator transfers an **`Object`** node between **membership hosts** (v1: room <-> character inventory). Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Actions egress playbook: [**Adding an atomic position-manipulation operator**](../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
-1. **Authority** --- cross-host membership transfers live under **`positions/manipulation/membership/`**, **not** [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) (room-host-only). Import shared primitives (**[`ludicGraph/`](ludicGraph/)**, **`buildObjectMovedFact`**, transact item builders) --- do not extend room-only entry points.
+1. **Authority** --- every object-lifecycle membership change (spawn/place/remove/drift-repair/take-hold/drop/give) reaches the kernel through **`positions/manipulation/membership/`** (`executeObjectMove`/`executeMembershipTransfer`), PV1-1b's single pipeline. Import shared primitives (**[`ludicGraph/`](ludicGraph/)**, **`buildObjectMovedFact`**, transact item builders).
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts). If the operator is a **membership move**, it very likely does **not** need a new execute module: name its host pair and route to [`orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts). `give` is the worked example --- `(CHARACTER# -> CHARACTER#)` needs no new code below ingress.
 
@@ -128,8 +126,7 @@ The op builder is **not** here: [`membership/buildCharacterMoveOp.ts`](membershi
 | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) | Asset visibility: trim + membership apply when in play and endpoint differs |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate |
 | [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
-| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Coordinator: character graph persist, `changed` gate, membership-changed bundle (fact stream first) |
-| [`membership/applyObjectRoomMembership.ts`](membership/applyObjectRoomMembership.ts) | Coordinator: object graph persist, `Object Moved` fact, cache seed, `RoomUpdate` |
+| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Thin wrapper over [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts)'s `executeMembershipTransfer` (PV1-1b): `changed` gate, roster snapshots, `CharacterMeta` invalidation, membership-changed bundle (fact stream first) |
 | [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Membership host transfer fact payload from **`MembershipDiff`** |
 | [`membership/buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) | **`Object Moved`** membership host transfer fact payload (I4) |
 | [`membership/streamMembershipFact.ts`](membership/streamMembershipFact.ts) | `Character Moved` `streamEvent` at persistence apply |
@@ -139,12 +136,12 @@ The op builder is **not** here: [`membership/buildCharacterMoveOp.ts`](membershi
 
 #### Cross-lane ingress (objects lane -> positions coordinator)
 
-Objects lane callers use **`applyObjectRoomMembership`** for graph placement; they do **not** register on positions **`receiveEvents`**. Coordinator semantics (**S1** compensating delete, **S3** batch isolation): [`../objects/spawnImprovisationObjectsBatch.ts`](../objects/spawnImprovisationObjectsBatch.ts), [`../objects/AGENT.md`](../objects/AGENT.md).
+Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts)) for graph placement; they do **not** register on positions **`receiveEvents`**. Coordinator semantics (**S1** compensating delete, **S3** batch isolation): [`../objects/spawnImprovisationObjectsBatch.ts`](../objects/spawnImprovisationObjectsBatch.ts), [`../objects/AGENT.md`](../objects/AGENT.md).
 
 | Caller | Entry | Positions coordinator |
 | --- | --- | --- |
-| Objects spawn (`spawnOneImprovisationObject`) | After `persistSpawnImprovisationObject` | `applyObjectRoomMembership` |
-| Objects remove (`applyObjectsChange`) | Graph removal first | `applyObjectRoomMembership` then row delete |
+| Objects spawn (`spawnOneImprovisationObject`) | After `persistSpawnImprovisationObject` | `executeMembershipTransfer` |
+| Objects remove (`applyObjectsChange`) | Graph removal first | `executeMembershipTransfer` then row delete |
 
 ### Tests
 
@@ -156,7 +153,7 @@ Objects lane callers use **`applyObjectRoomMembership`** for graph placement; th
 | [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / **`Object Drop`** / drift finding) |
 | [`manipulation/membership/executeObjectMove.test.ts`](manipulation/membership/executeObjectMove.test.ts) | Executor grounding + committed step sequence for **both** directions (two scenario-labeled describe blocks); result shape; **no capture steps when narration is absent** |
 | [`manipulation/membership/orchestrateObjectMove.test.ts`](manipulation/membership/orchestrateObjectMove.test.ts) | Bundle declaration, both bracket slots reported, labels resolved once, and **never narrates a commit that did not happen** |
-| [`manipulation/membership/applyObjectClearMembership.test.ts`](manipulation/membership/applyObjectClearMembership.test.ts) | Destroy/edit clear: boundary sweep, dissolve steps, end-state-to-null transfer |
+| [`manipulation/membership/executeMembershipTransfer.test.ts`](manipulation/membership/executeMembershipTransfer.test.ts) | Single-entity, no-carry-closure transfer: no-op short-circuit, room-to-room boundary sweep, spawn (empty priors), clear (multi-host, target null), `suppressRelationalFacts`, character entities skip the sweep, `compileMutationSteps` override, commit-failure propagation |
 | [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes |
 | [`manipulation/kernel/compile/compilePositionKernelOp.test.ts`](manipulation/kernel/compile/compilePositionKernelOp.test.ts) | Compiler steps/slots ordering, arity-driven connect/disconnect shapes, narration-absent (object-lifecycle) path, verb derivation for all three of takeHold/drop/give, closure-wide `entityIds`, dissolves ordered ahead of the transfer, and **both bracket sides emitted for a character host rather than suppressing the empty one** |
 | [`manipulation/kernel/presentStepSequence.test.ts`](manipulation/kernel/presentStepSequence.test.ts) | Describe branch + narration branch: mover receives own leave line, arrival/departure room isolation, copy-kind message assembly, `objectMove` copy, and **the character-hosted bracket side publishes to nobody rather than throwing** |

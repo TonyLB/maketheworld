@@ -652,6 +652,34 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' }).toStored().edges).toEqual([])
         })
 
+        describe('ports', () => {
+            it('addPort appends the port', () => {
+                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' }])
+            })
+
+            it('addPort is idempotent for an existing portId', () => {
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })).toBe(graph)
+            })
+
+            it('removePort filters by portId', () => {
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                expect(graph.removePort('port-1').toStored().ports).toEqual([])
+            })
+
+            it('removePort no-ops for a portId not present', () => {
+                const graph = graphWithObjects()
+                expect(graph.removePort('missing').toStored().ports).toEqual([])
+            })
+
+            it('ports round-trip through fromJSON/toStored', () => {
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                const restored = EphemeraLudicGraph.fromJSON({ hostId: HOST_ID, ...graph.toStored() })
+                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' }])
+            })
+        })
+
         // EA-8: identity is minted optionally, per edge, and most edges will not carry one. These
         // tests pin what that does and does not buy, because it is easy to over-read: an id is a
         // label an edge may carry, and it settles nothing about sameness yet.

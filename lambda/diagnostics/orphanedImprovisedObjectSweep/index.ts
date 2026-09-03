@@ -1,9 +1,6 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { v4 as uuidv4 } from 'uuid'
-import {
-    extractObjectIdsFromPlayLudicGraph,
-    projectComponentGraphFromStoredLudicGraph,
-} from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { extractObjectIdsFromLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
     DiagnosticsEventSerializer,
     DiagnosticsOrphanedImprovisedObjectFindingEvent,
@@ -88,8 +85,22 @@ const defaultGetPairRow = async (objectId: EphemeraObjectId): Promise<Improvisat
         ProjectionFields: ['EphemeraId', 'DataCategory'],
     })
 
+/**
+ * Every object id reachable as a *member* of some host's graph --- the "not orphaned" set.
+ *
+ * **`Meta::Object` is scanned too, and must be.** An object hosted On/In/PartOf another object
+ * lives in that host's own shard, not in any room or character graph (CC3/PV1-1). Scanning only
+ * Room and Character rows (as this did until 2026-09-03) makes every legitimately nested object
+ * --- a cup genuinely sitting on a table --- look orphaned, and a finding here routes straight to
+ * `persistDeleteImprovisationObject` with no further guard. That is a deletion of live data, so
+ * the omission was a latent data-loss bug, not just an incomplete scan.
+ *
+ * Scanning the third DataCategory covers arbitrary nesting depth in one pass: a nested object is
+ * a member of *some* host's stored graph regardless of how deep it sits, so no recursive descent
+ * is needed here (contrast `collectNestedObjectIds`, which walks downward from a known root set).
+ */
 const defaultLoadGraphObjectIds = async (): Promise<Set<EphemeraObjectId>> => {
-    const [roomRows, characterRows] = await Promise.all([
+    const [roomRows, characterRows, objectRows] = await Promise.all([
         queryAllEphemeraRowsByDataCategory<HostMetaRow>({
             dataCategory: 'Meta::Room',
             projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
@@ -98,16 +109,21 @@ const defaultLoadGraphObjectIds = async (): Promise<Set<EphemeraObjectId>> => {
             dataCategory: 'Meta::Character',
             projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
         }),
+        queryAllEphemeraRowsByDataCategory<HostMetaRow>({
+            dataCategory: 'Meta::Object',
+            projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph'],
+        }),
     ])
 
     const objectIds = new Set<EphemeraObjectId>()
-    for (const row of [...roomRows, ...characterRows]) {
+    for (const row of [...roomRows, ...characterRows, ...objectRows]) {
         if (!row.ludicGraph) {
             continue
         }
-        const projected = projectComponentGraphFromStoredLudicGraph(row.ludicGraph)
-        for (const graphObjectId of extractObjectIdsFromPlayLudicGraph(projected)) {
-            if (isEphemeraObjectId(graphObjectId)) {
+        for (const graphObjectId of extractObjectIdsFromLudicGraph(row.ludicGraph)) {
+            // An object-hosted graph lists its own root among `nodes`; that self-reference says
+            // nothing about whether anything hosts *it*, so it must not count as being held.
+            if (isEphemeraObjectId(graphObjectId) && graphObjectId !== row.EphemeraId) {
                 objectIds.add(graphObjectId)
             }
         }

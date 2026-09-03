@@ -1,9 +1,10 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import {
     projectComponentGraphFromStoredLudicGraph,
-    extractCharacterIdsFromPlayLudicGraph,
-    extractObjectIdsFromPlayLudicGraph,
+    extractCharacterIdsFromLudicGraph,
+    extractObjectIdsFromLudicGraph,
 } from './project'
 import { createPositionsCacheHandler } from './factory'
 import type { EphemeraPositionsReadDB } from './fetch'
@@ -25,18 +26,56 @@ const objectHostId = 'OBJECT#Tray' as EphemeraObjectId
 const featureHostId = 'FEATURE#Sign' as EphemeraFeatureId
 const areaHostId = 'AREA#Overworld' as EphemeraAreaId
 
-const emptyGraph = projectComponentGraphFromStoredLudicGraph({ rootId: roomId, ports: [], nodes: [], edges: [] })
+/**
+ * An absent row's default. Kind-specific since the root node carries the host's own tag ---
+ * concepts clause 3 / LP4i requires the root to be present in `nodes`.
+ */
+const emptyPayload = (id: string, tag: 'Room' | 'Character' | 'Object' | 'Feature' | 'Area') => ({
+    rootId: id,
+    nodes: [{ tag, universalKey: id }],
+    edges: [],
+    ports: [],
+})
+
+/**
+ * A room holding one side of a crossing: a port-address edge plus, on the interior side, the port
+ * record itself. `ports` is the field the memo used to drop wholesale, so every load/round-trip
+ * assertion below is written against a fixture that actually has one.
+ */
+const storedRoomGraph: EphemeraLudicGraphFieldPayload = {
+    rootId: roomId,
+    nodes: [
+        { tag: 'Room', universalKey: roomId },
+        { tag: 'Character', universalKey: characterId },
+        { tag: 'Object', universalKey: objectId },
+    ],
+    edges: [{
+        tag: 'Relational',
+        from: objectId,
+        to: { owner: objectHostId, port: 'port-1' },
+        kind: 'Custom',
+        relationLabel: 'to',
+    }],
+    ports: [],
+}
+
+const storedObjectGraphWithPort: EphemeraLudicGraphFieldPayload = {
+    rootId: objectHostId,
+    nodes: [{ tag: 'Object', universalKey: objectHostId }],
+    edges: [],
+    ports: [{ portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+}
 
 describe('positions project', () => {
-    it('extractCharacterIdsFromPlayLudicGraph walks character nodes', () => {
-        expect(extractCharacterIdsFromPlayLudicGraph({
+    it('extractCharacterIdsFromLudicGraph walks character nodes', () => {
+        expect(extractCharacterIdsFromLudicGraph({
             nodes: [{ tag: 'Character', universalKey: characterId }],
             edges: [],
         })).toEqual([characterId])
     })
 
-    it('extractObjectIdsFromPlayLudicGraph walks object nodes', () => {
-        expect(extractObjectIdsFromPlayLudicGraph({
+    it('extractObjectIdsFromLudicGraph walks object nodes', () => {
+        expect(extractObjectIdsFromLudicGraph({
             nodes: [{ tag: 'Object', universalKey: objectId }],
             edges: [],
         })).toEqual([objectId])
@@ -112,11 +151,7 @@ describe('PositionsCacheHandler', () => {
         const db: EphemeraPositionsReadDB = {
             getItem: jest.fn().mockImplementation(async ({ Key, ProjectionFields }) => {
                 if (Key.DataCategory === 'Meta::Room' && ProjectionFields?.includes('ludicGraph')) {
-                    return {
-                        ludicGraph: {
-                            nodes: [{ tag: 'Character', universalKey: characterId }],
-                        },
-                    }
+                    return { ludicGraph: storedRoomGraph }
                 }
                 throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
             }),
@@ -125,10 +160,8 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(roomId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
-            rootId: roomId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        }))
+        // Verbatim pass-through: the memo caches what Dynamo holds, including `ports`.
+        expect(graph).toEqual(storedRoomGraph)
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -145,7 +178,7 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(roomId)
 
-        expect(graph).toEqual(emptyGraph)
+        expect(graph).toEqual(emptyPayload(roomId, 'Room'))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -155,7 +188,8 @@ describe('PositionsCacheHandler', () => {
                 if (Key.DataCategory === 'Meta::Character' && ProjectionFields?.includes('ludicGraph')) {
                     return {
                         ludicGraph: {
-                            nodes: [{ tag: 'Object', universalKey: objectId }],
+                            rootId: characterId, ports: [],
+                            nodes: [{ tag: 'Character', universalKey: characterId }, { tag: 'Object', universalKey: objectId }],
                         },
                     }
                 }
@@ -166,10 +200,10 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(characterId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+        expect(graph).toEqual({
             rootId: characterId, ports: [],
-            nodes: [{ tag: 'Object', universalKey: objectId }],
-        }))
+            nodes: [{ tag: 'Character', universalKey: characterId }, { tag: 'Object', universalKey: objectId }],
+        })
         expect(db.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 Key: { EphemeraId: characterId, DataCategory: 'Meta::Character' },
@@ -191,7 +225,7 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(characterId)
 
-        expect(graph).toEqual(emptyGraph)
+        expect(graph).toEqual(emptyPayload(characterId, 'Character'))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -201,7 +235,8 @@ describe('PositionsCacheHandler', () => {
                 if (Key.DataCategory === 'Meta::Object' && ProjectionFields?.includes('ludicGraph')) {
                     return {
                         ludicGraph: {
-                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                            rootId: objectHostId, ports: [],
+                            nodes: [{ tag: 'Object', universalKey: objectHostId }, { tag: 'Character', universalKey: characterId }],
                         },
                     }
                 }
@@ -212,10 +247,10 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(objectHostId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+        expect(graph).toEqual({
             rootId: objectHostId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        }))
+            nodes: [{ tag: 'Object', universalKey: objectHostId }, { tag: 'Character', universalKey: characterId }],
+        })
         expect(db.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 Key: { EphemeraId: objectHostId, DataCategory: 'Meta::Object' },
@@ -237,7 +272,7 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(objectHostId)
 
-        expect(graph).toEqual(emptyGraph)
+        expect(graph).toEqual(emptyPayload(objectHostId, 'Object'))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -247,7 +282,8 @@ describe('PositionsCacheHandler', () => {
                 if (Key.DataCategory === 'Meta::Feature' && ProjectionFields?.includes('ludicGraph')) {
                     return {
                         ludicGraph: {
-                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                            rootId: featureHostId, ports: [],
+                            nodes: [{ tag: 'Feature', universalKey: featureHostId }, { tag: 'Character', universalKey: characterId }],
                         },
                     }
                 }
@@ -258,10 +294,10 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(featureHostId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+        expect(graph).toEqual({
             rootId: featureHostId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        }))
+            nodes: [{ tag: 'Feature', universalKey: featureHostId }, { tag: 'Character', universalKey: characterId }],
+        })
         expect(db.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 Key: { EphemeraId: featureHostId, DataCategory: 'Meta::Feature' },
@@ -283,7 +319,7 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(featureHostId)
 
-        expect(graph).toEqual(emptyGraph)
+        expect(graph).toEqual(emptyPayload(featureHostId, 'Feature'))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -293,7 +329,8 @@ describe('PositionsCacheHandler', () => {
                 if (Key.DataCategory === 'Meta::Area' && ProjectionFields?.includes('ludicGraph')) {
                     return {
                         ludicGraph: {
-                            nodes: [{ tag: 'Character', universalKey: characterId }],
+                            rootId: areaHostId, ports: [],
+                            nodes: [{ tag: 'Area', universalKey: areaHostId }, { tag: 'Character', universalKey: characterId }],
                         },
                     }
                 }
@@ -304,10 +341,10 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(areaHostId)
 
-        expect(graph).toEqual(projectComponentGraphFromStoredLudicGraph({
+        expect(graph).toEqual({
             rootId: areaHostId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        }))
+            nodes: [{ tag: 'Area', universalKey: areaHostId }, { tag: 'Character', universalKey: characterId }],
+        })
         expect(db.getItem).toHaveBeenCalledWith(
             expect.objectContaining({
                 Key: { EphemeraId: areaHostId, DataCategory: 'Meta::Area' },
@@ -329,7 +366,7 @@ describe('PositionsCacheHandler', () => {
 
         const graph = await handler.getLudicGraph(areaHostId)
 
-        expect(graph).toEqual(emptyGraph)
+        expect(graph).toEqual(emptyPayload(areaHostId, 'Area'))
         expect(db.getItem).toHaveBeenCalledTimes(1)
     })
 
@@ -392,10 +429,7 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectComponentGraphFromStoredLudicGraph({
-            rootId: roomId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        })
+        const graph = storedRoomGraph
 
         handler.set({ componentId: roomId, graph })
         await expect(handler.getLudicGraph(roomId)).resolves.toEqual(graph)
@@ -414,10 +448,10 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectComponentGraphFromStoredLudicGraph({
-            rootId: characterId, ports: [],
-            nodes: [{ tag: 'Object', universalKey: objectId }],
-        })
+        const graph: EphemeraLudicGraphFieldPayload = {
+            rootId: characterId, edges: [], ports: [],
+            nodes: [{ tag: 'Character', universalKey: characterId }, { tag: 'Object', universalKey: objectId }],
+        }
 
         handler.set({ componentId: characterId, graph })
         await expect(handler.getLudicGraph(characterId)).resolves.toEqual(graph)
@@ -428,10 +462,8 @@ describe('PositionsCacheHandler', () => {
         const getItem = jest.fn().mockResolvedValue({})
         const db: EphemeraPositionsReadDB = { getItem }
         const handler = createPositionsCacheHandler(db)
-        const graph = projectComponentGraphFromStoredLudicGraph({
-            rootId: objectHostId, ports: [],
-            nodes: [{ tag: 'Character', universalKey: characterId }],
-        })
+        // Port-bearing: `set` must round-trip `ports`, not strip them on the way in.
+        const graph = storedObjectGraphWithPort
 
         handler.set({ componentId: objectHostId, graph })
         await expect(handler.getLudicGraph(objectHostId)).resolves.toEqual(graph)
@@ -445,6 +477,40 @@ describe('PositionsCacheHandler', () => {
                 ProjectionFields: ['ludicGraph'],
             })
         )
+    })
+
+    it('carries ports through a Dynamo load --- the memo caches stored truth, not an authored projection', async () => {
+        const db: EphemeraPositionsReadDB = {
+            getItem: jest.fn().mockImplementation(async ({ Key }) => {
+                if (Key.DataCategory === 'Meta::Object') {
+                    return { ludicGraph: storedObjectGraphWithPort }
+                }
+                throw new Error(`Unexpected Dynamo get: ${Key.DataCategory}`)
+            }),
+        }
+        const handler = createPositionsCacheHandler(db)
+
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        // Regression: this memo projected through the authored WML shape until 2026-09-03, which
+        // emptied `ports` on every read. A crossing's port record was invisible to every consumer
+        // reading through `internalCache.Positions`, so chain discovery silently declined.
+        expect(graph.ports).toEqual([
+            { portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+        ])
+    })
+
+    it('carries ports through a set -> get round trip', async () => {
+        const db: EphemeraPositionsReadDB = { getItem: jest.fn().mockResolvedValue({}) }
+        const handler = createPositionsCacheHandler(db)
+
+        handler.set({ componentId: objectHostId, graph: storedObjectGraphWithPort })
+        const graph = await handler.getLudicGraph(objectHostId)
+
+        // The write half of the same defect: `commitStepSequence` seeds this memo with a graph it
+        // just minted a port on, and the projection discarded it on the way in.
+        expect(graph.ports).toEqual(storedObjectGraphWithPort.ports)
+        expect(db.getItem).not.toHaveBeenCalled()
     })
 
     it('memo setMembershipContainers and invalidateMembershipContainers without Dynamo write', async () => {

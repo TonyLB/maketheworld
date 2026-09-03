@@ -6,7 +6,7 @@ import type { DeterministicTemplate } from './deterministicTemplate'
  * DISSOLVE_VERBS (source of truth for the relational verb split; not exported
  * there, so mirrored here rather than reaching into that module's internals).
  */
-const ESTABLISH_VERBS = ['put', 'place', 'lean']
+const ESTABLISH_VERBS = ['put', 'place', 'lean', 'tie']
 const DISSOLVE_VERBS = ['take', 'remove']
 
 /**

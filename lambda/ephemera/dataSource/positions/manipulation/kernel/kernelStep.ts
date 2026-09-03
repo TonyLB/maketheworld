@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraCrossingPort, EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -59,11 +60,50 @@ export type MutationKernelCaptureStep = {
  * filter (Phase 3) excludes it before a step sequence is ever built, so this alias --- not the widened
  * `KernelStep` --- is what those files' signatures should keep using.
  */
+/**
+ * PV1-2: the moved object's own presence port, on its own graph (`hostId` is the moved object's
+ * own id --- a legal `EphemeraMembershipHostId`, LP0). Presence is at-most-one (PR-10), so this
+ * step is a *set*, not an add: it replaces any existing `kind: 'Present'` port on that graph with
+ * `port`, or clears it entirely when `port` is omitted (an object leaving with no new host). No
+ * `Present` edge is written --- PR-10 makes the cover implicit, derived from the binding list, not
+ * a record this step maintains.
+ */
+export type MutationKernelSetPresencePortStep = {
+    kind: 'setPresencePort'
+    hostId: EphemeraMembershipHostId
+    port?: EphemeraPresencePort
+}
+
+/**
+ * PV1-3: a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
+ * `establishRelation`/`dissolveRelation` step whose endpoint happens to be a port address --- see
+ * `executorTypes.ts`'s widening note). Unlike `setPresencePort`'s replace-all (presence is
+ * at-most-one, PR-10), crossing ports are add/remove-by-`portId` --- a host can carry more than one
+ * crossing port at once (one per relation that crosses it), so a fresh `tie` must not clobber an
+ * existing crossing left by an earlier one. Split into two step kinds, mirroring
+ * `establishRelation`/`dissolveRelation`'s own pairing, rather than one step with an `op` flag ---
+ * consistent with how this kernel already prefers a step kind per effect over a flag field.
+ */
+export type MutationKernelAddCrossingPortStep = {
+    kind: 'addCrossingPort'
+    hostId: EphemeraMembershipHostId
+    port: EphemeraCrossingPort
+}
+
+export type MutationKernelRemoveCrossingPortStep = {
+    kind: 'removeCrossingPort'
+    hostId: EphemeraMembershipHostId
+    portId: string
+}
+
 export type MutationKernelStep =
     | MutationKernelTransferStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
+    | MutationKernelSetPresencePortStep
+    | MutationKernelAddCrossingPortStep
+    | MutationKernelRemoveCrossingPortStep
 
 /**
  * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
@@ -276,7 +316,10 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'transferMembership' ||
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
-    step.kind === 'capture'
+    step.kind === 'capture' ||
+    step.kind === 'setPresencePort' ||
+    step.kind === 'addCrossingPort' ||
+    step.kind === 'removeCrossingPort'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):

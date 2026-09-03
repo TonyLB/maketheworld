@@ -1,12 +1,17 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import type { ManipulationVerbClass } from '../../../baseClasses'
+import type { Referent } from './ungroundedPrimitive'
 import { matchLookTemplate } from './matchLookTemplate'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
 
 export type SkeletonFamilyMatch =
     | { type: 'membership'; verbClass: ManipulationVerbClass }
     | { type: 'relational' }
-    | { type: 'relationalDefer' }
+    /** Forwards `matchRelationalTemplate`'s `nestingDefer` outcome unchanged: `kind` lets the
+     * caller route `On` to the move lane while `In`/`PartOf` still hard-error, and
+     * `operationKind`/`subject`/`target` (already resolved by `matchRelationalTemplate`) carry
+     * forward so the `On` lane can resolve them without re-matching the skeleton. */
+    | { type: 'relationalDefer'; kind: 'On' | 'In' | 'PartOf'; operationKind: 'establishRelation' | 'dissolveRelation'; subject: Referent; target: Referent }
     | { type: 'look' }
     | { type: 'none' }
 
@@ -30,7 +35,13 @@ export function classifySkeletonFamily(skeleton: ParseSkeleton): SkeletonFamilyM
         return { type: 'relational' }
     }
     if (relational.type === 'nestingDefer') {
-        return { type: 'relationalDefer' }
+        return {
+            type: 'relationalDefer',
+            kind: relational.kind,
+            operationKind: relational.operationKind,
+            subject: relational.subject,
+            target: relational.target,
+        }
     }
 
     const look = matchLookTemplate(skeleton)

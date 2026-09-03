@@ -2,25 +2,91 @@ import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferSet'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
-// LP4g: widened from EphemeraObjectId/graph.objectIds to the full terminal-kind set,
-// via the kind-indifferent nodeIds getter LP4 built for exactly this purpose.
-const findHostOf = (
-    id: EphemeraLudicTerminalPrimitive,
+/**
+ * The hosts (plural) an id currently appears on as a node --- LP4g's `findHostOf`, widened from a
+ * single-match short-circuit. A node can legitimately be a member of more than one locked graph at
+ * once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
+ * whatever *it* sits in (its own container) and the self-referencing root of its own shard --- both
+ * of those graphs can be in the same footprint (e.g. a `put cup on table` transfer locks the room
+ * *and* the table's own shard). Returning every match, not just the first one met while walking the
+ * map, is what lets the caller below tell "genuinely on two different hosts" apart from "this
+ * particular id happens to be a node of two graphs, only one of which is shared with the other
+ * endpoint."
+ */
+const hostsOf = (
+    id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraMembershipHostId | undefined => {
+): EphemeraMembershipHostId[] => {
+    if (typeof id !== 'string') {
+        // A port address names its own host directly (owner) --- graph-local addressing, not
+        // membership search (PV1-3). This is a *candidate*, not a veto: the exterior side of a
+        // crossing has no port record of its own, so its port-address endpoint's owner will not
+        // match the edge's carried `hostId` --- `confirmCarriedHost` skips the membership check
+        // for a port-address endpoint entirely rather than trying to reconcile this candidate.
+        return [id.owner]
+    }
+    const hosts: EphemeraMembershipHostId[] = []
     for (const [hostId, graph] of graphs) {
         if (graph.nodeIds.has(id)) {
-            return hostId
+            hosts.push(hostId)
         }
     }
-    return undefined
+    return hosts
+}
+
+/**
+ * PV1-3b-7 narrowed this from a *resolver* to an *assertion*: `establishRelation`/
+ * `dissolveRelation` now carry their own `hostId`, computed once at Expansion
+ * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) --- this
+ * function's job is to confirm that carried value against live footprint state, not to derive it
+ * from scratch the way the old intersection-based version did (see git history for that version's
+ * own doc comment, which explained the AB-54 mis-resolution its intersection approach fixed; that
+ * reasoning is now Expansion's problem, not commit's).
+ *
+ * `hostsOf` still separates two outcomes: an endpoint absent from the *entire* locked footprint
+ * (legitimately stale --- the world can change between Expansion and commit, `illegal`, not a
+ * throw) from an endpoint present somewhere but not on the *carried* host (a structural invariant
+ * violation --- BD-33's throw, now meaning Expansion computed the wrong host rather than an
+ * unresolvable intersection).
+ *
+ * A port-address endpoint carries no membership check here, unchanged from the old resolver's own
+ * fallback: a crossing leg's exterior side lives in the *primitive* endpoint's own host,
+ * referencing a port record that lives elsewhere (on its own `addCrossingPort`/`removeCrossingPort`
+ * step's `hostId`, locked separately) --- there is nothing for `hostsOf`'s owner-derived candidate
+ * to confirm against the carried host.
+ */
+const confirmCarriedHost = (
+    subjectId: EphemeraLudicTerminalId,
+    targetId: EphemeraLudicTerminalId,
+    hostId: EphemeraMembershipHostId,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): { subjectHosts: EphemeraMembershipHostId[]; targetHosts: EphemeraMembershipHostId[] } => {
+    const subjectHosts = hostsOf(subjectId, graphs)
+    const targetHosts = hostsOf(targetId, graphs)
+    // Emptiness (an endpoint absent from the whole footprint) is the caller's `staleRelationalCandidate`
+    // outcome, not this function's throw --- checked here too so a genuinely stale candidate never
+    // gets misreported as a wrong-host structural violation just because it also fails the `includes` test.
+    if (subjectHosts.length === 0 || targetHosts.length === 0) {
+        return { subjectHosts, targetHosts }
+    }
+    if (typeof subjectId === 'string' && !subjectHosts.includes(hostId)) {
+        throw new Error(
+            `${subjectId}/${targetId} do not share host ${hostId} --- structural invariant violated (a relational step reaching here should carry the host Expansion actually resolved)`
+        )
+    }
+    if (typeof targetId === 'string' && !targetHosts.includes(hostId)) {
+        throw new Error(
+            `${subjectId}/${targetId} do not share host ${hostId} --- structural invariant violated (a relational step reaching here should carry the host Expansion actually resolved)`
+        )
+    }
+    return { subjectHosts, targetHosts }
 }
 
 /**
@@ -48,8 +114,8 @@ const findHostOf = (
  * fail-loud contract BD-33 wants. **Pure add** (`fromHostIds` empty): `addObject`/`addCharacter`
  * onto `destGraph` only --- a freshly spawned entity has no prior edges, so no assert is needed.
  *
- * `establishRelation`/`dissolveRelation`: derives the shared host live from the graph map (BD-33
- * assert-and-throw --- these steps carry no host field), throws on mismatch, else applies the patch.
+ * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` (PV1-3b-7)
+ * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
  * inside `applyTransferSet`/`removeObject`/`removeCharacter`) throw, uniformly in both modes --- not
@@ -179,20 +245,52 @@ export const applyStepSequenceCore = (
             continue
         }
 
-        // establishRelation / dissolveRelation: derive shared host from live graph state,
-        // throw on mismatch (BD-33 assert-and-throw), else apply the patch there.
-        const subjectHost = findHostOf(step.subjectId, graphs)
-        const targetHost = findHostOf(step.targetId, graphs)
-        if (subjectHost === undefined || targetHost === undefined) {
+        if (step.kind === 'setPresencePort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            const withoutPresence = graph.ports
+                .filter((port) => port.kind === 'Present')
+                .reduce((current, port) => current.removePort(port.portId), graph)
+            graphs.set(step.hostId, step.port ? withoutPresence.addPort(step.port) : withoutPresence)
+            continue
+        }
+
+        // PV1-3: a crossing port's own add/remove, by portId (not at-most-one --- see
+        // `MutationKernelAddCrossingPortStep`'s doc comment).
+        if (step.kind === 'addCrossingPort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.addPort(step.port))
+            continue
+        }
+        if (step.kind === 'removeCrossingPort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.removePort(step.portId))
+            continue
+        }
+
+        // establishRelation / dissolveRelation: confirm the carried hostId (PV1-3b-7) against live
+        // graph state, throw on mismatch (BD-33 assert-and-throw, unchanged discipline), else apply
+        // the patch there. See `confirmCarriedHost`'s doc comment for the stale-vs-throw split.
+        // `hostNotInFootprint` is checked before the throw-capable assertion below, since a hostId
+        // absent from the footprint entirely is a footprint bug, not a wrong-host structural claim.
+        const hostGraph = graphs.get(step.hostId)
+        if (!hostGraph) {
+            return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+        }
+        const { subjectHosts, targetHosts } = confirmCarriedHost(step.subjectId, step.targetId, step.hostId, graphs)
+        if (subjectHosts.length === 0 || targetHosts.length === 0) {
             return { verdict: 'illegal', reasonCode: 'staleRelationalCandidate' }
         }
-        if (subjectHost !== targetHost) {
-            throw new Error(
-                `${step.subjectId}/${step.targetId} do not share a host --- structural invariant violated (sameHost should have repaired this)`
-            )
-        }
-        const patched = graphs.get(subjectHost)!.applyRelationalPatch({
-            hostId: subjectHost,
+        const patched = hostGraph.applyRelationalPatch({
+            hostId: step.hostId,
             edge: {
                 from: step.subjectId,
                 to: step.targetId,
@@ -200,7 +298,7 @@ export const applyStepSequenceCore = (
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })
-        graphs.set(subjectHost, patched)
+        graphs.set(step.hostId, patched)
     }
 
     return { verdict: 'legal', graphs, captures }

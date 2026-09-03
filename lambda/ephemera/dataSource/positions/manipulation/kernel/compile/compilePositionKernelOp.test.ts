@@ -194,7 +194,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         // publishes to nobody. That is the correct output of a uniform rule (PB-M), and suppressing
         // it here is how the host-changelog frame gets lost at the next caller.
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'capture', 'narrate', 'narrate',
+            'capture', 'transferMembership', 'setPresencePort', 'capture', 'narrate', 'narrate',
         ])
         expect(plan.slots.map((slot) => slot.slotId)).toEqual([
             moveLeaveSlotId(FROM_ROOM),
@@ -226,6 +226,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'dissolveRelation',
             subjectId: TRAY,
             targetId: 'OBJECT#Table',
+            hostId: FROM_ROOM,
             relationKind: 'On',
         })
     })
@@ -239,6 +240,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'dissolveRelation',
             subjectId: CHARACTER_ID,
             targetId: TRAY,
+            hostId: FROM_ROOM,
             relationKind: 'On',
         })
     })
@@ -249,7 +251,54 @@ describe('compilePositionKernelOp --- object moves', () => {
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'setPresencePort'])
         expect(plan.slots).toEqual([])
+    })
+
+    describe('PV1-2: containment and presence port', () => {
+        it('emits an establishRelation step after the transfer when containment is set', () => {
+            const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
+
+            const kinds = plan.steps.map((step) => step.kind)
+            expect(kinds.indexOf('transferMembership')).toBeLessThan(kinds.indexOf('establishRelation'))
+            expect(plan.steps.find((step) => step.kind === 'establishRelation')).toEqual({
+                kind: 'establishRelation',
+                subjectId: TRAY,
+                targetId: CHARACTER_ID,
+                hostId: CHARACTER_ID,
+                relationKind: 'On',
+            })
+        })
+
+        it('emits no establishRelation step when containment is absent (plain take-hold)', () => {
+            const plan = compilePositionKernelOp(objectOp())
+            expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
+        })
+
+        it('mints a presence port naming the destination on every object rehost, containment or not', () => {
+            const plan = compilePositionKernelOp(objectOp())
+            const portStep = plan.steps.find((step) => step.kind === 'setPresencePort')
+            expect(portStep).toMatchObject({
+                kind: 'setPresencePort',
+                hostId: TRAY,
+                port: { fromHostId: CHARACTER_ID, kind: 'Present' },
+            })
+        })
+
+        it('mints no presence port for a character-only move (entity-kind moved set)', () => {
+            const plan = compilePositionKernelOp({
+                kind: 'move',
+                moved: { kind: 'entity', entityId: CHARACTER_ID },
+                froms: [FROM_ROOM],
+                to: TO_ROOM,
+                bundleId: 'BUNDLE#test',
+                headerSlot: null,
+            })
+            expect(plan.steps.some((step) => step.kind === 'setPresencePort')).toBe(false)
+        })
+
+        it('throws when containment is set with no destination', () => {
+            expect(() => compilePositionKernelOp(objectOp({ containment: 'On', to: null }))).toThrow()
+        })
     })
 })

@@ -5,7 +5,7 @@ import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import {
@@ -30,7 +30,7 @@ export type SpawnOneImprovisationObjectDependencies = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
     spawnImpl?: typeof persistSpawnImprovisationObject;
-    applyMembershipImpl?: typeof applyObjectRoomMembership;
+    applyMembershipImpl?: typeof executeMembershipTransfer;
     deleteImpl?: typeof persistDeleteImprovisationObject;
     streamProblemReport?: typeof streamSpawnCompensationProblem;
 }
@@ -44,7 +44,7 @@ export const spawnOneImprovisationObject = async (
 ): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
     const buildEmbed = deps.buildEmbedImpl ?? buildShortNameSemanticEmbedding
     const spawnImpl = deps.spawnImpl ?? persistSpawnImprovisationObject
-    const applyMembershipImpl = deps.applyMembershipImpl ?? applyObjectRoomMembership
+    const applyMembershipImpl = deps.applyMembershipImpl ?? executeMembershipTransfer
     const deleteImpl = deps.deleteImpl ?? persistDeleteImprovisationObject
     const streamProblemReport = deps.streamProblemReport ?? streamSpawnCompensationProblem
 
@@ -71,12 +71,14 @@ export const spawnOneImprovisationObject = async (
         return spawnResult
     }
 
-    const placeResult = await applyMembershipImpl(
-        { objectId: args.objectId, targetRoomId: args.targetRoomId },
-        { messageBus: deps.messageBus, streamEvent: deps.streamEvent }
-    )
+    const placeResult = await applyMembershipImpl({
+        entityId: args.objectId,
+        target: args.targetRoomId,
+        messageBus: deps.messageBus,
+        streamEvent: deps.streamEvent,
+    })
     if (!placeResult.ok) {
-        const placementError = placeResult.errorMessage ?? 'applyObjectRoomMembership failed'
+        const placementError = placeResult.errorMessage ?? 'executeMembershipTransfer failed'
         const deleteResult = await deleteImpl({
             objectId: args.objectId,
             affectedRoomIds: [args.targetRoomId],

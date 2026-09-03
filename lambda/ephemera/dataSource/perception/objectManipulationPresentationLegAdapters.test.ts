@@ -16,6 +16,13 @@ const TRAY = 'OBJECT#Tray' as const
 const GLASS = 'OBJECT#Glass' as const
 const ROOM = 'ROOM#Cafe' as const
 const ANCHOR_TIME = 1_700_000_000_000
+const establishRelationSteps = [{
+    kind: 'establishRelation',
+    subjectId: GLASS,
+    targetId: TRAY,
+    relationKind: 'Under',
+    hostId: ROOM,
+}]
 
 const envelope = (
     dataSourceKey: string,
@@ -49,6 +56,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 targetId: TRAY,
                 hostId: ROOM,
                 relationKind: 'Under',
+                steps: establishRelationSteps,
             })
             expect(isPerceptionActionsObjectEstablishRelationEnvelope(env)).toBe(true)
             expect(isPerceptionObjectManipulationPresentationEnvelope(env)).toBe(true)
@@ -109,6 +117,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     targetId: TRAY,
                     hostId: ROOM,
                     relationKind: 'Under',
+                    steps: establishRelationSteps,
                 })
             )
             expect(legs).toEqual([{
@@ -192,6 +201,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                     targetId: TRAY,
                     hostId: ROOM,
                     relationKind: 'Under',
+                    steps: establishRelationSteps,
                 } as never)
             )
             expect(legs).toEqual([])

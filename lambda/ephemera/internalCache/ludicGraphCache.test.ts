@@ -107,6 +107,46 @@ describe('EphemeraLudicGraphCacheData', () => {
         expect(loaded.equals(original)).toBe(true)
     })
 
+    it('getLudicGraph carries crossing ports through from the stored row', async () => {
+        const cache = createEphemeraLudicGraphCacheData({
+            getItem: jest.fn().mockResolvedValue({
+                ludicGraph: {
+                    rootId: OBJECT_HOST_ID,
+                    nodes: [nodeFromId(OBJECT_HOST_ID), objectNode(OBJECT_A)],
+                    edges: [],
+                    ports: [{ portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
+                },
+            }),
+        })
+
+        const graph = await cache.getLudicGraph(OBJECT_HOST_ID)
+
+        expect(graph.ports).toEqual([
+            { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
+        ])
+    })
+
+    it('set then get round-trips crossing ports', async () => {
+        const cache = createEphemeraLudicGraphCacheData({
+            getItem: jest.fn().mockResolvedValue(undefined),
+        })
+        const original = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
+            rootId: OBJECT_HOST_ID,
+            nodes: [nodeFromId(OBJECT_HOST_ID), objectNode(OBJECT_A)],
+            edges: [],
+            ports: [{ portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
+        })
+
+        cache.set(original)
+        const loaded = await cache.getLudicGraph(OBJECT_HOST_ID)
+
+        // Asserted on `.ports` directly rather than via `equals`: `EphemeraLudicGraph.equals`
+        // compares hostId/rootId/nodes/edges and is blind to ports, so the round-trip cases above
+        // would still have passed while this cache was silently emptying them --- which is part of
+        // why the loss went unnoticed until it broke crossing dissolution live (2026-09-03).
+        expect(loaded.ports).toEqual(original.ports)
+    })
+
     it('getMembershipContainers delegates to gateway', async () => {
         const cache = createEphemeraLudicGraphCacheData({
             getItem: jest.fn(),

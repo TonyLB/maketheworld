@@ -57,11 +57,13 @@ export function compileMembershipUngroundedPlan(
  * though upstream has already populated them --- Plan's job is span/verb
  * reasoning only, regardless of what happens to already be grounded.
  *
- * BD-15/16: prepends a `sameHost` `Assertion` before every `Change` step,
- * unconditionally (BD-15 (1) --- every relation needs the check, not only the
- * held-item case), reusing the same `subject`/`target` referents as the paired
- * `Change` so the two are guaranteed to align (BD-15 (2)). Grounding/evaluating
- * this assertion is out of scope here --- Plan only emits the ungrounded step.
+ * BD-15/16 originally prepended a `sameHost` `Assertion` before every `Change`
+ * step here, unconditionally. **PV1-3b-4 (2026-09-01) dropped it**, along with
+ * `SameHostAssertion`/`Assertion`'s `sameHost` member entirely
+ * (`ungroundedPrimitive.ts`): this function has no live caller (the live
+ * ingress route, `compileRelationalFromSkeleton.ts`, builds a pre-grounded
+ * `GroundedSameHostAssertion` directly and never reaches this scaffold), so
+ * there was nothing left to keep the ungrounded shape in sync for.
  */
 export function compileRelationalUngroundedPlan(
     frame: ManipulationFrame
@@ -75,14 +77,6 @@ export function compileRelationalUngroundedPlan(
     const subject = objectSpanRef(frame.subjectSpan)
     const target = objectSpanRef(frame.targetSpan)
 
-    const sameHostAssertion = {
-        kind: 'assertion' as const,
-        predicate: 'sameHost' as const,
-        subject,
-        object: target,
-        negate: false,
-    }
-
     const change = {
         kind: 'change' as const,
         primitive: frame.operationKind,
@@ -93,5 +87,5 @@ export function compileRelationalUngroundedPlan(
             : { relationKind: relation.kind }),
     }
 
-    return { type: 'success', steps: [sameHostAssertion, change] }
+    return { type: 'success', steps: [change] }
 }

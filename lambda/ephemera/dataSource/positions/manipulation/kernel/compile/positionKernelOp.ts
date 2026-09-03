@@ -97,6 +97,14 @@ export type PositionKernelMoveOp = {
      * giving it one would cost the purity that lets compilation correctly skip the Plan-stage dry run.
      */
     dissolvedEdges?: readonly HostRelationalEdge[]
+    /**
+     * Hosting kinds only (AB-54). Unlike `dissolvedEdges`, this is a compiler *instruction*
+     * ("establish this at the destination"), not a pre-classified verdict --- there is no
+     * legality question to defer for a hosting-kind establish (always succeeds, root-anchored,
+     * no boundary contention), so the compiler is allowed to synthesize the `establishRelation`
+     * step itself (PV1-2).
+     */
+    containment?: 'On' | 'In' | 'PartOf'
     /** Present only when this move should narrate world lines --- see doc comment above. */
     narration?: MembershipMoveNarrationInput | ObjectMoveNarrationInput
 }

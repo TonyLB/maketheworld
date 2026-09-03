@@ -32,8 +32,8 @@ export type {
 
 export {
     projectComponentGraphFromStoredLudicGraph,
-    extractCharacterIdsFromPlayLudicGraph,
-    extractObjectIdsFromPlayLudicGraph,
+    extractCharacterIdsFromLudicGraph,
+    extractObjectIdsFromLudicGraph,
 } from './project'
 
 export {

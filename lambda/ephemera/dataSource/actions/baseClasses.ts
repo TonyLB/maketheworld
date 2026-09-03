@@ -28,6 +28,7 @@ import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockPa
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
+import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
 import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
 
@@ -328,19 +329,62 @@ export type ParseCommandObjectManipulationResult = {
 /** Relational operator direction from frame extract (BD-12). */
 export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
 
-/** Grounded relational manipulation after enrich + compiler (BD-1). */
+/**
+ * Grounded relational manipulation after enrich + compiler (BD-1).
+ *
+ * `hostId` was Room/Character-single-host through BD-15/16; PV1-3b-1 dropped it. Once
+ * a candidate can be a genuine cross-shard crossing (PV1-3, wired live at PV1-3b-1),
+ * a single flat host has no principled value to hold --- each leg of `steps` already
+ * carries its own `hostId` (PV1-3b-7). LD-13's step-shape clause (endpoints/host stay
+ * ingress-narrow because "downstream can always fill in the rest") is retired by the
+ * same finding that forced PV1-3b-7's per-leg `hostId`: that reconstruction is not
+ * safely re-derivable downstream in general (multi-hosted endpoints, port-to-port
+ * ambiguity), so it is carried from Expansion instead, not recomputed. LD-13's
+ * *kind*-narrowing clause (`On`/`In`/`PartOf`/`Present` excluded below) is unaffected
+ * --- see `AGENT.abstractionLayers.planning.md`'s Channel D (CD4) for the corrected
+ * reading.
+ */
 export type ParseCommandEstablishRelationResult = {
     type: 'EstablishRelation'
     operationKind: RelationalOperationKind
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
-    /** Room or Character host the relation was established/dissolved on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
-    hostId: EphemeraMembershipHostId
     confidence: ParseCommandConfidence
-    /** BD-16 sameHost repair (2026-07-21): present when the subject must move to `hostId` atomically with the relation. */
-    transferFromHostId?: EphemeraMembershipHostId
+    /**
+     * Expansion-derived mutation-kernel step chain (PV1-3b-1) --- everything
+     * `runExecutor` produced for the chosen candidate, worklist and side-channel
+     * steps alike, in production order (port steps precede the legs that reference
+     * them, per `buildCrossingLegs.ts`). A portless/same-host candidate carries
+     * exactly one `establishRelation`/`dissolveRelation` entry; a genuine crossing
+     * carries one `addCrossingPort` plus a hop leg per side that needs one (PV1-6
+     * will generalize beyond one hop) and the final chain step at the common
+     * ancestor. Each step carries its own `hostId` (PV1-3b-7) --- there is no single
+     * host for the result as a whole once a crossing is involved.
+     */
+    steps: readonly MutationKernelStep[]
 } & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
+
+/**
+ * Grounded rehost after enrich + resolve (PV1-2): `On` is a rehost carrying a containment
+ * argument, not a relation with a side effect --- `subjectId` moves into `targetId`'s own
+ * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
+ * `On` out on 2026-08-22: there is no `Change`/edge here for that type's
+ * `RelationalKindAndLabel` to describe. `hostId` is the acting character's room (narration
+ * context only, matching `orchestrateObjectMove`'s `roomId`) --- not `subjectId`'s current
+ * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
+ * rather than trusting a value baked in at parse time. `containment` is typed as the full
+ * AB-54 hosting-kind union for forward compatibility, but only `'On'` is ever constructed
+ * today --- `In`/`PartOf` still hard-error before reaching this type.
+ */
+export type ParseCommandObjectRehostResult = {
+    type: 'ObjectRehost'
+    subjectId: EphemeraObjectId
+    targetId: EphemeraObjectId
+    hostId: EphemeraRoomId
+    containment: 'On' | 'In' | 'PartOf'
+    confidence: ParseCommandConfidence
+}
 
 /**
  * Outcome of intent discrimination only (iteration 7, Sub-iteration 1): classify's remit is
@@ -374,6 +418,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
+    | ParseCommandObjectRehostResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
@@ -688,6 +733,20 @@ export function isParseCommandEstablishRelationResult(
         return false
     }
     if (result.relationKind === 'Custom' && typeof result.relationLabel !== 'string') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+const HOSTING_KINDS = new Set<string>(['On', 'In', 'PartOf'])
+
+export function isParseCommandObjectRehostResult(
+    result: ParseCommandResult
+): result is ParseCommandObjectRehostResult {
+    if (result.type !== 'ObjectRehost') {
+        return false
+    }
+    if (!HOSTING_KINDS.has(result.containment)) {
         return false
     }
     return isParseConfidence(result.confidence)

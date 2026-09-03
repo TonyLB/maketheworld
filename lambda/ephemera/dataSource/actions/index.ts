@@ -51,6 +51,7 @@ import {
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
     isParseCommandEstablishRelationResult,
+    isParseCommandObjectRehostResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -554,7 +555,20 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        const { hostId } = parseResult
+        // PV1-3b-1: `ParseCommandEstablishRelationResult` no longer carries a flat `hostId` ---
+        // once `steps` can span more than one host (a genuine crossing), there is no single
+        // canonical host to assert (PV1-3b-7: each leg carries its own). `hostId` below is still
+        // derived from the *final* step's host (the common-ancestor chain step, or the sole step
+        // for a portless candidate), but PV1-3b-2 narrowed its role to narration/perception only
+        // (`objectManipulationPresentationLegAdapters.ts` gates on it being a Room) --- the commit
+        // mechanism reads `steps` directly (`executeEstablishEdgeChain`), not this field.
+        // `transferMembership` is the one `MutationKernelStep` kind without a `hostId` field ---
+        // this route's `steps` never contains one (only establish/dissolve/port steps), but the
+        // filter keeps that narrowing explicit rather than asserted.
+        const stepsWithHostId = parseResult.steps.filter(
+            (step): step is Exclude<typeof step, { kind: 'transferMembership' }> => step.kind !== 'transferMembership'
+        )
+        const hostId = stepsWithHostId[stepsWithHostId.length - 1]?.hostId
         if (!hostId) {
             messageBus.publish({
                 type: 'PublishMessage',
@@ -575,9 +589,7 @@ const publishStreamEventsForIntent = async (
                     hostId,
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
-                    ...(parseResult.transferFromHostId !== undefined
-                        ? { transferFromHostId: parseResult.transferFromHostId }
-                        : {}),
+                    steps: stepsWithHostId,
                 },
             })
         }
@@ -593,12 +605,25 @@ const publishStreamEventsForIntent = async (
                     hostId,
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
-                    ...(parseResult.transferFromHostId !== undefined
-                        ? { transferFromHostId: parseResult.transferFromHostId }
-                        : {}),
+                    steps: stepsWithHostId,
                 },
             })
         }
+    }
+    else if (isParseCommandObjectRehostResult(parseResult)) {
+        await streamEvent({
+            streamKey: characterId,
+            header: { type: 'Object Rehost' },
+            update: {
+                type: 'Object Rehost',
+                characterId,
+                subjectId: parseResult.subjectId,
+                targetId: parseResult.targetId,
+                roomId: parseResult.hostId,
+                containment: parseResult.containment,
+                confidence: parseResult.confidence,
+            },
+        })
     }
 }
 

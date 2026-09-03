@@ -1,18 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { HostRelationalEdgeKind, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-/** Membership host transfer semantics for bus facts and coordinator changed gates. */
-export type MembershipTransferProjection = {
-    froms: EphemeraMembershipHostId[]
-    to: EphemeraMembershipHostId | null
-    changed: boolean
-}
-
-/** Forward adapter output: the coordinator/fact projection from one planning pass. */
-export type MembershipTransferPlan = {
-    projection: MembershipTransferProjection
-}
-
 /**
  * `from`/`to` are `EphemeraLudicTerminalId` (LP7), mirroring `ludicGraph/baseClasses.ts`'s
  * `HostRelationalEdge` --- a pre-existing duplication (not consolidated in this slice); see

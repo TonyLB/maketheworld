@@ -30,7 +30,13 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'nestingDefer' })
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'nestingDefer',
+            kind: 'On',
+            operationKind: 'establishRelation',
+            subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        })
     })
 
     it('matches a dissolveRelation template, falling to Custom for a non-enum, non-containment prep ("take rope off crate")', () => {
@@ -76,7 +82,34 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'nestingDefer' })
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'nestingDefer',
+            kind: 'In',
+            operationKind: 'establishRelation',
+            subject: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            target: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
+        })
+    })
+
+    it('matches an establishRelation Custom template ("tie rope to cup") -- PV1-3', () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'tie' },
+            { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
+            { type: 'text', text: 'to' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+        ]
+
+        expect(matchRelationalTemplate(skeleton)).toEqual({
+            type: 'matched',
+            change: {
+                kind: 'change',
+                primitive: 'establishRelation',
+                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
+                target: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        })
     })
 
     it('returns noMatch for an unrecognized verb', () => {

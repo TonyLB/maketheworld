@@ -4,7 +4,7 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import { applyObjectsChange } from './applyObjectsChange'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
 import {
@@ -20,8 +20,8 @@ jest.mock('./persistImprovisationObject', () => ({
     persistDeleteImprovisationObject: jest.fn(),
 }))
 
-jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
-    applyObjectRoomMembership: jest.fn(),
+jest.mock('../positions/manipulation/membership/executeObjectMove', () => ({
+    executeMembershipTransfer: jest.fn(),
 }))
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -216,10 +216,12 @@ describe('applyObjectsChange', () => {
                 errorMessage: 'placement failed',
             }],
         })
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
-            { objectId: 'OBJECT#removed' },
-            { messageBus, streamEvent: positionsStreamEvent }
-        )
+        expect(applyClearMembershipImpl).toHaveBeenCalledWith({
+            entityId: 'OBJECT#removed',
+            target: null,
+            messageBus,
+            streamEvent: positionsStreamEvent,
+        })
         expect(deleteObjectImpl).toHaveBeenCalledWith({
             objectId: 'OBJECT#removed',
             affectedRoomIds: [ROOM_ID],
@@ -265,7 +267,7 @@ describe('applyObjectsChange embed wiring', () => {
     const messageBus = { publish: jest.fn() }
     const positionsStreamEvent = jest.fn().mockResolvedValue(undefined)
     const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const mockPlace = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const mockPlace = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
     const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
 
     const spawnOneImpl: typeof SpawnOneType = (row, innerDeps) =>

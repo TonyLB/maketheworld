@@ -1,4 +1,4 @@
-import type { HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /**
  * stableRefKey is optional here: the only current constructor call sites
@@ -50,31 +50,6 @@ export type ContainedByAssertion = {
 }
 
 /**
- * BD-15/16: does `subject` share a membership host with `object`? Reuses the same
- * generic shape as `ContainedByAssertion` --- no new fields --- since `subject`/`object`
- * carry the same directional roles as the paired relational `Change`'s `subject`/`target`
- * (guaranteed to align: both are built from the same frame in one compiler pass).
- *
- * `relationKind` is optional and carries its own copy of the paired relational
- * `Change`'s relation kind (BD-34 build finding, 2026-07-22): `expandSameHost`
- * needs it to decide `Custom`-kind defer, but the assertion has no live link to
- * its paired `Change` (BD-33 retired cross-instruction mutation entirely) ---
- * so the assertion must carry its own copy, populated at construction time from
- * whatever built the pair, not read from the other instruction at evaluation
- * time. Optional so the existing orphaned `compileUngroundedPlan.ts` scaffold
- * (which predates this finding) stays valid unchanged; the live executor
- * requires it and errors if absent.
- */
-export type SameHostAssertion = {
-    kind: 'assertion'
-    predicate: 'sameHost'
-    subject: Referent
-    object: Referent
-    negate: boolean
-    relationKind?: HostRelationalEdgeKind
-}
-
-/**
  * BD-28/BD-34: "this object's (or object-set's) relations to anything outside
  * itself must be severed" --- what carry/take/drop needs to sever boundary
  * relations explicitly (streaming a fact) rather than via `removeObject`'s
@@ -82,7 +57,7 @@ export type SameHostAssertion = {
  * top-level `UngroundedPlanStep` kind or a new `Change` primitive: it shares
  * `Assertion`'s retirement shape (evaluates live state, mints 0+ repair-shaped
  * children, contributes no kernel step of its own) even though it needs
- * operand-expansion (unlike `containedBy`/`sameHost`) --- see
+ * operand-expansion (unlike `containedBy`) --- see
  * `AGENT.synthesizeStepSequencing.planning.md`'s "Executor design" for the
  * full reasoning. No `negate`: unlike the binary predicates above, this one
  * has no meaningful negated form Plan would ever emit.
@@ -93,7 +68,7 @@ export type IsolatedFromRelationsAssertion = {
     object: Referent
 }
 
-export type Assertion = ContainedByAssertion | SameHostAssertion | IsolatedFromRelationsAssertion
+export type Assertion = ContainedByAssertion | IsolatedFromRelationsAssertion
 
 export type UngroundedPlanStep = Change | Assertion
 

@@ -1,5 +1,5 @@
-jest.mock('./applyObjectRoomMembership', () => ({
-    applyObjectRoomMembership: jest.fn(),
+jest.mock('../manipulation/membership/executeObjectMove', () => ({
+    executeMembershipTransfer: jest.fn(),
 }))
 
 jest.mock('./syncObjectMembershipAdjacency', () => ({
@@ -8,7 +8,7 @@ jest.mock('./syncObjectMembershipAdjacency', () => ({
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { applyObjectRoomMembership } from './applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
 import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
 
@@ -21,7 +21,7 @@ describe('repairObjectPlacementDrift', () => {
     const streamEvent = jest.fn()
     const getLudicGraph = jest.fn()
     const getMembershipContainers = jest.fn()
-    const applyMembership = applyObjectRoomMembership as jest.Mock
+    const applyMembership = executeMembershipTransfer as jest.Mock
     const syncAdjacency = syncObjectMembershipAdjacencyToRoom as jest.Mock
 
     beforeEach(() => {
@@ -58,8 +58,7 @@ describe('repairObjectPlacementDrift', () => {
 
         expect(result).toEqual({ multiRoomScrubbed: 1, adjacencySynced: 0 })
         expect(applyMembership).toHaveBeenCalledWith(
-            { objectId: OBJECT_B, targetRoomId: ROOM_ID },
-            expect.objectContaining({ messageBus, streamEvent })
+            expect.objectContaining({ entityId: OBJECT_B, target: ROOM_ID, messageBus, streamEvent })
         )
     })
 
@@ -72,8 +71,7 @@ describe('repairObjectPlacementDrift', () => {
         await runRepair()
 
         expect(applyMembership).toHaveBeenCalledWith(
-            { objectId: OBJECT_B, targetRoomId: ROOM_ID },
-            expect.objectContaining({ suppressRelationalFacts: true })
+            expect.objectContaining({ entityId: OBJECT_B, target: ROOM_ID, suppressRelationalFacts: true })
         )
     })
 })

@@ -59,8 +59,16 @@ describe('compileRelationalFromSkeleton', () => {
             subjectId: broomId,
             targetId: tableId,
             relationKind: 'Under',
-            hostId: roomId,
             confidence: 0.9,
+            // PV1-3b-1: no flat `hostId` any more --- a portless/same-host candidate carries
+            // exactly one step, and that step carries its own `hostId` (PV1-3b-7).
+            steps: [{
+                kind: 'establishRelation',
+                subjectId: broomId,
+                targetId: tableId,
+                relationKind: 'Under',
+                hostId: roomId,
+            }],
         })
     })
 
@@ -217,46 +225,6 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.type).toBe('Abstain')
     })
 
-    it('inserts a transferMembership repair when the subject is held but the target is in the room (BD-16 sameHost repaired)', async () => {
-        const trayId = 'OBJECT#Tray' as EphemeraObjectId
-        const roomGraph = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Object' as const, universalKey: tableId }],
-        })
-        const heldGraph = testLudicGraph(characterId, {
-            nodes: [{ tag: 'Object' as const, universalKey: trayId }],
-        })
-        const getLudicGraph = jest.fn().mockImplementation(async (hostId: string) => (
-            hostId === characterId ? heldGraph : roomGraph
-        ))
-        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => (
-            objectId === trayId ? [characterId] : [roomId]
-        ))
-
-        const result = await compileRelationalFromSkeleton(
-            {
-                command: 'put tray under table',
-                skeleton: relationalSkeleton('put', 'tray', 'trayRef', 'under', 'table', 'tableRef'),
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
-                heldInventoryCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
-            },
-            0.9,
-            { positionsReadDeps: { getMembershipContainers, getLudicGraph } }
-        )
-
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: trayId,
-            targetId: tableId,
-            relationKind: 'Under',
-            hostId: roomId,
-            confidence: 0.9,
-            transferFromHostId: characterId,
-        })
-    })
-
     it('drops a Custom-relation candidate whose subject/object hosts differ (sameHost defer --- no Consult path on this route)', async () => {
         const charmId = 'OBJECT#Charm' as EphemeraObjectId
         const necklaceId = 'OBJECT#Necklace' as EphemeraObjectId
@@ -269,9 +237,18 @@ describe('compileRelationalFromSkeleton', () => {
         const getLudicGraph = jest.fn().mockImplementation(async (hostId: string) => (
             hostId === characterId ? heldGraph : roomGraph
         ))
-        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => (
-            objectId === necklaceId ? [characterId] : [roomId]
-        ))
+        // Genuinely disjoint shards, not just "the character happens not to be asked about" ---
+        // PV1-3b-1 uncovered that this fixture's old blanket `[roomId]` default also answered
+        // "what contains the acting character" as the room, which (once the port-address guard
+        // that used to drop every crossing regardless was lifted) resolves a real crossing
+        // through the character's own room membership rather than deferring. Explicit `[]` for
+        // the character keeps this fixture's actual intent (no path from necklace to charm at
+        // all) rather than relying on an unmodeled id happening to fall through to a shared host.
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => {
+            if (objectId === necklaceId) return [characterId]
+            if (objectId === charmId) return [roomId]
+            return []
+        })
 
         const result = await compileRelationalFromSkeleton(
             {
@@ -287,5 +264,88 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(result.type).toBe('Abstain')
+    })
+
+    it('crosses the shard boundary live (PV1-3b-1): tying to a cup nested two hosts deep produces a port and two legs', async () => {
+        // rope/string sits directly in the room; cup sits on the table, which sits in the room.
+        // PV1-3b-5 deepened the pre-fetch so `findShardBoundary` can reach the room as a common
+        // ancestor past the table; PV1-3b-1 is what stops the candidate being dropped afterward
+        // --- the route now carries the full outcome (port + both legs) into the widened result
+        // instead of taking only the first establishRelation/dissolveRelation step and rejecting
+        // its port-address endpoint. Matches PV1-0's readout: room holds `string -> port`, table
+        // holds the crossing port and `port -> cup`.
+        const stringId = 'OBJECT#String' as EphemeraObjectId
+        const cupId = 'OBJECT#Cup' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Object' as const, universalKey: stringId }],
+        })
+        const tableGraph = testLudicGraph(tableId, {
+            nodes: [{ tag: 'Object' as const, universalKey: cupId }],
+        })
+        const getLudicGraph = jest.fn().mockImplementation(async (hostId: string) => (
+            hostId === tableId ? tableGraph : roomGraph
+        ))
+        const getMembershipContainers = jest.fn().mockImplementation(async (objectId: string) => {
+            if (objectId === cupId) return [tableId]
+            if (objectId === tableId) return [roomId]
+            return [roomId]
+        })
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'tie string to cup',
+                skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: stringId, normalizedShortName: 'string' },
+                    { objectId: cupId, normalizedShortName: 'cup' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers, getLudicGraph } }
+        )
+
+        expect(getMembershipContainers).toHaveBeenCalledWith(tableId)
+        expect(result.type).toBe('EstablishRelation')
+        if (result.type !== 'EstablishRelation') {
+            return
+        }
+        expect(result.subjectId).toBe(stringId)
+        expect(result.targetId).toBe(cupId)
+        expect(result.operationKind).toBe('establishRelation')
+        expect(result.relationKind).toBe('Custom')
+        expect(result.relationKind === 'Custom' && result.relationLabel).toBe('to')
+
+        // Order asserted explicitly, not just membership --- this is exactly what the
+        // extraKernelSteps-then-steps reconstruction in the producer has to get right.
+        expect(result.steps).toHaveLength(3)
+        const [portStep, tableLeg, roomLeg] = result.steps
+
+        expect(portStep.kind).toBe('addCrossingPort')
+        if (portStep.kind !== 'addCrossingPort') {
+            return
+        }
+        expect(portStep.hostId).toBe(tableId)
+        expect(portStep.port.fromHostId).toBe(roomId)
+        expect(portStep.port.kind).toBe('Custom')
+        expect(portStep.port.kind === 'Custom' && portStep.port.exteriorRelationLabel).toBe('to')
+        const portAddress = { owner: tableId, port: portStep.port.portId }
+
+        expect(tableLeg.kind).toBe('establishRelation')
+        if (tableLeg.kind !== 'establishRelation') {
+            return
+        }
+        expect(tableLeg.hostId).toBe(tableId)
+        expect(tableLeg.subjectId).toEqual(portAddress)
+        expect(tableLeg.targetId).toBe(cupId)
+
+        expect(roomLeg.kind).toBe('establishRelation')
+        if (roomLeg.kind !== 'establishRelation') {
+            return
+        }
+        expect(roomLeg.hostId).toBe(roomId)
+        expect(roomLeg.subjectId).toBe(stringId)
+        expect(roomLeg.targetId).toEqual(portAddress)
     })
 })

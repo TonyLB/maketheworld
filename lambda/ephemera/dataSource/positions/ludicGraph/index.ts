@@ -1,7 +1,7 @@
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
-    extractCharacterIdsFromPlayLudicGraph,
-    extractObjectIdsFromPlayLudicGraph,
+    extractCharacterIdsFromLudicGraph,
+    extractObjectIdsFromLudicGraph,
     projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -199,8 +199,8 @@ export class EphemeraLudicGraph {
             hostId,
             [
                 nodeFromId(hostId),
-                ...extractCharacterIdsFromPlayLudicGraph(envelope).filter((id) => id !== hostId).map(characterNode),
-                ...extractObjectIdsFromPlayLudicGraph(envelope).filter((id) => id !== hostId).map(objectNode),
+                ...extractCharacterIdsFromLudicGraph(envelope).filter((id) => id !== hostId).map(characterNode),
+                ...extractObjectIdsFromLudicGraph(envelope).filter((id) => id !== hostId).map(objectNode),
             ],
             relationalEdges.length > 0 ? relationalEdges : undefined,
             playOnlyEdges,
@@ -295,6 +295,10 @@ export class EphemeraLudicGraph {
 
     private withPlayOnlyEdges(edges: PlayLudicGraph['edges'] | undefined): EphemeraLudicGraph {
         return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, this._edges, edges, this._ports)
+    }
+
+    private withPorts(ports: EphemeraLudicGraphPort[]): EphemeraLudicGraph {
+        return new EphemeraLudicGraph(this.hostId, this.rootId, this._nodes, this._edges, this._playOnlyEdges, ports)
     }
 
     private storedRelationalEdges(): HostRelationalEdge[] {
@@ -437,6 +441,17 @@ export class EphemeraLudicGraph {
                 .filter((existing) => !edgesMatch(existing, edge))
                 .map(toStoredRelationalEdge)
         )
+    }
+
+    addPort(port: EphemeraLudicGraphPort): EphemeraLudicGraph {
+        if (this._ports.some((existing) => existing.portId === port.portId)) {
+            return this
+        }
+        return this.withPorts([...this._ports, port])
+    }
+
+    removePort(portId: string): EphemeraLudicGraph {
+        return this.withPorts(this._ports.filter((port) => port.portId !== portId))
     }
 
     /**

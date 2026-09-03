@@ -32,7 +32,7 @@ describe('applyStepSequenceCore', () => {
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
             { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
@@ -49,12 +49,12 @@ describe('applyStepSequenceCore', () => {
         expect(nextDest.relationalEdges).toEqual([{ from: glassId, to: trayId, kind: 'On' }])
     })
 
-    it('BD-16 repaired: transferMembership before establishRelation lands the relation on the shared destination host', () => {
+    it('transferMembership before establishRelation lands the relation on the shared destination host', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
-            { kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' },
+            { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: characterId, relationKind: 'On' },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))
@@ -74,7 +74,7 @@ describe('applyStepSequenceCore', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
         })
-        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
 
@@ -85,17 +85,21 @@ describe('applyStepSequenceCore', () => {
         expect(nextGraph.objectIds).toEqual(new Set([trayId, tableId]))
     })
 
-    it('BD-33 structural throw: relational step whose endpoints resolve to different hosts throws (not a verdict)', () => {
+    it('BD-33 structural throw: a carried hostId that neither endpoint actually shares throws (not a verdict)', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
+        // PV1-3b-7: hostId is now carried, not resolved --- roomId is trayId's real host but not
+        // glassId's, so `confirmCarriedHost` catches the mismatch and throws (Expansion computed
+        // the wrong host, a structural bug, not a stale candidate --- both endpoints still exist
+        // somewhere in the footprint).
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }]
 
         expect(() => applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, otherGraph]))).toThrow(
-            /do not share a host/
+            /do not share host/
         )
     })
 
-    it('LP4g payoff: establishRelation with a non-Object (Character) subject commits, findHostOf resolves via nodeIds', () => {
+    it('LP4g payoff: establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Character', universalKey: characterId },
@@ -103,7 +107,7 @@ describe('applyStepSequenceCore', () => {
             ],
         })
         const steps: MutationKernelStep[] = [
-            { kind: 'establishRelation', subjectId: characterId, targetId: tableId, relationKind: 'On' },
+            { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'On' },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
@@ -112,6 +116,39 @@ describe('applyStepSequenceCore', () => {
         if (outcome.verdict !== 'legal') return
         const nextGraph = outcome.graphs.get(roomId)!
         expect(nextGraph.relationalEdges).toEqual([{ from: characterId, to: tableId, kind: 'On' }])
+    })
+
+    it('AB-54 hosting kinds: establishRelation carries the correct host explicitly, not resolved by intersection (put cup on table)', () => {
+        // `tableId` is simultaneously an ordinary member of the room's graph (it sits there) *and*
+        // the self-referencing root of its own shard graph (a hosting kind puts the moved object
+        // there, AB-54) --- both graphs are locked in the same footprint. Pre-PV1-3b-7, an
+        // intersection-based resolver had to disambiguate this at commit time (the historical bug:
+        // a first-match-per-side scan could pick the room for `tableId` while `trayId`, just
+        // transferred, only resolves in the table's own shard, spuriously throwing "do not share a
+        // host" for a perfectly legal move). Post-PV1-3b-7, Expansion already carries `hostId:
+        // tableId` on the step, so `confirmCarriedHost` only needs to confirm it, not resolve it.
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+        })
+        const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const steps: MutationKernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: tableId },
+            { kind: 'establishRelation', subjectId: trayId, targetId: tableId, hostId: tableId, relationKind: 'On' },
+        ]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        const nextRoom = outcome.graphs.get(roomId)!
+        const nextTableShard = outcome.graphs.get(tableId)!
+        expect(nextRoom.objectIds.has(trayId)).toBe(false)
+        expect(nextRoom.objectIds.has(tableId)).toBe(true)
+        expect(nextTableShard.objectIds.has(trayId)).toBe(true)
+        expect(nextTableShard.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
     })
 
     it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
@@ -139,7 +176,7 @@ describe('applyStepSequenceCore', () => {
 
     it('illegal (staleRelationalCandidate): a relational step endpoint unresolvable across the footprint graphs', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
             verdict: 'illegal',
             reasonCode: 'staleRelationalCandidate',
@@ -353,7 +390,7 @@ describe('applyStepSequenceCore', () => {
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
 
@@ -388,6 +425,122 @@ describe('applyStepSequenceCore', () => {
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
                 verdict: 'illegal',
                 reasonCode: 'staleTransferCandidate',
+            })
+        })
+    })
+
+    describe('PV1-3: crossing legs and crossing-port steps', () => {
+        it('a leg whose target is a port address carries its host from the primitive subject alone (readout\'s room-side leg: string -> port(owner=Table))', () => {
+            const stringId = 'OBJECT#String' as EphemeraObjectId
+            const roomGraph = testLudicGraph(roomId, {
+                nodes: [
+                    { tag: 'Object', universalKey: stringId },
+                    { tag: 'Object', universalKey: tableId },
+                ],
+            })
+            const tableGraph = testLudicGraph(tableId, {
+                nodes: [
+                    { tag: 'Object', universalKey: tableId },
+                    { tag: 'Object', universalKey: glassId },
+                ],
+                ports: [{ portId: 'crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+            })
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'establishRelation',
+                    subjectId: stringId,
+                    targetId: { owner: tableId, port: 'crossing-1' },
+                    hostId: roomId,
+                    relationKind: 'Custom',
+                    relationLabel: 'to',
+                },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([
+                { from: stringId, to: { owner: tableId, port: 'crossing-1' }, kind: 'Custom', relationLabel: 'to' },
+            ])
+        })
+
+        it('a leg whose subject is a port address carries its host from the primitive target alone (readout\'s table-side leg: port(owner=Table) -> cup)', () => {
+            const tableGraph = testLudicGraph(tableId, {
+                nodes: [
+                    { tag: 'Object', universalKey: tableId },
+                    { tag: 'Object', universalKey: glassId },
+                ],
+                ports: [{ portId: 'crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+            })
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'establishRelation',
+                    subjectId: { owner: tableId, port: 'crossing-1' },
+                    targetId: glassId,
+                    hostId: tableId,
+                    relationKind: 'Custom',
+                    relationLabel: 'to',
+                },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([tableId, tableGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(tableId)!.relationalEdges).toEqual([
+                { from: { owner: tableId, port: 'crossing-1' }, to: glassId, kind: 'Custom', relationLabel: 'to' },
+            ])
+        })
+
+        it('addCrossingPort adds a fresh port without disturbing an existing one (crossing ports are not at-most-one)', () => {
+            const tableGraph = testLudicGraph(tableId, {
+                nodes: [],
+                ports: [{ portId: 'existing', fromHostId: roomId, kind: 'Under' }],
+            })
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'addCrossingPort',
+                    hostId: tableId,
+                    port: { portId: 'new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+                },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([tableId, tableGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(tableId)!.ports).toEqual([
+                { portId: 'existing', fromHostId: roomId, kind: 'Under' },
+                { portId: 'new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+            ])
+        })
+
+        it('removeCrossingPort removes only the named port, by portId', () => {
+            const tableGraph = testLudicGraph(tableId, {
+                nodes: [],
+                ports: [
+                    { portId: 'keep', fromHostId: roomId, kind: 'Under' },
+                    { portId: 'gone', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+                ],
+            })
+            const steps: MutationKernelStep[] = [{ kind: 'removeCrossingPort', hostId: tableId, portId: 'gone' }]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([tableId, tableGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(tableId)!.ports).toEqual([{ portId: 'keep', fromHostId: roomId, kind: 'Under' }])
+        })
+
+        it('addCrossingPort against a host absent from the footprint is illegal (hostNotInFootprint)', () => {
+            const steps: MutationKernelStep[] = [
+                { kind: 'addCrossingPort', hostId: tableId, port: { portId: 'new', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
+            ]
+
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, testLudicGraph(roomId, { nodes: [] })]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'hostNotInFootprint',
             })
         })
     })

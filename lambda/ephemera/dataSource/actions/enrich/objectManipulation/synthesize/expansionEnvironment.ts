@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { computeCarryClosure } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
@@ -10,12 +10,14 @@ let groupIdCounter = 0
 /** Fresh per executor run --- the shared environment for one worklist's lifetime. */
 export const createExpansionEnvironment = (
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined,
-    getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
+    getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined,
+    getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[] = () => []
 ): ExpansionEnvironment => ({
     settledGroups: new Map(),
     groupIdByObject: new Map(),
     getGraph,
     getCurrentHost,
+    getMembershipContainers,
 })
 
 const mintGroupId = (): GroupId => `group-${(groupIdCounter += 1)}`

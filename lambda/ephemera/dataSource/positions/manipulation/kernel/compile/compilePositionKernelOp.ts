@@ -1,9 +1,10 @@
+import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { ExecutorDissolveRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
+import type { KernelStep, MutationKernelCaptureStep, MutationKernelSetPresencePortStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
@@ -89,6 +90,11 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
+    // PV1-3b-7: `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
+    // `executeObjectMove.ts`'s single-origin carry-closure path (`buildObjectMoveOp` is its only
+    // producer, always `froms: [args.fromHostId]`), so every severed boundary edge belongs to that
+    // one departure host. Not derived per-edge because `HostRelationalEdge` (the graph's own
+    // internal edge representation, used far more broadly) doesn't carry a host of its own.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
         .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
         .map((edge) => ({
@@ -96,13 +102,51 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             // Safe: filtered to primitive endpoints above.
             subjectId: edge.from as EphemeraLudicTerminalPrimitive,
             targetId: edge.to as EphemeraLudicTerminalPrimitive,
+            hostId: op.froms[0]!,
             ...relationKindAndLabelOf(edge),
         }))
 
+    // LP4a: for a closure, primacy is `fragment.rootId`, never derived from the fragment's edges.
+    // A closure's fragment is host-bound at the moved object (rootId === hostId), always a
+    // primitive, never a port address --- the cast is safe on that construction guarantee.
+    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved.kind === 'closure'
+        ? op.moved.fragment.rootId as EphemeraLudicTerminalPrimitive
+        : op.moved.entityId
+
+    if (op.containment && op.to === null) {
+        throw new Error('compilePositionKernelOp: containment set with no destination --- caller bug, not a legal "give to nobody" shape')
+    }
+
+    // PV1-2: establishing the destination-side containment edge only makes sense once the moved
+    // object is actually a node of `toHostId`'s graph, so this runs after `transferStep` ---
+    // placed before it would resolve `findHostOf(primaryMovedId)` against the *old* host.
+    const establishSteps: ExecutorEstablishRelationStep[] = op.containment
+        ? [{
+            kind: 'establishRelation',
+            subjectId: primaryMovedId,
+            targetId: op.to as EphemeraLudicTerminalPrimitive,
+            // Safe: the `op.containment && op.to === null` guard above already threw.
+            hostId: op.to as EphemeraMembershipHostId,
+            relationKind: op.containment,
+        }]
+        : []
+
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
+    // PV1-2: one presence port per rehost, object closures only (characters never carry one ---
+    // this is what keeps a bare `compilePositionKernelOp` widening from porting a character on
+    // every navigate, see the checklist's own note for PV1-5). Presence is at-most-one (PR-10):
+    // `setPresencePort` replaces whatever was there, so no read of the prior port is needed here.
+    const presencePortSteps: MutationKernelSetPresencePortStep[] = op.moved.kind === 'closure' && op.to
+        ? [{
+            kind: 'setPresencePort',
+            hostId: primaryMovedId,
+            port: { portId: uuidv4(), fromHostId: op.to, kind: 'Present' },
+        }]
+        : []
+
     if (!op.narration) {
-        return { steps: [...dissolveSteps, transferStep], slots: headerSlotList }
+        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presencePortSteps], slots: headerSlotList }
     }
 
     const { narration } = op
@@ -174,6 +218,8 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...captureFromSteps,
             ...dissolveSteps,
             transferStep,
+            ...establishSteps,
+            ...presencePortSteps,
             ...captureToStep,
             ...narrateLeaveSteps,
             ...narrateArriveStep,

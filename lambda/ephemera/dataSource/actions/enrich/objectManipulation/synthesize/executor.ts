@@ -3,6 +3,7 @@ import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindA
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipStep } from '../parsePlanStep'
+import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { groundAssertion } from './groundAssertion'
 import { groundChange } from './groundChange'
 import type { GroundingContext } from './groundReferent'
@@ -59,13 +60,12 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
  * `removeObject`'s assert-and-throw (BD-33) spuriously fires on a legitimate,
  * unaddressed edge.
  *
- * Two callers, and repair is only one of them: `expandSameHost`'s `repaired`
- * outcome (wrapped at the call site in `commandExpand` below, leaving
- * `expandSameHost.ts` itself unchanged), and `executeObjectMove`, which seeds
- * the whole worklist this way because at execute time the hosts are already
- * concrete --- there is nothing left for Grounding to resolve. Named for the
- * tag rather than for either caller, so the pairing invariant reads as the
- * general rule it is.
+ * One caller today: `executeObjectMove`, which seeds the whole worklist this
+ * way because at execute time the hosts are already concrete --- there is
+ * nothing left for Grounding to resolve. It had a second until PV1-3b-9
+ * (2026-09-01) retired `expandSameHost`'s repair-by-relocation outcome; the
+ * name still describes the tag rather than the caller, so the pairing
+ * invariant reads as the general rule it is rather than as one route's habit.
  */
 export const seedGroundedTransferMembership = (transferStep: TransferMembershipStep): WorklistInstruction[] => {
     const [startId] = transferStep.objectIds
@@ -87,10 +87,13 @@ type GroundResult =
     | { ok: false; reason: string }
 
 /**
- * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion`
- * unchanged; strips `hostRoomId` off a grounded relational `Change` (BD-33 ---
- * the executor's own `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`
- * have no host field to carry it in) rather than ever reading it.
+ * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion` unchanged.
+ * A grounded relational `Change`'s `hostRoomId` (BD-6's `currentHost(actingCharacter)` default)
+ * carries straight through as `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`'s own
+ * `hostId` (PV1-3b-7) --- this path is confirmed dead on every live route today (every ingress
+ * seed goes through `expandSameHost`'s `sameHost` assertion instead, since PV1-3b-4), but it is
+ * still real code the type system must satisfy, and `hostRoomId` was already computed for exactly
+ * this purpose before this function discarded it.
  */
 const groundInstruction = (step: Change | Assertion, context: GroundingContext): GroundResult => {
     if (step.kind === 'change') {
@@ -112,6 +115,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'establishRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
+                    hostId: candidate.hostRoomId,
                     ...relationKindAndLabelFrom(candidate),
                 },
             }
@@ -123,6 +127,7 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
                     kind: 'dissolveRelation',
                     subjectId: candidate.subjectId,
                     targetId: candidate.targetId,
+                    hostId: candidate.hostRoomId,
                     ...relationKindAndLabelFrom(candidate),
                 },
             }
@@ -183,7 +188,14 @@ const operandExpand = (
 
 type CommandExpandOutcome =
     | { kind: 'retire'; output: ExecutorParsePlanStep }
-    | { kind: 'consumed'; children: WorklistInstruction[] }
+    /**
+     * PV1-3: `extraKernelSteps` carries kernel-only steps a `children` `WorklistInstruction`
+     * cannot (`addCrossingPort`/`removeCrossingPort` are not `ExecutorParsePlanStep`s --- the
+     * same reason `MutationKernelSetPresencePortStep` is emitted by the compiler, not the
+     * executor, elsewhere). Only ever present (and non-empty) for a `sameHost` crossing; every
+     * other command-expansion omits it, so existing callers/tests are unaffected.
+     */
+    | { kind: 'consumed'; children: WorklistInstruction[]; extraKernelSteps?: MutationKernelStep[] }
     | { kind: 'defer'; decidable: boolean; reason: string }
     | { kind: 'error'; reason: string }
 
@@ -215,15 +227,30 @@ const commandExpand = (
                 return { kind: 'error', reason: 'sameHost assertion missing relationKind --- required to command-expand' }
             }
             const result = expandSameHost(
-                { subjectId: step.subjectId, objectId: step.objectId, relationKind: step.relationKind, negate: step.negate },
-                env.getCurrentHost,
-                env.getGraph
+                {
+                    subjectId: step.subjectId,
+                    objectId: step.objectId,
+                    relationKind: step.relationKind,
+                    relationLabel: step.relationLabel,
+                    operationKind: step.operationKind,
+                },
+                env
             )
-            if (result.verdict === 'satisfied') {
-                return { kind: 'consumed', children: [] }
-            }
-            if (result.verdict === 'repaired') {
-                return { kind: 'consumed', children: seedGroundedTransferMembership(result.transferStep) }
+            if (result.verdict === 'crossed') {
+                // Leg steps (establishRelation, already executor-shaped) retire through the
+                // ordinary worklist; the port-record steps (addCrossingPort) cannot --- they are
+                // not an ExecutorParsePlanStep --- so they ride the side-channel instead.
+                const legSteps = result.steps.filter(
+                    (kernelStep): kernelStep is Extract<MutationKernelStep, { kind: 'establishRelation' | 'dissolveRelation' }> =>
+                        kernelStep.kind === 'establishRelation' || kernelStep.kind === 'dissolveRelation'
+                )
+                const portSteps = result.steps.filter((kernelStep) => kernelStep.kind !== 'establishRelation' && kernelStep.kind !== 'dissolveRelation')
+                const children: WorklistInstruction[] = legSteps.map((legStep) => ({
+                    id: mintInstructionId(),
+                    tag: 'grounded' as const,
+                    step: legStep,
+                }))
+                return { kind: 'consumed', children, ...(portSteps.length > 0 ? { extraKernelSteps: portSteps } : {}) }
             }
             if (result.verdict === 'defer') {
                 return { kind: 'defer', decidable: result.decidable, reason: result.reason }
@@ -279,6 +306,9 @@ const commandExpand = (
                     // Safe: filtered to primitive endpoints above.
                     subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
                     targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
+                    // A boundary edge under transfer lives in the departing entity's own host graph
+                    // (the same `hostId` this branch already resolved `startId`'s current host to).
+                    hostId,
                     ...relationKindAndLabelOf(entry.edge),
                 },
             }))
@@ -288,7 +318,14 @@ const commandExpand = (
 }
 
 export type ExecutorOutcome =
-    | { verdict: 'legal'; steps: readonly ExecutorParsePlanStep[] }
+    /**
+     * `extraKernelSteps` (PV1-3): kernel-only steps minted during command-expansion that cannot
+     * ride `steps` (see `CommandExpandOutcome`'s doc comment) --- only present, and only
+     * non-empty, when a `sameHost` crossing minted at least one `addCrossingPort`/
+     * `removeCrossingPort`. A caller building a step sequence must include these alongside
+     * `steps`, in the order collected (no ordering dependency between them and the legs today).
+     */
+    | { verdict: 'legal'; steps: readonly ExecutorParsePlanStep[]; extraKernelSteps?: readonly MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
 
@@ -316,6 +353,7 @@ export const runExecutor = (
 ): ExecutorOutcome => {
     let worklist: WorklistInstruction[] = [...seed]
     const output: ExecutorParsePlanStep[] = []
+    const extraKernelSteps: MutationKernelStep[] = []
 
     while (worklist.length > 0) {
         const ungroundedIndex = worklist.findIndex((item) => item.tag === 'ungrounded')
@@ -372,8 +410,11 @@ export const runExecutor = (
             worklist = rest
             continue
         }
+        if (commandResult.extraKernelSteps) {
+            extraKernelSteps.push(...commandResult.extraKernelSteps)
+        }
         worklist = [...commandResult.children, ...rest]
     }
 
-    return { verdict: 'legal', steps: output }
+    return { verdict: 'legal', steps: output, ...(extraKernelSteps.length > 0 ? { extraKernelSteps } : {}) }
 }

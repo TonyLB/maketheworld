@@ -17,8 +17,8 @@
  * folder layout, guard registry in `subscribedEvents.ts`) is intentionally
  * named generally so that growth is additive.
  */
-import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
+import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import {
     ConnectionsCharactersConnectedEvent,
@@ -26,13 +26,14 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload, isObjectDissolveRelationPublishedPayload, isObjectDropPublishedPayload, isObjectEstablishRelationPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isObjectDissolveRelationPublishedPayload, isObjectDropPublishedPayload, isObjectEstablishRelationPublishedPayload, isObjectRehostPublishedPayload, isObjectTakeHoldPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
     isEphemeraPositionsActionsObjectDropEnvelope,
     isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
+    isEphemeraPositionsActionsObjectRehostEnvelope,
     isEphemeraPositionsActionsObjectTakeHoldEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
@@ -47,8 +48,7 @@ import {
 } from './handleConnectionsCharactersPresence'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
-import { executeObjectEstablishRelation } from './manipulation/relational/executeObjectEstablishRelation'
-import { executeObjectDissolveRelation } from './manipulation/relational/executeObjectDissolveRelation'
+import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
 import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
@@ -102,6 +102,8 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     objectIds: content.objectIds,
                     fromHostId: content.characterId,
                     toHostId: content.roomId,
+                    roomId: content.roomId,
+                    characterId: content.characterId,
                     messageBus,
                     streamEvent,
                 })
@@ -112,13 +114,13 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectDissolveRelationPublishedPayload(content)) {
                     return
                 }
-                await executeObjectDissolveRelation({
-                    characterId: content.characterId,
-                    subjectId: content.subjectId,
-                    targetId: content.targetId,
-                    hostId: content.hostId,
-                    ...relationKindAndLabelFrom(content),
-                    transferFromHostId: content.transferFromHostId,
+                // PV1-3b-16: `executeEstablishEdgeChain` is operationKind-agnostic (it filters
+                // `transferMembership` and treats every `establishRelation`/`dissolveRelation`/
+                // `addCrossingPort`/`removeCrossingPort` step symmetrically), so it is the one
+                // commit path for `Object Dissolve Relation` too, mirroring the establish branch
+                // above --- the old single-host `executeObjectDissolveRelation` is retired.
+                await executeEstablishEdgeChain({
+                    steps: content.steps,
                     messageBus,
                     streamEvent,
                 })
@@ -129,13 +131,40 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectEstablishRelationPublishedPayload(content)) {
                     return
                 }
-                await executeObjectEstablishRelation({
+                // PV1-3b-2: `executeEstablishEdgeChain` subsumes the single-host case (a
+                // portless/same-host candidate's `steps` is a one-entry array), so it is the
+                // one commit path for every `Object Establish Relation` now, not just crossings.
+                // Fire-and-forget, matching every other branch here --- `ok: false` is already
+                // logged inside `executeEstablishEdgeChain`; surfacing it to the player is an
+                // unresolved UX/copy question, not this row's job.
+                await executeEstablishEdgeChain({
+                    steps: content.steps,
+                    messageBus,
+                    streamEvent,
+                })
+                return
+            }
+            if (isEphemeraPositionsActionsObjectRehostEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content || !isObjectRehostPublishedPayload(content)) {
+                    return
+                }
+                // PV1-2: `fromHostId` is read fresh here, not published at parse time --- the
+                // subject's current host can have changed between parse and this handler
+                // running, and `orchestrateObjectMove` needs the real one to strip the right
+                // containment edge. Zero or multiple current containers is a drift/race
+                // condition this slice does not attempt to repair --- no-op rather than guess.
+                const fromHostIds = await internalCache.Positions.getMembershipContainers(content.subjectId)
+                if (fromHostIds.length !== 1) {
+                    return
+                }
+                await orchestrateObjectMove({
+                    objectIds: [content.subjectId],
+                    fromHostId: fromHostIds[0],
+                    toHostId: content.targetId,
+                    roomId: content.roomId,
                     characterId: content.characterId,
-                    subjectId: content.subjectId,
-                    targetId: content.targetId,
-                    hostId: content.hostId,
-                    ...relationKindAndLabelFrom(content),
-                    transferFromHostId: content.transferFromHostId,
+                    containment: content.containment,
                     messageBus,
                     streamEvent,
                 })
@@ -146,10 +175,25 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectTakeHoldPublishedPayload(content)) {
                     return
                 }
+                const [primaryObjectId] = content.objectIds
+                if (primaryObjectId === undefined) {
+                    return
+                }
+                // PV1-2 follow-up: `fromHostId` is read fresh here rather than trusted as
+                // `content.roomId` --- a take-hold's object no longer has to sit directly in the
+                // room now that objects can nest inside other objects (a cup left on a table).
+                // Zero or multiple current containers is a drift/race condition this slice does
+                // not attempt to repair --- no-op rather than guess, same as `Object Rehost`.
+                const fromHostIds = await internalCache.Positions.getMembershipContainers(primaryObjectId)
+                if (fromHostIds.length !== 1) {
+                    return
+                }
                 await orchestrateObjectMove({
                     objectIds: content.objectIds,
-                    fromHostId: content.roomId,
+                    fromHostId: fromHostIds[0],
                     toHostId: content.characterId,
+                    roomId: content.roomId,
+                    characterId: content.characterId,
                     messageBus,
                     streamEvent,
                 })

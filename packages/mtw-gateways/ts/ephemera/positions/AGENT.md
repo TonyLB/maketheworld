@@ -19,12 +19,16 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 
 | | |
 | --- | --- |
-| **Is** | Dynamo read + invocation memo for stored membership **topology** and **adjacency**; structural projection to `StandardLudicGraphData` |
+| **Is** | Dynamo read + invocation memo for the stored membership graph (`EphemeraLudicGraphFieldPayload`) and **adjacency** |
 | **Is not** | Roster display authority, affordance wire compose, or exit topology (`ComponentTopology` / `AffordanceCache`) |
 
-**`PlayLudicGraph`** is a topology-only type (alias of `StandardLudicGraphData`); see type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope). Normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
+**The memo's currency is the stored payload, verbatim** --- `rootId`, `nodes`, `edges` and `ports`, as written by `commitStepSequence`'s `toStored()`. A read normalizes only the structural fields a pre-LP4a/LP4d row can be missing (`rootId`, the root's own node, `ports`); it never discards a field the row carries.
 
-This package owns **read projection** (`PlayLudicGraph`, [`project.ts`](project.ts)); it does **not** own play manipulation simulation. After cache read, ephemera manipulation uses **`EphemeraLudicGraph`** --- see [`lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md).
+**Corrected 2026-09-03.** This memo previously cached **`PlayLudicGraph`** (alias of WML's `StandardLudicGraphData`), projecting every load through [`project.ts`](project.ts) and every `set` through `toPlayEnvelope`. That type has no `ports` and no `rootId`, so both directions silently emptied `ports` --- and ports are minted at runtime (`uuidv4`), with no authored counterpart the WML type could ever express. Every consumer reading a crossing through `internalCache.Positions` therefore saw none, which broke chain-aware dissolution live (Coyote clear, the automatic removal sweep, and player-invoked `untie`). Do not reintroduce an authoring-shaped type on this path.
+
+**`PlayLudicGraph`** remains exported as the **authored** topology-only shape, for consumers that explicitly want it (`EphemeraLudicGraph.toPlayEnvelope` and the Exit-edge/prompt readers downstream). `projectComponentGraphFromStoredLudicGraph` is its producer --- a deliberate projection *down* to the authored shape, not a read adapter. See type boundary in [`AGENT.concepts.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#type-boundary-storage-vs-gateway-read-envelope); normative read rules: [`AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#read-surface-forward-graph-vs-reverse-containers).
+
+This package owns the **stored read + memo**; it does **not** own play manipulation simulation. After cache read, ephemera manipulation uses **`EphemeraLudicGraph`** (via `fromFieldPayload`) --- see [`lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md).
 
 Production roster: ephemera **`getRoomCharacterList`** ([`lambda/ephemera/internalCache/hydrateRoomRoster.ts`](../../../../lambda/ephemera/internalCache/hydrateRoomRoster.ts)) --- topology from **`internalCache.Positions.getLudicGraph`**, display fields from **`CharacterMeta`** + **`CharacterSessions`**.
 

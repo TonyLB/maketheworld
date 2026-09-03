@@ -28,8 +28,7 @@ export const groundAssertion = (
     context: GroundingContext
 ): GroundAssertionResult => {
     switch (assertion.predicate) {
-        case 'containedBy':
-        case 'sameHost': {
+        case 'containedBy': {
             const subjectId = groundSingleObjectId(assertion.subject, context)
             if (!subjectId.ok) {
                 return subjectId
@@ -42,13 +41,10 @@ export const groundAssertion = (
                 ok: true,
                 assertion: {
                     kind: 'assertion',
-                    predicate: assertion.predicate,
+                    predicate: 'containedBy',
                     subjectId: subjectId.id,
                     objectId: objectId.id,
                     negate: assertion.negate,
-                    ...(assertion.predicate === 'sameHost' && assertion.relationKind !== undefined
-                        ? { relationKind: assertion.relationKind }
-                        : {}),
                 },
             }
         }

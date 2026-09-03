@@ -86,6 +86,8 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -124,6 +126,8 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: CHARACTER,
             toHostId: ROOM,
+            roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -140,6 +144,8 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -159,6 +165,8 @@ describe('orchestrateObjectMove', () => {
             objectIds: [TRAY],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
@@ -167,23 +175,68 @@ describe('orchestrateObjectMove', () => {
         expect(slotReports()).toHaveLength(0)
     })
 
-    it('is a no-op without a character host, a room host, or an object', async () => {
-        await orchestrateObjectMove({
-            objectIds: [TRAY],
-            fromHostId: ROOM,
-            toHostId: 'ROOM#Other' as EphemeraRoomId,
-            messageBus,
-            streamEvent,
-        })
+    it('is a no-op without an object', async () => {
         await orchestrateObjectMove({
             objectIds: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
+            roomId: ROOM,
+            characterId: CHARACTER,
             messageBus,
             streamEvent,
         })
 
         expect(executeObjectMoveMock).not.toHaveBeenCalled()
         expect(resolveLabelsMock).not.toHaveBeenCalled()
+    })
+
+    it('proceeds on a rehost between two objects, with no character among the two hosts (PV1-2 follow-up)', async () => {
+        // A containment move's toHostId can be an object (a tray), and the subject's current
+        // host (fromHostId) can be an object too (moving a cup from one tray to another) or a
+        // room (a cup sitting on the floor, never held) --- neither host need be a character.
+        // `characterId` is now taken explicitly rather than derived from the two hosts, so this
+        // no longer silently no-ops. `ok: false` keeps this test focused on the dispatch itself
+        // (labels resolved, executeObjectMove reached) rather than the narration/commit path,
+        // which other cases in this file already cover.
+        executeObjectMoveMock.mockResolvedValue({ ok: false })
+
+        await orchestrateObjectMove({
+            objectIds: [TRAY],
+            fromHostId: ROOM,
+            toHostId: 'OBJECT#Tray2' as EphemeraObjectId,
+            roomId: ROOM,
+            characterId: CHARACTER,
+            messageBus,
+            streamEvent,
+        })
+
+        expect(resolveLabelsMock).toHaveBeenCalledWith({ characterId: CHARACTER, objectId: TRAY, roomId: ROOM })
+        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
+            objectIds: [TRAY],
+            fromHostId: ROOM,
+            toHostId: 'OBJECT#Tray2',
+        }))
+    })
+
+    it('threads containment through to executeObjectMove when set (put on a tray)', async () => {
+        executeObjectMoveMock.mockResolvedValue({ ok: false })
+
+        const TRAY2 = 'OBJECT#Tray2' as EphemeraObjectId
+        await orchestrateObjectMove({
+            objectIds: [TRAY],
+            fromHostId: CHARACTER,
+            toHostId: TRAY2,
+            roomId: ROOM,
+            characterId: CHARACTER,
+            containment: 'On',
+            messageBus,
+            streamEvent,
+        })
+
+        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
+            fromHostId: CHARACTER,
+            toHostId: TRAY2,
+            containment: 'On',
+        }))
     })
 })

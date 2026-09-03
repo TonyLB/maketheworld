@@ -51,7 +51,7 @@ describe('runExecutor', () => {
         expect(result).toEqual({
             verdict: 'legal',
             steps: [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, relationKind: 'Against' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, hostId: ROOM_ID, relationKind: 'Against' },
                 { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
             ],
         })
@@ -74,65 +74,33 @@ describe('runExecutor', () => {
         expect(seeded[1]!.step).toBe(change)
     })
 
-    it("BD-16: repairs a sameHost violation, the repair transfer (and its own isolatedFromRelations) retiring before the paired relational Change", () => {
-        const characterGraph = EphemeraLudicGraph.empty(CHARACTER_ID).addObject(SAUCER_ID)
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(CUP_ID)
-
-        const env = createExpansionEnvironment(
-            (hostId) => {
-                if (hostId === CHARACTER_ID) return characterGraph
-                if (hostId === ROOM_ID) return roomGraph
-                return undefined
-            },
-            (id) => {
-                if (id === SAUCER_ID) return CHARACTER_ID
-                if (id === CUP_ID) return ROOM_ID
-                return undefined
-            }
-        )
-
-        const seed: WorklistInstruction[] = [
-            {
-                id: 'sameHost',
-                tag: 'grounded',
-                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, negate: false, relationKind: 'On' },
-            },
-            {
-                id: 'establish',
-                tag: 'grounded',
-                step: { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
-            },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({
-            verdict: 'legal',
-            steps: [
-                { kind: 'transferMembership', objectIds: new Set([SAUCER_ID]), fromHostId: CHARACTER_ID, toHostId: ROOM_ID },
-                { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
-            ],
-        })
-    })
-
-    it('BD-16: a satisfied sameHost mints no repair, the relational Change retires alone', () => {
+    it('PV1-3b-4: a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
+        // `satisfied` (deleted 2026-09-01) used to retire a matching sameHost assertion with no
+        // children, relying on a sibling establishRelation instruction (seeded alongside it) to
+        // retire unmodified as the actual edge. That sibling is gone --- an endpoint is its own
+        // zero-hop ancestor (PV1-3b-8), so `findShardBoundary`/`buildCrossingLegs` resolve an
+        // already-shared host to a single portless leg, which is now the *only* source of the
+        // establishRelation step.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env = createExpansionEnvironment(
             (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
-            (id) => ([SAUCER_ID, CUP_ID].includes(id) ? ROOM_ID : undefined)
+            (id) => ((id === SAUCER_ID || id === CUP_ID) ? ROOM_ID : undefined),
+            (id) => ((id === SAUCER_ID || id === CUP_ID) ? [ROOM_ID] : [])
         )
 
         const seed: WorklistInstruction[] = [
             {
                 id: 'sameHost',
                 tag: 'grounded',
-                step: { kind: 'assertion', predicate: 'sameHost', subjectId: SAUCER_ID, objectId: CUP_ID, negate: false, relationKind: 'On' },
-            },
-            {
-                id: 'establish',
-                tag: 'grounded',
-                step: { kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' },
+                step: {
+                    kind: 'assertion',
+                    predicate: 'sameHost',
+                    subjectId: SAUCER_ID,
+                    objectId: CUP_ID,
+                    relationKind: 'Under',
+                    operationKind: 'establishRelation',
+                },
             },
         ]
 
@@ -140,8 +108,72 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, relationKind: 'On' }],
+            steps: [{ kind: 'establishRelation', subjectId: SAUCER_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Under' }],
         })
+    })
+
+    it("PV1-3: a sameHost violation that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
+        const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
+
+        const env = createExpansionEnvironment(
+            (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
+            (id) => (id === ROPE_ID ? ROOM_ID : TABLE_ID),
+            (id) => {
+                if (id === ROPE_ID) return [ROOM_ID]
+                if (id === CUP_ID) return [TABLE_ID]
+                if (id === TABLE_ID) return [ROOM_ID]
+                return []
+            }
+        )
+
+        // Only the sameHost assertion is seeded --- there is no sibling establishRelation
+        // instruction at all any more (PV1-3b-4 collapsed the seed). A direct rope->cup edge is
+        // never valid once the relation crosses a boundary (they never come to share a host), so
+        // the crossing legs below are the assertion's own children, same as the portless-leg
+        // same-host case above --- a caller wiring this route for real must seed accordingly (see
+        // `compileRelationalFromSkeleton.ts`'s own seed-construction comment).
+        const seed: WorklistInstruction[] = [
+            {
+                id: 'sameHost',
+                tag: 'grounded',
+                step: {
+                    kind: 'assertion',
+                    predicate: 'sameHost',
+                    subjectId: ROPE_ID,
+                    objectId: CUP_ID,
+                    relationKind: 'Custom',
+                    relationLabel: 'to',
+                    operationKind: 'establishRelation',
+                },
+            },
+        ]
+
+        const result = runExecutor(seed, env, emptyGroundingContext)
+
+        expect(result.verdict).toBe('legal')
+        if (result.verdict !== 'legal') return
+        expect(result.steps).toEqual([
+            {
+                kind: 'establishRelation',
+                subjectId: expect.objectContaining({ owner: TABLE_ID }),
+                targetId: CUP_ID,
+                hostId: TABLE_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+            {
+                kind: 'establishRelation',
+                subjectId: ROPE_ID,
+                targetId: expect.objectContaining({ owner: TABLE_ID }),
+                hostId: ROOM_ID,
+                relationKind: 'Custom',
+                relationLabel: 'to',
+            },
+        ])
+        expect(result.extraKernelSteps).toEqual([
+            { kind: 'addCrossingPort', hostId: TABLE_ID, port: expect.objectContaining({ fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }) },
+        ])
     })
 
     it('BD-28: a lone isolatedFromRelations (no paired transfer) mints its DissolveRelationSteps directly', () => {
@@ -163,7 +195,7 @@ describe('runExecutor', () => {
 
         expect(result).toEqual({
             verdict: 'legal',
-            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, relationKind: 'Against' }],
+            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Against' }],
         })
     })
 

@@ -4,7 +4,7 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { applyObjectRoomMembership } from '../positions/membership/applyObjectRoomMembership'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import {
     handleAcmeOrderAddObjects,
     handleApiObjectsChangeCommand,
@@ -29,8 +29,8 @@ jest.mock('./persistImprovisationObject', () => ({
     persistDeleteImprovisationObject: jest.fn(),
 }))
 
-jest.mock('../positions/membership/applyObjectRoomMembership', () => ({
-    applyObjectRoomMembership: jest.fn(),
+jest.mock('../positions/manipulation/membership/executeObjectMove', () => ({
+    executeMembershipTransfer: jest.fn(),
 }))
 
 jest.mock('./spawnImprovisationObjectsBatch', () => ({
@@ -521,7 +521,7 @@ describe('handleAcmeOrderAddObjects', () => {
 describe('handleAcmeOrderAddObjects embed wiring', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
     const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const mockPlace = applyObjectRoomMembership as jest.MockedFunction<typeof applyObjectRoomMembership>
+    const mockPlace = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
     const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
 
     const spawnOneImpl = (row: Parameters<typeof spawnOneActual>[0], innerDeps: Parameters<typeof spawnOneActual>[1]) =>

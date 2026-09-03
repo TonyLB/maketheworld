@@ -1,20 +1,22 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { normalizeRelationSpan } from '../normalizeRelationSpan'
-import type { Change } from './ungroundedPrimitive'
+import type { Change, Referent } from './ungroundedPrimitive'
 import { objectSpanRef } from './ungroundedPrimitive'
 
-const ESTABLISH_VERBS = new Set(['put', 'place', 'lean'])
+const ESTABLISH_VERBS = new Set(['put', 'place', 'lean', 'tie'])
 const DISSOLVE_VERBS = new Set(['take', 'remove'])
 
 export type RelationalTemplateMatchResult =
     | { type: 'matched'; change: Change }
     /**
-     * Relation phrase was containment language ("in"/"into") -- a named outcome,
-     * not folded into noMatch, since it's a known case with an existing distinct
-     * error path (objectManipulationErrorMessages.nestingRelational), not
-     * "didn't understand this command at all."
+     * Third outcome alongside `matched`/`noMatch`: the skeleton fit the 4-token template and the
+     * preposition names a hosting kind (`On`/`In`/`PartOf`), which AB-54 models as shard
+     * placement, not a relational edge -- so there's no `Change` to build. `operationKind`/
+     * `subject`/`target` are already resolved by this point and carry forward for whichever
+     * lane the caller routes `kind` to (`On` to the move lane, `In`/`PartOf` to
+     * `objectManipulationErrorMessages.nestingRelational` until they're built).
      */
-    | { type: 'nestingDefer' }
+    | { type: 'nestingDefer'; kind: 'On' | 'In' | 'PartOf'; operationKind: 'establishRelation' | 'dissolveRelation'; subject: Referent; target: Referent }
     | { type: 'noMatch' }
 
 function isTextToken(token: ParseToken): token is TextToken {
@@ -57,13 +59,14 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton): RelationalTemp
         return { type: 'noMatch' }
     }
 
-    const normalized = normalizeRelationSpan(prepToken.text)
-    if (normalized.type === 'nestingDefer') {
-        return { type: 'nestingDefer' }
-    }
-
     const subject = objectSpanRef(subjectToken.span, subjectToken.stableRefKey)
     const target = objectSpanRef(targetToken.span, targetToken.stableRefKey)
+
+    const normalized = normalizeRelationSpan(prepToken.text)
+    if (normalized.type === 'nestingDefer') {
+        return { type: 'nestingDefer', kind: normalized.kind, operationKind, subject, target }
+    }
+
     const { relation } = normalized
 
     const change: Change = {

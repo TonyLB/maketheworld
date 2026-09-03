@@ -2058,8 +2058,17 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
-                hostId: hostRoom,
                 confidence: 0.9,
+                // PV1-3b-1: no flat `hostId` any more --- the consumer reads the final step's
+                // own carried `hostId` (PV1-3b-7) instead. A portless candidate carries exactly
+                // one step.
+                steps: [{
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Broom',
+                    targetId: 'OBJECT#Table',
+                    relationKind: 'Under',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2091,6 +2100,13 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: hostRoom,
                     relationKind: 'Under',
                     confidence: 0.9,
+                    steps: [{
+                        kind: 'establishRelation',
+                        subjectId: 'OBJECT#Broom',
+                        targetId: 'OBJECT#Table',
+                        relationKind: 'Under',
+                        hostId: hostRoom,
+                    }],
                 },
             })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
@@ -2108,8 +2124,15 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostId: hostRoom,
                 confidence: 0.85,
+                steps: [{
+                    kind: 'establishRelation',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2142,6 +2165,86 @@ describe('ephemeraActionsDataSource', () => {
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.85,
+                    steps: [{
+                        kind: 'establishRelation',
+                        subjectId: 'OBJECT#Rope',
+                        targetId: 'OBJECT#Crate',
+                        relationKind: 'Custom',
+                        relationLabel: 'tied around',
+                        hostId: hostRoom,
+                    }],
+                },
+            })
+        })
+
+        it('emits Object Establish Relation carrying every step of a genuine crossing (PV1-3b-2)', async () => {
+            const tableId = 'OBJECT#Table' as EphemeraObjectId
+            const portStep = {
+                kind: 'addCrossingPort' as const,
+                hostId: tableId,
+                port: { portId: 'p1', fromHostId: hostRoom, kind: 'Custom' as const, exteriorRelationLabel: 'tied to' },
+            }
+            const legSteps = [
+                {
+                    kind: 'establishRelation' as const,
+                    subjectId: 'OBJECT#String' as EphemeraObjectId,
+                    targetId: { owner: tableId, port: 'p1' },
+                    relationKind: 'Custom' as const,
+                    relationLabel: 'tied to',
+                    hostId: hostRoom,
+                },
+                {
+                    kind: 'establishRelation' as const,
+                    subjectId: { owner: tableId, port: 'p1' },
+                    targetId: 'OBJECT#Cup' as EphemeraObjectId,
+                    relationKind: 'Custom' as const,
+                    relationLabel: 'tied to',
+                    hostId: tableId,
+                },
+            ]
+            mockedParseCommand.mockResolvedValue({
+                type: 'EstablishRelation',
+                operationKind: 'establishRelation',
+                subjectId: 'OBJECT#String',
+                targetId: 'OBJECT#Cup',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
+                confidence: 0.9,
+                steps: [portStep, ...legSteps],
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'tie string to cup',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Establish Relation' },
+                update: {
+                    type: 'Object Establish Relation',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#String',
+                    targetId: 'OBJECT#Cup',
+                    // The last step's hostId --- narration-only, per PV1-3b-2.
+                    hostId: 'OBJECT#Table',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied to',
+                    confidence: 0.9,
+                    steps: [portStep, ...legSteps],
                 },
             })
         })
@@ -2154,8 +2257,15 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Crate',
                 relationKind: 'Custom',
                 relationLabel: 'tied around',
-                hostId: hostRoom,
                 confidence: 0.9,
+                steps: [{
+                    kind: 'dissolveRelation',
+                    subjectId: 'OBJECT#Rope',
+                    targetId: 'OBJECT#Crate',
+                    relationKind: 'Custom',
+                    relationLabel: 'tied around',
+                    hostId: hostRoom,
+                }],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2188,6 +2298,14 @@ describe('ephemeraActionsDataSource', () => {
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                     confidence: 0.9,
+                    steps: [{
+                        kind: 'dissolveRelation',
+                        subjectId: 'OBJECT#Rope',
+                        targetId: 'OBJECT#Crate',
+                        relationKind: 'Custom',
+                        relationLabel: 'tied around',
+                        hostId: hostRoom,
+                    }],
                 },
             })
         })
@@ -2199,8 +2317,10 @@ describe('ephemeraActionsDataSource', () => {
                 subjectId: 'OBJECT#Broom',
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
-                hostId: null as unknown as EphemeraRoomId,
                 confidence: 0.9,
+                // No steps at all --- PV1-3b-1: no host to be in a room with, same as the old
+                // `hostId: null` sentinel this replaces.
+                steps: [],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2228,6 +2348,49 @@ describe('ephemeraActionsDataSource', () => {
                 message: ['You are not in a room, so you cannot do that.'],
             })
             expect(streamEvent).not.toHaveBeenCalled()
+        })
+
+        it('emits Object Rehost streamEvent when an On rehost is grounded (PV1-2)', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'ObjectRehost',
+                subjectId: 'OBJECT#Cup',
+                targetId: 'OBJECT#Tray',
+                hostId: hostRoom,
+                containment: 'On',
+                confidence: 0.9,
+            })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'put the cup on the tray',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Object Rehost' },
+                update: {
+                    type: 'Object Rehost',
+                    characterId: 'CHARACTER#123',
+                    subjectId: 'OBJECT#Cup',
+                    targetId: 'OBJECT#Tray',
+                    roomId: hostRoom,
+                    containment: 'On',
+                    confidence: 0.9,
+                },
+            })
         })
     })
 
