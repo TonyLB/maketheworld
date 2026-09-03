@@ -1,9 +1,9 @@
 import type { EphemeraObjectId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraLudicTerminalOwner, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
-import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
+import internalCache from '../../../../internalCache'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 import {
     findRelationalChainFromLeg,
     type RelationalChainStep,
@@ -24,25 +24,16 @@ import {
  * since a missing graph just defaults empty, PV1-2's own precedent). From each fetched graph,
  * every port's `fromHostId` and every port-address terminal's `owner` names a further host to
  * visit --- both directions a crossing can be discovered from.
- *
- * `extraSeedHosts` covers the one case current-membership BFS structurally cannot reach: a plain
- * (portless) edge left on a host an entity is no longer a current member of (e.g. a relation a
- * real move classified `defer` and left behind, PV1-3's own scope cut --- untouched by this
- * slice). There is no global index from entity to "every host holding an edge naming it," so a
- * caller with a bounded universe already in hand (`clearCoyoteGameImprovisationObjects`'s fixed
- * set of game rooms/active characters) should pass those hosts here rather than relying on
- * membership alone.
  */
 export const fetchRelationalReachability = async (
     entityIds: ReadonlySet<EphemeraObjectId>,
     getMembershipContainers: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>,
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
-    depthCap: number = 5,
-    extraSeedHosts: Iterable<EphemeraMembershipHostId> = []
+    depthCap: number = 5
 ): Promise<Map<EphemeraMembershipHostId, EphemeraLudicGraph>> => {
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const visited = new Set<EphemeraMembershipHostId>()
-    const seedHosts = new Set<EphemeraMembershipHostId>([...entityIds, ...extraSeedHosts])
+    const seedHosts = new Set<EphemeraMembershipHostId>(entityIds)
 
     await Promise.all([...entityIds].map(async (entityId) => {
         const containers = await getMembershipContainers(entityId)

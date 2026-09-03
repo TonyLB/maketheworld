@@ -1,7 +1,7 @@
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
-    extractCharacterIdsFromPlayLudicGraph,
-    extractObjectIdsFromPlayLudicGraph,
+    extractCharacterIdsFromLudicGraph,
+    extractObjectIdsFromLudicGraph,
     projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -199,8 +199,8 @@ export class EphemeraLudicGraph {
             hostId,
             [
                 nodeFromId(hostId),
-                ...extractCharacterIdsFromPlayLudicGraph(envelope).filter((id) => id !== hostId).map(characterNode),
-                ...extractObjectIdsFromPlayLudicGraph(envelope).filter((id) => id !== hostId).map(objectNode),
+                ...extractCharacterIdsFromLudicGraph(envelope).filter((id) => id !== hostId).map(characterNode),
+                ...extractObjectIdsFromLudicGraph(envelope).filter((id) => id !== hostId).map(objectNode),
             ],
             relationalEdges.length > 0 ? relationalEdges : undefined,
             playOnlyEdges,

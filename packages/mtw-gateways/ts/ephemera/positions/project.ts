@@ -7,8 +7,14 @@ import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/
 import type { PlayLudicGraph } from './types'
 
 /**
- * Forward read: stored topology from any eligible host Meta::*.ludicGraph.
- * Roster display metadata is hydrated at read time in ephemera internalCache (S2-6-H).
+ * Projection *down* to the authored (WML) shape: `rootId`, `ports`, non-Character/Object nodes and
+ * non-relational edges have no representation in `StandardLudicGraphData` and are dropped.
+ *
+ * **Not a read-path adapter.** This ran on every cache load until 2026-09-03, which silently
+ * emptied `ports` for every consumer of `internalCache.Positions` --- ports are minted at runtime
+ * (`uuidv4`) and have no authored counterpart, so the authoring type structurally cannot carry
+ * one. The gateway now caches `EphemeraLudicGraphFieldPayload` as fetched, and this projection
+ * runs only where a caller explicitly asks for the authored envelope (`toPlayEnvelope`).
  */
 export const projectComponentGraphFromStoredLudicGraph = (
     stored: EphemeraLudicGraphFieldPayload
@@ -31,8 +37,15 @@ export const projectComponentGraphFromStoredLudicGraph = (
     }
 }
 
-export const extractCharacterIdsFromPlayLudicGraph = (
-    graph: PlayLudicGraph
+/**
+ * Node-list id extraction, shape-agnostic: accepts either the stored payload or the authored
+ * envelope, since both carry `nodes` as `{ tag, universalKey }` (the envelope additionally
+ * tolerates bare-string references). Named without "Play" because the stored payload is the
+ * primary input --- a caller holding a Dynamo row should read it directly rather than projecting
+ * down to the authored shape first only to read the half that survives.
+ */
+export const extractCharacterIdsFromLudicGraph = (
+    graph: PlayLudicGraph | EphemeraLudicGraphFieldPayload
 ): EphemeraCharacterId[] =>
     (graph.nodes ?? []).flatMap((node): EphemeraCharacterId[] => {
         if (typeof node === 'string') {
@@ -44,8 +57,9 @@ export const extractCharacterIdsFromPlayLudicGraph = (
         return []
     })
 
-export const extractObjectIdsFromPlayLudicGraph = (
-    graph: PlayLudicGraph
+/** @see extractCharacterIdsFromLudicGraph --- same shape-agnostic contract. */
+export const extractObjectIdsFromLudicGraph = (
+    graph: PlayLudicGraph | EphemeraLudicGraphFieldPayload
 ): EphemeraObjectId[] =>
     (graph.nodes ?? []).flatMap((node): EphemeraObjectId[] => {
         if (typeof node === 'string') {

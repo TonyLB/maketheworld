@@ -48,7 +48,8 @@ class EphemeraLudicGraph {
   clone(): EphemeraLudicGraph
   equals(other: EphemeraLudicGraph): boolean
 
-  get ports(): EphemeraLudicGraphPort[] // egress list; required, possibly empty; inert until a producer exists
+  get ports(): EphemeraLudicGraphPort[] // egress list; required, possibly empty. Produced since PV1-3 (crossing
+                                        // establish mints one per crossing); NOT inert --- chain discovery reads it
                                         // entries carry `kind` (LP6/PR-11) --- a presence binding iff 'Present', so the
                                         // binding count is a filter on `kind`, never ports.length --- plus the exterior
                                         // `Custom` label, required non-empty when kind is 'Custom'
@@ -89,10 +90,11 @@ Multi-host simulation (Phase C): caller holds **`EphemeraLudicGraph[]`** and ups
 | --- | --- | --- |
 | `manipulation/kernel/applyStepSequenceCore.ts` (via `commitStepSequence`) | class + simulation methods | Sole writer |
 | `manipulation/kernel/` `MultiKeyUpdate` reducer | `graphFromMeta` / `fromRoomMeta` / `fromCharacterMeta`, `toStored()` | Dynamo read/write boundary |
-| `manipulation/relational/` | `fromPlayEnvelope`, `edgesMatch` | Coordinator observation |
+| `actions/enrich/objectManipulation/` (`membershipObservation`, `buildPrompt`) | `toPlayEnvelope` | The only genuine authored-shape consumers: Exit-edge sniffing and LLM prompt text |
+| `manipulation/relational/` | `edgesMatch` | Coordinator observation |
 | `evaluateRelationalLegality`, `compileRelationalFromSkeleton` | read-only class methods | Actions lane; no persist |
-| `internalCache.Positions` | wrapper `get` / `set` | Ephemera read/write boundary; `fromPlayEnvelope` / `toPlayEnvelope` inside [`ludicGraphCache.ts`](../../../internalCache/ludicGraphCache.ts) |
-| Gateways | via `fromPlayEnvelope` / `toPlayEnvelope` only | No duplicated projection |
+| `internalCache.Positions` | wrapper `get` / `set` | Ephemera read/write boundary; `fromFieldPayload` / `toStored()` inside [`ludicGraphCache.ts`](../../../internalCache/ludicGraphCache.ts) --- the same lossless pair the kernel uses (corrected 2026-09-03; it was `fromPlayEnvelope`/`toPlayEnvelope`, which emptied `ports` in both directions) |
+| Gateways | memoize `EphemeraLudicGraphFieldPayload` verbatim | Stored truth, not an authored projection |
 
 Class does **not** own: adjacency rows, Dynamo transact, cache memo, stream facts, WML asset merge.
 

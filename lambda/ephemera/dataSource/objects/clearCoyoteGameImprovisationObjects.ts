@@ -102,30 +102,8 @@ export const clearCoyoteGameImprovisationObjects = async (
     const getMembershipContainers = args.getMembershipContainers
         ?? ((id: EphemeraObjectId | EphemeraCharacterId) => internalCache.Positions.getMembershipContainers(id))
     const getGraph = args.getGraph ?? defaultGetGraph
-    // A stale relational edge from a real move that classified `defer` (PV1-3's own scope cut,
-    // untouched here) can be left on a room/character host an object is no longer a current
-    // member of --- unreachable from membership-only BFS. This clear already knows its whole
-    // universe (the game rooms and active characters just enumerated above), so hand those in as
-    // extra seeds rather than relying on current membership to rediscover them.
-    const extraSeedHosts: EphemeraMembershipHostId[] = [...affectedRoomIds, ...activeCharacters]
-    const reachableGraphs = await fetchRelationalReachability(objectIdSet, getMembershipContainers, getGraph, undefined, extraSeedHosts)
+    const reachableGraphs = await fetchRelationalReachability(objectIdSet, getMembershipContainers, getGraph)
     const chains = findRelationalChainsTouching(objectIdSet, reachableGraphs)
-    // TEMPORARY diagnostic (2026-09-03): tracing a live bug where phase 1 appears not to dissolve
-    // a crossing that discovery finds correctly in isolation --- remove once root-caused.
-    console.log('[mtw.ephemera.objects] clearCoyoteGameImprovisationObjects phase 1 raw graphs', {
-        graphs: [...reachableGraphs.entries()].map(([hostId, graph]) => ({
-            hostId,
-            edges: graph.relationalEdges,
-            ports: graph.ports,
-            nodeIds: [...graph.nodeIds],
-        })),
-    })
-    console.log('[mtw.ephemera.objects] clearCoyoteGameImprovisationObjects phase 1 diagnostic', {
-        objectIds: [...objectIdSet],
-        reachableGraphHosts: [...reachableGraphs.keys()],
-        chainCount: chains.length,
-        chainEndpoints: chains.map((chain) => chain.map((step) => (step.type === 'edge' ? { edgeFrom: step.edge.from, edgeTo: step.edge.to, hostId: step.hostId } : { portId: step.port.portId, hostId: step.hostId }))),
-    })
     if (chains.length > 0) {
         const dissolveSteps = chains.flatMap((chain) => buildCrossingDissolveLegs(chain))
         const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
@@ -140,7 +118,6 @@ export const clearCoyoteGameImprovisationObjects = async (
                 hostByReferencedId.set(step.targetId, step.hostId)
             }
         }
-        console.log('[mtw.ephemera.objects] clearCoyoteGameImprovisationObjects phase 1 dissolveSteps', dissolveSteps)
         const dissolveResult = await commitStepSequence(
             { steps: dissolveSteps },
             {
@@ -149,7 +126,6 @@ export const clearCoyoteGameImprovisationObjects = async (
                 getCurrentHost: (id) => hostByReferencedId.get(id),
             }
         )
-        console.log('[mtw.ephemera.objects] clearCoyoteGameImprovisationObjects phase 1 dissolveResult', dissolveResult)
         if (!dissolveResult.ok) {
             return { ok: false, errorMessage: dissolveResult.errorMessage }
         }

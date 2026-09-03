@@ -225,43 +225,4 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         // via table's own owned graph in phase 1).
         expect(applyClearMembershipImpl).toHaveBeenCalledTimes(2)
     })
-
-    it('PV1-3c bugfix: dissolves a stale edge left on a room the object is no longer a current member of', async () => {
-        // The object was carried away to a character before the clear, but a plain (portless)
-        // relation it left behind on the room --- from a real move that classified `defer`, PV1-3's
-        // own scope cut --- is still recorded there. `getMembershipContainers(OBJECT_HELD)` only
-        // names the character, so membership-only reachability would never visit the room; this
-        // proves the room (part of the clear's own known universe) is seeded regardless.
-        const OTHER_OBJECT = 'OBJECT#Anchor' as EphemeraObjectId
-        const staleEdge = { from: OBJECT_HELD, to: OTHER_OBJECT, kind: 'Custom' as const, relationLabel: 'anchored to' }
-        const roomGraph = EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
-            rootId: ROOM_A, ports: [],
-            nodes: [objectNode(OTHER_OBJECT)],
-            edges: [{ tag: 'Relational', ...staleEdge }],
-        })
-        const characterGraph = EphemeraLudicGraph.fromFieldPayload(CHARACTER_A, {
-            rootId: CHARACTER_A, ports: [],
-            nodes: [objectNode(OBJECT_HELD)],
-            edges: [],
-        })
-
-        const result = await clearCoyoteGameImprovisationObjects(
-            {
-                getGameRooms: async () => ['VORTEX'],
-                getRoomLudicGraph: async () => roomGraph,
-                getActiveCharactersInCoyoteRooms: async () => [CHARACTER_A],
-                getCharacterLudicGraph: async () => characterGraph,
-                getMembershipContainers: async (id) => (id === OBJECT_HELD ? [CHARACTER_A] : []),
-                getGraph: async (hostId) => (hostId === ROOM_A ? roomGraph : hostId === CHARACTER_A ? characterGraph : EphemeraLudicGraph.empty(hostId)),
-            },
-            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
-        )
-
-        expect(result.ok).toBe(true)
-        expect(commitStepSequenceMock).toHaveBeenCalledTimes(1)
-        const [{ steps }] = commitStepSequenceMock.mock.calls[0]
-        expect(steps).toEqual([
-            { kind: 'dissolveRelation', subjectId: staleEdge.from, targetId: staleEdge.to, hostId: ROOM_A, relationKind: 'Custom', relationLabel: 'anchored to' },
-        ])
-    })
 })

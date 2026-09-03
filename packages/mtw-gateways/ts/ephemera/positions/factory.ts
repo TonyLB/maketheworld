@@ -5,7 +5,7 @@ import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraPositionsReadDB } from './fetch'
 import {
@@ -17,25 +17,73 @@ import {
 } from './fetch'
 import { queryMembershipContainersFromDynamo } from './adjacency'
 import { membershipContainersCacheKey, ludicGraphCacheKey } from './keys'
-import { projectComponentGraphFromStoredLudicGraph } from './project'
 import type {
     MembershipContainersCacheSetParams,
-    PlayLudicGraph,
     PositionsCacheSetParams,
 } from './types'
 
 /**
+ * An absent row's empty graph, rooted at its own host with that root present in `nodes` ---
+ * concepts clause 3 / LP4i, enforced by `isEphemeraLudicGraphFieldPayload`. The node tag comes
+ * from the caller's own id-kind branch, which already knows it.
+ */
+const emptyLudicGraphPayload = (
+    componentId: EphemeraMembershipHostId,
+    tag: EphemeraLudicGraphNode['tag']
+): EphemeraLudicGraphFieldPayload => ({
+    rootId: componentId,
+    nodes: [{ tag, universalKey: componentId } as EphemeraLudicGraphNode],
+    edges: [],
+    ports: [],
+})
+
+/**
+ * Fills in the structural fields a pre-LP4a/LP4d row can be missing (`rootId`, the root's own
+ * node, `ports`) while passing through everything the row *does* carry.
+ *
+ * The projection this replaced normalized partial rows as a side effect of discarding most of
+ * them, so legacy rows have always read cleanly; that tolerance is preserved deliberately, since
+ * the defect being fixed here is dropping data that is *present*, not accepting data that is
+ * *absent*. Genuinely stale stored structure is still `ludicGraphStaleStructureSweep`'s to find
+ * and `healLudicGraphStructure`'s to repair --- normalizing on read does not write anything back.
+ */
+const normalizeStoredLudicGraph = (
+    stored: EphemeraLudicGraphFieldPayload | undefined,
+    componentId: EphemeraMembershipHostId,
+    tag: EphemeraLudicGraphNode['tag']
+): EphemeraLudicGraphFieldPayload => {
+    if (!stored) {
+        return emptyLudicGraphPayload(componentId, tag)
+    }
+    const rootId = stored.rootId ?? componentId
+    const nodes = stored.nodes ?? []
+    const rootNode = { tag, universalKey: componentId } as EphemeraLudicGraphNode
+    return {
+        rootId,
+        nodes: nodes.some((node) => node.universalKey === componentId) ? nodes : [rootNode, ...nodes],
+        ...(stored.edges !== undefined ? { edges: stored.edges } : {}),
+        ports: stored.ports ?? [],
+    }
+}
+
+/**
  * Per-invocation read + memo handler for ephemera play ludic graphs.
  * Dynamo writes stay in positions membership persistence; memo APIs patch in-memory state only.
+ *
+ * **Caches the stored payload verbatim** (`EphemeraLudicGraphFieldPayload`), not a projection of
+ * it. Until 2026-09-03 this memo held the authored `StandardLudicGraphData` shape, so every load
+ * and every `set` silently dropped `ports` (and `rootId`, and Room/Feature/Area nodes) --- see
+ * `project.ts`. Ports are runtime-minted and have no authored counterpart, so any consumer
+ * reading crossings through this cache saw none.
  */
 export class PositionsCacheHandler {
-    private readonly _LudicGraphCache: DeferredCache<PlayLudicGraph>
-    private _LudicGraphStore: Record<string, PlayLudicGraph> = {}
+    private readonly _LudicGraphCache: DeferredCache<EphemeraLudicGraphFieldPayload>
+    private _LudicGraphStore: Record<string, EphemeraLudicGraphFieldPayload> = {}
     private readonly _MembershipContainersCache: DeferredCache<EphemeraMembershipHostId[]>
     private _MembershipContainersStore: Record<string, EphemeraMembershipHostId[]> = {}
 
     constructor(private readonly db: EphemeraPositionsReadDB) {
-        this._LudicGraphCache = new DeferredCache<PlayLudicGraph>({
+        this._LudicGraphCache = new DeferredCache<EphemeraLudicGraphFieldPayload>({
             callback: (key, value) => {
                 this._LudicGraphStore[key] = value
             },
@@ -49,12 +97,12 @@ export class PositionsCacheHandler {
 
     async getLudicGraph(
         componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
-    ): Promise<PlayLudicGraph> {
+    ): Promise<EphemeraLudicGraphFieldPayload> {
         const key = ludicGraphCacheKey(componentId)
         if (!this._LudicGraphCache.isCached(key)) {
             this._LudicGraphCache.add({
                 promiseFactory: async (keys: string[]) => {
-                    const out: Record<string, PlayLudicGraph> = {}
+                    const out: Record<string, EphemeraLudicGraphFieldPayload> = {}
                     await Promise.all(
                         keys.map(async (cacheKey) => {
                             const id = cacheKey.replace('::ludicGraph', '')
@@ -97,41 +145,33 @@ export class PositionsCacheHandler {
 
     private async loadLudicGraphFromDynamo(
         componentId: string
-    ): Promise<PlayLudicGraph> {
+    ): Promise<EphemeraLudicGraphFieldPayload> {
         if (isEphemeraRoomId(componentId)) {
             const stored = await getRoomLudicGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
-            )
+            return normalizeStoredLudicGraph(stored, componentId, 'Room')
         }
         if (isEphemeraCharacterId(componentId)) {
             const stored = await getCharacterLudicGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
-            )
+            return normalizeStoredLudicGraph(stored, componentId, 'Character')
         }
         if (isEphemeraObjectId(componentId)) {
             const stored = await getObjectLudicGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
-            )
+            return normalizeStoredLudicGraph(stored, componentId, 'Object')
         }
         if (isEphemeraFeatureId(componentId)) {
             const stored = await getFeatureLudicGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
-            )
+            return normalizeStoredLudicGraph(stored, componentId, 'Feature')
         }
         if (isEphemeraAreaId(componentId)) {
             const stored = await getAreaLudicGraphFromDynamo(this.db, componentId)
-            return projectComponentGraphFromStoredLudicGraph(
-                stored ?? { rootId: componentId, nodes: [], edges: [], ports: [] }
-            )
+            return normalizeStoredLudicGraph(stored, componentId, 'Area')
         }
-        // Unreachable in practice (componentId's declared type is exhausted above); no natural
-        // root exists here, so falling back to the raw id preserves the pre-LP4a shape rather
-        // than inventing a new default the caller never asked for.
-        return projectComponentGraphFromStoredLudicGraph({ rootId: componentId as unknown as EphemeraLudicTerminalId, nodes: [], edges: [], ports: [] })
+        // Unreachable in practice (componentId's declared type is exhausted above). No host kind
+        // is known here, so there is no honest node tag to mint a root with --- an empty node list
+        // is the one shape that does not invent a kind the caller never named. This payload does
+        // not satisfy `isEphemeraLudicGraphFieldPayload`'s root-in-nodes clause, deliberately: a
+        // consumer reaching this branch has already violated the id contract.
+        return { rootId: componentId as unknown as EphemeraLudicGraphFieldPayload['rootId'], nodes: [], edges: [], ports: [] }
     }
 
     private async loadMembershipContainersFromDynamo(

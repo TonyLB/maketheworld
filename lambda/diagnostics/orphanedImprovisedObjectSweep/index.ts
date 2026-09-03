@@ -1,9 +1,6 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { v4 as uuidv4 } from 'uuid'
-import {
-    extractObjectIdsFromPlayLudicGraph,
-    projectComponentGraphFromStoredLudicGraph,
-} from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { extractObjectIdsFromLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import {
     DiagnosticsEventSerializer,
     DiagnosticsOrphanedImprovisedObjectFindingEvent,
@@ -105,8 +102,7 @@ const defaultLoadGraphObjectIds = async (): Promise<Set<EphemeraObjectId>> => {
         if (!row.ludicGraph) {
             continue
         }
-        const projected = projectComponentGraphFromStoredLudicGraph(row.ludicGraph)
-        for (const graphObjectId of extractObjectIdsFromPlayLudicGraph(projected)) {
+        for (const graphObjectId of extractObjectIdsFromLudicGraph(row.ludicGraph)) {
             if (isEphemeraObjectId(graphObjectId)) {
                 objectIds.add(graphObjectId)
             }

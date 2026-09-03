@@ -39,19 +39,26 @@ export class EphemeraLudicGraphCacheData {
         this._gateway = createPositionsCacheHandler(db)
     }
 
+    /**
+     * `fromFieldPayload`/`toStored` --- the same lossless pair `commitStepSequence` reads and
+     * writes through (`graphFromMeta`), so a graph round-tripping this memo keeps its `ports`,
+     * `rootId` and full node list. Until 2026-09-03 this pair was `fromPlayEnvelope`/
+     * `toPlayEnvelope`, which projected through the authored WML shape and emptied `ports` in
+     * both directions --- invisible to every consumer, since the loss was silent and total.
+     */
     async getLudicGraph(
         componentId: EphemeraMembershipHostId
     ): Promise<EphemeraLudicGraph> {
         const forwardId = assertForwardHostId(componentId)
-        const envelope = await this._gateway.getLudicGraph(forwardId)
-        return EphemeraLudicGraph.fromPlayEnvelope(forwardId, envelope)
+        const payload = await this._gateway.getLudicGraph(forwardId)
+        return EphemeraLudicGraph.fromFieldPayload(forwardId, payload)
     }
 
     set(graph: EphemeraLudicGraph): void {
         const componentId = assertForwardHostId(graph.hostId)
         this._gateway.set({
             componentId,
-            graph: graph.toPlayEnvelope(),
+            graph: graph.toStored(),
         })
     }
 
