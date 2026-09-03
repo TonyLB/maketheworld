@@ -238,6 +238,80 @@ describe('executeMembershipTransfer', () => {
         expect(result.ok).toBe(true)
     })
 
+    it("PV1-3c: removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
+        const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
+        const roomGraph = testLudicGraph(FROM_ROOM, {
+            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
+        })
+        const tableGraph = testLudicGraph(TABLE_ID, {
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }],
+            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
+            ports: [port],
+        } as any);
+        (internalCache.Positions.getMembershipContainers as jest.Mock).mockImplementation(async (id: string) =>
+            id === TABLE_ID ? [FROM_ROOM] : []
+        );
+        (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === FROM_ROOM ? roomGraph : hostId === TABLE_ID ? tableGraph : testLudicGraph(hostId as EphemeraRoomId, { nodes: [] })
+        )
+        wireTransactWrite({ [FROM_ROOM]: roomGraph, [TABLE_ID]: tableGraph })
+
+        // TABLE_ID is the port's own *owner* --- removing it entirely (target: null) is exactly
+        // the case that used to delete the port record and its interior leg outright while
+        // leaving the room's exterior leg dangling, since the old boundary sweep only ever
+        // inspected TABLE_ID's *own* containers, never its *owned* graph.
+        const result = await executeMembershipTransfer({
+            entityId: TABLE_ID,
+            target: null,
+            messageBus: messageBus as any,
+            streamEvent,
+        })
+
+        expect(result.ok).toBe(true)
+        const [items] = (ephemeraDB.transactWrite as jest.Mock).mock.calls[0]
+        const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
+        const touchedHostIds = multiKeyItem.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
+        expect(touchedHostIds).toEqual(expect.arrayContaining([FROM_ROOM, TABLE_ID]))
+    })
+
+    it("PV1-3c: removing the exterior (primitive-endpoint) side of a crossing dissolves both legs and the port too --- the fail-closed batch-breaking failure mode this row fixes", async () => {
+        const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
+        const roomGraph = testLudicGraph(FROM_ROOM, {
+            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
+        })
+        const tableGraph = testLudicGraph(TABLE_ID, {
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }],
+            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
+            ports: [port],
+        } as any);
+        (internalCache.Positions.getMembershipContainers as jest.Mock).mockImplementation(async (id: string) =>
+            id === OBJECT_ID ? [FROM_ROOM] : []
+        );
+        (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === FROM_ROOM ? roomGraph : hostId === TABLE_ID ? tableGraph : testLudicGraph(hostId as EphemeraRoomId, { nodes: [] })
+        )
+        wireTransactWrite({ [FROM_ROOM]: roomGraph, [TABLE_ID]: tableGraph })
+
+        // OBJECT_ID (the exterior/room-side primitive endpoint) is what the pre-PV1-3c boundary
+        // sweep already dissolved correctly for a *plain* edge --- but it always skipped this
+        // edge outright, since its far endpoint is a port address, not a primitive. Without the
+        // fix, `removeObject` would throw here instead of committing cleanly.
+        const result = await executeMembershipTransfer({
+            entityId: OBJECT_ID,
+            target: null,
+            messageBus: messageBus as any,
+            streamEvent,
+        })
+
+        expect(result.ok).toBe(true)
+        const [items] = (ephemeraDB.transactWrite as jest.Mock).mock.calls[0]
+        const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
+        const touchedHostIds = multiKeyItem.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
+        expect(touchedHostIds).toEqual(expect.arrayContaining([FROM_ROOM, TABLE_ID]))
+    })
+
     it('propagates commitStepSequence failure as errorCode/errorMessage', async () => {
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);

@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import { findRelationalChain } from './findRelationalChain'
+import { findRelationalChain, findRelationalChainFromLeg } from './findRelationalChain'
 
 const ROOM_ID = 'ROOM#Vortex' as EphemeraRoomId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
@@ -152,5 +152,80 @@ describe('findRelationalChain', () => {
         )
 
         expect(result).toEqual({ verdict: 'notFound' })
+    })
+})
+
+describe('findRelationalChainFromLeg', () => {
+    it('resolves a degenerate portless edge to its own two (already primitive) endpoints', () => {
+        const edge = { from: STRING_ID, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(CUP_ID).addRelationalEdge(edge)
+
+        const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph: envFrom({ [ROOM_ID]: roomGraph }, {}).getGraph })
+
+        expect(result).toEqual({
+            verdict: 'found',
+            endpoints: [STRING_ID, CUP_ID],
+            steps: [{ type: 'edge', hostId: ROOM_ID, edge }],
+        })
+    })
+
+    it("resolves PV1-0's readout chain seeded from the exterior (room-side) leg", () => {
+        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(exteriorEdge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
+        const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
+
+        const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge: exteriorEdge }, { getGraph })
+
+        expect(result).toEqual({
+            verdict: 'found',
+            endpoints: [STRING_ID, CUP_ID],
+            steps: [
+                { type: 'edge', hostId: ROOM_ID, edge: exteriorEdge },
+                { type: 'port', hostId: TABLE_ID, port },
+                { type: 'edge', hostId: TABLE_ID, edge: interiorEdge },
+            ],
+        })
+    })
+
+    it("resolves the same chain seeded from the interior (table-side) leg --- PV1-3c's directional-bug fix, never exercised before this row", () => {
+        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(exteriorEdge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
+        const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
+
+        // Seeded from the *interior* edge this time --- the pre-PV1-3c walk would have recursed
+        // back into table's own graph looking for the continuing edge and wrongly declined, since
+        // the exterior edge lives in the room's graph, not table's.
+        const result = findRelationalChainFromLeg({ hostId: TABLE_ID, edge: interiorEdge }, { getGraph })
+
+        // `interiorEdge.from` is the port address (needs the full walk, resolving to String) and
+        // `interiorEdge.to` is already primitive (Cup, trivially) --- endpoints/steps therefore
+        // come out in the same canonical String->Cup order as the exterior-seeded test above,
+        // which is this fixture's own shape, not a general ordering guarantee.
+        expect(result).toEqual({
+            verdict: 'found',
+            endpoints: [STRING_ID, CUP_ID],
+            steps: [
+                { type: 'edge', hostId: ROOM_ID, edge: exteriorEdge },
+                { type: 'port', hostId: TABLE_ID, port },
+                { type: 'edge', hostId: TABLE_ID, edge: interiorEdge },
+            ],
+        })
+    })
+
+    it('declines when a port address has no backing crossing-port record', () => {
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'missing-port' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID)
+        const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
+
+        const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph })
+
+        expect(result.verdict).toEqual('declined')
     })
 })

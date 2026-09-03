@@ -1,4 +1,4 @@
-import { edgeKindAndLabelFrom, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { edgeKindAndLabelFrom, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -10,7 +10,6 @@ import internalCache from '../../../../internalCache'
 import { createExpansionEnvironment } from '../../../actions/enrich/objectManipulation/synthesize/expansionEnvironment'
 import { runExecutor, seedGroundedTransferMembership } from '../../../actions/enrich/objectManipulation/synthesize/executor'
 import type { ExecutorDissolveRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import { boundaryEdgeOutcomes } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 import { isKernelMutationStep } from '../kernel/kernelStep'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 import { commitStepSequence } from '../kernel/commitStepSequence'
@@ -21,6 +20,12 @@ import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
 import type { MutationKernelCaptures } from '../kernel/types'
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { buildCrossingDissolveLegs } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
+import {
+    defaultGetGraph,
+    fetchRelationalReachability,
+    findRelationalChainsTouching,
+} from '../relational/findRelationalChainsForRemoval'
 
 /** AB-54: the three hosting kinds, each running member -> root (LD-16). */
 const HOSTING_RELATION_KINDS = new Set(['On', 'In', 'PartOf'])
@@ -217,6 +222,8 @@ export type ExecuteMembershipTransferArgs = {
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>
+    /** PV1-3c: injectable for the same reason `getMembershipContainers` is --- test seams only. */
+    getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     /** See `CommitStepSequenceDeps.suppressRelationalFacts`'s doc comment --- same gate, same default. */
     suppressRelationalFacts?: boolean
     /**
@@ -274,25 +281,30 @@ export const executeMembershipTransfer = async (
 
     const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
+    // PV1-3c: chain-aware, replacing a primitive-only single-edge boundary sweep that silently
+    // skipped any relational edge with a port-address endpoint (never dissolving a genuine
+    // crossing on removal --- see `findRelationalChainsForRemoval.ts`'s own doc comment). A hard
+    // removal unconditionally dissolves every chain touching the departing entity; there is no
+    // "carry vs. defer" ambiguity the way a real move has, since nothing needs to decide where
+    // the other participant ends up.
     if (isEphemeraObjectId(args.entityId)) {
-        for (const hostId of froms) {
-            const graph = await internalCache.Positions.getLudicGraph(hostId)
-            const outcomes = boundaryEdgeOutcomes(new Set([args.entityId]), graph)
-            for (const { edge } of outcomes) {
-                if (!isEphemeraLudicTerminalPrimitive(edge.from) || !isEphemeraLudicTerminalPrimitive(edge.to)) {
-                    continue
+        const getGraph = args.getGraph ?? defaultGetGraph
+        const entitySet = new Set([args.entityId])
+        const graphs = await fetchRelationalReachability(entitySet, getMembershipContainers, getGraph)
+        const chains = findRelationalChainsTouching(entitySet, graphs)
+        chains.forEach((chain) => {
+            buildCrossingDissolveLegs(chain).forEach((step) => {
+                dissolveSteps.push(step)
+                if (step.kind === 'dissolveRelation') {
+                    if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {
+                        hostByReferencedId.set(step.subjectId, step.hostId)
+                    }
+                    if (isEphemeraLudicTerminalPrimitive(step.targetId)) {
+                        hostByReferencedId.set(step.targetId, step.hostId)
+                    }
                 }
-                hostByReferencedId.set(edge.from, hostId)
-                hostByReferencedId.set(edge.to, hostId)
-                dissolveSteps.push({
-                    kind: 'dissolveRelation',
-                    subjectId: edge.from,
-                    targetId: edge.to,
-                    hostId,
-                    ...relationKindAndLabelOf(edge),
-                })
-            }
-        }
+            })
+        })
     }
 
     const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [{
