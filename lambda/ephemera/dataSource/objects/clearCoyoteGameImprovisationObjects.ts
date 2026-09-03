@@ -11,6 +11,7 @@ import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
 import { collectNestedObjectIds } from '../actions/roomObjectCatalogForCharacter'
+import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
 import { commitStepSequence } from '../positions/manipulation/kernel/commitStepSequence'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
@@ -52,6 +53,51 @@ export type ClearCoyoteGameImprovisationObjectsDependencies = {
 
 const roomIdsFromMembershipFroms = (froms: readonly string[]): EphemeraRoomId[] =>
     froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+
+/**
+ * Orders the removal set so an object always comes before whatever hosts it.
+ *
+ * Phase 2 deletes each object's whole `Meta::Object` row --- its own graph included --- so a host
+ * removed first takes its contents' membership with it: the nested object's own clear then has to
+ * remove it from a graph whose row is gone, the commit's footprint fetch fails, and it is stranded
+ * exactly as if it had never been enumerated. Discovery order alone does not give this, since the
+ * nested descent appends contents *after* the room members that led to them.
+ *
+ * Post-order DFS over "objects hosted in this object's own graph", restricted to the removal set
+ * (a host outside the batch is nothing this clear may reorder around). `visited` terminates a
+ * cyclic hand-built fixture; a host's own root node is excluded, since an object does not host
+ * itself.
+ */
+const orderNestedContentsFirst = async (
+    objectIds: ReadonlySet<EphemeraObjectId>,
+    getObjectLudicGraph: (objectId: EphemeraObjectId) => Promise<EphemeraLudicGraph>
+): Promise<EphemeraObjectId[]> => {
+    const hostedByObject = new Map<EphemeraObjectId, EphemeraObjectId[]>()
+    for (const objectId of objectIds) {
+        const graph = await getObjectLudicGraph(objectId)
+        hostedByObject.set(
+            objectId,
+            [...graph.objectIds].filter((hostedId) => hostedId !== objectId && objectIds.has(hostedId))
+        )
+    }
+
+    const ordered: EphemeraObjectId[] = []
+    const visited = new Set<EphemeraObjectId>()
+    const visit = (objectId: EphemeraObjectId): void => {
+        if (visited.has(objectId)) {
+            return
+        }
+        visited.add(objectId)
+        for (const hostedId of hostedByObject.get(objectId) ?? []) {
+            visit(hostedId)
+        }
+        ordered.push(objectId)
+    }
+    for (const objectId of objectIds) {
+        visit(objectId)
+    }
+    return ordered
+}
 
 /**
  * Coyote RoadRunner clear: remove all improvisation OBJECT# from game-room and active-character graphs, delete rows, emit I4 fact.
@@ -107,7 +153,7 @@ export const clearCoyoteGameImprovisationObjects = async (
         objectIdSet.add(objectId)
     }
 
-    const objectIds = [...objectIdSet]
+    const objectIds = await orderNestedContentsFirst(objectIdSet, getObjectLudicGraph)
     if (objectIds.length === 0) {
         return { ok: true, persisted: false, destroyedIds: [] }
     }

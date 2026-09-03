@@ -234,4 +234,41 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             expect.objectContaining({ objectId: CUP_ID })
         )
     })
+
+    it('removes a nested object before the host it lives in', async () => {
+        // Phase 2 deletes each object's whole `Meta::Object` row, host graph and all. If the host
+        // goes first, the nested object's own membership-clear then has to remove it from a graph
+        // whose row no longer exists --- the commit's footprint fetch fails and the object is
+        // stranded exactly as if it had never been enumerated (2026-09-03, second live run).
+        const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
+        const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
+        const roomGraph = EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
+            rootId: ROOM_A, ports: [],
+            nodes: [objectNode(TABLE_ID)],
+            edges: [],
+        })
+        const tableGraph = EphemeraLudicGraph.fromFieldPayload(TABLE_ID, {
+            rootId: TABLE_ID, ports: [],
+            nodes: [objectNode(CUP_ID)],
+            edges: [],
+        })
+
+        const result = await clearCoyoteGameImprovisationObjects(
+            {
+                getGameRooms: async () => ['VORTEX'],
+                getRoomLudicGraph: async () => roomGraph,
+                getActiveCharactersInCoyoteRooms: async () => [],
+                getMembershipContainers: async (id) => (id === TABLE_ID ? [ROOM_A] : id === CUP_ID ? [TABLE_ID] : []),
+                getGraph: async (hostId) => (hostId === ROOM_A ? roomGraph : hostId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(hostId)),
+                getObjectLudicGraph: async (objectId) => (objectId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(objectId)),
+            },
+            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
+        )
+
+        expect(result.ok).toBe(true)
+        const clearedOrder = applyClearMembershipImpl.mock.calls.map(([args]: any) => args.entityId)
+        const deletedOrder = deleteObjectImpl.mock.calls.map(([args]: any) => args.objectId)
+        expect(clearedOrder.indexOf(CUP_ID)).toBeLessThan(clearedOrder.indexOf(TABLE_ID))
+        expect(deletedOrder.indexOf(CUP_ID)).toBeLessThan(deletedOrder.indexOf(TABLE_ID))
+    })
 })
