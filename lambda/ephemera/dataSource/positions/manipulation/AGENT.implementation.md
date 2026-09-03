@@ -194,87 +194,39 @@ An unresolvable `captureId` **throws**. Capture ids are minted only by the compi
 
 ---
 
-## Section B --- Shared membership adapter (`adapters/`) [SUPERSEDED, PV1-1b]
-
-**This section describes a retired module.** `adapters/` (`planMembershipTransfer`, `computeEndStateRoomDiff`, `planObjectClearFromAllHosts`) is deleted; every route below now calls `executeMembershipTransfer` ([`membership/executeObjectMove.ts`](membership/executeObjectMove.ts)) directly, which inlines the end-state diff (no separate planner module) and fetches its own `priorContainers`. The **bounded** apply mode described below had no caller among the migrated routes and was not carried forward. Left in place, not rewritten, for [`taskPlanning/lambda/ephemera/AGENT.edgeChainPrototypeVertical.planning.md`](../../../../../taskPlanning/lambda/ephemera/AGENT.edgeChainPrototypeVertical.planning.md)'s PV1-5 full corpus sweep --- read it as history, not as current behavior.
-
-The adapter plans *room-host* membership transfers for the routes that do not go through the Synthesize executor. Its whole public surface is `computeMembershipDiff`, `planMembershipTransfer`, and `planObjectClearFromAllHosts`. There is deliberately **no barrel** --- call sites import the concrete module they need.
-
-### Planner inputs
-
-| Field | Meaning |
-| --- | --- |
-| `entityId` | `CHARACTER#` or `OBJECT#` being moved |
-| `entityKind` | `'character'` \| `'object'` |
-| `applyMode` | `'end-state'` \| `'bounded'` |
-| `target` | Destination membership host, or `null` for out-of-play / remove-from-all |
-| `boundedHostIds?` | Trusted ingress hosts to scrub when `applyMode === 'bounded'`; required in that mode |
-| `priorContainers` | From `getMembershipContainers(entityId)`, or graph-forward observation on repair paths |
-
-The coordinator **owns** membership observation; the adapter **consumes** `priorContainers` and never re-fetches.
-
-### Apply modes
-
-| Mode | Used by | Scrub rule | `froms` projection |
-| --- | --- | --- | --- |
-| **end-state** | Navigate, connect, disconnect, object room placement, spawn, drift repair | Remove from **every** prior room host `!== target` | All distinct priors removed |
-| **bounded** | Direct positions ingress and paths that bypass parse | Remove from **only** the `boundedHostIds` the entity is actually present on; **do not** end-state scrub other hosts of the same kind | Only the bounded hosts actually removed |
-
-Both modes filter `priorContainers` to **room hosts** before diffing --- this planner does not plan character-inventory transfers. Take-hold and drop reach the kernel through the Synthesize executor instead, which re-derives its transfer set live at execute time.
-
-### Planner output
-
-```typescript
-type MembershipTransferPlan = {
-    projection: {
-        froms: EphemeraMembershipHostId[];
-        to: EphemeraMembershipHostId | null;
-        changed: boolean;
-    };
-}
-```
-
-The projection is the planner's whole output --- membership transfer semantics for bus facts and coordinator `changed` gates. It deliberately carries **no per-host effect list**: the kernel derives its own footprint and per-host mutations from the step's `fromHostIds`/`toHostId`, so a planner that also enumerated them would be a second, staleable source of truth for the same thing.
-
-### Clear-from-all-hosts
-
-[`planObjectClearFromAllHosts`](adapters/planObjectClearFromAllHosts.ts) is the destroy/edit counterpart: it takes an object's prior containers of *either* host kind and projects `{ froms: all priors, to: null, changed }`. Imported by [`membership/applyObjectClearMembership.ts`](membership/applyObjectClearMembership.ts).
-
-### Parse alignment
-
-Actions parse steady-state ([`actions/AGENT.implementation.md`](../../actions/AGENT.implementation.md#object-manipulation-classify--enrich-steady-state-b25-split-intents)) guarantees for the atomic operators:
-
-- Atomic **`takeHold`** egress supplies a trusted `objectId` + ingress `roomId`.
-- Atomic **`drop`** egress supplies a trusted `objectId`, `characterId`, and destination `roomId`.
-- **`multiPresent`** (`containers.length > 1`) terminalizes before egress.
-- Zero-host objects terminalize before egress.
-
----
-
 ## Section C --- Compose rules
 
 ### End-to-end flow
 
-Two ingress families reach the same kernel:
+Three ingress families reach the same kernel (revised 2026-09-03, PV1-5 --- the two-family/adapter-planned version described here through 2026-09-02 is retired; `adapters/` and its `bounded`/`end-state` planner are deleted, superseded by `executeMembershipTransfer`'s own inline end-state diff, PV1-1b):
 
 ```text
-Adapter-planned routes (navigate, object place/spawn/destroy/edit/drift-repair)
-  Ingress args (coordinator)
+executeMembershipTransfer-direct routes (navigate, object place/spawn/destroy/edit/drift-repair)
+  Ingress args (coordinator, or called directly with no coordinator file)
     -> membership observation (getMembershipContainers or repair graph-forward read)
-    -> planMembershipTransfer / planObjectClearFromAllHosts
-    -> projection { froms, to, changed }
+    -> executeMembershipTransfer's own inline end-state diff against priorContainers
+    -> { froms, to, changed }
     -> coordinator emits a PositionKernelMoveOp; compilePositionKernelOp -> MutationKernelStep[]
     -> commitStepSequence
     -> [character routes with narration] presentStepSequence over the plan's narrate steps
     -> [character navigate only, when changed && to !== null] parallel tail:
          persistRoomStackNavigate + orchestrateCharacterNavigate
 
-Executor-grounded routes (object move, establish/dissolve)
-  Ingress args (orchestrateObjectMove / execute*)
+Executor-grounded routes (object take-hold / drop)
+  Ingress args (orchestrateObjectMove / executeObjectMove)
     -> Synthesize executor run fresh at execute time (second, later snapshot than Plan-stage)
     -> settled closure + classified dissolves -> PositionKernelMoveOp -> compilePositionKernelOp
     -> commitStepSequence (mutation steps) -> presentStepSequence (narrate steps, on ok: true)
+
+Relational establish/dissolve routes (PV1-3b-1/2/15/16)
+  Ingress args (compileRelationalFromSkeleton, Expansion-derived)
+    -> ParseCommandEstablishRelationResult.steps (MutationKernelStep[], each with its own carried hostId)
+    -> published payload carries steps across the actions -> positions boundary
+    -> executeEstablishEdgeChain (pass-through, operationKind-agnostic)
+    -> commitStepSequence
 ```
+
+The `bounded` apply mode the retired planner offered (remove only from trusted-ingress hosts, without end-state-scrubbing the rest) had no caller among the routes PV1-1b migrated and was not carried forward; a future caller needing it must add it back explicitly.
 
 Re-running the executor at execute time is a deliberate **cross-snapshot recheck**, not duplication --- the same pattern the kernel's own reducer-level re-verification applies one layer further in.
 
@@ -323,9 +275,9 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep (PV1-3c) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Synthesize executor, re-run at execute time from a **grounded** seed | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Establish / dissolve relation | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Live carry-closure / boundary sweep on repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Establish / dissolve relation | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared, PV1-3b-16) | Expansion-derived `steps` chain, each with its own carried `hostId` (PV1-3b-1/7); no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
-(PV1-1b: `executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the `adapters/` planner. See [Section B's superseded note](#section-b--shared-membership-adapter-adapters-superseded-pv1-1b) above.)
+(PV1-1b: `executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward.)
 
 **Documented exception (not a parallel persist path):**
 

@@ -228,7 +228,7 @@ All improvisational **object room-placement** mutations **must** go through [`ex
 Membership host transfer projection --- coordinators **must** derive fact fields from persist diff (or adapter projection), not from ingress args alone.
 
 - **Must** stream only when membership diff **`changed`** after successful object graph persist.
-- Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- membership-host endpoints (`ROOM#`, `CHARACTER#` in v1; **D8**). v1 **`takeHold`**: `froms: [ROOM#...]`, `to: CHARACTER#...`. v1 **`drop`**: `froms: [CHARACTER#...]`, `to: ROOM#...`.
+- Payload: `{ type: 'Object Moved', objectId, froms[], to, beatAnchorTime }` --- endpoints are `EphemeraMembershipHostId` (all five host kinds; `isObjectMovedPublishedPayload` validates against the wide union, not a Room/Character-only one). v1 **`takeHold`**: `froms: [ROOM#...]`, `to: CHARACTER#...`. v1 **`drop`**: `froms: [CHARACTER#...]`, `to: ROOM#...`. **Since PV1-2/CD2h (2026-08-31, corrected 2026-09-03 --- this line previously said the endpoints stay `ROOM#`/`CHARACTER#` in v1, which is stale):** a rehost onto an `On` host (`put cup on table`) also produces this fact, with `to` an `OBJECT#` id --- the containment kinds are the first live producer of a non-Room/Character endpoint here.
 - **Must not** populate presentation fields on the fact.
 - Fan-in consumer for affordance refresh: **`mtw.ephemera.affordanceOrchestration`** ([`../affordanceOrchestration/index.ts`](../affordanceOrchestration/index.ts)).
 
@@ -393,9 +393,9 @@ Positions **must** subscribe to:
 
 ### `Object Take Hold` (positions-owned)
 
-- **Ingress:** typed pick-up via actions **`Parse Requested`** only (**D13** --- no **`Action Assessed`** branch in v1).
+- **Ingress:** typed pick-up via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1).
 - **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
-- **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: roomId, toHostId: characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (**D14**). The branch names its **host pair** and nothing else: **must not** pass a verb, a direction flag, or an acting character (see [Narration and presentation](#narration-and-presentation)).
+- **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: roomId, toHostId: characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts). The branch names its **host pair** and nothing else: **must not** pass a verb, a direction flag, or an acting character (see [Narration and presentation](#narration-and-presentation)).
 - **Live re-derivation, not bounded scrub from trusted ingress alone:** the executor re-runs at execute time and the `MultiKeyUpdate` reducer re-validates the transfer (presence + boundary-edge classification) against freshly-fetched host graphs at commit time --- a concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 - **Character inventory:** **must** add every object in `objectIds` at target `characterId`; internal relational edges among the set are recreated on the destination host, derived live from the fetched source graph (not passed in).
 
