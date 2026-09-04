@@ -204,13 +204,24 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as setPresencePort', () => {
+    it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as addPresencePort/removePresencePort', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',
             hostId: tableId,
             port: { portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
         }
         const removeStep: MutationKernelStep = { kind: 'removeCrossingPort', hostId: tableId, portId: 'p1' }
+        expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
+        expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+
+    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet (RD-2)', () => {
+        const addStep: MutationKernelStep = {
+            kind: 'addPresencePort',
+            hostId: trayId,
+            port: { portId: 'p2', fromHostId: roomId, kind: 'Present' },
+        }
+        const removeStep: MutationKernelStep = { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId }
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })

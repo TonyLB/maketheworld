@@ -118,9 +118,15 @@ const confirmCarriedHost = (
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransferSet`/`removeObject`/`removeCharacter`) throw, uniformly in both modes --- not
- * a `MutationKernelApplyOutcome` verdict. Legitimate legality outcomes (stale candidate, `Custom`-edge defer,
- * `unresolvedDissolveEdge`) return through the discriminated result.
+ * inside `applyTransferSet`/`removeObject`/`removeCharacter`; the end-of-sequence character presence
+ * check below) throw, uniformly in both modes --- not a `MutationKernelApplyOutcome` verdict.
+ * Legitimate legality outcomes (stale candidate, `Custom`-edge defer, `unresolvedDissolveEdge`) return
+ * through the discriminated result.
+ *
+ * `addPresencePort`/`removePresencePort` (RD-2, 2026-09-04): the moved entity's own presence
+ * binding, one step per add or remove rather than one step replacing whatever was there --- see
+ * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
+ * removing an absent binding is a silent no-op.
  *
  * `capture` (PB-J): snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
@@ -245,15 +251,26 @@ export const applyStepSequenceCore = (
             continue
         }
 
-        if (step.kind === 'setPresencePort') {
+        if (step.kind === 'addPresencePort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
             }
-            const withoutPresence = graph.ports
-                .filter((port) => port.kind === 'Present')
+            graphs.set(step.hostId, graph.addPort(step.port))
+            continue
+        }
+        if (step.kind === 'removePresencePort') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            }
+            // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
+            // (RD-2): it is what lets the compiler emit one of these per departure host without
+            // knowing which one, if any, actually held the port.
+            const withoutBinding = graph.ports
+                .filter((port) => port.kind === 'Present' && port.fromHostId === step.fromHostId)
                 .reduce((current, port) => current.removePort(port.portId), graph)
-            graphs.set(step.hostId, step.port ? withoutPresence.addPort(step.port) : withoutPresence)
+            graphs.set(step.hostId, withoutBinding)
             continue
         }
 
@@ -300,6 +317,28 @@ export const applyStepSequenceCore = (
         })
         graphs.set(step.hostId, patched)
     }
+
+    // RD-2's other half: at-most-one presence stopped being reducer-enforced when `setPresencePort`
+    // split into add/remove, so it is re-enforced here for the one kind still restricted to it
+    // (RD-1, AGENT.contract.md's "a character's membership host is a ROOM, and only a ROOM ...
+    // it lifts when that work does"). Objects get no such check, deliberately --- multi-presence is
+    // the point of this whole plan. End-of-sequence, not per-step: the compiler emits remove-then-
+    // add, so a per-step check would make the invariant depend on emission order. This is a
+    // structural-invariant violation (BD-33's category, `types.ts`'s "Throw vs. verdict"), not a
+    // `MutationKernelApplyOutcome` verdict, and a ratchet on new writes, not a repair --- a
+    // character already carrying a stale or duplicate port before this sequence ran is untouched.
+    [...graphs.entries()]
+        .filter(([hostId]) => isEphemeraCharacterId(hostId))
+        .forEach(([hostId, graph]) => {
+            const presenceCount = graph.ports.filter((port) => port.kind === 'Present').length
+            if (presenceCount > 1) {
+                throw new Error(
+                    `applyStepSequenceCore: character ${hostId} would carry ${presenceCount} presence ports --- ` +
+                    `violates the single-hosted restriction in AGENT.contract.md ("A character's membership host is a ROOM, and only a ROOM ... it lifts when that work does"). ` +
+                    `If that restriction has been lifted, this validator should be removed, not bypassed.`
+                )
+            }
+        })
 
     return { verdict: 'legal', graphs, captures }
 }

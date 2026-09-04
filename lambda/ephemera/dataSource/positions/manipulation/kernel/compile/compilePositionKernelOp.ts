@@ -4,7 +4,7 @@ import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/e
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { KernelStep, MutationKernelCaptureStep, MutationKernelSetPresencePortStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
+import type { KernelStep, MutationKernelAddPresencePortStep, MutationKernelCaptureStep, MutationKernelRemovePresencePortStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
@@ -133,16 +133,25 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, object closures only (characters never carry one ---
-    // this is what keeps a bare `compilePositionKernelOp` widening from porting a character on
-    // every navigate). Presence is at-most-one (PR-10):
-    // `setPresencePort` replaces whatever was there, so no read of the prior port is needed here.
-    const presencePortSteps: MutationKernelSetPresencePortStep[] = op.moved.kind === 'closure' && op.to
-        ? [{
-            kind: 'setPresencePort',
-            hostId: primaryMovedId,
-            port: { portId: uuidv4(), fromHostId: op.to, kind: 'Present' },
-        }]
+    // one presence port per rehost, object closures only (characters never carry one --- this is
+    // what keeps a bare `compilePositionKernelOp` widening from porting a character on every
+    // navigate; RD-1/step 2 of the presence-refactor plan is what lifts this gate). RD-2
+    // (2026-09-04): a remove-then-add pair per rehost, rather than one replace-all step ---
+    // multiplicity now lives in the sequence, not the step, so a departure host with no existing
+    // binding just produces a no-op remove.
+    const presencePortSteps: (MutationKernelAddPresencePortStep | MutationKernelRemovePresencePortStep)[] = op.moved.kind === 'closure' && op.to
+        ? [
+            ...op.froms.map((fromHostId): MutationKernelRemovePresencePortStep => ({
+                kind: 'removePresencePort',
+                hostId: primaryMovedId,
+                fromHostId,
+            })),
+            {
+                kind: 'addPresencePort',
+                hostId: primaryMovedId,
+                port: { portId: uuidv4(), fromHostId: op.to, kind: 'Present' },
+            },
+        ]
         : []
 
     if (!op.narration) {

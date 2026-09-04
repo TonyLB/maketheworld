@@ -597,4 +597,81 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(roomId)).toBe(roomGraph)
         })
     })
+
+    describe('presence port steps (RD-2: addPresencePort/removePresencePort)', () => {
+        it('addPresencePort adds a Present port naming fromHostId to the target graph', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p1', fromHostId: roomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
+        })
+
+        it('removePresencePort removes the matching binding by fromHostId', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([])
+        })
+
+        it('removePresencePort against an absent binding is a silent no-op, not illegal', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: trayId, fromHostId: otherRoomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
+        })
+
+        it('a remove-then-add pair leaving one Present port on a character does not throw', () => {
+            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: characterId, fromHostId: roomId },
+                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(characterId)!.ports).toEqual([{ portId: 'p2', fromHostId: otherRoomId, kind: 'Present' }])
+        })
+
+        it('throws when a sequence would leave a character with two Present ports (RD-1 single-hosted restriction)', () => {
+            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            expect(() => applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))).toThrow(/AGENT\.contract\.md/)
+        })
+
+        it('does not throw when an object carries two Present ports --- multi-presence is the point for objects', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toHaveLength(2)
+        })
+    })
 })

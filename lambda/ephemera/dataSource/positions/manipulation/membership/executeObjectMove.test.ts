@@ -390,7 +390,7 @@ describe('executeObjectMove', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a successful commit') }
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'setPresencePort', 'capture', 'narrate', 'narrate',
+                'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
             ])
             expect(result.captures.get('capture:from:' + ROOM_ID)).toBeDefined()
         })
@@ -416,7 +416,7 @@ describe('executeObjectMove', () => {
             if (!result.ok) { throw new Error('expected a successful commit') }
             // Captures exist only to serve narration; a silent move should not lock hosts to
             // snapshot rosters nobody will read.
-            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership', 'setPresencePort'])
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership', 'removePresencePort', 'addPresencePort'])
         })
 
         it('returns ok: false without committing when the executor verdict is not legal', async () => {

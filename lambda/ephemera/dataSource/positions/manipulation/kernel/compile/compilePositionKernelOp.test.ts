@@ -194,7 +194,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         // publishes to nobody. That is the correct output of a uniform rule (PB-M), and suppressing
         // it here is how the host-changelog frame gets lost at the next caller.
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'setPresencePort', 'capture', 'narrate', 'narrate',
+            'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
         ])
         expect(plan.slots.map((slot) => slot.slotId)).toEqual([
             moveLeaveSlotId(FROM_ROOM),
@@ -251,7 +251,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'setPresencePort'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'removePresencePort', 'addPresencePort'])
         expect(plan.slots).toEqual([])
     })
 
@@ -277,9 +277,15 @@ describe('compilePositionKernelOp --- object moves', () => {
 
         it('mints a presence port naming the destination on every object rehost, containment or not', () => {
             const plan = compilePositionKernelOp(objectOp())
-            const portStep = plan.steps.find((step) => step.kind === 'setPresencePort')
-            expect(portStep).toMatchObject({
-                kind: 'setPresencePort',
+            const removeStep = plan.steps.find((step) => step.kind === 'removePresencePort')
+            expect(removeStep).toEqual({
+                kind: 'removePresencePort',
+                hostId: TRAY,
+                fromHostId: FROM_ROOM,
+            })
+            const addStep = plan.steps.find((step) => step.kind === 'addPresencePort')
+            expect(addStep).toMatchObject({
+                kind: 'addPresencePort',
                 hostId: TRAY,
                 port: { fromHostId: CHARACTER_ID, kind: 'Present' },
             })
@@ -294,7 +300,7 @@ describe('compilePositionKernelOp --- object moves', () => {
                 bundleId: 'BUNDLE#test',
                 headerSlot: null,
             })
-            expect(plan.steps.some((step) => step.kind === 'setPresencePort')).toBe(false)
+            expect(plan.steps.some((step) => step.kind === 'addPresencePort' || step.kind === 'removePresencePort')).toBe(false)
         })
 
         it('throws when containment is set with no destination', () => {
