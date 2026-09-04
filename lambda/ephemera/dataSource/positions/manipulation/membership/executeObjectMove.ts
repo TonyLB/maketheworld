@@ -16,6 +16,7 @@ import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
+import { presencePortStepsForMove } from '../kernel/compile/presencePortStepsForMove'
 import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
 import type { MutationKernelCaptures } from '../kernel/types'
 import type { HostRelationalEdge } from '../types'
@@ -307,12 +308,15 @@ export const executeMembershipTransfer = async (
         })
     }
 
-    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [{
-        kind: 'transferMembership',
-        entityIds: new Set([args.entityId]),
-        fromHostIds: new Set(froms),
-        toHostId: args.target,
-    }]
+    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [
+        {
+            kind: 'transferMembership',
+            entityIds: new Set([args.entityId]),
+            fromHostIds: new Set(froms),
+            toHostId: args.target,
+        },
+        ...presencePortStepsForMove(args.entityId, froms, args.target),
+    ]
 
     const result = await commitStepSequence(
         { steps: [...dissolveSteps, ...steps] },

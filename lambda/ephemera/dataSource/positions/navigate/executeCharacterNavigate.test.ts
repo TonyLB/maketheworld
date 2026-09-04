@@ -105,7 +105,7 @@ describe('executeCharacterNavigate', () => {
         const { compileMutationSteps } = applyCharacterRoomMembershipMock.mock.calls[0][0] as any
         const steps = compileMutationSteps({ froms: ['ROOM#VORTEX'], to: 'ROOM#TestTwo', changed: true })
 
-        expect(steps.map((step: any) => step.kind)).toEqual(['capture', 'transferMembership', 'capture'])
+        expect(steps.map((step: any) => step.kind)).toEqual(['capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture'])
     })
 
     it('still invokes tail helper when membership apply is a no-op', async () => {

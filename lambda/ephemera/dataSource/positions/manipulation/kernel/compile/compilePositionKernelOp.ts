@@ -1,13 +1,13 @@
-import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { KernelStep, MutationKernelAddPresencePortStep, MutationKernelCaptureStep, MutationKernelRemovePresencePortStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
+import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
+import { presencePortStepsForMove } from './presencePortStepsForMove'
 
 export type CompiledPositionKernelPlan = {
     steps: readonly KernelStep[]
@@ -133,26 +133,11 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, object closures only (characters never carry one --- this is
-    // what keeps a bare `compilePositionKernelOp` widening from porting a character on every
-    // navigate; RD-1/step 2 of the presence-refactor plan is what lifts this gate). RD-2
-    // (2026-09-04): a remove-then-add pair per rehost, rather than one replace-all step ---
-    // multiplicity now lives in the sequence, not the step, so a departure host with no existing
-    // binding just produces a no-op remove.
-    const presencePortSteps: (MutationKernelAddPresencePortStep | MutationKernelRemovePresencePortStep)[] = op.moved.kind === 'closure' && op.to
-        ? [
-            ...op.froms.map((fromHostId): MutationKernelRemovePresencePortStep => ({
-                kind: 'removePresencePort',
-                hostId: primaryMovedId,
-                fromHostId,
-            })),
-            {
-                kind: 'addPresencePort',
-                hostId: primaryMovedId,
-                port: { portId: uuidv4(), fromHostId: op.to, kind: 'Present' },
-            },
-        ]
-        : []
+    // one presence port per rehost, every mover regardless of host kind (RD-1, presence-refactor
+    // plan step 2 --- previously gated on `op.moved.kind === 'closure'`, excluding characters; that
+    // gate is lifted here). Mechanics --- the remove-then-add pair, the missing-clear fix --- live
+    // in `presencePortStepsForMove`, shared with `executeMembershipTransfer`'s default path (RD-3).
+    const presencePortSteps = presencePortStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {
         return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presencePortSteps], slots: headerSlotList }

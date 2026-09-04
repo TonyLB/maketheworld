@@ -91,12 +91,13 @@ describe('executeMembershipTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
         })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
-            hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
+            hostId === FROM_ROOM ? fromRoomGraph : hostId === TO_ROOM ? toRoomGraph : ownGraph
         )
-        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
+        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph, [OBJECT_ID]: ownGraph })
 
         const result = await executeMembershipTransfer({
             entityId: OBJECT_ID,
@@ -119,10 +120,13 @@ describe('executeMembershipTransfer', () => {
     })
 
     it('spawn shape: empty priorContainers, no sweep, no dissolve facts', async () => {
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);
-        (internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(toRoomGraph)
-        wireTransactWrite({ [TO_ROOM]: toRoomGraph })
+        (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === TO_ROOM ? toRoomGraph : ownGraph
+        )
+        wireTransactWrite({ [TO_ROOM]: toRoomGraph, [OBJECT_ID]: ownGraph })
 
         const result = await executeMembershipTransfer({
             entityId: OBJECT_ID,
@@ -134,16 +138,26 @@ describe('executeMembershipTransfer', () => {
         expect(result).toEqual(expect.objectContaining({ ok: true, froms: [], to: TO_ROOM, changed: true }))
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
+
+        // RD-3/RD-1: the default (no compileMutationSteps) path now mints a presence port too,
+        // not just a bare transferMembership step.
+        const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
+            .map(([graph]: any[]) => graph)
+            .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
+        expect(committedOwnGraph?.ports).toEqual([
+            expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }),
+        ])
     })
 
     it('clear shape: sweeps every current host (any kind), target null, no arrival row', async () => {
         const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] });
+        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
-            hostId === FROM_ROOM ? roomGraph : characterGraph
+            hostId === FROM_ROOM ? roomGraph : hostId === CHARACTER_ID ? characterGraph : ownGraph
         )
-        wireTransactWrite({ [FROM_ROOM]: roomGraph, [CHARACTER_ID]: characterGraph })
+        wireTransactWrite({ [FROM_ROOM]: roomGraph, [CHARACTER_ID]: characterGraph, [OBJECT_ID]: ownGraph })
 
         const result = await executeMembershipTransfer({
             entityId: OBJECT_ID,
@@ -161,6 +175,13 @@ describe('executeMembershipTransfer', () => {
         expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
             update: expect.objectContaining({ type: 'Object Moved', froms: [FROM_ROOM, CHARACTER_ID], to: null }),
         }))
+
+        // The missing-clear fix: a departure to no host still removes every prior binding, even
+        // though there is no destination to add one for.
+        const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
+            .map(([graph]: any[]) => graph)
+            .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
+        expect(committedOwnGraph?.ports).toEqual([])
     })
 
     it('suppressRelationalFacts: true suppresses the dissolve fact, Object Moved still streams (drift-repair usage)', async () => {
@@ -171,12 +192,13 @@ describe('executeMembershipTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
         })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
-            hostId === FROM_ROOM ? fromRoomGraph : toRoomGraph
+            hostId === FROM_ROOM ? fromRoomGraph : hostId === TO_ROOM ? toRoomGraph : ownGraph
         )
-        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
+        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph, [OBJECT_ID]: ownGraph })
 
         const result = await executeMembershipTransfer({
             entityId: OBJECT_ID,
@@ -193,10 +215,13 @@ describe('executeMembershipTransfer', () => {
 
     it('character entity: never runs the boundary sweep (no departure-graph fetch), only Character Moved streams', async () => {
         const fromRoomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        const ownGraph = testLudicGraph(CHARACTER_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
-        (internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(toRoomGraph)
-        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph })
+        (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === TO_ROOM ? toRoomGraph : ownGraph
+        )
+        wireTransactWrite({ [FROM_ROOM]: fromRoomGraph, [TO_ROOM]: toRoomGraph, [CHARACTER_ID]: ownGraph })
 
         const result = await executeMembershipTransfer({
             entityId: CHARACTER_ID,
@@ -292,7 +317,7 @@ describe('executeMembershipTransfer', () => {
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : hostId === TABLE_ID ? tableGraph : testLudicGraph(hostId as EphemeraRoomId, { nodes: [] })
         )
-        wireTransactWrite({ [FROM_ROOM]: roomGraph, [TABLE_ID]: tableGraph })
+        wireTransactWrite({ [FROM_ROOM]: roomGraph, [TABLE_ID]: tableGraph, [OBJECT_ID]: testLudicGraph(OBJECT_ID, { nodes: [] }) })
 
         // OBJECT_ID (the exterior/room-side primitive endpoint) is what the old boundary
         // sweep already dissolved correctly for a *plain* edge --- but it always skipped this

@@ -154,7 +154,7 @@ describe('handleConnectionsCharactersPresence', () => {
             const compileMutationSteps = applyCharacterRoomMembershipMock.mock.calls[0][0].compileMutationSteps!
             const steps = compileMutationSteps({ froms: [], to: 'ROOM#TownSquare', changed: true })
 
-            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'capture'])
+            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresencePort', 'capture'])
         })
     })
 
