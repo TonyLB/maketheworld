@@ -274,16 +274,15 @@ export async function compileRelationalFromSkeleton(
         // `sameHost`-only seed, per the existing `verdict !== 'legal'`-style drop-the-candidate
         // idiom) --- so it's filtered to establish/dissolve first, same as `executor.ts`'s own
         // `commandExpand` already does when it splits `buildCrossingLegs`'s combined output.
-        // Order is not arbitrary: `buildCrossingLegs.ts` mints each hop's `addCrossingPort`
-        // step immediately before the leg that references it, then appends the final chain
-        // step last (`[port, leg, ..., final]`); `commandExpand` splits that by kind into
-        // `outcome.steps` (legs/final) and `outcome.extraKernelSteps` (ports), discarding the
-        // per-hop interleaving. Within today's <=1-hop-per-side scope there is at most one
-        // port and it always precedes the one leg that needs it, so prepending every port step
-        // ahead of every relational step reconstructs the true order exactly. **Not general**:
-        // this reconstruction relies on the <=1-hop-per-side scope cut (`buildCrossingLegs`'s
-        // own guard) and would need revisiting if PV1-6 generalizes to chains on both sides at
-        // once, where a port and a leg could need to interleave more than once.
+        // `commandExpand` splits `buildCrossingLegs`'s combined, per-hop-interleaved output by
+        // kind into `outcome.steps` (legs/final) and `outcome.extraKernelSteps` (ports); this
+        // reconstructs it as every port step ahead of every relational step. **Confirmed general
+        // at any chain depth (PV1-6), not reliant on the old <=1-hop-per-side scope cut**:
+        // `applyStepSequenceCore`'s `hostsOf`/`confirmCarriedHost` and
+        // `EphemeraLudicGraph.bothObjectsOnGraph` all resolve a port-address endpoint to its
+        // **owner** only, never its `portId`, so an `addCrossingPort` step and any relational
+        // step referencing that port commute --- neither depends on the other having already
+        // run, regardless of how many ports or legs a chain carries.
         const relSteps = outcome.steps.filter(
             (step): step is ExecutorEstablishRelationStep | ExecutorDissolveRelationStep =>
                 step.kind === 'establishRelation' || step.kind === 'dissolveRelation'

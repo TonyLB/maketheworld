@@ -323,7 +323,10 @@ export type ExecutorOutcome =
      * ride `steps` (see `CommandExpandOutcome`'s doc comment) --- only present, and only
      * non-empty, when a `sameHost` crossing minted at least one `addCrossingPort`/
      * `removeCrossingPort`. A caller building a step sequence must include these alongside
-     * `steps`, in the order collected (no ordering dependency between them and the legs today).
+     * `steps`, in the order collected --- no ordering dependency between them and the legs, at
+     * any chain depth (PV1-6: `addCrossingPort`/`removeCrossingPort` and a relational step
+     * referencing that port commute, since port-address validation is owner-only, never by
+     * `portId`; see `compileRelationalFromSkeleton.ts`'s own merge for the full trace).
      */
     | { verdict: 'legal'; steps: readonly ExecutorParsePlanStep[]; extraKernelSteps?: readonly MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }

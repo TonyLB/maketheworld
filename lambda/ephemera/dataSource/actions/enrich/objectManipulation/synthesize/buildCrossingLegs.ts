@@ -23,43 +23,49 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * PV1-3's crossing-port producer, general case, consuming `findShardBoundary`'s `'crossed'`
  * result. `subjectPath`/`targetPath` are ordered nearest-endpoint-first, ending at
  * `commonAncestor` (see `findShardBoundary.ts`); their length is the number of hosts crossed,
- * inclusive of the common ancestor itself.
+ * inclusive of the common ancestor itself. `h_i`'s own immediate container is exactly the next
+ * path entry, `h_{i+1}` --- that is how `findShardBoundary`/`pathToAncestor` built the path.
  *
- * Each crossing gets exactly one fresh `EphemeraCrossingPort`, minted here (the one place this
- * relation's edges gain identity for the first time) and stored on the **interior** side ---
- * whichever host is nearer the endpoint the relation is reaching toward, mirroring the readout's
- * own asymmetry (PV1-0: the table, not the room, holds the port record for the room/table
- * crossing). A leg living in a host's own graph either starts from that host's own freshly-minted
- * port (self-owned, when this leg is itself the interior side of a crossing) or from the real
- * endpoint (subject/target) directly, when there is no further hop to cross first.
+ * **PV1-6 generalizes the original single-hop code's two blocks into loops**, one hop at a time,
+ * each mirroring the other:
  *
- * **A path length of 0 and of 1 mean the same thing here** -- "use the raw endpoint, mint no
- * port". Length 1 is "this endpoint sits directly in the common ancestor's graph"; length 0 is
- * "this endpoint *is* the common ancestor, and is its own graph's root node" (PV1-3b-8's
- * zero-hop ancestry, `findShardBoundary.ts`). Only length 2 mints a port, which is why both
- * blocks below test `=== 2` rather than branching on emptiness.
+ * - **Ascending (subject -> ancestor), source-to-ancestor order:** for each `subjectPath` entry
+ *   but the last (`h0, ..., h(Ns-2)`), mint a fresh `EphemeraCrossingPort` at `hostId: hi` with
+ *   `fromHostId: h(i+1)` (`hi`'s own immediate container), then push an edge `{ subjectId:
+ *   <running subject-side terminal>, targetId: <this hop's fresh port address>, hostId: hi }` ---
+ *   the known/interior side stays `subjectId`, the freshly-minted-and-further-out port is
+ *   `targetId`. The running terminal becomes that port for the next hop.
+ * - **Descending (target -> ancestor), *target-path's own native* nearest-target-first order:**
+ *   the mirror, one hop at a time over `targetPath`'s entries but the last (`k0, ..., k(Nt-2)`,
+ *   i.e. innermost/nearest-target first): mint a port at `hostId: ki`, `fromHostId: k(i+1)`, then
+ *   push an edge `{ subjectId: <this hop's fresh port address>, targetId: <running target-side
+ *   terminal>, hostId: ki }` --- reversed from the ascending loop, matching the original
+ *   single-hop target-side block's own convention exactly.
+ * - **The chain's own designated relation, pushed last regardless of depth on either side:**
+ *   `{ subjectId: <ascending loop's final terminal, or the raw subjectId if that loop never ran>,
+ *   targetId: <descending loop's final terminal, or the raw targetId if that loop never ran>,
+ *   hostId: commonAncestor }`. This one step also covers the fully-degenerate case (both loops
+ *   empty): a single portless edge `subjectId -> targetId` at `commonAncestor` --- today's
+ *   existing portless behavior, unchanged.
  *
- * **Scope cut, deliberate:** supports at most one extra hop per side (`subjectPath`/`targetPath`
- * length <= 2), and never both sides having an extra hop at once --- that combination needs a
- * *middle* leg between two port addresses with no primitive endpoint at all, which
- * `applyStepSequenceCore`'s host-resolution (PV1-3b-7 onward: an assertion against a carried
- * `hostId`, not a derive-from-endpoint-ids resolver) still cannot resolve a *middle* leg with no
- * primitive endpoint on either side --- there is no single host to carry there either. Reports
- * `notYetImplemented` for that case, the same shape `findShardBoundary` already uses for its own
- * unsupported (`ambiguous`) case, rather than emitting steps that would later throw at apply time.
+ * Each port's `addCrossingPort` step is pushed immediately before the leg that references it,
+ * matching the original single-hop code's shape --- confirmed (PV1-6) that strict interleaving
+ * is not actually required for correctness (`addCrossingPort` and edge steps commute:
+ * `applyStepSequenceCore`'s `hostsOf`/`confirmCarriedHost` and
+ * `EphemeraLudicGraph.bothObjectsOnGraph` all resolve a port-address endpoint to its **owner**
+ * only, never its `portId`, so neither step kind depends on the other having already run), but
+ * the convention keeps the step array's own order legible, and matches every existing test's
+ * expected step order unchanged.
+ *
+ * **Dissolving an actual crossing stays unbuilt and reports `notYetImplemented`**: a real
+ * crossing (either path length `>= 2`) would also need to *remove* the crossing port(s) it once
+ * minted, which this function only ever adds --- left for whichever slice needs it. Only the
+ * no-port (portless leg) degenerate case supports dissolve today.
  *
  * `operationKind` picks `establishRelation`/`dissolveRelation` for the final step (PV1-3b-4 ---
  * the collapsed ingress seed no longer carries a sibling relational step of its own, so this
  * function is now the only source of that step for every same-host candidate, dissolves
- * included, not just the crossing ones). **Dissolving an actual crossing stays unbuilt and
- * reports `notYetImplemented`**: a real crossing (either path length `=== 2`) would also need to
- * *remove* the crossing port(s) it once minted, which this function only ever adds --- left for
- * whichever slice needs it. Only the no-port (portless leg) degenerate case supports dissolve
- * today.
- *
- * **`hostId` (PV1-3b-7):** each hop leg carries `nearHost` (the same host its own freshly-minted
- * port is added to); the final chain step carries `commonAncestor` (both its entries, primitive or
- * port address, are referenced from that host's own graph once any crossing is placed).
+ * included, not just the crossing ones).
  */
 export const buildCrossingLegs = (
     input: {
@@ -76,16 +82,7 @@ export const buildCrossingLegs = (
         ? { relationKind: 'Custom', relationLabel: input.relationLabel }
         : { relationKind: input.relationKind }
 
-    if (subjectPath.length > 2 || targetPath.length > 2) {
-        return { verdict: 'notYetImplemented', reason: 'buildCrossingLegs: chains deeper than one extra hop per side are not yet supported' }
-    }
-    if (subjectPath.length === 2 && targetPath.length === 2) {
-        return {
-            verdict: 'notYetImplemented',
-            reason: 'buildCrossingLegs: a middle leg with two port-address endpoints (both sides one extra hop deep) is not yet supported',
-        }
-    }
-    if (operationKind === 'dissolveRelation' && (subjectPath.length === 2 || targetPath.length === 2)) {
+    if (operationKind === 'dissolveRelation' && (subjectPath.length >= 2 || targetPath.length >= 2)) {
         return {
             verdict: 'notYetImplemented',
             reason: 'buildCrossingLegs: dissolving a relation that crosses a real shard boundary is not yet supported --- it would also need to remove the crossing port(s) this function only ever adds',
@@ -94,26 +91,35 @@ export const buildCrossingLegs = (
 
     const steps: MutationKernelStep[] = []
 
-    let subjectEntry: EphemeraLudicTerminalId = subjectId
-    if (subjectPath.length === 2) {
-        const [nearHost] = subjectPath
+    const mintPortAt = (hostId: EphemeraMembershipHostId, fromHostId: EphemeraMembershipHostId): EphemeraLudicTerminalId => {
         const portId = uuidv4()
-        const port: EphemeraCrossingPort = { portId, fromHostId: commonAncestor, ...portFieldsFrom(kindAndLabel) }
-        steps.push({ kind: 'addCrossingPort', hostId: nearHost, port })
-        subjectEntry = { owner: nearHost, port: portId }
-        steps.push({ kind: 'establishRelation', subjectId, targetId: subjectEntry, hostId: nearHost, ...kindAndLabel })
+        const port: EphemeraCrossingPort = { portId, fromHostId, ...portFieldsFrom(kindAndLabel) }
+        steps.push({ kind: 'addCrossingPort', hostId, port })
+        return { owner: hostId, port: portId }
     }
 
-    let targetEntry: EphemeraLudicTerminalId = targetId
-    if (targetPath.length === 2) {
-        const [nearHost] = targetPath
-        const portId = uuidv4()
-        const port: EphemeraCrossingPort = { portId, fromHostId: commonAncestor, ...portFieldsFrom(kindAndLabel) }
-        steps.push({ kind: 'addCrossingPort', hostId: nearHost, port })
-        targetEntry = { owner: nearHost, port: portId }
-        steps.push({ kind: 'establishRelation', subjectId: targetEntry, targetId, hostId: nearHost, ...kindAndLabel })
-    }
+    // One hop at a time, source-to-ancestor order, minting this hop's port and pushing the leg
+    // that references it immediately after (existing merge-order convention). `edgeFor` is the
+    // one place the two sides diverge: ascending (subject), the known/running terminal stays
+    // `subjectId` and the fresh port takes `targetId`; descending (target, walked in
+    // `targetPath`'s own native nearest-target-first order), that's reversed --- mirroring the
+    // original single-hop code's two blocks exactly, just generalized to any depth.
+    const mintChain = (
+        path: EphemeraMembershipHostId[],
+        initialEntry: EphemeraLudicTerminalId,
+        edgeFor: (port: EphemeraLudicTerminalId, running: EphemeraLudicTerminalId) => { subjectId: EphemeraLudicTerminalId; targetId: EphemeraLudicTerminalId }
+    ): EphemeraLudicTerminalId =>
+        path.slice(0, -1).reduce((entry, hostId, i) => {
+            const port = mintPortAt(hostId, path[i + 1]!)
+            steps.push({ kind: operationKind, ...edgeFor(port, entry), hostId, ...kindAndLabel })
+            return port
+        }, initialEntry)
 
+    const subjectEntry = mintChain(subjectPath, subjectId, (port, running) => ({ subjectId: running, targetId: port }))
+    const targetEntry = mintChain(targetPath, targetId, (port, running) => ({ subjectId: port, targetId: running }))
+
+    // The chain's own designated relation, pushed last regardless of depth on either side:
+    // connects the two sides' resulting terminals at their shared common ancestor.
     steps.push({ kind: operationKind, subjectId: subjectEntry, targetId: targetEntry, hostId: commonAncestor, ...kindAndLabel })
 
     return { verdict: 'built', steps }
