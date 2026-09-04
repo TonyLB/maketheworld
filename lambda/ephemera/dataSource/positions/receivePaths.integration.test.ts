@@ -438,7 +438,7 @@ describe('positions receive paths (integration)', () => {
             )
         })
 
-        it('routes a genuine crossing (PV1-0\'s tie string to cup shape) through executeEstablishEdgeChain with every step intact', async () => {
+        it('routes a genuine crossing (tie string to cup shape) through executeEstablishEdgeChain with every step intact', async () => {
             const steps = [
                 {
                     kind: 'addCrossingPort',
@@ -516,7 +516,7 @@ describe('positions receive paths (integration)', () => {
             )
         })
 
-        it("routes a genuine crossing dissolve (PV1-0's tie string to cup shape, reversed) through executeEstablishEdgeChain with every step intact --- PV1-3b-16", async () => {
+        it("routes a genuine crossing dissolve (tie string to cup shape, reversed) through executeEstablishEdgeChain with every step intact", async () => {
             const steps = [
                 {
                     kind: 'dissolveRelation',

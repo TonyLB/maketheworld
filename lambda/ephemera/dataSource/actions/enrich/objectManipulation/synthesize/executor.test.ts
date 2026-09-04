@@ -128,7 +128,7 @@ describe('runExecutor', () => {
         )
 
         // Only the sameHost assertion is seeded --- there is no sibling establishRelation
-        // instruction at all any more (PV1-3b-4 collapsed the seed). A direct rope->cup edge is
+        // instruction at all any more (the seed is collapsed). A direct rope->cup edge is
         // never valid once the relation crosses a boundary (they never come to share a host), so
         // the crossing legs below are the assertion's own children, same as the portless-leg
         // same-host case above --- a caller wiring this route for real must seed accordingly (see

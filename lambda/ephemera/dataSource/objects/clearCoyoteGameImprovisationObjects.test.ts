@@ -21,7 +21,7 @@ const OBJECT_ROOM = 'OBJECT#RoomProp' as EphemeraObjectId
 const OBJECT_HELD = 'OBJECT#HeldProp' as EphemeraObjectId
 
 /**
- * PV1-3c's phase-1 dissolve pass needs `getMembershipContainers`/`getGraph` --- none of these
+ * The phase-1 dissolve pass needs `getMembershipContainers`/`getGraph` --- none of these
  * fixtures carry any relational edges, so it always finds zero chains to dissolve, but the
  * defaults reach real gateways (`internalCache.Positions.*`) if left unset, which times out
  * against a real AWS call in a unit test. `getGraph` returning an empty graph for anything not

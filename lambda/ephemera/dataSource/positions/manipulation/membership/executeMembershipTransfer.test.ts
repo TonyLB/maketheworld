@@ -294,7 +294,7 @@ describe('executeMembershipTransfer', () => {
         )
         wireTransactWrite({ [FROM_ROOM]: roomGraph, [TABLE_ID]: tableGraph })
 
-        // OBJECT_ID (the exterior/room-side primitive endpoint) is what the pre-PV1-3c boundary
+        // OBJECT_ID (the exterior/room-side primitive endpoint) is what the old boundary
         // sweep already dissolved correctly for a *plain* edge --- but it always skipped this
         // edge outright, since its far endpoint is a port address, not a primitive. Without the
         // fix, `removeObject` would throw here instead of committing cleanly.

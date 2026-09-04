@@ -135,7 +135,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     // one presence port per rehost, object closures only (characters never carry one ---
     // this is what keeps a bare `compilePositionKernelOp` widening from porting a character on
-    // every navigate, see the checklist's own note for PV1-5). Presence is at-most-one (PR-10):
+    // every navigate). Presence is at-most-one (PR-10):
     // `setPresencePort` replaces whatever was there, so no read of the prior port is needed here.
     const presencePortSteps: MutationKernelSetPresencePortStep[] = op.moved.kind === 'closure' && op.to
         ? [{

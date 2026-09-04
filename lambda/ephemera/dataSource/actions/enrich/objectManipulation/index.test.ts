@@ -251,7 +251,7 @@ describe('enrichObjectManipulation', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, both items already share that host --- PV1-3b-4: resolves as a portless crossing leg)', async () => {
+    it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, both items already share that host --- resolves as a portless crossing leg)', async () => {
         const stringId = 'OBJECT#String' as EphemeraObjectId
         const topId = 'OBJECT#Top' as EphemeraObjectId
         const heldGraph = testLudicGraph(characterId, {

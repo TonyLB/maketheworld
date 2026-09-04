@@ -23,7 +23,7 @@ export type ExpandSameHostResult =
  * BD-16's second Expansion instance: "a relation is intended --- where does it
  * go?" Originally the mirror image of `expandTransferMembership.ts` (BD-13),
  * answering it with a *transfer*: move the subject onto the object's host and
- * call the precondition repaired. **PV1-3b-9 (2026-09-01) retired that answer.**
+ * call the precondition repaired. **That answer was retired, 2026-09-01.**
  * A violated `sameHost` on a peer relation is not a sign that something is in
  * the wrong place --- it is the ordinary case of two things in different shards
  * that a relation must span, which is what crossing ports exist for. So the
@@ -31,12 +31,11 @@ export type ExpandSameHostResult =
  * and what legs express it?", and a peer relation that cannot be expressed
  * declines rather than relocating either endpoint.
  *
- * **PV1-3b-4 (2026-09-01) retired the `satisfied` fast path too.** It used to
+ * **The `satisfied` fast path was retired too, 2026-09-01.** It used to
  * decide "do these already share a host?" by fetching the subject's current
  * host graph and calling `bothObjectsOnGraph` directly, entirely bypassing
  * `findShardBoundary`/`buildCrossingLegs` below --- a second implementation of
- * exactly the degenerate case those two already handle correctly since
- * PV1-3b-8 (an endpoint is its own zero-hop ancestor, so an already-shared
+ * exactly the degenerate case those two already handle correctly (an endpoint is its own zero-hop ancestor, so an already-shared
  * host resolves to a single portless leg, not a boundary crossing). Every
  * peer-kind candidate, same-host included, now walks (`findShardBoundary`)
  * then builds (`buildCrossingLegs`) unconditionally; there is no longer a
@@ -53,7 +52,7 @@ export type ExpandSameHostResult =
  * not decide how Grounding and Expansion interleave (`AGENT.concepts.md`, "Synthesize's three
  * sub-roles") --- this function only operates on already-grounded ids.
  *
- * **PV1-3b-14: `establishRelation` and `dissolveRelation` ask genuinely different questions of
+ * **`establishRelation` and `dissolveRelation` ask genuinely different questions of
  * genuinely different state**, and now call genuinely different primitives --- `findShardBoundary`
  * (containment ancestry: "where do I mint a fresh chain?") for establish,
  * `findRelationalChain` (existing relational edges/ports: "what chain already connects them?")
@@ -117,7 +116,7 @@ export const expandSameHost = (
         if (operationKind === 'establishRelation') {
             // a violated peer relation is not a misplacement to be repaired --- it may
             // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
-            // union's own doc comment). PV1-3b-9 widened this from `Custom`-only:
+            // union's own doc comment). This was widened from `Custom`-only:
             // `buildCrossingLegs` was already general over kinds (it mints a bare-`kind` port for
             // the enum relations), and the gate was the only thing holding `Under`/`Against` back.
             const boundary = findShardBoundary({ subjectId, targetId: objectId }, env.getMembershipContainers)

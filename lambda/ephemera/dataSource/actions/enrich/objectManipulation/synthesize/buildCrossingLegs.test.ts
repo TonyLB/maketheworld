@@ -11,7 +11,7 @@ const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 
-// A branching tree for PV1-6's "both sides at once"/general-depth cases: A contains B; B
+// A branching tree for the "both sides at once"/general-depth cases: A contains B; B
 // contains C and E; C contains D (and, in the deeper variant, D2 contains D); E contains F.
 const B_ID = 'OBJECT#B' as EphemeraObjectId
 const C_ID = 'OBJECT#C' as EphemeraObjectId
@@ -21,7 +21,7 @@ const E_ID = 'OBJECT#E' as EphemeraObjectId
 const F_ID = 'OBJECT#F' as EphemeraObjectId
 
 describe('buildCrossingLegs', () => {
-    it("PV1-0's own readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
+    it("the readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -383,7 +383,7 @@ describe('buildCrossingLegs', () => {
 })
 
 describe('buildCrossingDissolveLegs', () => {
-    it("PV1-0's own readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
+    it("the readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const steps: RelationalChainStep[] = [
             { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' } },

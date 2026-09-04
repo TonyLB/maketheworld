@@ -16,7 +16,7 @@ describe('executeEstablishEdgeChain', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn()
 
-    it("commits PV1-0's own readout chain (one addCrossingPort, two establishRelation legs) unmerged and in order", async () => {
+    it("commits the string-in-room / cup-on-table crossing chain (one addCrossingPort, two establishRelation legs) unmerged and in order", async () => {
         commitStepSequenceMock.mockResolvedValue({
             ok: true,
             beatAnchorTime: 12345,
@@ -111,7 +111,7 @@ describe('executeEstablishEdgeChain', () => {
         consoleErrorSpy.mockRestore()
     })
 
-    it("commits a dissolve-shaped chain (PV1-0's own readout reversed: two dissolveRelation legs, one removeCrossingPort) --- PV1-3b-16, proving executeEstablishEdgeChain is operationKind-agnostic", async () => {
+    it("commits a dissolve-shaped chain (the crossing chain reversed: two dissolveRelation legs, one removeCrossingPort), proving executeEstablishEdgeChain is operationKind-agnostic", async () => {
         commitStepSequenceMock.mockResolvedValue({
             ok: true,
             beatAnchorTime: 54321,

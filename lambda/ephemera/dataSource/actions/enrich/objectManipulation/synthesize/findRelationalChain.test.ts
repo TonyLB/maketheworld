@@ -40,7 +40,7 @@ describe('findRelationalChain', () => {
         })
     })
 
-    it("finds PV1-0's own readout chain: string in room, cup on table, one crossing port on the table (interior) side", () => {
+    it("finds the string-in-room / cup-on-table crossing chain: one crossing port on the table (interior) side", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID)
@@ -169,7 +169,7 @@ describe('findRelationalChainFromLeg', () => {
         })
     })
 
-    it("resolves PV1-0's readout chain seeded from the exterior (room-side) leg", () => {
+    it("resolves the string-in-room / cup-on-table crossing chain seeded from the exterior (room-side) leg", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
@@ -190,7 +190,7 @@ describe('findRelationalChainFromLeg', () => {
         })
     })
 
-    it("resolves the same chain seeded from the interior (table-side) leg --- PV1-3c's directional-bug fix, never exercised before this row", () => {
+    it("resolves the same chain seeded from the interior (table-side) leg --- the directional-bug fix, never exercised before this row", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
@@ -198,7 +198,7 @@ describe('findRelationalChainFromLeg', () => {
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
-        // Seeded from the *interior* edge this time --- the pre-PV1-3c walk would have recursed
+        // Seeded from the *interior* edge this time --- the old walk would have recursed
         // back into table's own graph looking for the continuing edge and wrongly declined, since
         // the exterior edge lives in the room's graph, not table's.
         const result = findRelationalChainFromLeg({ hostId: TABLE_ID, edge: interiorEdge }, { getGraph })

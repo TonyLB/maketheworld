@@ -173,7 +173,7 @@ describe('expandSameHost', () => {
         // The label used to be missing from every live seed, and this shape fell through to the
         // BD-10 defer as though an LLM could resolve it. It cannot: a Custom relation *is* its
         // label, so with none there is no relation to reason about. The two must stay
-        // distinguishable in wording, for the same reason PV1-3b-9's pair of defers must be ---
+        // distinguishable in wording, for the same reason `Under`/`Against`'s pair of defers must be ---
         // the reason string is what routes the follow-up.
         const unlabelled = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' },
@@ -195,7 +195,7 @@ describe('expandSameHost', () => {
     it('the malformed-input check precedes every state lookup --- it asks nothing about the world', () => {
         // Asserted rather than left to branch order: with no membership-container data available
         // at all, a label-less Custom still reports the label problem, not a boundary-lookup
-        // failure. The guard has to survive PV1-3b-4's deletion of the host/graph lookups that
+        // failure. The guard has to survive the deletion of the host/graph lookups that
         // used to sit below it.
         const result = expandSameHost({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' })
 
@@ -222,7 +222,7 @@ describe('expandSameHost', () => {
             })
         })
 
-        it("a genuine crossing dissolve (PV1-0's own readout chain, reversed) resolves via findRelationalChain/buildCrossingDissolveLegs, where buildCrossingLegs would have reported notYetImplemented", () => {
+        it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain/buildCrossingDissolveLegs, where buildCrossingLegs would have reported notYetImplemented", () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(NECKLACE_ID)

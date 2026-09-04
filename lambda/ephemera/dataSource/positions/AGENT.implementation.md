@@ -46,7 +46,7 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 Use when an atomic operator transfers an **`Object`** node between **membership hosts** (v1: room <-> character inventory). Cross-lane hub: [`../../diegeticLogic/AGENT.implementation.md`](../../diegeticLogic/AGENT.implementation.md). Actions egress playbook: [**Adding an atomic position-manipulation operator**](../actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator).
 
-1. **Authority** --- every object-lifecycle membership change (spawn/place/remove/drift-repair/take-hold/drop/give) reaches the kernel through **`positions/manipulation/membership/`** (`executeObjectMove`/`executeMembershipTransfer`), PV1-1b's single pipeline. Import shared primitives (**[`ludicGraph/`](ludicGraph/)**, **`buildObjectMovedFact`**, transact item builders).
+1. **Authority** --- every object-lifecycle membership change (spawn/place/remove/drift-repair/take-hold/drop/give) reaches the kernel through **`positions/manipulation/membership/`** (`executeObjectMove`/`executeMembershipTransfer`), a single pipeline. Import shared primitives (**[`ludicGraph/`](ludicGraph/)**, **`buildObjectMovedFact`**, transact item builders).
 
 2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts). If the operator is a **membership move**, it very likely does **not** need a new execute module: name its host pair and route to [`orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts). `give` is the worked example --- `(CHARACTER# -> CHARACTER#)` needs no new code below ingress.
 

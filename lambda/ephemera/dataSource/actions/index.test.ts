@@ -2239,7 +2239,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     subjectId: 'OBJECT#String',
                     targetId: 'OBJECT#Cup',
-                    // The last step's hostId --- narration-only, per PV1-3b-2.
+                    // The last step's hostId --- narration-only.
                     hostId: 'OBJECT#Table',
                     relationKind: 'Custom',
                     relationLabel: 'tied to',
@@ -2318,7 +2318,7 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
                 confidence: 0.9,
-                // No steps at all --- PV1-3b-1: no host to be in a room with, same as the old
+                // No steps at all --- no host to be in a room with, same as the old
                 // `hostId: null` sentinel this replaces.
                 steps: [],
             })

@@ -261,7 +261,7 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * carry closure this function's callers never have.
  *
  * Absorbed from `applyObjectRoomMembership`/`applyObjectClearMembership`/
- * `applyCharacterRoomMembership`'s membership half (object-lifecycle Migrate row, PV1-1b) ---
+ * `applyCharacterRoomMembership`'s membership half (object-lifecycle Migrate row) ---
  * one function instead of three near-identical bodies differing only in host-kind filtering
  * and entity kind.
  */

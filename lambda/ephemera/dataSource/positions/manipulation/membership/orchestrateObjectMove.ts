@@ -27,7 +27,7 @@ export type OrchestrateObjectMoveArgs = {
      */
     roomId: EphemeraRoomId;
     /**
-     * PV1-2 follow-up: also taken explicitly, for the same reason `roomId` was --- a
+     * Also taken explicitly, for the same reason `roomId` was --- a
      * containment move's `toHostId` can be an object (a tray), so a rehost between two objects
      * (`fromHostId` and `toHostId` both objects, e.g. moving a cup that is already sitting in a
      * room onto a table) has no character among its two hosts at all. Deriving `characterId` by

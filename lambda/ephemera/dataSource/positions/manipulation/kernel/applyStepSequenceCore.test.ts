@@ -121,11 +121,11 @@ describe('applyStepSequenceCore', () => {
     it('AB-54 hosting kinds: establishRelation carries the correct host explicitly, not resolved by intersection (put cup on table)', () => {
         // `tableId` is simultaneously an ordinary member of the room's graph (it sits there) *and*
         // the self-referencing root of its own shard graph (a hosting kind puts the moved object
-        // there, AB-54) --- both graphs are locked in the same footprint. Pre-PV1-3b-7, an
+        // there, AB-54) --- both graphs are locked in the same footprint. Previously, an
         // intersection-based resolver had to disambiguate this at commit time (the historical bug:
         // a first-match-per-side scan could pick the room for `tableId` while `trayId`, just
         // transferred, only resolves in the table's own shard, spuriously throwing "do not share a
-        // host" for a perfectly legal move). Post-PV1-3b-7, Expansion already carries `hostId:
+        // host" for a perfectly legal move). Now, Expansion already carries `hostId:
         // tableId` on the step, so `confirmCarriedHost` only needs to confirm it, not resolve it.
         const roomGraph = testLudicGraph(roomId, {
             nodes: [

@@ -91,8 +91,7 @@ export type ObjectEstablishRelationPublishedPayload = {
     hostId: EphemeraMembershipHostId;
     confidence?: number;
     /**
-     * the Expansion-derived mutation-kernel step chain (PV1-3b-1's
-     * `ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
+     * the Expansion-derived mutation-kernel step chain (`ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
      * boundary unchanged) --- what `executeEstablishEdgeChain` actually commits. A portless/
      * same-host candidate carries exactly one `establishRelation` entry; a genuine crossing
      * carries one `addCrossingPort` plus a hop leg per side, in production order (port steps
@@ -110,14 +109,14 @@ export type ObjectDissolveRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /**
      * Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only
-     * `roomId`) --- narration/perception use only (PV1-3b-15):
+     * `roomId`) --- narration/perception use only:
      * `objectManipulationPresentationLegAdapters.ts` gates narration on this being a Room.
      * See `steps`, where a genuine crossing dissolve carries more than one host.
      */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
     /**
-     * PV1-3b-15, mirroring PV1-3b-2: the Expansion-derived mutation-kernel step chain
+     * Mirroring the establish side: the Expansion-derived mutation-kernel step chain
      * (`ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
      * boundary unchanged) for a dissolve candidate. A portless/same-host candidate carries
      * exactly one `dissolveRelation` entry; a genuine crossing dissolve carries a
@@ -231,7 +230,7 @@ export const isObjectDissolveRelationPublishedPayload = (
     return Array.isArray(v.steps) && v.steps.length > 0 && v.steps.every(isPublishedMutationKernelStep)
 }
 
-/** AB-54 hosting kinds; only `'On'` is ever emitted today (PV-1 builds one hosting kind). */
+/** AB-54 hosting kinds; only `'On'` is ever emitted today (only one hosting kind is built). */
 export type ContainmentKindPublished = 'On' | 'In' | 'PartOf'
 
 const CONTAINMENT_KINDS_PUBLISHED = new Set<ContainmentKindPublished>(['On', 'In', 'PartOf'])

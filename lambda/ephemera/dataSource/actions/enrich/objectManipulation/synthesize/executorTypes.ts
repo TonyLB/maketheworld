@@ -34,7 +34,7 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * LP7) already carry the wider type; this step type was the one place still
  * narrower than the edge it produces. A leg is an ordinary `establishRelation`/
  * `dissolveRelation` step living entirely within one host's own graph --- no new
- * "leg" step kind, per PV1-3's plan review.
+ * "leg" step kind.
  *
  * **`hostId` added:** mandatory, computed once at Expansion
  * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) rather than
@@ -107,9 +107,9 @@ export type GroundedBinaryAssertion = {
 }
 
 /**
- * PV1-3b-4 split this out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
+ * This is split out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
  * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
- * `negate` was already dropped, PV1-3b-10), so once `containedBy`'s `negate` went back to being
+ * `negate` was already dropped), so once `containedBy`'s `negate` went back to being
  * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
  * doc comment in `ungroundedPrimitive.ts` for `relationKind`'s own carried-copy rationale;
  * `relationLabel` is `relationKind: 'Custom'` only --- the crossing-port producer's

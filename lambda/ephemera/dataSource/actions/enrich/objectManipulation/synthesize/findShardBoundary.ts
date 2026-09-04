@@ -9,7 +9,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 /**
- * PV1-3's general-case shard-boundary predicate. Unlike `expandSameHost.ts` (which asks "do
+ * The general-case shard-boundary predicate. Unlike `expandSameHost.ts` (which asks "do
  * these two already share a host?"), this asks "is there ANY host either endpoint's containment
  * ancestry reaches that the other's also reaches?" -- the third `expandSameHost` outcome
  * (crossing a boundary with a port pair) needs this answer before it can build legs.
@@ -119,7 +119,7 @@ const walkAncestry = (
  * needs to answer "what are X's containers" for any node this walk reached, and `findShardBoundary`
  * re-derives depth/paths itself, synchronously, once that map is in hand.
  *
- * `depthCap` (default 5, PV1-1's existing testing bound) stops a branch after that many hops
+ * `depthCap` (default 5, matching the existing referent-search testing bound) stops a branch after that many hops
  * rather than walking indefinitely. `startId` is not recorded as its own entry -- unlike
  * `walkAncestry`'s depth-0 seed, there is nothing to answer for `startId` itself here except its
  * own containers, which the first frontier step already fetches and records.

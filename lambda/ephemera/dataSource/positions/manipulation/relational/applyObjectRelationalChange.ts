@@ -27,7 +27,7 @@ export type ApplyObjectRelationalChangeDependencies = {
  * establishRelation]` --- re-deriving the repair transfer's carry closure and boundary
  * sweep fresh at commit time from a `transferFromHostId` carried across the wire.
  *
- * **PV1-3b-9 (2026-09-01) retired that second branch entirely**, along with the wire
+ * **That second branch was retired entirely, 2026-09-01**, along with the wire
  * field that fed it. A relation whose endpoints are in different shards is no longer
  * something to fix by moving an endpoint; it is a crossing, built as legs at Plan stage.
  * So this route commits one step and never moves membership. Transfers still exist ---

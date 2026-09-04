@@ -70,7 +70,7 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
  * currentHost(actingCharacter) (BD-6's default) --- that default is discarded,
  * not read, once Expansion runs (Migrate slice, 2026-07-23): per candidate,
  * this seeds the general Synthesize executor with a single grounded `sameHost`
- * instruction (PV1-3b-4 collapsed the seed --- it used to carry a sibling
+ * instruction (the seed used to carry a sibling
  * `relationalChange` instruction too, retired unmodified whenever the
  * assertion was satisfied; that contract no longer holds once every case,
  * including same-host, resolves through `findShardBoundary`/
@@ -78,8 +78,8 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
  * directly as the assertion's own children. A same-host pair resolves to a
  * zero-hop common ancestor and a single portless leg; a genuinely
  * violated peer relation either becomes crossing legs across a real boundary
- * or declines (`defer`) --- PV1-3b-9 (2026-09-01) retired the old
- * `transferMembership` repair outcome entirely, so there is no longer a
+ * or declines (`defer`) --- the old `transferMembership` repair outcome was
+ * retired entirely, 2026-09-01, so there is no longer a
  * relocate-then-relate path. `defer` has no Consult/LLM-fallback path on this
  * route yet (unlike membership) and is dropped, same as any other decline.
  * `expandSameHost.ts` itself is not called directly here anymore --- the
@@ -162,8 +162,8 @@ export async function compileRelationalFromSkeleton(
     // currentHost(actingCharacter) (BD-6's default, unchanged) --- expandSameHost is the
     // Expansion pass that corrects this per-candidate against the subject/object's real
     // current hosts. It once repaired a mismatch by inserting a transferMembership;
-    // PV1-3b-9 (2026-09-01) retired that, so it now either walks-then-builds a crossing
-    // (findShardBoundary/buildCrossingLegs, PV1-3b-4 --- same-host included, since an
+    // That was retired, 2026-09-01, so it now either walks-then-builds a crossing
+    // (findShardBoundary/buildCrossingLegs --- same-host included, since an
     // endpoint is its own zero-hop ancestor) or declines.
     const distinctObjectIds = new Set<EphemeraObjectId>()
     for (const candidate of relationalCandidates) {
@@ -244,12 +244,12 @@ export async function compileRelationalFromSkeleton(
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
         ]
         // `expandSameHost` can resolve every peer-kind candidate into a genuine
-        // shard-boundary crossing (BD-16's third outcome, PV1-3b-4 generalized it to same-host
+        // shard-boundary crossing (BD-16's third outcome, generalized to same-host
         // too) instead of ever needing a second seeded instruction --- the assertion's own
-        // children carry the establish/dissolve leg(s) now. PV1-3b-5 deepened the pre-fetch
-        // above to a full ancestry walk, so `findShardBoundary` can now reach a common ancestor
+        // children carry the establish/dissolve leg(s) now. The pre-fetch above is a full
+        // ancestry walk, so `findShardBoundary` can reach a common ancestor
         // past an intermediate host and return `crossed` for a genuine cross-shard pair, not just
-        // `notFound`. PV1-3b-1 wired the rest: this route now carries every step of a genuine
+        // `notFound`. This route carries every step of a genuine
         // crossing (not just the first) into the widened `ParseCommandEstablishRelationResult`,
         // rather than dropping the candidate --- see below.
         // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly for the
@@ -321,7 +321,7 @@ export async function compileRelationalFromSkeleton(
             // Portless: unchanged legality checking (BD-23: bothObjectsOnGraph + Under cycle
             // detection), against the real current graph. This route once also validated
             // against a *simulated* post-transfer graph, for the repair outcome that moved the
-            // subject onto the target's host; PV1-3b-9 (2026-09-01) retired that outcome, so
+            // subject onto the target's host; that outcome was retired, 2026-09-01, so
             // there is no longer a candidate whose legality depends on a move that has not
             // happened yet. Reuses `firstRelStep` (not a fresh destructure) so TS keeps the
             // hosting-kind narrowing the guard above already established on it.
@@ -349,8 +349,8 @@ export async function compileRelationalFromSkeleton(
                     : { relationKind: firstRelStep.relationKind }),
                 // sourced from the step's own carried `hostId` rather than
                 // a separate `getCurrentHostForExpansion` re-derivation --- that re-derivation
-                // predates PV1-3b-7 and is exactly the "re-derive downstream" pattern PV1-3b-7
-                // moved away from; it was also stricter than necessary (dropped a same-host
+                // predates the carried-`hostId` fix and is exactly the "re-derive downstream"
+                // pattern that fix moved away from; it was also stricter than necessary (dropped a same-host
                 // candidate outright whenever the subject had more than one direct container,
                 // even when `findShardBoundary` had already resolved a common ancestor fine).
                 hostRoomId: firstRelStep.hostId,
@@ -366,7 +366,7 @@ export async function compileRelationalFromSkeleton(
         }
         // Crossing: `filterLegalRelationalCandidates` is typed for the narrow ingress shape
         // (EphemeraObjectId endpoints, a single hostRoomId) and cannot accept a port-address
-        // endpoint, so it is skipped entirely here --- matching PV1-3b-3's already-decided
+        // endpoint, so it is skipped entirely here --- matching the already-decided
         // call that leg-time validation is sufficient on its own. The structural safety net
         // still exists at commit time: `applyRelationalPatch` (`ludicGraph/index.ts`) already
         // throws on `!bothObjectsOnGraph` before any write. **Named gap, not fixed this

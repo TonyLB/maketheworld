@@ -24,7 +24,7 @@ export type ExecuteEstablishEdgeChainResult =
     | { ok: false; errorCode: string; errorMessage: string }
 
 /**
- * PV1-3b-3, wired live at PV1-3b-2: the single commit path for `Object Establish Relation`,
+ * The single commit path for `Object Establish Relation`,
  * having absorbed the single-host case that a now-deleted sibling (`executeObjectEstablishRelation`)
  * used to handle separately --- `steps` is a one-entry array for a portless/same-host candidate,
  * so there was nothing left for that function to do once this one's live call site landed.

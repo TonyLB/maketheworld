@@ -332,12 +332,12 @@ export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
 /**
  * Grounded relational manipulation after enrich + compiler (BD-1).
  *
- * `hostId` was Room/Character-single-host through BD-15/16; PV1-3b-1 dropped it. Once
- * a candidate can be a genuine cross-shard crossing (PV1-3, wired live at PV1-3b-1),
- * a single flat host has no principled value to hold --- each leg of `steps` already
+ * `hostId` was Room/Character-single-host through BD-15/16; that was dropped once
+ * a candidate can be a genuine cross-shard crossing, wired live,
+ * since a single flat host has no principled value to hold --- each leg of `steps` already
  * carries its own `hostId`. LD-13's step-shape clause (endpoints/host stay
  * ingress-narrow because "downstream can always fill in the rest") is retired by the
- * same finding that forced PV1-3b-7's per-leg `hostId`: that reconstruction is not
+ * same finding that forced a per-leg `hostId`: that reconstruction is not
  * safely re-derivable downstream in general (multi-hosted endpoints, port-to-port
  * ambiguity), so it is carried from Expansion instead, not recomputed. LD-13's
  * *kind*-narrowing clause (`On`/`In`/`PartOf`/`Present` excluded below) is unaffected
@@ -357,8 +357,8 @@ export type ParseCommandEstablishRelationResult = {
      * steps alike, in production order (port steps precede the legs that reference
      * them, per `buildCrossingLegs.ts`). A portless/same-host candidate carries
      * exactly one `establishRelation`/`dissolveRelation` entry; a genuine crossing
-     * carries one `addCrossingPort` plus a hop leg per side that needs one (PV1-6
-     * will generalize beyond one hop) and the final chain step at the common
+     * carries one `addCrossingPort` plus a hop leg per side, at any depth,
+     * and the final chain step at the common
      * ancestor. Each step carries its own `hostId` --- there is no single
      * host for the result as a whole once a crossing is involved.
      */

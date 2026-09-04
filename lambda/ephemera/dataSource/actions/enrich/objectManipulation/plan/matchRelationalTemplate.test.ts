@@ -91,7 +91,7 @@ describe('matchRelationalTemplate', () => {
         })
     })
 
-    it('matches an establishRelation Custom template ("tie rope to cup") -- PV1-3', () => {
+    it('matches an establishRelation Custom template ("tie rope to cup")', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'tie' },
             { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },

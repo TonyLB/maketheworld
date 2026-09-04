@@ -20,13 +20,13 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
         : { kind: kindAndLabel.relationKind }
 
 /**
- * PV1-3's crossing-port producer, general case, consuming `findShardBoundary`'s `'crossed'`
+ * The crossing-port producer, general case, consuming `findShardBoundary`'s `'crossed'`
  * result. `subjectPath`/`targetPath` are ordered nearest-endpoint-first, ending at
  * `commonAncestor` (see `findShardBoundary.ts`); their length is the number of hosts crossed,
  * inclusive of the common ancestor itself. `h_i`'s own immediate container is exactly the next
  * path entry, `h_{i+1}` --- that is how `findShardBoundary`/`pathToAncestor` built the path.
  *
- * **PV1-6 generalizes the original single-hop code's two blocks into loops**, one hop at a time,
+ * **The original single-hop code's two blocks are generalized into loops**, one hop at a time,
  * each mirroring the other:
  *
  * - **Ascending (subject -> ancestor), source-to-ancestor order:** for each `subjectPath` entry
@@ -62,8 +62,8 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * minted, which this function only ever adds --- left for whichever slice needs it. Only the
  * no-port (portless leg) degenerate case supports dissolve today.
  *
- * `operationKind` picks `establishRelation`/`dissolveRelation` for the final step (PV1-3b-4 ---
- * the collapsed ingress seed no longer carries a sibling relational step of its own, so this
+ * `operationKind` picks `establishRelation`/`dissolveRelation` for the final step (the
+ * collapsed ingress seed no longer carries a sibling relational step of its own, so this
  * function is now the only source of that step for every same-host candidate, dissolves
  * included, not just the crossing ones).
  */
@@ -126,7 +126,7 @@ export const buildCrossingLegs = (
 }
 
 /**
- * PV1-3b-13's remove-leg/remove-port step emitter, consuming `findRelationalChain`'s `'found'`
+ * The remove-leg/remove-port step emitter, consuming `findRelationalChain`'s `'found'`
  * result --- the mirror of `buildCrossingLegs` above, but for dissolve: that function *mints*
  * fresh port ids and must place the port step before the leg that references it; this one only
  * removes ids that are already stored, so its two step kinds have no data dependency on each
@@ -140,8 +140,8 @@ export const buildCrossingLegs = (
  *
  * **Not wired into `expandSameHost.ts` by this row.** `expandSameHost`'s `dissolveRelation`
  * branch still calls `findShardBoundary` unconditionally regardless of `operationKind` --- rewiring
- * it onto `findRelationalChain`/this function is PV1-3b-14; building the commit path that would
- * actually execute the steps this emits is PV1-3b-3/16. This row is the standalone mapping and
+ * it onto `findRelationalChain`/this function is separate work; building the commit path that would
+ * actually execute the steps this emits is separate too. This row is the standalone mapping and
  * its tests only.
  */
 export const buildCrossingDissolveLegs = (steps: readonly RelationalChainStep[]): MutationKernelStep[] =>

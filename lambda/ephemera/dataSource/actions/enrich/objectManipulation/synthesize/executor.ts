@@ -62,8 +62,8 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
  *
  * One caller today: `executeObjectMove`, which seeds the whole worklist this
  * way because at execute time the hosts are already concrete --- there is
- * nothing left for Grounding to resolve. It had a second until PV1-3b-9
- * (2026-09-01) retired `expandSameHost`'s repair-by-relocation outcome; the
+ * nothing left for Grounding to resolve. It had a second until 2026-09-01
+ * retired `expandSameHost`'s repair-by-relocation outcome; the
  * name still describes the tag rather than the caller, so the pairing
  * invariant reads as the general rule it is rather than as one route's habit.
  */
@@ -91,7 +91,7 @@ type GroundResult =
  * A grounded relational `Change`'s `hostRoomId` (BD-6's `currentHost(actingCharacter)` default)
  * carries straight through as `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`'s own
  * `hostId` --- this path is confirmed dead on every live route today (every ingress
- * seed goes through `expandSameHost`'s `sameHost` assertion instead, since PV1-3b-4), but it is
+ * seed goes through `expandSameHost`'s `sameHost` assertion instead), but it is
  * still real code the type system must satisfy, and `hostRoomId` was already computed for exactly
  * this purpose before this function discarded it.
  */

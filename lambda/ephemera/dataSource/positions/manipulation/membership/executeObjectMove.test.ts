@@ -102,7 +102,7 @@ describe('executeObjectMove', () => {
         // CD2, reduced scope): its whole point was `On`'s carry absorption (glass -On-> tray
         // pulling glass into the moved set), which is now dead -- `On` joined `In`/`PartOf`'s
         // hosting-kind throw, and `carry` is unreachable from any relation kind. Real
-        // shard-based hosting (CD2h) is what carries the glass along again as of PV1-2, by
+        // shard-based hosting (CD2h) is what carries the glass along again, by
         // construction (it lives in the tray's own shard) rather than via this closure walk ---
         // see the `On rehost` describe block below for that case.
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {

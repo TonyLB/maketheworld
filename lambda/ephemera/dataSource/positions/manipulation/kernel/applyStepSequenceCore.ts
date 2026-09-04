@@ -42,7 +42,7 @@ const hostsOf = (
 }
 
 /**
- * PV1-3b-7 narrowed this from a *resolver* to an *assertion*: `establishRelation`/
+ * This is narrowed from a *resolver* to an *assertion*: `establishRelation`/
  * `dissolveRelation` now carry their own `hostId`, computed once at Expansion
  * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) --- this
  * function's job is to confirm that carried value against live footprint state, not to derive it
