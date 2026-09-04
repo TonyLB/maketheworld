@@ -61,7 +61,7 @@ export type MutationKernelCaptureStep = {
  * `KernelStep` --- is what those files' signatures should keep using.
  */
 /**
- * PV1-2: the moved object's own presence port, on its own graph (`hostId` is the moved object's
+ * the moved object's own presence port, on its own graph (`hostId` is the moved object's
  * own id --- a legal `EphemeraMembershipHostId`, LP0). Presence is at-most-one (PR-10), so this
  * step is a *set*, not an add: it replaces any existing `kind: 'Present'` port on that graph with
  * `port`, or clears it entirely when `port` is omitted (an object leaving with no new host). No
@@ -75,7 +75,7 @@ export type MutationKernelSetPresencePortStep = {
 }
 
 /**
- * PV1-3: a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
+ * a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
  * `establishRelation`/`dissolveRelation` step whose endpoint happens to be a port address --- see
  * `executorTypes.ts`'s widening note). Unlike `setPresencePort`'s replace-all (presence is
  * at-most-one, PR-10), crossing ports are add/remove-by-`portId` --- a host can carry more than one

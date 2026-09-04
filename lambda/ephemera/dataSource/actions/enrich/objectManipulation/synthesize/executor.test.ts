@@ -74,11 +74,11 @@ describe('runExecutor', () => {
         expect(seeded[1]!.step).toBe(change)
     })
 
-    it('PV1-3b-4: a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
+    it('a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
         // `satisfied` (deleted 2026-09-01) used to retire a matching sameHost assertion with no
         // children, relying on a sibling establishRelation instruction (seeded alongside it) to
         // retire unmodified as the actual edge. That sibling is gone --- an endpoint is its own
-        // zero-hop ancestor (PV1-3b-8), so `findShardBoundary`/`buildCrossingLegs` resolve an
+        // zero-hop ancestor, so `findShardBoundary`/`buildCrossingLegs` resolve an
         // already-shared host to a single portless leg, which is now the *only* source of the
         // establishRelation step.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
@@ -112,7 +112,7 @@ describe('runExecutor', () => {
         })
     })
 
-    it("PV1-3: a sameHost violation that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
+    it("a sameHost violation that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
         const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
 

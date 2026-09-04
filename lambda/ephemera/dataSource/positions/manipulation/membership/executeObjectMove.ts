@@ -46,7 +46,7 @@ export type ExecuteObjectMoveArgs = {
     /**
      * Hosting kinds only (AB-54) --- peer kinds host nothing. Optional because take-hold's
      * containment kind is unnamed, not because take-hold lacks one: any rehost mints a presence
-     * port regardless (PV1-2), and only a hosting-kind rehost also establishes a root-anchored
+     * port regardless, and only a hosting-kind rehost also establishes a root-anchored
      * containment edge at the destination.
      */
     containment?: 'On' | 'In' | 'PartOf';
@@ -133,7 +133,7 @@ export const executeObjectMove = async (args: ExecuteObjectMoveArgs): Promise<Ex
     // The moved object's own containment edge into fromHostId's shard (if it was hosted there,
     // On/In/PartOf) is stripped here rather than left for the boundary sweep. It never reaches
     // `classifyInteractionUnderTransfer` --- that throw stays a correct invariant for every
-    // other shape reaching it (PV1-2). Left in place, the executor's own operand-expansion
+    // other shape reaching it. Left in place, the executor's own operand-expansion
     // would hit the same throw internally, uncatchable from out here.
     const ownRootContainmentEdge = fromGraph.relationalEdges.find((edge) =>
         ephemeraLudicTerminalsEqual(edge.from, primaryObjectId)
@@ -222,7 +222,7 @@ export type ExecuteMembershipTransferArgs = {
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>
-    /** PV1-3c: injectable for the same reason `getMembershipContainers` is --- test seams only. */
+    /** injectable for the same reason `getMembershipContainers` is --- test seams only. */
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     /** See `CommitStepSequenceDeps.suppressRelationalFacts`'s doc comment --- same gate, same default. */
     suppressRelationalFacts?: boolean
@@ -281,7 +281,7 @@ export const executeMembershipTransfer = async (
 
     const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
-    // PV1-3c: chain-aware, replacing a primitive-only single-edge boundary sweep that silently
+    // chain-aware, replacing a primitive-only single-edge boundary sweep that silently
     // skipped any relational edge with a port-address endpoint (never dissolving a genuine
     // crossing on removal --- see `findRelationalChainsForRemoval.ts`'s own doc comment). A hard
     // removal unconditionally dissolves every chain touching the departing entity; there is no

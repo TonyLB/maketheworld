@@ -124,7 +124,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-3b-4: a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
+    it('a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -144,7 +144,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-3b-4: reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
+    it('reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -264,7 +264,7 @@ describe('buildCrossingLegs', () => {
         expect(addPortStep.port).not.toHaveProperty('exteriorRelationLabel')
     })
 
-    it("PV1-6: both sides have an extra hop at once --- a middle leg with two port-address endpoints, the shape this row exists to unblock (tree: B contains C and E; C contains D; E contains F; tie D to F)", () => {
+    it("both sides have an extra hop at once --- a middle leg with two port-address endpoints, the shape this row exists to unblock (tree: B contains C and E; C contains D; E contains F; tie D to F)", () => {
         const result = buildCrossingLegs({
             subjectId: D_ID,
             targetId: F_ID,
@@ -300,7 +300,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-6: a genuine 3-shard chain on one side (cup on tray on table, tied to a string in the room) --- two chained ports, deeper than one extra hop', () => {
+    it('a genuine 3-shard chain on one side (cup on tray on table, tied to a string in the room) --- two chained ports, deeper than one extra hop', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -328,7 +328,7 @@ describe('buildCrossingLegs', () => {
         expect(finalLeg).toEqual({ kind: 'establishRelation', subjectId: STRING_ID, targetId: { owner: TABLE_ID, port: portTable }, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' })
     })
 
-    it('PV1-6: a chain of depth 2 on the subject side and depth 1 on the target side at once, confirming the two sides do not interfere (D2 contains D; C contains D2; B contains C and E; E contains F; tie D to F)', () => {
+    it('a chain of depth 2 on the subject side and depth 1 on the target side at once, confirming the two sides do not interfere (D2 contains D; C contains D2; B contains C and E; E contains F; tie D to F)', () => {
         const result = buildCrossingLegs({
             subjectId: D_ID,
             targetId: F_ID,
@@ -366,7 +366,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-6: dissolving a genuine crossing still reports notYetImplemented, deeper than one hop', () => {
+    it('dissolving a genuine crossing still reports notYetImplemented, deeper than one hop', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,

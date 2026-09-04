@@ -50,7 +50,7 @@ export const computeStepSequenceFootprint = (
             hosts.add(step.hostId)
             continue
         }
-        // PV1-3: a crossing leg's port-address endpoint (EphemeraLudicPortAddress) names no host
+        // a crossing leg's port-address endpoint (EphemeraLudicPortAddress) names no host
         // of its own to resolve or lock here --- whatever host stores that port record is locked
         // by the step that writes it (addCrossingPort/removeCrossingPort), not by this leg. Only
         // the primitive endpoint(s) need resolving; at least one must resolve, or there is nothing

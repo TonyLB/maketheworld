@@ -105,7 +105,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         expect(result.entries).toEqual([])
     })
 
-    it('names an object nested inside a hosted object from the room (PV1-1)', async () => {
+    it('names an object nested inside a hosted object from the room', async () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
         const cupId = 'OBJECT#Cup' as EphemeraObjectId
 

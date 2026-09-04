@@ -31,11 +31,11 @@ export type ExecuteEstablishEdgeChainResult =
  * `steps` arrives already merged and ordered (port steps before the legs that reference them, per
  * `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`), so this is a pure pass-through: no
  * separate whole-crossing verification layer, since `applyStepSequenceCore`'s per-step
- * `confirmCarriedHost` assert (PV1-3b-7) already re-checks every leg against live state at commit
+ * `confirmCarriedHost` assert already re-checks every leg against live state at commit
  * time.
  *
  * `getCurrentHost` is built from each `establishRelation`/`dissolveRelation` step's own carried
- * `hostId` (PV1-3b-7), keyed by that step's primitive endpoint(s) --- `computeStepSequenceFootprint`
+ * `hostId`, keyed by that step's primitive endpoint(s) --- `computeStepSequenceFootprint`
  * only ever calls it for a primitive endpoint (a port-address endpoint's host is locked directly by
  * the `addCrossingPort`/`removeCrossingPort` step that writes it, never resolved here). Unlike
  * `executeMembershipTransfer`'s `hostByReferencedId` (populated from a `boundaryEdgeOutcomes` walk),

@@ -255,7 +255,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         expect(plan.slots).toEqual([])
     })
 
-    describe('PV1-2: containment and presence port', () => {
+    describe('containment and presence port', () => {
         it('emits an establishRelation step after the transfer when containment is set', () => {
             const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
 

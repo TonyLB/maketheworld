@@ -348,7 +348,7 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('grounds establish fixture tie cord around crate via the native skeleton pipeline (PV1-3: "tie" joined ESTABLISH_VERBS)', async () => {
+    it('grounds establish fixture tie cord around crate via the native skeleton pipeline ("tie" joined ESTABLISH_VERBS)', async () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 

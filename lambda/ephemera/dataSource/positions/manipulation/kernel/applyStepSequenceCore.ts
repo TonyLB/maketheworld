@@ -26,7 +26,7 @@ const hostsOf = (
 ): EphemeraMembershipHostId[] => {
     if (typeof id !== 'string') {
         // A port address names its own host directly (owner) --- graph-local addressing, not
-        // membership search (PV1-3). This is a *candidate*, not a veto: the exterior side of a
+        // membership search. This is a *candidate*, not a veto: the exterior side of a
         // crossing has no port record of its own, so its port-address endpoint's owner will not
         // match the edge's carried `hostId` --- `confirmCarriedHost` skips the membership check
         // for a port-address endpoint entirely rather than trying to reconcile this candidate.
@@ -114,7 +114,7 @@ const confirmCarriedHost = (
  * fail-loud contract BD-33 wants. **Pure add** (`fromHostIds` empty): `addObject`/`addCharacter`
  * onto `destGraph` only --- a freshly spawned entity has no prior edges, so no assert is needed.
  *
- * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` (PV1-3b-7)
+ * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
@@ -257,7 +257,7 @@ export const applyStepSequenceCore = (
             continue
         }
 
-        // PV1-3: a crossing port's own add/remove, by portId (not at-most-one --- see
+        // a crossing port's own add/remove, by portId (not at-most-one --- see
         // `MutationKernelAddCrossingPortStep`'s doc comment).
         if (step.kind === 'addCrossingPort') {
             const graph = graphs.get(step.hostId)
@@ -276,7 +276,7 @@ export const applyStepSequenceCore = (
             continue
         }
 
-        // establishRelation / dissolveRelation: confirm the carried hostId (PV1-3b-7) against live
+        // establishRelation / dissolveRelation: confirm the carried hostId against live
         // graph state, throw on mismatch (BD-33 assert-and-throw, unchanged discipline), else apply
         // the patch there. See `confirmCarriedHost`'s doc comment for the stale-vs-throw split.
         // `hostNotInFootprint` is checked before the throw-capable assertion below, since a hostId

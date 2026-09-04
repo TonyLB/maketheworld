@@ -74,13 +74,13 @@ export const factsForStep = (
         return []
     }
 
-    // PV1-2: not a world event any narration channel reads today --- the object-move narrate
+    // not a world event any narration channel reads today --- the object-move narrate
     // steps already cover "arrives," and a presence port's own visibility is future work.
     if (step.kind === 'setPresencePort') {
         return []
     }
 
-    // PV1-3: same deferral as setPresencePort --- a crossing port's own visibility is future work.
+    // same deferral as setPresencePort --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []
     }
@@ -116,7 +116,7 @@ export const factsForStep = (
         return [...objectFacts, ...characterFacts]
     }
 
-    // PV1-3: a crossing leg's port-address endpoint has no established fact shape yet --- same
+    // a crossing leg's port-address endpoint has no established fact shape yet --- same
     // "not a narration channel yet" deferral `setPresencePort` already uses above.
     if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {
         return []

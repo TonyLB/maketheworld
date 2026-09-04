@@ -31,7 +31,7 @@ export type ClearCoyoteGameImprovisationObjectsArgs = {
     getRoomLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
     getCharacterLudicGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
-    /** PV1-3c: test seams for the phase-1 chain-reachability dissolve pass. */
+    /** test seams for the phase-1 chain-reachability dissolve pass. */
     getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>;
     getGraph?: (hostId: EphemeraMembershipHostId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     /** Descent into object-hosted shards when collecting the removal set (nested contents). */

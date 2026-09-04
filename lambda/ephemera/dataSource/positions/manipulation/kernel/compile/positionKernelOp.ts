@@ -102,7 +102,7 @@ export type PositionKernelMoveOp = {
      * ("establish this at the destination"), not a pre-classified verdict --- there is no
      * legality question to defer for a hosting-kind establish (always succeeds, root-anchored,
      * no boundary contention), so the compiler is allowed to synthesize the `establishRelation`
-     * step itself (PV1-2).
+     * step itself.
      */
     containment?: 'On' | 'In' | 'PartOf'
     /** Present only when this move should narrate world lines --- see doc comment above. */

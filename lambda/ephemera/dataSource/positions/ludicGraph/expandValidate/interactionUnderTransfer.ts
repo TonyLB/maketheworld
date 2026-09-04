@@ -40,7 +40,7 @@ export function classifyInteractionUnderTransfer(
             // over, and reaching here means a producer built a graph the constructor does not
             // author. The earlier note here -- "replace before ludicCache nests" -- is withdrawn.
             //
-            // One shape now has a producer (PV1-2): a moved object's own edge into the host it
+            // One shape now has a producer: a moved object's own edge into the host it
             // is leaving, member -> that host's root. `executeObjectMove` strips that edge from
             // the graph before this classifier (or the executor's operand-expansion, which
             // calls it internally) ever sees it, so it never reaches here. Every other hosting-

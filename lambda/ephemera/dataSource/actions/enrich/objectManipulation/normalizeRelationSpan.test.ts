@@ -44,7 +44,7 @@ describe('normalizeRelationSpan', () => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'In' })
     })
 
-    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s as kind On (PV1-2)', (relationSpan) => {
+    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s as kind On', (relationSpan) => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'On' })
     })
 

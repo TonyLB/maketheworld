@@ -104,7 +104,7 @@ describe('executeObjectMove', () => {
         // hosting-kind throw, and `carry` is unreachable from any relation kind. Real
         // shard-based hosting (CD2h) is what carries the glass along again as of PV1-2, by
         // construction (it lives in the tray's own shard) rather than via this closure walk ---
-        // see the `PV1-2: On rehost` describe block below for that case.
+        // see the `On rehost` describe block below for that case.
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
@@ -161,12 +161,12 @@ describe('executeObjectMove', () => {
     })
 
     /**
-     * PV1-2: `On` nests end to end, as a rehost carrying a containment argument. Asserts the
+     * `On` nests end to end, as a rehost carrying a containment argument. Asserts the
      * checklist's own "Done when" bar directly --- member of the destination's graph (not the
      * room's), a root-anchored containment edge inside it, a presence port naming the
      * destination, and both gone when the object leaves.
      */
-    describe('PV1-2: On rehost', () => {
+    describe('On rehost', () => {
         const committedGraph = (hostId: string): EphemeraLudicGraph => {
             const call = (internalCache.Positions.set as jest.Mock).mock.calls
                 .map(([graph]: [EphemeraLudicGraph]) => graph)

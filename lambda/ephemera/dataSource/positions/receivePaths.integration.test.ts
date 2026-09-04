@@ -277,7 +277,7 @@ describe('positions receive paths (integration)', () => {
         it('resolves fromHostId fresh (not content.roomId) so a nested object can be taken (put cup on table, then get cup)', async () => {
             // Reproduces a production bug: `content.roomId` is the character's room, not
             // necessarily the object's current host once objects can nest inside other objects
-            // (PV1-2). A cup left `On` a table is a node of the table's own graph, not the
+            // A cup left `On` a table is a node of the table's own graph, not the
             // room's --- trusting `content.roomId` as `fromHostId` sent a stale source host into
             // `commitStepSequence`, which threw `staleTransferCandidate` at commit time.
             getMembershipContainersMock.mockResolvedValue(['OBJECT#Table' as any])
@@ -352,7 +352,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Rehost', () => {
-        it('routes mtw.ephemera.actions Object Rehost through orchestrateObjectMove with a freshly-resolved fromHostId (PV1-2)', async () => {
+        it('routes mtw.ephemera.actions Object Rehost through orchestrateObjectMove with a freshly-resolved fromHostId', async () => {
             getMembershipContainersMock.mockResolvedValue([ROOM_A])
 
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
@@ -408,7 +408,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Establish Relation', () => {
-        it('routes mtw.ephemera.actions Object Establish Relation through executeEstablishEdgeChain (PV1-3b-2)', async () => {
+        it('routes mtw.ephemera.actions Object Establish Relation through executeEstablishEdgeChain', async () => {
             const steps = [{
                 kind: 'establishRelation',
                 subjectId: 'OBJECT#Broom',
@@ -487,7 +487,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Object Dissolve Relation', () => {
-        it('routes mtw.ephemera.actions Object Dissolve Relation through executeEstablishEdgeChain (PV1-3b-16)', async () => {
+        it('routes mtw.ephemera.actions Object Dissolve Relation through executeEstablishEdgeChain', async () => {
             const steps = [{
                 kind: 'dissolveRelation',
                 subjectId: 'OBJECT#Broom',

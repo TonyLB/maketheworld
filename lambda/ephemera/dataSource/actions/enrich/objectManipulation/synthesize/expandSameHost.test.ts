@@ -13,10 +13,10 @@ const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('expandSameHost', () => {
-    it('PV1-3b-4: a peer relation between two objects that already share a host resolves as a crossing with one portless leg', () => {
+    it('a peer relation between two objects that already share a host resolves as a crossing with one portless leg', () => {
         // Deletion of the old `satisfied` fast path means this shape now goes through
         // `findShardBoundary`/`buildCrossingLegs` like every other peer-kind candidate --- an
-        // endpoint is its own zero-hop ancestor (PV1-3b-8), so a shared host resolves to a
+        // endpoint is its own zero-hop ancestor, so a shared host resolves to a
         // single leg with no port minted, not a boundary crossing.
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === TRAY_ID || id === TABLE_ID) return [ROOM_ID]
@@ -35,7 +35,7 @@ describe('expandSameHost', () => {
     })
 
     it('errors rather than crossing on a hosting kind ("put tray on table") --- no branch on this route at all', () => {
-        // PV1-3b-9: this shape used to be the motivating case for `repaired` --- move the tray
+        // this shape used to be the motivating case for `repaired` --- move the tray
         // onto the table's host and call the precondition fixed. A hosting relation is a
         // membership move, not a relational placement, so it gets no branch on this route at
         // all now --- not even a state lookup, since hosting kinds fail the peer-kind gate before
@@ -49,7 +49,7 @@ describe('expandSameHost', () => {
         expect(result.reason).toEqual(expect.stringContaining('On'))
     })
 
-    it('PV1-3b-9: an Under relation crosses the shard boundary, minting a port with no relationLabel', () => {
+    it('an Under relation crosses the shard boundary, minting a port with no relationLabel', () => {
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -76,7 +76,7 @@ describe('expandSameHost', () => {
         expect(exteriorLeg).not.toHaveProperty('relationLabel')
     })
 
-    it('PV1-3b-9: an Against relation crosses the same way --- the gate is on peer-ness, not on one kind', () => {
+    it('an Against relation crosses the same way --- the gate is on peer-ness, not on one kind', () => {
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -94,7 +94,7 @@ describe('expandSameHost', () => {
         expect(result.steps[0]).toMatchObject({ kind: 'addCrossingPort', port: { kind: 'Against' } })
     })
 
-    it('PV1-3b-9: an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
+    it('an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
         const underResult = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
@@ -124,7 +124,7 @@ describe('expandSameHost', () => {
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
-    it('PV1-3: a violated Custom relation crosses the shard boundary instead of deferring, when one is found', () => {
+    it('a violated Custom relation crosses the shard boundary instead of deferring, when one is found', () => {
         const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
             if (id === NECKLACE_ID) return [ROOM_ID]
             if (id === CHARM_ID) return [TABLE_ID]
@@ -160,7 +160,7 @@ describe('expandSameHost', () => {
         ])
     })
 
-    it('PV1-3: falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
+    it('falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
         const result = expandSameHost(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
@@ -169,7 +169,7 @@ describe('expandSameHost', () => {
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
-    it('PV1-3b-6: a Custom relation with no relationLabel is malformed input --- errors, and not in the LLM-defer\'s words', () => {
+    it('a Custom relation with no relationLabel is malformed input --- errors, and not in the LLM-defer\'s words', () => {
         // The label used to be missing from every live seed, and this shape fell through to the
         // BD-10 defer as though an LLM could resolve it. It cannot: a Custom relation *is* its
         // label, so with none there is no relation to reason about. The two must stay
@@ -192,7 +192,7 @@ describe('expandSameHost', () => {
         expect(unlabelled.reason).not.toEqual(labelled.reason)
     })
 
-    it('PV1-3b-6: the malformed-input check precedes every state lookup --- it asks nothing about the world', () => {
+    it('the malformed-input check precedes every state lookup --- it asks nothing about the world', () => {
         // Asserted rather than left to branch order: with no membership-container data available
         // at all, a label-less Custom still reports the label problem, not a boundary-lookup
         // failure. The guard has to survive PV1-3b-4's deletion of the host/graph lookups that
@@ -204,7 +204,7 @@ describe('expandSameHost', () => {
         expect(result.reason).toEqual(expect.stringContaining('relationLabel'))
     })
 
-    describe('dissolveRelation (PV1-3b-14)', () => {
+    describe('dissolveRelation', () => {
         it('a portless dissolve (both endpoints already share a host) resolves to the same single dissolveRelation step as before --- no regression from routing away from findShardBoundary', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(TRAY_ID)
@@ -280,9 +280,9 @@ describe('expandSameHost', () => {
             expect(result.reason).toEqual(expect.stringContaining('dissolve'))
         })
 
-        it('defers rather than picking, when findRelationalChain finds more than one qualifying chain (PV1-3b-11)', () => {
+        it('defers rather than picking, when findRelationalChain finds more than one qualifying chain', () => {
             // Two structurally distinct edges both reach targetId from subjectId --- mirrors
-            // `findRelationalChain.test.ts`'s own ambiguous fixture (PV1-3b-12).
+            // `findRelationalChain.test.ts`'s own ambiguous fixture.
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(TRAY_ID)
                 .addObject(TABLE_ID)

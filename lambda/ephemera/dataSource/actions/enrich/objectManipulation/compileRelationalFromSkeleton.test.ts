@@ -60,8 +60,8 @@ describe('compileRelationalFromSkeleton', () => {
             targetId: tableId,
             relationKind: 'Under',
             confidence: 0.9,
-            // PV1-3b-1: no flat `hostId` any more --- a portless/same-host candidate carries
-            // exactly one step, and that step carries its own `hostId` (PV1-3b-7).
+            // no flat `hostId` any more --- a portless/same-host candidate carries
+            // exactly one step, and that step carries its own `hostId`.
             steps: [{
                 kind: 'establishRelation',
                 subjectId: broomId,
@@ -266,7 +266,7 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.type).toBe('Abstain')
     })
 
-    it('crosses the shard boundary live (PV1-3b-1): tying to a cup nested two hosts deep produces a port and two legs', async () => {
+    it('crosses the shard boundary live: tying to a cup nested two hosts deep produces a port and two legs', async () => {
         // rope/string sits directly in the room; cup sits on the table, which sits in the room.
         // PV1-3b-5 deepened the pre-fetch so `findShardBoundary` can reach the room as a common
         // ancestor past the table; PV1-3b-1 is what stops the candidate being dropped afterward

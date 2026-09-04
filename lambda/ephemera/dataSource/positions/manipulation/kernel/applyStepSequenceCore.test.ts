@@ -88,7 +88,7 @@ describe('applyStepSequenceCore', () => {
     it('BD-33 structural throw: a carried hostId that neither endpoint actually shares throws (not a verdict)', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
-        // PV1-3b-7: hostId is now carried, not resolved --- roomId is trayId's real host but not
+        // hostId is now carried, not resolved --- roomId is trayId's real host but not
         // glassId's, so `confirmCarriedHost` catches the mismatch and throws (Expansion computed
         // the wrong host, a structural bug, not a stale candidate --- both endpoints still exist
         // somewhere in the footprint).
@@ -429,7 +429,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('PV1-3: crossing legs and crossing-port steps', () => {
+    describe('crossing legs and crossing-port steps', () => {
         it('a leg whose target is a port address carries its host from the primitive subject alone (readout\'s room-side leg: string -> port(owner=Table))', () => {
             const stringId = 'OBJECT#String' as EphemeraObjectId
             const roomGraph = testLudicGraph(roomId, {

@@ -10,7 +10,7 @@ import {
 } from '../../../actions/enrich/objectManipulation/synthesize/findRelationalChain'
 
 /**
- * PV1-3c: depth-capped async BFS that fetches every graph a relational chain touching any of
+ * depth-capped async BFS that fetches every graph a relational chain touching any of
  * `entityIds` might reach, mirroring `walkAncestryContainers`'s own precedent
  * (`synthesize/findShardBoundary.ts`) but following relational edges/ports instead of
  * containment ancestry. `depthCap` (default 5) matches this codebase's existing convention

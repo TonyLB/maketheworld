@@ -1502,7 +1502,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns ObjectRehost for "on" relational route via the native skeleton pipeline (PV1-2)', async () => {
+    it('returns ObjectRehost for "on" relational route via the native skeleton pipeline', async () => {
         const cupId = 'OBJECT#Cup'
         const trayId = 'OBJECT#Tray'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({

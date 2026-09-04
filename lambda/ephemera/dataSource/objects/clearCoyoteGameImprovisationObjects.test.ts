@@ -180,7 +180,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         expect(applyClearMembershipImpl).toHaveBeenCalledTimes(2)
     })
 
-    it("PV1-3c: a batch clear dissolves a crossing spanning two of its own objects in one phase-1 transact, before either object's own removal --- the room-side object never independently identifies the crossing-port-owning object's own graph", async () => {
+    it("a batch clear dissolves a crossing spanning two of its own objects in one phase-1 transact, before either object's own removal --- the room-side object never independently identifies the crossing-port-owning object's own graph", async () => {
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
         const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId

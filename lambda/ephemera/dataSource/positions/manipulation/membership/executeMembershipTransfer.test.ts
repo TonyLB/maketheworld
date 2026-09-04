@@ -238,7 +238,7 @@ describe('executeMembershipTransfer', () => {
         expect(result.ok).toBe(true)
     })
 
-    it("PV1-3c: removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
+    it("removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
         const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],
@@ -275,7 +275,7 @@ describe('executeMembershipTransfer', () => {
         expect(touchedHostIds).toEqual(expect.arrayContaining([FROM_ROOM, TABLE_ID]))
     })
 
-    it("PV1-3c: removing the exterior (primitive-endpoint) side of a crossing dissolves both legs and the port too --- the fail-closed batch-breaking failure mode this row fixes", async () => {
+    it("removing the exterior (primitive-endpoint) side of a crossing dissolves both legs and the port too --- the fail-closed batch-breaking failure mode this row fixes", async () => {
         const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],

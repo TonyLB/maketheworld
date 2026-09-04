@@ -2059,8 +2059,8 @@ describe('ephemeraActionsDataSource', () => {
                 targetId: 'OBJECT#Table',
                 relationKind: 'Under',
                 confidence: 0.9,
-                // PV1-3b-1: no flat `hostId` any more --- the consumer reads the final step's
-                // own carried `hostId` (PV1-3b-7) instead. A portless candidate carries exactly
+                // no flat `hostId` any more --- the consumer reads the final step's
+                // own carried `hostId` instead. A portless candidate carries exactly
                 // one step.
                 steps: [{
                     kind: 'establishRelation',
@@ -2177,7 +2177,7 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('emits Object Establish Relation carrying every step of a genuine crossing (PV1-3b-2)', async () => {
+        it('emits Object Establish Relation carrying every step of a genuine crossing', async () => {
             const tableId = 'OBJECT#Table' as EphemeraObjectId
             const portStep = {
                 kind: 'addCrossingPort' as const,
@@ -2350,7 +2350,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
-        it('emits Object Rehost streamEvent when an On rehost is grounded (PV1-2)', async () => {
+        it('emits Object Rehost streamEvent when an On rehost is grounded', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectRehost',
                 subjectId: 'OBJECT#Cup',

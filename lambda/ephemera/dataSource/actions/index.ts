@@ -555,9 +555,9 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        // PV1-3b-1: `ParseCommandEstablishRelationResult` no longer carries a flat `hostId` ---
+        // `ParseCommandEstablishRelationResult` no longer carries a flat `hostId` ---
         // once `steps` can span more than one host (a genuine crossing), there is no single
-        // canonical host to assert (PV1-3b-7: each leg carries its own). `hostId` below is still
+        // canonical host to assert (each leg carries its own). `hostId` below is still
         // derived from the *final* step's host (the common-ancestor chain step, or the sole step
         // for a portless candidate), but PV1-3b-2 narrowed its role to narration/perception only
         // (`objectManipulationPresentationLegAdapters.ts` gates on it being a Room) --- the commit

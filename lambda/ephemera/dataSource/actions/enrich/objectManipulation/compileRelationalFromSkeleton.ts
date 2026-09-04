@@ -76,7 +76,7 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
  * including same-host, resolves through `findShardBoundary`/
  * `buildCrossingLegs`) and runs it, producing the establish/dissolve step(s)
  * directly as the assertion's own children. A same-host pair resolves to a
- * zero-hop common ancestor and a single portless leg (PV1-3b-8); a genuinely
+ * zero-hop common ancestor and a single portless leg; a genuinely
  * violated peer relation either becomes crossing legs across a real boundary
  * or declines (`defer`) --- PV1-3b-9 (2026-09-01) retired the old
  * `transferMembership` repair outcome entirely, so there is no longer a
@@ -171,7 +171,7 @@ export async function compileRelationalFromSkeleton(
         distinctObjectIds.add(candidate.targetId)
     }
 
-    // PV1-3b-5: eager, depth-capped (5) async pre-fetch of each distinct candidate's full
+    // eager, depth-capped (5) async pre-fetch of each distinct candidate's full
     // containment ancestry, not just its one direct container --- `findShardBoundary`'s walk
     // (called synchronously, inside `runExecutor` below) needs to reach *past* intermediate
     // hosts to find a common ancestor further up, and a shallow one-hop fetch dead-ends it at
@@ -221,7 +221,7 @@ export async function compileRelationalFromSkeleton(
     type PreparedCandidate = {
         // The original grounded candidate --- always a plain Object-to-Object pair,
         // unlike a crossing's own leg endpoints. Source for the widened result's flat
-        // subjectId/targetId/operationKind/relationKind fields (PV1-3b-1).
+        // subjectId/targetId/operationKind/relationKind fields.
         candidate: EstablishRelationStep | DissolveRelationStep
         steps: MutationKernelStep[]
     }
@@ -234,7 +234,7 @@ export async function compileRelationalFromSkeleton(
             subjectId: candidate.subjectId,
             objectId: candidate.targetId,
             operationKind: candidate.kind,
-            // PV1-3b-6: carry the label, not just the kind --- `expandSameHost`'s crossing gate
+            // carry the label, not just the kind --- `expandSameHost`'s crossing gate
             // requires it for `Custom`, and this seed used to drop it, so no live `Custom`
             // relation could reach the crossing path at all. Spread as a unit (the same helper
             // the sibling literal below uses) so the `Custom`/enum branch is stated once.
@@ -243,7 +243,7 @@ export async function compileRelationalFromSkeleton(
         const seed: WorklistInstruction[] = [
             { id: `${candidate.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
         ]
-        // PV1-3: `expandSameHost` can resolve every peer-kind candidate into a genuine
+        // `expandSameHost` can resolve every peer-kind candidate into a genuine
         // shard-boundary crossing (BD-16's third outcome, PV1-3b-4 generalized it to same-host
         // too) instead of ever needing a second seeded instruction --- the assertion's own
         // children carry the establish/dissolve leg(s) now. PV1-3b-5 deepened the pre-fetch
@@ -265,7 +265,7 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        // PV1-3b-1: carry every relational step of the outcome, not just the first --- a
+        // carry every relational step of the outcome, not just the first --- a
         // genuine crossing needs its hop leg(s) *and* the final chain step, plus the
         // `addCrossingPort` step(s) that live on `extraKernelSteps` (a split that exists only
         // inside `runExecutor`'s own worklist-vs-side-channel plumbing). `outcome.steps` is
@@ -277,7 +277,7 @@ export async function compileRelationalFromSkeleton(
         // `commandExpand` splits `buildCrossingLegs`'s combined, per-hop-interleaved output by
         // kind into `outcome.steps` (legs/final) and `outcome.extraKernelSteps` (ports); this
         // reconstructs it as every port step ahead of every relational step. **Confirmed general
-        // at any chain depth (PV1-6), not reliant on the old <=1-hop-per-side scope cut**:
+        // at any chain depth, not reliant on the old <=1-hop-per-side scope cut**:
         // `applyStepSequenceCore`'s `hostsOf`/`confirmCarriedHost` and
         // `EphemeraLudicGraph.bothObjectsOnGraph` all resolve a port-address endpoint to its
         // **owner** only, never its `portId`, so an `addCrossingPort` step and any relational
@@ -347,7 +347,7 @@ export async function compileRelationalFromSkeleton(
                 ...(firstRelStep.relationKind === 'Custom'
                     ? { relationKind: 'Custom' as const, relationLabel: firstRelStep.relationLabel }
                     : { relationKind: firstRelStep.relationKind }),
-                // PV1-3b-1: sourced from the step's own carried `hostId` (PV1-3b-7) rather than
+                // sourced from the step's own carried `hostId` rather than
                 // a separate `getCurrentHostForExpansion` re-derivation --- that re-derivation
                 // predates PV1-3b-7 and is exactly the "re-derive downstream" pattern PV1-3b-7
                 // moved away from; it was also stricter than necessary (dropped a same-host
@@ -398,7 +398,7 @@ export async function compileRelationalFromSkeleton(
     // than just taking the first legal candidate.
     const chosen = preparedCandidates[0]
 
-    // PV1-3b-1: sourced from the original grounded `candidate`, not a step --- always plain
+    // sourced from the original grounded `candidate`, not a step --- always plain
     // Object-to-Object, unlike a crossing's own leg endpoints. Inlined rather than routed
     // through `relationKindAndLabelFrom`: that helper's return type defaults to the wide
     // `HostRelationalEdgeKind`, which would discard `candidate.relationKind`'s own narrow

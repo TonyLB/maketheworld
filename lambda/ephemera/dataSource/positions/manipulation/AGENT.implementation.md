@@ -239,13 +239,13 @@ Relational operations add/remove **edges** on a fixed host `ludicGraph` without 
 **PV1-3b-2/PV1-3b-16 moved both establish's and dissolve's ingress off this coordinator.** Neither `Object Establish Relation` nor `Object Dissolve Relation` goes through `applyObjectRelationalChange` any more --- the Expansion-derived `steps` chain (PV1-3b-1, widened to dissolve by PV1-3b-15) already *is* the step sequence `applyObjectRelationalChange` used to build for the single-host case, so both ingress branches call `commitStepSequence` directly through the same shared function:
 
 ```text
-Object Establish Relation             carries `steps` (Expansion-derived, PV1-3b-1)
-Object Dissolve Relation              carries `steps` too (PV1-3b-15)
+Object Establish Relation carries `steps` (Expansion-derived, PV1-3b-1)
+Object Dissolve Relation carries `steps` too 
         |
         v
-executeEstablishEdgeChain             pass-through, operationKind-agnostic (PV1-3b-16):
+executeEstablishEdgeChain pass-through, operationKind-agnostic:
         |                             builds getCurrentHost from each step's own carried
-        |                             hostId (PV1-3b-7), no verification layer
+        | hostId, no verification layer
         v
 commitStepSequence                    one transactWrite; re-validates live on locked graphs
 ```
@@ -260,7 +260,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
 
-**Kernel rules for relational steps.** (Corrected PV1-3b-3 --- stale since PV1-3b-7 shipped 2026-09-02.) The step carries a mandatory `hostId` (PV1-3b-7), computed once at Expansion: `applyStepSequenceCore`'s `confirmCarriedHost` **asserts** that carried host against the live, locked graphs and throws on mismatch, rather than deriving the shared host itself. `EphemeraLudicGraph.applyRelationalPatch` is the single legality authority (including `bothObjectsOnGraph`); `op: 'add'` is idempotent when the exact edge is already present, and removing an absent edge is rejected. Host may be a Room or a Character graph. **No adjacency dual-write.**
+**Kernel rules for relational steps.** (Corrected PV1-3b-3 --- stale since PV1-3b-7 shipped 2026-09-02.) The step carries a mandatory `hostId`, computed once at Expansion: `applyStepSequenceCore`'s `confirmCarriedHost` **asserts** that carried host against the live, locked graphs and throws on mismatch, rather than deriving the shared host itself. `EphemeraLudicGraph.applyRelationalPatch` is the single legality authority (including `bothObjectsOnGraph`); `op: 'add'` is idempotent when the exact edge is already present, and removing an absent edge is rejected. Host may be a Room or a Character graph. **No adjacency dual-write.**
 
 **This route never moves membership.** It commits exactly the one relational step it was given. Until PV1-3b-9 (2026-09-01) it could also carry a `transferFromHostId` repair signal --- relocating the subject onto the target's host, with its own carry closure and boundary sweep, when Plan stage found the endpoints on different hosts. That is retired: two things in different shards is the ordinary case a *crossing* expresses (`buildCrossingLegs`), not a misplacement to fix by moving one of them. Transfers still belong to `executeObjectMove`; establishing a relation cannot trigger one as a side effect.
 
@@ -273,11 +273,11 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) (thin wrapper) | `executeMembershipTransfer` (end-state, inline diff) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep (PV1-3c) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Synthesize executor, re-run at execute time from a **grounded** seed | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared, PV1-3b-16) | Expansion-derived `steps` chain, each with its own carried `hostId` (PV1-3b-1/7); no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
-(PV1-1b: `executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward.)
+(`executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward.)
 
 **Documented exception (not a parallel persist path):**
 
@@ -347,7 +347,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) | Narration owner for both object-move directions: derives actor + room from the host pair, resolves labels, wraps `executeObjectMove`, declares the bundle and presents on `ok: true` |
-| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Two entry points. `executeObjectMove`: execution for either take/drop direction --- seeds the executor **grounded** from concrete host ids, no `GroundingContext`, no referent round trip, compiles once, commits the plan's mutation steps. `executeMembershipTransfer`: single entity (object or character), diffed against its own fetched `priorContainers`, no carry closure, no executor --- object entities get an explicit chain-aware relational sweep (PV1-3c: [`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts), following crossing ports across hosts), character entities never do |
+| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Two entry points. `executeObjectMove`: execution for either take/drop direction --- seeds the executor **grounded** from concrete host ids, no `GroundingContext`, no referent round trip, compiles once, commits the plan's mutation steps. `executeMembershipTransfer`: single entity (object or character), diffed against its own fetched `priorContainers`, no carry closure, no executor --- object entities get an explicit chain-aware relational sweep ([`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts), following crossing ports across hosts), character entities never do |
 | [`membership/types.ts`](membership/types.ts) | `ObjectMembershipDiff` (shared with `buildObjectMovedFact`) |
 
 ### `relational/`
@@ -355,7 +355,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Relational coordinator; builds the step sequence for satisfied and repaired cases |
-| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole ingress for **both** `Object Establish Relation` (PV1-3b-2, which deleted the sibling single-host `executeObjectEstablishRelation`, zero live callers) and `Object Dissolve Relation` (PV1-3b-16, which deleted the sibling single-host `executeObjectDissolveRelation` the same way, once `content.steps` was wired in). `operationKind`-agnostic despite the establish-flavored name: takes the already-merged, already-ordered `steps: MutationKernelStep[]` off the published payload (port steps before the legs/removals that reference them, per `buildCrossingLegs.ts`/`buildCrossingDissolveLegs`), builds `getCurrentHost` from each step's own carried `hostId` (PV1-3b-7) rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing (establish or dissolve) uniformly, matching `executeObjectMove.ts`'s `executeObjectMove`/`executeMembershipTransfer` precedent of one function per shape rather than a branch, just resolved down to one function here since the single-host shape stopped needing its own on either side. |
+| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole ingress for **both** `Object Establish Relation` (PV1-3b-2, which deleted the sibling single-host `executeObjectEstablishRelation`, zero live callers) and `Object Dissolve Relation` (PV1-3b-16, which deleted the sibling single-host `executeObjectDissolveRelation` the same way, once `content.steps` was wired in). `operationKind`-agnostic despite the establish-flavored name: takes the already-merged, already-ordered `steps: MutationKernelStep[]` off the published payload (port steps before the legs/removals that reference them, per `buildCrossingLegs.ts`/`buildCrossingDissolveLegs`), builds `getCurrentHost` from each step's own carried `hostId` rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing (establish or dissolve) uniformly, matching `executeObjectMove.ts`'s `executeObjectMove`/`executeMembershipTransfer` precedent of one function per shape rather than a branch, just resolved down to one function here since the single-host shape stopped needing its own on either side. |
 | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) | `Object Relation Changed` payload builder |
 | [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) | Fact stream wrapper |
 | [`relational/types.ts`](relational/types.ts) | `RelationalIngressArgs`, `RelationalApplyResult` |

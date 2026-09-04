@@ -14,7 +14,7 @@ import {
  * ancestry reaches that the other's also reaches?" -- the third `expandSameHost` outcome
  * (crossing a boundary with a port pair) needs this answer before it can build legs.
  *
- * **An endpoint is its own zero-hop ancestor** (PV1-3b-8), so an endpoint can itself be the
+ * **An endpoint is its own zero-hop ancestor**, so an endpoint can itself be the
  * common ancestor: `tie the cup to the table it is sitting on` resolves to the table, not the
  * room above it. Every object host carries a default graph rooted at itself (`fromPlainHostMeta`,
  * `ludicGraph/index.ts`), so a container endpoint is a real node of the graph its own contained
@@ -71,7 +71,7 @@ type Ancestry = {
  * to the same host at the same depth) keep whichever was discovered first, which is immaterial
  * since only the depth number is compared, not the specific route.
  *
- * `startId` is seeded at depth 0 -- it is its own ancestor, reached by crossing nothing (PV1-3b-8).
+ * `startId` is seeded at depth 0 -- it is its own ancestor, reached by crossing nothing.
  * It is seeded into `visited` for the same reason, not as an optimization: a containment cycle
  * (`A` contains `B`, `B` contains `A`) otherwise re-discovers the start id further up and
  * overwrites its depth 0 with a nonzero one, which would silently un-do the zero-hop rule for
@@ -110,7 +110,7 @@ const walkAncestry = (
 }
 
 /**
- * PV1-3b-5: async counterpart to `walkAncestry`, used to eagerly pre-fetch each endpoint's full
+ * async counterpart to `walkAncestry`, used to eagerly pre-fetch each endpoint's full
  * containment ancestry (not just one hop) before the executor's own synchronous
  * `ExpansionEnvironment` is built (`compileRelationalFromSkeleton.ts`). Same frontier-expansion /
  * visited-set shape as `walkAncestry` above -- kept as a near-duplicate on purpose so the two stay

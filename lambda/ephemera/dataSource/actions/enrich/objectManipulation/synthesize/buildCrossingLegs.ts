@@ -49,7 +49,7 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  *   existing portless behavior, unchanged.
  *
  * Each port's `addCrossingPort` step is pushed immediately before the leg that references it,
- * matching the original single-hop code's shape --- confirmed (PV1-6) that strict interleaving
+ * matching the original single-hop code's shape --- confirmed that strict interleaving
  * is not actually required for correctness (`addCrossingPort` and edge steps commute:
  * `applyStepSequenceCore`'s `hostsOf`/`confirmCarriedHost` and
  * `EphemeraLudicGraph.bothObjectsOnGraph` all resolve a port-address endpoint to its **owner**
@@ -136,7 +136,7 @@ export const buildCrossingLegs = (
  * establish side comes from `applyStepSequenceCore`'s host-resolution limits on a *freshly minted*
  * middle leg with no primitive endpoint, which doesn't apply here --- every id this function reads
  * off `steps` was already committed by some earlier `establishRelation` chain, however deep. It
- * inherits `findRelationalChain`'s own no-depth-cap decision (PV1-3b-11) for free.
+ * inherits `findRelationalChain`'s own no-depth-cap decision for free.
  *
  * **Not wired into `expandSameHost.ts` by this row.** `expandSameHost`'s `dissolveRelation`
  * branch still calls `findShardBoundary` unconditionally regardless of `operationKind` --- rewiring

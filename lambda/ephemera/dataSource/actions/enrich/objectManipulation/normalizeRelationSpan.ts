@@ -21,7 +21,7 @@ const matchesPhrase = (normalizedSpan: string, phrase: string): boolean => (
     normalizedSpan === phrase || new RegExp(`\\b${phrase}\\b`).test(normalizedSpan)
 )
 
-/** PV1-2: which containment kind a nesting-defer span names, if any --- `On` for the on-phrases, `In` for the containment phrases. */
+/** which containment kind a nesting-defer span names, if any --- `On` for the on-phrases, `In` for the containment phrases. */
 function nestingDeferKind(normalizedSpan: string): 'On' | 'In' | undefined {
     if (ON_DEFER_PHRASES.some((phrase) => matchesPhrase(normalizedSpan, phrase))) {
         return 'On'

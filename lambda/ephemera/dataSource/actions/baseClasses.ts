@@ -335,7 +335,7 @@ export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
  * `hostId` was Room/Character-single-host through BD-15/16; PV1-3b-1 dropped it. Once
  * a candidate can be a genuine cross-shard crossing (PV1-3, wired live at PV1-3b-1),
  * a single flat host has no principled value to hold --- each leg of `steps` already
- * carries its own `hostId` (PV1-3b-7). LD-13's step-shape clause (endpoints/host stay
+ * carries its own `hostId`. LD-13's step-shape clause (endpoints/host stay
  * ingress-narrow because "downstream can always fill in the rest") is retired by the
  * same finding that forced PV1-3b-7's per-leg `hostId`: that reconstruction is not
  * safely re-derivable downstream in general (multi-hosted endpoints, port-to-port
@@ -352,21 +352,21 @@ export type ParseCommandEstablishRelationResult = {
     /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
     confidence: ParseCommandConfidence
     /**
-     * Expansion-derived mutation-kernel step chain (PV1-3b-1) --- everything
+     * Expansion-derived mutation-kernel step chain --- everything
      * `runExecutor` produced for the chosen candidate, worklist and side-channel
      * steps alike, in production order (port steps precede the legs that reference
      * them, per `buildCrossingLegs.ts`). A portless/same-host candidate carries
      * exactly one `establishRelation`/`dissolveRelation` entry; a genuine crossing
      * carries one `addCrossingPort` plus a hop leg per side that needs one (PV1-6
      * will generalize beyond one hop) and the final chain step at the common
-     * ancestor. Each step carries its own `hostId` (PV1-3b-7) --- there is no single
+     * ancestor. Each step carries its own `hostId` --- there is no single
      * host for the result as a whole once a crossing is involved.
      */
     steps: readonly MutationKernelStep[]
 } & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
 
 /**
- * Grounded rehost after enrich + resolve (PV1-2): `On` is a rehost carrying a containment
+ * Grounded rehost after enrich + resolve: `On` is a rehost carrying a containment
  * argument, not a relation with a side effect --- `subjectId` moves into `targetId`'s own
  * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
  * `On` out on 2026-08-22: there is no `Change`/edge here for that type's

@@ -14,7 +14,7 @@ import type { ExpansionEnvironment } from './executorTypes'
  * answers the opposite question -- "these two are already linked by some relation -- what chain
  * already connects them, so a dissolve can remove it?" -- which containment ancestry cannot answer
  * (a crossing's port carries a `uuidv4()` `portId` unrecoverable from where the objects currently
- * live), so it walks **existing relational edges and ports** instead (PV1-3b-11).
+ * live), so it walks **existing relational edges and ports** instead.
  *
  * Wired into `expandSameHost.ts`'s `dissolveRelation` branch at PV1-3b-14.
  *
@@ -135,7 +135,7 @@ const resolveEndpoint = (
  * `seed.edge.from`/`seed.edge.to` respectively; `steps` is ordered `endpoints[0] -> endpoints[1]`
  * (the seed edge itself in the middle). Order is a display/debugging convenience only --
  * `buildCrossingDissolveLegs` maps each step independently, with no ordering dependency between
- * them (PV1-3b-13).
+ * them.
  */
 export type FindRelationalChainFromLegResult =
     | {
@@ -146,7 +146,7 @@ export type FindRelationalChainFromLegResult =
     | { verdict: 'declined'; reason: string }
 
 /**
- * PV1-3c: the leg-seeded counterpart to `findRelationalChain` below, needed wherever a caller has
+ * the leg-seeded counterpart to `findRelationalChain` below, needed wherever a caller has
  * a specific edge already in hand (from a graph scan) rather than a named subject/target pair to
  * search for -- chain-aware object removal's own use case, where the caller only knows "this
  * object is leaving" and must discover whatever it's connected to, by what, without knowing
@@ -179,7 +179,7 @@ export const findRelationalChainFromLeg = (
 }
 
 /**
- * PV1-3c: rewritten on top of `findRelationalChainFromLeg` -- finds the candidate first edges
+ * rewritten on top of `findRelationalChainFromLeg` -- finds the candidate first edges
  * directly touching `subjectId` (matching `relationKind`/`relationLabel`), resolves each one's
  * full chain via the leg-seeded walker, and keeps only those whose far endpoint is `targetId`.
  * Preserves the original contract exactly (same input/output shape); `expandSameHost.ts` needs no

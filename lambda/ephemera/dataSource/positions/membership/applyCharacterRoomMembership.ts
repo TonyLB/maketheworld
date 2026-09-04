@@ -50,7 +50,7 @@ const membershipDiffFromProjection = (projection: {
 /**
  * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel.
  * A thin wrapper (roster snapshots, `CharacterMeta` invalidation, `EphemeraUpdate` publish) around
- * `executeMembershipTransfer` (PV1-1b), which also absorbed the object routes'
+ * `executeMembershipTransfer`, which also absorbed the object routes'
  * `applyObjectRoomMembership`/`applyObjectClearMembership`. This route's `entityId` is always a
  * character, so `executeMembershipTransfer` never runs its boundary sweep for it --- `HostRelationalEdge`
  * is object-only (BD-36's character-relation widening is explicitly deferred), so a character can

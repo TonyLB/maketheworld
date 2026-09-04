@@ -90,7 +90,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
-    // PV1-3b-7: `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
+    // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
     // `executeObjectMove.ts`'s single-origin carry-closure path (`buildObjectMoveOp` is its only
     // producer, always `froms: [args.fromHostId]`), so every severed boundary edge belongs to that
     // one departure host. Not derived per-edge because `HostRelationalEdge` (the graph's own
@@ -117,7 +117,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         throw new Error('compilePositionKernelOp: containment set with no destination --- caller bug, not a legal "give to nobody" shape')
     }
 
-    // PV1-2: establishing the destination-side containment edge only makes sense once the moved
+    // establishing the destination-side containment edge only makes sense once the moved
     // object is actually a node of `toHostId`'s graph, so this runs after `transferStep` ---
     // placed before it would resolve `findHostOf(primaryMovedId)` against the *old* host.
     const establishSteps: ExecutorEstablishRelationStep[] = op.containment
@@ -133,7 +133,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // PV1-2: one presence port per rehost, object closures only (characters never carry one ---
+    // one presence port per rehost, object closures only (characters never carry one ---
     // this is what keeps a bare `compilePositionKernelOp` widening from porting a character on
     // every navigate, see the checklist's own note for PV1-5). Presence is at-most-one (PR-10):
     // `setPresencePort` replaces whatever was there, so no read of the prior port is needed here.

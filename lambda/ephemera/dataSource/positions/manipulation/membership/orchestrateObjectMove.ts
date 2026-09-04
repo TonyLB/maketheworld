@@ -19,7 +19,7 @@ export type OrchestrateObjectMoveArgs = {
     fromHostId: EphemeraMembershipHostId;
     toHostId: EphemeraMembershipHostId;
     /**
-     * PV1-2: taken explicitly rather than derived by scanning `[fromHostId, toHostId]` for a
+     * taken explicitly rather than derived by scanning `[fromHostId, toHostId]` for a
      * room --- a containment move's `toHostId` is the destination object (a tray), not a room,
      * so neither host is a room and the derived-`roomId` form silently no-ops for every such
      * move. `resolveObjectMovePresentationLabels` only needs *a* room for perspective/shortName
