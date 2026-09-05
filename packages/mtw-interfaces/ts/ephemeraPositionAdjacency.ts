@@ -38,7 +38,13 @@ export const isEphemeraMembershipHostId = (value: string): value is EphemeraMemb
 export type EphemeraPositionAdjacencyDataCategory =
     `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraMembershipHostId}`
 
-export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId
+/**
+ * Widened to include `EphemeraRoomId` (presenceRefactor step 3, 2026-09-05): a Room can now be
+ * contained in an Area's ludicGraph (RD-4's Room-in-Area population), so a Room's own reverse
+ * adjacency row (`EphemeraId: ROOM#..., DataCategory: POSITION#AREA#...`) is a real shape, not the
+ * gap RA-3 originally (and mistakenly) read this union as ruling out.
+ */
+export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraRoomId
 
 export type EphemeraPositionAdjacencyRow = {
     EphemeraId: EphemeraPositionAdjacencyContainedId;

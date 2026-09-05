@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -26,9 +26,18 @@ import type {
  * once reading the kernel's write path end to end showed no consumer branches on entity kind), so
  * there is nothing to generalize here.
  */
+/**
+ * `entityIds` widened again (presenceRefactor step 3, 2026-09-05) to admit `EphemeraRoomId` and
+ * `EphemeraFeatureId`, for cache-time containment authoring (Room-in-Area, Feature-in-Room,
+ * Feature-in-Feature). A pure add (`fromHostIds` empty, `toHostId` the parent) is the only shape
+ * either kind may appear in --- `applyStepSequenceCore.ts`'s "real transfer" branch
+ * (`applyTransferSet`, LP4h) stays deliberately Object/Character-only, since Room/Feature/Area are
+ * hosts that never relocate; a Room/Feature id reaching that branch is a caller bug, rejected there
+ * rather than silently mishandled.
+ */
 export type MutationKernelTransferStep = {
     kind: 'transferMembership'
-    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
+    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId>
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }

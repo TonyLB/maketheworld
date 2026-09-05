@@ -360,6 +360,15 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) | Fact stream wrapper |
 | [`relational/types.ts`](relational/types.ts) | `RelationalIngressArgs`, `RelationalApplyResult` |
 
+### `containment/`
+
+Cache-time containment population (presenceRefactor step 3, RD-4): the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
+
+| Path | Role |
+| --- | --- |
+| [`containment/containmentPopulationSteps.ts`](containment/containmentPopulationSteps.ts) | Pure step-computer: given a parent id, a child id, and both already-fetched graphs, returns 0-3 `MutationKernelStep`s (a pure-add `transferMembership`, an `addPresencePort`, an `establishRelation` `PartOf` edge), each independently pre-checked against current state so a fully-populated call returns `[]`. No I/O, no `internalCache`, no `commitStepSequence` --- the idempotency obligation lives entirely here, since neither primitive it emits is safe to replay unconditionally at the reducer level. |
+| [`containment/populateContainmentAtCache.ts`](containment/populateContainmentAtCache.ts) | Orchestrator: reads the parent's graph once, reads each named child's graph, calls `containmentPopulationSteps` per child, and commits every child's steps for one parent update as a single `commitStepSequence` call (one `MultiKeyUpdate`) --- never one commit per child. `commitStepSequence`'s own empty-array no-op means a fully-populated parent update makes no transaction at all. |
+
 ### Top level
 
 | Path | Role |

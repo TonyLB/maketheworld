@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { applyStepSequenceCore } from './applyStepSequenceCore'
@@ -12,6 +12,8 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const areaId = 'AREA#Overworld' as EphemeraAreaId
+const featureId = 'FEATURE#Sign' as EphemeraFeatureId
 
 const graphsMap = (
     ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
@@ -425,6 +427,62 @@ describe('applyStepSequenceCore', () => {
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
                 verdict: 'illegal',
                 reasonCode: 'staleTransferCandidate',
+            })
+        })
+    })
+
+    describe('RD-4 (presenceRefactor step 3): Room/Feature entityIds in transferMembership', () => {
+        it('pure add (fromHostIds empty): adds a Room to an Area host, mirroring the object/character pure-add shape', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([roomId]), fromHostIds: new Set(), toHostId: areaId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(areaId)!.roomIds.has(roomId)).toBe(true)
+        })
+
+        it('pure add (fromHostIds empty): adds a Feature to a Room host', () => {
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([featureId]), fromHostIds: new Set(), toHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.featureIds.has(featureId)).toBe(true)
+        })
+
+        it('pure add: illegal (staleTransferCandidate) when the Room is already a node of toHostId', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([roomId]), fromHostIds: new Set(), toHostId: areaId },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'staleTransferCandidate',
+            })
+        })
+
+        it('real transfer (fromHostIds length 1, toHostId non-null): illegal (unsupportedTransferEntityKind) for a Room --- LP4h stays Object/Character-only', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
+            const otherAreaGraph = testLudicGraph('AREA#Elsewhere' as EphemeraAreaId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'transferMembership',
+                    entityIds: new Set([roomId]),
+                    fromHostIds: new Set([areaId]),
+                    toHostId: 'AREA#Elsewhere' as EphemeraAreaId,
+                },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'unsupportedTransferEntityKind',
             })
         })
     })

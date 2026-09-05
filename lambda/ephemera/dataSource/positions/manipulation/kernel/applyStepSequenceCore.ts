@@ -1,6 +1,6 @@
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -97,22 +97,26 @@ const confirmCarriedHost = (
  * `transferMembership` step reads it, because the worklist that produced this array already
  * guaranteed that order.
  *
- * `transferMembership` (BD-36-generalized, and object-lifecycle-Migrate-row-widened): dispatches by
- * shape on `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member,
- * `toHostId` non-null): the whole `entityIds` set --- objects and characters together --- routes
- * through `applyTransferSet` (LP4h: it dispatches by kind itself, `removeObject`/`addObject` for
- * objects and `removeCharacter`/`addCharacter` for characters, so no separate character swap is
- * needed here; only objects get the full boundary-edge legality machinery, since a character can
- * never carry a relational edge, BD-36's widening deferred). **Pure remove** (`toHostId === null`):
- * splits `entityIds` by kind (still needed here, unlike the real-transfer branch above) and for each
- * host
- * in `fromHostIds`, a presence-check then `removeObject`/`removeCharacter` directly --- no
- * boundary-sweep here, since the caller is responsible for having already seeded explicit
- * `dissolveRelation` steps for every edge the entity carried (an object-lifecycle route uses
- * `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to "sever it", since there's
- * no destination to carry into or defer against); a residual edge means `removeObject` throws, the
- * fail-loud contract BD-33 wants. **Pure add** (`fromHostIds` empty): `addObject`/`addCharacter`
- * onto `destGraph` only --- a freshly spawned entity has no prior edges, so no assert is needed.
+ * `transferMembership` (BD-36-generalized, object-lifecycle-Migrate-row-widened, and RD-4/
+ * presenceRefactor-step-3-widened to admit Room/Feature): dispatches by shape on
+ * `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member, `toHostId`
+ * non-null): the whole `entityIds` set --- objects and characters together --- routes through
+ * `applyTransferSet` (LP4h: it dispatches by kind itself, `removeObject`/`addObject` for objects and
+ * `removeCharacter`/`addCharacter` for characters, so no separate character swap is needed here;
+ * only objects get the full boundary-edge legality machinery, since a character can never carry a
+ * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (LP4h, unwidened
+ * here deliberately)**, so a Room/Feature id reaching this branch is rejected
+ * (`unsupportedTransferEntityKind`) before `applyTransferSet` --- which has no dispatch for either
+ * kind --- is ever called. **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
+ * empty) share one kind-agnostic loop over `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s
+ * own kind dispatch, RD-4) rather than one loop per entity kind: a presence-check then
+ * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
+ * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried (an
+ * object-lifecycle route uses `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to
+ * "sever it", since there's no destination to carry into or defer against); a residual edge means
+ * `removeNode`'s underlying `removeObject`/`removeCharacter`/`removeRoom`/`removeFeature` throws, the
+ * fail-loud contract BD-33 wants. A freshly spawned/authored entity has no prior edges, so pure add
+ * needs no assert.
  *
  * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
@@ -155,19 +159,17 @@ export const applyStepSequenceCore = (
             const fromHostIds = [...step.fromHostIds]
             const toHostId = step.toHostId
 
-            const objectIds = new Set<EphemeraObjectId>()
-            const characterIds = new Set<EphemeraCharacterId>()
-            for (const id of step.entityIds) {
-                if (isEphemeraObjectId(id)) {
-                    objectIds.add(id)
-                }
-                else if (isEphemeraCharacterId(id)) {
-                    characterIds.add(id)
-                }
-            }
-
             // Real transfer: exactly the shape the two already-migrated player routes produce.
             if (fromHostIds.length === 1 && toHostId !== null) {
+                // LP4h's boundary, unwidened: Room/Feature/Area are hosts that never relocate, so a
+                // Room/Feature id reaching a real (single-from, single-to) transfer is a caller bug ---
+                // `applyTransferSet` has no dispatch for either kind, and step 3's own callers only ever
+                // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
+                const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
+                if (hasRoomOrFeature) {
+                    return { verdict: 'illegal', reasonCode: 'unsupportedTransferEntityKind' }
+                }
+
                 const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
                 const sourceGraph = graphs.get(fromHostId)
                 const destGraph = graphs.get(toHostId)
@@ -186,8 +188,13 @@ export const applyStepSequenceCore = (
 
                 if (step.entityIds.size > 0) {
                     // LP4h: applyTransferSet dispatches both objects and characters itself --- no
-                    // separate character add/remove loop needed here.
-                    const outcome = applyTransferSet(nextSourceGraph, nextDestGraph, step.entityIds)
+                    // separate character add/remove loop needed here. Safe cast: the guard above
+                    // already confirmed entityIds contains no Room/Feature id.
+                    const outcome = applyTransferSet(
+                        nextSourceGraph,
+                        nextDestGraph,
+                        step.entityIds as ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
+                    )
                     if (outcome.verdict === 'illegal') {
                         return { verdict: 'illegal', reasonCode: outcome.reasonCode }
                     }
@@ -207,23 +214,20 @@ export const applyStepSequenceCore = (
             // added/removed on its own host independently --- there is no boundary-sweep or
             // carry-closure to run here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
+            // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
+            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4, presenceRefactor step 3) is the
+            // kind-dispatch, so this branch doesn't have to re-derive it per kind.
             for (const fromHostId of fromHostIds) {
                 const sourceGraph = graphs.get(fromHostId)
                 if (!sourceGraph) {
                     return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextSourceGraph = sourceGraph
-                for (const id of objectIds) {
-                    if (!nextSourceGraph.objectIds.has(id)) {
+                for (const id of step.entityIds) {
+                    if (!nextSourceGraph.nodeIds.has(id)) {
                         return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                     }
-                    nextSourceGraph = nextSourceGraph.removeObject(id)
-                }
-                for (const id of characterIds) {
-                    if (!nextSourceGraph.characterIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
-                    }
-                    nextSourceGraph = nextSourceGraph.removeCharacter(id)
+                    nextSourceGraph = nextSourceGraph.removeNode(id)
                 }
                 graphs.set(fromHostId, nextSourceGraph)
             }
@@ -234,17 +238,11 @@ export const applyStepSequenceCore = (
                     return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextDestGraph = destGraph
-                for (const id of objectIds) {
-                    if (nextDestGraph.objectIds.has(id)) {
+                for (const id of step.entityIds) {
+                    if (nextDestGraph.nodeIds.has(id)) {
                         return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
                     }
-                    nextDestGraph = nextDestGraph.addObject(id)
-                }
-                for (const id of characterIds) {
-                    if (nextDestGraph.characterIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
-                    }
-                    nextDestGraph = nextDestGraph.addCharacter(id)
+                    nextDestGraph = nextDestGraph.addNode(id)
                 }
                 graphs.set(toHostId, nextDestGraph)
             }

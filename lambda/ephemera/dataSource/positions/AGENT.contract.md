@@ -378,6 +378,23 @@ Positions **must** subscribe to:
 
 Positions **must not** subscribe to `Character Registered` (session orientation is render + affordance orchestration; see [`../../AGENT.md`](../../AGENT.md)).
 
+### `mtw.assets`
+
+Positions **must** subscribe to:
+
+| Event | Handler |
+| --- | --- |
+| `Component Updated` | [`dataSource/index.ts`](../index.ts) `processComponentUpdated` -> [`manipulation/containment/populateContainmentAtCache.ts`](manipulation/containment/populateContainmentAtCache.ts) |
+
+### `Component Updated` (containment population, cache-time; presenceRefactor step 3, RD-4)
+
+- **Ingress:** every asset-cache write, not a player-command route --- `dataSource/index.ts`'s `processComponentUpdated` fires on **every** `Component Updated` event, whatever component kind changed, and re-fires on every re-cache of already-cached, unchanged content (`cacheAsset` re-runs frequently).
+- **Trigger, duck-typed on shape, not switched on `component.tag`:** any component whose `.ludicGraph.nodes` is non-empty (today: Room, Area --- Feature has no `_ludicGraph` field yet, so it does not yet participate; see [RA-3](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presenceRefactor.planning.md#the-assertion-register)'s scale-invariant framing). This is deliberate: a future host kind gaining its own `ludicGraph` starts populating with no change to the trigger.
+- **Must** treat this as additive-only: for each child named in the updated component's `ludicGraph.nodes`, add the child as a node of the parent's graph, add a `Present` port on the child (`fromHostId` the parent), and establish a `PartOf` edge (`subjectId` the child, `targetId`/`hostId` the parent) --- never `In`, which is reserved for mobile placement (Objects), not fixed/authored nesting (Room-in-Area, Feature-in-Room).
+- **Must not** handle removal-on-deauthoring: a child that later drops out of `ludicGraph.nodes` keeps its node membership, port, and edge. Provenance and removal are out of scope for the CoyoteGame prototype (deferred, per RD-4).
+- **Idempotency is caller-side, not reducer-side:** neither a pure-add `transferMembership` step nor `addPresencePort` is safe to replay unconditionally (the former returns an `illegal` verdict on an already-present member; the latter would duplicate the port). [`containmentPopulationSteps.ts`](manipulation/containment/containmentPopulationSteps.ts) checks current state (already-fetched graphs) before emitting each of the three steps independently, so a fully-populated rerun emits nothing and commits no transaction.
+- **Must** commit every child named in one parent's update as one `commitStepSequence` call (one `MultiKeyUpdate`), not one call per child --- a separate commit per child would open a window where some children of the same cache pass are populated and others are not.
+
 ### `mtw.ephemera.actions`
 
 Positions **must** subscribe to:

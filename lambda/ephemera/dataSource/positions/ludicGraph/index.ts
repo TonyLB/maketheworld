@@ -6,7 +6,7 @@ import {
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
     EphemeraLudicGraphData,
     EphemeraLudicGraphFieldPayload,
@@ -81,7 +81,7 @@ export const nodeFromId = (id: EphemeraLudicTerminalPrimitive): EphemeraLudicGra
  */
 export class RelationalEdgeStillReferencedError extends Error {
     constructor(
-        public readonly id: EphemeraObjectId | EphemeraCharacterId,
+        public readonly id: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId,
         public readonly hostId: EphemeraMembershipHostId
     ) {
         super(`${id} still has a relational edge on host ${hostId} --- an explicit DissolveRelationStep should have run first`)
@@ -220,6 +220,22 @@ export class EphemeraLudicGraph {
         return new Set(
             this._nodes
                 .filter((node): node is { tag: 'Object'; universalKey: EphemeraObjectId } => node.tag === 'Object')
+                .map((node) => node.universalKey)
+        )
+    }
+
+    get roomIds(): Set<EphemeraRoomId> {
+        return new Set(
+            this._nodes
+                .filter((node): node is { tag: 'Room'; universalKey: EphemeraRoomId } => node.tag === 'Room')
+                .map((node) => node.universalKey)
+        )
+    }
+
+    get featureIds(): Set<EphemeraFeatureId> {
+        return new Set(
+            this._nodes
+                .filter((node): node is { tag: 'Feature'; universalKey: EphemeraFeatureId } => node.tag === 'Feature')
                 .map((node) => node.universalKey)
         )
     }
@@ -413,7 +429,73 @@ export class EphemeraLudicGraph {
         return withoutNode.withoutPlayOnlyEdgesReferencingObject(objectId)
     }
 
-    private assertNoRelationalEdgesReferencing(id: EphemeraObjectId | EphemeraCharacterId): void {
+    /**
+     * The structural half of RD-4's cache-time containment population (presenceRefactor step 3):
+     * a Room or Feature becomes a node of its parent's graph (Area-for-Room, Room-or-Feature-for-
+     * Feature) the same way an object or character becomes a node of a host it moves into ---
+     * idempotent-add, mirroring `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature
+     * node is never removed by this slice (RD-4 defers removal-on-deauthoring), but `removeRoom`/
+     * `removeFeature` are added alongside for symmetry with `removeObject`/`removeCharacter` rather
+     * than left as a half-built pair --- both idle today, since population is additive-only.
+     */
+    addRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
+        if (this.roomIds.has(roomId)) {
+            return this
+        }
+        return this.withNodes([...this._nodes, roomNode(roomId)])
+    }
+
+    removeRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
+        this.assertNoRelationalEdgesReferencing(roomId)
+        return this.withNodes(
+            this._nodes.filter((node) => !(node.tag === 'Room' && node.universalKey === roomId))
+        )
+    }
+
+    addFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
+        if (this.featureIds.has(featureId)) {
+            return this
+        }
+        return this.withNodes([...this._nodes, featureNode(featureId)])
+    }
+
+    removeFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
+        this.assertNoRelationalEdgesReferencing(featureId)
+        return this.withNodes(
+            this._nodes.filter((node) => !(node.tag === 'Feature' && node.universalKey === featureId))
+        )
+    }
+
+    /**
+     * Kind-dispatching add/remove, added alongside the four typed methods above rather than
+     * replacing them --- a caller that already knows its entity's kind (`addCharacter` in
+     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyTransferSet`) keeps
+     * using the typed form directly, since each kind's method still carries its own distinct
+     * behavior (`removeObject`'s extra play-only-edge stripping, in particular). This pair exists
+     * for the one caller that doesn't and shouldn't have to know which kind it's holding:
+     * `applyStepSequenceCore.ts`'s `transferMembership` pure-add/remove loop, which used to be
+     * four near-identical loops (one per kind) purely because nothing dispatched generically ---
+     * collapsed to one loop over `nodeIds`/`addNode`/`removeNode` instead of kept as four to spell
+     * out a distinction nothing downstream needed spelled out. Typed to
+     * `EphemeraPositionAdjacencyContainedId` (Character/Object/Feature/Room) rather than the wider
+     * `EphemeraLudicTerminalPrimitive` --- Area is a host only and never itself a member, so it has
+     * no add/remove case here (see that type's own doc comment).
+     */
+    addNode(id: EphemeraPositionAdjacencyContainedId): EphemeraLudicGraph {
+        if (isEphemeraObjectId(id)) return this.addObject(id)
+        if (isEphemeraCharacterId(id)) return this.addCharacter(id)
+        if (isEphemeraRoomId(id)) return this.addRoom(id)
+        return this.addFeature(id)
+    }
+
+    removeNode(id: EphemeraPositionAdjacencyContainedId): EphemeraLudicGraph {
+        if (isEphemeraObjectId(id)) return this.removeObject(id)
+        if (isEphemeraCharacterId(id)) return this.removeCharacter(id)
+        if (isEphemeraRoomId(id)) return this.removeRoom(id)
+        return this.removeFeature(id)
+    }
+
+    private assertNoRelationalEdgesReferencing(id: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId): void {
         if (this.relationalEdges.some((edge) => ephemeraLudicTerminalRefersTo(edge.from, id) || ephemeraLudicTerminalRefersTo(edge.to, id))) {
             throw new RelationalEdgeStillReferencedError(id, this.hostId)
         }
