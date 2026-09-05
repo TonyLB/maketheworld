@@ -55,7 +55,7 @@ describe('StandardForm', () => {
             const test = new StandardForm(testWML).finalize()
             const findRoom = test._lookup('ROOM#testRoom')
             expect(findRoom).toBeInstanceOf(StandardRoom)
-            expect((findRoom as StandardRoom).features?.toJSON()).toEqual([
+            expect((findRoom as StandardRoom).ludicGraph.nodes?.toJSON()).toEqual([
                 'FEATURE#testFeature'
             ])
         })

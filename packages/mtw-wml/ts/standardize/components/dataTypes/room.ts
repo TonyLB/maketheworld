@@ -6,6 +6,7 @@ import { FacetListData, FacetListInputData } from "../../keys/abstract"
 import { ExitPayload } from "../../keys/facets/dataTypes/facet"
 import { isSituationProseFacetPayload, type SituationProseFacetPayloadType } from "../../keys/facets/situationRoom"
 import { Override } from "../../types"
+import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 
 export type StandardRoomObjectData = {
     uuid: string;
@@ -21,7 +22,7 @@ export type StandardRoomData = {
     exits?: FacetListData<ExitPayload>;
     situations?: FacetListData<SituationProseFacetPayloadType>;
     lens?: ReferenceListData;
-    features?: ReferenceListData;
+    ludicGraph?: StandardLudicGraphData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
     /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as Objects Change ingress add row. */
@@ -70,10 +71,10 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             exits: 'facetList',
             situations: 'facetList',
             lens: 'referenceList',
-            features: 'referenceList',
             guidance: 'referenceList',
             characters: 'referenceList'
         }),
+        !('ludicGraph' in arg) || isStandardLudicGraphData(arg.ludicGraph),
         !('objects' in arg) ||
             (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData)),
         !('render' in arg) ||
@@ -96,10 +97,10 @@ export const isStandardRoomInputData = (arg: any): arg is StandardRoomInputData 
             exits: 'facetListInput',
             situations: 'facetListInput',
             lens: 'referenceList',
-            features: 'referenceList',
             guidance: 'referenceList',
             characters: 'referenceList'
         }),
+        !('ludicGraph' in arg) || isStandardLudicGraphData(arg.ludicGraph),
         !('objects' in arg) ||
             (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData)),
         !('render' in arg) ||

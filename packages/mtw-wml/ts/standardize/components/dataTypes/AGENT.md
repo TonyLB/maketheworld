@@ -101,7 +101,7 @@ Serialization format for `StandardReference` - standalone reference format. Can 
 ### **Component Data Types**
 
 #### **StandardRoomData** (`room.ts`)
-Serialization format for Room components. Contains `shortName`, `exits`, **Situation** facets (`situations`), optional **`lens`**, **`features`**, **`guidance`**, **`characters`**, optional ephemera **`render`** and **`objects`**. **No** **`examples`** property; Room prose lives on **Situation** / **`render`**, not an **`examples`** list. See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
+Serialization format for Room components. Contains `shortName`, `exits`, **Situation** facets (`situations`), optional **`lens`**, **`ludicGraph`** (`StandardLudicGraphData`, same shape Area uses — Feature-only nodes for Room today, `edges` always empty), **`guidance`**, **`characters`**, optional ephemera **`render`** and **`objects`**. **No** **`examples`** property; Room prose lives on **Situation** / **`render`**, not an **`examples`** list. See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
 
 #### **StandardFeatureData** (`feature.ts`)
 Serialization format for Feature components. Contains **`situations`** (Situation prose facets) and optional ephemera wire **`render`** (same shape as Room **`render`**). **No** **`examples`** property.

@@ -76,13 +76,13 @@ describe('applyAssetMetaFlush', () => {
                     tag: 'Room',
                     key: 'room1',
                     universalKey: ROOM_ID,
-                    features: [
+                    ludicGraph: { nodes: [
                         {
                             tag: 'Feature',
                             key: 'feature1',
                             universalKey: FEATURE_ID
                         }
-                    ]
+                    ] }
                 },
                 {
                     tag: 'Feature',

@@ -834,19 +834,21 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "features": [
-      {
-        "key": "orc",
-        "tag": "Feature",
-        "universalKey": undefined,
-      },
-      {
-        "key": "pie",
-        "tag": "Feature",
-        "universalKey": undefined,
-      },
-    ],
     "key": "chamber",
+    "ludicGraph": {
+      "nodes": [
+        {
+          "key": "orc",
+          "tag": "Feature",
+          "universalKey": undefined,
+        },
+        {
+          "key": "pie",
+          "tag": "Feature",
+          "universalKey": undefined,
+        },
+      ],
+    },
     "shortName": undefined,
     "situations": [
       {

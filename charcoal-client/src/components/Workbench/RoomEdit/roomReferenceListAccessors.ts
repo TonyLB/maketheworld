@@ -1,5 +1,6 @@
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import StandardLudicGraph from '@tonylb/mtw-wml/ts/standardize/components/ludicGraph'
 import { SituationProseFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { ReferenceListSessionAccessor } from '../foundations/ReferenceList/ReferenceListSessionEditor'
@@ -20,7 +21,7 @@ export const roomSituationsFacetAccessor: SituationFacetSessionAccessor = {
 
 type RoomReferenceListPayloadHost = {
     _guidance?: ReferenceList
-    _features?: ReferenceList
+    _ludicGraph?: StandardLudicGraph
 }
 
 export const roomGuidanceListAccessor: ReferenceListSessionAccessor<StandardRoom> = {
@@ -37,10 +38,13 @@ export const roomGuidanceListAccessor: ReferenceListSessionAccessor<StandardRoom
 export const roomFeaturesListAccessor: ReferenceListSessionAccessor<StandardRoom> = {
     getReferenceList: (room) => {
         const payload = room._payload as unknown as RoomReferenceListPayloadHost
-        return payload._features ?? new ReferenceList([])
+        return payload._ludicGraph?.nodes ?? new ReferenceList([])
     },
     setReferenceList: (room, list) => {
         const payload = room._payload as unknown as RoomReferenceListPayloadHost
-        payload._features = list
+        payload._ludicGraph = new StandardLudicGraph({
+            ...(payload._ludicGraph?.toJSON() ?? {}),
+            nodes: list.toJSON(),
+        })
     }
 }

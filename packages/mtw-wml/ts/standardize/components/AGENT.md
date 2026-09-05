@@ -122,7 +122,7 @@ A nested appearance is when a component tag (with or without content) is placed 
 </Room>
 ```
 
-- **Impact on Reference System**: Adds a reference to `Feature[fountain]` in the relevant property (such as `features`) of the parent (`Room[tavern]`).
+- **Impact on Reference System**: Adds a reference to `Feature[fountain]` in the relevant property (such as `ludicGraph.nodes`) of the parent (`Room[tavern]`).
 - **Impact on Content**: Any child tags (`ShortName`, etc.) are merged into the content of `Feature[fountain]`.
 - **Additive Merge Effect**: The reference and the new content are both merged. Thus, this single appearance simultaneously establishes a relationship and extends/overrides component data.
 
@@ -147,7 +147,7 @@ A Component's data is structured as an independent set of data fields and refere
 Each different data tag (like `ShortName`, `Description`, etc.) and each different type of reference (like `Feature`, `Character`, etc.) are stored independently within a component:
 
 - **Data Tags**: Stored in dedicated types specific to that data field. For example, `ShortName` is stored as a `StandardLiteral` type, while `Description` might be stored as a `StandardRender` type.
-- **References**: Stored in `ReferenceList` types (and related structures such as **`SingleReference`**). Each reference collection (like `features`, `characters`) is maintained separately. **Room** does **not** serialize an **`examples`** list; use **Situation** facets and ephemera **`render`** for Room prose. **Feature** and **Knowledge** use **`situations`** facet lists (**`SituationProseFacetList`**, shared prose triplet, DEFAULT-only in v1); **`examples`** are not serialized on F/K payloads.
+- **References**: Stored in `ReferenceList` types (and related structures such as **`SingleReference`**). Each reference collection (like `characters`, `guidance`) is maintained separately. Room's **`Feature`** containment lives in **`ludicGraph.nodes`** (a **`StandardLudicGraph`**, same field/type as **Area** — Area is no longer the only component with a `ludicGraph`), not a standalone `features` list. **Room** does **not** serialize an **`examples`** list; use **Situation** facets and ephemera **`render`** for Room prose. **Feature** and **Knowledge** use **`situations`** facet lists (**`SituationProseFacetList`**, shared prose triplet, DEFAULT-only in v1); **`examples`** are not serialized on F/K payloads.
 
 This independent storage means that edits to one data field or reference collection do not affect others, allowing precise, targeted modifications to component content.
 
@@ -174,7 +174,7 @@ For the mathematical properties of how edits relate to each other (the two-tuple
 - **Properties**: Contains `StandardKey` as payload, plus stored `tag`
 - **Tag Storage**: Tag is stored directly in `StandardReference`, making it self-contained
 - **Use Cases**:
-  - ReferenceList items (e.g., **`features`** / **`characters`** / **`guidance`** on Room; **`examples`** on Feature and Knowledge)
+  - ReferenceList items (e.g., **`ludicGraph.nodes`** / **`characters`** / **`guidance`** on Room; **`examples`** on Feature and Knowledge)
   - Independent schema generation (can generate schema without lookup)
   - Standalone reference operations (like `StandardLiteral` or other standalone objects)
 - **Construction Pattern**: 

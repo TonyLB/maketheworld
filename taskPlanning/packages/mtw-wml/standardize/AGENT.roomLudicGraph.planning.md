@@ -1,6 +1,6 @@
 # Room ludicGraph -- give StandardRoom a graph shape matching StandardArea
 
-**Status: Not started. Prerequisite slice for RD-4 in [`AGENT.presenceRefactor.planning.md`](../../../lambda/ephemera/dataSource/positions/AGENT.presenceRefactor.planning.md) --- Feature/Room and Feature/Feature presence-port population cannot be written until this lands.**
+**Status: Shipped 2026-09-04. Was the prerequisite slice for RD-4 in [`AGENT.presenceRefactor.planning.md`](../../../lambda/ephemera/dataSource/positions/AGENT.presenceRefactor.planning.md) --- Feature/Room and Feature/Feature presence-port population can now proceed.**
 
 This is a **standard-variant** task plan (see [`taskPlanning/AGENT.md`](../../../AGENT.md)).
 
@@ -30,12 +30,10 @@ So the runtime consumer is already waiting for `record.ludicGraph` on a Room's M
 
 ## Open decisions (implementation --- plan only)
 
-Plan-only: decisions we are making in order to implement this slice. Do not copy into package `AGENT.md`/concepts docs. When decided, record the rule in the relevant durable doc (see step 4 of Recommended order) and remove the row here.
+Both decisions below are resolved; folded into [`AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) (**StandardRoom** section) and [`dataTypes/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md) (**StandardRoomData**).
 
-| ID | Decision | Blocks | Status |
-| --- | --- | --- | --- |
-| **RLG-1** | Does `StandardRoom` reuse the full `StandardLudicGraph` type (nodes + edges), matching `StandardArea` exactly, or a nodes-only lighter type, since Room has no `<Exit>`-equivalent between Features today? | Step 2 (field shape) | **Decided 2026-09-04 (user): reuse the full type.** Runtime projection code stays untouched; does not foreclose Feature-to-Feature edges later. **Correction, same day: "edges always empty" is not a choice this slice makes --- `StandardLudicGraph._edges` is typed `ExitEdgeList` at the WML layer, so it structurally can only ever hold `Exit` edges regardless. This is unrelated to the separate `PartOf`/`In` runtime edge question --- see Non-goals and RD-4.** |
-| **RLG-2** | Field name on `StandardRoom`: `_ludicGraph`/`ludicGraph`, matching Area's naming exactly, or something Room-specific? **Recommendation: match Area's naming exactly** (`_ludicGraph` internal, `ludicGraph` on `toJSON()`/wrapper getter) --- the runtime already reads the row field by the literal name `ludicGraph` (`fromRoomMeta`), so this is close to forced, not a real fork, but recorded because a reviewer should be able to see it was checked, not assumed. | Step 2 | Open --- confirm during step 1 investigation, likely resolves itself |
+- **RLG-1** (full `StandardLudicGraph` type vs. nodes-only): reused the full type, matching `StandardArea` exactly. `edges` stays structurally empty for Room this slice (typed `ExitEdgeList`; unrelated to the separate `PartOf`/`In` runtime edge question --- see Non-goals and RD-4).
+- **RLG-2** (field naming): matches Area exactly --- `_ludicGraph`/`ludicGraph`. The `features`/`get features()` accessor was removed entirely (not kept as a compat shim); all call sites now use `.ludicGraph.nodes`.
 
 ## Recommended order
 
@@ -46,37 +44,40 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as t
   - One place **is** Area-hardcoded: `lambda/assets/componentTopology/topologyDiff.ts:56` (`component.tag === 'Area' && component instanceof StandardArea`), which reads `area.ludicGraph.edges` (Exit edges only) to compute Room-connectivity for `TopologyInvalidated`. **Investigated further and ruled out as relevant here:** `TopologyInvalidated` only feeds the affordance-catalog bump (`lambda/ephemera/dataSource/affordanceCache/handleTopologyInvalidated.ts`) --- it has no subscriber that touches `internalCache.Positions`/`projectComponentGraphFromStoredLudicGraph`. That cache reads `record.ludicGraph` straight off Dynamo on every miss (`lambda/ephemera/internalCache/ludicGraphCache.ts`), independent of any event. So **no change to `topologyDiff.ts` is needed** for Room's own `_ludicGraph` to reach the runtime read path --- `cacheAsset` writing the row is already sufficient. (`topologyDiff.ts` stays Area-only because it's answering an Area-specific question --- which Rooms does this Area's Exit graph connect --- not a generic "did some ludicGraph change" question.)
   - Runtime read side (`fromRoomMeta`/`fromPlainHostMeta`) was already confirmed generic in the earlier chat survey; re-confirmed here, no further change needed.
   - **Net effect on RLG-1/RLG-2 and step 3 scope: none.** No revisiting needed.
-- [ ] **2. Add `_ludicGraph: StandardLudicGraph` to `StandardRoomPayload`/`StandardRoom`**, per RLG-1/RLG-2, mirroring `area.ts`'s field and every method listed in Getting Started step 4. `fromSchema` routes `Feature` children (the tags currently collected into `_features`) into `_ludicGraph.nodes` instead.
-  - [ ] Constructor / clone / `fromJSON` / `toJSON`
-  - [ ] `fromSchema` (Feature-tag routing)
-  - [ ] `schema()` / `nestedSchema()`
-  - [ ] `merge()` / `invert()`
-  - [ ] `assureReferences()` / `removeReferences()` / `remapReferences()`
-  - [ ] `withChild()` / `isEmpty()` / `equals()`
-  - [ ] Remove `_features` and its `get features()` accessors once every read site is migrated (step 3) --- do not leave it as a dangling unused field.
-- [ ] **3. Migrate the ~3 production call sites off `_features`** (per the 2026-09-04 survey; re-grep to confirm the list hasn't moved):
-  - [ ] `charcoal-client/src/components/Workbench/RoomEdit/roomReferenceListAccessors.ts` (`roomFeaturesListAccessor`) --- retarget at `_ludicGraph`'s node list, or at whatever accessor shape `area.ts`'s equivalent (if any) already uses for its nodes.
-  - [ ] `charcoal-client/src/components/Workbench/RoomEdit/FeatureListEditor.tsx` --- update to the new accessor.
-  - [ ] `charcoal-client/src/lib/buildGenerationContextSubset.ts:37` --- replace `payload._features = new ReferenceList([])` with the `ludicGraph`-equivalent clear.
-  - [ ] Update the ~6 test files identified in the survey (`room.test.ts`, `component.test.ts`, `standardForm.removeComponent.test.ts`, `standardForm.finalize.test.ts`, `roomReferenceListAccessors.test.ts`, `addImportToDraft.test.ts`, `Maps/Controller/index.test.tsx:172`).
-- [ ] **4. Update durable documentation.** Per [`taskPlanning/AGENT.md`](../../../AGENT.md) governance, this is part of **done** for the slice, not a follow-up:
-  - [ ] [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) --- if it describes Room's containment fields or the `_features`/`_guidance`/`_characters` trio as a pattern, correct it to reflect Room's `ludicGraph` field and note Area is no longer the only component with one.
-  - [ ] [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) --- update Room's field list/architecture notes.
-  - [ ] [`packages/mtw-wml/ts/standardize/components/AGENT.usage.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.usage.md) --- update any Room-Feature usage examples still showing `_features`.
-  - [ ] Check [`packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md) for a Room/Area field-shape table that needs the same correction.
-  - [ ] [`charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) --- if it lists Room's Feature list as a `ReferenceList` example, correct or drop the example.
-  - [ ] **Remove RLG-1/RLG-2 from Open decisions** once decided, and fold RLG-1's verdict into whichever doc above states Room's field shape.
-  - [ ] Update [`AGENT.presenceRefactor.planning.md`](../../../lambda/ephemera/dataSource/positions/AGENT.presenceRefactor.planning.md)'s RD-4 row to note this prerequisite shipped, so RD-4 no longer needs to route around Room's missing graph.
-  - [ ] Update this plan's own **Recommended order** checkboxes and **Progress** table as the last step, after tests pass (per [`taskPlanning/AGENT.md`](../../../AGENT.md#recommended-order-checkboxes)).
+- [X] **2. Add `_ludicGraph: StandardLudicGraph` to `StandardRoomPayload`/`StandardRoom`**, per RLG-1/RLG-2, mirroring `area.ts`'s field and every method listed in Getting Started step 4. `fromSchema` routes `Feature` children (the tags previously collected into `_features`) into `_ludicGraph.nodes` instead.
+  - [X] Constructor / clone / `fromJSON` / `toJSON`
+  - [X] `fromSchema` (Feature-tag routing)
+  - [X] `schema()` / `nestedSchema()`
+  - [X] `merge()` / `invert()`
+  - [X] `assureReferences()` / `removeReferences()` / `remapReferences()`
+  - [X] `withChild()` / `isEmpty()` / `equals()`
+  - [X] Removed `_features` and its `get features()` accessors --- no dangling field; `referencedKeys()` keeps `Direct`-only for `ludicGraph.nodes` (matching the pre-existing test contract, not Area's Direct+Dependency dual emission --- tried the dual-emission mirror first, it broke `room.test.ts`'s `referencedKeys` expectations, reverted to Direct-only).
+- [X] **3. Migrate call sites off `_features`.** The actual footprint was wider than the 2026-09-04 survey's list (re-grepping surfaced more), both by field-usage (`.features`/`_features`) and by JSON-literal fixture key (`features: [...]` as `StandardRoomData`/`StandardForm` input):
+  - [X] `charcoal-client/src/components/Workbench/RoomEdit/roomReferenceListAccessors.ts` (`roomFeaturesListAccessor`) --- retargeted at `_ludicGraph.nodes`, rebuilding the `StandardLudicGraph` on write.
+  - [X] `charcoal-client/src/components/Workbench/RoomEdit/FeatureListEditor.tsx` --- no code change needed; it only consumes the accessor, whose external contract didn't change.
+  - [X] `charcoal-client/src/lib/buildGenerationContextSubset.ts` --- `payload._features = new ReferenceList([])` replaced with `payload._ludicGraph = new StandardLudicGraph()`. Left the adjacent `payload._inlineRefs = ...` line untouched --- a pre-existing bug (that field doesn't exist on `StandardRoomPayload`; `npx tsc --noEmit` in charcoal-client already flagged it before this slice) unrelated to `_features`/`ludicGraph`.
+  - [X] `charcoal-client/src/slices/personalAssets/addImportToDraft.test.ts` --- direct `_features` field reads/writes retargeted at `_ludicGraph`/`_ludicGraph.nodes`.
+  - [X] `.features`/`_features` accessor rename across `packages/mtw-wml/ts/standardize/components/room.test.ts`, `component.test.ts`, `packages/mtw-wml/ts/standardize/integration/standardForm.removeComponent.test.ts`, `standardForm.finalize.test.ts`, `charcoal-client/src/components/Maps/Controller/index.test.tsx`. `roomReferenceListAccessors.test.ts` needed no change (only calls the accessor functions).
+  - [X] `features: [...]` JSON-literal fixtures (not caught by the `.features`/`_features` grep) --- `room.test.ts` (9 occurrences), `feature.integration.test.ts`, `room.integration.test.ts`, `standardForm.construct.test.ts` (2 occurrences), `charcoal-client/.../applyWorkbenchFlush.test.ts`, `applyAssetMetaFlush.test.ts` --- rewritten as `ludicGraph: { nodes: [...] }`.
+  - [X] `ts/dungeon.test.ts`'s `StandardForm.toJSON()` snapshot updated (`features` → `ludicGraph.nodes` in the serialized shape) via `npm test -- -u`.
+- [X] **4. Update durable documentation.** Per [`taskPlanning/AGENT.md`](../../../AGENT.md) governance, this is part of **done** for the slice, not a follow-up:
+  - [X] [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) --- corrected the Room `features`/`characters`/`guidance` mentions to note Feature containment lives in `ludicGraph.nodes`; Area is no longer the only component with a `ludicGraph`.
+  - [X] [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) --- updated Room's Purpose/Reference-Properties/fromSchema bullets, the bucket-dispatch line, and the "Components with References" example.
+  - [X] [`packages/mtw-wml/ts/standardize/components/AGENT.usage.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.usage.md) --- checked, no `.features` usage example existed; no change needed.
+  - [X] [`packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md) --- **StandardRoomData** entry now lists `ludicGraph` instead of `features`.
+  - [X] [`charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md`](../../../../charcoal-client/src/components/Workbench/foundations/ReferenceList/AGENT.reference-lists.md) --- checked; it names the accessor/UI pattern ("Room Features"), not the internal field, so no change needed.
+  - [X] Removed RLG-1/RLG-2 from Open decisions, folded into `AGENT.implementation.md` and `dataTypes/AGENT.md` above.
+  - [X] Updated [`AGENT.presenceRefactor.planning.md`](../../../lambda/ephemera/dataSource/positions/AGENT.presenceRefactor.planning.md)'s RD-4 row to note this prerequisite shipped.
+  - [X] Updated this plan's own **Recommended order** checkboxes and **Progress** table (this edit).
 
 ## Progress
 
 | Phase | State |
 | --- | --- |
 | Investigation (asset-to-ephemera `ludicGraph` projection) | Done --- write path is generic, no `topologyDiff.ts` change needed |
-| `StandardRoom` field + methods | Not started |
-| Call-site migration (charcoal-client + tests) | Not started |
-| Durable doc updates | Not started |
+| `StandardRoom` field + methods | Done |
+| Call-site migration (charcoal-client + tests) | Done |
+| Durable doc updates | Done |
 
 ## Verification
 

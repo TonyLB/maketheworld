@@ -234,12 +234,12 @@ describe('StandardForm', () => {
                                     }
                                 }
                             }],
-                            features: [{
+                            ludicGraph: { nodes: [{
                                 tag: 'Feature',
                                 key: 'removedFeat',
                                 ref: -1,
                                 universalKey: undefined,
-                            }]
+                            }] }
                         },
                         {
                             tag: 'Situation',
@@ -504,7 +504,7 @@ describe('StandardForm', () => {
                             },
                             payload: { displayName: 'Vortex' }
                         }],
-                        features: ['FEATURE#004', 'FEATURE#003'],
+                        ludicGraph: { nodes: ['FEATURE#004', 'FEATURE#003'] },
                         shortName: undefined,
                     },
                     {

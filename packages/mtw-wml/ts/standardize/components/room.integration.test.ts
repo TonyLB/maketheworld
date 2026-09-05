@@ -246,7 +246,7 @@ describe('StandardRoom integration', () => {
                             },
                             payload: { description: ['One'] }
                         }],
-                        features: ['FEATURE#testLocal', 'FEATURE#testGlobal']
+                        ludicGraph: { nodes: ['FEATURE#testLocal', 'FEATURE#testGlobal'] }
                     },
                     {
                         tag: 'Feature',
